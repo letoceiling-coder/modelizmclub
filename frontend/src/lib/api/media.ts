@@ -2,7 +2,19 @@ import { api, API_BASE_URL, ApiError, getLocale, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { MediaVariantSet } from "@/lib/media/variants";
 
-export type MediaPurpose = "avatar" | "cover" | "post" | "post_video" | "review_video" | "comment" | "listing" | "chat" | "icon" | "banner" | "logo" | "dispute";
+export type MediaPurpose =
+  | "avatar"
+  | "cover"
+  | "post"
+  | "post_video"
+  | "review_video"
+  | "comment"
+  | "listing"
+  | "chat"
+  | "icon"
+  | "banner"
+  | "logo"
+  | "dispute";
 export type UploadProgress = (pct: number) => void;
 
 export interface UploadedMedia {
@@ -261,7 +273,9 @@ export function uploadMediaDeduped(
   }
   const existing = inflightUploads.get(file);
   if (existing) return existing;
-  const pending = uploadMedia(file, purpose, onProgress).finally(() => inflightUploads.delete(file));
+  const pending = uploadMedia(file, purpose, onProgress).finally(() =>
+    inflightUploads.delete(file),
+  );
   inflightUploads.set(file, pending);
   return pending;
 }

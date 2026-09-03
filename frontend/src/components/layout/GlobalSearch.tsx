@@ -30,10 +30,10 @@ export function GlobalSearch() {
   }, []);
 
   const hasAny =
-    results.users.length > 0
-    || (communitiesEnabled && results.communities.length > 0)
-    || results.ads.length > 0
-    || results.categories.length > 0;
+    results.users.length > 0 ||
+    (communitiesEnabled && results.communities.length > 0) ||
+    results.ads.length > 0 ||
+    results.categories.length > 0;
 
   const goToCatalog = () => {
     setOpen(false);
@@ -93,7 +93,10 @@ export function GlobalSearch() {
           }}
         >
           {!hasAny ? (
-            <div className="px-[14px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            <div
+              className="px-[14px] py-[14px] text-[13px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
               {loading ? t("search.searching") : t("pages.shared.nothingFound")}
             </div>
           ) : (

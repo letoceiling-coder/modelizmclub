@@ -17,14 +17,31 @@ export function DesktopTopBar() {
   const unreadMessages = useUnreadMessagesTotal();
   const { t } = useTranslation();
 
-  const iconClass = "relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]";
+  const iconClass =
+    "relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]";
   const iconStyle = { color: "var(--foreground-70)" };
 
-  const NavIcon = ({ actionKey, to, label, children }: { actionKey: string; to: string; label: string; children: ReactNode }) => (
-      <GuestGuardLink actionKey={actionKey} to={to} aria-label={label} className={iconClass} style={iconStyle}>
-        {children}
-      </GuestGuardLink>
-    );
+  const NavIcon = ({
+    actionKey,
+    to,
+    label,
+    children,
+  }: {
+    actionKey: string;
+    to: string;
+    label: string;
+    children: ReactNode;
+  }) => (
+    <GuestGuardLink
+      actionKey={actionKey}
+      to={to}
+      aria-label={label}
+      className={iconClass}
+      style={iconStyle}
+    >
+      {children}
+    </GuestGuardLink>
+  );
 
   return (
     <header
@@ -36,71 +53,83 @@ export function DesktopTopBar() {
       }}
     >
       <div className="mx-auto flex h-full w-full max-w-[var(--container-max)] items-center gap-4 px-[var(--container-pad)]">
-      <Link to={ROUTES.feed} className="flex shrink-0 items-center" aria-label={t("nav.feed")}>
-        <Logo size={36} />
-      </Link>
+        <Link to={ROUTES.feed} className="flex shrink-0 items-center" aria-label={t("nav.feed")}>
+          <Logo size={36} />
+        </Link>
 
-      <GlobalSearch />
+        <GlobalSearch />
 
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        <NavIcon actionKey="layout.nav.favorites" to={ROUTES.favorites} label={t("nav.favorites")}>
-          <SlotIcon slot="header.favorites" size={20} inheritColor />
-          {favCount > 0 && (
-            <span
-              className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
-              style={{
-                height: 15,
-                fontSize: 9,
-                fontWeight: 700,
-                color: "#fff",
-                background: "var(--accent)",
-                boxShadow: "0 0 0 2px var(--background)",
-              }}
-            >
-              {favCount > 9 ? "9+" : favCount}
-            </span>
-          )}
-        </NavIcon>
-        <NavIcon actionKey="layout.header.notifications" to={ROUTES.notifications} label={t("nav.notifications")}>
-          <span className="relative inline-flex h-5 w-5 items-center justify-center">
-            <SlotIcon slot="header.notifications" size={20} inheritColor />
-            {unread > 0 && (
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <NavIcon
+            actionKey="layout.nav.favorites"
+            to={ROUTES.favorites}
+            label={t("nav.favorites")}
+          >
+            <SlotIcon slot="header.favorites" size={20} inheritColor />
+            {favCount > 0 && (
               <span
-                className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
-              style={{
-                height: 15,
-                fontSize: 9,
-                fontWeight: 700,
-                color: "#fff",
-                background: "var(--accent)",
-                boxShadow: "0 0 0 2px var(--background)",
-              }}
-            >
-              {unread > 9 ? "9+" : unread}
-            </span>
+                className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+                style={{
+                  height: 15,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: "var(--accent)",
+                  boxShadow: "0 0 0 2px var(--background)",
+                }}
+              >
+                {favCount > 9 ? "9+" : favCount}
+              </span>
             )}
-          </span>
-        </NavIcon>
-        <NavIcon actionKey="layout.nav.messenger" to={ROUTES.messenger} label={t("nav.messenger")}>
-          <SlotIcon slot="header.messenger" size={20} inheritColor />
-          {unreadMessages > 0 && (
-            <span
-              className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
-              style={{
-                height: 15,
-                fontSize: 9,
-                fontWeight: 700,
-                color: "#fff",
-                background: "var(--accent)",
-                boxShadow: "0 0 0 2px var(--background)",
-              }}
-            >
-              {unreadMessages > 9 ? "9+" : unreadMessages}
+          </NavIcon>
+          <NavIcon
+            actionKey="layout.header.notifications"
+            to={ROUTES.notifications}
+            label={t("nav.notifications")}
+          >
+            <span className="relative inline-flex h-5 w-5 items-center justify-center">
+              <SlotIcon slot="header.notifications" size={20} inheritColor />
+              {unread > 0 && (
+                <span
+                  className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
+                  style={{
+                    height: 15,
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: "#fff",
+                    background: "var(--accent)",
+                    boxShadow: "0 0 0 2px var(--background)",
+                  }}
+                >
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
             </span>
-          )}
-        </NavIcon>
-        <UserMenu />
-      </div>
+          </NavIcon>
+          <NavIcon
+            actionKey="layout.nav.messenger"
+            to={ROUTES.messenger}
+            label={t("nav.messenger")}
+          >
+            <SlotIcon slot="header.messenger" size={20} inheritColor />
+            {unreadMessages > 0 && (
+              <span
+                className="absolute right-[6px] top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px]"
+                style={{
+                  height: 15,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: "var(--accent)",
+                  boxShadow: "0 0 0 2px var(--background)",
+                }}
+              >
+                {unreadMessages > 9 ? "9+" : unreadMessages}
+              </span>
+            )}
+          </NavIcon>
+          <UserMenu />
+        </div>
       </div>
     </header>
   );

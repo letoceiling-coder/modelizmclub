@@ -30,10 +30,7 @@ function bindConnectionWatch(e: any): void {
       const prev = states.previous ?? "";
       const connected = current === "connected";
       notify(connected);
-      if (
-        connected &&
-        (prev === "disconnected" || prev === "failed" || prev === "unavailable")
-      ) {
+      if (connected && (prev === "disconnected" || prev === "failed" || prev === "unavailable")) {
         reconnectHandlers.forEach((cb) => cb());
       }
     });
@@ -129,7 +126,10 @@ export async function getEcho(): Promise<any> {
       authorizer: (channel: { name: string }) => ({
         authorize: (
           socketId: string,
-          callback: (error: Error | null, data: { auth: string; channel_data?: string } | null) => void,
+          callback: (
+            error: Error | null,
+            data: { auth: string; channel_data?: string } | null,
+          ) => void,
         ) => {
           fetch(authUrl, {
             method: "POST",
@@ -144,9 +144,10 @@ export async function getEcho(): Promise<any> {
             }),
           })
             .then(async (res) => {
-              const data = (await res.json().catch(() => null)) as
-                | { auth?: string; channel_data?: string }
-                | null;
+              const data = (await res.json().catch(() => null)) as {
+                auth?: string;
+                channel_data?: string;
+              } | null;
               if (!res.ok || !data?.auth) {
                 callback(new Error(`Broadcast auth ${res.status}`), null);
                 return;

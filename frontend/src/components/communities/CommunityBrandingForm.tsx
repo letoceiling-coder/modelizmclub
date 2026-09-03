@@ -38,7 +38,10 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
     setBrokenAvatar(false);
   }, [community.avatarImage, community.coverImage]);
 
-  const saveBranding = async (patch: { avatar_media_uuid?: string | null; cover_media_uuid?: string | null }) => {
+  const saveBranding = async (patch: {
+    avatar_media_uuid?: string | null;
+    cover_media_uuid?: string | null;
+  }) => {
     if (isDemoMode()) {
       toast("В демо-режиме оформление сохраняется только локально");
       return community;
@@ -78,7 +81,9 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       setAvatarUrl(updated.avatarImage ?? media.url ?? "");
       setBrokenAvatar(false);
       onUpdated(updated);
-      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
+      toast.success(
+        "Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.",
+      );
     } catch {
       toast.error("Не удалось загрузить аватар");
     } finally {
@@ -94,7 +99,9 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       setAvatarUrl("");
       setBrokenAvatar(false);
       onUpdated(updated);
-      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
+      toast.success(
+        "Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.",
+      );
     } catch {
       toast.error("Не удалось удалить аватар");
     } finally {
@@ -112,7 +119,9 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       setCoverUrl(updated.coverImage ?? media.url ?? "");
       setBrokenCover(false);
       onUpdated(updated);
-      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
+      toast.success(
+        "Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.",
+      );
     } catch {
       toast.error("Не удалось загрузить обложку");
     } finally {
@@ -127,7 +136,9 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
       const updated = await saveBranding({ cover_media_uuid: null });
       setCoverUrl("");
       onUpdated(updated);
-      toast.success("Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.");
+      toast.success(
+        "Изменения отправлены на модерацию. После проверки они будут опубликованы автоматически.",
+      );
     } catch {
       toast.error("Не удалось удалить обложку");
     } finally {
@@ -142,22 +153,46 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
     <>
       <div className="space-y-4">
         <div>
-          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Аватар</div>
+          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            Аватар
+          </div>
           <div className="mt-2 flex items-center gap-3">
             <div
               className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden"
-              style={{ background: "transparent", border: "2px solid var(--border)", borderRadius: 16 }}
+              style={{
+                background: "transparent",
+                border: "2px solid var(--border)",
+                borderRadius: 16,
+              }}
             >
               {showAvatar ? (
-                <img src={avatarUrl} width={96} height={96} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />
+                <img
+                  src={avatarUrl}
+                  width={96}
+                  height={96}
+                  loading="lazy"
+                  decoding="async"
+                  alt=""
+                  className="h-full w-full object-cover"
+                  onError={() => setBrokenAvatar(true)}
+                />
               ) : (
-                <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
+                <div
+                  className="grid h-full w-full place-items-center"
+                  style={{ background: "var(--accent-soft)" }}
+                >
                   <Icon size={28} style={{ color: "var(--accent)" }} />
                 </div>
               )}
             </div>
             <div className="min-w-0">
-              <input ref={avatarInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={onAvatarFile} />
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept={PROFILE_IMAGE_ACCEPT}
+                className="hidden"
+                onChange={onAvatarFile}
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -176,16 +211,29 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
         </div>
 
         <div>
-          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Обложка</div>
+          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            Обложка
+          </div>
           <div
             className="mt-2 overflow-hidden rounded-[10px]"
             style={{
-              background: showCover ? "transparent" : "linear-gradient(135deg, var(--accent), var(--accent-muted))",
+              background: showCover
+                ? "transparent"
+                : "linear-gradient(135deg, var(--accent), var(--accent-muted))",
               border: "1px solid var(--border)",
             }}
           >
             {showCover ? (
-              <img src={coverUrl} width={1200} height={300} loading="lazy" decoding="async" alt="" className="h-24 w-full object-cover" onError={() => setBrokenCover(true)} />
+              <img
+                src={coverUrl}
+                width={1200}
+                height={300}
+                loading="lazy"
+                decoding="async"
+                alt=""
+                className="h-24 w-full object-cover"
+                onError={() => setBrokenCover(true)}
+              />
             ) : (
               <div className="grid h-24 place-items-center opacity-40">
                 <Icon size={40} color="#fff" />
@@ -193,7 +241,13 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
             )}
           </div>
           <div className="mt-2">
-            <input ref={coverInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={onCoverFile} />
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept={PROFILE_IMAGE_ACCEPT}
+              className="hidden"
+              onChange={onCoverFile}
+            />
             <Button
               type="button"
               variant="outline"

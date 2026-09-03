@@ -27,17 +27,17 @@ export async function redirectIfAuthenticated(redirectTo?: string): Promise<void
  * Skips on SSR (client-only check after hydration).
  * In demo mode every route is open — no auth redirect.
  */
-export async function requireAuth(location?: { pathname: string; search?: string | Record<string, unknown> }): Promise<void> {
+export async function requireAuth(location?: {
+  pathname: string;
+  search?: string | Record<string, unknown>;
+}): Promise<void> {
   if (typeof window === "undefined") return;
   if (isDemoMode()) return;
 
   const ok = await ensureSession();
   if (!ok) {
     const pathname = location?.pathname ?? window.location.pathname;
-    const search =
-      typeof location?.search === "string"
-        ? location.search
-        : window.location.search;
+    const search = typeof location?.search === "string" ? location.search : window.location.search;
     throw redirect({
       to: "/login",
       search: { redirect: pathname + search },

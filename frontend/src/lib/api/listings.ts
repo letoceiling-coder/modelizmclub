@@ -4,7 +4,14 @@ import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing, demoPublicProfile } from "@/lib/demo-data";
+import {
+  demoListings,
+  demoListingsFiltered,
+  demoMyListings,
+  demoListing,
+  demoAddListing,
+  demoPublicProfile,
+} from "@/lib/demo-data";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 
 import { toDisplayMedia, type MediaVariantSet } from "@/lib/media/variants";
@@ -136,7 +143,10 @@ export function mapListing(l: ApiListing): Ad {
     views: l.views_count ?? 0,
     likes: l.favorites_count ?? 0,
     promoted: Boolean(l.is_promoted),
-    createdAt: (l.published_at ?? l.created_at) ? formatDate(l.published_at ?? l.created_at ?? "", "relative") : undefined,
+    createdAt:
+      (l.published_at ?? l.created_at)
+        ? formatDate(l.published_at ?? l.created_at ?? "", "relative")
+        : undefined,
     publishedAt: l.published_at ?? l.created_at ?? undefined,
     categoryId: l.category?.id != null ? String(l.category.id) : undefined,
     subcategoryId: l.subcategory?.id != null ? String(l.subcategory.id) : undefined,
@@ -209,13 +219,17 @@ export async function fetchFavoriteListings(): Promise<Ad[]> {
 
 export async function addFavoriteListing(uuid: string): Promise<number> {
   if (isDemoMode()) return 0;
-  const res = await api<{ data: { favorites_count?: number } }>(`/listings/${uuid}/favorite`, { method: "POST" });
+  const res = await api<{ data: { favorites_count?: number } }>(`/listings/${uuid}/favorite`, {
+    method: "POST",
+  });
   return res.data?.favorites_count ?? 0;
 }
 
 export async function removeFavoriteListing(uuid: string): Promise<number> {
   if (isDemoMode()) return 0;
-  const res = await api<{ data: { favorites_count?: number } }>(`/listings/${uuid}/favorite`, { method: "DELETE" });
+  const res = await api<{ data: { favorites_count?: number } }>(`/listings/${uuid}/favorite`, {
+    method: "DELETE",
+  });
   return res.data?.favorites_count ?? 0;
 }
 
@@ -235,7 +249,7 @@ export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }
   });
   return (res.data ?? []).map((l) => ({
     ad: mapListing(l),
-    status: l.deleted_at ? "deleted" as const : mapListingStatus(l.status),
+    status: l.deleted_at ? ("deleted" as const) : mapListingStatus(l.status),
   }));
 }
 
@@ -331,7 +345,9 @@ export async function revealSellerPhone(adId: string): Promise<string> {
     if (!ad?.seller?.phone) throw new Error("no phone");
     return ad.seller.phone;
   }
-  const res = await api<{ data: { phone: string } }>(`/listings/${adId}/reveal-phone`, { method: "POST" });
+  const res = await api<{ data: { phone: string } }>(`/listings/${adId}/reveal-phone`, {
+    method: "POST",
+  });
   return res.data.phone;
 }
 

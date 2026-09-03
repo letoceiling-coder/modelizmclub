@@ -38,7 +38,11 @@ export function defaultScheduleDateTime(): { date: string; time: string } {
 }
 
 /** Build API payload: local datetime string + IANA timezone. */
-export function buildSchedulePayload(date: string, time: string, timezone: string): {
+export function buildSchedulePayload(
+  date: string,
+  time: string,
+  timezone: string,
+): {
   scheduled_at_local: string;
   timezone: string;
 } {

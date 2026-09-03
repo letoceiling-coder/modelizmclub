@@ -13,7 +13,9 @@ function readRecent(): string[] {
     const raw = window.localStorage.getItem(RECENT_KEY);
     const parsed = raw ? (JSON.parse(raw) as unknown) : [];
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((x): x is string => typeof x === "string" && x.trim().length >= 3).slice(0, MAX_RECENT);
+    return parsed
+      .filter((x): x is string => typeof x === "string" && x.trim().length >= 3)
+      .slice(0, MAX_RECENT);
   } catch {
     return [];
   }
@@ -61,7 +63,12 @@ export function PickupAddressField({ value, onChange, city, error, placeholder }
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>(() => readRecent());
   const [active, setActive] = useState(-1);
-  const [pos, setPos] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -154,8 +161,13 @@ export function PickupAddressField({ value, onChange, city, error, placeholder }
     if (!q) return true;
     return r.toLowerCase().includes(q);
   });
-  const shownItems = items.filter((label) => !shownRecent.includes(label) && label !== value.trim());
-  const options = [...shownRecent.map((label) => ({ kind: "recent" as const, label })), ...shownItems.map((label) => ({ kind: "suggest" as const, label }))];
+  const shownItems = items.filter(
+    (label) => !shownRecent.includes(label) && label !== value.trim(),
+  );
+  const options = [
+    ...shownRecent.map((label) => ({ kind: "recent" as const, label })),
+    ...shownItems.map((label) => ({ kind: "suggest" as const, label })),
+  ];
   const hasList = open && (options.length > 0 || loading);
 
   const pick = (label: string) => {
@@ -207,87 +219,107 @@ export function PickupAddressField({ value, onChange, city, error, placeholder }
           onKeyDown={onKeyDown}
         />
       </div>
-      {hasList && pos && typeof document !== "undefined" && createPortal(
-        <div
-          ref={listRef}
-          role="listbox"
-          className="fixed z-[1000] overflow-y-auto overscroll-contain"
-          style={{
-            left: pos.left,
-            top: pos.top,
-            width: pos.width,
-            maxHeight: pos.maxHeight,
-            background: "var(--background-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-card)",
-            boxShadow: "var(--shadow-float)",
-          }}
-        >
-          {shownRecent.length > 0 && (
-            <div>
-              <div className="px-[12px] pt-[8px] pb-[4px] text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
-                Недавние
-              </div>
-              {shownRecent.map((label) => {
-                const idx = options.findIndex((o) => o.kind === "recent" && o.label === label);
-                return (
-                  <button
-                    key={`recent-${label}`}
-                    type="button"
-                    role="option"
-                    aria-selected={idx === active}
-                    className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] hover:bg-[var(--background-surface)]"
-                    style={{
-                      color: "var(--foreground)",
-                      background: idx === active ? "var(--background-surface)" : undefined,
-                    }}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pick(label)}
-                  >
-                    <MapPin className="h-[14px] w-[14px] shrink-0" style={{ color: "var(--foreground-50)" }} />
-                    <span>{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {(shownItems.length > 0 || loading) && (
-            <div>
-              {shownRecent.length > 0 && <div className="border-t" style={{ borderColor: "var(--border)" }} />}
-              <div className="px-[12px] pt-[8px] pb-[4px] text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
-                Подсказки
-              </div>
-              {loading && shownItems.length === 0 && (
-                <div className="px-[12px] py-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                  Ищем адреса…
+      {hasList &&
+        pos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={listRef}
+            role="listbox"
+            className="fixed z-[1000] overflow-y-auto overscroll-contain"
+            style={{
+              left: pos.left,
+              top: pos.top,
+              width: pos.width,
+              maxHeight: pos.maxHeight,
+              background: "var(--background-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-card)",
+              boxShadow: "var(--shadow-float)",
+            }}
+          >
+            {shownRecent.length > 0 && (
+              <div>
+                <div
+                  className="px-[12px] pt-[8px] pb-[4px] text-[11px] font-semibold uppercase tracking-wide"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  Недавние
                 </div>
-              )}
-              {shownItems.map((label) => {
-                const idx = options.findIndex((o) => o.kind === "suggest" && o.label === label);
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    role="option"
-                    aria-selected={idx === active}
-                    className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] hover:bg-[var(--background-surface)]"
-                    style={{
-                      color: "var(--foreground)",
-                      background: idx === active ? "var(--background-surface)" : undefined,
-                    }}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pick(label)}
+                {shownRecent.map((label) => {
+                  const idx = options.findIndex((o) => o.kind === "recent" && o.label === label);
+                  return (
+                    <button
+                      key={`recent-${label}`}
+                      type="button"
+                      role="option"
+                      aria-selected={idx === active}
+                      className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] hover:bg-[var(--background-surface)]"
+                      style={{
+                        color: "var(--foreground)",
+                        background: idx === active ? "var(--background-surface)" : undefined,
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pick(label)}
+                    >
+                      <MapPin
+                        className="h-[14px] w-[14px] shrink-0"
+                        style={{ color: "var(--foreground-50)" }}
+                      />
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {(shownItems.length > 0 || loading) && (
+              <div>
+                {shownRecent.length > 0 && (
+                  <div className="border-t" style={{ borderColor: "var(--border)" }} />
+                )}
+                <div
+                  className="px-[12px] pt-[8px] pb-[4px] text-[11px] font-semibold uppercase tracking-wide"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  Подсказки
+                </div>
+                {loading && shownItems.length === 0 && (
+                  <div
+                    className="px-[12px] py-[8px] text-[12px]"
+                    style={{ color: "var(--foreground-50)" }}
                   >
-                    <MapPin className="h-[14px] w-[14px] shrink-0" style={{ color: "var(--accent)" }} />
-                    <span>{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>,
-        document.body,
-      )}
+                    Ищем адреса…
+                  </div>
+                )}
+                {shownItems.map((label) => {
+                  const idx = options.findIndex((o) => o.kind === "suggest" && o.label === label);
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      role="option"
+                      aria-selected={idx === active}
+                      className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] hover:bg-[var(--background-surface)]"
+                      style={{
+                        color: "var(--foreground)",
+                        background: idx === active ? "var(--background-surface)" : undefined,
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pick(label)}
+                    >
+                      <MapPin
+                        className="h-[14px] w-[14px] shrink-0"
+                        style={{ color: "var(--accent)" }}
+                      />
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

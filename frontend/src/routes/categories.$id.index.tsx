@@ -64,7 +64,9 @@ function CategoryRoomsPage() {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          {categories.length === 0 ? t("pages.categoryDetail.loading") : t("pages.categoryDetail.notFound")}
+          {categories.length === 0
+            ? t("pages.categoryDetail.loading")
+            : t("pages.categoryDetail.notFound")}
         </p>
       </AppLayout>
     );
@@ -73,7 +75,12 @@ function CategoryRoomsPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="space-y-[14px]">
-        <Breadcrumbs items={[{ label: t("pages.categoryDetail.breadcrumbs"), to: "/categories" }, { label: c.name }]} />
+        <Breadcrumbs
+          items={[
+            { label: t("pages.categoryDetail.breadcrumbs"), to: "/categories" },
+            { label: c.name },
+          ]}
+        />
         <header
           className="rounded-[var(--r-card)] border p-[16px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
@@ -116,7 +123,10 @@ function CategoryRoomsPage() {
             className="flex items-center gap-[10px] rounded-[10px] border px-[12px] py-[8px]"
             style={{ background: "var(--background-surface)", borderColor: "var(--border)" }}
           >
-            <Search className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--foreground-50)" }} />
+            <Search
+              className="h-[16px] w-[16px] shrink-0"
+              style={{ color: "var(--foreground-50)" }}
+            />
             <input
               type="text"
               value={query}
@@ -160,10 +170,15 @@ function CategoryRoomsPage() {
               const online = onlineForSubcategory(roomStats, s.id);
               const members = membersForSubcategory(roomStats, s.id);
               const adsCount = 0;
-              const previewKey = ROOM_PREVIEW_KEYS[(seedFrom(c.id + s.id) + i) % ROOM_PREVIEW_KEYS.length];
+              const previewKey =
+                ROOM_PREVIEW_KEYS[(seedFrom(c.id + s.id) + i) % ROOM_PREVIEW_KEYS.length];
               const preview = t(`pages.categoryDetail.${previewKey}`);
               return (
-                <li key={s.id} className="border-t first:border-t-0" style={{ borderColor: "var(--border)" }}>
+                <li
+                  key={s.id}
+                  className="border-t first:border-t-0"
+                  style={{ borderColor: "var(--border)" }}
+                >
                   <Link
                     to="/categories/$id/$subId"
                     params={{ id: c.id, subId: s.id }}
@@ -212,7 +227,8 @@ function CategoryRoomsPage() {
                           <Tag className="h-[11px] w-[11px]" /> {adsCount}
                         </span>
                         <span className="inline-flex items-center gap-[3px]">
-                          <MessageCircle className="h-[11px] w-[11px]" /> {t("pages.categoryDetail.chatLabel")}
+                          <MessageCircle className="h-[11px] w-[11px]" />{" "}
+                          {t("pages.categoryDetail.chatLabel")}
                         </span>
                       </div>
                     </div>
@@ -225,7 +241,10 @@ function CategoryRoomsPage() {
               );
             })}
             {filteredSubs.length === 0 && (
-              <li className="px-[16px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              <li
+                className="px-[16px] py-[24px] text-center text-[13px]"
+                style={{ color: "var(--foreground-50)" }}
+              >
                 {t("pages.categoryDetail.noResults", { query })}
               </li>
             )}
@@ -235,7 +254,6 @@ function CategoryRoomsPage() {
         <p className="px-[4px] text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
           {t("pages.categoryDetail.footerNote")}
         </p>
-
       </div>
     </AppLayout>
   );

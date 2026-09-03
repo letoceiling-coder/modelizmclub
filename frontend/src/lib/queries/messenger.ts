@@ -44,7 +44,12 @@ export function messagesQuery(qc: QueryClient, conversationUuid: string) {
 // ---------- pure helpers (ported from the store reducer, no state of their own) ----------
 
 function preview(m: Message): string {
-  return m.text || (m.voice ? "🎤 Голосовое сообщение" : "") || (m.image ? "📷 Изображение" : "") || (m.file ? m.file.name : "");
+  return (
+    m.text ||
+    (m.voice ? "🎤 Голосовое сообщение" : "") ||
+    (m.image ? "📷 Изображение" : "") ||
+    (m.file ? m.file.name : "")
+  );
 }
 
 function preserveMessageMedia(prev: Message, next: Message): Message {
@@ -75,7 +80,11 @@ export function mergeMessages(current: Message[], incoming: Message[]): Message[
     return prev ? preserveMessageMedia(prev, m) : m;
   });
   for (const m of current) {
-    if (String(m.id).startsWith("tmp") && !incomingIds.has(m.id) && !incoming.some((x) => isOptimisticTwin(m, x))) {
+    if (
+      String(m.id).startsWith("tmp") &&
+      !incomingIds.has(m.id) &&
+      !incoming.some((x) => isOptimisticTwin(m, x))
+    ) {
       merged.push(m);
     }
   }
@@ -100,7 +109,11 @@ function dedupeByPartner(dialogs: Dialog[]): Dialog[] {
 // ---------- cache updaters: realtime, mutations and dialogs write here, never to a store ----------
 
 /** Replace the list, keeping a currently open dialog a poll page happened to omit. */
-export function setDialogsInCache(qc: QueryClient, dialogs: Dialog[], keepIds: string[] = []): void {
+export function setDialogsInCache(
+  qc: QueryClient,
+  dialogs: Dialog[],
+  keepIds: string[] = [],
+): void {
   qc.setQueryData<Dialog[]>(qk.conversations, (prev) => {
     const next = dedupeByPartner(dialogs);
     const have = new Set(next.map((d) => d.id));
@@ -115,17 +128,23 @@ export function restoreDialogInCache(qc: QueryClient, dialog: Dialog): void {
   qc.setQueryData<Dialog[]>(qk.conversations, (prev) => {
     const list = prev ?? [];
     const i = list.findIndex((d) => d.id === dialog.id);
-    if (i >= 0) return [...list.slice(0, i), { ...list[i], ...dialog, messages: [] }, ...list.slice(i + 1)];
+    if (i >= 0)
+      return [...list.slice(0, i), { ...list[i], ...dialog, messages: [] }, ...list.slice(i + 1)];
     return [{ ...dialog, messages: [] }, ...list];
   });
 }
 
 export function removeDialogFromCache(qc: QueryClient, conversationUuid: string): void {
-  qc.setQueryData<Dialog[]>(qk.conversations, (prev) => prev?.filter((d) => d.id !== conversationUuid));
+  qc.setQueryData<Dialog[]>(qk.conversations, (prev) =>
+    prev?.filter((d) => d.id !== conversationUuid),
+  );
   qc.removeQueries({ queryKey: qk.messages(conversationUuid) });
 }
 
-export function findDialogByPartnerInCache(qc: QueryClient, partnerUuid: string): Dialog | undefined {
+export function findDialogByPartnerInCache(
+  qc: QueryClient,
+  partnerUuid: string,
+): Dialog | undefined {
   return qc.getQueryData<Dialog[]>(qk.conversations)?.find((d) => d.userId === partnerUuid);
 }
 
@@ -145,7 +164,11 @@ export function addMessageToCache(
     if (list.some((m) => m.id === message.id)) return list;
     const twin = list.find((m) => isOptimisticTwin(m, message));
     if (twin) {
-      return list.map((m) => (m.id === twin.id ? { ...preserveMessageMedia(m, message), clientKey: m.clientKey ?? twin.id } : m));
+      return list.map((m) =>
+        m.id === twin.id
+          ? { ...preserveMessageMedia(m, message), clientKey: m.clientKey ?? twin.id }
+          : m,
+      );
     }
     added = true;
     return [...list, message];
@@ -157,23 +180,45 @@ export function addMessageToCache(
     const i = prev.findIndex((d) => d.id === conversationUuid);
     if (i < 0) return prev;
     const cur = prev[i];
-    const updated: Dialog = { ...cur, lastMessage: preview(message), time: message.time, unread: shouldUnread ? (cur.unread ?? 0) + 1 : cur.unread };
+    const updated: Dialog = {
+      ...cur,
+      lastMessage: preview(message),
+      time: message.time,
+      unread: shouldUnread ? (cur.unread ?? 0) + 1 : cur.unread,
+    };
     return [updated, ...prev.filter((_, idx) => idx !== i)];
   });
 }
 
 /** Swap the optimistic (tmp) message for the server one; media the server has not echoed back yet is kept. */
-export function replaceMessageInCache(qc: QueryClient, conversationUuid: string, tempId: string, saved: Message): void {
+export function replaceMessageInCache(
+  qc: QueryClient,
+  conversationUuid: string,
+  tempId: string,
+  saved: Message,
+): void {
   qc.setQueryData<Message[]>(qk.messages(conversationUuid), (prev) => {
     const list = prev ?? [];
     const temp = list.find((m) => m.id === tempId);
     const normalized = temp ? preserveMessageMedia(temp, saved) : saved;
     if (!temp) return [...list.filter((m) => m.id !== normalized.id), normalized];
-    return list.map((m) => (m.id === tempId ? { ...normalized, clientKey: m.clientKey ?? tempId, imageSize: normalized.imageSize ?? m.imageSize } : m));
+    return list.map((m) =>
+      m.id === tempId
+        ? {
+            ...normalized,
+            clientKey: m.clientKey ?? tempId,
+            imageSize: normalized.imageSize ?? m.imageSize,
+          }
+        : m,
+    );
   });
 }
 
-export function removeMessageFromCache(qc: QueryClient, conversationUuid: string, messageId: string): void {
+export function removeMessageFromCache(
+  qc: QueryClient,
+  conversationUuid: string,
+  messageId: string,
+): void {
   let last: Message | undefined;
   qc.setQueryData<Message[]>(qk.messages(conversationUuid), (prev) => {
     const next = (prev ?? []).filter((m) => m.id !== messageId);
@@ -181,16 +226,30 @@ export function removeMessageFromCache(qc: QueryClient, conversationUuid: string
     return next;
   });
   qc.setQueryData<Dialog[]>(qk.conversations, (prev) =>
-    prev?.map((d) => (d.id === conversationUuid ? { ...d, lastMessage: last ? preview(last) : "", time: last?.time ?? d.time } : d)),
+    prev?.map((d) =>
+      d.id === conversationUuid
+        ? { ...d, lastMessage: last ? preview(last) : "", time: last?.time ?? d.time }
+        : d,
+    ),
   );
 }
 
-export function setMessagesInCache(qc: QueryClient, conversationUuid: string, messages: Message[]): void {
+export function setMessagesInCache(
+  qc: QueryClient,
+  conversationUuid: string,
+  messages: Message[],
+): void {
   qc.setQueryData<Message[]>(qk.messages(conversationUuid), messages);
 }
 
-export function mergeMessagesInCache(qc: QueryClient, conversationUuid: string, incoming: Message[]): void {
-  qc.setQueryData<Message[]>(qk.messages(conversationUuid), (prev) => (prev ? mergeMessages(prev, incoming) : incoming));
+export function mergeMessagesInCache(
+  qc: QueryClient,
+  conversationUuid: string,
+  incoming: Message[],
+): void {
+  qc.setQueryData<Message[]>(qk.messages(conversationUuid), (prev) =>
+    prev ? mergeMessages(prev, incoming) : incoming,
+  );
 }
 
 export function markConversationReadInCache(qc: QueryClient, conversationUuid: string): void {

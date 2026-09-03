@@ -52,7 +52,11 @@ function DiagPage() {
         <p className="mt-2 text-sm" style={{ color: "var(--foreground-70)" }}>
           Страница диагностики доступна только администраторам.
         </p>
-        <Link to="/" className="mt-6 inline-block text-sm underline" style={{ color: "var(--accent)" }}>
+        <Link
+          to="/"
+          className="mt-6 inline-block text-sm underline"
+          style={{ color: "var(--accent)" }}
+        >
           На главную
         </Link>
       </div>
@@ -66,10 +70,14 @@ function DiagPage() {
         Состояние сервисов. Секреты не показываются.
       </p>
       {error ? (
-        <p className="mt-6 text-sm" style={{ color: "var(--danger)" }}>{error}</p>
+        <p className="mt-6 text-sm" style={{ color: "var(--danger)" }}>
+          {error}
+        </p>
       ) : null}
       {!data && !error ? (
-        <p className="mt-6 text-sm" style={{ color: "var(--foreground-50)" }}>Загрузка…</p>
+        <p className="mt-6 text-sm" style={{ color: "var(--foreground-50)" }}>
+          Загрузка…
+        </p>
       ) : null}
       {data ? (
         <div className="mt-8 space-y-6">

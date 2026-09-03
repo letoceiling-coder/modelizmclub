@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { getToken } from "@/lib/api/client";
 import { useCurrentUser, useSessionResolved } from "@/lib/session";
@@ -54,10 +63,7 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
   const { sub, loading: subLoading } = useMySubscription();
   const isGuest = !getToken() || (sessionReady && isAnonymousUser(me));
   const needsPhone =
-    !isDemoMode() &&
-    !isGuest &&
-    isPhoneVerificationRequired(me) &&
-    !isPhoneVerified(me);
+    !isDemoMode() && !isGuest && isPhoneVerificationRequired(me) && !isPhoneVerified(me);
   const needsSubscription =
     !isDemoMode() &&
     !isGuest &&
@@ -65,7 +71,9 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     !isStaffUser(me) &&
     !subLoading &&
     sub?.is_active !== true;
-  const [config, setConfig] = useState<FeedGuestAccessConfig | null>(() => getFeedGuestAccessSync());
+  const [config, setConfig] = useState<FeedGuestAccessConfig | null>(() =>
+    getFeedGuestAccessSync(),
+  );
   const [loading, setLoading] = useState(() => !getFeedGuestAccessSync());
   const [authOpen, setAuthOpen] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -87,9 +95,14 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
       });
     }
     const unsub = subscribeFeedGuestAccess(() => {
-      void loadFeedGuestAccess().then((c) => { if (alive) setConfig(c); });
+      void loadFeedGuestAccess().then((c) => {
+        if (alive) setConfig(c);
+      });
     });
-    return () => { alive = false; unsub(); };
+    return () => {
+      alive = false;
+      unsub();
+    };
   }, []);
 
   useEffect(() => {
@@ -238,7 +251,17 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
       }
       denySubscription(actionKey);
     },
-    [isAllowed, isGuest, needsPhone, subLoading, config, openPhoneGate, userTier, denyGuest, denySubscription],
+    [
+      isAllowed,
+      isGuest,
+      needsPhone,
+      subLoading,
+      config,
+      openPhoneGate,
+      userTier,
+      denyGuest,
+      denySubscription,
+    ],
   );
 
   useEffect(() => {
@@ -250,7 +273,10 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
         pending.onAllowed();
       } else if (isGuest) {
         denyGuest(pending.actionKey ?? "");
-      } else if (pending.actionKey && resolveMinTier(pending.actionKey, config) === "subscription") {
+      } else if (
+        pending.actionKey &&
+        resolveMinTier(pending.actionKey, config) === "subscription"
+      ) {
         denySubscription(pending.actionKey);
       } else if (needsPhone) {
         openPhoneGate();
@@ -262,9 +288,21 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
       pendingPaywallEvent.current = false;
       if (needsSubscription) openPaywall();
     }
-  }, [subLoading, needsPhone, needsSubscription, openPaywall, openPhoneGate, isAllowed, isGuest, config, denyGuest, denySubscription]);
+  }, [
+    subLoading,
+    needsPhone,
+    needsSubscription,
+    openPaywall,
+    openPhoneGate,
+    isAllowed,
+    isGuest,
+    config,
+    denyGuest,
+    denySubscription,
+  ]);
 
-  const ready = !loading && (isGuest || isDemoMode() || isStaffUser(me) || !getToken() || sessionReady);
+  const ready =
+    !loading && (isGuest || isDemoMode() || isStaffUser(me) || !getToken() || sessionReady);
 
   const value = useMemo(
     () => ({
@@ -280,7 +318,19 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
       requireLogin,
       requirePremium,
     }),
-    [config, loading, ready, isGuest, needsPhone, needsSubscription, isAllowed, guardAction, requireAccount, requireLogin, requirePremium],
+    [
+      config,
+      loading,
+      ready,
+      isGuest,
+      needsPhone,
+      needsSubscription,
+      isAllowed,
+      guardAction,
+      requireAccount,
+      requireLogin,
+      requirePremium,
+    ],
   );
 
   return (

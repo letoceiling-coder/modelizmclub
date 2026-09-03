@@ -44,7 +44,10 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     setBrokenBanner(false);
   }, [channel.avatarImage, channel.bannerImage]);
 
-  const saveBranding = async (patch: { avatar_media_uuid?: string | null; banner_media_uuid?: string | null }) => {
+  const saveBranding = async (patch: {
+    avatar_media_uuid?: string | null;
+    banner_media_uuid?: string | null;
+  }) => {
     if (isDemoMode()) {
       toast(t("components.channelBranding.demoLocalOnly"));
       return channel;
@@ -59,7 +62,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     try {
       setPendingAvatar(await prepareProfileImageFile(file));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"),
+      );
     }
   };
 
@@ -70,7 +75,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     try {
       setPendingBanner(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"),
+      );
     }
   };
 
@@ -145,7 +152,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
     <>
       <div className="space-y-4">
         <div>
-          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelBranding.avatarLabel")}</div>
+          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelBranding.avatarLabel")}
+          </div>
           <div className="mt-2 flex items-center gap-3">
             <Avatar
               className="h-16 w-16"
@@ -155,7 +164,9 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
                 background: avatarUrl ? "transparent" : channel.avatarColor,
               }}
             >
-              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="h-full w-full object-cover" /> : null}
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : null}
               <AvatarFallback
                 className="font-display text-[22px] font-bold text-white"
                 style={{ background: channel.avatarColor, borderRadius: 14 }}
@@ -164,7 +175,13 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <input ref={avatarInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={onAvatarFile} />
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept={PROFILE_IMAGE_ACCEPT}
+                className="hidden"
+                onChange={onAvatarFile}
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -173,7 +190,10 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
                 disabled={avatarUploading}
                 onClick={() => avatarInputRef.current?.click()}
               >
-                <Camera size={14} /> {avatarUploading ? t("components.channelBranding.uploading") : t("components.channelBranding.changeAvatar")}
+                <Camera size={14} />{" "}
+                {avatarUploading
+                  ? t("components.channelBranding.uploading")
+                  : t("components.channelBranding.changeAvatar")}
               </Button>
               <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
                 {t("components.channelBranding.avatarHint")}
@@ -183,21 +203,44 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
         </div>
 
         <div>
-          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelBranding.bannerLabel")}</div>
+          <div className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelBranding.bannerLabel")}
+          </div>
           <div
             className="mt-2 overflow-hidden rounded-[10px]"
-            style={{ background: showBanner ? "transparent" : channel.bannerColor, border: "1px solid var(--border)" }}
+            style={{
+              background: showBanner ? "transparent" : channel.bannerColor,
+              border: "1px solid var(--border)",
+            }}
           >
             {showBanner ? (
-              <img src={bannerUrl} width={1200} height={300} loading="lazy" decoding="async" alt="" className="h-24 w-full object-cover" onError={() => setBrokenBanner(true)} />
+              <img
+                src={bannerUrl}
+                width={1200}
+                height={300}
+                loading="lazy"
+                decoding="async"
+                alt=""
+                className="h-24 w-full object-cover"
+                onError={() => setBrokenBanner(true)}
+              />
             ) : (
-              <div className="grid h-24 place-items-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              <div
+                className="grid h-24 place-items-center text-[12px]"
+                style={{ color: "var(--foreground-50)" }}
+              >
                 {t("components.channelBranding.bannerNotUploaded")}
               </div>
             )}
           </div>
           <div className="mt-2">
-            <input ref={bannerInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={onBannerFile} />
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept={PROFILE_IMAGE_ACCEPT}
+              className="hidden"
+              onChange={onBannerFile}
+            />
             <Button
               type="button"
               variant="outline"
@@ -206,7 +249,10 @@ export function ChannelBrandingForm({ channel, onUpdated }: Props) {
               disabled={bannerUploading}
               onClick={() => bannerInputRef.current?.click()}
             >
-              <Camera size={14} /> {bannerUploading ? t("components.channelBranding.uploading") : t("components.channelBranding.changeBanner")}
+              <Camera size={14} />{" "}
+              {bannerUploading
+                ? t("components.channelBranding.uploading")
+                : t("components.channelBranding.changeBanner")}
             </Button>
             <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
               {t("components.channelBranding.bannerHint")}

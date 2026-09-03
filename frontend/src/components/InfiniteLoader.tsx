@@ -41,7 +41,9 @@ export function InfiniteLoader({ onLoad, hasMore, isLoading }: Props) {
           >
             <Loader2 size={20} />
           </motion.div>
-          <span className="text-[14px]" style={{ fontWeight: 500 }}>Загрузка…</span>
+          <span className="text-[14px]" style={{ fontWeight: 500 }}>
+            Загрузка…
+          </span>
         </div>
       ) : (
         <button

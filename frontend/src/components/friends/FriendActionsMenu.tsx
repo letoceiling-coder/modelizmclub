@@ -12,7 +12,14 @@ interface Props {
   onBlock: () => void;
 }
 
-export function FriendActionsMenu({ isFriend, onViewProfile, onRemoveFriend, onHide, onReport, onBlock }: Props) {
+export function FriendActionsMenu({
+  isFriend,
+  onViewProfile,
+  onRemoveFriend,
+  onHide,
+  onReport,
+  onBlock,
+}: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;

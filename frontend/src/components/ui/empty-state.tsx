@@ -75,10 +75,7 @@ export function EmptyState({
 
       <div>
         <h3
-          className={cn(
-            "font-semibold",
-            isCompact ? "text-[15px]" : "text-[18px]",
-          )}
+          className={cn("font-semibold", isCompact ? "text-[15px]" : "text-[18px]")}
           style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
         >
           {title}

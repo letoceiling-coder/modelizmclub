@@ -66,7 +66,11 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
         onClick={onClose}
         aria-label="Закрыть"
         className={`${CONTROL} h-[44px] w-[44px]`}
-        style={{ ...CONTROL_BG, top: "max(12px, env(safe-area-inset-top))", right: "max(12px, env(safe-area-inset-right))" }}
+        style={{
+          ...CONTROL_BG,
+          top: "max(12px, env(safe-area-inset-top))",
+          right: "max(12px, env(safe-area-inset-right))",
+        }}
       >
         <X className="h-[20px] w-[20px]" />
       </button>
@@ -80,10 +84,17 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
         </div>
       )}
 
-      <div className="h-full w-full overflow-hidden" ref={viewportRef} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="h-full w-full overflow-hidden"
+        ref={viewportRef}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex h-full">
           {images.map((src, i) => (
-            <div key={`${src}-${i}`} className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]">
+            <div
+              key={`${src}-${i}`}
+              className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]"
+            >
               <img
                 src={src}
                 width={1600}

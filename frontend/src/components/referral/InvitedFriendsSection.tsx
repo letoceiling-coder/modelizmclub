@@ -81,11 +81,14 @@ export function InvitedFriendsSection() {
                   }}
                 >
                   <img
-                    src={u.avatar ?? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.displayName)}
+                    src={
+                      u.avatar ??
+                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.displayName)}
                     width={40}
                     height={40}
                     loading="lazy"
-                    decoding="async"`}
+                    decoding="async"`
+                    }
                     alt=""
                     className="h-[40px] w-[40px] rounded-full object-cover"
                   />
@@ -105,7 +108,10 @@ export function InvitedFriendsSection() {
                     style={{
                       fontSize: 12,
                       color: inv.status === "completed" ? "var(--success)" : "var(--foreground-70)",
-                      background: inv.status === "completed" ? "var(--success-soft)" : "var(--background-surface)",
+                      background:
+                        inv.status === "completed"
+                          ? "var(--success-soft)"
+                          : "var(--background-surface)",
                       padding: "4px 10px",
                       borderRadius: "var(--r-pill)",
                     }}

@@ -4,11 +4,20 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { VideoCategory } from "@/lib/mock";
-import { fetchVideoCategories, fetchVideoTags, scheduleVideo, uploadVideo } from "@/lib/api/reviews";
+import {
+  fetchVideoCategories,
+  fetchVideoTags,
+  scheduleVideo,
+  uploadVideo,
+} from "@/lib/api/reviews";
 import { TagInput } from "@/components/reviews/TagInput";
 import { fetchAdminVideo, updateAdminVideo } from "@/lib/api/admin";
 import { PostSchedulePicker, useInitialScheduleState } from "@/components/feed/PostSchedulePicker";
-import { buildSchedulePayload, isScheduleDateTimeValid, type PublishMode } from "@/lib/post-schedule";
+import {
+  buildSchedulePayload,
+  isScheduleDateTimeValid,
+  type PublishMode,
+} from "@/lib/post-schedule";
 import { uploadMedia, uploadMediaDeduped, validateReviewVideoFile } from "@/lib/api/media";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
@@ -65,7 +74,10 @@ function UploadPage() {
     let alive = true;
     ensureSession().then((ok) => {
       if (!alive) return;
-      if (!ok) { navigate({ to: "/login" }); return; }
+      if (!ok) {
+        navigate({ to: "/login" });
+        return;
+      }
       const me = getSessionUser();
       setAccess(me.isAdmin ? "granted" : "forbidden");
     });
@@ -76,8 +88,12 @@ function UploadPage() {
         if (!editUuid) setCategoryId(c[0]?.id ?? "");
       })
       .catch(() => {});
-    fetchVideoTags().then((list) => setTagSuggestions(list)).catch(() => {});
-    return () => { alive = false; };
+    fetchVideoTags()
+      .then((list) => setTagSuggestions(list))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, [navigate, editUuid]);
 
   useEffect(() => {
@@ -98,20 +114,34 @@ function UploadPage() {
       .catch(() => {
         if (alive) toast.error(t("pages.reviews.loadEditFailed"));
       })
-      .finally(() => { if (alive) setLoadingEdit(false); });
-    return () => { alive = false; };
+      .finally(() => {
+        if (alive) setLoadingEdit(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [editUuid, access, t, categories]);
   const pickVideo = (f: File) => {
     const err = validateReviewVideoFile(f);
-    if (err) { toast.error(err); return; }
+    if (err) {
+      toast.error(err);
+      return;
+    }
     setVideoFile(f);
     setVideoUrl(URL.createObjectURL(f));
     setVideoProgress(0);
-    void uploadMediaDeduped(f, "review_video", setVideoProgress).catch(() => setVideoProgress(null));
+    void uploadMediaDeduped(f, "review_video", setVideoProgress).catch(() =>
+      setVideoProgress(null),
+    );
   };
-  const pickPoster = (f: File) => { setPosterFile(f); setPosterUrl(URL.createObjectURL(f)); };
+  const pickPoster = (f: File) => {
+    setPosterFile(f);
+    setPosterUrl(URL.createObjectURL(f));
+  };
   const replacePoster = (blob: Blob) => {
-    const newFile = new File([blob], posterFile?.name ?? "poster.jpg", { type: blob.type || "image/jpeg" });
+    const newFile = new File([blob], posterFile?.name ?? "poster.jpg", {
+      type: blob.type || "image/jpeg",
+    });
     if (posterUrl?.startsWith("blob:")) URL.revokeObjectURL(posterUrl);
     setPosterFile(newFile);
     setPosterUrl(URL.createObjectURL(newFile));
@@ -123,12 +153,17 @@ function UploadPage() {
     if (!valid || submitting) return;
     if (videoFile) {
       const err = validateReviewVideoFile(videoFile);
-      if (err) { toast.error(err); return; }
+      if (err) {
+        toast.error(err);
+        return;
+      }
     }
     setSubmitting(true);
     try {
       if (isEditMode && editUuid) {
-        const videoMedia = videoFile ? await uploadMediaDeduped(videoFile, "review_video", setVideoProgress) : null;
+        const videoMedia = videoFile
+          ? await uploadMediaDeduped(videoFile, "review_video", setVideoProgress)
+          : null;
         const posterMedia = posterFile ? await uploadMedia(posterFile, "post") : null;
         await updateAdminVideo(editUuid, {
           title: title.trim(),
@@ -164,7 +199,10 @@ function UploadPage() {
           setSubmitting(false);
           return;
         }
-        await scheduleVideo(video.id, buildSchedulePayload(scheduleDate, scheduleTime, scheduleTimezone));
+        await scheduleVideo(
+          video.id,
+          buildSchedulePayload(scheduleDate, scheduleTime, scheduleTimezone),
+        );
         toast.success(t("components.createPostForm.scheduled"));
       } else {
         toast.success(t("pages.reviews.published"));
@@ -176,13 +214,27 @@ function UploadPage() {
     }
   };
   if (access === "checking" || loadingEdit) {
-    return <AppLayout rightColumn={false}><div className="py-[60px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.reviews.checkingAccess")}</div></AppLayout>;
-  }  if (access === "forbidden") {
+    return (
+      <AppLayout rightColumn={false}>
+        <div
+          className="py-[60px] text-center text-[14px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
+          {t("pages.reviews.checkingAccess")}
+        </div>
+      </AppLayout>
+    );
+  }
+  if (access === "forbidden") {
     return (
       <AppLayout rightColumn={false}>
         <div className="mx-auto max-w-[480px] py-[60px] text-center">
-          <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.reviews.accessDenied")}</h1>
-          <p className="mt-[8px] text-[14px]" style={{ color: "var(--foreground-70)" }}>{t("pages.reviews.accessDeniedDesc")}</p>
+          <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>
+            {t("pages.reviews.accessDenied")}
+          </h1>
+          <p className="mt-[8px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
+            {t("pages.reviews.accessDeniedDesc")}
+          </p>
         </div>
       </AppLayout>
     );
@@ -191,13 +243,20 @@ function UploadPage() {
   return (
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex max-w-[720px] flex-col gap-[16px] py-[8px]">
-        <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+        <h1
+          className="font-display text-[24px] font-bold"
+          style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+        >
           {isEditMode ? t("pages.reviews.editReview") : t("pages.reviews.newReview")}
         </h1>
         <VideoUploadField
           fileUrl={videoUrl}
           onPick={pickVideo}
-          onClear={() => { setVideoFile(null); setVideoUrl(null); setVideoProgress(null); }}
+          onClear={() => {
+            setVideoFile(null);
+            setVideoUrl(null);
+            setVideoProgress(null);
+          }}
           accept="video/*"
           label={t("pages.reviews.uploadVideo")}
           progress={videoProgress}
@@ -205,7 +264,10 @@ function UploadPage() {
         <VideoUploadField
           fileUrl={posterUrl}
           onPick={pickPoster}
-          onClear={() => { setPosterFile(null); setPosterUrl(null); }}
+          onClear={() => {
+            setPosterFile(null);
+            setPosterUrl(null);
+          }}
           onEdit={() => setEditingPoster(true)}
           accept="image/*"
           label={t("pages.reviews.uploadPoster")}
@@ -218,20 +280,53 @@ function UploadPage() {
           lockAspect
           safeZonePreset="review-cover"
           onCancel={() => setEditingPoster(false)}
-          onSave={(blob) => { replacePoster(blob); setEditingPoster(false); }}
+          onSave={(blob) => {
+            replacePoster(blob);
+            setEditingPoster(false);
+          }}
         />
-
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("pages.reviews.titlePlaceholder")} />
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("pages.reviews.descriptionPlaceholder")} rows={4} />
-        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full text-[14px] outline-none" style={{ background: "var(--background-elevated)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "var(--r-input)", height: 44, padding: "0 12px" }}>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t("pages.reviews.titlePlaceholder")}
+        />
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={t("pages.reviews.descriptionPlaceholder")}
+          rows={4}
+        />
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="w-full text-[14px] outline-none"
+          style={{
+            background: "var(--background-elevated)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-input)",
+            height: 44,
+            padding: "0 12px",
+          }}
+        >
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
         </select>
         <TagInput tags={tags} onChange={setTags} suggestions={tagSuggestions} />
         <label className="flex items-center gap-[8px] cursor-pointer" style={{ height: 36 }}>
-          <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} />
-          <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>{t("pages.reviews.featuredCarousel")}</span>
+          <input
+            type="checkbox"
+            checked={isFeatured}
+            onChange={(e) => setIsFeatured(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+          />
+          <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
+            {t("pages.reviews.featuredCarousel")}
+          </span>
         </label>
-
         {!isEditMode && (
           <PostSchedulePicker
             mode={publishMode}
@@ -245,8 +340,13 @@ function UploadPage() {
             disabled={submitting}
           />
         )}
-
-        <Button onClick={submit} disabled={!valid} loading={submitting} size="lg" className="rounded-[var(--r-button)]">
+        <Button
+          onClick={submit}
+          disabled={!valid}
+          loading={submitting}
+          size="lg"
+          className="rounded-[var(--r-button)]"
+        >
           {submitting
             ? t("pages.reviews.publishing")
             : isEditMode
@@ -254,7 +354,8 @@ function UploadPage() {
               : publishMode === "schedule"
                 ? t("components.createPostForm.scheduleSubmit")
                 : t("pages.reviews.publish")}
-        </Button>      </div>
+        </Button>{" "}
+      </div>
     </AppLayout>
   );
 }

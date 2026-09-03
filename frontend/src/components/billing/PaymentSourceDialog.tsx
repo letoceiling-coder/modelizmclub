@@ -47,7 +47,13 @@ export function PaymentSourceDialog({
   const walletCovers = balanceKnown && balanceKopecks >= Math.round(amountRub * 100);
   const balanceRub = (balanceKopecks ?? 0) / 100;
 
-  const option = (value: PayWith, icon: React.ReactNode, label: string, hint?: string, disabled?: boolean) => (
+  const option = (
+    value: PayWith,
+    icon: React.ReactNode,
+    label: string,
+    hint?: string,
+    disabled?: boolean,
+  ) => (
     <button
       type="button"
       disabled={disabled}
@@ -58,19 +64,34 @@ export function PaymentSourceDialog({
         background: source === value ? "var(--accent-soft)" : "transparent",
       }}
     >
-      <span className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}>
+      <span
+        className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
+        style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
+      >
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{label}</span>
-        {hint && <span className="block text-[12px]" style={{ color: disabled ? "var(--danger)" : "var(--foreground-50)" }}>{hint}</span>}
+        <span className="block text-[14px] font-medium" style={{ color: "var(--foreground)" }}>
+          {label}
+        </span>
+        {hint && (
+          <span
+            className="block text-[12px]"
+            style={{ color: disabled ? "var(--danger)" : "var(--foreground-50)" }}
+          >
+            {hint}
+          </span>
+        )}
       </span>
     </button>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[400px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+      <DialogContent
+        className="max-w-[400px]"
+        style={{ background: "var(--background)", borderColor: "var(--border)" }}
+      >
         <DialogHeader>
           <DialogTitle>{t("pages.subscription.payChooseTitle")}</DialogTitle>
         </DialogHeader>
@@ -80,7 +101,9 @@ export function PaymentSourceDialog({
             <WalletIcon size={18} />,
             t("pages.subscription.payWithWallet"),
             walletCovers
-              ? t("pages.subscription.payWalletBalance", { balance: balanceRub.toLocaleString("ru-RU") })
+              ? t("pages.subscription.payWalletBalance", {
+                  balance: balanceRub.toLocaleString("ru-RU"),
+                })
               : balanceKnown
                 ? t("pages.subscription.payInsufficientBalance")
                 : undefined,
@@ -102,7 +125,13 @@ export function PaymentSourceDialog({
               {t("pages.subscription.payWalletTopup")}
             </Button>
           )}
-          <Button onClick={() => { onOpenChange(false); onSelect(source); }} className="w-full">
+          <Button
+            onClick={() => {
+              onOpenChange(false);
+              onSelect(source);
+            }}
+            className="w-full"
+          >
             {t("pages.subscription.payContinue")}
           </Button>
         </DialogFooter>

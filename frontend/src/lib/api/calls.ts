@@ -45,7 +45,10 @@ export async function sendIce(uuid: string, candidate: RTCIceCandidateInit): Pro
   await api(`/calls/${uuid}/ice`, { method: "POST", json: { candidate } });
 }
 
-export async function rejectCall(uuid: string, reason: "declined" | "busy" = "declined"): Promise<void> {
+export async function rejectCall(
+  uuid: string,
+  reason: "declined" | "busy" = "declined",
+): Promise<void> {
   await api(`/calls/${uuid}/reject`, { method: "POST", json: { reason } });
 }
 

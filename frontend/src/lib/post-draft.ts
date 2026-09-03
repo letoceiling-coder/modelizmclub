@@ -26,7 +26,9 @@ export interface PersistedPostDraft {
   savedAt: number;
 }
 
-export function isDraftMeaningful(d: Pick<PersistedPostDraft, "title" | "text" | "photos">): boolean {
+export function isDraftMeaningful(
+  d: Pick<PersistedPostDraft, "title" | "text" | "photos">,
+): boolean {
   return Boolean(d.title.trim() || d.text.trim() || d.photos.length > 0);
 }
 

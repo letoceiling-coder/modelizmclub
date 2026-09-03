@@ -16,12 +16,7 @@ import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer";
 
 /**
  * Compact mobile header — brand on the left, max two context actions
@@ -37,74 +32,78 @@ export function MobileHeader() {
   return (
     <>
       <header
-      className="lg:hidden sticky top-0 z-30"
-      style={{
-        paddingTop: "var(--safe-top)",
-        background: "color-mix(in oklab, var(--background) 92%, transparent)",
-        backdropFilter: "saturate(180%) blur(12px)",
-        WebkitBackdropFilter: "saturate(180%) blur(12px)",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      <div
-        className="flex items-center justify-between gap-2 px-4"
-        style={{ height: "var(--mobile-header-h)" }}
+        className="lg:hidden sticky top-0 z-30"
+        style={{
+          paddingTop: "var(--safe-top)",
+          background: "color-mix(in oklab, var(--background) 92%, transparent)",
+          backdropFilter: "saturate(180%) blur(12px)",
+          WebkitBackdropFilter: "saturate(180%) blur(12px)",
+          borderBottom: "1px solid var(--border)",
+        }}
       >
-        <Link to="/feed" className="inline-flex min-w-0 items-center" aria-label={t("pages.homeLink")}>
-          <Logo size={34} />
-        </Link>
-
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            aria-label={t("common.search")}
-            onClick={() => guardAction("layout.header.search", () => setSearchOpen(true))}
-            className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: "var(--foreground-70)" }}
+        <div
+          className="flex items-center justify-between gap-2 px-4"
+          style={{ height: "var(--mobile-header-h)" }}
+        >
+          <Link
+            to="/feed"
+            className="inline-flex min-w-0 items-center"
+            aria-label={t("pages.homeLink")}
           >
-            <Search size={20} />
-          </button>
+            <Logo size={34} />
+          </Link>
 
-          <GuestGuardLink
-            actionKey="layout.nav.favorites"
-            to={ROUTES.favorites}
-            aria-label={t("nav.favorites")}
-            className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            <Heart size={20} />
-          </GuestGuardLink>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              aria-label={t("common.search")}
+              onClick={() => guardAction("layout.header.search", () => setSearchOpen(true))}
+              className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+              style={{ color: "var(--foreground-70)" }}
+            >
+              <Search size={20} />
+            </button>
 
-          <GuestGuardLink
-            actionKey="layout.header.notifications"
-            to={ROUTES.notifications}
-            aria-label={t("nav.notifications")}
-            className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            <span className="relative inline-flex">
-              <Bell size={20} />
-              {unread > 0 && (
-                <span
-                  className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
-                  style={{
-                    height: 15,
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: "#fff",
-                    background: "var(--accent)",
-                    boxShadow: "0 0 0 2px var(--background)",
-                  }}
-                >
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
-            </span>
-          </GuestGuardLink>
+            <GuestGuardLink
+              actionKey="layout.nav.favorites"
+              to={ROUTES.favorites}
+              aria-label={t("nav.favorites")}
+              className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+              style={{ color: "var(--foreground-70)" }}
+            >
+              <Heart size={20} />
+            </GuestGuardLink>
 
-          <MoreMenu />
+            <GuestGuardLink
+              actionKey="layout.header.notifications"
+              to={ROUTES.notifications}
+              aria-label={t("nav.notifications")}
+              className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+              style={{ color: "var(--foreground-70)" }}
+            >
+              <span className="relative inline-flex">
+                <Bell size={20} />
+                {unread > 0 && (
+                  <span
+                    className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
+                    style={{
+                      height: 15,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: "#fff",
+                      background: "var(--accent)",
+                      boxShadow: "0 0 0 2px var(--background)",
+                    }}
+                  >
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </span>
+            </GuestGuardLink>
+
+            <MoreMenu />
+          </div>
         </div>
-      </div>
       </header>
       <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
@@ -120,7 +119,9 @@ function MoreMenu() {
   const isGuest = useCurrentUser().id === "guest";
 
   // Dev-time guarantee that every section is reachable on mobile (no-op in prod).
-  useEffect(() => { assertMobileNavCoverage(); }, []);
+  useEffect(() => {
+    assertMobileNavCoverage();
+  }, []);
 
   const flags = { reviewsEnabled, communitiesEnabled, marketEnabled } as const;
   const visible = MOBILE_MENU_SECTIONS.filter(
@@ -146,7 +147,15 @@ function MoreMenu() {
     );
     if (s.href) {
       return (
-        <a key={s.key} href={s.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={rowClass} style={{ color: "var(--foreground)" }}>
+        <a
+          key={s.key}
+          href={s.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => setOpen(false)}
+          className={rowClass}
+          style={{ color: "var(--foreground)" }}
+        >
           {inner}
         </a>
       );
@@ -167,7 +176,13 @@ function MoreMenu() {
       );
     }
     return (
-      <Link key={s.key} to={s.to!} onClick={() => setOpen(false)} className={rowClass} style={{ color: "var(--foreground)" }}>
+      <Link
+        key={s.key}
+        to={s.to!}
+        onClick={() => setOpen(false)}
+        className={rowClass}
+        style={{ color: "var(--foreground)" }}
+      >
         {inner}
       </Link>
     );

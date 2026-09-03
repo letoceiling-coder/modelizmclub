@@ -50,17 +50,19 @@ export interface ApiMessage {
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
   forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
-  attachments?: Array<{ media?: {
-    uuid?: string | null;
-    url?: string | null;
-    mime_type?: string | null;
-    duration?: number | null;
-    filename?: string | null;
-    size_bytes?: number | null;
-    width?: number | null;
-    height?: number | null;
-    variants?: MediaVariantSet;
-  } | null }>;
+  attachments?: Array<{
+    media?: {
+      uuid?: string | null;
+      url?: string | null;
+      mime_type?: string | null;
+      duration?: number | null;
+      filename?: string | null;
+      size_bytes?: number | null;
+      width?: number | null;
+      height?: number | null;
+      variants?: MediaVariantSet;
+    } | null;
+  }>;
   created_at: string;
 }
 
@@ -130,7 +132,10 @@ function mapMessageStatus(raw?: string | null): Message["status"] {
   return "sent";
 }
 
-function resolveMediaUrl(media?: { url?: string | null; uuid?: string | null; variants?: MediaVariantSet } | null, variant: "card" | "large" | "thumb" = "card"): string | undefined {
+function resolveMediaUrl(
+  media?: { url?: string | null; uuid?: string | null; variants?: MediaVariantSet } | null,
+  variant: "card" | "large" | "thumb" = "card",
+): string | undefined {
   if (!media) return undefined;
   const slot = media.variants?.[variant] ?? media.variants?.card ?? media.variants?.thumb;
   if (slot?.webp) return slot.webp;
@@ -174,7 +179,8 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
   const nonAudio = media.filter((x) => x !== audio);
 
   if (msgType === "image") {
-    const imageMedia = nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/")) ?? nonAudio[0];
+    const imageMedia =
+      nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/")) ?? nonAudio[0];
     const imageUrl = resolveMediaUrl(imageMedia);
     if (imageUrl) {
       base.image = imageUrl;
@@ -228,15 +234,13 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
 }
 
 export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
-  const other = (c.participants ?? [])
-    .map((p) => p.user)
-    .find((u) => u && u.uuid !== meUuid);
+  const other = (c.participants ?? []).map((p) => p.user).find((u) => u && u.uuid !== meUuid);
   const partner = registerCompact(other);
   const isCommunity = c.type === "community";
   const isRoom = c.type === "room";
   const dialog: Dialog = {
     id: c.uuid,
-    userId: isCommunity || isRoom ? "" : partner?.id ?? "",
+    userId: isCommunity || isRoom ? "" : (partner?.id ?? ""),
     lastMessage: c.last_message?.body ?? "",
     time: c.last_message_at ?? c.last_message?.created_at ?? "",
     unread: Math.max(0, c.unread_count ?? 0),
@@ -244,12 +248,20 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
     pinned: Boolean(c.is_pinned),
     listing: c.listing ? mapListingCompact(c.listing) : undefined,
     type: (c.type as Dialog["type"]) ?? "direct",
-    title: isCommunity ? (c.community?.name ?? c.title ?? "Сообщество") : isRoom ? (c.title ?? "Чат направления") : undefined,
+    title: isCommunity
+      ? (c.community?.name ?? c.title ?? "Сообщество")
+      : isRoom
+        ? (c.title ?? "Чат направления")
+        : undefined,
     avatar: isCommunity ? (c.community?.avatar ?? undefined) : undefined,
     communitySlug: c.community?.slug,
-    room: isRoom && c.room?.category_id
-      ? { categoryId: String(c.room.category_id), rootId: c.room.root_id ? String(c.room.root_id) : null }
-      : undefined,
+    room:
+      isRoom && c.room?.category_id
+        ? {
+            categoryId: String(c.room.category_id),
+            rootId: c.room.root_id ? String(c.room.root_id) : null,
+          }
+        : undefined,
   };
   return dialog;
 }
@@ -279,12 +291,12 @@ export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
   if (isDemoMode()) return demoConversations();
   const [chats, communities, rooms] = await Promise.all([
     api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50 } }),
-    api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50, space: "communities" } }).catch(
-      () => ({ data: [] as ApiConversation[] }),
-    ),
-    api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50, space: "rooms" } }).catch(
-      () => ({ data: [] as ApiConversation[] }),
-    ),
+    api<Paginated<ApiConversation>>("/conversations", {
+      query: { per_page: 50, space: "communities" },
+    }).catch(() => ({ data: [] as ApiConversation[] })),
+    api<Paginated<ApiConversation>>("/conversations", {
+      query: { per_page: 50, space: "rooms" },
+    }).catch(() => ({ data: [] as ApiConversation[] })),
   ]);
   const merged = [...(chats.data ?? []), ...(communities.data ?? []), ...(rooms.data ?? [])];
   return dedupeDialogsByPartner(merged.map((c) => mapConversation(c, meUuid)));
@@ -463,7 +475,14 @@ export async function navigateToPartnerChat(
   }
 
   if (isDemoMode()) {
-    const demo = messengerCache.findByPartner(partner.id) ?? { id: `d_${partner.id}`, userId: partner.id, lastMessage: "", time: new Date().toISOString(), unread: 0, messages: [] };
+    const demo = messengerCache.findByPartner(partner.id) ?? {
+      id: `d_${partner.id}`,
+      userId: partner.id,
+      lastMessage: "",
+      time: new Date().toISOString(),
+      unread: 0,
+      messages: [],
+    };
     messengerCache.restoreDialog(demo);
     navigate({ to: "/messenger", search: { chat: demo.id } });
     return;
@@ -514,14 +533,22 @@ export async function sendAttachmentMessage(
   return mapMessage(res.data);
 }
 
-export async function hideMessageForMe(conversationUuid: string, messageUuid: string): Promise<void> {
+export async function hideMessageForMe(
+  conversationUuid: string,
+  messageUuid: string,
+): Promise<void> {
   if (isDemoMode()) return;
   await api(`/conversations/${conversationUuid}/messages/${messageUuid}`, { method: "DELETE" });
 }
 
-export async function deleteMessageForEveryone(conversationUuid: string, messageUuid: string): Promise<void> {
+export async function deleteMessageForEveryone(
+  conversationUuid: string,
+  messageUuid: string,
+): Promise<void> {
   if (isDemoMode()) return;
-  await api(`/conversations/${conversationUuid}/messages/${messageUuid}/everyone`, { method: "DELETE" });
+  await api(`/conversations/${conversationUuid}/messages/${messageUuid}/everyone`, {
+    method: "DELETE",
+  });
 }
 
 export async function clearConversationHistory(conversationUuid: string): Promise<void> {

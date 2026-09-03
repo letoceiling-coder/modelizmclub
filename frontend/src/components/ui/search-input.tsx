@@ -13,9 +13,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
   ({ className, value, onClear, ...props }, ref) => {
     return (
       <div className="relative w-full">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--neutral-400)]"
-        />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--neutral-400)]" />
         <Input
           ref={ref}
           type="search"

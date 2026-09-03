@@ -26,9 +26,7 @@ interface Props {
 
 function shareMessage(payload: ShareLinkPayload): string {
   const prefix =
-    payload.kind === "channel" ? "Канал" :
-    payload.kind === "post" ? "Публикация" :
-    "Сообщество";
+    payload.kind === "channel" ? "Канал" : payload.kind === "post" ? "Публикация" : "Сообщество";
   return `🔗 ${prefix}: ${payload.title}\n${payload.url}`;
 }
 
@@ -63,7 +61,14 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
     if (existing) return existing.id;
 
     if (isDemoMode()) {
-      const demo = { id: `d_${partnerId}`, userId: partnerId, lastMessage: "", time: new Date().toISOString(), unread: 0, messages: [] };
+      const demo = {
+        id: `d_${partnerId}`,
+        userId: partnerId,
+        lastMessage: "",
+        time: new Date().toISOString(),
+        unread: 0,
+        messages: [],
+      };
       messengerCache.restoreDialog(demo);
       return demo.id;
     }
@@ -80,7 +85,9 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
   const sendTo = async (partnerId: string) => {
     if (!payload || sending) return;
     let allowed = false;
-    requirePremium(() => { allowed = true; });
+    requirePremium(() => {
+      allowed = true;
+    });
     if (!allowed) return;
     setSending(true);
     const partner = userById(partnerId);
@@ -141,8 +148,15 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
                 boxShadow: "var(--shadow-float)",
               }}
             >
-              <div className="flex items-center gap-[8px] border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
-                <h3 id="share-link-title" className="flex-1 font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>
+              <div
+                className="flex items-center gap-[8px] border-b px-[16px] py-[12px]"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <h3
+                  id="share-link-title"
+                  className="flex-1 font-display text-[16px] font-bold"
+                  style={{ color: "var(--foreground)" }}
+                >
                   Кому отправить
                 </h3>
                 <button
@@ -156,7 +170,10 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
                 </button>
               </div>
 
-              <p className="border-b px-[16px] py-[10px] text-[12px] leading-relaxed" style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}>
+              <p
+                className="border-b px-[16px] py-[10px] text-[12px] leading-relaxed"
+                style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}
+              >
                 {payload.title}
               </p>
 
@@ -167,15 +184,23 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
                 className="flex w-full items-center gap-[12px] border-b px-[16px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)] disabled:opacity-60"
                 style={{ borderColor: "var(--border)" }}
               >
-                <span className="grid h-9 w-9 place-items-center rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+                <span
+                  className="grid h-9 w-9 place-items-center rounded-full"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
                   <Plus size={16} />
                 </span>
-                <span className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>Найти пользователя</span>
+                <span className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  Найти пользователя
+                </span>
               </button>
 
               <ul className="max-h-[360px] overflow-y-auto py-[8px]">
                 {dialogs.length === 0 ? (
-                  <li className="px-[20px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                  <li
+                    className="px-[20px] py-[24px] text-center text-[13px]"
+                    style={{ color: "var(--foreground-50)" }}
+                  >
                     Нет диалогов. Найдите пользователя или начните переписку.
                   </li>
                 ) : (
@@ -189,8 +214,19 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
                           onClick={() => void sendTo(d.userId)}
                           className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)] disabled:opacity-60"
                         >
-                          <img src={u.avatar} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
-                          <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                          <img
+                            src={u.avatar}
+                            width={36}
+                            height={36}
+                            loading="lazy"
+                            decoding="async"
+                            alt=""
+                            className="h-[36px] w-[36px] rounded-full object-cover"
+                          />
+                          <span
+                            className="truncate text-[14px] font-semibold"
+                            style={{ color: "var(--foreground)" }}
+                          >
                             {u.name}
                           </span>
                         </button>

@@ -1,7 +1,11 @@
 import type { Comment } from "@/lib/mock";
 
 /** Insert a reply into the root thread even when `parentId` is a nested reply. */
-export function appendToCommentThread(list: Comment[], parentId: string, comment: Comment): Comment[] {
+export function appendToCommentThread(
+  list: Comment[],
+  parentId: string,
+  comment: Comment,
+): Comment[] {
   if (list.some((c) => c.id === parentId)) {
     return list.map((c) =>
       c.id === parentId ? { ...c, replies: [...(c.replies ?? []), comment] } : c,
@@ -20,7 +24,6 @@ export function removeFromCommentThread(list: Comment[], id: string): Comment[] 
     .filter((c) => c.id !== id)
     .map((c) => ({ ...c, replies: (c.replies ?? []).filter((r) => r.id !== id) }));
 }
-
 
 export function replaceInCommentThread(
   list: Comment[],

@@ -3,7 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
-import { fetchListing, fetchListings, addFavoriteListing, removeFavoriteListing, archiveListing, deleteListing } from "@/lib/api/listings";
+import {
+  fetchListing,
+  fetchListings,
+  addFavoriteListing,
+  removeFavoriteListing,
+  archiveListing,
+  deleteListing,
+} from "@/lib/api/listings";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
@@ -42,15 +49,24 @@ export const Route = createFileRoute("/ads/$id")({
 
 type LoadState = "loading" | "ok" | "notFound" | "error";
 
-function formatDeliveryChoice(choice: string, tr: (key: string, opts?: Record<string, string>) => string): string {
+function formatDeliveryChoice(
+  choice: string,
+  tr: (key: string, opts?: Record<string, string>) => string,
+): string {
   const lower = choice.toLowerCase();
-  if (lower.includes("сдэк") || lower.includes("cdek")) return tr("pages.adDetail.deliveryCdek", { choice });
+  if (lower.includes("сдэк") || lower.includes("cdek"))
+    return tr("pages.adDetail.deliveryCdek", { choice });
   if (lower.includes("почт")) return tr("pages.adDetail.deliveryPost", { choice });
-  if (lower.includes("самовывоз") || lower.includes("встреч")) return tr("pages.adDetail.deliveryPickup", { choice });
+  if (lower.includes("самовывоз") || lower.includes("встреч"))
+    return tr("pages.adDetail.deliveryPickup", { choice });
   return tr("pages.adDetail.deliveryGeneric", { choice });
 }
 
-function buildSellerIntroMessage(ad: Ad, tr: (key: string, opts?: Record<string, string>) => string, deliveryNote?: string | null): string {
+function buildSellerIntroMessage(
+  ad: Ad,
+  tr: (key: string, opts?: Record<string, string>) => string,
+  deliveryNote?: string | null,
+): string {
   const intro = tr("pages.adDetail.sellerIntro", { title: ad.title });
   return deliveryNote ? `${intro}\n\n${deliveryNote}` : intro;
 }
@@ -78,8 +94,12 @@ function buildSellerIntroMessage(ad: Ad, tr: (key: string, opts?: Record<string,
  */
 function pickSimilar(list: Ad[], current: Ad): Ad[] {
   const pool = list.filter((x) => x.id !== current.id);
-  const tier1 = pool.filter((x) => x.category === current.category && x.subcategory === current.subcategory);
-  const tier2 = pool.filter((x) => x.category === current.category && x.subcategory !== current.subcategory);
+  const tier1 = pool.filter(
+    (x) => x.category === current.category && x.subcategory === current.subcategory,
+  );
+  const tier2 = pool.filter(
+    (x) => x.category === current.category && x.subcategory !== current.subcategory,
+  );
   const tier3 = pool.filter((x) => x.category !== current.category);
 
   const picked: Ad[] = [];
@@ -272,7 +292,10 @@ function AdDetailPage() {
             return;
           }
         }
-        toast.success(saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"), { id: "favorite-toggle" });
+        toast.success(
+          saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"),
+          { id: "favorite-toggle" },
+        );
       })();
     });
   };
@@ -280,11 +303,10 @@ function AdDetailPage() {
   const hasDelivery = ad.delivery.length > 0;
 
   const isOwner = Boolean(
-    me && (
-      (ad.authorId && me.id === ad.authorId)
-      || (ad.seller?.id && me.id === ad.seller.id)
-      || (ad.seller?.numericId != null && me.numericId === ad.seller.numericId)
-    ),
+    me &&
+    ((ad.authorId && me.id === ad.authorId) ||
+      (ad.seller?.id && me.id === ad.seller.id) ||
+      (ad.seller?.numericId != null && me.numericId === ad.seller.numericId)),
   );
   const showBuyerUi = !isOwner || previewAsBuyer;
 
@@ -320,12 +342,16 @@ function AdDetailPage() {
 
   return (
     <AppLayout rightColumn={false} footer>
-      <div
-        className="mx-auto max-w-[1100px] pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0"
-      >
+      <div className="mx-auto max-w-[1100px] pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0">
         {/* Breadcrumbs */}
-        <nav className="mb-[16px] flex flex-wrap items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          <Link to="/ads" className="inline-flex items-center gap-[4px] transition-colors hover:text-[var(--foreground)]">
+        <nav
+          className="mb-[16px] flex flex-wrap items-center gap-[6px] text-[12px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
+          <Link
+            to="/ads"
+            className="inline-flex items-center gap-[4px] transition-colors hover:text-[var(--foreground)]"
+          >
             <ChevronLeft size={14} /> {t("pages.adDetail.listingsBreadcrumb")}
           </Link>
           {ad.category && (
@@ -352,9 +378,7 @@ function AdDetailPage() {
             then price/actions/ask-seller, then the rest — matching where
             Avito puts title+price on its mobile listing page, just above
             the description, rather than only in the fixed bottom bar. */}
-        <div
-          className="grid gap-[16px] lg:grid-cols-[1fr_360px] lg:items-start lg:gap-[24px] [grid-template-areas:'gallery'_'actions'_'content'] lg:[grid-template-areas:'gallery_actions'_'content_actions']"
-        >
+        <div className="grid gap-[16px] lg:grid-cols-[1fr_360px] lg:items-start lg:gap-[24px] [grid-template-areas:'gallery'_'actions'_'content'] lg:[grid-template-areas:'gallery_actions'_'content_actions']">
           <div className="min-w-0 [grid-area:gallery]">
             <AdGallery images={images} alt={ad.title} reserved={ad.reserved} />
           </div>
@@ -365,7 +389,12 @@ function AdDetailPage() {
                 <AlertTitle>{t("pages.adDetail.previewModeTitle")}</AlertTitle>
                 <AlertDescription className="flex flex-col gap-[8px]">
                   <span>{t("pages.adDetail.previewModeDesc")}</span>
-                  <Button size="sm" variant="outline" className="w-fit" onClick={() => setPreviewAsBuyer(false)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-fit"
+                    onClick={() => setPreviewAsBuyer(false)}
+                  >
                     {t("pages.adDetail.previewModeExit")}
                   </Button>
                 </AlertDescription>
@@ -395,7 +424,6 @@ function AdDetailPage() {
           </div>
 
           <div className="flex min-w-0 flex-col gap-[16px] [grid-area:content] lg:gap-[20px]">
-
             {/* Description */}
             <Card
               className="p-[16px] sm:p-[20px]"
@@ -406,15 +434,27 @@ function AdDetailPage() {
                 boxShadow: "var(--shadow-card)",
               }}
             >
-              <h2 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+              <h2
+                className="font-display text-[16px] font-bold"
+                style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+              >
                 {t("pages.adDetail.descriptionHeading")}
               </h2>
-              <p className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.55]" style={{ color: "var(--foreground-90)" }}>
+              <p
+                className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.55]"
+                style={{ color: "var(--foreground-90)" }}
+              >
                 {ad.description ?? t("pages.adDetail.noDescription")}
               </p>
 
-              <div className="mt-[14px] grid gap-[10px] sm:grid-cols-3" style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                <Spec label={t("pages.adDetail.specCategory")} value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"} />
+              <div
+                className="mt-[14px] grid gap-[10px] sm:grid-cols-3"
+                style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}
+              >
+                <Spec
+                  label={t("pages.adDetail.specCategory")}
+                  value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"}
+                />
                 <Spec label={t("pages.adDetail.specCondition")} value={ad.condition ?? "—"} />
                 <Spec label={t("pages.adDetail.specCity")} value={ad.city || "—"} />
               </div>
@@ -431,7 +471,10 @@ function AdDetailPage() {
                   boxShadow: "var(--shadow-card)",
                 }}
               >
-                <h2 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+                <h2
+                  className="font-display text-[16px] font-bold"
+                  style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+                >
                   {t("pages.adDetail.deliveryHeading")}
                 </h2>
                 <div className="mt-[8px] flex flex-wrap gap-[6px]">
@@ -439,14 +482,21 @@ function AdDetailPage() {
                     <span
                       key={d}
                       className="inline-flex items-center gap-[6px] px-[10px] py-[5px] text-[12px] font-medium"
-                      style={{ background: "var(--background-surface)", color: "var(--foreground)", borderRadius: "var(--r-tag)" }}
+                      style={{
+                        background: "var(--background-surface)",
+                        color: "var(--foreground)",
+                        borderRadius: "var(--r-tag)",
+                      }}
                     >
                       <Truck size={12} /> {d}
                     </span>
                   ))}
                 </div>
                 {ad.deliveryDetails && (
-                  <p className="mt-[10px] text-[13px] leading-[1.55]" style={{ color: "var(--foreground-70)" }}>
+                  <p
+                    className="mt-[10px] text-[13px] leading-[1.55]"
+                    style={{ color: "var(--foreground-70)" }}
+                  >
                     {ad.deliveryDetails}
                   </p>
                 )}
@@ -467,10 +517,7 @@ function AdDetailPage() {
       </div>
 
       {showBuyerUi ? (
-        <MobileStickyActionBar
-          ad={ad}
-          onWrite={writeToSeller}
-        />
+        <MobileStickyActionBar ad={ad} onWrite={writeToSeller} />
       ) : (
         <AdOwnerMobileBar
           ad={ad}
@@ -498,9 +545,7 @@ function AdDetailPage() {
           title={ad.title}
         />
       )}
-      {ad && (
-        <SafeDealCheckoutWizard open={checkoutOpen} onOpenChange={setCheckoutOpen} ad={ad} />
-      )}
+      {ad && <SafeDealCheckoutWizard open={checkoutOpen} onOpenChange={setCheckoutOpen} ad={ad} />}
     </AppLayout>
   );
 }
@@ -508,8 +553,15 @@ function AdDetailPage() {
 function Spec({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{label}</div>
-      <div className="mt-[4px] text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{value}</div>
+      <div
+        className="text-[11px] font-semibold uppercase tracking-wider"
+        style={{ color: "var(--foreground-50)" }}
+      >
+        {label}
+      </div>
+      <div className="mt-[4px] text-[14px] font-medium" style={{ color: "var(--foreground)" }}>
+        {value}
+      </div>
     </div>
   );
 }

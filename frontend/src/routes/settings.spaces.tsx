@@ -34,7 +34,10 @@ function SettingsSpacesPage() {
   return (
     <div className="flex flex-col gap-[16px]">
       <VerificationBanner />
-      <h1 className="text-[20px] font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
+      <h1
+        className="text-[20px] font-bold"
+        style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
+      >
         {t("pages.settings.spacesTitle")}
       </h1>
 
@@ -101,7 +104,10 @@ const primaryActionClass =
 const secondaryActionClass =
   "inline-flex h-10 w-full min-w-[220px] items-center justify-center gap-1.5 rounded-[10px] border px-4 text-[14px] font-semibold whitespace-nowrap transition-colors hover:bg-[var(--background-surface)] sm:w-[220px]";
 
-const primaryActionStyle = { background: "var(--accent)", color: "var(--accent-foreground)" } as const;
+const primaryActionStyle = {
+  background: "var(--accent)",
+  color: "var(--accent-foreground)",
+} as const;
 const secondaryActionStyle = { borderColor: "var(--border)", color: "var(--foreground)" } as const;
 
 function SpaceCard({
@@ -127,7 +133,10 @@ function SpaceCard({
         {icon}
       </div>
       <div className="min-w-0 sm:col-start-2 sm:row-start-1">
-        <div className="text-[15px] font-semibold leading-tight" style={{ color: "var(--foreground)" }}>
+        <div
+          className="text-[15px] font-semibold leading-tight"
+          style={{ color: "var(--foreground)" }}
+        >
           {title}
         </div>
         <div className="mt-1 text-[13px] leading-snug" style={{ color: "var(--foreground-50)" }}>

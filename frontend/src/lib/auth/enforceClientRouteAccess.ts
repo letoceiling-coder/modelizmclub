@@ -2,8 +2,18 @@ import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/auth";
-import { isPhoneVerified, isPhoneVerificationRequired, isStaffUser, requestPhoneVerificationModal } from "@/lib/auth/verification";
-import { isAlwaysPublicRoute, isGuestStubRoute, isVerifiedRequiredRoute, pathnameToRouteAction } from "@/lib/feed-guest-access/routes";
+import {
+  isPhoneVerified,
+  isPhoneVerificationRequired,
+  isStaffUser,
+  requestPhoneVerificationModal,
+} from "@/lib/auth/verification";
+import {
+  isAlwaysPublicRoute,
+  isGuestStubRoute,
+  isVerifiedRequiredRoute,
+  pathnameToRouteAction,
+} from "@/lib/feed-guest-access/routes";
 import { loadFeedGuestAccess, resolveMinTier } from "@/lib/feed-guest-access/store";
 import { getMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
@@ -26,7 +36,9 @@ function isAdminRoute(pathname: string): boolean {
  * Client-side route access enforcement.
  * Root `beforeLoad` skips on SSR — this runs after hydration on every navigation.
  */
-export async function enforceClientRouteAccess(pathname: string): Promise<ClientRouteRedirect | null> {
+export async function enforceClientRouteAccess(
+  pathname: string,
+): Promise<ClientRouteRedirect | null> {
   if (typeof window === "undefined") return null;
   if (isDemoMode()) return null;
 

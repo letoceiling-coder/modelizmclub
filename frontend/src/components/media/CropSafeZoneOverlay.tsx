@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type Cropper from "cropperjs";
 import { useTranslation } from "react-i18next";
-import { getSafeZoneRects, type SafeZonePreset, type VisibleRect } from "@/lib/photo-editor-safe-zones";
+import {
+  getSafeZoneRects,
+  type SafeZonePreset,
+  type VisibleRect,
+} from "@/lib/photo-editor-safe-zones";
 
 interface OverlayBox {
   left: number;
@@ -55,7 +59,13 @@ function DimBands({
       <div
         key="d-top"
         className="pointer-events-none absolute z-[1]"
-        style={{ left: 0, top: 0, width: box.width, height: desktop.top * box.height, background: dim }}
+        style={{
+          left: 0,
+          top: 0,
+          width: box.width,
+          height: desktop.top * box.height,
+          background: dim,
+        }}
       />,
     );
   }
@@ -81,7 +91,13 @@ function DimBands({
       <div
         key="m-left"
         className="pointer-events-none absolute z-[2]"
-        style={{ left: 0, top: 0, width: mobile.left * box.width, height: box.height, background: dim }}
+        style={{
+          left: 0,
+          top: 0,
+          width: mobile.left * box.width,
+          height: box.height,
+          background: dim,
+        }}
       />,
     );
   }
@@ -104,7 +120,15 @@ function DimBands({
   return <>{bands}</>;
 }
 
-function ZoneOutline({ rect, box, dashed }: { rect: VisibleRect; box: OverlayBox; dashed?: boolean }) {
+function ZoneOutline({
+  rect,
+  box,
+  dashed,
+}: {
+  rect: VisibleRect;
+  box: OverlayBox;
+  dashed?: boolean;
+}) {
   return (
     <div
       className="pointer-events-none absolute z-[3]"
@@ -124,7 +148,13 @@ function ZoneOutline({ rect, box, dashed }: { rect: VisibleRect; box: OverlayBox
  * VK-style safe-zone guides over Cropper.js — shows mobile/desktop visible
  * regions for object-cover banners and covers.
  */
-export function CropSafeZoneOverlay({ cropper, container, preset, enabled, syncTrigger = 0 }: Props) {
+export function CropSafeZoneOverlay({
+  cropper,
+  container,
+  preset,
+  enabled,
+  syncTrigger = 0,
+}: Props) {
   const { t } = useTranslation();
   const [box, setBox] = useState<OverlayBox | null>(null);
   const [zones, setZones] = useState<ReturnType<typeof getSafeZoneRects> | null>(null);
@@ -186,15 +216,26 @@ export function CropSafeZoneOverlay({ cropper, container, preset, enabled, syncT
       className="pointer-events-none absolute z-[20]"
       style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
     >
-      <DimBands box={{ left: 0, top: 0, width: box.width, height: box.height }} mobile={zones.mobile} desktop={zones.desktop} />
-      <ZoneOutline rect={zones.desktop} box={{ left: 0, top: 0, width: box.width, height: box.height }} />
+      <DimBands
+        box={{ left: 0, top: 0, width: box.width, height: box.height }}
+        mobile={zones.mobile}
+        desktop={zones.desktop}
+      />
+      <ZoneOutline
+        rect={zones.desktop}
+        box={{ left: 0, top: 0, width: box.width, height: box.height }}
+      />
       <ZoneOutline
         rect={zones.mobile}
         box={{ left: 0, top: 0, width: box.width, height: box.height }}
         dashed
       />
       {zones.safe.width > 0.05 && zones.safe.height > 0.05 && (
-        <ZoneOutline rect={zones.safe} box={{ left: 0, top: 0, width: box.width, height: box.height }} dashed />
+        <ZoneOutline
+          rect={zones.safe}
+          box={{ left: 0, top: 0, width: box.width, height: box.height }}
+          dashed
+        />
       )}
       <ZoneLabel
         text={t("components.photoEditor.safeZoneMobile")}

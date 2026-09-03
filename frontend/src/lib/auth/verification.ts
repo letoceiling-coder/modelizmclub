@@ -86,9 +86,14 @@ export function verificationMessage(user: User | null | undefined): string {
 }
 
 /** Block an action unless email and phone are verified on the server. */
-export async function requireVerifiedForAction(navigate: (opts: { to: string; search?: Record<string, string> }) => void): Promise<boolean> {
+export async function requireVerifiedForAction(
+  navigate: (opts: { to: string; search?: Record<string, string> }) => void,
+): Promise<boolean> {
   if (isDemoMode()) return true;
-  const from = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/feed";
+  const from =
+    typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}`
+      : "/feed";
   if (!isAuthenticated()) {
     navigate({ to: "/login", search: { redirect: from } });
     return false;
@@ -117,7 +122,9 @@ export async function requireVerifiedForAction(navigate: (opts: { to: string; se
 /** Ask the root access provider to show the standard SMS modal. */
 export function requestPhoneVerificationModal(): void {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent("modelizm:access-gate", { detail: { code: "phone_not_verified" } }));
+  window.dispatchEvent(
+    new CustomEvent("modelizm:access-gate", { detail: { code: "phone_not_verified" } }),
+  );
 }
 
 /**
@@ -140,7 +147,7 @@ export async function requireVerified(location?: {
   if (isAnonymousUser(user)) {
     throw redirect({
       to: "/login",
-      search: { redirect: (location?.pathname ?? "/feed") },
+      search: { redirect: location?.pathname ?? "/feed" },
     });
   }
 
@@ -150,7 +157,8 @@ export async function requireVerified(location?: {
   }
 
   if (!isFullyVerified(user)) {
-    const pathname = location?.pathname ?? (typeof window !== "undefined" ? window.location.pathname : "/feed");
+    const pathname =
+      location?.pathname ?? (typeof window !== "undefined" ? window.location.pathname : "/feed");
     const extra =
       typeof location?.search === "string"
         ? location.search

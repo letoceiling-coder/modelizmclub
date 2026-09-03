@@ -33,7 +33,9 @@ export async function fetchSiteBranding(): Promise<SiteBranding> {
 }
 
 export async function fetchDeliveryMethodsPublic(): Promise<DeliveryMethodPublic[]> {
-  const res = await api<{ data: DeliveryMethodPublic[] }>("/public/delivery-methods", { auth: false });
+  const res = await api<{ data: DeliveryMethodPublic[] }>("/public/delivery-methods", {
+    auth: false,
+  });
   return res.data ?? [];
 }
 

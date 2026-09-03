@@ -5,7 +5,12 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/card";
 import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { fetchSafeDeals, kopecksToRub, type SafeDeal, type SafeDealRole } from "@/lib/api/safe-deals";
+import {
+  fetchSafeDeals,
+  kopecksToRub,
+  type SafeDeal,
+  type SafeDealRole,
+} from "@/lib/api/safe-deals";
 import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatDate } from "@/lib/format/date";
 
@@ -56,10 +61,18 @@ function DealsPage() {
     let alive = true;
     setLoading(true);
     fetchSafeDeals(role)
-      .then((d) => { if (alive) setDeals(d); })
-      .catch(() => { if (alive) setDeals([]); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .then((d) => {
+        if (alive) setDeals(d);
+      })
+      .catch(() => {
+        if (alive) setDeals([]);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [role]);
 
   return (
@@ -67,10 +80,13 @@ function DealsPage() {
       <div className="mx-auto w-full max-w-[760px]">
         <div className="flex items-center gap-[10px]">
           <ShieldCheck size={24} style={{ color: "var(--accent)" }} />
-          <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>Безопасные сделки</h1>
+          <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>
+            Безопасные сделки
+          </h1>
         </div>
         <p className="mt-[6px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
-          Оплата замораживается на балансе и переводится продавцу только после подтверждения получения.
+          Оплата замораживается на балансе и переводится продавцу только после подтверждения
+          получения.
         </p>
         <div
           className="mt-[14px] flex items-start gap-[10px] rounded-[var(--r-card)] border px-[14px] py-[12px]"
@@ -85,7 +101,10 @@ function DealsPage() {
           </p>
         </div>
 
-        <div className="mt-[20px] inline-flex gap-[4px] rounded-[var(--r-pill)] p-[4px]" style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}>
+        <div
+          className="mt-[20px] inline-flex gap-[4px] rounded-[var(--r-pill)] p-[4px]"
+          style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
+        >
           {(["buyer", "seller"] as const).map((r) => (
             <button
               key={r}
@@ -104,30 +123,66 @@ function DealsPage() {
 
         <div className="mt-[16px] flex flex-col gap-[12px]">
           {loading ? (
-            <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+            <div
+              className="flex items-center gap-[8px] py-[24px] text-[14px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
               <Loader2 size={16} className="animate-spin" /> Загрузка…
             </div>
           ) : deals.length === 0 ? (
-            <Card className="p-[24px] text-center" style={{ borderColor: "var(--border)", borderStyle: "dashed", borderRadius: "var(--r-card)" }}>
+            <Card
+              className="p-[24px] text-center"
+              style={{
+                borderColor: "var(--border)",
+                borderStyle: "dashed",
+                borderRadius: "var(--r-card)",
+              }}
+            >
               <Package size={28} className="mx-auto" style={{ color: "var(--foreground-50)" }} />
-              <p className="mt-[10px] text-[14px]" style={{ color: "var(--foreground-50)" }}>Пока нет сделок</p>
+              <p className="mt-[10px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+                Пока нет сделок
+              </p>
             </Card>
           ) : (
             deals.map((deal) => (
-              <Link key={deal.uuid} to="/deals/$uuid" params={{ uuid: deal.uuid }} search={{ role }}>
-                <Card className="flex items-center gap-[14px] p-[16px] transition-colors hover:border-[var(--accent)]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-                  <span className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full" style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}>
+              <Link
+                key={deal.uuid}
+                to="/deals/$uuid"
+                params={{ uuid: deal.uuid }}
+                search={{ role }}
+              >
+                <Card
+                  className="flex items-center gap-[14px] p-[16px] transition-colors hover:border-[var(--accent)]"
+                  style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+                >
+                  <span
+                    className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full"
+                    style={{
+                      background: "var(--background-surface)",
+                      color: "var(--foreground-70)",
+                    }}
+                  >
                     <ShieldCheck size={20} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+                    <div
+                      className="text-[15px] font-semibold"
+                      style={{ color: "var(--foreground)" }}
+                    >
                       {deal.listing_title || `${kopecksToRub(deal.amount_kopecks)} ₽`}
                     </div>
                     <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                      {kopecksToRub(deal.amount_kopecks)} ₽ · {deal.paid_at ? formatDate(deal.paid_at, "absolute") : "—"}
+                      {kopecksToRub(deal.amount_kopecks)} ₽ ·{" "}
+                      {deal.paid_at ? formatDate(deal.paid_at, "absolute") : "—"}
                     </div>
                   </div>
-                  <span className="shrink-0 rounded-full px-[10px] py-[4px] text-[12px] font-semibold" style={{ background: "var(--background-surface)", color: STATUS_COLORS[deal.status] ?? "var(--foreground-70)" }}>
+                  <span
+                    className="shrink-0 rounded-full px-[10px] py-[4px] text-[12px] font-semibold"
+                    style={{
+                      background: "var(--background-surface)",
+                      color: STATUS_COLORS[deal.status] ?? "var(--foreground-70)",
+                    }}
+                  >
                     {deal.status_label}
                   </span>
                 </Card>

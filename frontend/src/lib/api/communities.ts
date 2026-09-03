@@ -1,7 +1,12 @@
 import type { Community, Post } from "@/lib/mock";
 import { api, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoCommunities, demoCommunity, demoCommunityPosts, setDemoCommunitySubscription } from "@/lib/demo-data";
+import {
+  demoCommunities,
+  demoCommunity,
+  demoCommunityPosts,
+  setDemoCommunitySubscription,
+} from "@/lib/demo-data";
 import { mapPost, type ApiPost } from "./feed";
 import { useCallback, useEffect, useState } from "react";
 
@@ -108,7 +113,7 @@ export function mapCommunity(c: ApiCommunity): Community {
 
 function mapCommunityMember(m: ApiCommunityMember): CommunityMember {
   const name = m.display_name ?? m.name ?? "Участник";
-  const city = typeof m.city === "string" ? m.city : m.city?.name ?? undefined;
+  const city = typeof m.city === "string" ? m.city : (m.city?.name ?? undefined);
   const roleKey = m.role ?? "member";
   return {
     user: {
@@ -375,7 +380,12 @@ export async function fetchCommunityJoinRequests(slug: string): Promise<Communit
       id: number;
       message?: string | null;
       created_at?: string | null;
-      user: { uuid: string; display_name?: string | null; slug?: string | null; avatar?: { url?: string | null } | null };
+      user: {
+        uuid: string;
+        display_name?: string | null;
+        slug?: string | null;
+        avatar?: { url?: string | null } | null;
+      };
     }>;
   }>(`/communities/${slug}/join-requests`);
   return (res.data ?? []).map((row) => ({
@@ -403,7 +413,11 @@ export async function banCommunityMember(slug: string, userUuid: string): Promis
   await api(`/communities/${slug}/members/${userUuid}`, { method: "DELETE" });
 }
 
-export function useOwnedCommunities(): { communities: Community[]; loading: boolean; reload: () => void } {
+export function useOwnedCommunities(): {
+  communities: Community[];
+  loading: boolean;
+  reload: () => void;
+} {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
 

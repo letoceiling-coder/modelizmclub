@@ -24,12 +24,19 @@ export function MobileStickyActionBar({ ad, onWrite }: Props) {
       }}
     >
       <div className="min-w-0 shrink-0">
-        <div className="font-display text-[16px] font-bold leading-none" style={{ color: "var(--foreground)" }}>
+        <div
+          className="font-display text-[16px] font-bold leading-none"
+          style={{ color: "var(--foreground)" }}
+        >
           {ad.price.toLocaleString("ru")} ₽
         </div>
       </div>
       <div className="flex min-w-0 flex-1 gap-[6px]">
-        <Button onClick={onWrite} size="sm" className="min-w-0 flex-1 rounded-[var(--r-button)] px-[8px]">
+        <Button
+          onClick={onWrite}
+          size="sm"
+          className="min-w-0 flex-1 rounded-[var(--r-button)] px-[8px]"
+        >
           <MessageSquare size={14} /> Написать продавцу
         </Button>
       </div>

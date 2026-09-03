@@ -1,6 +1,21 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MoreHorizontal, Bookmark, BookmarkCheck, Link2, Share2, EyeOff, Flag, Check, Trash2, ShieldCheck, Clock, Send, XCircle, Pencil } from "lucide-react";
+import {
+  MoreHorizontal,
+  Bookmark,
+  BookmarkCheck,
+  Link2,
+  Share2,
+  EyeOff,
+  Flag,
+  Check,
+  Trash2,
+  ShieldCheck,
+  Clock,
+  Send,
+  XCircle,
+  Pencil,
+} from "lucide-react";
 import { toast } from "@/lib/toast";
 import { actions } from "@/lib/store";
 import { deletePost } from "@/lib/api/feed";
@@ -99,7 +114,11 @@ export function PostActionMenu({
     const run = () => {
       if (onToggleSave) onToggleSave();
       else actions.savePost(postId, !saved);
-      toast.success(saved ? t("components.postActionMenu.savedRemoved") : t("components.postActionMenu.savedAdded"));
+      toast.success(
+        saved
+          ? t("components.postActionMenu.savedRemoved")
+          : t("components.postActionMenu.savedAdded"),
+      );
     };
     if (guest) guest.guardAction("feed.post.save", run);
     else run();
@@ -183,133 +202,173 @@ export function PostActionMenu({
 
   return (
     <>
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="relative grid h-[32px] w-[32px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)] before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
-          style={{ color: "var(--foreground-70)" }}
-          aria-label={t("components.postActionMenu.ariaLabel")}
+      <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="relative grid h-[32px] w-[32px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)] before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
+            style={{ color: "var(--foreground-70)" }}
+            aria-label={t("components.postActionMenu.ariaLabel")}
+          >
+            <MoreHorizontal className="h-[16px] w-[16px]" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={6}
+          className="z-[200] w-[240px] overflow-hidden rounded-[12px] border p-0"
+          style={{
+            background: "var(--background-elevated)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--shadow-float)",
+          }}
         >
-          <MoreHorizontal className="h-[16px] w-[16px]" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        sideOffset={6}
-        className="z-[200] w-[240px] overflow-hidden rounded-[12px] border p-0"
-        style={{
-          background: "var(--background-elevated)",
-          borderColor: "var(--border)",
-          boxShadow: "var(--shadow-float)",
-        }}
-      >
-        {showApprove && (
-          <>
-            <MenuItem
-              onClick={handleApprove}
-              icon={ShieldCheck}
-              label={t("components.postActionMenu.approveModeration")}
-              accent
-              disabled={busy}
-            />
-            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-          </>
-        )}
-        {(canPublishNow || canReschedule || canCancelSchedule) && (
-          <>
-            {canPublishNow && (
+          {showApprove && (
+            <>
               <MenuItem
-                onClick={async () => { close(); await onPublishNow?.(); }}
-                icon={Send}
-                label={t("components.postActionMenu.publishNow")}
+                onClick={handleApprove}
+                icon={ShieldCheck}
+                label={t("components.postActionMenu.approveModeration")}
                 accent
                 disabled={busy}
               />
-            )}
-            {canReschedule && (
+              <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+            </>
+          )}
+          {(canPublishNow || canReschedule || canCancelSchedule) && (
+            <>
+              {canPublishNow && (
+                <MenuItem
+                  onClick={async () => {
+                    close();
+                    await onPublishNow?.();
+                  }}
+                  icon={Send}
+                  label={t("components.postActionMenu.publishNow")}
+                  accent
+                  disabled={busy}
+                />
+              )}
+              {canReschedule && (
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    onReschedule?.();
+                  }}
+                  icon={Clock}
+                  label={t("components.postActionMenu.changeSchedule")}
+                  disabled={busy}
+                />
+              )}
+              {canCancelSchedule && (
+                <MenuItem
+                  onClick={async () => {
+                    close();
+                    await onCancelSchedule?.();
+                  }}
+                  icon={XCircle}
+                  label={t("components.postActionMenu.cancelSchedule")}
+                  danger
+                  disabled={busy}
+                />
+              )}
+              <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+            </>
+          )}
+          {canInteract && (
+            <>
               <MenuItem
-                onClick={() => { close(); onReschedule?.(); }}
-                icon={Clock}
-                label={t("components.postActionMenu.changeSchedule")}
-                disabled={busy}
+                onClick={handleSave}
+                icon={saved ? BookmarkCheck : Bookmark}
+                label={
+                  saved
+                    ? t("components.postActionMenu.removeFromSaved")
+                    : t("components.postActionMenu.save")
+                }
+                accent={saved}
               />
-            )}
-            {canCancelSchedule && (
               <MenuItem
-                onClick={async () => { close(); await onCancelSchedule?.(); }}
-                icon={XCircle}
-                label={t("components.postActionMenu.cancelSchedule")}
+                onClick={handleCopy}
+                icon={copied ? Check : Link2}
+                label={
+                  copied
+                    ? t("components.postActionMenu.copied")
+                    : t("components.postActionMenu.copyLink")
+                }
+                accent={copied}
+              />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger
+                  className="gap-[10px] px-[14px] py-[10px] text-[13px]"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  <Share2 className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
+                  {t("components.postActionMenu.share")}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent
+                  className="z-[210] w-[200px] overflow-hidden rounded-[12px] border p-0"
+                  style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+                >
+                  {SHARE_TARGETS.map((target) => (
+                    <MenuItem
+                      key={target.id}
+                      onClick={() => handleShareTo(target.href(buildUrl(), title))}
+                      icon={Share2}
+                      label={target.label}
+                    />
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </>
+          )}
+          {canInteract && !isOwn && (
+            <>
+              <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+              <MenuItem
+                onClick={handleHide}
+                icon={EyeOff}
+                label={t("components.postActionMenu.hide")}
+              />
+              <MenuItem
+                onClick={handleReport}
+                icon={Flag}
+                label={t("components.postActionMenu.report")}
+              />
+            </>
+          )}
+          {onEdit && (
+            <>
+              <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+              <MenuItem onClick={onEdit} icon={Pencil} label="Редактировать" />
+            </>
+          )}
+          {showDelete && (
+            <>
+              <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
+              <MenuItem
+                onClick={handleDelete}
+                icon={Trash2}
+                label={t("components.postActionMenu.delete")}
                 danger
                 disabled={busy}
               />
-            )}
-            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-          </>
-        )}
-        {canInteract && (
-          <>
-            <MenuItem onClick={handleSave} icon={saved ? BookmarkCheck : Bookmark} label={saved ? t("components.postActionMenu.removeFromSaved") : t("components.postActionMenu.save")} accent={saved} />
-            <MenuItem onClick={handleCopy} icon={copied ? Check : Link2} label={copied ? t("components.postActionMenu.copied") : t("components.postActionMenu.copyLink")} accent={copied} />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-[10px] px-[14px] py-[10px] text-[13px]" style={{ color: "var(--foreground)" }}>
-                <Share2 className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
-                {t("components.postActionMenu.share")}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent
-                className="z-[210] w-[200px] overflow-hidden rounded-[12px] border p-0"
-                style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
-              >
-                {SHARE_TARGETS.map((target) => (
-                  <MenuItem
-                    key={target.id}
-                    onClick={() => handleShareTo(target.href(buildUrl(), title))}
-                    icon={Share2}
-                    label={target.label}
-                  />
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </>
-        )}
-        {canInteract && !isOwn && (
-          <>
-            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-            <MenuItem onClick={handleHide} icon={EyeOff} label={t("components.postActionMenu.hide")} />
-            <MenuItem onClick={handleReport} icon={Flag} label={t("components.postActionMenu.report")} />
-          </>
-        )}
-        {onEdit && (
-          <>
-            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-            <MenuItem onClick={onEdit} icon={Pencil} label="Редактировать" />
-          </>
-        )}
-        {showDelete && (
-          <>
-            <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-            <MenuItem
-              onClick={handleDelete}
-              icon={Trash2}
-              label={t("components.postActionMenu.delete")}
-              danger
-              disabled={busy}
-            />
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-    {reportOpen && author && (
-      <ComplaintDialog
-        target={author}
-        report={{ type: "post", targetId: postId }}
-        descriptionOverride={t("components.postActionMenu.reportDescription", { title: title ? ` «${title}»` : "" })}
-        page="/feed"
-        subjectSuffix={t("components.postActionMenu.reportSuffix")}
-        onClose={() => setReportOpen(false)}
-      />
-    )}
+      {reportOpen && author && (
+        <ComplaintDialog
+          target={author}
+          report={{ type: "post", targetId: postId }}
+          descriptionOverride={t("components.postActionMenu.reportDescription", {
+            title: title ? ` «${title}»` : "",
+          })}
+          page="/feed"
+          subjectSuffix={t("components.postActionMenu.reportSuffix")}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </>
   );
 }

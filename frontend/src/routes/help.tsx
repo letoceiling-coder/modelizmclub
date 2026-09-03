@@ -47,7 +47,9 @@ function HelpPage() {
   const [msg, setMsg] = useState("");
   const [sending, setSending] = useState(false);
 
-  const [faqCategories, setFaqCategories] = useState<FaqTab[]>([{ id: "all", label: t("pages.help.all") }]);
+  const [faqCategories, setFaqCategories] = useState<FaqTab[]>([
+    { id: "all", label: t("pages.help.all") },
+  ]);
   const [faqItems, setFaqItems] = useState<FaqEntry[]>([]);
 
   useEffect(() => {
@@ -72,14 +74,17 @@ function HelpPage() {
         );
       })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [t]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return faqItems.filter((i) => {
       const matchCat = cat === "all" || i.category === cat;
-      const matchQ = !q || i.question.toLowerCase().includes(q) || i.answer.toLowerCase().includes(q);
+      const matchQ =
+        !q || i.question.toLowerCase().includes(q) || i.answer.toLowerCase().includes(q);
       return matchCat && matchQ;
     });
   }, [query, cat, faqItems]);
@@ -114,12 +119,28 @@ function HelpPage() {
         >
           {t("pages.help.title")}
         </h1>
-        <p style={{ fontSize: "var(--fs-body-lg)", lineHeight: 1.6, color: "var(--foreground-70)", marginTop: "12px", maxWidth: "600px" }}>
+        <p
+          style={{
+            fontSize: "var(--fs-body-lg)",
+            lineHeight: 1.6,
+            color: "var(--foreground-70)",
+            marginTop: "12px",
+            maxWidth: "600px",
+          }}
+        >
           {t("pages.help.subtitle")}
         </p>
 
         <div style={{ marginTop: "32px", position: "relative" }}>
-          <Search size={20} style={{ position: "absolute", left: "18px", top: "18px", color: "var(--foreground-30)" }} />
+          <Search
+            size={20}
+            style={{
+              position: "absolute",
+              left: "18px",
+              top: "18px",
+              color: "var(--foreground-30)",
+            }}
+          />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -147,7 +168,13 @@ function HelpPage() {
 
         <div
           className="no-scrollbar"
-          style={{ marginTop: "24px", display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px" }}
+          style={{
+            marginTop: "24px",
+            display: "flex",
+            gap: "8px",
+            overflowX: "auto",
+            paddingBottom: "4px",
+          }}
         >
           {faqCategories.map((c) => {
             const active = cat === c.id;
@@ -214,8 +241,14 @@ function HelpPage() {
                     >
                       {item.question}
                     </span>
-                    <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.25 }}>
-                      <ChevronDown size={18} style={{ color: isOpen ? "var(--accent)" : "var(--foreground-30)" }} />
+                    <motion.div
+                      animate={{ rotate: isOpen ? 180 : 0 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <ChevronDown
+                        size={18}
+                        style={{ color: isOpen ? "var(--accent)" : "var(--foreground-30)" }}
+                      />
                     </motion.div>
                   </button>
                   <AnimatePresence initial={false}>
@@ -260,8 +293,17 @@ function HelpPage() {
           )}
         </div>
 
-        <div style={{ marginTop: "48px", paddingTop: "32px", borderTop: "1px solid var(--border)" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h3)", color: "var(--foreground)" }}>
+        <div
+          style={{ marginTop: "48px", paddingTop: "32px", borderTop: "1px solid var(--border)" }}
+        >
+          <h3
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 700,
+              fontSize: "var(--fs-h3)",
+              color: "var(--foreground)",
+            }}
+          >
             {t("pages.help.contactTitle")}
           </h3>
           <form
@@ -285,12 +327,23 @@ function HelpPage() {
                 setEmail("");
                 setMsg("");
               } catch (err) {
-                toast.error(formatApiErrorMessage(err, t("pages.help.sendFailed", "Не удалось отправить. Попробуйте позже")));
+                toast.error(
+                  formatApiErrorMessage(
+                    err,
+                    t("pages.help.sendFailed", "Не удалось отправить. Попробуйте позже"),
+                  ),
+                );
               } finally {
                 setSending(false);
               }
             }}
-            style={{ maxWidth: "560px", marginTop: "20px", display: "flex", flexDirection: "column", gap: "12px" }}
+            style={{
+              maxWidth: "560px",
+              marginTop: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
           >
             <select
               value={topic}
@@ -308,7 +361,9 @@ function HelpPage() {
             >
               <option value="">{t("pages.help.selectTopic")}</option>
               {TOPIC_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
+                <option key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </option>
               ))}
             </select>
             <input

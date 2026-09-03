@@ -27,10 +27,7 @@ export function objectCoverVisibleRect(imageAspect: number, containerAspect: num
   return { left: 0, top: (1 - height) / 2, width: 1, height };
 }
 
-const PRESETS: Record<
-  SafeZonePreset,
-  { mobileAspect: number; desktopAspect: number }
-> = {
+const PRESETS: Record<SafeZonePreset, { mobileAspect: number; desktopAspect: number }> = {
   /** Feed hero slider — `BannerHeroSlide` heights 200–240px, full width. */
   "feed-banner": {
     mobileAspect: 375 / 200,

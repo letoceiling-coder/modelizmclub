@@ -29,7 +29,14 @@ export function UserMenu() {
   const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
-  const { open, setOpen, wrapperRef, onWrapperMouseEnter, onWrapperMouseLeave, onContentMouseEnter } = useHoverDropdown();
+  const {
+    open,
+    setOpen,
+    wrapperRef,
+    onWrapperMouseEnter,
+    onWrapperMouseLeave,
+    onContentMouseEnter,
+  } = useHoverDropdown();
 
   const isGuest = me.id === "guest" || (!isAuthenticated() && !isDemoMode());
 
@@ -94,44 +101,54 @@ export function UserMenu() {
         >
           <DropdownMenuItem asChild>
             <Link to={ROUTES.profile} className="flex items-center gap-2">
-              <SlotIcon slot="nav.profile" className="h-4 w-4" size={16} inheritColor /> {t("nav.profile")}
+              <SlotIcon slot="nav.profile" className="h-4 w-4" size={16} inheritColor />{" "}
+              {t("nav.profile")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to={ROUTES.myAds} className="flex items-center gap-2">
-              <SlotIcon slot="nav.my-ads" className="h-4 w-4" size={16} inheritColor /> {t("nav.myAds")}
+              <SlotIcon slot="nav.my-ads" className="h-4 w-4" size={16} inheritColor />{" "}
+              {t("nav.myAds")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to={ROUTES.deals} className="flex items-center gap-2">
-              <SlotIcon slot="section.safe-deal" className="h-4 w-4" size={16} inheritColor /> {t("nav.deals")}
+              <SlotIcon slot="section.safe-deal" className="h-4 w-4" size={16} inheritColor />{" "}
+              {t("nav.deals")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to={ROUTES.wallet} className="flex items-center gap-2">
-              <SlotIcon slot="nav.wallet" className="h-4 w-4" size={16} inheritColor /> {t("nav.wallet")}
+              <SlotIcon slot="nav.wallet" className="h-4 w-4" size={16} inheritColor />{" "}
+              {t("nav.wallet")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to={ROUTES.subscription} className="flex items-center gap-2">
-              <SlotIcon slot="nav.subscription" className="h-4 w-4" size={16} inheritColor /> {t("nav.subscription")}
+              <SlotIcon slot="nav.subscription" className="h-4 w-4" size={16} inheritColor />{" "}
+              {t("nav.subscription")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to="/referral" className="flex items-center gap-2">
-              <SlotIcon slot="nav.invite-friend" className="h-4 w-4" size={16} inheritColor /> {t("nav.inviteFriend")}
+              <SlotIcon slot="nav.invite-friend" className="h-4 w-4" size={16} inheritColor />{" "}
+              {t("nav.inviteFriend")}
             </Link>
           </DropdownMenuItem>
           {me.isAdmin && (
             <DropdownMenuItem asChild>
               <Link to={ROUTES.admin} className="flex items-center gap-2">
-                <SlotIcon slot="nav.admin" className="h-4 w-4" size={16} inheritColor /> {t("nav.admin")}
+                <SlotIcon slot="nav.admin" className="h-4 w-4" size={16} inheritColor />{" "}
+                {t("nav.admin")}
               </Link>
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onSelect={(e) => { e.preventDefault(); toggleTheme(); }}
+            onSelect={(e) => {
+              e.preventDefault();
+              toggleTheme();
+            }}
             className="flex items-center gap-2"
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

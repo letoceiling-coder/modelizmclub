@@ -14,16 +14,17 @@ export function CategoryCard({ c }: { c: Category }) {
       aria-label={t("pages.categories.openCategory", { name: c.name })}
     >
       <div className="flex items-center gap-3">
-        <IconBox
-          size="md"
-          variant="elevated"
-          className="h-11 w-11 shrink-0"
-        >
+        <IconBox size="md" variant="elevated" className="h-11 w-11 shrink-0">
           <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} fill />
         </IconBox>
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-semibold">{c.name}</h3>
-          <p className="text-xs text-muted-foreground">{t("pages.categories.members", { count: c.members.toLocaleString(), rooms: c.subcategories.length })}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("pages.categories.members", {
+              count: c.members.toLocaleString(),
+              rooms: c.subcategories.length,
+            })}
+          </p>
         </div>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>

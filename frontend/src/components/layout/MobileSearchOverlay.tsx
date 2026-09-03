@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
-  Search as SearchIcon, User as UserIcon, Users2, Megaphone, Compass, Clock, Clapperboard,
+  Search as SearchIcon,
+  User as UserIcon,
+  Users2,
+  Megaphone,
+  Compass,
+  Clock,
+  Clapperboard,
   type LucideIcon,
 } from "lucide-react";
 import { useGlobalSearch, MIN_QUERY_LENGTH, type SearchResults } from "@/lib/hooks/useGlobalSearch";
@@ -39,8 +45,9 @@ interface Props {
 export function MobileSearchOverlay({ open, onClose }: Props) {
   const { t } = useTranslation();
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
-  const tabs = (communitiesEnabled ? TAB_KEYS : TAB_KEYS.filter((k) => k !== "communities"))
-    .map((key) => ({ key, label: t(`search.tabs.${key}`) }));
+  const tabs = (communitiesEnabled ? TAB_KEYS : TAB_KEYS.filter((k) => k !== "communities")).map(
+    (key) => ({ key, label: t(`search.tabs.${key}`) }),
+  );
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const q = query.trim();
@@ -56,7 +63,9 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -71,15 +80,16 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
   };
 
   const hasAny =
-    results.users.length > 0
-    || (communitiesEnabled && results.communities.length > 0)
-    || results.ads.length > 0
-    || results.categories.length > 0;
-  const activeHasAny = activeTab === "all"
-    ? hasAny
-    : activeTab === "communities"
-      ? communitiesEnabled && results.communities.length > 0
-      : results[TAB_RESULT_KEY[activeTab]].length > 0;
+    results.users.length > 0 ||
+    (communitiesEnabled && results.communities.length > 0) ||
+    results.ads.length > 0 ||
+    results.categories.length > 0;
+  const activeHasAny =
+    activeTab === "all"
+      ? hasAny
+      : activeTab === "communities"
+        ? communitiesEnabled && results.communities.length > 0
+        : results[TAB_RESULT_KEY[activeTab]].length > 0;
   const recentItems = (q.length === 0 ? getViewHistory() : []).filter(
     (item) => communitiesEnabled || item.kind !== "community",
   );
@@ -88,14 +98,20 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.2 }}
           className="fixed inset-0 z-50 flex flex-col lg:hidden"
           style={{ height: "100dvh", background: "var(--background)" }}
         >
           <div
             className="flex shrink-0 items-center gap-2 px-4"
-            style={{ paddingTop: "calc(var(--safe-top) + 8px)", paddingBottom: 8, borderBottom: "1px solid var(--border)" }}
+            style={{
+              paddingTop: "calc(var(--safe-top) + 8px)",
+              paddingBottom: 8,
+              borderBottom: "1px solid var(--border)",
+            }}
           >
             <div className="relative min-w-0 flex-1">
               <SearchIcon
@@ -141,7 +157,8 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
                 onClick={() => setActiveTab(t.key)}
                 className="shrink-0 whitespace-nowrap text-[13px] font-medium transition-colors"
                 style={{
-                  background: activeTab === t.key ? "var(--accent-soft)" : "var(--background-elevated)",
+                  background:
+                    activeTab === t.key ? "var(--accent-soft)" : "var(--background-elevated)",
                   color: activeTab === t.key ? "var(--accent)" : "var(--foreground-70)",
                   border: `1px solid ${activeTab === t.key ? "var(--border-accent)" : "var(--border)"}`,
                   borderRadius: "var(--r-tag)",
@@ -175,7 +192,10 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
                 </SearchGroup>
               )
             ) : q.length < MIN_QUERY_LENGTH ? null : !activeHasAny ? (
-              <div className="px-[14px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              <div
+                className="px-[14px] py-[14px] text-[13px]"
+                style={{ color: "var(--foreground-50)" }}
+              >
                 {loading ? t("search.searching") : t("pages.shared.nothingFound")}
               </div>
             ) : activeTab === "all" ? (
@@ -186,46 +206,119 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
                 {results.categories.length > 0 && (
                   <SearchGroup label={t("search.groups.categories")} icon={Compass}>
                     {results.categories.slice(0, 5).map((c) => (
-                      <ResultRow key={c.id} to="/categories/$id" params={{ id: c.id }} fallbackIcon={Compass} title={c.name} onNavigate={close} />
+                      <ResultRow
+                        key={c.id}
+                        to="/categories/$id"
+                        params={{ id: c.id }}
+                        fallbackIcon={Compass}
+                        title={c.name}
+                        onNavigate={close}
+                      />
                     ))}
                   </SearchGroup>
                 )}
                 {results.users.length > 0 && (
                   <SearchGroup label={t("search.groups.users")} icon={UserIcon}>
                     {results.users.slice(0, 4).map((u) => (
-                      <ResultRow key={u.id} to="/user/$id" params={{ id: u.slug ?? u.id }} avatar={u.avatar} fallbackIcon={UserIcon} title={u.name} subtitle={u.city} onNavigate={close} />
+                      <ResultRow
+                        key={u.id}
+                        to="/user/$id"
+                        params={{ id: u.slug ?? u.id }}
+                        avatar={u.avatar}
+                        fallbackIcon={UserIcon}
+                        title={u.name}
+                        subtitle={u.city}
+                        onNavigate={close}
+                      />
                     ))}
                   </SearchGroup>
                 )}
                 {communitiesEnabled && results.communities.length > 0 && (
                   <SearchGroup label={t("search.groups.communities")} icon={Users2}>
                     {results.communities.slice(0, 4).map((c) => (
-                      <ResultRow key={c.id} to="/communities/$id" params={{ id: c.id }} avatar={c.avatarImage} fallbackIcon={Users2} title={c.name} subtitle={t("pages.shared.members", { count: c.members })} onNavigate={close} />
+                      <ResultRow
+                        key={c.id}
+                        to="/communities/$id"
+                        params={{ id: c.id }}
+                        avatar={c.avatarImage}
+                        fallbackIcon={Users2}
+                        title={c.name}
+                        subtitle={t("pages.shared.members", { count: c.members })}
+                        onNavigate={close}
+                      />
                     ))}
                   </SearchGroup>
                 )}
                 {results.ads.length > 0 && (
                   <SearchGroup label={t("search.groups.ads")} icon={Megaphone}>
                     {results.ads.slice(0, 5).map((ad) => (
-                      <ResultRow key={ad.id} to="/ads/$id" params={{ id: ad.id }} avatar={ad.image} fallbackIcon={Megaphone} title={ad.title} subtitle={`${ad.price.toLocaleString("ru-RU")} ₽`} onNavigate={close} />
+                      <ResultRow
+                        key={ad.id}
+                        to="/ads/$id"
+                        params={{ id: ad.id }}
+                        avatar={ad.image}
+                        fallbackIcon={Megaphone}
+                        title={ad.title}
+                        subtitle={`${ad.price.toLocaleString("ru-RU")} ₽`}
+                        onNavigate={close}
+                      />
                     ))}
                   </SearchGroup>
                 )}
               </>
             ) : (
               <>
-                {activeTab === "categories" && results.categories.map((c) => (
-                  <ResultRow key={c.id} to="/categories/$id" params={{ id: c.id }} fallbackIcon={Compass} title={c.name} onNavigate={close} />
-                ))}
-                {activeTab === "users" && results.users.map((u) => (
-                  <ResultRow key={u.id} to="/user/$id" params={{ id: u.slug ?? u.id }} avatar={u.avatar} fallbackIcon={UserIcon} title={u.name} subtitle={u.city} onNavigate={close} />
-                ))}
-                {activeTab === "communities" && communitiesEnabled && results.communities.map((c) => (
-                  <ResultRow key={c.id} to="/communities/$id" params={{ id: c.id }} avatar={c.avatarImage} fallbackIcon={Users2} title={c.name} subtitle={`${c.members} участников`} onNavigate={close} />
-                ))}
-                {activeTab === "ads" && results.ads.map((ad) => (
-                  <ResultRow key={ad.id} to="/ads/$id" params={{ id: ad.id }} avatar={ad.image} fallbackIcon={Megaphone} title={ad.title} subtitle={`${ad.price.toLocaleString("ru-RU")} ₽`} onNavigate={close} />
-                ))}
+                {activeTab === "categories" &&
+                  results.categories.map((c) => (
+                    <ResultRow
+                      key={c.id}
+                      to="/categories/$id"
+                      params={{ id: c.id }}
+                      fallbackIcon={Compass}
+                      title={c.name}
+                      onNavigate={close}
+                    />
+                  ))}
+                {activeTab === "users" &&
+                  results.users.map((u) => (
+                    <ResultRow
+                      key={u.id}
+                      to="/user/$id"
+                      params={{ id: u.slug ?? u.id }}
+                      avatar={u.avatar}
+                      fallbackIcon={UserIcon}
+                      title={u.name}
+                      subtitle={u.city}
+                      onNavigate={close}
+                    />
+                  ))}
+                {activeTab === "communities" &&
+                  communitiesEnabled &&
+                  results.communities.map((c) => (
+                    <ResultRow
+                      key={c.id}
+                      to="/communities/$id"
+                      params={{ id: c.id }}
+                      avatar={c.avatarImage}
+                      fallbackIcon={Users2}
+                      title={c.name}
+                      subtitle={`${c.members} участников`}
+                      onNavigate={close}
+                    />
+                  ))}
+                {activeTab === "ads" &&
+                  results.ads.map((ad) => (
+                    <ResultRow
+                      key={ad.id}
+                      to="/ads/$id"
+                      params={{ id: ad.id }}
+                      avatar={ad.image}
+                      fallbackIcon={Megaphone}
+                      title={ad.title}
+                      subtitle={`${ad.price.toLocaleString("ru-RU")} ₽`}
+                      onNavigate={close}
+                    />
+                  ))}
               </>
             )}
           </div>

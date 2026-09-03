@@ -11,7 +11,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cancelMySubscription } from "@/lib/api/payment";
-import { formatSubscriptionEndDate, invalidateMySubscription, useMySubscription } from "@/lib/subscription";
+import {
+  formatSubscriptionEndDate,
+  invalidateMySubscription,
+  useMySubscription,
+} from "@/lib/subscription";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { ROUTES } from "@/lib/routes";
 import { toast } from "@/lib/toast";
@@ -29,7 +33,11 @@ export function SubscriptionBlock() {
   const cancelled = active && sub?.auto_renew === false;
 
   const statusLabel = !active ? "Неактивна" : cancelled ? "Активна до конца периода" : "Активна";
-  const statusColor = !active ? "var(--foreground-50)" : cancelled ? "var(--warning)" : "var(--success)";
+  const statusColor = !active
+    ? "var(--foreground-50)"
+    : cancelled
+      ? "var(--warning)"
+      : "var(--success)";
 
   const cancel = async () => {
     setCancelling(true);
@@ -37,9 +45,7 @@ export function SubscriptionBlock() {
       await cancelMySubscription();
       invalidateMySubscription();
       setConfirmOpen(false);
-      toast.success(
-        endsAt ? `Подписка отменена, действует до ${endsAt}` : "Подписка отменена",
-      );
+      toast.success(endsAt ? `Подписка отменена, действует до ${endsAt}` : "Подписка отменена");
     } catch (err) {
       toast.error(formatApiErrorMessage(err, "Не удалось отменить подписку"));
     } finally {
@@ -56,7 +62,10 @@ export function SubscriptionBlock() {
         <div className="min-w-0">
           <div className="flex items-center gap-[8px]">
             <Crown size={16} style={{ color: "var(--accent)" }} />
-            <span className="font-display text-[15px] font-bold" style={{ color: "var(--foreground)" }}>
+            <span
+              className="font-display text-[15px] font-bold"
+              style={{ color: "var(--foreground)" }}
+            >
               Подписка
             </span>
           </div>

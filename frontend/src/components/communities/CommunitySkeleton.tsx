@@ -5,7 +5,11 @@ export function CommunitySkeleton() {
   return (
     <div
       className="overflow-hidden flex flex-col"
-      style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 16 }}
+      style={{
+        background: "var(--background)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+      }}
     >
       <Skeleton className="h-[120px] w-full rounded-none" />
       <div className="relative px-4 pb-4 pt-8">

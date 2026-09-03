@@ -55,8 +55,12 @@ function NotificationsSettings() {
         setGroupLabels(state.groupLabels);
         setMaxEnabled(state.maxEnabled);
       })
-      .catch(() => { if (alive) toast.error(t("pages.settings.notificationsLoadFailed")); });
-    return () => { alive = false; };
+      .catch(() => {
+        if (alive) toast.error(t("pages.settings.notificationsLoadFailed"));
+      });
+    return () => {
+      alive = false;
+    };
   }, [t]);
 
   const grouped = useMemo(() => {
@@ -70,7 +74,9 @@ function NotificationsSettings() {
   }, [items]);
 
   const toggle = (key: string, value: boolean) => {
-    setItems((cur) => cur?.map((item) => (item.key === key ? { ...item, enabled: value } : item)) ?? cur);
+    setItems(
+      (cur) => cur?.map((item) => (item.key === key ? { ...item, enabled: value } : item)) ?? cur,
+    );
     void saveNotifPref(key, value).catch(() => {
       load();
       toast.error(t("pages.settings.notificationsSaveFailed"));
@@ -80,14 +86,26 @@ function NotificationsSettings() {
   return (
     <SettingsSectionShell title={t("pages.settings.notificationsTitle")}>
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-        {isDemoMode() ? t("pages.settings.notificationsDemo") : t("pages.settings.notificationsDesc")}
+        {isDemoMode()
+          ? t("pages.settings.notificationsDemo")
+          : t("pages.settings.notificationsDesc")}
       </p>
-      <Card className="p-[16px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+      <Card
+        className="p-[16px]"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
         <div className="flex items-center justify-between gap-[12px]">
           <div className="min-w-0">
-            <div className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>{t("pages.settings.maxTitle")}</div>
-            <p className="mt-[4px] text-[13px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
-              {maxLinked ? t("pages.settings.maxNotifyHint") : t("pages.settings.maxNotifyNeedLink")}
+            <div className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>
+              {t("pages.settings.maxTitle")}
+            </div>
+            <p
+              className="mt-[4px] text-[13px] leading-relaxed"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              {maxLinked
+                ? t("pages.settings.maxNotifyHint")
+                : t("pages.settings.maxNotifyNeedLink")}
             </p>
           </div>
           {maxLinked ? (
@@ -104,29 +122,40 @@ function NotificationsSettings() {
             />
           ) : (
             <Button type="button" variant="outline" size="sm" asChild>
-              <Link to="/settings/account" hash="max-account">{t("pages.settings.maxConnect")}</Link>
+              <Link to="/settings/account" hash="max-account">
+                {t("pages.settings.maxConnect")}
+              </Link>
             </Button>
           )}
         </div>
       </Card>
       {items === null ? (
-        <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="flex items-center gap-[8px] py-[24px] text-[14px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           <Loader2 size={16} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       ) : (
         [...grouped.entries()].map(([group, rows]) => (
           <div key={group} className="space-y-[8px]">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+            <h2
+              className="text-[13px] font-semibold uppercase tracking-wide"
+              style={{ color: "var(--foreground-50)" }}
+            >
               {groupLabels[group] ?? group}
             </h2>
-            <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+            <Card
+              className="divide-y p-0"
+              style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+            >
               {rows.map((item) => {
                 const hint = item.locked
                   ? t("pages.settings.notifLockedAlways")
                   : !item.meets_tier
-                    ? (item.min_tier === "subscriber"
+                    ? item.min_tier === "subscriber"
                       ? t("pages.settings.notifNeedSubscription")
-                      : t("pages.settings.notifNeedVerified"))
+                      : t("pages.settings.notifNeedVerified")
                     : item.hint;
                 return (
                   <div
@@ -135,9 +164,16 @@ function NotificationsSettings() {
                     style={{ borderColor: "var(--border)", opacity: item.meets_tier ? 1 : 0.55 }}
                   >
                     <div className="min-w-0">
-                      <span className="text-[15px]" style={{ color: "var(--foreground)" }}>{item.label}</span>
+                      <span className="text-[15px]" style={{ color: "var(--foreground)" }}>
+                        {item.label}
+                      </span>
                       {hint ? (
-                        <p className="mt-[4px] text-[12px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>{hint}</p>
+                        <p
+                          className="mt-[4px] text-[12px] leading-relaxed"
+                          style={{ color: "var(--foreground-50)" }}
+                        >
+                          {hint}
+                        </p>
                       ) : null}
                     </div>
                     {item.can_toggle ? (

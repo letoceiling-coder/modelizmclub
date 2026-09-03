@@ -27,7 +27,10 @@ function SettingsIndex() {
   }, [navigate]);
 
   return (
-    <div className="hidden lg:flex h-full min-h-[320px] flex-col items-center justify-center gap-[10px] text-center" style={{ color: "var(--foreground-50)" }}>
+    <div
+      className="hidden lg:flex h-full min-h-[320px] flex-col items-center justify-center gap-[10px] text-center"
+      style={{ color: "var(--foreground-50)" }}
+    >
       <SettingsIcon size={32} style={{ color: "var(--foreground-30)" }} />
       <p className="text-[14px]">{t("pages.settings.chooseSection")}</p>
     </div>

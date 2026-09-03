@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Loader2, Newspaper, UserPlus, Compass, Bookmark, Clock } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { CreatePostMenu, type ComposerDraft, type ComposerSelection } from "@/components/feed/CreatePostMenu";
+import {
+  CreatePostMenu,
+  type ComposerDraft,
+  type ComposerSelection,
+} from "@/components/feed/CreatePostMenu";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { EventsHero } from "@/components/feed/EventsHero";
 import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
@@ -15,7 +19,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useCurrentUser } from "@/lib/session";
 import type { Post, Category, Banner } from "@/lib/mock";
 import { fetchFeed, fetchPost } from "@/lib/api/feed";
-import { fetchPostCategories, categoryIdByName, getCachedPostCategories } from "@/lib/api/categories";
+import {
+  fetchPostCategories,
+  categoryIdByName,
+  getCachedPostCategories,
+} from "@/lib/api/categories";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import { fetchBanners } from "@/lib/api/banners";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
@@ -44,7 +52,12 @@ function findCategoryName(categories: Category[], id: string): string | null {
 }
 
 export const Route = createFileRoute("/feed")({
-  head: () => ({ meta: [{ title: i18n.t("pages.feed.metaTitle") }, { name: "description", content: i18n.t("pages.feed.metaDescription") }] }),
+  head: () => ({
+    meta: [
+      { title: i18n.t("pages.feed.metaTitle") },
+      { name: "description", content: i18n.t("pages.feed.metaDescription") },
+    ],
+  }),
   // `category` — set by landing's "Направления" cards (routes/index.tsx
   // CategoriesSection) so a direction click opens /feed pre-filtered to
   // that direction instead of the unfiltered feed. Value is a category
@@ -52,7 +65,9 @@ export const Route = createFileRoute("/feed")({
   // (activeCategory / categoryIdByName both key by name, not id) — both
   // the landing and this page read categories from the same
   // fetchPostCategories() source, so the names are guaranteed to match.
-  validateSearch: (search: Record<string, unknown>): { composer?: string; category?: string; taxonomy_id?: number; post?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { composer?: string; category?: string; taxonomy_id?: number; post?: string } => ({
     composer: (search.composer as string) || undefined,
     category: (search.category as string) || undefined,
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
@@ -77,17 +92,26 @@ const PAGE_SIZE = 6;
 
 function FeedPage() {
   const { t } = useTranslation();
-  const { composer, category: categoryFromUrl, taxonomy_id: taxonomyFromUrl, post: focusPostId } = Route.useSearch();
+  const {
+    composer,
+    category: categoryFromUrl,
+    taxonomy_id: taxonomyFromUrl,
+    post: focusPostId,
+  } = Route.useSearch();
   const navigate = useNavigate();
   const me = useCurrentUser();
   const loaded = Route.useLoaderData();
   const [posts, setPosts] = useState<Post[]>(() => loaded.posts);
   const [categories, setCategories] = useState<Category[]>(() => loaded.categories);
   const [banners, setBanners] = useState<Banner[]>(() => loaded.banners);
-  const [filter, setFilter] = useState<FeedFilter>(categoryFromUrl || taxonomyFromUrl ? "categories" : "all");
+  const [filter, setFilter] = useState<FeedFilter>(
+    categoryFromUrl || taxonomyFromUrl ? "categories" : "all",
+  );
   const [activeCategory, setActiveCategory] = useState<string | null>(categoryFromUrl ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [composerSelection, setComposerSelection] = useState<ComposerSelection | undefined>(undefined);
+  const [composerSelection, setComposerSelection] = useState<ComposerSelection | undefined>(
+    undefined,
+  );
   const [composerDraft, setComposerDraft] = useState<ComposerDraft>({ text: "", files: [] });
   const [composerSession, setComposerSession] = useState(0);
   const [draftClearToken, setDraftClearToken] = useState(0);
@@ -108,7 +132,9 @@ function FeedPage() {
         if (cancelled) return;
         setPosts((cur) => (cur.some((p) => p.id === post.id) ? cur : [post, ...cur]));
         window.setTimeout(() => {
-          document.getElementById(`feed-post-${post.id}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+          document
+            .getElementById(`feed-post-${post.id}`)
+            ?.scrollIntoView({ block: "start", behavior: "smooth" });
         }, 50);
       })
       .catch(() => {});
@@ -166,9 +192,15 @@ function FeedPage() {
 
   useEffect(() => {
     if (loaded.categories.length) setCategories(loaded.categories);
-    else fetchPostCategories().then(setCategories).catch(() => {});
+    else
+      fetchPostCategories()
+        .then(setCategories)
+        .catch(() => {});
     if (loaded.banners.length) setBanners(loaded.banners);
-    else fetchBanners("feed").then(setBanners).catch(() => {});
+    else
+      fetchBanners("feed")
+        .then(setBanners)
+        .catch(() => {});
   }, [loaded.banners, loaded.categories]);
 
   useEffect(() => {
@@ -199,19 +231,15 @@ function FeedPage() {
       setInitialLoading(false);
       return;
     }
-    if (
-      usedLoaderFeed.current &&
-      filter === "all" &&
-      !activeCategory &&
-      !taxonomyFromUrl
-    ) {
+    if (usedLoaderFeed.current && filter === "all" && !activeCategory && !taxonomyFromUrl) {
       usedLoaderFeed.current = false;
       setInitialLoading(false);
       return;
     }
     usedLoaderFeed.current = false;
     if (!hasPostsRef.current) setInitialLoading(true);
-    const categoryId = taxonomyFromUrl ?? (activeCategory ? categoryIdByName(activeCategory) : undefined);
+    const categoryId =
+      taxonomyFromUrl ?? (activeCategory ? categoryIdByName(activeCategory) : undefined);
     const query =
       filter === "following"
         ? { filter: "following" as const }
@@ -333,7 +361,11 @@ function FeedPage() {
               return (
                 <button
                   key={c.id}
-                  onClick={() => guardAction("feed.category.select", () => setActiveCategory(active ? null : c.name))}
+                  onClick={() =>
+                    guardAction("feed.category.select", () =>
+                      setActiveCategory(active ? null : c.name),
+                    )
+                  }
                   className="shrink-0 rounded-[var(--r-pill)] border px-[14px] py-[6px] text-[13px] transition-colors"
                   style={{
                     background: active ? "var(--accent)" : "var(--background-elevated)",
@@ -358,7 +390,10 @@ function FeedPage() {
                 icon={UserPlus}
                 title={t("pages.feed.emptyFollowingTitle")}
                 description={t("pages.feed.emptyFollowingDesc")}
-                action={{ label: t("pages.feed.findAuthors"), onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
+                action={{
+                  label: t("pages.feed.findAuthors"),
+                  onClick: () => guardAction("feed.empty.action", () => setFilter("all")),
+                }}
               />
             ) : filter === "categories" && !activeCategory ? (
               <EmptyState
@@ -371,21 +406,34 @@ function FeedPage() {
                 icon={Bookmark}
                 title={t("pages.feed.emptySavedTitle")}
                 description={t("pages.feed.emptySavedDesc")}
-                action={{ label: t("pages.feed.backToFeed"), onClick: () => guardAction("feed.empty.action", () => setFilter("all")) }}
+                action={{
+                  label: t("pages.feed.backToFeed"),
+                  onClick: () => guardAction("feed.empty.action", () => setFilter("all")),
+                }}
               />
             ) : filter === "scheduled" ? (
               <EmptyState
                 icon={Clock}
                 title={t("pages.feed.emptyScheduledTitle")}
                 description={t("pages.feed.emptyScheduledDesc")}
-                action={{ label: t("pages.feed.createPost"), onClick: () => guardAction("feed.compose.open", () => setComposerOpen(true)) }}
+                action={{
+                  label: t("pages.feed.createPost"),
+                  onClick: () => guardAction("feed.compose.open", () => setComposerOpen(true)),
+                }}
               />
             ) : (
               <EmptyState
                 icon={Newspaper}
                 title={t("pages.feed.emptyPostsTitle")}
                 description={t("pages.feed.emptyPostsDesc")}
-                action={{ label: t("pages.feed.showAll"), onClick: () => guardAction("feed.empty.action", () => { setFilter("all"); setActiveCategory(null); }) }}
+                action={{
+                  label: t("pages.feed.showAll"),
+                  onClick: () =>
+                    guardAction("feed.empty.action", () => {
+                      setFilter("all");
+                      setActiveCategory(null);
+                    }),
+                }}
               />
             )
           ) : (
@@ -426,7 +474,10 @@ function FeedPage() {
           )}
 
           {!initialLoading && slice.length > 0 && visible >= filtered.length && (
-            <p className="py-[24px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            <p
+              className="py-[24px] text-center text-[12px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
               {t("pages.feed.endOfFeed")}
             </p>
           )}

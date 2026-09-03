@@ -84,22 +84,35 @@ export interface UpsertRulePagePayload {
 }
 
 export async function adminCreateRulePage(payload: UpsertRulePagePayload): Promise<AdminRulePage> {
-  const res = await api<{ data: AdminRulePage }>("/admin/rule-pages", { method: "POST", json: payload });
+  const res = await api<{ data: AdminRulePage }>("/admin/rule-pages", {
+    method: "POST",
+    json: payload,
+  });
   return res.data;
 }
 
-export async function adminUpdateRulePage(id: number, payload: UpsertRulePagePayload): Promise<AdminRulePage> {
-  const res = await api<{ data: AdminRulePage }>(`/admin/rule-pages/${id}`, { method: "PUT", json: payload });
+export async function adminUpdateRulePage(
+  id: number,
+  payload: UpsertRulePagePayload,
+): Promise<AdminRulePage> {
+  const res = await api<{ data: AdminRulePage }>(`/admin/rule-pages/${id}`, {
+    method: "PUT",
+    json: payload,
+  });
   return res.data;
 }
 
 export async function adminPublishRulePage(id: number): Promise<AdminRulePage> {
-  const res = await api<{ data: AdminRulePage }>(`/admin/rule-pages/${id}/publish`, { method: "POST" });
+  const res = await api<{ data: AdminRulePage }>(`/admin/rule-pages/${id}/publish`, {
+    method: "POST",
+  });
   return res.data;
 }
 
 export async function adminDuplicateRulePage(id: number): Promise<AdminRulePage> {
-  const res = await api<{ data: AdminRulePage }>(`/admin/rule-pages/${id}/duplicate`, { method: "POST" });
+  const res = await api<{ data: AdminRulePage }>(`/admin/rule-pages/${id}/duplicate`, {
+    method: "POST",
+  });
   return res.data;
 }
 
@@ -112,9 +125,15 @@ export async function adminFetchRulePageRevisions(id: number): Promise<AdminRule
   return res.data;
 }
 
-export async function adminRestoreRulePageRevision(id: number, revisionId: number): Promise<AdminRulePage> {
-  const res = await api<{ data: AdminRulePage }>(`/admin/rule-pages/${id}/revisions/${revisionId}/restore`, {
-    method: "POST",
-  });
+export async function adminRestoreRulePageRevision(
+  id: number,
+  revisionId: number,
+): Promise<AdminRulePage> {
+  const res = await api<{ data: AdminRulePage }>(
+    `/admin/rule-pages/${id}/revisions/${revisionId}/restore`,
+    {
+      method: "POST",
+    },
+  );
   return res.data;
 }

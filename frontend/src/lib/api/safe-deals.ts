@@ -103,10 +103,16 @@ export interface SafeDealQuote {
 export type SafeDealRole = "buyer" | "seller";
 
 export function kopecksToRub(kopecks: number): string {
-  return (kopecks / 100).toLocaleString("ru-RU", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return (kopecks / 100).toLocaleString("ru-RU", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
-export async function quoteSafeDeal(listingUuid: string, destination?: SafeDealDestination): Promise<SafeDealQuote> {
+export async function quoteSafeDeal(
+  listingUuid: string,
+  destination?: SafeDealDestination,
+): Promise<SafeDealQuote> {
   const res = await api<{ data: SafeDealQuote }>(`/listings/${listingUuid}/safe-deal/quote`, {
     method: "POST",
     json: destination ? { destination_point: destination } : {},
@@ -153,10 +159,16 @@ export async function resolveSafeDealRole(uuid: string): Promise<SafeDealRole | 
   return null;
 }
 
-export async function shipSafeDeal(uuid: string, input?: { trackingNumber?: string; deliveryMethod?: string }): Promise<SafeDeal> {
+export async function shipSafeDeal(
+  uuid: string,
+  input?: { trackingNumber?: string; deliveryMethod?: string },
+): Promise<SafeDeal> {
   const res = await api<{ data: SafeDeal }>(`/safe-deals/${uuid}/ship`, {
     method: "POST",
-    json: { tracking_number: input?.trackingNumber || undefined, delivery_method: input?.deliveryMethod || undefined },
+    json: {
+      tracking_number: input?.trackingNumber || undefined,
+      delivery_method: input?.deliveryMethod || undefined,
+    },
   });
   return res.data;
 }
@@ -176,7 +188,12 @@ export async function cancelSafeDeal(uuid: string): Promise<SafeDeal> {
   return res.data;
 }
 
-export async function disputeSafeDeal(uuid: string, reason: string, description?: string, evidenceUuids?: string[]): Promise<void> {
+export async function disputeSafeDeal(
+  uuid: string,
+  reason: string,
+  description?: string,
+  evidenceUuids?: string[],
+): Promise<void> {
   await api(`/safe-deals/${uuid}/dispute`, {
     method: "POST",
     json: {
@@ -187,7 +204,11 @@ export async function disputeSafeDeal(uuid: string, reason: string, description?
   });
 }
 
-export async function reviewSafeDeal(uuid: string, rating: number, text?: string): Promise<SafeDeal> {
+export async function reviewSafeDeal(
+  uuid: string,
+  rating: number,
+  text?: string,
+): Promise<SafeDeal> {
   const res = await api<{ data: { deal: SafeDeal } }>(`/safe-deals/${uuid}/review`, {
     method: "POST",
     json: { rating, text: text || undefined },

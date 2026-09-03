@@ -1,7 +1,17 @@
 import type { LucideIcon } from "lucide-react";
 import { Inbox } from "lucide-react";
 
-export function EmptyState({ icon: Icon = Inbox, title, description, action }: { icon?: LucideIcon; title: string; description?: string; action?: React.ReactNode }) {
+export function EmptyState({
+  icon: Icon = Inbox,
+  title,
+  description,
+  action,
+}: {
+  icon?: LucideIcon;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card/50 px-6 py-12 text-center">
       <div className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">

@@ -231,8 +231,12 @@ function SubcategoryRoomPage() {
 
   useEffect(() => {
     let active = true;
-    searchUsers("").then((u) => active && setPool(u.slice(0, 12))).catch(() => {});
-    return () => { active = false; };
+    searchUsers("")
+      .then((u) => active && setPool(u.slice(0, 12)))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -247,19 +251,24 @@ function SubcategoryRoomPage() {
       .then(({ members }) => active && setRoomMembers(members))
       .catch(() => active && setRoomMembers([]))
       .finally(() => active && setMembersLoading(false));
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [c, sub, me.id]);
 
   useEffect(() => {
     if (!c || !sub) return;
     let active = true;
     fetchListings()
-      .then((all) =>
-        active &&
-        setSubAds(all.filter((a) => a.category === c.name && a.subcategory === sub.name)),
+      .then(
+        (all) =>
+          active &&
+          setSubAds(all.filter((a) => a.category === c.name && a.subcategory === sub.name)),
       )
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [c, sub]);
 
   const onlineCount = useMemo(
@@ -271,7 +280,9 @@ function SubcategoryRoomPage() {
     return (
       <AppLayout rightColumn={false}>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          {categories.length === 0 ? t("pages.subcategoryDetail.loading") : t("pages.subcategoryDetail.notFound")}
+          {categories.length === 0
+            ? t("pages.subcategoryDetail.loading")
+            : t("pages.subcategoryDetail.notFound")}
         </p>
       </AppLayout>
     );
@@ -328,10 +339,14 @@ function SubcategoryRoomPage() {
                 >
                   {sub.name}
                 </span>
-                <ChevronDown className="h-[14px] w-[14px] shrink-0" style={{ color: "var(--foreground-50)" }} />
+                <ChevronDown
+                  className="h-[14px] w-[14px] shrink-0"
+                  style={{ color: "var(--foreground-50)" }}
+                />
               </div>
               <p className="truncate text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-                {c.name} · <span style={{ color: "#22c55e" }}>●</span> {t("pages.subcategoryDetail.online", { count: onlineCount })}
+                {c.name} · <span style={{ color: "#22c55e" }}>●</span>{" "}
+                {t("pages.subcategoryDetail.online", { count: onlineCount })}
               </p>
             </div>
           </button>
@@ -343,9 +358,26 @@ function SubcategoryRoomPage() {
           style={{ borderColor: "var(--border)" }}
           role="tablist"
         >
-          <TabBtn label={t("pages.subcategoryDetail.tabChat")} icon={<MessageCircle className="h-[14px] w-[14px]" />} active={tab === "chat"} onClick={() => setTab("chat")} />
-          <TabBtn label={t("pages.subcategoryDetail.tabAds")} icon={<Tag className="h-[14px] w-[14px]" />} active={tab === "ads"} onClick={() => setTab("ads")} badge={subAds.length || undefined} />
-          <TabBtn label={t("pages.subcategoryDetail.tabMembers")} icon={<Users className="h-[14px] w-[14px]" />} active={tab === "members"} onClick={() => setTab("members")} badge={roomMembers.length || undefined} />
+          <TabBtn
+            label={t("pages.subcategoryDetail.tabChat")}
+            icon={<MessageCircle className="h-[14px] w-[14px]" />}
+            active={tab === "chat"}
+            onClick={() => setTab("chat")}
+          />
+          <TabBtn
+            label={t("pages.subcategoryDetail.tabAds")}
+            icon={<Tag className="h-[14px] w-[14px]" />}
+            active={tab === "ads"}
+            onClick={() => setTab("ads")}
+            badge={subAds.length || undefined}
+          />
+          <TabBtn
+            label={t("pages.subcategoryDetail.tabMembers")}
+            icon={<Users className="h-[14px] w-[14px]" />}
+            active={tab === "members"}
+            onClick={() => setTab("members")}
+            badge={roomMembers.length || undefined}
+          />
         </div>
 
         {/* Tab content */}
@@ -371,7 +403,10 @@ function SubcategoryRoomPage() {
             className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-hidden rounded-t-[18px] border-t"
             style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
           >
-            <div className="flex items-center justify-between px-[16px] py-[14px] border-b" style={{ borderColor: "var(--border)" }}>
+            <div
+              className="flex items-center justify-between px-[16px] py-[14px] border-b"
+              style={{ borderColor: "var(--border)" }}
+            >
               <div>
                 <h3 className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
                   {t("pages.subcategoryDetail.roomsOf", { name: c.name })}
@@ -405,10 +440,21 @@ function SubcategoryRoomPage() {
                         marginLeft: depth * 16,
                       }}
                     >
-                      <span className="grid h-[28px] w-[28px] place-items-center rounded-[8px] text-[12px] font-semibold"
-                        style={{ background: "var(--background)", color: active ? "var(--accent)" : "var(--foreground-70)" }}>#</span>
+                      <span
+                        className="grid h-[28px] w-[28px] place-items-center rounded-[8px] text-[12px] font-semibold"
+                        style={{
+                          background: "var(--background)",
+                          color: active ? "var(--accent)" : "var(--foreground-70)",
+                        }}
+                      >
+                        #
+                      </span>
                       <span className="flex-1 text-[14px] font-medium">{node.name}</span>
-                      {active && <span className="text-[11px]" style={{ color: "var(--accent)" }}>{t("pages.subcategoryDetail.hereNow")}</span>}
+                      {active && (
+                        <span className="text-[11px]" style={{ color: "var(--accent)" }}>
+                          {t("pages.subcategoryDetail.hereNow")}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -476,17 +522,30 @@ function dedupeRoomMessages(messages: RoomMessage[]): RoomMessage[] {
   return out;
 }
 
-function ChatTab({ category, subId, subName, pool }: { category: Category; subId: string; subName: string; pool: User[] }) {
+function ChatTab({
+  category,
+  subId,
+  subName,
+  pool,
+}: {
+  category: Category;
+  subId: string;
+  subName: string;
+  pool: User[];
+}) {
   const { t } = useTranslation();
   const me = useCurrentUser();
   const navigate = useNavigate();
-  const openPrivateChat = useCallback(async (partner: User) => {
-    try {
-      await navigateToPartnerChat(navigate, partner, me.id);
-    } catch {
-      toast.error(t("pages.subcategoryDetail.dialogOpenFailed"));
-    }
-  }, [me.id, navigate, t]);
+  const openPrivateChat = useCallback(
+    async (partner: User) => {
+      try {
+        await navigateToPartnerChat(navigate, partner, me.id);
+      } catch {
+        toast.error(t("pages.subcategoryDetail.dialogOpenFailed"));
+      }
+    },
+    [me.id, navigate, t],
+  );
   const [messages, setMessages] = useState<RoomMessage[]>(() =>
     isDemoMode() ? buildMessages(category, subName, pool) : [],
   );
@@ -528,9 +587,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
       }
 
       const byClientKey =
-        incoming.clientKey != null
-          ? prev.findIndex((m) => m.clientKey === incoming.clientKey)
-          : -1;
+        incoming.clientKey != null ? prev.findIndex((m) => m.clientKey === incoming.clientKey) : -1;
       if (byClientKey >= 0) {
         const next = [...prev];
         next[byClientKey] = merged;
@@ -616,36 +673,43 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
     setActiveMatch(0);
   }, [category.id, subId]);
 
-  const insertEmoji = useCallback((emoji: string) => {
-    const el = composerRef.current;
-    if (!el) {
-      setText((prev) => prev + emoji);
-      return;
-    }
-    const start = el.selectionStart ?? text.length;
-    const end = el.selectionEnd ?? text.length;
-    const next = text.slice(0, start) + emoji + text.slice(end);
-    setText(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      const pos = start + emoji.length;
-      el.setSelectionRange(pos, pos);
-    });
-  }, [text]);
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const el = composerRef.current;
+      if (!el) {
+        setText((prev) => prev + emoji);
+        return;
+      }
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const next = text.slice(0, start) + emoji + text.slice(end);
+      setText(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    },
+    [text],
+  );
 
   const trimmedQuery = query.trim();
   const matchIds = useMemo(() => {
     if (!trimmedQuery) return [] as string[];
-    return messages.filter((m) => {
-      if (!m.text) return false;
-      if (exactMatch) {
-        const msg = m.text.trim();
-        return caseSensitive ? msg === trimmedQuery : msg.toLowerCase() === trimmedQuery.toLowerCase();
-      }
-      return caseSensitive
-        ? m.text.includes(trimmedQuery)
-        : m.text.toLowerCase().includes(trimmedQuery.toLowerCase());
-    }).map((m) => m.id);
+    return messages
+      .filter((m) => {
+        if (!m.text) return false;
+        if (exactMatch) {
+          const msg = m.text.trim();
+          return caseSensitive
+            ? msg === trimmedQuery
+            : msg.toLowerCase() === trimmedQuery.toLowerCase();
+        }
+        return caseSensitive
+          ? m.text.includes(trimmedQuery)
+          : m.text.toLowerCase().includes(trimmedQuery.toLowerCase());
+      })
+      .map((m) => m.id);
   }, [messages, trimmedQuery, caseSensitive, exactMatch]);
 
   useEffect(() => {
@@ -718,7 +782,9 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           text: v,
           status: "sent",
           replyToId: replyTo?.id,
-          attachments: pendingAttachments.length ? pendingAttachments.map((a) => a.preview) : undefined,
+          attachments: pendingAttachments.length
+            ? pendingAttachments.map((a) => a.preview)
+            : undefined,
         },
       ]);
       setText("");
@@ -754,7 +820,12 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
       for (const file of files) {
         mediaUuids.push(await uploadRoomAttachment(conversationUuid, file));
       }
-      const saved = await sendRoomMessage(conversationUuid, v, replyUuid, mediaUuids.length ? mediaUuids : undefined);
+      const saved = await sendRoomMessage(
+        conversationUuid,
+        v,
+        replyUuid,
+        mediaUuids.length ? mediaUuids : undefined,
+      );
       upsertRoomMessage({ ...saved, clientKey });
     } catch {
       setMessages((prev) => prev.filter((m) => m.clientKey !== clientKey));
@@ -796,7 +867,10 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
           </button>
         ) : (
           <>
-            <Search className="h-[14px] w-[14px] shrink-0" style={{ color: "var(--foreground-50)" }} />
+            <Search
+              className="h-[14px] w-[14px] shrink-0"
+              style={{ color: "var(--foreground-50)" }}
+            />
             <input
               ref={searchInputRef}
               value={query}
@@ -846,7 +920,11 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               className="shrink-0 text-[11.5px] tabular-nums"
               style={{ color: "var(--foreground-50)" }}
             >
-              {trimmedQuery ? (matchIds.length ? `${activeMatch + 1}/${matchIds.length}` : "0/0") : ""}
+              {trimmedQuery
+                ? matchIds.length
+                  ? `${activeMatch + 1}/${matchIds.length}`
+                  : "0/0"
+                : ""}
             </span>
             <button
               type="button"
@@ -864,7 +942,10 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               aria-label={t("pages.subcategoryDetail.nextMatch")}
               className="grid h-[26px] w-[26px] place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-elevated)] disabled:opacity-40"
             >
-              <ChevronDown className="h-[14px] w-[14px]" style={{ color: "var(--foreground-70)" }} />
+              <ChevronDown
+                className="h-[14px] w-[14px]"
+                style={{ color: "var(--foreground-70)" }}
+              />
             </button>
             <button
               type="button"
@@ -880,130 +961,160 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
 
       <div ref={scrollRef} className="flex-1 space-y-[10px] overflow-y-auto px-[14px] py-[14px]">
         {loading ? (
-          <div className="flex h-full items-center justify-center py-[40px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="flex h-full items-center justify-center py-[40px] text-[13px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {t("pages.subcategoryDetail.chatLoading")}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-[8px] py-[40px] text-center">
-            <MessageCircle className="h-[28px] w-[28px]" style={{ color: "var(--foreground-30)" }} />
+            <MessageCircle
+              className="h-[28px] w-[28px]"
+              style={{ color: "var(--foreground-30)" }}
+            />
             <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
               {t("pages.subcategoryDetail.emptyChat")}
             </p>
           </div>
         ) : (
-        messages.map((m) => {
-          const u = userById(m.authorId);
-          const mine = m.authorId === me.id;
-          const replied = m.replyToId ? messages.find((x) => x.id === m.replyToId) : undefined;
-          const isActive = trimmedQuery && m.id === activeMsgId;
-          return (
-            <div
-              key={m.clientKey ?? m.id}
-              ref={(el) => {
-                if (el) msgRefs.current.set(m.id, el);
-                else msgRefs.current.delete(m.id);
-              }}
-              className={`flex gap-[10px] ${mine ? "flex-row-reverse" : ""}`}
-            >
-              <img src={u.avatar} width={32} height={32} loading="lazy" decoding="async" alt={u.name} className="h-[32px] w-[32px] shrink-0 rounded-full" />
-              <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
-                <div className="mb-[2px] flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+          messages.map((m) => {
+            const u = userById(m.authorId);
+            const mine = m.authorId === me.id;
+            const replied = m.replyToId ? messages.find((x) => x.id === m.replyToId) : undefined;
+            const isActive = trimmedQuery && m.id === activeMsgId;
+            return (
+              <div
+                key={m.clientKey ?? m.id}
+                ref={(el) => {
+                  if (el) msgRefs.current.set(m.id, el);
+                  else msgRefs.current.delete(m.id);
+                }}
+                className={`flex gap-[10px] ${mine ? "flex-row-reverse" : ""}`}
+              >
+                <img
+                  src={u.avatar}
+                  width={32}
+                  height={32}
+                  loading="lazy"
+                  decoding="async"
+                  alt={u.name}
+                  className="h-[32px] w-[32px] shrink-0 rounded-full"
+                />
+                <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
+                  <div
+                    className="mb-[2px] flex items-center gap-[6px] text-[11px]"
+                    style={{ color: "var(--foreground-50)" }}
+                  >
+                    {!mine && (
+                      <Link
+                        to="/user/$id"
+                        params={{ id: u.id }}
+                        className="font-medium hover:underline"
+                        style={{ color: "var(--foreground-70)" }}
+                      >
+                        {u.name}
+                      </Link>
+                    )}
+                    <span>{m.time}</span>
+                  </div>
+                  <div
+                    className="group relative rounded-[12px] px-[12px] py-[8px] text-[14px] leading-[1.4] transition-shadow"
+                    style={{
+                      background: mine ? "var(--accent)" : "var(--background-surface)",
+                      color: mine ? "#fff" : "var(--foreground)",
+                      boxShadow: isActive ? "0 0 0 2px #f59e0b" : "none",
+                    }}
+                  >
+                    {replied && (
+                      <div
+                        className="mb-[6px] rounded-[8px] border-l-[3px] px-[8px] py-[4px] text-[12px]"
+                        style={{
+                          borderColor: mine ? "rgba(255,255,255,0.5)" : "var(--accent)",
+                          background: mine ? "rgba(255,255,255,0.12)" : "var(--background)",
+                          color: mine ? "rgba(255,255,255,0.85)" : "var(--foreground-70)",
+                        }}
+                      >
+                        <span className="block text-[10.5px] font-medium">
+                          {userById(replied.authorId).name}
+                        </span>
+                        <span className="line-clamp-1">
+                          {highlightNodes(
+                            replied.text,
+                            trimmedQuery,
+                            undefined,
+                            `r-${m.id}`,
+                            caseSensitive,
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {m.attachments && m.attachments.length > 0 && (
+                      <div
+                        className={`mb-[6px] grid gap-[4px] ${m.attachments.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+                      >
+                        {m.attachments.map((src, idx) => (
+                          <a
+                            key={`${m.id}-att-${idx}`}
+                            href={src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block overflow-hidden rounded-[8px]"
+                            style={{ background: "var(--background)" }}
+                          >
+                            <img
+                              src={src}
+                              width={800}
+                              height={600}
+                              decoding="async"
+                              alt={t("pages.subcategoryDetail.attachmentAlt")}
+                              className="h-full max-h-[220px] w-full object-cover"
+                              loading="lazy"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {m.text && (
+                      <div className="whitespace-pre-wrap break-words">
+                        {highlightNodes(
+                          renderTextWithLinks(m.text),
+                          trimmedQuery,
+                          isActive ? "h-0-m-0" : undefined,
+                          isActive ? "h" : `t-${m.id}`,
+                          caseSensitive,
+                        )}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setReplyTo(m)}
+                      aria-label={t("pages.subcategoryDetail.replyAria")}
+                      className={`absolute -top-[8px] ${mine ? "left-[6px]" : "right-[6px]"} hidden h-[22px] w-[22px] place-items-center rounded-full border bg-[var(--background-elevated)] group-hover:grid`}
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <Reply
+                        className="h-[12px] w-[12px]"
+                        style={{ color: "var(--foreground-70)" }}
+                      />
+                    </button>
+                  </div>
                   {!mine && (
-                    <Link
-                      to="/user/$id"
-                      params={{ id: u.id }}
-                      className="font-medium hover:underline"
-                      style={{ color: "var(--foreground-70)" }}
+                    <button
+                      type="button"
+                      onClick={() => void openPrivateChat(u)}
+                      aria-label={t("pages.subcategoryDetail.writePrivateAria")}
+                      title={t("pages.subcategoryDetail.writePrivateAria")}
+                      className="mt-[2px] grid h-[22px] w-[22px] place-items-center rounded-full transition-colors hover:bg-[var(--accent-soft)]"
+                      style={{ color: "var(--accent)" }}
                     >
-                      {u.name}
-                    </Link>
+                      <MessageCircle size={13} />
+                    </button>
                   )}
-                  <span>{m.time}</span>
                 </div>
-                <div
-                  className="group relative rounded-[12px] px-[12px] py-[8px] text-[14px] leading-[1.4] transition-shadow"
-                  style={{
-                    background: mine ? "var(--accent)" : "var(--background-surface)",
-                    color: mine ? "#fff" : "var(--foreground)",
-                    boxShadow: isActive ? "0 0 0 2px #f59e0b" : "none",
-                  }}
-                >
-                  {replied && (
-                    <div
-                      className="mb-[6px] rounded-[8px] border-l-[3px] px-[8px] py-[4px] text-[12px]"
-                      style={{
-                        borderColor: mine ? "rgba(255,255,255,0.5)" : "var(--accent)",
-                        background: mine ? "rgba(255,255,255,0.12)" : "var(--background)",
-                        color: mine ? "rgba(255,255,255,0.85)" : "var(--foreground-70)",
-                      }}
-                    >
-                      <span className="block text-[10.5px] font-medium">{userById(replied.authorId).name}</span>
-                      <span className="line-clamp-1">{highlightNodes(replied.text, trimmedQuery, undefined, `r-${m.id}`, caseSensitive)}</span>
-                    </div>
-                  )}
-                  {m.attachments && m.attachments.length > 0 && (
-                    <div
-                      className={`mb-[6px] grid gap-[4px] ${m.attachments.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
-                    >
-                      {m.attachments.map((src, idx) => (
-                        <a
-                          key={`${m.id}-att-${idx}`}
-                          href={src}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block overflow-hidden rounded-[8px]"
-                          style={{ background: "var(--background)" }}
-                        >
-                          <img
-                            src={src}
-                            width={800}
-                            height={600}
-                            decoding="async"
-                            alt={t("pages.subcategoryDetail.attachmentAlt")}
-                            className="h-full max-h-[220px] w-full object-cover"
-                            loading="lazy"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  {m.text && (
-                    <div className="whitespace-pre-wrap break-words">
-                      {highlightNodes(
-                        renderTextWithLinks(m.text),
-                        trimmedQuery,
-                        isActive ? "h-0-m-0" : undefined,
-                        isActive ? "h" : `t-${m.id}`,
-                        caseSensitive,
-                      )}
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setReplyTo(m)}
-                    aria-label={t("pages.subcategoryDetail.replyAria")}
-                    className={`absolute -top-[8px] ${mine ? "left-[6px]" : "right-[6px]"} hidden h-[22px] w-[22px] place-items-center rounded-full border bg-[var(--background-elevated)] group-hover:grid`}
-                    style={{ borderColor: "var(--border)" }}
-                  >
-                    <Reply className="h-[12px] w-[12px]" style={{ color: "var(--foreground-70)" }} />
-                  </button>
-                </div>
-                {!mine && (
-                  <button
-                    type="button"
-                    onClick={() => void openPrivateChat(u)}
-                    aria-label={t("pages.subcategoryDetail.writePrivateAria")}
-                    title={t("pages.subcategoryDetail.writePrivateAria")}
-                    className="mt-[2px] grid h-[22px] w-[22px] place-items-center rounded-full transition-colors hover:bg-[var(--accent-soft)]"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    <MessageCircle size={13} />
-                  </button>
-                )}
               </div>
-            </div>
-          );
-        })
+            );
+          })
         )}
       </div>
 
@@ -1045,7 +1156,15 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[10px] border"
               style={{ borderColor: "var(--border)", background: "var(--background)" }}
             >
-              <img src={item.preview} width={64} height={64} loading="lazy" decoding="async" alt={t("pages.subcategoryDetail.previewAlt")} className="h-full w-full object-cover" />
+              <img
+                src={item.preview}
+                width={64}
+                height={64}
+                loading="lazy"
+                decoding="async"
+                alt={t("pages.subcategoryDetail.previewAlt")}
+                className="h-full w-full object-cover"
+              />
               <button
                 type="button"
                 onClick={() => setEditingAttachment(item.preview)}
@@ -1071,7 +1190,11 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
 
       <PhotoEditorDialog
         open={editingAttachment != null}
-        src={editingAttachment ? (pendingAttachments.find((a) => a.preview === editingAttachment)?.file ?? null) : null}
+        src={
+          editingAttachment
+            ? (pendingAttachments.find((a) => a.preview === editingAttachment)?.file ?? null)
+            : null
+        }
         title="Редактирование фото"
         onCancel={() => setEditingAttachment(null)}
         onSave={(blob) => {
@@ -1116,7 +1239,9 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
             }
           }}
           onPaste={(e) => {
-            const imgs = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+            const imgs = Array.from(e.clipboardData?.files ?? []).filter((f) =>
+              f.type.startsWith("image/"),
+            );
             if (imgs.length > 0) {
               e.preventDefault();
               const dt = new DataTransfer();
@@ -1137,7 +1262,11 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
         <button
           type="button"
           onClick={() => void send()}
-          disabled={sending || (!text.trim() && pendingAttachments.length === 0) || (!isDemoMode() && !conversationUuid)}
+          disabled={
+            sending ||
+            (!text.trim() && pendingAttachments.length === 0) ||
+            (!isDemoMode() && !conversationUuid)
+          }
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
           style={{ background: "var(--accent)", color: "#fff" }}
           aria-label={t("common.send")}
@@ -1200,13 +1329,16 @@ function MembersTab({
   const { t } = useTranslation();
   const me = useCurrentUser();
   const navigate = useNavigate();
-  const openPrivateChat = useCallback(async (partner: User) => {
-    try {
-      await navigateToPartnerChat(navigate, partner, me.id);
-    } catch {
-      toast.error(t("pages.subcategoryDetail.dialogOpenFailed"));
-    }
-  }, [me.id, navigate, t]);
+  const openPrivateChat = useCallback(
+    async (partner: User) => {
+      try {
+        await navigateToPartnerChat(navigate, partner, me.id);
+      } catch {
+        toast.error(t("pages.subcategoryDetail.dialogOpenFailed"));
+      }
+    },
+    [me.id, navigate, t],
+  );
 
   const roleLabel = (role?: string) => {
     if (!role || role === "member") return undefined;
@@ -1223,7 +1355,10 @@ function MembersTab({
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center px-[14px] py-[24px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+      <div
+        className="flex h-full items-center justify-center px-[14px] py-[24px] text-[13px]"
+        style={{ color: "var(--foreground-50)" }}
+      >
         {t("pages.subcategoryDetail.loading")}
       </div>
     );
@@ -1231,7 +1366,10 @@ function MembersTab({
 
   if (sorted.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center px-[14px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+      <div
+        className="flex h-full items-center justify-center px-[14px] py-[24px] text-center text-[13px]"
+        style={{ color: "var(--foreground-50)" }}
+      >
         {t("pages.subcategoryDetail.membersEmpty")}
       </div>
     );
@@ -1245,52 +1383,61 @@ function MembersTab({
           const status = presenceLabel(u.id, onlineSet, u);
           const badge = roleLabel(role);
           return (
-          <li
-            key={u.id}
-            className="flex items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
-          >
-            <div className="relative shrink-0">
-              <img src={u.avatar} width={40} height={40} loading="lazy" decoding="async" alt={u.name} className="h-[40px] w-[40px] rounded-full" />
-              <span
-                className="absolute -bottom-[1px] -right-[1px] h-[11px] w-[11px] rounded-full border-[2px]"
-                style={{
-                  background: online ? "#22c55e" : "var(--foreground-30)",
-                  borderColor: "var(--background-elevated)",
-                }}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-[6px]">
-                <Link
-                  to="/user/$id"
-                  params={{ id: u.id }}
-                  className="truncate text-[14px] font-medium hover:underline"
-                  style={{ color: "var(--foreground)" }}
-                >
-                  {u.name}
-                </Link>
-                {badge && (
-                  <span
-                    className="shrink-0 rounded-[6px] px-[6px] py-[1px] text-[10.5px] font-medium"
-                    style={{ background: "var(--background-surface)", color: "var(--accent)" }}
-                  >
-                    {badge}
-                  </span>
-                )}
-              </div>
-              <p className="truncate text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-                {status.text}{u.city ? ` · ${u.city}` : ""}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void openPrivateChat(u)}
-              className="shrink-0 rounded-[8px] px-[10px] py-[6px] text-[12px] font-medium transition-colors"
-              style={{ background: "var(--accent)", color: "#fff" }}
+            <li
+              key={u.id}
+              className="flex items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
             >
-              {t("pages.subcategoryDetail.writeMessage")}
-            </button>
-          </li>
+              <div className="relative shrink-0">
+                <img
+                  src={u.avatar}
+                  width={40}
+                  height={40}
+                  loading="lazy"
+                  decoding="async"
+                  alt={u.name}
+                  className="h-[40px] w-[40px] rounded-full"
+                />
+                <span
+                  className="absolute -bottom-[1px] -right-[1px] h-[11px] w-[11px] rounded-full border-[2px]"
+                  style={{
+                    background: online ? "#22c55e" : "var(--foreground-30)",
+                    borderColor: "var(--background-elevated)",
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-[6px]">
+                  <Link
+                    to="/user/$id"
+                    params={{ id: u.id }}
+                    className="truncate text-[14px] font-medium hover:underline"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {u.name}
+                  </Link>
+                  {badge && (
+                    <span
+                      className="shrink-0 rounded-[6px] px-[6px] py-[1px] text-[10.5px] font-medium"
+                      style={{ background: "var(--background-surface)", color: "var(--accent)" }}
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </div>
+                <p className="truncate text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
+                  {status.text}
+                  {u.city ? ` · ${u.city}` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void openPrivateChat(u)}
+                className="shrink-0 rounded-[8px] px-[10px] py-[6px] text-[12px] font-medium transition-colors"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                {t("pages.subcategoryDetail.writeMessage")}
+              </button>
+            </li>
           );
         })}
       </ul>

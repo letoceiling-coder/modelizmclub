@@ -22,16 +22,30 @@ function PasswordFieldWithToggle({
   const [visible, setVisible] = useState(false);
   return (
     <div style={{ position: "relative" }}>
-      <input {...props} type={visible ? "text" : "password"} style={{ ...inputStyle, paddingRight: 40 }} />
+      <input
+        {...props}
+        type={visible ? "text" : "password"}
+        style={{ ...inputStyle, paddingRight: 40 }}
+      />
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
         tabIndex={-1}
         aria-label={visible ? hideLabel : showLabel}
         style={{
-          position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-          display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: "999px",
-          color: "var(--foreground-50)", background: "transparent", border: "none", cursor: "pointer",
+          position: "absolute",
+          right: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          display: "grid",
+          placeItems: "center",
+          width: 28,
+          height: 28,
+          borderRadius: "999px",
+          color: "var(--foreground-50)",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
         }}
       >
         {visible ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -63,7 +77,9 @@ function ResetPasswordPage() {
     const form = new FormData(e.currentTarget);
     const password = String(form.get("password") ?? "");
     const passwordConfirmation = String(form.get("password_confirmation") ?? "");
-    const normalizedEmail = String(form.get("email") ?? email).trim().toLowerCase();
+    const normalizedEmail = String(form.get("email") ?? email)
+      .trim()
+      .toLowerCase();
 
     if (password !== passwordConfirmation) {
       return toast.error(t("pages.resetPassword.passwordMismatch"));
@@ -77,7 +93,12 @@ function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const { user } = await resetPassword({ email: normalizedEmail, token, password, passwordConfirmation });
+      const { user } = await resetPassword({
+        email: normalizedEmail,
+        token,
+        password,
+        passwordConfirmation,
+      });
       resetSessionCache();
       setCurrentUser(user);
       void syncFavoritesFromServer();
@@ -87,7 +108,7 @@ function ResetPasswordPage() {
       const msg =
         err instanceof ApiError
           ? err.errors
-            ? Object.values(err.errors)[0]?.[0] ?? err.message
+            ? (Object.values(err.errors)[0]?.[0] ?? err.message)
             : err.message
           : t("pages.resetPassword.failed");
       toast.error(msg);
@@ -141,7 +162,11 @@ function ResetPasswordPage() {
           showLabel={t("pages.resetPassword.showPassword")}
           hideLabel={t("pages.resetPassword.hidePassword")}
         />
-        <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}
+        >
           {loading ? t("pages.resetPassword.saving") : t("pages.resetPassword.saveButton")}
         </button>
       </form>

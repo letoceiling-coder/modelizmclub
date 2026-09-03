@@ -18,9 +18,14 @@ function GalleryFallback() {
         border: "1px solid var(--border)",
       }}
     >
-      <div className="flex flex-col items-center gap-[6px]" style={{ color: "var(--foreground-30)" }}>
+      <div
+        className="flex flex-col items-center gap-[6px]"
+        style={{ color: "var(--foreground-30)" }}
+      >
         <ImageOff size={40} />
-        <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>Нет фото</span>
+        <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          Нет фото
+        </span>
       </div>
     </div>
   );
@@ -86,12 +91,22 @@ export function AdGallery({
           border: "1px solid var(--border)",
         }}
       >
-        <div ref={emblaRef} className="h-full overflow-hidden touch-pan-y" style={{ touchAction: "pan-y pinch-zoom" }}>
+        <div
+          ref={emblaRef}
+          className="h-full overflow-hidden touch-pan-y"
+          style={{ touchAction: "pan-y pinch-zoom" }}
+        >
           <div className="flex h-full">
             {items.map((item, i) => (
-              <div key={item.url + i} className="relative h-full min-w-0 flex-[0_0_100%] select-none">
+              <div
+                key={item.url + i}
+                className="relative h-full min-w-0 flex-[0_0_100%] select-none"
+              >
                 {broken[i] ? (
-                  <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
+                  <div
+                    className="grid h-full w-full place-items-center"
+                    style={{ color: "var(--foreground-30)" }}
+                  >
                     <ImageOff size={40} />
                   </div>
                 ) : (
@@ -120,7 +135,12 @@ export function AdGallery({
               onClick={() => emblaApi?.scrollPrev()}
               aria-label="Назад"
               className="absolute left-[12px] top-1/2 hidden h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105 md:grid"
-              style={{ background: "var(--background-elevated)", color: "var(--foreground)", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-float)" }}
+              style={{
+                background: "var(--background-elevated)",
+                color: "var(--foreground)",
+                borderRadius: "var(--r-pill)",
+                boxShadow: "var(--shadow-float)",
+              }}
             >
               <ChevronLeft size={20} />
             </button>
@@ -129,14 +149,24 @@ export function AdGallery({
               onClick={() => emblaApi?.scrollNext()}
               aria-label="Вперёд"
               className="absolute right-[12px] top-1/2 hidden h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105 md:grid"
-              style={{ background: "var(--background-elevated)", color: "var(--foreground)", borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-float)" }}
+              style={{
+                background: "var(--background-elevated)",
+                color: "var(--foreground)",
+                borderRadius: "var(--r-pill)",
+                boxShadow: "var(--shadow-float)",
+              }}
             >
               <ChevronRight size={20} />
             </button>
 
             <div
               className="absolute bottom-[12px] left-1/2 -translate-x-1/2 px-[10px] py-[4px] text-[11px] font-medium"
-              style={{ background: "rgba(0,0,0,0.55)", color: "#fff", borderRadius: "var(--r-pill)", backdropFilter: "blur(8px)" }}
+              style={{
+                background: "rgba(0,0,0,0.55)",
+                color: "#fff",
+                borderRadius: "var(--r-pill)",
+                backdropFilter: "blur(8px)",
+              }}
             >
               {selected + 1} / {items.length}
             </div>

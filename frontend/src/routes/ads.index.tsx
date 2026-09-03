@@ -7,7 +7,12 @@ import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
-import { type FiltersState, DEFAULT_FILTERS, AdFiltersSheet, AdFiltersPanel } from "@/components/ads/AdFilters";
+import {
+  type FiltersState,
+  DEFAULT_FILTERS,
+  AdFiltersSheet,
+  AdFiltersPanel,
+} from "@/components/ads/AdFilters";
 import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
 import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
@@ -29,7 +34,12 @@ import { AdsPageSkeleton } from "@/components/boot/PageSkeletons";
 const PAGE_SIZE = 24;
 
 export const Route = createFileRoute("/ads/")({
-  head: () => ({ meta: [{ title: i18n.t("pages.ads.metaTitle") }, { name: "description", content: i18n.t("pages.ads.metaDescription") }] }),
+  head: () => ({
+    meta: [
+      { title: i18n.t("pages.ads.metaTitle") },
+      { name: "description", content: i18n.t("pages.ads.metaDescription") },
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>): { q?: string; taxonomy_id?: number } => ({
     q: typeof search.q === "string" ? search.q : undefined,
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
@@ -222,7 +232,9 @@ function CatalogPage() {
             <CatalogBreadcrumb
               category={filters.category}
               subcategory={filters.subcategory}
-              onResetToRoot={() => setFilters((p) => ({ ...p, category: "Все", subcategory: "Все" }))}
+              onResetToRoot={() =>
+                setFilters((p) => ({ ...p, category: "Все", subcategory: "Все" }))
+              }
               onResetToCategory={() => setFilters((p) => ({ ...p, subcategory: "Все" }))}
             />
             <h1
@@ -271,13 +283,13 @@ function CatalogPage() {
             <div className="flex min-h-[32px] flex-wrap items-center gap-[6px]">
               {hasAnyFilter && (
                 <>
-                  {q && (
-                    <FilterTag label={`«${q}»`} onRemove={() => setQ("")} />
-                  )}
+                  {q && <FilterTag label={`«${q}»`} onRemove={() => setQ("")} />}
                   {filters.category !== "Все" && (
                     <FilterTag
                       label={filters.category}
-                      onRemove={() => setFilters((p) => ({ ...p, category: "Все", subcategory: "Все" }))}
+                      onRemove={() =>
+                        setFilters((p) => ({ ...p, category: "Все", subcategory: "Все" }))
+                      }
                     />
                   )}
                   {filters.city && (
@@ -353,27 +365,37 @@ function CatalogPage() {
                 </div>
               )}
 
-              {(loadState === "ok" || (loadState === "loading" && hasLoadedOnce.current)) && ads.length === 0 && !isFilterBusy && (
-                <EmptyState
-                  icon={Megaphone}
-                  title={hasAnyFilter ? t("pages.ads.emptyTitle") : t("pages.ads.emptyCatalogTitle")}
-                  description={
-                    hasAnyFilter
-                      ? t("pages.ads.emptyDesc")
-                      : t("pages.ads.emptyCatalogDesc")
-                  }
-                >
-                  {hasAnyFilter ? (
-                    <Button variant="outline" onClick={resetFilters}>
-                      <RotateCcw size={14} className="mr-[6px]" /> {t("pages.ads.resetFilters")}
-                    </Button>
-                  ) : (
-                    <Button onClick={() => guardAction("layout.nav.ad_create", () => navigate({ to: ROUTES.adCreate }), ROUTES.adCreate)}>
-                      <Plus size={14} className="mr-[6px]" /> {t("pages.ads.postListing")}
-                    </Button>
-                  )}
-                </EmptyState>
-              )}
+              {(loadState === "ok" || (loadState === "loading" && hasLoadedOnce.current)) &&
+                ads.length === 0 &&
+                !isFilterBusy && (
+                  <EmptyState
+                    icon={Megaphone}
+                    title={
+                      hasAnyFilter ? t("pages.ads.emptyTitle") : t("pages.ads.emptyCatalogTitle")
+                    }
+                    description={
+                      hasAnyFilter ? t("pages.ads.emptyDesc") : t("pages.ads.emptyCatalogDesc")
+                    }
+                  >
+                    {hasAnyFilter ? (
+                      <Button variant="outline" onClick={resetFilters}>
+                        <RotateCcw size={14} className="mr-[6px]" /> {t("pages.ads.resetFilters")}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          guardAction(
+                            "layout.nav.ad_create",
+                            () => navigate({ to: ROUTES.adCreate }),
+                            ROUTES.adCreate,
+                          )
+                        }
+                      >
+                        <Plus size={14} className="mr-[6px]" /> {t("pages.ads.postListing")}
+                      </Button>
+                    )}
+                  </EmptyState>
+                )}
 
               {isFilterBusy && ads.length === 0 && (
                 <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
@@ -398,7 +420,11 @@ function CatalogPage() {
                   </div>
                   {hasMore && loadState === "ok" && !isFilterBusy && (
                     <div className="mt-[16px] flex justify-center">
-                      <Button variant="outline" onClick={() => void loadMore()} loading={loadingMore}>
+                      <Button
+                        variant="outline"
+                        onClick={() => void loadMore()}
+                        loading={loadingMore}
+                      >
                         {loadingMore ? t("pages.ads.loading") : t("pages.ads.showMore")}
                       </Button>
                     </div>
@@ -415,7 +441,10 @@ function CatalogPage() {
           onClose={() => setSheetOpen(false)}
           value={filters}
           onChange={setFilters}
-          onReset={() => { resetFilters(); setSheetOpen(false); }}
+          onReset={() => {
+            resetFilters();
+            setSheetOpen(false);
+          }}
         />
       </div>
     </AppLayout>

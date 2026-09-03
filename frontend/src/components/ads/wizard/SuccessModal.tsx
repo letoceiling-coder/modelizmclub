@@ -49,7 +49,11 @@ export function SuccessModal({ open, onClose, onView, onCreateAnother, onGoToLis
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", damping: 14, stiffness: 220, delay: 0.1 }}
                 className="mx-auto grid h-[64px] w-[64px] place-items-center"
-                style={{ background: "var(--success-soft)", color: "var(--success)", borderRadius: "var(--r-pill)" }}
+                style={{
+                  background: "var(--success-soft)",
+                  color: "var(--success)",
+                  borderRadius: "var(--r-pill)",
+                }}
               >
                 <CheckCircle2 size={32} strokeWidth={2.5} />
               </motion.div>
@@ -60,8 +64,12 @@ export function SuccessModal({ open, onClose, onView, onCreateAnother, onGoToLis
               >
                 Объявление отправлено!
               </h3>
-              <p className="mx-auto mt-[8px] max-w-[300px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
-                Оплата принята (тестовый режим). Объявление пройдёт модерацию и появится в ленте в течение часа.
+              <p
+                className="mx-auto mt-[8px] max-w-[300px] text-[14px]"
+                style={{ color: "var(--foreground-70)" }}
+              >
+                Оплата принята (тестовый режим). Объявление пройдёт модерацию и появится в ленте в
+                течение часа.
               </p>
 
               <div className="mt-[22px] flex flex-col gap-[8px]">

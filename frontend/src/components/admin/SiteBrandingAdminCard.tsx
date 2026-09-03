@@ -37,10 +37,12 @@ export function SiteBrandingAdminCard({ cardStyle }: { cardStyle: CSSProperties 
         setHeaderSize(data.header_size ?? 48);
         setFooterSize(data.footer_size ?? 36);
         const row = settings.find((s) => s.key === BRANDING_SETTING_KEY);
-        const v = row?.value as {
-          header_media_uuid?: string | null;
-          footer_media_uuid?: string | null;
-        } | undefined;
+        const v = row?.value as
+          | {
+              header_media_uuid?: string | null;
+              footer_media_uuid?: string | null;
+            }
+          | undefined;
         if (v?.header_media_uuid) setHeaderUuid(v.header_media_uuid);
         if (v?.footer_media_uuid) setFooterUuid(v.footer_media_uuid);
       })
@@ -113,9 +115,19 @@ export function SiteBrandingAdminCard({ cardStyle }: { cardStyle: CSSProperties 
         }}
       >
         {preview ? (
-          <img src={preview} width={Math.round(size * 1600 / 514)} height={size} loading="lazy" decoding="async" alt="" style={{ height: size, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
+          <img
+            src={preview}
+            width={Math.round((size * 1600) / 514)}
+            height={size}
+            loading="lazy"
+            decoding="async"
+            alt=""
+            style={{ height: size, width: "auto", maxWidth: "100%", objectFit: "contain" }}
+          />
         ) : (
-          <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>{t("pages.adminBranding.noLogo")}</span>
+          <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>
+            {t("pages.adminBranding.noLogo")}
+          </span>
         )}
       </div>
       <label style={{ display: "inline-flex", width: "fit-content", cursor: "pointer" }}>
@@ -135,7 +147,9 @@ export function SiteBrandingAdminCard({ cardStyle }: { cardStyle: CSSProperties 
         </span>
       </label>
       <label style={{ display: "grid", gap: 4, maxWidth: 160 }}>
-        <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>{t("pages.adminBranding.sizeLabel")}</span>
+        <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>
+          {t("pages.adminBranding.sizeLabel")}
+        </span>
         <input
           type="number"
           min={24}
@@ -150,7 +164,15 @@ export function SiteBrandingAdminCard({ cardStyle }: { cardStyle: CSSProperties 
 
   return (
     <div style={{ ...cardStyle, padding: "24px", maxWidth: "720px" }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "8px" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: "16px",
+          color: "var(--foreground)",
+          marginBottom: "8px",
+        }}
+      >
         {t("pages.adminBranding.title")}
       </h4>
       <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
@@ -158,11 +180,31 @@ export function SiteBrandingAdminCard({ cardStyle }: { cardStyle: CSSProperties 
       </p>
 
       {loading ? (
-        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+          {t("pages.adminCommon.loading")}
+        </p>
       ) : (
-        <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-          {renderSlot(t("pages.adminBranding.headerLogo"), headerPreview, "header", headerSize, setHeaderSize)}
-          {renderSlot(t("pages.adminBranding.footerLogo"), footerPreview, "footer", footerSize, setFooterSize)}
+        <div
+          style={{
+            display: "grid",
+            gap: 20,
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          }}
+        >
+          {renderSlot(
+            t("pages.adminBranding.headerLogo"),
+            headerPreview,
+            "header",
+            headerSize,
+            setHeaderSize,
+          )}
+          {renderSlot(
+            t("pages.adminBranding.footerLogo"),
+            footerPreview,
+            "footer",
+            footerSize,
+            setFooterSize,
+          )}
         </div>
       )}
 

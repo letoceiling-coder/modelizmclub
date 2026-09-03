@@ -78,14 +78,21 @@ export function pathnameToRouteAction(pathname: string): string | null {
   if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return "route.deals";
   if (pathname === ROUTES.favorites || pathname.startsWith("/favorites")) return "route.favorites";
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return "route.reviews";
-  if (pathname === ROUTES.channels || pathname.startsWith("/channels") || pathname.startsWith("/channel/")) {
+  if (
+    pathname === ROUTES.channels ||
+    pathname.startsWith("/channels") ||
+    pathname.startsWith("/channel/")
+  ) {
     return "route.channels";
   }
   if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return "route.messenger";
   if (pathname === ROUTES.friends || pathname.startsWith("/friends")) return "route.friends";
-  if (pathname === ROUTES.communities || pathname.startsWith("/communities")) return "route.communities";
-  if (pathname === ROUTES.categories || pathname.startsWith("/categories")) return "route.categories";
-  if (pathname === ROUTES.notifications || pathname.startsWith("/notifications")) return "route.notifications";
+  if (pathname === ROUTES.communities || pathname.startsWith("/communities"))
+    return "route.communities";
+  if (pathname === ROUTES.categories || pathname.startsWith("/categories"))
+    return "route.categories";
+  if (pathname === ROUTES.notifications || pathname.startsWith("/notifications"))
+    return "route.notifications";
   if (pathname === ROUTES.settings || pathname.startsWith("/settings")) return "route.settings";
   if (pathname === ROUTES.profile || pathname.startsWith("/profile")) return "route.profile";
   if (pathname.startsWith("/user/")) return "route.user";

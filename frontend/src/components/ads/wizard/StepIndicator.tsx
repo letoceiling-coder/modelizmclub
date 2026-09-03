@@ -37,7 +37,10 @@ export function StepIndicator({ current, labels }: Props) {
               </div>
             </div>
             {i < labels.length - 1 && (
-              <div className="relative h-[2px] flex-1 overflow-hidden" style={{ background: "var(--background-surface)" }}>
+              <div
+                className="relative h-[2px] flex-1 overflow-hidden"
+                style={{ background: "var(--background-surface)" }}
+              >
                 <motion.div
                   initial={false}
                   animate={{ scaleX: done ? 1 : 0 }}

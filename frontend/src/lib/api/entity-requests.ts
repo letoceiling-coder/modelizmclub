@@ -34,7 +34,9 @@ const KIND_SEGMENT: Record<EntityKind, string> = {
 
 export async function fetchCommunityCategories(): Promise<CommunityCategoryOption[]> {
   if (isDemoMode()) return demoCommunityCategories();
-  const res = await api<{ data: { id: number; name: string; slug: string }[] }>("/categories/communities");
+  const res = await api<{ data: { id: number; name: string; slug: string }[] }>(
+    "/categories/communities",
+  );
   return (res.data ?? []).map((c) => ({ id: c.id, name: c.name, slug: c.slug }));
 }
 
@@ -107,18 +109,35 @@ export async function fetchMyEntityRequests(): Promise<EntityRequest[]> {
 export async function fetchEntityRequests(status?: RequestStatus): Promise<EntityRequest[]> {
   if (isDemoMode()) return demoEntityRequests(status);
   const [communities, channels] = await Promise.all([
-    api<{ data: EntityRequest[] }>("/admin/communities/applications", { query: { status } }).catch(() => ({ data: [] as EntityRequest[] })),
-    api<{ data: EntityRequest[] }>("/admin/channels/applications", { query: { status } }).catch(() => ({ data: [] as EntityRequest[] })),
+    api<{ data: EntityRequest[] }>("/admin/communities/applications", { query: { status } }).catch(
+      () => ({ data: [] as EntityRequest[] }),
+    ),
+    api<{ data: EntityRequest[] }>("/admin/channels/applications", { query: { status } }).catch(
+      () => ({ data: [] as EntityRequest[] }),
+    ),
   ]);
   return [...(communities.data ?? []), ...(channels.data ?? [])];
 }
 
 export async function approveEntityRequest(kind: EntityKind, id: string): Promise<void> {
-  if (isDemoMode()) { demoDecideEntityRequest(id); return; }
+  if (isDemoMode()) {
+    demoDecideEntityRequest(id);
+    return;
+  }
   await api(`/admin/${KIND_SEGMENT[kind]}/applications/${id}/approve`, { method: "POST" });
 }
 
-export async function rejectEntityRequest(kind: EntityKind, id: string, reason?: string): Promise<void> {
-  if (isDemoMode()) { demoDecideEntityRequest(id); return; }
-  await api(`/admin/${KIND_SEGMENT[kind]}/applications/${id}/reject`, { method: "POST", json: { reason } });
+export async function rejectEntityRequest(
+  kind: EntityKind,
+  id: string,
+  reason?: string,
+): Promise<void> {
+  if (isDemoMode()) {
+    demoDecideEntityRequest(id);
+    return;
+  }
+  await api(`/admin/${KIND_SEGMENT[kind]}/applications/${id}/reject`, {
+    method: "POST",
+    json: { reason },
+  });
 }

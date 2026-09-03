@@ -13,7 +13,11 @@ export const Route = createFileRoute("/rules/")({
   loader: () => fetchRulesHub(),
   head: ({ loaderData }) => ({
     meta: [
-      { title: loaderData?.title ? `${loaderData.title} — ${i18n.t("common.appName")}` : "Правила Моделизма" },
+      {
+        title: loaderData?.title
+          ? `${loaderData.title} — ${i18n.t("common.appName")}`
+          : "Правила Моделизма",
+      },
       { name: "description", content: META_DESCRIPTION },
     ],
     links: [{ rel: "canonical", href: `${SITE_ORIGIN}/rules` }],
@@ -43,8 +47,13 @@ function RulesHubPage() {
   };
 
   return (
-    <div style={{ background: "var(--background)", color: "var(--foreground)", minHeight: "100dvh" }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+    <div
+      style={{ background: "var(--background)", color: "var(--foreground)", minHeight: "100dvh" }}
+    >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header
         className="mx-auto flex h-[64px] max-w-[960px] items-center justify-between px-4"
         style={{ borderBottom: "1px solid var(--border)" }}
@@ -62,12 +71,20 @@ function RulesHubPage() {
       </header>
 
       <main className="mx-auto max-w-[760px] px-4 py-12">
-        <nav className="mb-6 flex items-center gap-1 text-[12.5px]" style={{ color: "var(--foreground-50)" }} aria-label="Хлебные крошки">
+        <nav
+          className="mb-6 flex items-center gap-1 text-[12.5px]"
+          style={{ color: "var(--foreground-50)" }}
+          aria-label="Хлебные крошки"
+        >
           <Link to="/" className="rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]">
             Главная
           </Link>
           <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-          <span aria-current="page" className="px-1.5 py-0.5 font-semibold" style={{ color: "var(--foreground)" }}>
+          <span
+            aria-current="page"
+            className="px-1.5 py-0.5 font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
             Правила
           </span>
         </nav>
@@ -78,7 +95,10 @@ function RulesHubPage() {
         >
           {hub.title}
         </h1>
-        <p className="mt-4 max-w-[62ch] text-[15px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+        <p
+          className="mt-4 max-w-[62ch] text-[15px] leading-relaxed"
+          style={{ color: "var(--foreground-70)" }}
+        >
           {hub.intro}
         </p>
 
@@ -93,16 +113,25 @@ function RulesHubPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+                    <div
+                      className="text-[16px] font-semibold"
+                      style={{ color: "var(--foreground)" }}
+                    >
                       {doc.title}
                     </div>
                     {doc.summary && (
-                      <p className="mt-1 text-[13px] leading-snug" style={{ color: "var(--foreground-60)" }}>
+                      <p
+                        className="mt-1 text-[13px] leading-snug"
+                        style={{ color: "var(--foreground-60)" }}
+                      >
                         {doc.summary}
                       </p>
                     )}
                   </div>
-                  <ChevronRight className="mt-1 h-4 w-4 shrink-0" style={{ color: "var(--foreground-40)" }} />
+                  <ChevronRight
+                    className="mt-1 h-4 w-4 shrink-0"
+                    style={{ color: "var(--foreground-40)" }}
+                  />
                 </div>
               </Link>
             </li>
@@ -110,7 +139,9 @@ function RulesHubPage() {
         </ul>
 
         <p className="mt-10 text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          {revision ? `Редакция от ${revision}. Предыдущие редакции не применяются.` : "Предыдущие редакции не применяются."}
+          {revision
+            ? `Редакция от ${revision}. Предыдущие редакции не применяются.`
+            : "Предыдущие редакции не применяются."}
         </p>
       </main>
     </div>

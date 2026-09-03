@@ -21,7 +21,10 @@ function ReferralShortLinkPage() {
   }, [code, nav]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center text-sm" style={{ color: "var(--foreground-50)" }}>
+    <div
+      className="flex min-h-screen items-center justify-center text-sm"
+      style={{ color: "var(--foreground-50)" }}
+    >
       Переходим к регистрации…
     </div>
   );

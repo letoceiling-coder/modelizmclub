@@ -21,7 +21,10 @@ import { formatDate } from "@/lib/format/date";
 type CardStyle = React.CSSProperties;
 
 function rub(kopecks: number): string {
-  return (kopecks / 100).toLocaleString("ru-RU", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return (kopecks / 100).toLocaleString("ru-RU", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 function fmt(iso: string | null): string {
@@ -29,8 +32,19 @@ function fmt(iso: string | null): string {
   return formatDate(iso, "absolute");
 }
 
-const th: React.CSSProperties = { textAlign: "left", padding: "8px 10px", fontSize: 12, color: "var(--foreground-50)", fontWeight: 600 };
-const td: React.CSSProperties = { padding: "8px 10px", fontSize: 13, color: "var(--foreground)", borderTop: "1px solid var(--border)" };
+const th: React.CSSProperties = {
+  textAlign: "left",
+  padding: "8px 10px",
+  fontSize: 12,
+  color: "var(--foreground-50)",
+  fontWeight: 600,
+};
+const td: React.CSSProperties = {
+  padding: "8px 10px",
+  fontSize: 13,
+  color: "var(--foreground)",
+  borderTop: "1px solid var(--border)",
+};
 const ghostBtn: React.CSSProperties = {
   height: 32,
   padding: "0 10px",
@@ -67,19 +81,42 @@ function WalletsBlock({ cardStyle }: { cardStyle: CardStyle }) {
       .finally(() => setLoading(false));
   }, [search]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   return (
     <div style={{ ...cardStyle, padding: 20 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>Кошельки</h4>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 16,
+          color: "var(--foreground)",
+        }}
+      >
+        Кошельки
+      </h4>
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Поиск по имени / email"
         className="outline-none"
-        style={{ marginTop: 12, height: 36, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--background)", width: "min(320px, 100%)", fontSize: 13, color: "var(--foreground)" }}
+        style={{
+          marginTop: 12,
+          height: 36,
+          padding: "0 10px",
+          borderRadius: 8,
+          border: "1px solid var(--border)",
+          background: "var(--background)",
+          width: "min(320px, 100%)",
+          fontSize: 13,
+          color: "var(--foreground)",
+        }}
       />
-      {loading ? <Loader2 size={16} className="mt-3 animate-spin" /> : (
+      {loading ? (
+        <Loader2 size={16} className="mt-3 animate-spin" />
+      ) : (
         <table style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -89,10 +126,19 @@ function WalletsBlock({ cardStyle }: { cardStyle: CardStyle }) {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={3} style={td}>Нет кошельков</td></tr>}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={3} style={td}>
+                  Нет кошельков
+                </td>
+              </tr>
+            )}
             {rows.map((w) => (
               <tr key={w.user.uuid ?? w.user.email ?? Math.random()}>
-                <td style={td}>{w.user.name ?? "—"}<div style={{ fontSize: 11, color: "var(--foreground-50)" }}>{w.user.email}</div></td>
+                <td style={td}>
+                  {w.user.name ?? "—"}
+                  <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>{w.user.email}</div>
+                </td>
                 <td style={td}>{rub(w.balance_kopecks)} ₽</td>
                 <td style={td}>{rub(w.held_kopecks)} ₽</td>
               </tr>
@@ -117,7 +163,9 @@ function WithdrawalsBlock({ cardStyle }: { cardStyle: CardStyle }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const act = async (uuid: string, status: "paid" | "rejected") => {
     setBusy(uuid);
@@ -134,8 +182,19 @@ function WithdrawalsBlock({ cardStyle }: { cardStyle: CardStyle }) {
 
   return (
     <div style={{ ...cardStyle, padding: 20 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>Выводы средств</h4>
-      {loading ? <Loader2 size={16} className="mt-3 animate-spin" /> : (
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 16,
+          color: "var(--foreground)",
+        }}
+      >
+        Выводы средств
+      </h4>
+      {loading ? (
+        <Loader2 size={16} className="mt-3 animate-spin" />
+      ) : (
         <table style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -147,20 +206,48 @@ function WithdrawalsBlock({ cardStyle }: { cardStyle: CardStyle }) {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={5} style={td}>Нет заявок</td></tr>}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} style={td}>
+                  Нет заявок
+                </td>
+              </tr>
+            )}
             {rows.map((w) => (
               <tr key={w.uuid}>
                 <td style={td}>{w.user.name ?? "—"}</td>
                 <td style={td}>{rub(w.amount_kopecks)} ₽</td>
-                <td style={td}><span style={{ fontSize: 12 }}>{w.method}: {w.destination}</span></td>
+                <td style={td}>
+                  <span style={{ fontSize: 12 }}>
+                    {w.method}: {w.destination}
+                  </span>
+                </td>
                 <td style={td}>{w.status}</td>
                 <td style={td}>
                   {w.status === "pending" || w.status === "processing" ? (
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button type="button" disabled={busy === w.uuid} style={ghostBtn} onClick={() => void act(w.uuid, "paid")}>Выплачено</button>
-                      <button type="button" disabled={busy === w.uuid} style={{ ...ghostBtn, color: "var(--danger)" }} onClick={() => void act(w.uuid, "rejected")}>Отклонить</button>
+                      <button
+                        type="button"
+                        disabled={busy === w.uuid}
+                        style={ghostBtn}
+                        onClick={() => void act(w.uuid, "paid")}
+                      >
+                        Выплачено
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy === w.uuid}
+                        style={{ ...ghostBtn, color: "var(--danger)" }}
+                        onClick={() => void act(w.uuid, "rejected")}
+                      >
+                        Отклонить
+                      </button>
                     </div>
-                  ) : <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>{fmt(w.created_at)}</span>}
+                  ) : (
+                    <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>
+                      {fmt(w.created_at)}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -194,13 +281,19 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
 
   const reload = useCallback(() => {
     setLoading(true);
-    fetchAdminSafeDeals({ status: status || undefined, search: search.trim() || undefined, page: 1 })
+    fetchAdminSafeDeals({
+      status: status || undefined,
+      search: search.trim() || undefined,
+      page: 1,
+    })
       .then((r) => setRows(r.data))
       .catch(() => toast.error("Не удалось загрузить сделки"))
       .finally(() => setLoading(false));
   }, [status, search]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const exportCsv = async () => {
     setExporting(true);
@@ -218,7 +311,9 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
     try {
       if (kind === "release") await adminReleaseSafeDeal(uuid);
       else await adminRefundSafeDeal(uuid);
-      toast.success(kind === "release" ? "Средства переведены продавцу" : "Средства возвращены покупателю");
+      toast.success(
+        kind === "release" ? "Средства переведены продавцу" : "Средства возвращены покупателю",
+      );
       reload();
     } catch {
       toast.error("Не удалось выполнить действие");
@@ -229,10 +324,35 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
 
   return (
     <div style={{ ...cardStyle, padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>Безопасные сделки</h4>
-        <button type="button" disabled={exporting} style={ghostBtn} onClick={() => void exportCsv()}>
-          <Download size={13} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <h4
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 600,
+            fontSize: 16,
+            color: "var(--foreground)",
+          }}
+        >
+          Безопасные сделки
+        </h4>
+        <button
+          type="button"
+          disabled={exporting}
+          style={ghostBtn}
+          onClick={() => void exportCsv()}
+        >
+          <Download
+            size={13}
+            style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }}
+          />
           {exporting ? "Готовим CSV…" : "Выгрузить CSV"}
         </button>
       </div>
@@ -241,19 +361,42 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="outline-none"
-          style={{ height: 36, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--background)", fontSize: 13, color: "var(--foreground)" }}
+          style={{
+            height: 36,
+            padding: "0 10px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--background)",
+            fontSize: 13,
+            color: "var(--foreground)",
+          }}
         >
-          {DEAL_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          {DEAL_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
         </select>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="UUID, трек-номер, email"
           className="outline-none"
-          style={{ height: 36, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--background)", width: "min(320px, 100%)", fontSize: 13, color: "var(--foreground)" }}
+          style={{
+            height: 36,
+            padding: "0 10px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--background)",
+            width: "min(320px, 100%)",
+            fontSize: 13,
+            color: "var(--foreground)",
+          }}
         />
       </div>
-      {loading ? <Loader2 size={16} className="mt-3 animate-spin" /> : (
+      {loading ? (
+        <Loader2 size={16} className="mt-3 animate-spin" />
+      ) : (
         <table style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -265,7 +408,13 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={5} style={td}>Нет сделок</td></tr>}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} style={td}>
+                  Нет сделок
+                </td>
+              </tr>
+            )}
             {rows.map((d) => (
               <tr key={d.uuid}>
                 <td style={td}>{rub(d.amount_kopecks)} ₽</td>
@@ -275,8 +424,22 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
                 <td style={td}>
                   {(d.status === "paid" || d.status === "shipped" || d.status === "delivered") && (
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "release")}>Выплатить</button>
-                      <button type="button" disabled={busy === d.uuid} style={{ ...ghostBtn, color: "var(--danger)" }} onClick={() => void act(d.uuid, "refund")}>Вернуть</button>
+                      <button
+                        type="button"
+                        disabled={busy === d.uuid}
+                        style={ghostBtn}
+                        onClick={() => void act(d.uuid, "release")}
+                      >
+                        Выплатить
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy === d.uuid}
+                        style={{ ...ghostBtn, color: "var(--danger)" }}
+                        onClick={() => void act(d.uuid, "refund")}
+                      >
+                        Вернуть
+                      </button>
                     </div>
                   )}
                 </td>
@@ -305,7 +468,9 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const act = async (uuid: string, side: "buyer" | "seller" | "split") => {
     setBusy(uuid);
@@ -322,7 +487,9 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
         setSplitOf(null);
       } else {
         await resolveAdminDispute(uuid, side);
-        toast.success(side === "buyer" ? "Спор закрыт в пользу покупателя" : "Спор закрыт в пользу продавца");
+        toast.success(
+          side === "buyer" ? "Спор закрыт в пользу покупателя" : "Спор закрыт в пользу продавца",
+        );
       }
       reload();
     } catch {
@@ -334,8 +501,19 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
 
   return (
     <div style={{ ...cardStyle, padding: 20 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>Споры</h4>
-      {loading ? <Loader2 size={16} className="mt-3 animate-spin" /> : (
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 16,
+          color: "var(--foreground)",
+        }}
+      >
+        Споры
+      </h4>
+      {loading ? (
+        <Loader2 size={16} className="mt-3 animate-spin" />
+      ) : (
         <table style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -346,16 +524,30 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={4} style={td}>Открытых споров нет</td></tr>}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={4} style={td}>
+                  Открытых споров нет
+                </td>
+              </tr>
+            )}
             {rows.map((d) => (
               <tr key={d.uuid}>
                 <td style={td}>
                   {d.reason}
-                  <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>{fmt(d.created_at)}</div>
+                  <div style={{ fontSize: 11, color: "var(--foreground-50)" }}>
+                    {fmt(d.created_at)}
+                  </div>
                   {(d.evidence?.length ?? 0) > 0 && (
                     <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {d.evidence!.map((f, i) => (
-                        <a key={f.uuid} href={f.url ?? "#"} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "var(--accent)" }}>
+                        <a
+                          key={f.uuid}
+                          href={f.url ?? "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: 11, color: "var(--accent)" }}
+                        >
                           {f.filename || `файл ${i + 1}`}
                         </a>
                       ))}
@@ -366,25 +558,76 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
                 <td style={td}>{d.opened_by.name ?? "—"}</td>
                 <td style={td}>
                   {d.status === "open" && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" }}>
-                        <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "buyer")}>Вернуть покупателю</button>
-                        <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "seller")}>Выплатить продавцу</button>
-                        <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => {
-                          setSplitOf(splitOf === d.uuid ? null : d.uuid);
-                          const half = (d.deal.amount_kopecks / 100 / 2).toFixed(2);
-                          setBuyerRub(half);
-                          setSellerRub(half);
-                        }}>Разделить сумму</button>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        alignItems: "flex-end",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 6,
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          disabled={busy === d.uuid}
+                          style={ghostBtn}
+                          onClick={() => void act(d.uuid, "buyer")}
+                        >
+                          Вернуть покупателю
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy === d.uuid}
+                          style={ghostBtn}
+                          onClick={() => void act(d.uuid, "seller")}
+                        >
+                          Выплатить продавцу
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy === d.uuid}
+                          style={ghostBtn}
+                          onClick={() => {
+                            setSplitOf(splitOf === d.uuid ? null : d.uuid);
+                            const half = (d.deal.amount_kopecks / 100 / 2).toFixed(2);
+                            setBuyerRub(half);
+                            setSellerRub(half);
+                          }}
+                        >
+                          Разделить сумму
+                        </button>
                       </div>
                       {splitOf === d.uuid && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            alignItems: "center",
+                          }}
+                        >
                           <input
                             value={buyerRub}
                             onChange={(e) => setBuyerRub(e.target.value)}
                             placeholder="Покупателю"
                             inputMode="decimal"
-                            style={{ height: 32, width: 96, borderRadius: 8, border: "1px solid var(--border)", padding: "0 8px", background: "var(--background)", color: "var(--foreground)", fontSize: 12 }}
+                            style={{
+                              height: 32,
+                              width: 96,
+                              borderRadius: 8,
+                              border: "1px solid var(--border)",
+                              padding: "0 8px",
+                              background: "var(--background)",
+                              color: "var(--foreground)",
+                              fontSize: 12,
+                            }}
                           />
                           <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>/</span>
                           <input
@@ -392,9 +635,25 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
                             onChange={(e) => setSellerRub(e.target.value)}
                             placeholder="Продавцу"
                             inputMode="decimal"
-                            style={{ height: 32, width: 96, borderRadius: 8, border: "1px solid var(--border)", padding: "0 8px", background: "var(--background)", color: "var(--foreground)", fontSize: 12 }}
+                            style={{
+                              height: 32,
+                              width: 96,
+                              borderRadius: 8,
+                              border: "1px solid var(--border)",
+                              padding: "0 8px",
+                              background: "var(--background)",
+                              color: "var(--foreground)",
+                              fontSize: 12,
+                            }}
                           />
-                          <button type="button" disabled={busy === d.uuid} style={ghostBtn} onClick={() => void act(d.uuid, "split")}>Применить X/Y</button>
+                          <button
+                            type="button"
+                            disabled={busy === d.uuid}
+                            style={ghostBtn}
+                            onClick={() => void act(d.uuid, "split")}
+                          >
+                            Применить X/Y
+                          </button>
                         </div>
                       )}
                     </div>

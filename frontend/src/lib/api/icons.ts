@@ -43,7 +43,11 @@ const DEMO_ASSETS_KEY = "modelizm_icon_assets";
 const DEMO_OVERRIDES_KEY = "modelizm_icon_overrides";
 
 function readDemoAssets(): IconAsset[] {
-  try { return JSON.parse(localStorage.getItem(DEMO_ASSETS_KEY) || "[]"); } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(DEMO_ASSETS_KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 function writeDemoAssets(list: IconAsset[]): void {
   localStorage.setItem(DEMO_ASSETS_KEY, JSON.stringify(list));
@@ -53,7 +57,11 @@ function writeDemoAssets(list: IconAsset[]): void {
 
 export async function fetchIconOverrides(): Promise<IconOverrideMap> {
   if (isDemoMode()) {
-    try { return JSON.parse(localStorage.getItem(DEMO_OVERRIDES_KEY) || "{}"); } catch { return {}; }
+    try {
+      return JSON.parse(localStorage.getItem(DEMO_OVERRIDES_KEY) || "{}");
+    } catch {
+      return {};
+    }
   }
   try {
     const res = await api<{ data: IconOverrideMap }>("/icon-overrides", { auth: false });
@@ -90,7 +98,8 @@ export async function registerIconFromMedia(mediaUuid: string): Promise<IconAsse
 function demoTokenizeSvg(raw: string): { svg: string } | { error: string } {
   const s = raw.trim();
   if (!isSafeSvgMarkup(s)) return { error: "Файл не распознан как безопасный SVG" };
-  if (/<(linearGradient|radialGradient)\b/i.test(s)) return { error: "Иконка должна быть одноцветной (обнаружен градиент)" };
+  if (/<(linearGradient|radialGradient)\b/i.test(s))
+    return { error: "Иконка должна быть одноцветной (обнаружен градиент)" };
   const fills = new Set(
     Array.from(s.matchAll(/fill\s*=\s*"([^"]*)"/gi))
       .map((m) => m[1].toLowerCase())

@@ -40,8 +40,12 @@ function GuestCard() {
   return (
     <section style={card}>
       <Header perInvite={REFERRAL_BONUS_PER_INVITE} maxBonus={REFERRAL_MAX_BONUS} />
-      <p className="mt-[16px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-        Войдите или создайте аккаунт, чтобы получить персональную ссылку. Бонус начисляется после того, как друг подтвердит телефон.
+      <p
+        className="mt-[16px] text-[14px] leading-relaxed"
+        style={{ color: "var(--foreground-70)" }}
+      >
+        Войдите или создайте аккаунт, чтобы получить персональную ссылку. Бонус начисляется после
+        того, как друг подтвердит телефон.
       </p>
       <div className="mt-[16px] flex flex-wrap gap-[10px]">
         <Link
@@ -74,11 +78,19 @@ function Header({ perInvite, maxBonus }: { perInvite: number; maxBonus: number }
         <Gift size={18} />
       </div>
       <div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, color: "var(--foreground)" }}>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 22,
+            color: "var(--foreground)",
+          }}
+        >
           Пригласи друга
         </h1>
         <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-          +{perInvite} бесплатное объявление за каждого друга с подтверждённым телефоном. Максимум — {maxBonus}.
+          +{perInvite} бесплатное объявление за каждого друга с подтверждённым телефоном. Максимум —{" "}
+          {maxBonus}.
         </p>
       </div>
     </div>
@@ -106,7 +118,11 @@ function Dashboard({ meId }: { meId: string }) {
   const shareNative = async () => {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "МоДелизМ Клуб", text: "Присоединяйся к клубу моделистов", url: link });
+        await navigator.share({
+          title: "МоДелизМ Клуб",
+          text: "Присоединяйся к клубу моделистов",
+          url: link,
+        });
         return;
       } catch {
         /* cancelled */
@@ -131,7 +147,10 @@ function Dashboard({ meId }: { meId: string }) {
             padding: "4px 4px 4px 14px",
           }}
         >
-          <span className="flex-1 truncate" style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--foreground-70)" }}>
+          <span
+            className="flex-1 truncate"
+            style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--foreground-70)" }}
+          >
             {link}
           </span>
           <button
@@ -156,27 +175,65 @@ function Dashboard({ meId }: { meId: string }) {
           <button type="button" onClick={shareNative} style={shareBtn}>
             <Share2 size={14} /> Поделиться
           </button>
-          <a href={`https://t.me/share/url?url=${encoded}&text=${text}`} target="_blank" rel="noreferrer" style={shareBtn}>
+          <a
+            href={`https://t.me/share/url?url=${encoded}&text=${text}`}
+            target="_blank"
+            rel="noreferrer"
+            style={shareBtn}
+          >
             Telegram
           </a>
-          <a href={`https://vk.com/share.php?url=${encoded}`} target="_blank" rel="noreferrer" style={shareBtn}>
+          <a
+            href={`https://vk.com/share.php?url=${encoded}`}
+            target="_blank"
+            rel="noreferrer"
+            style={shareBtn}
+          >
             VK
           </a>
-          <a href={`https://wa.me/?text=${encoded}`} target="_blank" rel="noreferrer" style={shareBtn}>
+          <a
+            href={`https://wa.me/?text=${encoded}`}
+            target="_blank"
+            rel="noreferrer"
+            style={shareBtn}
+          >
             WhatsApp
           </a>
         </div>
       </section>
 
       <section className="grid grid-cols-2 gap-[10px] sm:grid-cols-4">
-        <Stat icon={<MousePointerClick size={16} />} label="Переходов" value={loading ? "…" : String(data?.clicks ?? 0)} />
-        <Stat icon={<Users size={16} />} label="Зарегистрировались" value={loading ? "…" : String(data?.invitedCount ?? 0)} />
-        <Stat icon={<Phone size={16} />} label="Подтвердили телефон" value={loading ? "…" : String(data?.verified ?? 0)} />
-        <Stat icon={<Sparkles size={16} />} label="Бонусов" value={loading ? "…" : `${data?.bonus ?? 0} объявл.`} />
+        <Stat
+          icon={<MousePointerClick size={16} />}
+          label="Переходов"
+          value={loading ? "…" : String(data?.clicks ?? 0)}
+        />
+        <Stat
+          icon={<Users size={16} />}
+          label="Зарегистрировались"
+          value={loading ? "…" : String(data?.invitedCount ?? 0)}
+        />
+        <Stat
+          icon={<Phone size={16} />}
+          label="Подтвердили телефон"
+          value={loading ? "…" : String(data?.verified ?? 0)}
+        />
+        <Stat
+          icon={<Sparkles size={16} />}
+          label="Бонусов"
+          value={loading ? "…" : `${data?.bonus ?? 0} объявл.`}
+        />
       </section>
 
       <section style={card}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 16,
+            color: "var(--foreground)",
+          }}
+        >
           Приглашённые друзья
         </h2>
         {(data?.invited.length ?? 0) === 0 ? (
@@ -192,7 +249,9 @@ function Dashboard({ meId }: { meId: string }) {
                 style={{ border: "1px solid var(--border)", borderRadius: 12 }}
               >
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{inv.user.displayName}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
+                    {inv.user.displayName}
+                  </div>
                   <div style={{ fontSize: 12, color: "var(--foreground-50)" }}>
                     {inv.joinedAt ? formatDate(inv.joinedAt, "relative") : ""}
                   </div>
@@ -204,7 +263,10 @@ function Dashboard({ meId }: { meId: string }) {
                     padding: "4px 10px",
                     borderRadius: "var(--r-pill)",
                     color: inv.status === "completed" ? "var(--success)" : "var(--foreground-70)",
-                    background: inv.status === "completed" ? "var(--success-soft)" : "var(--background-surface)",
+                    background:
+                      inv.status === "completed"
+                        ? "var(--success-soft)"
+                        : "var(--background-surface)",
                   }}
                 >
                   {inv.status === "completed" ? "Бонус начислен" : "Ожидает подтверждения телефона"}
@@ -221,8 +283,21 @@ function Dashboard({ meId }: { meId: string }) {
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div style={{ ...card, padding: 14 }}>
-      <div className="flex items-center gap-[6px]" style={{ color: "var(--accent)" }}>{icon}<span style={{ fontSize: 11, color: "var(--foreground-50)" }}>{label}</span></div>
-      <div className="mt-[6px]" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, color: "var(--foreground)" }}>{value}</div>
+      <div className="flex items-center gap-[6px]" style={{ color: "var(--accent)" }}>
+        {icon}
+        <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>{label}</span>
+      </div>
+      <div
+        className="mt-[6px]"
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
+          fontSize: 20,
+          color: "var(--foreground)",
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }

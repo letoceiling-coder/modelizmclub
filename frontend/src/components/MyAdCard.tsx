@@ -21,7 +21,16 @@ interface Props {
   onRestore?: (id: string) => void;
 }
 
-export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish, onDelete, onRestore }: Props) {
+export function MyAdCard({
+  ad,
+  status,
+  selected,
+  onSelect,
+  onArchive,
+  onPublish,
+  onDelete,
+  onRestore,
+}: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
   const archived = status !== "active" && status !== "moderation";
@@ -72,47 +81,55 @@ export function MyAdCard({ ad, status, selected, onSelect, onArchive, onPublish,
                     boxShadow: "var(--shadow-float)",
                   }}
                 >
-                {deleted ? (
-                  <MenuItem
-                    onClick={() => onRestore?.(ad.id)}
-                    icon={<RotateCcw size={14} />}
-                    label="Восстановить"
-                    color="var(--success)"
-                  />
-                ) : (
-                  <>
-                <MenuItem to="/ads/new" search={{ edit: ad.id }} icon={<Pencil size={14} />} label="Редактировать" />
-                {status === "active" && !ad.promoted && (
-                  <MenuItem
-                    onClick={() => { setMenuOpen(false); setBoostOpen(true); }}
-                    icon={<Zap size={14} />}
-                    label="Продвинуть"
-                    color="var(--accent)"
-                  />
-                )}
-                {archived ? (
-                  <MenuItem
-                    onClick={() => onPublish?.(ad.id)}
-                    icon={<Upload size={14} />}
-                    label="Опубликовать"
-                    color="var(--success)"
-                  />
-                ) : (
-                  <MenuItem
-                    onClick={() => onArchive?.(ad.id)}
-                    icon={<Archive size={14} />}
-                    label="В архив"
-                    color="var(--warning)"
-                  />
-                )}
-                <MenuItem
-                  onClick={() => onDelete?.(ad.id)}
-                  icon={<Trash2 size={14} />}
-                  label="Удалить"
-                  color="var(--error)"
-                />
-                  </>
-                )}
+                  {deleted ? (
+                    <MenuItem
+                      onClick={() => onRestore?.(ad.id)}
+                      icon={<RotateCcw size={14} />}
+                      label="Восстановить"
+                      color="var(--success)"
+                    />
+                  ) : (
+                    <>
+                      <MenuItem
+                        to="/ads/new"
+                        search={{ edit: ad.id }}
+                        icon={<Pencil size={14} />}
+                        label="Редактировать"
+                      />
+                      {status === "active" && !ad.promoted && (
+                        <MenuItem
+                          onClick={() => {
+                            setMenuOpen(false);
+                            setBoostOpen(true);
+                          }}
+                          icon={<Zap size={14} />}
+                          label="Продвинуть"
+                          color="var(--accent)"
+                        />
+                      )}
+                      {archived ? (
+                        <MenuItem
+                          onClick={() => onPublish?.(ad.id)}
+                          icon={<Upload size={14} />}
+                          label="Опубликовать"
+                          color="var(--success)"
+                        />
+                      ) : (
+                        <MenuItem
+                          onClick={() => onArchive?.(ad.id)}
+                          icon={<Archive size={14} />}
+                          label="В архив"
+                          color="var(--warning)"
+                        />
+                      )}
+                      <MenuItem
+                        onClick={() => onDelete?.(ad.id)}
+                        icon={<Trash2 size={14} />}
+                        label="Удалить"
+                        color="var(--error)"
+                      />
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -146,7 +163,8 @@ function MenuItem({
   search?: { edit: string };
   color?: string;
 }) {
-  const cls = "flex items-center gap-[10px] px-[14px] py-[8px] text-left text-[13px] font-medium transition-colors";
+  const cls =
+    "flex items-center gap-[10px] px-[14px] py-[8px] text-left text-[13px] font-medium transition-colors";
   const style: React.CSSProperties = { color: color ?? "var(--foreground)" };
   const onEnter = (e: React.MouseEvent<HTMLElement>) =>
     (e.currentTarget.style.background = "var(--background-surface)");

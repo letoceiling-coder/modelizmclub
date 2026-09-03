@@ -1,7 +1,10 @@
 import { api } from "./client";
 import type { MediaPurpose } from "./media";
 
-export type AdminMediaPurpose = Extract<MediaPurpose, "icon" | "banner" | "cover" | "post" | "listing" | "avatar" | "logo">;
+export type AdminMediaPurpose = Extract<
+  MediaPurpose,
+  "icon" | "banner" | "cover" | "post" | "listing" | "avatar" | "logo"
+>;
 
 export interface AdminMediaItem {
   uuid: string;
@@ -64,7 +67,10 @@ export async function fetchAdminMedia(opts?: {
   };
 }
 
-export async function uploadAdminMedia(file: File, purpose: AdminMediaPurpose): Promise<AdminMediaItem> {
+export async function uploadAdminMedia(
+  file: File,
+  purpose: AdminMediaPurpose,
+): Promise<AdminMediaItem> {
   const form = new FormData();
   form.append("file", file);
   form.append("purpose", purpose);

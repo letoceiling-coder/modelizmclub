@@ -49,16 +49,15 @@ export function SimilarAds({ items }: { items: Ad[] }) {
 
   return (
     <section className="space-y-[16px]">
-      <h2 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+      <h2
+        className="font-display text-[22px] font-bold"
+        style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+      >
         Похожие объявления
       </h2>
       <div className="relative">
-        {canScrollLeft && (
-          <ScrollArrow direction="left" onClick={() => scrollByCards(-1)} />
-        )}
-        {canScrollRight && (
-          <ScrollArrow direction="right" onClick={() => scrollByCards(1)} />
-        )}
+        {canScrollLeft && <ScrollArrow direction="left" onClick={() => scrollByCards(-1)} />}
+        {canScrollRight && <ScrollArrow direction="right" onClick={() => scrollByCards(1)} />}
         <HorizontalScrollNav
           ref={scrollerRef}
           as="div"
@@ -79,7 +78,10 @@ export function SimilarAds({ items }: { items: Ad[] }) {
                 boxShadow: "var(--shadow-card)",
               }}
             >
-              <div className="overflow-hidden" style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}>
+              <div
+                className="overflow-hidden"
+                style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}
+              >
                 <img
                   src={a.image}
                   decoding="async"
@@ -91,13 +93,28 @@ export function SimilarAds({ items }: { items: Ad[] }) {
                 />
               </div>
               <div className="flex flex-col gap-[6px] p-[12px]">
-                <h3 className="text-[13px] font-medium leading-[1.3]" style={{ color: "var(--foreground)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                <h3
+                  className="text-[13px] font-medium leading-[1.3]"
+                  style={{
+                    color: "var(--foreground)",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
                   {a.title}
                 </h3>
-                <div className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>
+                <div
+                  className="font-display text-[16px] font-bold"
+                  style={{ color: "var(--foreground)" }}
+                >
                   {a.price.toLocaleString("ru")} ₽
                 </div>
-                <div className="inline-flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                <div
+                  className="inline-flex items-center gap-[4px] text-[11px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
                   <MapPin size={11} /> {a.city}
                 </div>
               </div>
@@ -147,11 +164,16 @@ function SimilarAdPlaceholder() {
         borderRadius: "var(--r-card)",
       }}
     >
-      <div className="grid place-items-center" style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}>
+      <div
+        className="grid place-items-center"
+        style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}
+      >
         <Tag size={22} style={{ color: "var(--foreground-30)" }} />
       </div>
       <div className="flex flex-col gap-[6px] p-[12px]">
-        <span className="text-[13px] font-medium" style={{ color: "var(--foreground-50)" }}>Скоро появятся</span>
+        <span className="text-[13px] font-medium" style={{ color: "var(--foreground-50)" }}>
+          Скоро появятся
+        </span>
       </div>
     </div>
   );

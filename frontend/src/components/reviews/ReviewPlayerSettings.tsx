@@ -79,13 +79,19 @@ export function ReviewPlayerSettings({ videoRef, visible }: Props) {
           className="absolute bottom-[44px] right-0 min-w-[200px] rounded-[12px] border p-[12px] shadow-lg"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
-          <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="text-[11px] font-semibold uppercase tracking-wide"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {t("components.reviewPlayer.quality")}
           </div>
           <div className="mt-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
             {t("components.reviewPlayer.qualityAuto")}
           </div>
-          <div className="mt-[12px] text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="mt-[12px] text-[11px] font-semibold uppercase tracking-wide"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {t("components.reviewPlayer.speed")}
           </div>
           <div className="mt-[6px] flex flex-wrap gap-[6px]">

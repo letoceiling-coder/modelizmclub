@@ -67,8 +67,12 @@ export function ResponsiveImage({
 
   return (
     <picture>
-      {picture.webp && !failed ? <source type="image/webp" srcSet={picture.webp} sizes={sizes} /> : null}
-      {picture.jpeg && !failed ? <source type="image/jpeg" srcSet={picture.jpeg} sizes={sizes} /> : null}
+      {picture.webp && !failed ? (
+        <source type="image/webp" srcSet={picture.webp} sizes={sizes} />
+      ) : null}
+      {picture.jpeg && !failed ? (
+        <source type="image/jpeg" srcSet={picture.jpeg} sizes={sizes} />
+      ) : null}
       <img
         src={src}
         alt={alt}

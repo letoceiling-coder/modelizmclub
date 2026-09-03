@@ -35,9 +35,15 @@ function FavoritesPage() {
         // Keep heart state in sync with the server list so unfavorite updates UI.
         actions.setFavoriteAdIds(list.map((ad) => ad.id));
       })
-      .catch(() => { if (alive) setFavorites([]); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .catch(() => {
+        if (alive) setFavorites([]);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const visibleFavorites = useMemo(
@@ -49,7 +55,10 @@ function FavoritesPage() {
     <AppLayout rightColumn={false} footer>
       <div className="space-y-[16px] pb-[24px]">
         <header>
-          <h1 className="font-display text-[22px] font-bold leading-tight" style={{ color: "var(--foreground)" }}>
+          <h1
+            className="font-display text-[22px] font-bold leading-tight"
+            style={{ color: "var(--foreground)" }}
+          >
             {t("pages.favorites.title")}
           </h1>
           <p className="mt-[1px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
@@ -69,7 +78,9 @@ function FavoritesPage() {
             title={t("pages.favorites.emptyTitle")}
             description={t("pages.favorites.emptyDesc")}
           >
-            <Button onClick={() => navigate({ to: "/ads" })}>{t("pages.favorites.toCatalog")}</Button>
+            <Button onClick={() => navigate({ to: "/ads" })}>
+              {t("pages.favorites.toCatalog")}
+            </Button>
           </EmptyState>
         ) : (
           <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">

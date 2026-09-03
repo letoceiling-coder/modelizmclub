@@ -7,8 +7,8 @@ import { fetchIconOverrides, type IconOverride, type IconOverrideMap } from "@/l
 const EVENT = "modelizm:icon-overrides-changed";
 
 let published: IconOverrideMap = {};
-let draft: IconOverrideMap = {};              // slotKey → override (для превью)
-const draftCleared = new Set<string>();       // слоты, сброшенные на дефолт в черновике
+let draft: IconOverrideMap = {}; // slotKey → override (для превью)
+const draftCleared = new Set<string>(); // слоты, сброшенные на дефолт в черновике
 /** After an admin publish in this tab, ignore stale SSR/bootstrap icon maps. */
 let preferLocalPublished = false;
 
@@ -21,7 +21,7 @@ export function getPublishedOverride(slotKey: string): IconOverride | null {
 }
 
 function mergedFor(slotKey: string): IconOverride | null {
-  if (draftCleared.has(slotKey)) return null;    // явный сброс в черновике
+  if (draftCleared.has(slotKey)) return null; // явный сброс в черновике
   return draft[slotKey] ?? published[slotKey] ?? null;
 }
 
@@ -49,7 +49,10 @@ export function resetDraft(): void {
   notify();
 }
 
-export function applyPublishedMap(map: IconOverrideMap, source: "bootstrap" | "publish" = "bootstrap"): void {
+export function applyPublishedMap(
+  map: IconOverrideMap,
+  source: "bootstrap" | "publish" = "bootstrap",
+): void {
   if (source === "publish") {
     preferLocalPublished = true;
     published = map ?? {};

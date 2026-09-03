@@ -49,7 +49,12 @@ export function GuestAuthDialog({ open, onOpenChange, onLogin, onRegister }: Pro
           <Button type="button" variant="outline" className="w-full" onClick={onRegister}>
             {t("guestAuth.register")}
           </Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => onOpenChange(false)}
+          >
             {t("guestAuth.later")}
           </Button>
         </DialogFooter>
@@ -61,6 +66,7 @@ export function GuestAuthDialog({ open, onOpenChange, onLogin, onRegister }: Pro
 export function guestReturnPath(): string {
   if (typeof window === "undefined") return "/feed";
   const path = `${window.location.pathname}${window.location.search}`;
-  if (!path.startsWith("/") || path.startsWith("/login") || path.startsWith("/register")) return "/feed";
+  if (!path.startsWith("/") || path.startsWith("/login") || path.startsWith("/register"))
+    return "/feed";
   return path;
 }

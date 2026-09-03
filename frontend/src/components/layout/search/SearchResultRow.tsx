@@ -49,7 +49,15 @@ export function ResultRow({
       className="flex items-center gap-[10px] px-[14px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
     >
       {avatar ? (
-        <img src={avatar} width={32} height={32} loading="lazy" decoding="async" alt="" className="h-[32px] w-[32px] shrink-0 rounded-full object-cover" />
+        <img
+          src={avatar}
+          width={32}
+          height={32}
+          loading="lazy"
+          decoding="async"
+          alt=""
+          className="h-[32px] w-[32px] shrink-0 rounded-full object-cover"
+        />
       ) : (
         <div
           className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full"
@@ -59,9 +67,13 @@ export function ResultRow({
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{title}</div>
+        <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+          {title}
+        </div>
         {subtitle && (
-          <div className="truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{subtitle}</div>
+          <div className="truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {subtitle}
+          </div>
         )}
       </div>
     </Link>

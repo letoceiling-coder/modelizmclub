@@ -1,16 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import {
-  MapPin,
-  Clock,
-  Heart,
-  ImageOff,
-  Package,
-  Truck,
-  BoxSelect,
-  Store,
-} from "lucide-react";
+import { MapPin, Clock, Heart, ImageOff, Package, Truck, BoxSelect, Store } from "lucide-react";
 import type { Ad } from "@/lib/mock";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
@@ -18,8 +9,8 @@ import { toDisplayMedia } from "@/lib/media/variants";
 import { formatDate } from "@/lib/format/date";
 
 const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: string }> = {
-  "Продаю":  { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
-  "Куплю":   { bg: "var(--info-soft)",    fg: "var(--info)",    border: "var(--info)"    },
+  Продаю: { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
+  Куплю: { bg: "var(--info-soft)", fg: "var(--info)", border: "var(--info)" },
 };
 
 function relativeTime(input?: string): string {
@@ -35,11 +26,11 @@ function relativeTime(input?: string): string {
 }
 
 const DELIVERY_ICON: Record<string, { Icon: typeof Package; label: string }> = {
-  "Почта": { Icon: Package, label: "Почта России" },
+  Почта: { Icon: Package, label: "Почта России" },
   "Почта России": { Icon: Package, label: "Почта России" },
-  "СДЭК": { Icon: Truck, label: "СДЭК" },
-  "Boxberry": { Icon: BoxSelect, label: "Boxberry" },
-  "Самовывоз": { Icon: Store, label: "Самовывоз" },
+  СДЭК: { Icon: Truck, label: "СДЭК" },
+  Boxberry: { Icon: BoxSelect, label: "Boxberry" },
+  Самовывоз: { Icon: Store, label: "Самовывоз" },
 };
 
 interface Props {
@@ -49,7 +40,12 @@ interface Props {
 }
 
 export function AdCard({ ad, state = "default", compact = false }: Props) {
-  const moderationState = state !== "default" ? state : ad.moderation && ad.moderation !== "published" ? ad.moderation : "default";
+  const moderationState =
+    state !== "default"
+      ? state
+      : ad.moderation && ad.moderation !== "published"
+        ? ad.moderation
+        : "default";
   const [liked, setLiked] = useState<boolean>(false);
   const [likeBump, setLikeBump] = useState(0);
   const hero = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
@@ -202,7 +198,9 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
 
           {/* Meta row */}
           <div
-            className={compact ? "flex flex-col items-start gap-[4px]" : "flex items-center justify-between"}
+            className={
+              compact ? "flex flex-col items-start gap-[4px]" : "flex items-center justify-between"
+            }
             style={{ marginBottom: 12 }}
           >
             <span

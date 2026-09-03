@@ -33,12 +33,7 @@ import {
   type Video,
   type VideoCategory,
 } from "@/lib/mock";
-import {
-  setCurrentUser,
-  setDialogs,
-  actions,
-  type AdStatusKey,
-} from "@/lib/store";
+import { setCurrentUser, setDialogs, actions, type AdStatusKey } from "@/lib/store";
 
 // ── Demo user ────────────────────────────────────────────────────────────────
 // Slots into id "u1" so the whole mock graph (its posts, ads, dialogs where
@@ -113,7 +108,8 @@ export function demoFeed(opts?: {
 }): DemoFeedResult {
   let list = mockPosts.slice();
   if (opts?.filter === "following") list = list.filter((p) => p.isFollowing);
-  if (opts?.filter === "category" && opts.categoryName) list = list.filter((p) => p.category === opts.categoryName);
+  if (opts?.filter === "category" && opts.categoryName)
+    list = list.filter((p) => p.category === opts.categoryName);
   if (opts?.filter === "scheduled") list = list.filter((p) => p.status === "scheduled");
   const perPage = opts?.perPage ?? 20;
   const page = opts?.page ?? 1;
@@ -189,17 +185,19 @@ export function demoListingsFiltered(params: CatalogParams): Ad[] {
   }
 
   if (params.deliveries && params.deliveries.length > 0) {
-    result = result.filter((a) => a.delivery && params.deliveries!.some((d) => a.delivery.includes(d)));
+    result = result.filter(
+      (a) => a.delivery && params.deliveries!.some((d) => a.delivery.includes(d)),
+    );
   }
 
   if (params.listingStatus && params.listingStatus !== "Все") {
     result = result.filter((a) => a.status === params.listingStatus);
   }
 
-
   if (params.sort === "cheap") result = [...result].sort((a, b) => a.price - b.price);
   else if (params.sort === "expensive") result = [...result].sort((a, b) => b.price - a.price);
-  else if (params.sort === "popular") result = [...result].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+  else if (params.sort === "popular")
+    result = [...result].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
   // "new" — default order (mockAds already sorted newest first)
 
   // Pagination — mirrors the real API's per_page/page contract so "load more"
@@ -322,19 +320,64 @@ export function demoCommunityDiscussions(slug: ID): DemoDiscussion[] {
   const names = mockUsers.map((u) => u.name);
   const pick = (i: number) => names[(seed + i) % names.length];
   return [
-    { id: "d1", title: "Настройка двигателя: делимся сетапами", replies: 24 + (seed % 30), lastActivity: "5 минут назад", authorName: pick(0) },
-    { id: "d2", title: "Выбор аппаратуры для новичка", replies: 18 + (seed % 20), lastActivity: "40 минут назад", authorName: pick(1) },
-    { id: "d3", title: "Гонки и встречи: календарь сезона", replies: 42 + (seed % 25), lastActivity: "2 часа назад", authorName: pick(2) },
-    { id: "d4", title: "Новичкам: с чего начать", replies: 63 + (seed % 15), lastActivity: "вчера", authorName: pick(3) },
+    {
+      id: "d1",
+      title: "Настройка двигателя: делимся сетапами",
+      replies: 24 + (seed % 30),
+      lastActivity: "5 минут назад",
+      authorName: pick(0),
+    },
+    {
+      id: "d2",
+      title: "Выбор аппаратуры для новичка",
+      replies: 18 + (seed % 20),
+      lastActivity: "40 минут назад",
+      authorName: pick(1),
+    },
+    {
+      id: "d3",
+      title: "Гонки и встречи: календарь сезона",
+      replies: 42 + (seed % 25),
+      lastActivity: "2 часа назад",
+      authorName: pick(2),
+    },
+    {
+      id: "d4",
+      title: "Новичкам: с чего начать",
+      replies: 63 + (seed % 15),
+      lastActivity: "вчера",
+      authorName: pick(3),
+    },
   ];
 }
 
 export function demoCommunityEvents(slug: ID): DemoCommunityEvent[] {
   const seed = seedNum(slug);
   return [
-    { id: "e1", title: "Гонки RC в Краснодаре", date: "12 июля, 11:00", place: "Трасса «Юбилейный», Краснодар", cover: pmimg(seed + 1), attendees: 48 + (seed % 40) },
-    { id: "e2", title: "Встреча авиамоделистов", date: "20 июля, 10:00", place: "Полётное поле, Сосновка", cover: pmimg(seed + 2), attendees: 32 + (seed % 30) },
-    { id: "e3", title: "Обзорный заезд для новичков", date: "27 июля, 12:00", place: "Клубная площадка", cover: pmimg(seed + 3), attendees: 21 + (seed % 20) },
+    {
+      id: "e1",
+      title: "Гонки RC в Краснодаре",
+      date: "12 июля, 11:00",
+      place: "Трасса «Юбилейный», Краснодар",
+      cover: pmimg(seed + 1),
+      attendees: 48 + (seed % 40),
+    },
+    {
+      id: "e2",
+      title: "Встреча авиамоделистов",
+      date: "20 июля, 10:00",
+      place: "Полётное поле, Сосновка",
+      cover: pmimg(seed + 2),
+      attendees: 32 + (seed % 30),
+    },
+    {
+      id: "e3",
+      title: "Обзорный заезд для новичков",
+      date: "27 июля, 12:00",
+      place: "Клубная площадка",
+      cover: pmimg(seed + 3),
+      attendees: 21 + (seed % 20),
+    },
   ];
 }
 
@@ -368,16 +411,94 @@ export interface DemoChannel {
   isSubscribed?: boolean;
 }
 
-const iso = (daysAgo: number) =>
-  new Date(Date.now() - daysAgo * 86400000).toISOString();
+const iso = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString();
 
 const demoChannelList: DemoChannel[] = [
-  { id: "rc-avia", name: "RC Авиация России", slug: "rc-avia", description: "Официальный канал сообщества авиамоделистов: анонсы слётов, обзоры, разборы полётов.", category: "Самолёты", kind: "official", avatarColor: "#627FFF", bannerColor: "linear-gradient(135deg,#3f4fbf,#627fff)", subscribers: 8420, createdAt: iso(320), ownerName: "RC Авиация", isSubscribed: true },
-  { id: "model-shop", name: "Магазин «Модель»", slug: "model-shop", description: "Новинки, поступления и спецпредложения крупнейшего магазина RC-запчастей.", category: "Запчасти", kind: "shop", avatarColor: "#F26C05", bannerColor: "linear-gradient(135deg,#b04c00,#f26c05)", subscribers: 15600, createdAt: iso(540), ownerName: "Модель", isSubscribed: false },
-  { id: "fpv-lab", name: "FPV Lab", slug: "fpv-lab", description: "Сборки, настройка Betaflight, тесты железа и гоночные трассы FPV.", category: "Квадрокоптеры", kind: "expert", avatarColor: "#4caf50", bannerColor: "linear-gradient(135deg,#1b5e20,#4caf50)", subscribers: 6230, createdAt: iso(210), ownerName: "Михаил Квадро", isSubscribed: true },
-  { id: "traxxas-ru", name: "Traxxas Россия", slug: "traxxas-ru", description: "Официальный бренд-канал: модельный ряд, гарантия, сервис и апгрейды.", category: "Автомодели", kind: "brand", avatarColor: "#e53935", bannerColor: "linear-gradient(135deg,#8e1c1c,#e53935)", subscribers: 11200, createdAt: iso(400), ownerName: "Traxxas", isSubscribed: false },
-  { id: "diy-electronics", name: "DIY Электроника", slug: "diy-electronics", description: "Схемы, прошивки и разбор компонентов для самодельной RC-электроники.", category: "Электроника", kind: "author", avatarColor: "#1976d2", bannerColor: "linear-gradient(135deg,#0d47a1,#1976d2)", subscribers: 3980, createdAt: iso(160), ownerName: "Игорь Электрик", isSubscribed: false },
-  { id: "sudomodel", name: "Судомоделизм", slug: "sudomodel", description: "Катера, парусники, копии кораблей — постройка и ходовые испытания.", category: "Корабли", kind: "expert", avatarColor: "#00897b", bannerColor: "linear-gradient(135deg,#004d40,#00897b)", subscribers: 2740, createdAt: iso(120), ownerName: "Дмитрий Моделист", isSubscribed: true },
+  {
+    id: "rc-avia",
+    name: "RC Авиация России",
+    slug: "rc-avia",
+    description:
+      "Официальный канал сообщества авиамоделистов: анонсы слётов, обзоры, разборы полётов.",
+    category: "Самолёты",
+    kind: "official",
+    avatarColor: "#627FFF",
+    bannerColor: "linear-gradient(135deg,#3f4fbf,#627fff)",
+    subscribers: 8420,
+    createdAt: iso(320),
+    ownerName: "RC Авиация",
+    isSubscribed: true,
+  },
+  {
+    id: "model-shop",
+    name: "Магазин «Модель»",
+    slug: "model-shop",
+    description: "Новинки, поступления и спецпредложения крупнейшего магазина RC-запчастей.",
+    category: "Запчасти",
+    kind: "shop",
+    avatarColor: "#F26C05",
+    bannerColor: "linear-gradient(135deg,#b04c00,#f26c05)",
+    subscribers: 15600,
+    createdAt: iso(540),
+    ownerName: "Модель",
+    isSubscribed: false,
+  },
+  {
+    id: "fpv-lab",
+    name: "FPV Lab",
+    slug: "fpv-lab",
+    description: "Сборки, настройка Betaflight, тесты железа и гоночные трассы FPV.",
+    category: "Квадрокоптеры",
+    kind: "expert",
+    avatarColor: "#4caf50",
+    bannerColor: "linear-gradient(135deg,#1b5e20,#4caf50)",
+    subscribers: 6230,
+    createdAt: iso(210),
+    ownerName: "Михаил Квадро",
+    isSubscribed: true,
+  },
+  {
+    id: "traxxas-ru",
+    name: "Traxxas Россия",
+    slug: "traxxas-ru",
+    description: "Официальный бренд-канал: модельный ряд, гарантия, сервис и апгрейды.",
+    category: "Автомодели",
+    kind: "brand",
+    avatarColor: "#e53935",
+    bannerColor: "linear-gradient(135deg,#8e1c1c,#e53935)",
+    subscribers: 11200,
+    createdAt: iso(400),
+    ownerName: "Traxxas",
+    isSubscribed: false,
+  },
+  {
+    id: "diy-electronics",
+    name: "DIY Электроника",
+    slug: "diy-electronics",
+    description: "Схемы, прошивки и разбор компонентов для самодельной RC-электроники.",
+    category: "Электроника",
+    kind: "author",
+    avatarColor: "#1976d2",
+    bannerColor: "linear-gradient(135deg,#0d47a1,#1976d2)",
+    subscribers: 3980,
+    createdAt: iso(160),
+    ownerName: "Игорь Электрик",
+    isSubscribed: false,
+  },
+  {
+    id: "sudomodel",
+    name: "Судомоделизм",
+    slug: "sudomodel",
+    description: "Катера, парусники, копии кораблей — постройка и ходовые испытания.",
+    category: "Корабли",
+    kind: "expert",
+    avatarColor: "#00897b",
+    bannerColor: "linear-gradient(135deg,#004d40,#00897b)",
+    subscribers: 2740,
+    createdAt: iso(120),
+    ownerName: "Дмитрий Моделист",
+    isSubscribed: true,
+  },
 ];
 
 // In-session subscription overrides so the demo stand can toggle "Подписаться"
@@ -445,10 +566,38 @@ export function demoChannelPosts(slug: string): DemoChannelPost[] {
     kind,
   });
   return [
-    mk(1, "Открыта регистрация на летний слёт — три дня полётов, swap-meet запчастей и мастер-классы для новичков.", "announce", 214, 5820, 1),
-    mk(2, "Разобрали новый регулятор хода: тесты под нагрузкой, температура и КПД. Подробный обзор с графиками.", "review", 96, 3110, 4),
-    mk(3, "Новое поступление аккумуляторов и зарядных устройств. Для подписчиков канала — скидка 10% по промокоду.", "promo", 58, 2040, 7),
-    mk(4, "Итоги весеннего сезона: лучшие сборки сообщества, топ-5 моделей и планы на следующий этап.", "news", 132, 4260, 12),
+    mk(
+      1,
+      "Открыта регистрация на летний слёт — три дня полётов, swap-meet запчастей и мастер-классы для новичков.",
+      "announce",
+      214,
+      5820,
+      1,
+    ),
+    mk(
+      2,
+      "Разобрали новый регулятор хода: тесты под нагрузкой, температура и КПД. Подробный обзор с графиками.",
+      "review",
+      96,
+      3110,
+      4,
+    ),
+    mk(
+      3,
+      "Новое поступление аккумуляторов и зарядных устройств. Для подписчиков канала — скидка 10% по промокоду.",
+      "promo",
+      58,
+      2040,
+      7,
+    ),
+    mk(
+      4,
+      "Итоги весеннего сезона: лучшие сборки сообщества, топ-5 моделей и планы на следующий этап.",
+      "news",
+      132,
+      4260,
+      12,
+    ),
   ];
 }
 
@@ -485,9 +634,7 @@ export function demoSearchUsers(q?: string): User[] {
   const pool = mockUsers.filter((u) => u.id !== DEMO_USER.id && !friendIds.has(u.id));
   if (!q) return pool;
   const s = q.toLowerCase();
-  return pool.filter(
-    (u) => u.name.toLowerCase().includes(s) || u.city.toLowerCase().includes(s),
-  );
+  return pool.filter((u) => u.name.toLowerCase().includes(s) || u.city.toLowerCase().includes(s));
 }
 
 export interface DemoPublicProfile {
@@ -513,8 +660,7 @@ export interface DemoPublicProfile {
 }
 
 export function demoPublicProfile(slug: string): DemoPublicProfile {
-  const u =
-    mockUsers.find((x) => x.slug === slug || x.id === slug) ?? mockUsers[1];
+  const u = mockUsers.find((x) => x.slug === slug || x.id === slug) ?? mockUsers[1];
   const friendIds = new Set(DEMO_USER.friendIds ?? []);
   return {
     user: { ...u, bio: u.bio ?? "" },
@@ -550,16 +696,63 @@ export interface DemoNotification {
   createdAt: string;
 }
 
-const isoH = (hoursAgo: number) =>
-  new Date(Date.now() - hoursAgo * 3600000).toISOString();
+const isoH = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 3600000).toISOString();
 
 const demoNotificationList: DemoNotification[] = [
-  { id: "n1", type: "message", title: "Новое сообщение", body: "Сергей ДВС: Да, конечно! Скину схему вечером", link: "/messenger", read: false, createdAt: isoH(0.2) },
-  { id: "n2", type: "friend_request", title: "Заявка в друзья", body: "Андрей Самолёты хочет добавить вас в друзья", link: "/friends", read: false, createdAt: isoH(2) },
-  { id: "n3", type: "listing", title: "Ваше объявление одобрено", body: "«Двигатель ДВС Picco .21» опубликовано", link: "/ads", read: false, createdAt: isoH(5) },
-  { id: "n4", type: "community", title: "Новый пост в сообществе", body: "FPV Академия: расписание летних заездов", link: "/communities", read: true, createdAt: isoH(26) },
-  { id: "n5", type: "like", title: "Ваш пост оценили", body: "12 моделистов лайкнули «Новый проект на шасси 1:8»", link: "/feed", read: true, createdAt: isoH(50) },
-  { id: "n6", type: "system", title: "Добро пожаловать!", body: "Вы получили бейдж «Основатель» — первые 100 участников", link: "/profile", read: true, createdAt: isoH(120) },
+  {
+    id: "n1",
+    type: "message",
+    title: "Новое сообщение",
+    body: "Сергей ДВС: Да, конечно! Скину схему вечером",
+    link: "/messenger",
+    read: false,
+    createdAt: isoH(0.2),
+  },
+  {
+    id: "n2",
+    type: "friend_request",
+    title: "Заявка в друзья",
+    body: "Андрей Самолёты хочет добавить вас в друзья",
+    link: "/friends",
+    read: false,
+    createdAt: isoH(2),
+  },
+  {
+    id: "n3",
+    type: "listing",
+    title: "Ваше объявление одобрено",
+    body: "«Двигатель ДВС Picco .21» опубликовано",
+    link: "/ads",
+    read: false,
+    createdAt: isoH(5),
+  },
+  {
+    id: "n4",
+    type: "community",
+    title: "Новый пост в сообществе",
+    body: "FPV Академия: расписание летних заездов",
+    link: "/communities",
+    read: true,
+    createdAt: isoH(26),
+  },
+  {
+    id: "n5",
+    type: "like",
+    title: "Ваш пост оценили",
+    body: "12 моделистов лайкнули «Новый проект на шасси 1:8»",
+    link: "/feed",
+    read: true,
+    createdAt: isoH(50),
+  },
+  {
+    id: "n6",
+    type: "system",
+    title: "Добро пожаловать!",
+    body: "Вы получили бейдж «Основатель» — первые 100 участников",
+    link: "/profile",
+    read: true,
+    createdAt: isoH(120),
+  },
 ];
 
 export function demoNotifications(): { items: DemoNotification[]; unread: number } {
@@ -618,8 +811,16 @@ export function demoFaq(): DemoFaqCategory[] {
     slug: "landing",
     name: "Лендинг",
     articles: [
-      { id: 1, question: "Нужно ли регистрироваться, чтобы смотреть?", answer: "Нет. Объявления, сообщества и каналы можно смотреть без регистрации." },
-      { id: 2, question: "Сколько стоит участие?", answer: "Базовое использование бесплатно. Подписка снимает ограничения." },
+      {
+        id: 1,
+        question: "Нужно ли регистрироваться, чтобы смотреть?",
+        answer: "Нет. Объявления, сообщества и каналы можно смотреть без регистрации.",
+      },
+      {
+        id: 2,
+        question: "Сколько стоит участие?",
+        answer: "Базовое использование бесплатно. Подписка снимает ограничения.",
+      },
     ],
   };
 
@@ -637,7 +838,10 @@ export function demoFaq(): DemoFaqCategory[] {
   return [landing, ...help];
 }
 
-export function demoStats(): { firstHundred: { taken: number; total: number }; referral: { enabled: boolean; perInvite: number; maxBonus: number } } {
+export function demoStats(): {
+  firstHundred: { taken: number; total: number };
+  referral: { enabled: boolean; perInvite: number; maxBonus: number };
+} {
   return {
     firstHundred: firstHundredStats,
     referral: { enabled: true, perInvite: 1, maxBonus: 10 },
@@ -667,7 +871,8 @@ export function demoVideos(query?: string, categorySlug?: string): Video[] {
   }
   if (query) {
     const q = query.toLowerCase();
-    const catName = (id: ID) => mockVideoCategories.find((c) => c.id === id)?.name.toLowerCase() ?? "";
+    const catName = (id: ID) =>
+      mockVideoCategories.find((c) => c.id === id)?.name.toLowerCase() ?? "";
     list = list.filter(
       (v) =>
         v.title.toLowerCase().includes(q) ||
@@ -683,7 +888,9 @@ export function demoVideo(id: ID): Video | null {
 }
 
 export function demoFeaturedVideos(): Video[] {
-  return allDemoVideos().filter((v) => v.isFeatured).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  return allDemoVideos()
+    .filter((v) => v.isFeatured)
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
 export function demoIncrementVideoView(id: ID): void {
@@ -700,7 +907,10 @@ export function demoAddVideo(v: Video): void {
 
 export function demoDeleteVideo(id: ID): void {
   const si = sessionVideos.findIndex((v) => v.id === id);
-  if (si >= 0) { sessionVideos.splice(si, 1); return; }
+  if (si >= 0) {
+    sessionVideos.splice(si, 1);
+    return;
+  }
   const mi = mockVideos.findIndex((v) => v.id === id);
   if (mi >= 0) mockVideos.splice(mi, 1);
 }
@@ -711,12 +921,35 @@ export function demoSetVideoFeatured(id: ID, on: boolean): void {
 }
 
 // ---- Entity creation requests (Channel / Community) — demo ----
-import type { EntityRequest, RequestStatus, CommunityCategoryOption } from "@/lib/api/entity-requests";
+import type {
+  EntityRequest,
+  RequestStatus,
+  CommunityCategoryOption,
+} from "@/lib/api/entity-requests";
 import { messengerCache } from "@/lib/messenger";
 
 let demoRequestsList: EntityRequest[] = [
-  { id: "req-1", kind: "community", proposedName: "RC-моделисты Краснодара", description: "Хотим отдельное сообщество по нашему городу, чтобы не засорять общий чат Автомоделей.", category: "Автомодели", status: "pending", createdAt: "2026-07-13T10:00:00Z", applicant: { id: "u2", name: "Сергей ДВС", slug: "u2" } },
-  { id: "req-2", kind: "channel", proposedName: "Мастерская стендовых моделей", description: "Канал про сборку и покраску стендовых моделей.", category: "Стендовые модели", status: "pending", createdAt: "2026-07-13T12:30:00Z", applicant: { id: "u3", name: "Андрей Самолёты", slug: "u3" } },
+  {
+    id: "req-1",
+    kind: "community",
+    proposedName: "RC-моделисты Краснодара",
+    description:
+      "Хотим отдельное сообщество по нашему городу, чтобы не засорять общий чат Автомоделей.",
+    category: "Автомодели",
+    status: "pending",
+    createdAt: "2026-07-13T10:00:00Z",
+    applicant: { id: "u2", name: "Сергей ДВС", slug: "u2" },
+  },
+  {
+    id: "req-2",
+    kind: "channel",
+    proposedName: "Мастерская стендовых моделей",
+    description: "Канал про сборку и покраску стендовых моделей.",
+    category: "Стендовые модели",
+    status: "pending",
+    createdAt: "2026-07-13T12:30:00Z",
+    applicant: { id: "u3", name: "Андрей Самолёты", slug: "u3" },
+  },
 ];
 
 export function demoEntityRequests(status?: RequestStatus): EntityRequest[] {

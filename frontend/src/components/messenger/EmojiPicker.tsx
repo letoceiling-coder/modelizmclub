@@ -191,9 +191,7 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
       >
         <Smile size={compact ? 16 : 18} />
       </button>
-      {mounted
-        ? createPortal(<AnimatePresence>{panel}</AnimatePresence>, document.body)
-        : null}
+      {mounted ? createPortal(<AnimatePresence>{panel}</AnimatePresence>, document.body) : null}
     </>
   );
 }

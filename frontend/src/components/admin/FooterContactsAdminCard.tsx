@@ -69,7 +69,15 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
 
   return (
     <div style={{ ...cardStyle, padding: "24px", maxWidth: "640px" }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)", marginBottom: "8px" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: "16px",
+          color: "var(--foreground)",
+          marginBottom: "8px",
+        }}
+      >
         {t("pages.adminFooterContacts.title")}
       </h4>
       <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "16px" }}>
@@ -77,51 +85,131 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
       </p>
 
       {loading ? (
-        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+          {t("pages.adminCommon.loading")}
+        </p>
       ) : (
         <div style={{ display: "grid", gap: "12px" }}>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.tagline")}</span>
-            <input type="text" value={draft.tagline} onChange={(e) => setField("tagline", e.target.value)} className="outline-none" style={inputStyle} />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.tagline")}
+            </span>
+            <input
+              type="text"
+              value={draft.tagline}
+              onChange={(e) => setField("tagline", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminCommon.colEmail")}</span>
-            <input type="email" value={draft.email} onChange={(e) => setField("email", e.target.value)} className="outline-none" style={inputStyle} placeholder="support@modelizmclub.ru" />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminCommon.colEmail")}
+            </span>
+            <input
+              type="email"
+              value={draft.email}
+              onChange={(e) => setField("email", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+              placeholder="support@modelizmclub.ru"
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.phone")}</span>
-            <input type="text" value={draft.phone} onChange={(e) => setField("phone", e.target.value)} className="outline-none" style={inputStyle} placeholder="8 800 000-00-00" />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.phone")}
+            </span>
+            <input
+              type="text"
+              value={draft.phone}
+              onChange={(e) => setField("phone", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+              placeholder="8 800 000-00-00"
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.hours")}</span>
-            <input type="text" value={draft.hours} onChange={(e) => setField("hours", e.target.value)} className="outline-none" style={inputStyle} placeholder={t("pages.adminFooterContacts.hoursPlaceholder")} />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.hours")}
+            </span>
+            <input
+              type="text"
+              value={draft.hours}
+              onChange={(e) => setField("hours", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+              placeholder={t("pages.adminFooterContacts.hoursPlaceholder")}
+            />
           </label>
 
-          <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)", marginTop: "8px" }}>
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 600,
+              color: "var(--foreground-70)",
+              marginTop: "8px",
+            }}
+          >
             {t("pages.adminFooterContacts.requisites")}
           </div>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.legalName")}</span>
-            <input type="text" value={draft.legal_name} onChange={(e) => setField("legal_name", e.target.value)} className="outline-none" style={inputStyle} />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.legalName")}
+            </span>
+            <input
+              type="text"
+              value={draft.legal_name}
+              onChange={(e) => setField("legal_name", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.inn")}</span>
-            <input type="text" value={draft.inn} onChange={(e) => setField("inn", e.target.value)} className="outline-none" style={inputStyle} />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.inn")}
+            </span>
+            <input
+              type="text"
+              value={draft.inn}
+              onChange={(e) => setField("inn", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.ogrn")}</span>
-            <input type="text" value={draft.ogrn} onChange={(e) => setField("ogrn", e.target.value)} className="outline-none" style={inputStyle} />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.ogrn")}
+            </span>
+            <input
+              type="text"
+              value={draft.ogrn}
+              onChange={(e) => setField("ogrn", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+            />
           </label>
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.address")}</span>
-            <input type="text" value={draft.address} onChange={(e) => setField("address", e.target.value)} className="outline-none" style={inputStyle} />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.address")}
+            </span>
+            <input
+              type="text"
+              value={draft.address}
+              onChange={(e) => setField("address", e.target.value)}
+              className="outline-none"
+              style={inputStyle}
+            />
           </label>
 
           <div style={{ display: "grid", gap: "10px", marginTop: "4px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>{t("pages.adminFooterContacts.social")}</span>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-70)" }}>
+              {t("pages.adminFooterContacts.social")}
+            </span>
             {draft.social.map((s) => (
               <label key={s.label} style={{ display: "grid", gap: "6px" }}>
-                <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-50)" }}>{s.label}</span>
+                <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--foreground-50)" }}>
+                  {s.label}
+                </span>
                 <input
                   type="url"
                   value={s.url}

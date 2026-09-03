@@ -56,19 +56,25 @@ function uuid(): string {
 
 function detectDevice(): DeviceInfo {
   const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-  const uaData = (navigator as unknown as { userAgentData?: { platform?: string; mobile?: boolean } }).userAgentData;
+  const uaData = (
+    navigator as unknown as { userAgentData?: { platform?: string; mobile?: boolean } }
+  ).userAgentData;
 
   let os = "unknown";
   let platform = "unknown";
   if (/Android/i.test(ua)) {
     platform = "Android";
-    os = (ua.match(/Android\s+([\d.]+)/i)?.[1] ?? "").trim() ? `Android ${ua.match(/Android\s+([\d.]+)/i)?.[1]}` : "Android";
-  } else if (/iPhone|iPad|iPod/i.test(ua) || (uaData?.platform === "iOS")) {
+    os = (ua.match(/Android\s+([\d.]+)/i)?.[1] ?? "").trim()
+      ? `Android ${ua.match(/Android\s+([\d.]+)/i)?.[1]}`
+      : "Android";
+  } else if (/iPhone|iPad|iPod/i.test(ua) || uaData?.platform === "iOS") {
     platform = "iOS";
     os = `iOS ${(ua.match(/OS\s+([\d_]+)/i)?.[1] ?? "").replace(/_/g, ".")}`.trim();
   } else if (/Windows/i.test(ua)) {
     platform = "Windows";
-    os = ua.match(/Windows NT\s+([\d.]+)/i)?.[1] ? `Windows NT ${ua.match(/Windows NT\s+([\d.]+)/i)?.[1]}` : "Windows";
+    os = ua.match(/Windows NT\s+([\d.]+)/i)?.[1]
+      ? `Windows NT ${ua.match(/Windows NT\s+([\d.]+)/i)?.[1]}`
+      : "Windows";
   } else if (/Macintosh|Mac OS X/i.test(ua)) {
     platform = "macOS";
     os = `macOS ${(ua.match(/Mac OS X\s+([\d_]+)/i)?.[1] ?? "").replace(/_/g, ".")}`.trim();
@@ -89,7 +95,8 @@ function detectDevice(): DeviceInfo {
   const isMobile = uaData?.mobile ?? /Mobi|Android|iPhone|iPod/i.test(ua);
   const deviceType: DeviceInfo["device"] = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
 
-  const conn = (navigator as unknown as { connection?: { effectiveType?: string; type?: string } }).connection;
+  const conn = (navigator as unknown as { connection?: { effectiveType?: string; type?: string } })
+    .connection;
   const network = conn?.type ?? conn?.effectiveType ?? "unknown";
 
   return {
@@ -107,9 +114,7 @@ function loadBuffer(): void {
     const raw = window.localStorage.getItem(BUF_KEY);
     const parsed = raw ? (JSON.parse(raw) as LogEntry[]) : [];
     // Backfill ids for entries written by older builds so id-based dedup/removal stays precise.
-    buffer = Array.isArray(parsed)
-      ? parsed.map((e) => (e && e.id ? e : { ...e, id: uuid() }))
-      : [];
+    buffer = Array.isArray(parsed) ? parsed.map((e) => (e && e.id ? e : { ...e, id: uuid() })) : [];
   } catch {
     buffer = [];
   }
@@ -171,7 +176,15 @@ export function logEvent(level: LogLevel, tag: string, msg: string, data?: unkno
     return;
   }
 
-  const entry: LogEntry = { id: uuid(), t: Date.now(), level, tag, msg, call_uuid: activeCallUuid, data: safe };
+  const entry: LogEntry = {
+    id: uuid(),
+    t: Date.now(),
+    level,
+    tag,
+    msg,
+    call_uuid: activeCallUuid,
+    data: safe,
+  };
   buffer.push(entry);
   if (buffer.length > MAX_BUFFER) buffer = buffer.slice(buffer.length - MAX_BUFFER);
   saveBuffer();

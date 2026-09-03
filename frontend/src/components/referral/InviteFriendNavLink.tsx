@@ -44,14 +44,19 @@ export function InviteFriendNavLink({ className, onNavigate }: Props) {
       to="/referral"
       onClick={() => onNavigate?.()}
       className={
-        className
-        ?? `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted ${
+        className ??
+        `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted ${
           active ? "bg-accent/10 font-medium text-primary" : "text-foreground"
         }`
       }
       style={
         active
-          ? { borderLeft: "3px solid var(--accent)", paddingLeft: 9, background: "var(--accent-soft)", color: "var(--accent)" }
+          ? {
+              borderLeft: "3px solid var(--accent)",
+              paddingLeft: 9,
+              background: "var(--accent-soft)",
+              color: "var(--accent)",
+            }
           : undefined
       }
     >

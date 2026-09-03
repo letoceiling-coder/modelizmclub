@@ -51,7 +51,10 @@ interface Props {
 const TILE_DEFAULT = 104;
 const TILE_COMPACT = 88;
 const GAP = 12;
-const LAYOUT_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
+const LAYOUT_TRANSITION = {
+  duration: 0.18,
+  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+};
 /** Block a new swap until the reflow animation settles — prevents the dragged
  *  tile from ping-ponging between slots while neighbours are still animating. */
 const SWAP_COOLDOWN_MS = 190;
@@ -67,7 +70,10 @@ function TileImage({ src }: { src: string }) {
   const [broken, setBroken] = useState(false);
   if (broken) {
     return (
-      <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
+      <div
+        className="grid h-full w-full place-items-center"
+        style={{ color: "var(--foreground-30)" }}
+      >
         <ImageOff size={22} />
       </div>
     );
@@ -198,7 +204,8 @@ function PreviewTile({
   const isMain = index === 0;
 
   const startDragIfAllowed = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest("button, [role=menu], [data-radix-collection-item]")) return;
+    if ((e.target as HTMLElement).closest("button, [role=menu], [data-radix-collection-item]"))
+      return;
     onPointerDownDrag(index, e);
   };
 
@@ -277,7 +284,15 @@ function PreviewTile({
   );
 }
 
-function DragPlaceholder({ dropTarget, tile, compact }: { dropTarget: boolean; tile: number; compact?: boolean }) {
+function DragPlaceholder({
+  dropTarget,
+  tile,
+  compact,
+}: {
+  dropTarget: boolean;
+  tile: number;
+  compact?: boolean;
+}) {
   return (
     <motion.div
       layout="position"
@@ -598,17 +613,32 @@ export function ImageUploadGrid({
         >
           <div
             className={`grid place-items-center ${isMobile ? "h-[44px] w-[44px]" : "h-[52px] w-[52px]"}`}
-            style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+            style={{
+              background: "var(--accent-soft)",
+              color: "var(--accent)",
+              borderRadius: "var(--r-pill)",
+            }}
           >
             <ImagePlus size={isMobile ? 20 : 22} />
           </div>
-          <div className={`font-semibold ${isMobile ? "text-[13px]" : "text-[14px]"}`} style={{ color: "var(--foreground)" }}>
+          <div
+            className={`font-semibold ${isMobile ? "text-[13px]" : "text-[14px]"}`}
+            style={{ color: "var(--foreground)" }}
+          >
             {dropzoneTitle}
           </div>
           <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
             {t("components.imageUploadGrid.dropzoneHint", { current: photos.length, max })}
           </div>
-          <input ref={inputRef} type="file" accept={accept} multiple onChange={handleChange} className="hidden" disabled={full} />
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            multiple
+            onChange={handleChange}
+            className="hidden"
+            disabled={full}
+          />
         </label>
       )}
 
@@ -634,17 +664,27 @@ export function ImageUploadGrid({
                       className={compact ? "shrink-0" : undefined}
                       style={compact ? { width: tile } : undefined}
                     >
-                      <DragPlaceholder dropTarget={overIndex === i && drag.index === i} tile={tile} compact={compact} />
+                      <DragPlaceholder
+                        dropTarget={overIndex === i && drag.index === i}
+                        tile={tile}
+                        compact={compact}
+                      />
                     </div>
                   );
                 }
                 return (
-                  <div key={key} className={compact ? "shrink-0" : undefined} style={compact ? { width: tile } : undefined}>
+                  <div
+                    key={key}
+                    className={compact ? "shrink-0" : undefined}
+                    style={compact ? { width: tile } : undefined}
+                  >
                     <PreviewTile
                       src={src}
                       index={i}
                       count={photos.length}
-                      dropTarget={overIndex === i && drag !== null && drag.lifted && drag.index !== i}
+                      dropTarget={
+                        overIndex === i && drag !== null && drag.lifted && drag.index !== i
+                      }
                       tile={tile}
                       compact={compact}
                       minimalControls={minimalControls}

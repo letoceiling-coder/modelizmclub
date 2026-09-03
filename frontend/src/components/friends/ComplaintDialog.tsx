@@ -12,7 +12,13 @@ import { COMPLAINT_REASON_TO_API, submitReport, type ReportType } from "@/lib/ap
 import { ApiError } from "@/lib/api/client";
 import type { User } from "@/lib/mock";
 
-const REASONS = ["Спам", "Оскорбления", "Мошенничество", "Нежелательный контент", "Другое"] as const;
+const REASONS = [
+  "Спам",
+  "Оскорбления",
+  "Мошенничество",
+  "Нежелательный контент",
+  "Другое",
+] as const;
 
 export function ComplaintDialog({
   target,
@@ -79,7 +85,7 @@ export function ComplaintDialog({
       const msg =
         err instanceof ApiError
           ? err.errors
-            ? Object.values(err.errors)[0]?.[0] ?? err.message
+            ? (Object.values(err.errors)[0]?.[0] ?? err.message)
             : err.message
           : "Не удалось отправить обращение. Попробуйте позже";
       toast.error(msg);
@@ -102,7 +108,10 @@ export function ComplaintDialog({
         <DialogHeader>
           <DialogTitle>{report ? "Пожаловаться" : "Книга замечаний и предложений"}</DialogTitle>
           <DialogDescription>
-            {descriptionOverride ?? (target ? `Жалоба на пользователя «${target.name}» — выберите причину и опишите ситуацию.` : "")}
+            {descriptionOverride ??
+              (target
+                ? `Жалоба на пользователя «${target.name}» — выберите причину и опишите ситуацию.`
+                : "")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
@@ -112,7 +121,9 @@ export function ComplaintDialog({
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
           >
             {REASONS.map((r) => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>
+                {r}
+              </option>
             ))}
           </select>
           <textarea

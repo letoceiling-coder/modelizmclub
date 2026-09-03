@@ -1,12 +1,7 @@
 import type { Message } from "@/lib/mock";
 import type { User } from "@/lib/mock";
 import { api } from "./client";
-import {
-  fetchMessages,
-  mapMessage,
-  uploadChatAttachment,
-  type ApiMessage,
-} from "./chat";
+import { fetchMessages, mapMessage, uploadChatAttachment, type ApiMessage } from "./chat";
 import { mapCompactUser, type ApiCompactUser } from "./social";
 import { isDemoMode } from "@/lib/demo-mode";
 

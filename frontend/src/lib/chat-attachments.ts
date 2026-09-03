@@ -12,16 +12,15 @@ export const CHAT_ATTACHMENT_DEMO_MAX_BYTES = 20 * 1024 * 1024;
 
 const SUPPORTED_IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-export const HEIC_UNSUPPORTED_MESSAGE =
-  "Формат HEIC не поддерживается. Загрузите JPG или PNG.";
+export const HEIC_UNSUPPORTED_MESSAGE = "Формат HEIC не поддерживается. Загрузите JPG или PNG.";
 
 export function isHeicFile(file: File): boolean {
   const mime = file.type.toLowerCase();
   if (
-    mime === "image/heic"
-    || mime === "image/heif"
-    || mime === "image/heic-sequence"
-    || mime === "image/heif-sequence"
+    mime === "image/heic" ||
+    mime === "image/heif" ||
+    mime === "image/heic-sequence" ||
+    mime === "image/heif-sequence"
   ) {
     return true;
   }
@@ -64,7 +63,11 @@ export async function prepareChatAttachmentFile(
       convertedFromHeic: true,
     };
   } catch (err) {
-    if (err instanceof Error && err.message !== "convert failed" && !err.message.startsWith("Формат")) {
+    if (
+      err instanceof Error &&
+      err.message !== "convert failed" &&
+      !err.message.startsWith("Формат")
+    ) {
       throw new Error(HEIC_UNSUPPORTED_MESSAGE);
     }
     throw err;

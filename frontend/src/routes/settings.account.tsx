@@ -14,8 +14,18 @@ import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
-import { requestEmailChange, resendVerificationEmail, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
-import { displayEmail, isFullyVerified, isMaxOAuthUser, isVkOAuthUser } from "@/lib/auth/verification";
+import {
+  requestEmailChange,
+  resendVerificationEmail,
+  sendPhoneVerificationCode,
+  verifyPhoneCode,
+} from "@/lib/api/account";
+import {
+  displayEmail,
+  isFullyVerified,
+  isMaxOAuthUser,
+  isVkOAuthUser,
+} from "@/lib/auth/verification";
 import { verificationSummary } from "@/lib/access/accessTier";
 import { ApiError } from "@/lib/api/client";
 
@@ -29,7 +39,12 @@ export const Route = createFileRoute("/settings/account")({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-[6px] block font-mono text-[12px] uppercase tracking-[0.05em]" style={{ color: "var(--foreground-50)" }}>{label}</span>
+      <span
+        className="mb-[6px] block font-mono text-[12px] uppercase tracking-[0.05em]"
+        style={{ color: "var(--foreground-50)" }}
+      >
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -69,18 +84,27 @@ function AccountSection() {
       setLoading(false);
       return;
     }
-    fetchMe().then((u) => {
-      if (!u) return;
-      setCurrentUser(u);
-      setAccountEmail(displayEmail(u) ?? "");
-      setPhone(u.phone ?? "");
-      setVerifiedPhone(u.phone_verified ? (u.phone ?? null) : null);
-      setServerEmailVerified(u.email_verified === true);
-      setServerPhoneVerified(u.phone_verified === true);
-    }).catch(() => {
-      toast.error(t("pages.settings.loadFailed"));
-    }).finally(() => setLoading(false));
-  }, [currentUser?.email, currentUser?.phone, currentUser?.email_verified, currentUser?.phone_verified, t]);
+    fetchMe()
+      .then((u) => {
+        if (!u) return;
+        setCurrentUser(u);
+        setAccountEmail(displayEmail(u) ?? "");
+        setPhone(u.phone ?? "");
+        setVerifiedPhone(u.phone_verified ? (u.phone ?? null) : null);
+        setServerEmailVerified(u.email_verified === true);
+        setServerPhoneVerified(u.phone_verified === true);
+      })
+      .catch(() => {
+        toast.error(t("pages.settings.loadFailed"));
+      })
+      .finally(() => setLoading(false));
+  }, [
+    currentUser?.email,
+    currentUser?.phone,
+    currentUser?.email_verified,
+    currentUser?.phone_verified,
+    t,
+  ]);
 
   const phoneMatchesVerified =
     serverPhoneVerified === true &&
@@ -125,7 +149,10 @@ function AccountSection() {
   };
 
   const resendVerification = async () => {
-    if (isDemoMode()) { setVerifySent(true); return; }
+    if (isDemoMode()) {
+      setVerifySent(true);
+      return;
+    }
     try {
       await resendVerificationEmail();
       setVerifySent(true);
@@ -196,7 +223,10 @@ function AccountSection() {
   if (loading) {
     return (
       <SettingsSectionShell title={t("pages.settings.accountTitle")}>
-        <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="flex items-center gap-[8px] py-[24px] text-[14px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           <Loader2 size={16} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       </SettingsSectionShell>
@@ -211,34 +241,50 @@ function AccountSection() {
         style={{ borderColor: "var(--border)" }}
       >
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>{t("pages.settings.publicProfile")}</div>
-          <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.publicProfileDesc")}</div>
+          <div className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>
+            {t("pages.settings.publicProfile")}
+          </div>
+          <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.settings.publicProfileDesc")}
+          </div>
         </div>
         <ChevronRight size={18} style={{ color: "var(--foreground-30)" }} />
       </Link>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+      <Card
+        className="p-[20px]"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
         <h2 className="mb-[10px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
           {t("pages.settings.verificationSummaryTitle")}
         </h2>
         <div className="flex flex-wrap gap-[8px]">
           <Badge variant={summary.emailOk ? "published" : "draft"} withIcon={false}>
-            {t("pages.settings.emailLabel")}: {summary.emailOk ? t("pages.settings.verified") : t("pages.settings.notVerified")}
+            {t("pages.settings.emailLabel")}:{" "}
+            {summary.emailOk ? t("pages.settings.verified") : t("pages.settings.notVerified")}
           </Badge>
           {summary.phoneRequired && (
             <Badge variant={summary.phoneOk ? "published" : "draft"} withIcon={false}>
-              {t("pages.settings.phone")}: {summary.phoneOk ? t("pages.settings.phoneVerifiedSms") : t("pages.settings.notVerified")}
+              {t("pages.settings.phone")}:{" "}
+              {summary.phoneOk
+                ? t("pages.settings.phoneVerifiedSms")
+                : t("pages.settings.notVerified")}
             </Badge>
           )}
           {accountVerified && (
-            <Badge variant="published" withIcon={false}>{t("pages.settings.accountReady")}</Badge>
+            <Badge variant="published" withIcon={false}>
+              {t("pages.settings.accountReady")}
+            </Badge>
           )}
           <Badge variant={maxOAuth ? "published" : "draft"} withIcon={false}>
             MAX: {maxOAuth ? t("pages.settings.maxConnected") : t("pages.settings.maxDisconnected")}
           </Badge>
         </div>
         {!accountVerified && (
-          <p className="mt-[10px] text-[13px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+          <p
+            className="mt-[10px] text-[13px] leading-relaxed"
+            style={{ color: "var(--foreground-70)" }}
+          >
             {t("pages.settings.verificationSummaryHint")}
           </p>
         )}
@@ -246,8 +292,13 @@ function AccountSection() {
 
       <MaxAccountCard />
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.emailLabel")}</h2>
+      <Card
+        className="p-[20px]"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
+        <h2 className="mb-[6px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {t("pages.settings.emailLabel")}
+        </h2>
         {(vkOAuth || maxOAuth) && !accountEmail ? (
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
             {maxOAuth
@@ -257,48 +308,83 @@ function AccountSection() {
         ) : accountEmail ? (
           <>
             <div className="flex flex-wrap items-center gap-[8px]">
-              <p className="text-[14px]" style={{ color: "var(--foreground)" }}>{accountEmail}</p>
+              <p className="text-[14px]" style={{ color: "var(--foreground)" }}>
+                {accountEmail}
+              </p>
               {serverEmailVerified === true && (
-                <Badge variant="published" withIcon={false}>{t("pages.settings.verified")}</Badge>
+                <Badge variant="published" withIcon={false}>
+                  {t("pages.settings.verified")}
+                </Badge>
               )}
               {serverEmailVerified === false && !vkOAuth && (
-                <Badge variant="draft" withIcon={false}>{t("pages.settings.notVerified")}</Badge>
+                <Badge variant="draft" withIcon={false}>
+                  {t("pages.settings.notVerified")}
+                </Badge>
               )}
             </div>
-            {serverEmailVerified === false && !vkOAuth && (
-              verifySent ? (
+            {serverEmailVerified === false &&
+              !vkOAuth &&
+              (verifySent ? (
                 <p className="mt-[12px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
                   {t("pages.settings.verificationSentTo", { email: accountEmail })}
                 </p>
               ) : (
-                <Button type="button" variant="outline" size="sm" onClick={resendVerification} className="mt-[12px]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={resendVerification}
+                  className="mt-[12px]"
+                >
                   {t("pages.settings.resendVerificationBtn")}
                 </Button>
-              )
-            )}
+              ))}
           </>
         ) : (
-          <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.emailMissing")}</p>
+          <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.settings.emailMissing")}
+          </p>
         )}
       </Card>
 
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.changeEmail")}</h2>
+      <Card
+        className="p-[20px]"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
+        <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {t("pages.settings.changeEmail")}
+        </h2>
         <form onSubmit={submitEmail} className="space-y-[12px]">
           <Field label={t("pages.settings.newEmail")}>
-            <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" />
+            <Input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+            />
           </Field>
           <Button type="submit">{t("pages.settings.changeEmailBtn")}</Button>
         </form>
       </Card>
 
-      <Card id="sms-verify" className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+      <Card
+        id="sms-verify"
+        className="p-[20px]"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
         <div className="mb-[14px] flex flex-wrap items-center gap-[8px]">
-          <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.phone")}</h2>
+          <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+            {t("pages.settings.phone")}
+          </h2>
           {phoneMatchesVerified ? (
-            <Badge variant="published" withIcon={false}>{t("pages.settings.phoneVerifiedSms")}</Badge>
+            <Badge variant="published" withIcon={false}>
+              {t("pages.settings.phoneVerifiedSms")}
+            </Badge>
           ) : (
-            <Badge variant="draft" withIcon={false}>{t("pages.settings.notVerified")}</Badge>
+            <Badge variant="draft" withIcon={false}>
+              {t("pages.settings.notVerified")}
+            </Badge>
           )}
         </div>
         <Field label={t("pages.settings.phoneNumber")}>
@@ -334,7 +420,11 @@ function AccountSection() {
                     placeholder="000000"
                   />
                 </Field>
-                <Button type="button" onClick={confirmSms} disabled={smsVerifying || smsCode.length !== 6}>
+                <Button
+                  type="button"
+                  onClick={confirmSms}
+                  disabled={smsVerifying || smsCode.length !== 6}
+                >
                   {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
                 </Button>
               </div>
@@ -342,7 +432,10 @@ function AccountSection() {
           </div>
         )}
 
-        <p className="mt-[12px] text-[12px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
+        <p
+          className="mt-[12px] text-[12px] leading-relaxed"
+          style={{ color: "var(--foreground-50)" }}
+        >
           {t("pages.settings.phoneConfirmNote")}
         </p>
       </Card>

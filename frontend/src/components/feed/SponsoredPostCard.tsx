@@ -86,7 +86,9 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
           aria-label="Скрыть"
           className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full transition-colors"
           style={{ color: "var(--foreground-50)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface-hover)")}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = "var(--background-surface-hover)")
+          }
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
           <X size={16} />
@@ -108,7 +110,9 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{
           borderRadius: 12,
           aspectRatio: "16 / 7",
-          background: banner.image ? "var(--background-surface)" : `linear-gradient(135deg, ${gradientStops(banner.color)})`,
+          background: banner.image
+            ? "var(--background-surface)"
+            : `linear-gradient(135deg, ${gradientStops(banner.color)})`,
           border: "1px solid var(--border)",
         }}
       >

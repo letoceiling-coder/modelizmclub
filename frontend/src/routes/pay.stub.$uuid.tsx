@@ -96,48 +96,83 @@ function StubAcquiringPage() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center px-4 py-10" style={{ background: "#0f2a4a" }}>
+    <div
+      className="flex min-h-[100dvh] items-center justify-center px-4 py-10"
+      style={{ background: "#0f2a4a" }}
+    >
       <div
         className="w-full max-w-[420px] overflow-hidden"
-        style={{ background: "var(--background)", borderRadius: 16, border: "1px solid var(--border)" }}
+        style={{
+          background: "var(--background)",
+          borderRadius: 16,
+          border: "1px solid var(--border)",
+        }}
       >
         <div className="px-[20px] py-[16px]" style={{ background: "#1a4f8b", color: "#fff" }}>
-          <div className="text-[11px] uppercase tracking-[0.14em] opacity-80">{t("pages.stubPay.bank")}</div>
+          <div className="text-[11px] uppercase tracking-[0.14em] opacity-80">
+            {t("pages.stubPay.bank")}
+          </div>
           <div className="mt-[4px] text-[18px] font-semibold">{t("pages.stubPay.title")}</div>
           <div className="mt-[6px] text-[12px] opacity-85">{t("pages.stubPay.banner")}</div>
         </div>
 
         <div className="space-y-[14px] px-[20px] py-[20px]">
           {error && (
-            <p className="text-[13px]" style={{ color: "var(--danger)" }}>{error}</p>
+            <p className="text-[13px]" style={{ color: "var(--danger)" }}>
+              {error}
+            </p>
           )}
           <div>
-            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.stubPay.merchant")}</div>
-            <div className="text-[14px] font-medium" style={{ color: "var(--foreground)" }}>ООО «МОДЕЛИЗМ»</div>
+            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.stubPay.merchant")}
+            </div>
+            <div className="text-[14px] font-medium" style={{ color: "var(--foreground)" }}>
+              ООО «МОДЕЛИЗМ»
+            </div>
           </div>
           <div>
-            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.stubPay.purpose")}</div>
+            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.stubPay.purpose")}
+            </div>
             <div className="text-[14px]" style={{ color: "var(--foreground)" }}>
               {description || payableLabel(kind, t)}
             </div>
           </div>
           <div>
-            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.stubPay.amount")}</div>
-            <div className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>
+            <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.stubPay.amount")}
+            </div>
+            <div
+              className="font-display text-[28px] font-bold"
+              style={{ color: "var(--foreground)" }}
+            >
               {amountCents == null ? "…" : `${formatRub(amountCents)} ₽`}
             </div>
           </div>
 
           <div className="flex flex-col gap-[8px] pt-[6px]">
-            <Button disabled={busy !== null || amountCents == null} onClick={() => void run("paid")}>
+            <Button
+              disabled={busy !== null || amountCents == null}
+              onClick={() => void run("paid")}
+            >
               {busy === "paid" && <Loader2 size={16} className="mr-[8px] animate-spin" />}
               {t("pages.stubPay.pay")}
             </Button>
-            <Button variant="outline" disabled={busy !== null || amountCents == null} onClick={() => void run("insufficient_funds")}>
-              {busy === "insufficient_funds" && <Loader2 size={16} className="mr-[8px] animate-spin" />}
+            <Button
+              variant="outline"
+              disabled={busy !== null || amountCents == null}
+              onClick={() => void run("insufficient_funds")}
+            >
+              {busy === "insufficient_funds" && (
+                <Loader2 size={16} className="mr-[8px] animate-spin" />
+              )}
               {t("pages.stubPay.noFunds")}
             </Button>
-            <Button variant="outline" disabled={busy !== null || amountCents == null} onClick={() => void run("declined")}>
+            <Button
+              variant="outline"
+              disabled={busy !== null || amountCents == null}
+              onClick={() => void run("declined")}
+            >
               {busy === "declined" && <Loader2 size={16} className="mr-[8px] animate-spin" />}
               {t("pages.stubPay.badCard")}
             </Button>

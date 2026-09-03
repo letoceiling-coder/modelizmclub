@@ -46,7 +46,9 @@ function PasswordStrengthMeter({ password }: { password: string }) {
             />
           ))}
         </div>
-        <span className="text-[12px] font-medium" style={{ color }}>{label}</span>
+        <span className="text-[12px] font-medium" style={{ color }}>
+          {label}
+        </span>
       </div>
       {missing.length > 0 && (
         <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>

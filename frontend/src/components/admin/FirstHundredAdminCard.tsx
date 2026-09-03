@@ -85,7 +85,14 @@ export function FirstHundredAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
 
   return (
     <div style={{ ...cardStyle, padding: 20, marginBottom: 16 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 16,
+          color: "var(--foreground)",
+        }}
+      >
         {t("pages.adminMonetization.firstHundred.title")}
       </h4>
       <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 6 }}>
@@ -99,7 +106,10 @@ export function FirstHundredAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
       ) : (
         <>
           <div className="mt-3 flex flex-wrap items-end gap-3">
-            <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
+            <label
+              className="flex items-center gap-2 text-[13px]"
+              style={{ color: "var(--foreground-70)" }}
+            >
               <input
                 type="checkbox"
                 checked={enabled}
@@ -122,7 +132,9 @@ export function FirstHundredAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
               />
             </label>
             <button type="button" onClick={save} disabled={saving} style={primaryBtn}>
-              {saving ? t("pages.adminMonetization.firstHundred.saving") : t("pages.adminMonetization.firstHundred.save")}
+              {saving
+                ? t("pages.adminMonetization.firstHundred.saving")
+                : t("pages.adminMonetization.firstHundred.save")}
             </button>
           </div>
           <p style={{ fontSize: 13, color: "var(--foreground-70)", marginTop: 12 }}>

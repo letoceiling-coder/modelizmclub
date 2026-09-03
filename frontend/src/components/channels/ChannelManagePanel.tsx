@@ -42,7 +42,9 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
   const [rules, setRules] = useState(channel.rules ?? "");
   const [contacts, setContacts] = useState(channel.contacts ?? "");
   const [category, setCategory] = useState(
-    channel.category && !directionNames.includes(channel.category) ? otherDirection : channel.category,
+    channel.category && !directionNames.includes(channel.category)
+      ? otherDirection
+      : channel.category,
   );
   const [customCategory, setCustomCategory] = useState(
     channel.category && !directionNames.includes(channel.category) ? channel.category : "",
@@ -64,13 +66,13 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
   const resolvedCategory = category === otherDirection ? customCategory.trim() : category.trim();
 
   const dirty =
-    name.trim() !== channel.name
-    || description.trim() !== channel.description
-    || resolvedCategory !== (channel.category ?? "")
-    || (channel.kind !== "official" && kind !== channel.kind)
-    || commentsEnabled !== (channel.commentsEnabled !== false)
-    || rules.trim() !== (channel.rules ?? "")
-    || contacts.trim() !== (channel.contacts ?? "");
+    name.trim() !== channel.name ||
+    description.trim() !== channel.description ||
+    resolvedCategory !== (channel.category ?? "") ||
+    (channel.kind !== "official" && kind !== channel.kind) ||
+    commentsEnabled !== (channel.commentsEnabled !== false) ||
+    rules.trim() !== (channel.rules ?? "") ||
+    contacts.trim() !== (channel.contacts ?? "");
 
   const save = async () => {
     if (!name.trim()) {
@@ -117,147 +119,183 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
   return (
     <div className="space-y-5">
       <section className="space-y-4">
-        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+        <h3
+          className="text-[13px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--foreground-50)" }}
+        >
           {t("components.channelManage.sectionBranding")}
         </h3>
         <ChannelBrandingForm channel={channel} onUpdated={onUpdated} />
       </section>
 
       <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+        <h3
+          className="text-[13px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--foreground-50)" }}
+        >
           {t("components.channelManage.sectionMain")}
         </h3>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelManage.nameLabel")}
+          </span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={CHANNEL_NAME_MAX}
+            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+            style={inputStyle}
+          />
+          <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+            {name.length}/{CHANNEL_NAME_MAX}
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelManage.descriptionLabel")}
+          </span>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={5000}
+            rows={5}
+            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[120px]"
+            style={inputStyle}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelManage.themeLabel")}
+          </span>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+            style={inputStyle}
+          >
+            <option value="">{t("components.channelManage.selectDirection")}</option>
+            {directions.map((d) => (
+              <option key={d.id} value={d.name}>
+                {d.name}
+              </option>
+            ))}
+            <option value={otherDirection}>{otherDirection}</option>
+          </select>
+        </label>
+
+        {category === otherDirection && (
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.nameLabel")}</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("components.channelManage.customThemeLabel")}
+            </span>
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={CHANNEL_NAME_MAX}
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value)}
+              maxLength={120}
+              placeholder={t("components.channelManage.customThemePlaceholder")}
               className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
               style={inputStyle}
             />
-            <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-              {name.length}/{CHANNEL_NAME_MAX}
+          </label>
+        )}
+
+        {channel.kind !== "official" ? (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("components.channelManage.channelTypeLabel")}
             </span>
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.descriptionLabel")}</span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={5000}
-              rows={5}
-              className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[120px]"
-              style={inputStyle}
-            />
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.themeLabel")}</span>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              value={kind}
+              onChange={(e) => setKind(e.target.value as ChannelKind)}
               className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
               style={inputStyle}
             >
-              <option value="">{t("components.channelManage.selectDirection")}</option>
-              {directions.map((d) => (
-                <option key={d.id} value={d.name}>{d.name}</option>
+              {EDITABLE_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {kindLabel(k)}
+                </option>
               ))}
-              <option value={otherDirection}>{otherDirection}</option>
             </select>
           </label>
+        ) : (
+          <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            {t("components.channelManage.officialTypeLocked", { type: kindLabel(channel.kind) })}
+          </p>
+        )}
 
-          {category === otherDirection && (
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.customThemeLabel")}</span>
-              <input
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                maxLength={120}
-                placeholder={t("components.channelManage.customThemePlaceholder")}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-                style={inputStyle}
-              />
-            </label>
-          )}
+        <label
+          className="flex items-center justify-between gap-3 rounded-[10px] border px-3 py-3"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelManage.commentsLabel")}
+          </span>
+          <input
+            type="checkbox"
+            checked={commentsEnabled}
+            onChange={(e) => setCommentsEnabled(e.target.checked)}
+          />
+        </label>
 
-          {channel.kind !== "official" ? (
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.channelTypeLabel")}</span>
-              <select
-                value={kind}
-                onChange={(e) => setKind(e.target.value as ChannelKind)}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-                style={inputStyle}
-              >
-                {EDITABLE_KINDS.map((k) => (
-                  <option key={k} value={k}>{kindLabel(k)}</option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              {t("components.channelManage.officialTypeLocked", { type: kindLabel(channel.kind) })}
-            </p>
-          )}
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelManage.contactsLabel")}
+          </span>
+          <textarea
+            value={contacts}
+            onChange={(e) => setContacts(e.target.value)}
+            maxLength={2000}
+            rows={3}
+            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[80px]"
+            style={inputStyle}
+          />
+        </label>
 
-          <label className="flex items-center justify-between gap-3 rounded-[10px] border px-3 py-3" style={{ borderColor: "var(--border)" }}>
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-              {t("components.channelManage.commentsLabel")}
-            </span>
-            <input
-              type="checkbox"
-              checked={commentsEnabled}
-              onChange={(e) => setCommentsEnabled(e.target.checked)}
-            />
-          </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("components.channelManage.rulesLabel")}
+          </span>
+          <textarea
+            value={rules}
+            onChange={(e) => setRules(e.target.value)}
+            maxLength={5000}
+            rows={4}
+            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[100px]"
+            style={inputStyle}
+          />
+        </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.contactsLabel")}</span>
-            <textarea
-              value={contacts}
-              onChange={(e) => setContacts(e.target.value)}
-              maxLength={2000}
-              rows={3}
-              className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[80px]"
-              style={inputStyle}
-            />
-          </label>
+        <div
+          className="rounded-[10px] border p-3 text-[13px]"
+          style={{
+            borderColor: "var(--border)",
+            background: "var(--background-surface)",
+            color: "var(--foreground-70)",
+          }}
+        >
+          {t("components.channelManage.publicNotice")}
+        </div>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.channelManage.rulesLabel")}</span>
-            <textarea
-              value={rules}
-              onChange={(e) => setRules(e.target.value)}
-              maxLength={5000}
-              rows={4}
-              className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[100px]"
-              style={inputStyle}
-            />
-          </label>
-
-          <div
-            className="rounded-[10px] border p-3 text-[13px]"
-            style={{ borderColor: "var(--border)", background: "var(--background-surface)", color: "var(--foreground-70)" }}
-          >
-            {t("components.channelManage.publicNotice")}
-          </div>
-
-          <Button
-            type="button"
-            onClick={() => void save()}
-            disabled={!dirty || saving}
-            className="w-full rounded-[12px] gap-2 sm:w-auto"
-          >
-            <Save size={16} />
-            {saving ? t("components.channelManage.saving") : t("components.channelManage.saveChanges")}
-          </Button>
+        <Button
+          type="button"
+          onClick={() => void save()}
+          disabled={!dirty || saving}
+          className="w-full rounded-[12px] gap-2 sm:w-auto"
+        >
+          <Save size={16} />
+          {saving
+            ? t("components.channelManage.saving")
+            : t("components.channelManage.saveChanges")}
+        </Button>
       </section>
 
       <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+        <h3
+          className="text-[13px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--foreground-50)" }}
+        >
           {t("components.channelManage.sectionDanger")}
         </h3>
         <p className="text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>

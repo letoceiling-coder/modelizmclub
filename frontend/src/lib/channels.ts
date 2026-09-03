@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoChannels, demoChannel, demoChannelPosts, setDemoChannelSubscription } from "@/lib/demo-data";
+import {
+  demoChannels,
+  demoChannel,
+  demoChannelPosts,
+  setDemoChannelSubscription,
+} from "@/lib/demo-data";
 import { formatDate } from "@/lib/format/date";
 
 export type ChannelKind = "official" | "brand" | "shop" | "author" | "expert";
@@ -264,7 +269,9 @@ export async function fetchChannel(slug: string): Promise<Channel | null> {
 
 export async function fetchChannelPosts(slug: string): Promise<ChannelPost[]> {
   if (isDemoMode()) return demoChannelPosts(slug) as ChannelPost[];
-  const res = await api<{ data: ApiChannelPost[] }>(`/channels/${slug}/posts`, { query: { per_page: 50 } });
+  const res = await api<{ data: ApiChannelPost[] }>(`/channels/${slug}/posts`, {
+    query: { per_page: 50 },
+  });
   return (res.data ?? []).map((p) => mapPost(p, slug));
 }
 
@@ -383,13 +390,19 @@ export async function setChannelPostLiked(
   return mapPost(res.data, channelSlug);
 }
 
-export async function recordChannelPostView(channelSlug: string, postId: string): Promise<number | null> {
+export async function recordChannelPostView(
+  channelSlug: string,
+  postId: string,
+): Promise<number | null> {
   if (isDemoMode()) return null;
   try {
-    const res = await api<{ data: { views?: number } }>(`/channels/${channelSlug}/posts/${postId}/view`, {
-      method: "POST",
-      headers: { "X-Guest-Viewer": getGuestViewerId() },
-    });
+    const res = await api<{ data: { views?: number } }>(
+      `/channels/${channelSlug}/posts/${postId}/view`,
+      {
+        method: "POST",
+        headers: { "X-Guest-Viewer": getGuestViewerId() },
+      },
+    );
     return res.data?.views ?? null;
   } catch {
     return null;
@@ -507,7 +520,11 @@ export function useChannel(slug: string): {
   return { channel, loading, notFound, reload };
 }
 
-export function useChannelPosts(slug: string): { posts: ChannelPost[]; loading: boolean; reload: () => void } {
+export function useChannelPosts(slug: string): {
+  posts: ChannelPost[];
+  loading: boolean;
+  reload: () => void;
+} {
   const [posts, setPosts] = useState<ChannelPost[]>([]);
   const [loading, setLoading] = useState(true);
 

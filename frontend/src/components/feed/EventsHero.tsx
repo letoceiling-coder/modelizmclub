@@ -4,7 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import type { Banner } from "@/lib/mock";
-import { fetchBannersWithSettings, getCachedBannersWithSettings, recordBannerEvent } from "@/lib/api/banners";
+import {
+  fetchBannersWithSettings,
+  getCachedBannersWithSettings,
+  recordBannerEvent,
+} from "@/lib/api/banners";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
@@ -16,7 +20,6 @@ function sortBanners(list: Banner[]): Banner[] {
   });
 }
 
-
 export function EventsHero() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -25,7 +28,9 @@ export function EventsHero() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [allBanners, setAllBanners] = useState<Banner[]>(() => cached?.banners ?? []);
-  const [autoplayMs, setAutoplayMs] = useState(() => Math.max(3000, (cached?.carousel.autoplay_seconds ?? 10) * 1000));
+  const [autoplayMs, setAutoplayMs] = useState(() =>
+    Math.max(3000, (cached?.carousel.autoplay_seconds ?? 10) * 1000),
+  );
   const [enabled, setEnabled] = useState(() => cached?.carousel.enabled !== false);
   const [signup, setSignup] = useState<Banner | null>(null);
   // False only during the very first fetch. Until then the hero's box is
@@ -46,7 +51,9 @@ export function EventsHero() {
       .finally(() => {
         if (active) setSettled(true);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [cached]);
 
   const list = useMemo(
@@ -79,7 +86,10 @@ export function EventsHero() {
         className="relative overflow-hidden rounded-[16px] border"
         style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
       >
-        <div className={`animate-pulse ${BANNER_HERO_HEIGHT}`} style={{ background: "var(--background-surface)" }} />
+        <div
+          className={`animate-pulse ${BANNER_HERO_HEIGHT}`}
+          style={{ background: "var(--background-surface)" }}
+        />
       </section>
     );
   }
@@ -131,81 +141,83 @@ export function EventsHero() {
   };
   return (
     <>
-    <section
-      aria-label={t("components.eventsHero.ariaLabel")}
-      className="relative overflow-hidden rounded-[16px] border"
-      style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      <div
-        className={`relative cursor-pointer ${BANNER_HERO_HEIGHT}`}
-        style={{ touchAction: "pan-y" }}
-        onPointerDown={onSlidePointerDown}
-        onPointerUp={onSlidePointerUp}
+      <section
+        aria-label={t("components.eventsHero.ariaLabel")}
+        className="relative overflow-hidden rounded-[16px] border"
+        style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
       >
-        <ReducedMotionSwitch
-          switchKey={current.id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="relative block h-full w-full"
+        <div
+          className={`relative cursor-pointer ${BANNER_HERO_HEIGHT}`}
+          style={{ touchAction: "pan-y" }}
+          onPointerDown={onSlidePointerDown}
+          onPointerUp={onSlidePointerUp}
         >
+          <ReducedMotionSwitch
+            switchKey={current.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="relative block h-full w-full"
+          >
             <BannerHeroSlide
               banner={current}
               onCtaClick={() => openCta(current)}
               ctaPointerProps={stopPointerPropagation}
             />
-        </ReducedMotionSwitch>
+          </ReducedMotionSwitch>
+
+          {list.length > 1 && (
+            <>
+              <button
+                onClick={prev}
+                {...stopPointerPropagation}
+                aria-label={t("components.eventsHero.prev")}
+                className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
+                style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
+              >
+                <ChevronLeft className="h-[16px] w-[16px]" />
+              </button>
+              <button
+                onClick={next}
+                {...stopPointerPropagation}
+                aria-label={t("components.eventsHero.next")}
+                className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
+                style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
+              >
+                <ChevronRight className="h-[16px] w-[16px]" />
+              </button>
+            </>
+          )}
+        </div>
 
         {list.length > 1 && (
-          <>
-            <button
-              onClick={prev}
-              {...stopPointerPropagation}
-              aria-label={t("components.eventsHero.prev")}
-              className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
-              style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
-            >
-              <ChevronLeft className="h-[16px] w-[16px]" />
-            </button>
-            <button
-              onClick={next}
-              {...stopPointerPropagation}
-              aria-label={t("components.eventsHero.next")}
-              className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
-              style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
-            >
-              <ChevronRight className="h-[16px] w-[16px]" />
-            </button>
-          </>
+          <div className="flex items-center justify-center gap-[6px] py-[10px]">
+            {list.map((b, i) => {
+              const active = i === index;
+              return (
+                <button
+                  key={b.id}
+                  aria-label={`Перейти к баннеру ${i + 1}`}
+                  onClick={() => setIndex(i)}
+                  className="rounded-full transition"
+                  style={{
+                    width: active ? 20 : 6,
+                    height: 6,
+                    background: active
+                      ? "var(--accent)"
+                      : "var(--foreground-30, color-mix(in oklab, var(--foreground) 25%, transparent))",
+                  }}
+                />
+              );
+            })}
+          </div>
         )}
-      </div>
+      </section>
 
-      {list.length > 1 && (
-        <div className="flex items-center justify-center gap-[6px] py-[10px]">
-          {list.map((b, i) => {
-            const active = i === index;
-            return (
-              <button
-                key={b.id}
-                aria-label={`Перейти к баннеру ${i + 1}`}
-                onClick={() => setIndex(i)}
-                className="rounded-full transition"
-                style={{
-                  width: active ? 20 : 6,
-                  height: 6,
-                  background: active ? "var(--accent)" : "var(--foreground-30, color-mix(in oklab, var(--foreground) 25%, transparent))",
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
-    </section>
-
-    <EventSignupModal banner={signup} onClose={() => setSignup(null)} />
+      <EventSignupModal banner={signup} onClose={() => setSignup(null)} />
     </>
   );
 }
@@ -251,7 +263,10 @@ function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose:
             >
               Регистрация на мероприятие
             </h3>
-            <p className="mt-[6px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+            <p
+              className="mt-[6px] text-[14px] leading-relaxed"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {banner.title}
             </p>
             <p className="mt-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>

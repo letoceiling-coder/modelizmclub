@@ -85,15 +85,15 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
     return;
   }
 
-    if (type === "notification") {
+  if (type === "notification") {
     const p = data as { notification?: ApiNotificationPayload };
     if (!p.notification) return;
     const notifType = p.notification.type ?? "";
     const link = p.notification.link ?? "";
     if (
-      (notifType === "message" || notifType === "messages")
-      && watchingDialogId
-      && link.includes(watchingDialogId)
+      (notifType === "message" || notifType === "messages") &&
+      watchingDialogId &&
+      link.includes(watchingDialogId)
     ) {
       return;
     }

@@ -1,12 +1,47 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Users, Check, BadgeCheck, Clock, ShieldCheck, AlertTriangle, Radio, Newspaper, Star, Megaphone, Tag, Send, Calendar, MessageSquareOff, FileCheck2, Ban, Pin, Pencil, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Users,
+  Check,
+  BadgeCheck,
+  Clock,
+  ShieldCheck,
+  AlertTriangle,
+  Radio,
+  Newspaper,
+  Star,
+  Megaphone,
+  Tag,
+  Send,
+  Calendar,
+  MessageSquareOff,
+  FileCheck2,
+  Ban,
+  Pin,
+  Pencil,
+  MessageCircle,
+} from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  useChannel, useChannelPosts, setChannelSubscription, createChannelPost, deleteChannelPost, isChannelOwner, isChannelManager,
-  formatCount, formatChannelDate, setChannelPostLiked, recordChannelPostView, setChannelPostPinned,
-  type Channel, type ChannelPost, type PostStatus, type PostKind, type ChannelKind,
+  useChannel,
+  useChannelPosts,
+  setChannelSubscription,
+  createChannelPost,
+  deleteChannelPost,
+  isChannelOwner,
+  isChannelManager,
+  formatCount,
+  formatChannelDate,
+  setChannelPostLiked,
+  recordChannelPostView,
+  setChannelPostPinned,
+  type Channel,
+  type ChannelPost,
+  type PostStatus,
+  type PostKind,
+  type ChannelKind,
 } from "@/lib/channels";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -31,14 +66,15 @@ import type { Post } from "@/lib/mock";
 import { registerUser } from "@/lib/mock";
 import { openConversation } from "@/lib/api/chat";
 
-
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
 
 export const Route = createFileRoute("/channel/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.channelDetail.metaTitle") }] }),
-  validateSearch: (search: Record<string, unknown>): {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
     tab?: ChannelTab | "manage";
     section?: "stats" | "manage";
     settings?: boolean;
@@ -129,7 +165,14 @@ function ChannelPage() {
     return (
       <AppLayout rightColumn={false} footer>
         <div className="space-y-4 pb-8">
-          <Card className="overflow-hidden shadow-none" style={{ borderColor: "var(--border)", borderRadius: 16, background: "var(--background)" }}>
+          <Card
+            className="overflow-hidden shadow-none"
+            style={{
+              borderColor: "var(--border)",
+              borderRadius: 16,
+              background: "var(--background)",
+            }}
+          >
             <Skeleton className="h-28 sm:h-36 rounded-none" />
             <div className="px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
               <Skeleton className="h-[64px] w-[64px] rounded-[16px]" />
@@ -205,7 +248,11 @@ function ChannelPage() {
         {/* header card */}
         <Card
           className="overflow-hidden shadow-none"
-          style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}
+          style={{
+            background: "var(--background)",
+            borderColor: "var(--border)",
+            borderRadius: 16,
+          }}
         >
           <ChannelBrandingHeader
             channel={channel}
@@ -217,15 +264,25 @@ function ChannelPage() {
             <div className="mt-3 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <h1 className="font-display text-[20px] sm:text-[24px] font-bold" style={{ color: "var(--foreground)" }}>
+                  <h1
+                    className="font-display text-[20px] sm:text-[24px] font-bold"
+                    style={{ color: "var(--foreground)" }}
+                  >
                     {channel.name}
                   </h1>
-                  {channel.kind === "official" && <BadgeCheck size={18} style={{ color: "var(--accent)" }} />}
+                  {channel.kind === "official" && (
+                    <BadgeCheck size={18} style={{ color: "var(--accent)" }} />
+                  )}
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <span
                     className="text-[11px] font-medium"
-                    style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: 6 }}
+                    style={{
+                      background: "var(--accent-soft)",
+                      color: "var(--accent)",
+                      padding: "3px 8px",
+                      borderRadius: 6,
+                    }}
                   >
                     {channelKindLabel(channel.kind, t)}
                   </span>
@@ -245,90 +302,118 @@ function ChannelPage() {
                   >
                     <Pencil size={14} /> {t("pages.channelDetail.editChannel")}
                   </Button>
-                  <EntitySettingsButton onClick={() => setSettingsOpen(true)} title={t("pages.channelDetail.settingsTitle")} />
+                  <EntitySettingsButton
+                    onClick={() => setSettingsOpen(true)}
+                    title={t("pages.channelDetail.settingsTitle")}
+                  />
                 </div>
               )}
             </div>
-              <p className="mt-3 text-[14px]" style={{ color: "var(--foreground-70)" }}>
-                {channel.description}
-              </p>
+            <p className="mt-3 text-[14px]" style={{ color: "var(--foreground-70)" }}>
+              {channel.description}
+            </p>
 
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px]" style={{ color: "var(--foreground-50)" }}>
-                <span className="inline-flex items-center gap-1.5">
-                  <Users size={13} /> {t("pages.channelDetail.subscribersCount", { count: formatCount(channel.subscribers) })}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <ShieldCheck size={13} /> {t("pages.channelDetail.ownerOnlyPublish")}
-                </span>
-              </div>
+            <div
+              className="mt-3 flex flex-wrap items-center gap-3 text-[13px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={13} />{" "}
+                {t("pages.channelDetail.subscribersCount", {
+                  count: formatCount(channel.subscribers),
+                })}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck size={13} /> {t("pages.channelDetail.ownerOnlyPublish")}
+              </span>
+            </div>
 
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                {!isOwner && (
-                  <Button
-                    variant={subscribed ? "outline" : "default"}
-                    onClick={onToggle}
-                    className="flex-1 rounded-[12px] gap-2"
-                    size="lg"
-                  >
-                    {subscribed ? (<><Check size={16} /> {t("pages.shared.youSubscribed")}</>) : t("pages.shared.subscribe")}
-                  </Button>
-                )}
-                {!isOwner && channel.ownerNumericId && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={messageOwner}
-                    disabled={messaging}
-                    className="flex-1 rounded-[12px] gap-2"
-                    size="lg"
-                  >
-                    <MessageCircle size={16} /> {t("pages.channelDetail.messageOwner")}
-                  </Button>
-                )}
-                {isOwner && (
-                  <div
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-5 text-[13px] font-semibold sm:w-auto"
-                    style={{ background: "var(--accent-soft)", color: "var(--accent)", flex: 1 }}
-                  >
-                    {t("pages.channelDetail.youAreOwner")}
-                  </div>
-                )}
-              </div>
-
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               {!isOwner && (
-                <button
-                  type="button"
-                  onClick={() => requirePremium(() => setRequestOpen(true))}
-                  className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-[12px] border text-[14px] font-semibold transition-colors hover:bg-[var(--background-surface)]"
-                  style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+                <Button
+                  variant={subscribed ? "outline" : "default"}
+                  onClick={onToggle}
+                  className="flex-1 rounded-[12px] gap-2"
+                  size="lg"
                 >
-                  {t("pages.channelDetail.wantOwnChannel")}
-                </button>
+                  {subscribed ? (
+                    <>
+                      <Check size={16} /> {t("pages.shared.youSubscribed")}
+                    </>
+                  ) : (
+                    t("pages.shared.subscribe")
+                  )}
+                </Button>
               )}
+              {!isOwner && channel.ownerNumericId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={messageOwner}
+                  disabled={messaging}
+                  className="flex-1 rounded-[12px] gap-2"
+                  size="lg"
+                >
+                  <MessageCircle size={16} /> {t("pages.channelDetail.messageOwner")}
+                </Button>
+              )}
+              {isOwner && (
+                <div
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-5 text-[13px] font-semibold sm:w-auto"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)", flex: 1 }}
+                >
+                  {t("pages.channelDetail.youAreOwner")}
+                </div>
+              )}
+            </div>
 
-              {/* explanation strip */}
-              <div
-                className="mt-3 flex items-start gap-2 p-3 text-[12px]"
-                style={{ background: "var(--background-surface)", borderRadius: 10, color: "var(--foreground-70)" }}
+            {!isOwner && (
+              <button
+                type="button"
+                onClick={() => requirePremium(() => setRequestOpen(true))}
+                className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-[12px] border text-[14px] font-semibold transition-colors hover:bg-[var(--background-surface)]"
+                style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
               >
-                <Radio size={14} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }} />
-                <span>
-                  {t("pages.channelDetail.publicChannelNote")}
-                </span>
-              </div>
+                {t("pages.channelDetail.wantOwnChannel")}
+              </button>
+            )}
+
+            {/* explanation strip */}
+            <div
+              className="mt-3 flex items-start gap-2 p-3 text-[12px]"
+              style={{
+                background: "var(--background-surface)",
+                borderRadius: 10,
+                color: "var(--foreground-70)",
+              }}
+            >
+              <Radio size={14} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }} />
+              <span>{t("pages.channelDetail.publicChannelNote")}</span>
+            </div>
           </div>
         </Card>
 
         {/* tabs */}
         <div
           className="sticky top-[48px] z-10 -mx-3 flex items-center gap-1 px-3 py-2 lg:static lg:top-auto lg:mx-0 lg:px-0"
-          style={{ background: "color-mix(in oklab, var(--background) 92%, transparent)", backdropFilter: "saturate(180%) blur(8px)" }}
+          style={{
+            background: "color-mix(in oklab, var(--background) 92%, transparent)",
+            backdropFilter: "saturate(180%) blur(8px)",
+          }}
         >
-          <div className="flex w-full items-center gap-1" style={{ background: "var(--background-surface)", borderRadius: 12, padding: 4 }}>
-            {([
-              ["posts", `${t("pages.channelDetail.tabPosts")}${visiblePublic.length ? ` · ${visiblePublic.length}` : ""}`],
-              ["about", t("pages.channelDetail.tabAbout")],
-            ] as const).map(([k, l]) => {
+          <div
+            className="flex w-full items-center gap-1"
+            style={{ background: "var(--background-surface)", borderRadius: 12, padding: 4 }}
+          >
+            {(
+              [
+                [
+                  "posts",
+                  `${t("pages.channelDetail.tabPosts")}${visiblePublic.length ? ` · ${visiblePublic.length}` : ""}`,
+                ],
+                ["about", t("pages.channelDetail.tabAbout")],
+              ] as const
+            ).map(([k, l]) => {
               const active = tab === k;
               return (
                 <button
@@ -387,8 +472,13 @@ function ChannelPage() {
             )}
 
             {list.length === 0 ? (
-              <div className="grid place-items-center gap-2 py-12 text-center" style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-card)" }}>
-                <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.channelDetail.emptyPostsChannel")}</div>
+              <div
+                className="grid place-items-center gap-2 py-12 text-center"
+                style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-card)" }}
+              >
+                <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
+                  {t("pages.channelDetail.emptyPostsChannel")}
+                </div>
               </div>
             ) : (
               <ul className="space-y-3">
@@ -414,8 +504,6 @@ function ChannelPage() {
             scrollSection={sectionSearch === "stats" ? "stats" : undefined}
           />
         )}
-
-
       </div>
       {isOwner && (
         <ChannelSettingsSheet
@@ -439,9 +527,15 @@ function ChannelPage() {
 
 function Segmented({ value, onChange }: { value: PostFilter; onChange: (v: PostFilter) => void }) {
   const { t } = useTranslation();
-  const opts: [PostFilter, string][] = [[ "all", t("pages.channelDetail.filterPublished") ], [ "mine", t("pages.channelDetail.filterAll") ]];
+  const opts: [PostFilter, string][] = [
+    ["all", t("pages.channelDetail.filterPublished")],
+    ["mine", t("pages.channelDetail.filterAll")],
+  ];
   return (
-    <div className="flex shrink-0" style={{ background: "var(--background)", borderRadius: 9, padding: 3 }}>
+    <div
+      className="flex shrink-0"
+      style={{ background: "var(--background)", borderRadius: 9, padding: 3 }}
+    >
       {opts.map(([k, l]) => {
         const active = value === k;
         return (
@@ -465,14 +559,30 @@ function Segmented({ value, onChange }: { value: PostFilter; onChange: (v: PostF
   );
 }
 
-function postStatusMeta(t: (key: string) => string): Record<PostStatus, { label: string; bg: string; color: string; Icon: typeof Clock }> {
+function postStatusMeta(
+  t: (key: string) => string,
+): Record<PostStatus, { label: string; bg: string; color: string; Icon: typeof Clock }> {
   return {
-    published: { label: t("pages.channelDetail.statusPublished"), bg: "rgba(16,185,129,0.12)", color: "rgb(16,185,129)", Icon: ShieldCheck },
-    moderation: { label: t("pages.channelDetail.statusModeration"), bg: "rgba(245,158,11,0.14)", color: "rgb(217,119,6)", Icon: Clock },
-    rejected: { label: t("pages.channelDetail.statusRejected"), bg: "rgba(239,68,68,0.12)", color: "rgb(239,68,68)", Icon: AlertTriangle },
+    published: {
+      label: t("pages.channelDetail.statusPublished"),
+      bg: "rgba(16,185,129,0.12)",
+      color: "rgb(16,185,129)",
+      Icon: ShieldCheck,
+    },
+    moderation: {
+      label: t("pages.channelDetail.statusModeration"),
+      bg: "rgba(245,158,11,0.14)",
+      color: "rgb(217,119,6)",
+      Icon: Clock,
+    },
+    rejected: {
+      label: t("pages.channelDetail.statusRejected"),
+      bg: "rgba(239,68,68,0.12)",
+      color: "rgb(239,68,68)",
+      Icon: AlertTriangle,
+    },
   };
 }
-
 
 /** Channel post as the shared card: the feed anatomy, channel data behind it. */
 function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Post {
@@ -485,7 +595,12 @@ function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Po
     text: post.text,
     images: post.images ?? [],
     video: post.video,
-    mediaItems: (post.media ?? []).map((m) => ({ type: m.type, url: m.url, width: m.width, height: m.height })),
+    mediaItems: (post.media ?? []).map((m) => ({
+      type: m.type,
+      url: m.url,
+      width: m.width,
+      height: m.height,
+    })),
     views: post.views,
     likes: post.likes,
     comments: 0,
@@ -568,12 +683,22 @@ function PostItem({
   const badges = (
     <>
       {post.pinned && (
-        <span className={chip} style={{ ...chipStyle, background: "var(--accent-soft)", color: "var(--accent)" }}>
+        <span
+          className={chip}
+          style={{ ...chipStyle, background: "var(--accent-soft)", color: "var(--accent)" }}
+        >
           <Pin size={11} /> {t("pages.channelDetail.pinned")}
         </span>
       )}
       {post.kind && (
-        <span className={chip} style={{ ...chipStyle, background: "var(--background-surface)", color: "var(--foreground-70)" }}>
+        <span
+          className={chip}
+          style={{
+            ...chipStyle,
+            background: "var(--background-surface)",
+            color: "var(--foreground-70)",
+          }}
+        >
           <KindIcon kind={post.kind} /> {postKindLabel(t, post.kind)}
         </span>
       )}
@@ -588,9 +713,14 @@ function PostItem({
           onClick={() => void togglePin()}
           disabled={pinning}
           className={`${chip} transition-opacity disabled:opacity-50`}
-          style={{ ...chipStyle, background: post.pinned ? "var(--accent-soft)" : "var(--background-surface)", color: post.pinned ? "var(--accent)" : "var(--foreground-70)" }}
+          style={{
+            ...chipStyle,
+            background: post.pinned ? "var(--accent-soft)" : "var(--background-surface)",
+            color: post.pinned ? "var(--accent)" : "var(--foreground-70)",
+          }}
         >
-          <Pin size={11} /> {post.pinned ? t("pages.channelDetail.unpin") : t("pages.channelDetail.pin")}
+          <Pin size={11} />{" "}
+          {post.pinned ? t("pages.channelDetail.unpin") : t("pages.channelDetail.pin")}
         </button>
       )}
     </>
@@ -600,7 +730,11 @@ function PostItem({
     post.status === "rejected" && post.rejectionReason ? (
       <div
         className="mx-[16px] mt-3 rounded-[10px] p-3 text-[12px] leading-relaxed"
-        style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "rgb(185,28,28)" }}
+        style={{
+          background: "rgba(239,68,68,0.08)",
+          border: "1px solid rgba(239,68,68,0.25)",
+          color: "rgb(185,28,28)",
+        }}
       >
         <div className="font-semibold">{t("pages.channelDetail.rejectionReasonTitle")}</div>
         <div className="mt-1">{post.rejectionReason}</div>
@@ -639,7 +773,15 @@ function KindIcon({ kind }: { kind: PostKind }) {
 
 const MAX_PHOTOS = 10;
 
-function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: string; requiresModeration: boolean; onPosted: () => void }) {
+function Composer({
+  channelSlug,
+  requiresModeration,
+  onPosted,
+}: {
+  channelSlug: string;
+  requiresModeration: boolean;
+  onPosted: () => void;
+}) {
   const { t } = useTranslation();
   const { requirePremium } = useGuestAccess();
   const [expanded, setExpanded] = useState(false);
@@ -680,7 +822,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
   const replacePhoto = (i: number, blob: Blob) => {
     const oldUrl = photos[i];
     const oldFile = photoFiles[i];
-    const newFile = new File([blob], oldFile?.name ?? `photo-${i}.jpg`, { type: blob.type || "image/jpeg" });
+    const newFile = new File([blob], oldFile?.name ?? `photo-${i}.jpg`, {
+      type: blob.type || "image/jpeg",
+    });
     const newUrl = URL.createObjectURL(blob);
     setPhotos((p) => p.map((u, idx) => (idx === i ? newUrl : u)));
     setPhotoFiles((f) => f.map((file, idx) => (idx === i ? newFile : file)));
@@ -690,7 +834,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
   const submit = async () => {
     if (!canSend) return;
     let allowed = false;
-    requirePremium(() => { allowed = true; });
+    requirePremium(() => {
+      allowed = true;
+    });
     if (!allowed) return;
     setSending(true);
     try {
@@ -764,10 +910,17 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
   return (
     <section
       className="p-4"
-      style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
+      style={{
+        background: "var(--background)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-card)",
+      }}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="font-display text-[15px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           {t("pages.channelDetail.newPost")}
         </h3>
         <span
@@ -780,7 +933,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
           }}
         >
           {requiresModeration ? <Clock size={11} /> : <ShieldCheck size={11} />}
-          {requiresModeration ? t("pages.channelDetail.moderationAfterSend") : t("pages.channelDetail.publishesImmediately")}
+          {requiresModeration
+            ? t("pages.channelDetail.moderationAfterSend")
+            : t("pages.channelDetail.publishesImmediately")}
         </span>
       </div>
 
@@ -801,7 +956,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
                 borderRadius: 9,
                 background: active ? "var(--accent-soft)" : "var(--background-surface)",
                 color: active ? "var(--accent)" : "var(--foreground-70)",
-                border: active ? "1px solid color-mix(in oklab, var(--accent) 35%, transparent)" : "1px solid transparent",
+                border: active
+                  ? "1px solid color-mix(in oklab, var(--accent) 35%, transparent)"
+                  : "1px solid transparent",
               }}
             >
               <Icon size={12} /> {postKindLabel(t, k)}
@@ -814,7 +971,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, MAX))}
         rows={4}
-        placeholder={t("pages.channelDetail.postTextPlaceholder", { kind: postKindLabel(t, kind).toLowerCase() })}
+        placeholder={t("pages.channelDetail.postTextPlaceholder", {
+          kind: postKindLabel(t, kind).toLowerCase(),
+        })}
         className="mt-3 w-full resize-y text-[14px] outline-none"
         style={{
           minHeight: 96,
@@ -824,8 +983,12 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
           border: "1.5px solid transparent",
           color: "var(--foreground)",
         }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = "var(--accent)";
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = "transparent";
+        }}
       />
 
       <div className="mt-3">
@@ -843,7 +1006,11 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
 
       <PhotoEditorDialog
         open={editingPhotoIndex != null}
-        src={editingPhotoIndex != null ? (photoFiles[editingPhotoIndex] ?? photos[editingPhotoIndex] ?? null) : null}
+        src={
+          editingPhotoIndex != null
+            ? (photoFiles[editingPhotoIndex] ?? photos[editingPhotoIndex] ?? null)
+            : null
+        }
         title={t("pages.reviews.editPhoto")}
         onCancel={() => setEditingPhotoIndex(null)}
         onSave={(blob) => {
@@ -866,7 +1033,9 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
             setVideoFile(file);
             setVideoUrl(URL.createObjectURL(file));
             setVideoProgress(0);
-            void uploadMediaDeduped(file, "post_video", setVideoProgress).catch(() => setVideoProgress(null));
+            void uploadMediaDeduped(file, "post_video", setVideoProgress).catch(() =>
+              setVideoProgress(null),
+            );
           }}
           onClear={() => {
             setVideoFile(null);
@@ -877,16 +1046,15 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="text-[11px]" style={{ color: text.length > MAX - 80 ? "rgb(217,119,6)" : "var(--foreground-50)" }}>
+        <span
+          className="text-[11px]"
+          style={{ color: text.length > MAX - 80 ? "rgb(217,119,6)" : "var(--foreground-50)" }}
+        >
           {text.length} / {MAX}
         </span>
-        <Button
-          onClick={submit}
-          disabled={!canSend}
-          className="rounded-[10px] gap-1.5"
-          size="sm"
-        >
-          <Send size={14} /> {sending ? t("pages.channelDetail.publishing") : t("pages.channelDetail.publish")}
+        <Button onClick={submit} disabled={!canSend} className="rounded-[10px] gap-1.5" size="sm">
+          <Send size={14} />{" "}
+          {sending ? t("pages.channelDetail.publishing") : t("pages.channelDetail.publish")}
         </Button>
       </div>
 
@@ -895,15 +1063,23 @@ function Composer({ channelSlug, requiresModeration, onPosted }: { channelSlug: 
           className="mt-3 flex items-start gap-2 p-3 text-[12px]"
           style={{
             background: requiresModeration ? "rgba(245,158,11,0.10)" : "rgba(16,185,129,0.10)",
-            border: requiresModeration ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(16,185,129,0.35)",
+            border: requiresModeration
+              ? "1px solid rgba(245,158,11,0.35)"
+              : "1px solid rgba(16,185,129,0.35)",
             borderRadius: 10,
             color: requiresModeration ? "rgb(146,64,14)" : "rgb(6,95,70)",
           }}
         >
-          {requiresModeration ? <Clock size={14} className="mt-0.5 shrink-0" /> : <ShieldCheck size={14} className="mt-0.5 shrink-0" />}
+          {requiresModeration ? (
+            <Clock size={14} className="mt-0.5 shrink-0" />
+          ) : (
+            <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+          )}
           <div>
             <div className="font-semibold">
-              {requiresModeration ? t("pages.channelDetail.postSentModeration") : t("pages.channelDetail.postPublished")}
+              {requiresModeration
+                ? t("pages.channelDetail.postSentModeration")
+                : t("pages.channelDetail.postPublished")}
             </div>
             <div style={{ color: requiresModeration ? "rgb(180,83,9)" : "rgb(4,120,87)" }}>
               {requiresModeration
@@ -948,17 +1124,31 @@ function AboutPanel({
 
   useEffect(() => {
     if (scrollSection !== "stats") return;
-    document.getElementById("channel-stats")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById("channel-stats")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [scrollSection]);
 
   const rules: { Icon: typeof FileCheck2; titleKey: string; textKey: string }[] = [
     {
       Icon: FileCheck2,
-      titleKey: requiresModeration ? "pages.channelDetail.rulePremodTitle" : "pages.channelDetail.rulePublishTitle",
-      textKey: requiresModeration ? "pages.channelDetail.rulePremodText" : "pages.channelDetail.rulePublishText",
+      titleKey: requiresModeration
+        ? "pages.channelDetail.rulePremodTitle"
+        : "pages.channelDetail.rulePublishTitle",
+      textKey: requiresModeration
+        ? "pages.channelDetail.rulePremodText"
+        : "pages.channelDetail.rulePublishText",
     },
-    { Icon: MessageSquareOff, titleKey: "pages.channelDetail.ruleNoChatTitle", textKey: "pages.channelDetail.ruleNoChatText" },
-    { Icon: Ban, titleKey: "pages.channelDetail.ruleNoSpamTitle", textKey: "pages.channelDetail.ruleNoSpamText" },
+    {
+      Icon: MessageSquareOff,
+      titleKey: "pages.channelDetail.ruleNoChatTitle",
+      textKey: "pages.channelDetail.ruleNoChatText",
+    },
+    {
+      Icon: Ban,
+      titleKey: "pages.channelDetail.ruleNoSpamTitle",
+      textKey: "pages.channelDetail.ruleNoSpamText",
+    },
   ];
 
   return (
@@ -966,13 +1156,26 @@ function AboutPanel({
       {/* description */}
       <section
         className="p-4 sm:p-5"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
+        style={{
+          background: "var(--background)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-card)",
+        }}
       >
-        <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="font-display text-[15px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           {t("pages.channelDetail.aboutTitle")}
         </h3>
-        <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-          {channel.description || t("pages.channelDetail.aboutExtra", { kind: channelKindLabel(channel.kind, t).toLowerCase() })}
+        <p
+          className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          {channel.description ||
+            t("pages.channelDetail.aboutExtra", {
+              kind: channelKindLabel(channel.kind, t).toLowerCase(),
+            })}
         </p>
 
         {channel.contacts && (
@@ -980,7 +1183,10 @@ function AboutPanel({
             <h4 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
               {t("pages.channelDetail.contactsTitle")}
             </h4>
-            <p className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+            <p
+              className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {channel.contacts}
             </p>
           </div>
@@ -988,40 +1194,83 @@ function AboutPanel({
 
         {/* stats grid */}
         <div id="channel-stats" className="mt-4 grid grid-cols-3 gap-2">
-          <Stat icon={Users} label={t("pages.channelDetail.statSubscribers")} value={formatCount(channel.subscribers)} />
-          <Stat icon={FileCheck2} label={t("pages.channelDetail.statPosts")} value={String(publishedCount)} />
-          <Stat icon={Calendar} label={t("pages.channelDetail.statSince")} value={created.replace(/\s\d{4}.*/, "")} />
+          <Stat
+            icon={Users}
+            label={t("pages.channelDetail.statSubscribers")}
+            value={formatCount(channel.subscribers)}
+          />
+          <Stat
+            icon={FileCheck2}
+            label={t("pages.channelDetail.statPosts")}
+            value={String(publishedCount)}
+          />
+          <Stat
+            icon={Calendar}
+            label={t("pages.channelDetail.statSince")}
+            value={created.replace(/\s\d{4}.*/, "")}
+          />
         </div>
       </section>
 
       {/* owner card */}
       <section
         className="p-4"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
+        style={{
+          background: "var(--background)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-card)",
+        }}
       >
-        <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="font-display text-[15px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           {t("pages.channelDetail.ownerSection")}
         </h3>
         <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
           {ownerProfileId ? (
-            <Link to="/user/$id" params={{ id: ownerProfileId }} aria-label={t("pages.channelDetail.ownerProfileAria", { name: channel.ownerName })}>
-              <ChatAvatar src={channel.ownerAvatar} name={channel.ownerName} size={44} className="rounded-[12px]" />
+            <Link
+              to="/user/$id"
+              params={{ id: ownerProfileId }}
+              aria-label={t("pages.channelDetail.ownerProfileAria", { name: channel.ownerName })}
+            >
+              <ChatAvatar
+                src={channel.ownerAvatar}
+                name={channel.ownerName}
+                size={44}
+                className="rounded-[12px]"
+              />
             </Link>
           ) : (
-            <ChatAvatar src={channel.ownerAvatar} name={channel.ownerName} size={44} className="rounded-[12px]" />
+            <ChatAvatar
+              src={channel.ownerAvatar}
+              name={channel.ownerName}
+              size={44}
+              className="rounded-[12px]"
+            />
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               {ownerNameEl}
-              {channel.kind === "official" && <BadgeCheck size={14} style={{ color: "var(--accent)" }} />}
+              {channel.kind === "official" && (
+                <BadgeCheck size={14} style={{ color: "var(--accent)" }} />
+              )}
             </div>
             <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              {t("pages.channelDetail.ownerLeads", { kind: channelKindLabel(channel.kind, t), name: channel.name })}
+              {t("pages.channelDetail.ownerLeads", {
+                kind: channelKindLabel(channel.kind, t),
+                name: channel.name,
+              })}
             </div>
           </div>
           <span
             className="shrink-0 text-[11px] font-medium"
-            style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "4px 8px", borderRadius: 6 }}
+            style={{
+              background: "var(--accent-soft)",
+              color: "var(--accent)",
+              padding: "4px 8px",
+              borderRadius: 6,
+            }}
           >
             {t("pages.shared.author")}
           </span>
@@ -1034,32 +1283,53 @@ function AboutPanel({
       {/* rules */}
       <section
         className="p-4"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
+        style={{
+          background: "var(--background)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-card)",
+        }}
       >
-        <h3 className="font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="font-display text-[15px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           {t("pages.channelDetail.publicationRules")}
         </h3>
         {channel.rules ? (
-          <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
+          <p
+            className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed"
+            style={{ color: "var(--foreground-70)" }}
+          >
             {channel.rules}
           </p>
         ) : (
-        <ul className="mt-3 space-y-2.5">
-          {rules.map(({ Icon, titleKey, textKey }) => (
-            <li key={titleKey} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
-              <div
-                className="grid h-8 w-8 shrink-0 place-items-center"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: 8 }}
-              >
-                <Icon size={14} />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t(titleKey)}</div>
-                <div className="text-[12px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>{t(textKey)}</div>
-              </div>
-            </li>
-          ))}
-        </ul>
+          <ul className="mt-3 space-y-2.5">
+            {rules.map(({ Icon, titleKey, textKey }) => (
+              <li key={titleKey} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
+                <div
+                  className="grid h-8 w-8 shrink-0 place-items-center"
+                  style={{
+                    background: "var(--accent-soft)",
+                    color: "var(--accent)",
+                    borderRadius: 8,
+                  }}
+                >
+                  <Icon size={14} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+                    {t(titleKey)}
+                  </div>
+                  <div
+                    className="text-[12px] leading-relaxed"
+                    style={{ color: "var(--foreground-70)" }}
+                  >
+                    {t(textKey)}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>
@@ -1073,10 +1343,15 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Users; label: string;
       style={{ background: "var(--background-surface)", borderRadius: 10 }}
     >
       <Icon size={14} style={{ color: "var(--foreground-50)" }} />
-      <div className="font-display text-[15px] font-bold leading-none" style={{ color: "var(--foreground)" }}>{value}</div>
-      <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>{label}</div>
+      <div
+        className="font-display text-[15px] font-bold leading-none"
+        style={{ color: "var(--foreground)" }}
+      >
+        {value}
+      </div>
+      <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+        {label}
+      </div>
     </div>
   );
 }
-
-

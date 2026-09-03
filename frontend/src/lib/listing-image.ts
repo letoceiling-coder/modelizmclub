@@ -3,8 +3,7 @@ import { isHeicFile } from "@/lib/chat-attachments";
 /** Matches backend MediaUploadService LIMITS['listing'].max_size. */
 export const LISTING_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 
-export const LISTING_IMAGE_ACCEPT =
-  "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+export const LISTING_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 export const LISTING_HEIC_MESSAGE =
   "Формат HEIC не поддерживается. Загрузите изображение в формате JPG или PNG.";
@@ -52,7 +51,9 @@ export function verifyListingImageDecodable(file: File): Promise<string | null> 
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve("Файл повреждён или не открывается. Загрузите другое изображение в формате JPG или PNG.");
+      resolve(
+        "Файл повреждён или не открывается. Загрузите другое изображение в формате JPG или PNG.",
+      );
     };
     img.src = url;
   });

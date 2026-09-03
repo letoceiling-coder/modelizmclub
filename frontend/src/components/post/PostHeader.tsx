@@ -10,12 +10,13 @@ import { Img } from "@/components/ui/Img";
 /** Avatar with initials fallback when the image fails to load or src is empty */
 function AuthorAvatar({ src, name }: { src: string; name: string }) {
   const [err, setErr] = useState(false);
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .toUpperCase() || "?";
+  const initials =
+    name
+      .split(" ")
+      .slice(0, 2)
+      .map((w) => w[0] ?? "")
+      .join("")
+      .toUpperCase() || "?";
   if (!src || err) {
     return (
       <div
@@ -54,7 +55,16 @@ interface Props {
 }
 
 /** Avatar → profile, name → profile, date, optional context line, menu slot. */
-export function PostHeader({ author, authorHref, authorActionKey, post, isScheduled, showContext, badges, children }: Props) {
+export function PostHeader({
+  author,
+  authorHref,
+  authorActionKey,
+  post,
+  isScheduled,
+  showContext,
+  badges,
+  children,
+}: Props) {
   const { t } = useTranslation();
   return (
     <header className="flex items-center gap-[12px] px-[16px] pt-[16px]">
@@ -74,7 +84,9 @@ export function PostHeader({ author, authorHref, authorActionKey, post, isSchedu
           {post.status === "moderation" && (
             <StatusBadge variant="moderation">{t("components.postCard.moderation")}</StatusBadge>
           )}
-          {isScheduled && <StatusBadge variant="info">{t("components.postCard.scheduled")}</StatusBadge>}
+          {isScheduled && (
+            <StatusBadge variant="info">{t("components.postCard.scheduled")}</StatusBadge>
+          )}
           {badges}
         </div>
         <div className="mt-[1px] text-[12px]" style={{ color: "var(--foreground-50)" }}>

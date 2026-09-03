@@ -3,7 +3,13 @@ import { useTranslation } from "react-i18next";
 import type { Post } from "@/lib/mock";
 import { updatePost } from "@/lib/api/feed";
 import { toast } from "@/lib/toast";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -44,7 +50,10 @@ export function EditPostDialog({ post, open, onOpenChange, onSaved }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[440px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+      <DialogContent
+        className="max-w-[440px]"
+        style={{ background: "var(--background)", borderColor: "var(--border)" }}
+      >
         <DialogHeader>
           <DialogTitle>{t("pages.communityDetail.editPostTitle")}</DialogTitle>
         </DialogHeader>
@@ -56,7 +65,11 @@ export function EditPostDialog({ post, open, onOpenChange, onSaved }: Props) {
           <Button variant="ghost" size="lg" onClick={() => onOpenChange(false)} disabled={busy}>
             {t("common.cancel")}
           </Button>
-          <Button size="lg" onClick={() => void save()} disabled={busy || title.trim().length === 0}>
+          <Button
+            size="lg"
+            onClick={() => void save()}
+            disabled={busy || title.trim().length === 0}
+          >
             {t("pages.communityDetail.editPostSave")}
           </Button>
         </DialogFooter>

@@ -19,7 +19,12 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
     <span className="inline-flex items-center gap-[2px]">
       {[1, 2, 3, 4, 5].map((n) => (
-        <Star key={n} size={size} fill={n <= Math.round(value) ? "var(--accent)" : "none"} style={{ color: "var(--accent)" }} />
+        <Star
+          key={n}
+          size={size}
+          fill={n <= Math.round(value) ? "var(--accent)" : "none"}
+          style={{ color: "var(--accent)" }}
+        />
       ))}
     </span>
   );
@@ -53,52 +58,94 @@ function RatingSection() {
       .then(([agg, rows]) => {
         if (!alive) return;
         setRating(agg);
-        setReviews(rows.map((r) => ({
-          id: r.id,
-          author: r.author.display_name ?? t("pages.settings.defaultUser"),
-          rating: r.rating,
-          text: r.text ?? "",
-          date: r.date,
-        })));
+        setReviews(
+          rows.map((r) => ({
+            id: r.id,
+            author: r.author.display_name ?? t("pages.settings.defaultUser"),
+            rating: r.rating,
+            text: r.text ?? "",
+            date: r.date,
+          })),
+        );
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [demo, me.numericId, t]);
 
   return (
     <SettingsSectionShell title={t("pages.settings.ratingTitle")}>
-      <Card className="flex items-center gap-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
-        <div className="font-display text-[40px] font-bold leading-none" style={{ color: "var(--foreground)" }}>{rating.average.toFixed(1)}</div>
+      <Card
+        className="flex items-center gap-[16px] p-[20px]"
+        style={{
+          borderColor: "var(--border)",
+          borderRadius: "var(--r-card)",
+          background: "var(--background-surface)",
+        }}
+      >
+        <div
+          className="font-display text-[40px] font-bold leading-none"
+          style={{ color: "var(--foreground)" }}
+        >
+          {rating.average.toFixed(1)}
+        </div>
         <div>
           <Stars value={rating.average} size={18} />
-          <div className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.ratingBasedOn", { count: rating.count })}</div>
+          <div className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.settings.ratingBasedOn", { count: rating.count })}
+          </div>
         </div>
       </Card>
 
       <div className="flex flex-col gap-[10px]">
         {reviews.length === 0 && !demo ? (
-          <Card className="p-[16px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-            <p className="text-[13.5px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.ratingEmpty")}</p>
+          <Card
+            className="p-[16px]"
+            style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+          >
+            <p className="text-[13.5px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.settings.ratingEmpty")}
+            </p>
           </Card>
         ) : (
-        reviews.map((r) => (
-          <Card key={r.id} className="flex items-start gap-[12px] p-[16px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-            <Avatar className="h-[40px] w-[40px] shrink-0">
-              <AvatarImage src={r.avatar} alt="" />
-              <AvatarFallback className="text-[13px] font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{initials(r.author)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-[8px]">
-                <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{r.author}</span>
-                <Stars value={r.rating} />
+          reviews.map((r) => (
+            <Card
+              key={r.id}
+              className="flex items-start gap-[12px] p-[16px]"
+              style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+            >
+              <Avatar className="h-[40px] w-[40px] shrink-0">
+                <AvatarImage src={r.avatar} alt="" />
+                <AvatarFallback
+                  className="text-[13px] font-semibold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  {initials(r.author)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-[8px]">
+                  <span
+                    className="truncate text-[14px] font-semibold"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {r.author}
+                  </span>
+                  <Stars value={r.rating} />
+                </div>
+                <p
+                  className="mt-[4px] text-[13.5px] leading-[1.5]"
+                  style={{ color: "var(--foreground-90)" }}
+                >
+                  {r.text}
+                </p>
+                <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                  {formatDate(r.date, "absolute")}
+                </div>
               </div>
-              <p className="mt-[4px] text-[13.5px] leading-[1.5]" style={{ color: "var(--foreground-90)" }}>{r.text}</p>
-              <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                {formatDate(r.date, "absolute")}
-              </div>
-            </div>
-          </Card>
-        ))
+            </Card>
+          ))
         )}
       </div>
     </SettingsSectionShell>

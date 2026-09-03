@@ -36,8 +36,19 @@ export function BlockedUsersSection() {
             className="flex items-center gap-[12px] rounded-[12px] border px-[14px] py-[10px]"
             style={{ borderColor: "var(--border)" }}
           >
-            <img src={u.avatar} width={40} height={40} loading="lazy" decoding="async" alt="" className="h-[40px] w-[40px] shrink-0 rounded-full object-cover" />
-            <div className="min-w-0 flex-1 truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <img
+              src={u.avatar}
+              width={40}
+              height={40}
+              loading="lazy"
+              decoding="async"
+              alt=""
+              className="h-[40px] w-[40px] shrink-0 rounded-full object-cover"
+            />
+            <div
+              className="min-w-0 flex-1 truncate text-[14px] font-semibold"
+              style={{ color: "var(--foreground)" }}
+            >
               {u.name}
             </div>
             <Button
@@ -45,7 +56,12 @@ export function BlockedUsersSection() {
               size="sm"
               onClick={async () => {
                 if (!isDemoMode() && u.numericId) {
-                  try { await unblockUser(u.numericId); } catch { toast.error("Не удалось разблокировать"); return; }
+                  try {
+                    await unblockUser(u.numericId);
+                  } catch {
+                    toast.error("Не удалось разблокировать");
+                    return;
+                  }
                 }
                 actions.unblockUser(id);
                 toast.success(`${u.name} разблокирован`);

@@ -58,7 +58,12 @@ function newIdempotencyKey(): string {
 export async function fetchWalletBalance(): Promise<WalletBalance> {
   if (isDemoMode()) {
     const { mockWalletBalance } = await import("@/lib/mock");
-    return { balance: mockWalletBalance, balance_kopecks: mockWalletBalance * 100, held_kopecks: 0, currency: "RUB" };
+    return {
+      balance: mockWalletBalance,
+      balance_kopecks: mockWalletBalance * 100,
+      held_kopecks: 0,
+      currency: "RUB",
+    };
   }
   return api<WalletBalance>("/wallet");
 }
@@ -96,7 +101,10 @@ export async function fetchWalletTransactions(perPage = 50): Promise<WalletTrans
  * Start a wallet top-up. Redirect the browser to `checkout_url`
  * (VTB hosted form, or `/pay/stub/{uuid}` in test mode).
  */
-export async function topupWallet(amountRub: number, returnUrl?: string): Promise<WalletTopupResult> {
+export async function topupWallet(
+  amountRub: number,
+  returnUrl?: string,
+): Promise<WalletTopupResult> {
   const res = await api<{ data: WalletTopupResult }>("/wallet/topup", {
     method: "POST",
     json: { amount: amountRub, idempotency_key: newIdempotencyKey(), return_url: returnUrl },

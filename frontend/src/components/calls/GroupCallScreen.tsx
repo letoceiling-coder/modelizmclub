@@ -23,7 +23,9 @@ export function GroupCallScreen() {
       aria-label="Групповой звонок"
     >
       {connecting && !active && (
-        <div className="grid flex-1 place-items-center text-sm opacity-80">Подключение к групповому звонку…</div>
+        <div className="grid flex-1 place-items-center text-sm opacity-80">
+          Подключение к групповому звонку…
+        </div>
       )}
       {active && (
         <>
@@ -42,7 +44,11 @@ export function GroupCallScreen() {
           >
             <UserPlus size={16} /> Пригласить
           </button>
-          <Suspense fallback={<div className="grid flex-1 place-items-center text-sm opacity-80">Загрузка…</div>}>
+          <Suspense
+            fallback={
+              <div className="grid flex-1 place-items-center text-sm opacity-80">Загрузка…</div>
+            }
+          >
             <LiveKitRoomUI active={active} onLeave={() => groupCalls.leave()} />
           </Suspense>
         </>

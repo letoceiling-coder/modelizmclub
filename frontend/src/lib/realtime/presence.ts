@@ -20,7 +20,11 @@ function emit(): void {
   listeners.forEach((l) => l());
 }
 
-function memberUuid(m: { uuid?: string; id?: string | number; info?: { uuid?: string } }): string | null {
+function memberUuid(m: {
+  uuid?: string;
+  id?: string | number;
+  info?: { uuid?: string };
+}): string | null {
   if (m.uuid) return m.uuid;
   if (m.info?.uuid) return m.info.uuid;
   if (typeof m.id === "string" && m.id.includes("-")) return m.id;

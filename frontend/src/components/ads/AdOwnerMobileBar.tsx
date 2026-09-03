@@ -25,7 +25,10 @@ export function AdOwnerMobileBar({ ad, busy, onEdit, onUnpublish }: Props) {
       }}
     >
       <div className="min-w-0 shrink-0">
-        <div className="font-display text-[16px] font-bold leading-none" style={{ color: "var(--foreground)" }}>
+        <div
+          className="font-display text-[16px] font-bold leading-none"
+          style={{ color: "var(--foreground)" }}
+        >
           {ad.price.toLocaleString("ru")} ₽
         </div>
         <div className="mt-[2px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
@@ -42,7 +45,12 @@ export function AdOwnerMobileBar({ ad, busy, onEdit, onUnpublish }: Props) {
         >
           <Archive size={14} /> {t("pages.adDetail.ownerUnpublishShort")}
         </Button>
-        <Button onClick={onEdit} size="sm" disabled={busy} className="min-w-0 flex-[2] rounded-[var(--r-button)] px-[8px]">
+        <Button
+          onClick={onEdit}
+          size="sm"
+          disabled={busy}
+          className="min-w-0 flex-[2] rounded-[var(--r-button)] px-[8px]"
+        >
           <Pencil size={14} /> {t("pages.adDetail.ownerEditShort")}
         </Button>
       </div>

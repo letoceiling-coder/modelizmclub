@@ -43,7 +43,11 @@ export function RepostComposerDialog({ post, open, onOpenChange, onConfirm }: Pr
           maxLength={2000}
           placeholder={t("components.repostMenu.commentPlaceholder")}
           className="w-full resize-none rounded-[var(--r-input)] border px-[12px] py-[10px] text-[14px] leading-relaxed"
-          style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }}
+          style={{
+            borderColor: "var(--border)",
+            background: "var(--background)",
+            color: "var(--foreground)",
+          }}
         />
         <div
           className="rounded-[12px] border px-[12px] py-[10px]"
@@ -53,7 +57,10 @@ export function RepostComposerDialog({ post, open, onOpenChange, onConfirm }: Pr
             {author?.name ?? t("components.repostMenu.postTitle")}
             {post.category ? ` · ${post.category}` : ""}
           </p>
-          <p className="mt-[4px] line-clamp-2 text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+          <p
+            className="mt-[4px] line-clamp-2 text-[14px] font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
             {post.title || post.text}
           </p>
         </div>

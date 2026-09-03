@@ -37,8 +37,23 @@ interface Props {
  * control instead of opening a window.
  */
 export function PostActions({
-  post, liked, likes, saved, saves, reposted, reposts, commentsCount, commentsEnabled, reactionsEnabled,
-  canInteract, levelFor, onLike, onSave, onComments, onRepost, onShare,
+  post,
+  liked,
+  likes,
+  saved,
+  saves,
+  reposted,
+  reposts,
+  commentsCount,
+  commentsEnabled,
+  reactionsEnabled,
+  canInteract,
+  levelFor,
+  onLike,
+  onSave,
+  onComments,
+  onRepost,
+  onShare,
 }: Props) {
   const { t } = useTranslation();
   return (
@@ -95,7 +110,13 @@ export function PostActions({
         </button>
       )}
 
-      <RepostMenu postId={post.id} reposted={reposted} count={reposts} onRepost={onRepost} disabled={!canInteract} />
+      <RepostMenu
+        postId={post.id}
+        reposted={reposted}
+        count={reposts}
+        onRepost={onRepost}
+        disabled={!canInteract}
+      />
 
       <Gated level={levelFor("feed.post.save")} action={onSave} entity={post}>
         <button
@@ -106,7 +127,10 @@ export function PostActions({
           aria-label={t("components.postCard.saveAria")}
           aria-disabled={!canInteract}
         >
-          <motion.span whileTap={{ scale: 1.3 }} transition={{ type: "spring", stiffness: 500, damping: 14 }}>
+          <motion.span
+            whileTap={{ scale: 1.3 }}
+            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+          >
             <Bookmark className="h-[16px] w-[16px]" fill={saved ? "currentColor" : "none"} />
           </motion.span>
           {saves > 0 && <span className="tabular-nums">{saves}</span>}

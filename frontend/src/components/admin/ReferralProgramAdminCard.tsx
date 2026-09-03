@@ -79,33 +79,71 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
 
   return (
     <div style={{ ...cardStyle, padding: 20, marginBottom: 16 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 16,
+          color: "var(--foreground)",
+        }}
+      >
         Реферальная программа
       </h4>
       <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 6 }}>
-        Бонус пригласившему начисляется только после подтверждения телефона другом. Можно выдать бесплатные объявления и/или дни подписки.
+        Бонус пригласившему начисляется только после подтверждения телефона другом. Можно выдать
+        бесплатные объявления и/или дни подписки.
       </p>
 
       <div className="mt-3 flex flex-wrap items-end gap-3">
-        <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
+        <label
+          className="flex items-center gap-2 text-[13px]"
+          style={{ color: "var(--foreground-70)" }}
+        >
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           Программа активна
         </label>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>За друга</span>
-          <input type="number" min={1} value={perInvite} onChange={(e) => setPerInvite(+e.target.value)} style={{ ...inputStyle, width: 100 }} />
+          <input
+            type="number"
+            min={1}
+            value={perInvite}
+            onChange={(e) => setPerInvite(+e.target.value)}
+            style={{ ...inputStyle, width: 100 }}
+          />
         </label>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Максимум бонусов</span>
-          <input type="number" min={1} value={maxBonus} onChange={(e) => setMaxBonus(+e.target.value)} style={{ ...inputStyle, width: 120 }} />
+          <input
+            type="number"
+            min={1}
+            value={maxBonus}
+            onChange={(e) => setMaxBonus(+e.target.value)}
+            style={{ ...inputStyle, width: 120 }}
+          />
         </label>
-        <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          <input type="checkbox" checked={rewardListing} onChange={(e) => setRewardListing(e.target.checked)} />
+        <label
+          className="flex items-center gap-2 text-[13px]"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          <input
+            type="checkbox"
+            checked={rewardListing}
+            onChange={(e) => setRewardListing(e.target.checked)}
+          />
           +N бесплатных объявлений
         </label>
         <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Дней подписки за друга</span>
-          <input type="number" min={0} value={rewardDays} onChange={(e) => setRewardDays(+e.target.value)} style={{ ...inputStyle, width: 120 }} />
+          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>
+            Дней подписки за друга
+          </span>
+          <input
+            type="number"
+            min={0}
+            value={rewardDays}
+            onChange={(e) => setRewardDays(+e.target.value)}
+            style={{ ...inputStyle, width: 120 }}
+          />
         </label>
         <button type="button" onClick={save} disabled={saving} style={primaryBtn}>
           {saving ? "…" : "Сохранить"}
@@ -118,9 +156,14 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
         ) : rows.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Приглашений пока нет.</p>
         ) : (
-          <table className="w-full min-w-[520px] text-left text-[13px]" style={{ borderCollapse: "collapse" }}>
+          <table
+            className="w-full min-w-[520px] text-left text-[13px]"
+            style={{ borderCollapse: "collapse" }}
+          >
             <thead>
-              <tr style={{ color: "var(--foreground-50)", borderBottom: "1px solid var(--border)" }}>
+              <tr
+                style={{ color: "var(--foreground-50)", borderBottom: "1px solid var(--border)" }}
+              >
                 <th className="py-2 pr-3 font-medium">Кого пригласил</th>
                 <th className="py-2 pr-3 font-medium">Приглашённый</th>
                 <th className="py-2 pr-3 font-medium">Статус</th>
@@ -129,16 +172,25 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={`${row.invitee.uuid}-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
+                <tr
+                  key={`${row.invitee.uuid}-${i}`}
+                  style={{ borderBottom: "1px solid var(--border)" }}
+                >
                   <td className="py-2 pr-3" style={{ color: "var(--foreground)" }}>
                     {row.inviter?.display_name ?? "—"}
                     {row.inviter?.referral_code ? (
-                      <span style={{ color: "var(--foreground-50)", marginLeft: 6 }}>{row.inviter.referral_code}</span>
+                      <span style={{ color: "var(--foreground-50)", marginLeft: 6 }}>
+                        {row.inviter.referral_code}
+                      </span>
                     ) : null}
                   </td>
-                  <td className="py-2 pr-3" style={{ color: "var(--foreground-70)" }}>{row.invitee.display_name}</td>
+                  <td className="py-2 pr-3" style={{ color: "var(--foreground-70)" }}>
+                    {row.invitee.display_name}
+                  </td>
                   <td className="py-2 pr-3" style={{ color: "var(--foreground-50)" }}>
-                    {row.status === "completed" || row.phone_verified ? "Бонус начислен" : "Ждёт телефон"}
+                    {row.status === "completed" || row.phone_verified
+                      ? "Бонус начислен"
+                      : "Ждёт телефон"}
                   </td>
                   <td className="py-2" style={{ color: "var(--foreground-50)" }}>
                     {row.joined_at ? formatDate(row.joined_at, "date") : "—"}

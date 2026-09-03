@@ -1,10 +1,5 @@
 import i18n from "@/lib/i18n";
-import {
-  Outlet,
-  createRootRouteWithContext,
-  HeadContent,
-  Scripts,
-} from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,12 +41,17 @@ function NotFoundComponent() {
         <h2 className="mt-4 font-display text-xl font-semibold">{t("errors.notFound")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{t("errors.notFoundDesc")}</p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-          <a href="/feed" className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <a
+            href="/feed"
+            className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
             {t("errors.goHome")}
           </a>
           <button
             type="button"
-            onClick={() => { if (typeof window !== "undefined") window.history.back(); }}
+            onClick={() => {
+              if (typeof window !== "undefined") window.history.back();
+            }}
             className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             {t("errors.goBack")}
@@ -72,7 +72,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       <div className="max-w-md text-center">
         <h1 className="font-display text-xl font-semibold">{t("errors.boundaryTitle")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t("errors.boundaryDesc")}</p>
-        <button onClick={reset} className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">{t("errors.retry")}</button>
+        <button
+          onClick={reset}
+          className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+        >
+          {t("errors.retry")}
+        </button>
       </div>
     </div>
   );
@@ -113,17 +118,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: i18n.t("site.rootMetaTitle") },
       { property: "og:description", content: i18n.t("site.rootMetaDescription") },
       { name: "twitter:description", content: i18n.t("site.rootMetaDescription") },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/38877450-047f-4923-bb43-fd1fbd2c7a45/id-preview-7456b556--80bd810b-8913-49e2-87d8-ec618ddf722a.lovable.app-1780082915517.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/38877450-047f-4923-bb43-fd1fbd2c7a45/id-preview-7456b556--80bd810b-8913-49e2-87d8-ec618ddf722a.lovable.app-1780082915517.png" },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/38877450-047f-4923-bb43-fd1fbd2c7a45/id-preview-7456b556--80bd810b-8913-49e2-87d8-ec618ddf722a.lovable.app-1780082915517.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/38877450-047f-4923-bb43-fd1fbd2c7a45/id-preview-7456b556--80bd810b-8913-49e2-87d8-ec618ddf722a.lovable.app-1780082915517.png",
+      },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-    ],
-    scripts: [
-      { children: THEME_INIT_SCRIPT },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }],
+    scripts: [{ children: THEME_INIT_SCRIPT }],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -136,8 +145,13 @@ function RootShell({ children }: { children: ReactNode }) {
   // suppressHydrationWarning avoids React #418 when SSR defaults differ from DOM.
   return (
     <html lang="ru" suppressHydrationWarning>
-      <head><HeadContent /></head>
-      <body suppressHydrationWarning>{children}<Scripts /></body>
+      <head>
+        <HeadContent />
+      </head>
+      <body suppressHydrationWarning>
+        {children}
+        <Scripts />
+      </body>
     </html>
   );
 }

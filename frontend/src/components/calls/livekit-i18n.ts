@@ -10,20 +10,20 @@
  * Russian equivalents, live, via a MutationObserver (see useLiveKitRussianLabels).
  */
 export const LIVEKIT_RU_LABELS: Record<string, string> = {
-  "Camera": "Камера",
-  "Chat": "Чат",
-  "Disconnect": "Завершить",
-  "Leave": "Покинуть",
-  "Messages": "Сообщения",
-  "Microphone": "Микрофон",
-  "Send": "Отправить",
-  "Settings": "Настройки",
+  Camera: "Камера",
+  Chat: "Чат",
+  Disconnect: "Завершить",
+  Leave: "Покинуть",
+  Messages: "Сообщения",
+  Microphone: "Микрофон",
+  Send: "Отправить",
+  Settings: "Настройки",
   "Share screen": "Показать экран",
   "Stop screen share": "Остановить показ экрана",
   "Audio inputs": "Устройства звука",
   "Video inputs": "Устройства видео",
   "Allow Audio": "Включить звук",
-  "Disconnected": "Отключён",
+  Disconnected: "Отключён",
 };
 
 const TRANSLATED_ATTRS = ["aria-label", "title", "placeholder"] as const;

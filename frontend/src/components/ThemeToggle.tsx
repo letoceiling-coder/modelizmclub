@@ -3,7 +3,13 @@ import { Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/components/ThemeProvider";
 
-export function ThemeToggle({ size = 40, alwaysVisible = false }: { size?: number; alwaysVisible?: boolean }) {
+export function ThemeToggle({
+  size = 40,
+  alwaysVisible = false,
+}: {
+  size?: number;
+  alwaysVisible?: boolean;
+}) {
   const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
@@ -40,7 +46,11 @@ export function ThemeToggle({ size = 40, alwaysVisible = false }: { size?: numbe
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           style={{ display: "inline-flex" }}
         >
-          {isDark ? <Sun size={20} color="var(--foreground-70)" /> : <Moon size={20} color="var(--foreground-70)" />}
+          {isDark ? (
+            <Sun size={20} color="var(--foreground-70)" />
+          ) : (
+            <Moon size={20} color="var(--foreground-70)" />
+          )}
         </motion.span>
       </AnimatePresence>
     </button>

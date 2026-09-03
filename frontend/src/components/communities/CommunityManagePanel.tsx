@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/button";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 import { CommunityBrandingForm } from "@/components/communities/CommunityBrandingForm";
 import { fetchCommunityCategories, type CommunityCategoryOption } from "@/lib/api/entity-requests";
-import { updateCommunity, fetchCommunityJoinRequests, decideCommunityJoinRequest, type CommunityJoinRequestRow } from "@/lib/api/communities";
+import {
+  updateCommunity,
+  fetchCommunityJoinRequests,
+  decideCommunityJoinRequest,
+  type CommunityJoinRequestRow,
+} from "@/lib/api/communities";
 import type { Community } from "@/lib/mock";
 import { toast } from "@/lib/toast";
-import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX, COMMUNITY_RULES_MAX } from "@/lib/community-limits";
+import {
+  COMMUNITY_DESCRIPTION_MAX,
+  COMMUNITY_NAME_MAX,
+  COMMUNITY_RULES_MAX,
+} from "@/lib/community-limits";
 import { isDemoMode } from "@/lib/demo-mode";
 
 const inputStyle = {
@@ -38,7 +47,9 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
   const [requests, setRequests] = useState<CommunityJoinRequestRow[]>([]);
 
   useEffect(() => {
-    fetchCommunityCategories().then(setCategories).catch(() => setCategories([]));
+    fetchCommunityCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
@@ -59,20 +70,22 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
 
   useEffect(() => {
     if (isDemoMode()) return;
-    fetchCommunityJoinRequests(community.id).then(setRequests).catch(() => setRequests([]));
+    fetchCommunityJoinRequests(community.id)
+      .then(setRequests)
+      .catch(() => setRequests([]));
   }, [community.id]);
 
   const resolvedCategoryId = categoryId ? Number(categoryId) : community.categoryId;
 
   const dirty =
-    name.trim() !== community.name
-    || description.trim() !== community.description
-    || (resolvedCategoryId ?? 0) !== (community.categoryId ?? 0)
-    || accessType !== (community.accessType ?? "open")
-    || rules.trim() !== (community.rules ?? "")
-    || telegram.trim() !== (community.contacts?.telegram ?? "")
-    || website.trim() !== (community.contacts?.website ?? "")
-    || phone.trim() !== (community.contacts?.phone ?? "");
+    name.trim() !== community.name ||
+    description.trim() !== community.description ||
+    (resolvedCategoryId ?? 0) !== (community.categoryId ?? 0) ||
+    accessType !== (community.accessType ?? "open") ||
+    rules.trim() !== (community.rules ?? "") ||
+    telegram.trim() !== (community.contacts?.telegram ?? "") ||
+    website.trim() !== (community.contacts?.website ?? "") ||
+    phone.trim() !== (community.contacts?.phone ?? "");
 
   const save = async () => {
     if (!name.trim()) {
@@ -122,21 +135,35 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
   return (
     <div className="space-y-5">
       <section className="space-y-4">
-        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+        <h3
+          className="text-[13px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--foreground-50)" }}
+        >
           Оформление
         </h3>
         <CommunityBrandingForm community={community} Icon={Icon} onUpdated={onUpdated} />
       </section>
 
       <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+        <h3
+          className="text-[13px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--foreground-50)" }}
+        >
           Основное
         </h3>
 
         <label className="flex flex-col gap-1.5">
-          <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+          <span
+            className="flex items-center justify-between text-[13px] font-medium"
+            style={{ color: "var(--foreground-70)" }}
+          >
             <span>Название</span>
-            <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{name.length}/{COMMUNITY_NAME_MAX}</span>
+            <span
+              className="font-mono text-[11px] tabular-nums"
+              style={{ color: "var(--foreground-30)" }}
+            >
+              {name.length}/{COMMUNITY_NAME_MAX}
+            </span>
           </span>
           <input
             value={name}
@@ -148,9 +175,17 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+          <span
+            className="flex items-center justify-between text-[13px] font-medium"
+            style={{ color: "var(--foreground-70)" }}
+          >
             <span>Описание</span>
-            <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{description.length}/{COMMUNITY_DESCRIPTION_MAX}</span>
+            <span
+              className="font-mono text-[11px] tabular-nums"
+              style={{ color: "var(--foreground-30)" }}
+            >
+              {description.length}/{COMMUNITY_DESCRIPTION_MAX}
+            </span>
           </span>
           <textarea
             value={description}
@@ -163,7 +198,9 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Категория</span>
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            Категория
+          </span>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
@@ -172,7 +209,9 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
           >
             <option value="">Выберите категорию</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </label>
@@ -186,7 +225,8 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
               className="rounded-[12px] border p-3 text-left text-[13px]"
               style={{
                 borderColor: accessType === kind ? "var(--accent)" : "var(--border)",
-                background: accessType === kind ? "var(--accent-soft)" : "var(--background-surface)",
+                background:
+                  accessType === kind ? "var(--accent-soft)" : "var(--background-surface)",
                 color: "var(--foreground)",
               }}
             >
@@ -196,9 +236,17 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
         </div>
 
         <label className="flex flex-col gap-1.5">
-          <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+          <span
+            className="flex items-center justify-between text-[13px] font-medium"
+            style={{ color: "var(--foreground-70)" }}
+          >
             <span>Правила</span>
-            <span className="font-mono text-[11px] tabular-nums" style={{ color: "var(--foreground-30)" }}>{rules.length}/{COMMUNITY_RULES_MAX}</span>
+            <span
+              className="font-mono text-[11px] tabular-nums"
+              style={{ color: "var(--foreground-30)" }}
+            >
+              {rules.length}/{COMMUNITY_RULES_MAX}
+            </span>
           </span>
           <textarea
             value={rules}
@@ -211,16 +259,37 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Telegram</span>
-          <input value={telegram} onChange={(e) => setTelegram(e.target.value)} className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle} />
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            Telegram
+          </span>
+          <input
+            value={telegram}
+            onChange={(e) => setTelegram(e.target.value)}
+            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+            style={inputStyle}
+          />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Сайт</span>
-          <input value={website} onChange={(e) => setWebsite(e.target.value)} className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle} />
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            Сайт
+          </span>
+          <input
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+            style={inputStyle}
+          />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>Телефон</span>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle} />
+          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            Телефон
+          </span>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+            style={inputStyle}
+          />
         </label>
 
         <Button
@@ -236,18 +305,53 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
 
       {requests.length > 0 && (
         <section className="space-y-3 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-          <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+          <h3
+            className="text-[13px] font-semibold uppercase tracking-wider"
+            style={{ color: "var(--foreground-50)" }}
+          >
             Заявки на вступление
           </h3>
           {requests.map((row) => (
-            <div key={row.id} className="flex items-center justify-between gap-3 rounded-[10px] border px-3 py-2" style={{ borderColor: "var(--border)" }}>
+            <div
+              key={row.id}
+              className="flex items-center justify-between gap-3 rounded-[10px] border px-3 py-2"
+              style={{ borderColor: "var(--border)" }}
+            >
               <div className="min-w-0">
-                <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{row.user.name}</div>
-                {row.message && <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{row.message}</div>}
+                <div
+                  className="truncate text-[14px] font-medium"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {row.user.name}
+                </div>
+                {row.message && (
+                  <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                    {row.message}
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => void decideCommunityJoinRequest(community.id, row.id, "approve").then(() => setRequests((prev) => prev.filter((r) => r.id !== row.id)))}>Принять</Button>
-                <Button size="sm" variant="outline" onClick={() => void decideCommunityJoinRequest(community.id, row.id, "reject").then(() => setRequests((prev) => prev.filter((r) => r.id !== row.id)))}>Отклонить</Button>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    void decideCommunityJoinRequest(community.id, row.id, "approve").then(() =>
+                      setRequests((prev) => prev.filter((r) => r.id !== row.id)),
+                    )
+                  }
+                >
+                  Принять
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void decideCommunityJoinRequest(community.id, row.id, "reject").then(() =>
+                      setRequests((prev) => prev.filter((r) => r.id !== row.id)),
+                    )
+                  }
+                >
+                  Отклонить
+                </Button>
               </div>
             </div>
           ))}
@@ -255,7 +359,10 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
       )}
 
       <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3 className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+        <h3
+          className="text-[13px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--foreground-50)" }}
+        >
           Опасная зона
         </h3>
         <p className="text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>

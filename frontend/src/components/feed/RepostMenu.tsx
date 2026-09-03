@@ -143,10 +143,27 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
           >
             {view === "main" && (
               <>
-                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? t("components.repostMenu.undoRepost") : t("components.repostMenu.repostToFeed")} accent />
-                <Item onClick={openChats} icon={MessageSquare} label={t("components.repostMenu.sendToMessages")} />
+                <Item
+                  onClick={repostToFeed}
+                  icon={Repeat2}
+                  label={
+                    reposted
+                      ? t("components.repostMenu.undoRepost")
+                      : t("components.repostMenu.repostToFeed")
+                  }
+                  accent
+                />
+                <Item
+                  onClick={openChats}
+                  icon={MessageSquare}
+                  label={t("components.repostMenu.sendToMessages")}
+                />
                 <div className="border-t" style={{ borderColor: "var(--border)" }} />
-                <Item onClick={() => setView("share")} icon={Share2} label={t("components.repostMenu.share")} />
+                <Item
+                  onClick={() => setView("share")}
+                  icon={Share2}
+                  label={t("components.repostMenu.share")}
+                />
               </>
             )}
             {view === "share" && (
@@ -170,7 +187,9 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
                 <Item
                   onClick={copyLink}
                   icon={copied ? Check : Link2}
-                  label={copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")}
+                  label={
+                    copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")
+                  }
                   accent={copied}
                 />
               </div>
@@ -183,11 +202,15 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
                   className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
                   style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
                 >
-                  <ArrowLeft className="h-[14px] w-[14px]" /> {t("components.repostMenu.whereToSend")}
+                  <ArrowLeft className="h-[14px] w-[14px]" />{" "}
+                  {t("components.repostMenu.whereToSend")}
                 </button>
                 <div className="max-h-[280px] overflow-y-auto">
                   {dialogs.length === 0 ? (
-                    <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                    <div
+                      className="px-[14px] py-[16px] text-center text-[12px]"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
                       {t("components.repostMenu.noDialogs")}
                     </div>
                   ) : (
@@ -200,8 +223,18 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
                           onClick={() => sendToChat(d.id, u.name)}
                           className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                         >
-                          <img src={u.avatar} width={28} height={28} loading="lazy" decoding="async" alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
-                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>{u.name}</span>
+                          <img
+                            src={u.avatar}
+                            width={28}
+                            height={28}
+                            loading="lazy"
+                            decoding="async"
+                            alt=""
+                            className="h-[28px] w-[28px] rounded-full object-cover"
+                          />
+                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>
+                            {u.name}
+                          </span>
                         </button>
                       );
                     })
@@ -234,7 +267,10 @@ function Item({
       className="flex w-full items-center gap-[10px] px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: "var(--foreground)" }}
     >
-      <Icon className="h-[16px] w-[16px]" style={{ color: accent ? "var(--accent)" : "var(--foreground-70)" }} />
+      <Icon
+        className="h-[16px] w-[16px]"
+        style={{ color: accent ? "var(--accent)" : "var(--foreground-70)" }}
+      />
       {label}
     </button>
   );

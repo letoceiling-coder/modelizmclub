@@ -20,7 +20,9 @@ export const Route = createFileRoute("/rules/$slug")({
   },
   head: ({ loaderData, params }) => {
     const page = loaderData?.page;
-    const title = page ? `${page.seo_title || page.title} — ${i18n.t("common.appName")}` : "Правила Моделизма";
+    const title = page
+      ? `${page.seo_title || page.title} — ${i18n.t("common.appName")}`
+      : "Правила Моделизма";
     const description = page?.seo_description || page?.summary || undefined;
     return {
       meta: [
@@ -38,8 +40,13 @@ function RuleDocumentPage() {
   const jsonLd = rulesJsonLd(page, `/rules/${page.slug}`);
 
   return (
-    <div style={{ background: "var(--background)", color: "var(--foreground)", minHeight: "100dvh" }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+    <div
+      style={{ background: "var(--background)", color: "var(--foreground)", minHeight: "100dvh" }}
+    >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header
         className="mx-auto flex h-[64px] max-w-[1100px] items-center justify-between px-4"
         style={{ borderBottom: "1px solid var(--border)" }}
@@ -57,16 +64,27 @@ function RuleDocumentPage() {
       </header>
 
       <main className="mx-auto max-w-[1100px] px-4 py-10">
-        <nav className="mb-6 flex flex-wrap items-center gap-1 text-[12.5px]" style={{ color: "var(--foreground-50)" }} aria-label="Хлебные крошки">
+        <nav
+          className="mb-6 flex flex-wrap items-center gap-1 text-[12.5px]"
+          style={{ color: "var(--foreground-50)" }}
+          aria-label="Хлебные крошки"
+        >
           <Link to="/" className="rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]">
             Главная
           </Link>
           <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-          <Link to="/rules" className="rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]">
+          <Link
+            to="/rules"
+            className="rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]"
+          >
             Правила
           </Link>
           <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-          <span aria-current="page" className="px-1.5 py-0.5 font-semibold" style={{ color: "var(--foreground)" }}>
+          <span
+            aria-current="page"
+            className="px-1.5 py-0.5 font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
             {page.title}
           </span>
         </nav>

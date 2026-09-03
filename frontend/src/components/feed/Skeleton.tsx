@@ -10,7 +10,9 @@ interface BoxProps {
 
 /** Backward-compat wrapper over shared Skeleton */
 export function SkeletonBox({ w = "100%", h = 16, radius = 6, className = "" }: BoxProps) {
-  return <Skeleton className={cn(className)} style={{ width: w, height: h, borderRadius: radius }} />;
+  return (
+    <Skeleton className={cn(className)} style={{ width: w, height: h, borderRadius: radius }} />
+  );
 }
 
 export function PostCardSkeleton() {

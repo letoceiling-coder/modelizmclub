@@ -1,4 +1,14 @@
-import { MapPin, Eye, Heart, Clock, MessageSquare, Bookmark, Share2, Tag, ShieldCheck } from "lucide-react";
+import {
+  MapPin,
+  Eye,
+  Heart,
+  Clock,
+  MessageSquare,
+  Bookmark,
+  Share2,
+  Tag,
+  ShieldCheck,
+} from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
@@ -11,8 +21,8 @@ import { useFeatureFlag } from "@/lib/config/featureFlags";
 /** Deal-type (Продаю/Куплю) → Badge variant. Stays within the
  *  blue accent family + neutral; never the commercial-orange palette. */
 const DEAL_VARIANT: Record<Ad["status"], NonNullable<BadgeProps["variant"]>> = {
-  "Продаю": "info",
-  "Куплю": "info",
+  Продаю: "info",
+  Куплю: "info",
 };
 
 interface AdActionPanelProps {
@@ -52,13 +62,17 @@ export function AdActionPanel({
       {ad.moderation === "moderation" && (
         <Alert variant="warning">
           <AlertTitle>На модерации</AlertTitle>
-          <AlertDescription>Объявление проверяется и пока не видно в общем каталоге.</AlertDescription>
+          <AlertDescription>
+            Объявление проверяется и пока не видно в общем каталоге.
+          </AlertDescription>
         </Alert>
       )}
       {ad.moderation === "rejected" && (
         <Alert variant="error">
           <AlertTitle>Отклонено</AlertTitle>
-          <AlertDescription>Объявление не прошло модерацию. Отредактируйте его и отправьте снова.</AlertDescription>
+          <AlertDescription>
+            Объявление не прошло модерацию. Отредактируйте его и отправьте снова.
+          </AlertDescription>
         </Alert>
       )}
 
@@ -80,7 +94,10 @@ export function AdActionPanel({
         {ad.price.toLocaleString("ru")} ₽
       </div>
 
-      <div className="flex flex-wrap gap-x-[16px] gap-y-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+      <div
+        className="flex flex-wrap gap-x-[16px] gap-y-[8px] text-[13px]"
+        style={{ color: "var(--foreground-70)" }}
+      >
         {ad.city && (
           <span className="inline-flex items-center gap-[6px]">
             <MapPin size={14} className="shrink-0" />
@@ -110,18 +127,32 @@ export function AdActionPanel({
       )}
 
       <div className="flex flex-col gap-[8px]">
-        {showSafeDeal && (
-          ad.reserved ? (
-            <Button disabled size="lg" variant="secondary" className="w-full rounded-[var(--r-button)] disabled:opacity-100">
+        {showSafeDeal &&
+          (ad.reserved ? (
+            <Button
+              disabled
+              size="lg"
+              variant="secondary"
+              className="w-full rounded-[var(--r-button)] disabled:opacity-100"
+            >
               <ShieldCheck size={16} /> Забронировано
             </Button>
           ) : (
-            <Button onClick={onSafeDeal} loading={safeDealBusy} size="lg" className="w-full rounded-[var(--r-button)]">
+            <Button
+              onClick={onSafeDeal}
+              loading={safeDealBusy}
+              size="lg"
+              className="w-full rounded-[var(--r-button)]"
+            >
               <ShieldCheck size={16} /> Купить через безопасную сделку
             </Button>
-          )
-        )}
-        <Button onClick={onWrite} size="lg" variant={showSafeDeal ? "outline" : "default"} className="w-full rounded-[var(--r-button)]">
+          ))}
+        <Button
+          onClick={onWrite}
+          size="lg"
+          variant={showSafeDeal ? "outline" : "default"}
+          className="w-full rounded-[var(--r-button)]"
+        >
           <MessageSquare size={16} /> Написать продавцу
         </Button>
         <div className="grid grid-cols-2 gap-[8px]">
@@ -146,10 +177,15 @@ export function AdActionPanel({
       {showSafeDeal && escrowBadge && (
         <div
           className="flex items-center gap-[8px] p-[10px] text-[11px]"
-          style={{ background: "var(--background-surface)", color: "var(--foreground-70)", borderRadius: "var(--r-card-sm)" }}
+          style={{
+            background: "var(--background-surface)",
+            color: "var(--foreground-70)",
+            borderRadius: "var(--r-card-sm)",
+          }}
         >
           <SlotIcon slot="section.safe-deal" size={14} className="shrink-0" />
-          Сумма замораживается на вашем балансе и переводится продавцу после подтверждения получения.
+          Сумма замораживается на вашем балансе и переводится продавцу после подтверждения
+          получения.
         </div>
       )}
     </Card>

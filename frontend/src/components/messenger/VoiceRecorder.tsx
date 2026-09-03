@@ -62,7 +62,8 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
   const startWaveform = (stream: MediaStream) => {
     try {
       const Ctx: typeof AudioContext =
-        window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return;
       const ctx = new Ctx();
       const source = ctx.createMediaStreamSource(stream);
@@ -101,42 +102,45 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
     }
   };
 
-  const stop = useCallback((cancel: boolean) => {
-    if (cancelTimer.current) {
-      window.clearTimeout(cancelTimer.current);
-      cancelTimer.current = null;
-    }
-    if (timer.current) {
-      window.clearInterval(timer.current);
-      timer.current = null;
-    }
+  const stop = useCallback(
+    (cancel: boolean) => {
+      if (cancelTimer.current) {
+        window.clearTimeout(cancelTimer.current);
+        cancelTimer.current = null;
+      }
+      if (timer.current) {
+        window.clearInterval(timer.current);
+        timer.current = null;
+      }
 
-    const dur = Math.max(1, Math.round((performance.now() - startTime.current) / 1000));
-    const shouldSend = !cancel && !canceledRef.current;
+      const dur = Math.max(1, Math.round((performance.now() - startTime.current) / 1000));
+      const shouldSend = !cancel && !canceledRef.current;
 
-    recordingRef.current = false;
-    cancelingRef.current = false;
-    setRecording(false);
-    setCanceling(false);
-    setDx(0);
-    startX.current = null;
-    setElapsed(0);
+      recordingRef.current = false;
+      cancelingRef.current = false;
+      setRecording(false);
+      setCanceling(false);
+      setDx(0);
+      startX.current = null;
+      setElapsed(0);
 
-    const recorder = recorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        recorder.onstop = () => {
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          chunksRef.current = [];
+          teardownStream();
+          if (shouldSend && blob.size > 0) onSend(blob, Math.min(MAX_SECONDS, dur));
+        };
+        recorder.stop();
+      } else {
         chunksRef.current = [];
         teardownStream();
-        if (shouldSend && blob.size > 0) onSend(blob, Math.min(MAX_SECONDS, dur));
-      };
-      recorder.stop();
-    } else {
-      chunksRef.current = [];
-      teardownStream();
-    }
-    canceledRef.current = false;
-  }, [onSend]);
+      }
+      canceledRef.current = false;
+    },
+    [onSend],
+  );
 
   const playCancelAnimation = useCallback(() => {
     if (canceledRef.current || cancelingRef.current) return;
@@ -147,12 +151,15 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
     cancelTimer.current = window.setTimeout(() => stop(true), 260);
   }, [stop]);
 
-  const handlePointerMove = useCallback((clientX: number) => {
-    if (!recordingRef.current || startX.current === null || cancelingRef.current) return;
-    const delta = Math.min(0, clientX - startX.current);
-    setDx(delta);
-    if (delta <= -CANCEL_THRESHOLD) playCancelAnimation();
-  }, [playCancelAnimation]);
+  const handlePointerMove = useCallback(
+    (clientX: number) => {
+      if (!recordingRef.current || startX.current === null || cancelingRef.current) return;
+      const delta = Math.min(0, clientX - startX.current);
+      setDx(delta);
+      if (delta <= -CANCEL_THRESHOLD) playCancelAnimation();
+    },
+    [playCancelAnimation],
+  );
 
   const handlePointerEnd = useCallback(() => {
     if (startingRef.current && !recordingRef.current) {
@@ -197,7 +204,9 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
       }
 
       const mimeType = pickMimeType();
-      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       chunksRef.current = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -286,7 +295,10 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
                 transition: "opacity 80ms linear",
               }}
             >
-              {Math.floor(elapsed / 60)}:{Math.floor(elapsed % 60).toString().padStart(2, "0")}
+              {Math.floor(elapsed / 60)}:
+              {Math.floor(elapsed % 60)
+                .toString()
+                .padStart(2, "0")}
             </span>
 
             <div
@@ -327,9 +339,16 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
               <div
                 className="relative flex items-center gap-[5px] px-[10px] py-[5px] text-[12px] font-medium"
                 style={{
-                  color: cancelReady ? "var(--error, #e11d48)" : cancelProgress > 0.3 ? "rgb(185,28,28)" : "var(--foreground-50)",
+                  color: cancelReady
+                    ? "var(--error, #e11d48)"
+                    : cancelProgress > 0.3
+                      ? "rgb(185,28,28)"
+                      : "var(--foreground-50)",
                   transform: `translateX(${dx * 0.35}px) scale(${1 + cancelProgress * 0.06})`,
-                  transition: cancelProgress > 0 ? "transform 60ms linear, color 120ms ease" : "color 120ms ease",
+                  transition:
+                    cancelProgress > 0
+                      ? "transform 60ms linear, color 120ms ease"
+                      : "color 120ms ease",
                 }}
               >
                 <Trash2
@@ -340,7 +359,9 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
                     transition: "transform 60ms linear",
                   }}
                 />
-                <span className="truncate">{cancelReady ? "Отмена…" : "Свайп влево для отмены"}</span>
+                <span className="truncate">
+                  {cancelReady ? "Отмена…" : "Свайп влево для отмены"}
+                </span>
               </div>
             </div>
 
@@ -368,14 +389,20 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
         className="relative z-30 grid h-[44px] w-[44px] shrink-0 touch-none place-items-center rounded-full select-none sm:h-[42px] sm:w-[42px]"
         style={{
           background: recording
-            ? cancelReady ? "rgb(127,29,29)" : "var(--error, #e11d48)"
+            ? cancelReady
+              ? "rgb(127,29,29)"
+              : "var(--error, #e11d48)"
             : "var(--accent)",
           color: "white",
-          transform: recording ? `translateX(${micShift}px) scale(${canceling ? 0.9 : 1.08 + cancelProgress * 0.06})` : undefined,
+          transform: recording
+            ? `translateX(${micShift}px) scale(${canceling ? 0.9 : 1.08 + cancelProgress * 0.06})`
+            : undefined,
           boxShadow: recording
             ? `0 0 0 ${6 + cancelProgress * 12}px color-mix(in oklab, var(--error, #e11d48) ${20 + cancelProgress * 30}%, transparent)`
             : "0 4px 12px -2px color-mix(in oklab, var(--accent) 50%, transparent)",
-          transition: recording ? "box-shadow 80ms linear, background 120ms ease" : "background 0.15s, box-shadow 0.15s, transform 0.15s",
+          transition: recording
+            ? "box-shadow 80ms linear, background 120ms ease"
+            : "background 0.15s, box-shadow 0.15s, transform 0.15s",
           touchAction: "none",
         }}
         aria-label="Удерживайте для записи голосового"

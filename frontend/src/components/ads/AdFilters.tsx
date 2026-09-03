@@ -4,9 +4,9 @@ import { useListingCategories } from "@/lib/hooks/useCategories";
 import { CitySelect } from "@/components/ads/CitySelect";
 
 export interface FiltersState {
-  category: string;            // "Все" | category name
-  subcategory: string;         // "Все" | subcat name
-  city: string;                // free text
+  category: string; // "Все" | category name
+  subcategory: string; // "Все" | subcat name
+  city: string; // free text
   cityId?: number;
   deliveries: string[];
   priceMin: number;
@@ -32,7 +32,8 @@ interface Props {
 function Body({ value, onChange, onReset }: Props) {
   const categories = useListingCategories();
   const cat = categories.find((c) => c.name === value.category);
-  const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) => onChange({ ...value, [k]: v });
+  const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) =>
+    onChange({ ...value, [k]: v });
 
   return (
     <div className="flex flex-col gap-[20px]">
@@ -60,7 +61,10 @@ function Body({ value, onChange, onReset }: Props) {
           <NumInput value={value.priceMax} onChange={(v) => set("priceMax", v)} placeholder="до" />
         </div>
         <input
-          type="range" min={0} max={100000} step={500}
+          type="range"
+          min={0}
+          max={100000}
+          step={500}
           value={value.priceMax}
           onChange={(e) => set("priceMax", +e.target.value)}
           className="w-full"
@@ -98,12 +102,27 @@ function Body({ value, onChange, onReset }: Props) {
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-[10px]">
-      <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{title}</div>
+      <div
+        className="text-[11px] font-semibold uppercase tracking-wider"
+        style={{ color: "var(--foreground-50)" }}
+      >
+        {title}
+      </div>
       {children}
     </div>
   );
 }
-function Select({ value, onChange, options, disabled }: { value: string; onChange: (v: string) => void; options: string[]; disabled?: boolean }) {
+function Select({
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  disabled?: boolean;
+}) {
   return (
     <select
       value={value}
@@ -119,11 +138,23 @@ function Select({ value, onChange, options, disabled }: { value: string; onChang
         padding: "0 12px",
       }}
     >
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      {options.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
     </select>
   );
 }
-function NumInput({ value, onChange, placeholder }: { value: number; onChange: (v: number) => void; placeholder: string }) {
+function NumInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  placeholder: string;
+}) {
   return (
     <input
       type="number"
@@ -144,22 +175,34 @@ function NumInput({ value, onChange, placeholder }: { value: number; onChange: (
   );
 }
 
-export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: boolean; onClose: () => void }) {
+export function AdFiltersSheet({
+  open,
+  onClose,
+  ...props
+}: Props & { open: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
       {open && (
         <>
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
             className="fixed inset-0 z-50"
             style={{ background: "rgba(0,0,0,0.5)" }}
           />
           <motion.div
-            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.2}
-            onDragEnd={(_, info) => { if (info.offset.y > 100) onClose(); }}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) onClose();
+            }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
             className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden"
             style={{
@@ -169,11 +212,25 @@ export function AdFiltersSheet({ open, onClose, ...props }: Props & { open: bool
             }}
           >
             <div className="flex items-center justify-between px-[20px] pb-[8px] pt-[12px]">
-              <div className="mx-auto h-[4px] w-[40px]" style={{ background: "var(--foreground-15)", borderRadius: "var(--r-pill)" }} />
+              <div
+                className="mx-auto h-[4px] w-[40px]"
+                style={{ background: "var(--foreground-15)", borderRadius: "var(--r-pill)" }}
+              />
             </div>
             <div className="flex items-center justify-between px-[20px] pb-[12px]">
-              <h3 className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Фильтры</h3>
-              <button type="button" onClick={onClose} aria-label="Закрыть" className="grid h-[36px] w-[36px] place-items-center" style={{ color: "var(--foreground-70)" }}>
+              <h3
+                className="font-display text-[16px] font-bold"
+                style={{ color: "var(--foreground)" }}
+              >
+                Фильтры
+              </h3>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Закрыть"
+                className="grid h-[36px] w-[36px] place-items-center"
+                style={{ color: "var(--foreground-70)" }}
+              >
                 <X size={18} />
               </button>
             </div>
@@ -192,9 +249,15 @@ export function AdFiltersPanel(props: Props) {
     <aside className="hidden w-[280px] shrink-0 self-start xl:block">
       <div
         className="sticky top-0 overflow-y-auto pr-[4px]"
-        style={{ maxHeight: "calc(100vh - var(--desktop-topbar-h) - 32px)", scrollbarWidth: "thin" }}
+        style={{
+          maxHeight: "calc(100vh - var(--desktop-topbar-h) - 32px)",
+          scrollbarWidth: "thin",
+        }}
       >
-        <h3 className="mb-[12px] font-display text-[15px] font-bold" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="mb-[12px] font-display text-[15px] font-bold"
+          style={{ color: "var(--foreground)" }}
+        >
           Фильтры
         </h3>
         <Body {...props} />

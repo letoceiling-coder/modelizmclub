@@ -60,21 +60,31 @@ export function CookieBanner() {
             Мы используем cookie
           </div>
           <p className="mt-1 leading-relaxed">
-            Необходимые cookie нужны для работы сайта. Аналитика и реклама — только с вашего согласия.{" "}
+            Необходимые cookie нужны для работы сайта. Аналитика и реклама — только с вашего
+            согласия.{" "}
             <Link to="/legal/privacy" className="underline" style={{ color: "var(--accent)" }}>
               Политика конфиденциальности
             </Link>
           </p>
           {configure && (
-            <div className="mt-3 space-y-2 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
+            <div
+              className="mt-3 space-y-2 rounded-lg border p-3"
+              style={{ borderColor: "var(--border)" }}
+            >
               <label className="flex items-center gap-2 opacity-70">
                 <input type="checkbox" checked disabled /> Необходимые (всегда включены)
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={analytics} onChange={(e) => setAnalytics(e.target.checked)} /> Аналитика
+                <input
+                  type="checkbox"
+                  checked={analytics}
+                  onChange={(e) => setAnalytics(e.target.checked)}
+                />{" "}
+                Аналитика
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={ads} onChange={(e) => setAds(e.target.checked)} /> Реклама
+                <input type="checkbox" checked={ads} onChange={(e) => setAds(e.target.checked)} />{" "}
+                Реклама
               </label>
             </div>
           )}

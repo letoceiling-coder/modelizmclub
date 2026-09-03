@@ -45,7 +45,10 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
     setBrokenBanner(false);
   }, [channel.avatarImage, channel.bannerImage]);
 
-  const saveBranding = async (patch: { avatar_media_uuid?: string | null; banner_media_uuid?: string | null }) => {
+  const saveBranding = async (patch: {
+    avatar_media_uuid?: string | null;
+    banner_media_uuid?: string | null;
+  }) => {
     if (isDemoMode()) {
       toast(t("components.channelBranding.demoLocalOnly"));
       return channel;
@@ -60,7 +63,9 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
     try {
       setPendingAvatar(await prepareProfileImageFile(file));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"),
+      );
     }
   };
 
@@ -71,7 +76,9 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
     try {
       setPendingBanner(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("components.channelBranding.fileProcessFailed"),
+      );
     }
   };
 
@@ -205,7 +212,9 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
                 background: avatarUrl ? "transparent" : channel.avatarColor,
               }}
             >
-              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="h-full w-full object-cover" /> : null}
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : null}
               <AvatarFallback
                 className="font-display text-[24px] font-bold text-white sm:text-[28px]"
                 style={{ background: channel.avatarColor, borderRadius: 13 }}
@@ -228,7 +237,11 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
                   className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 disabled:opacity-60"
-                  style={{ background: "var(--accent)", color: "#fff", borderColor: "var(--background)" }}
+                  style={{
+                    background: "var(--accent)",
+                    color: "#fff",
+                    borderColor: "var(--background)",
+                  }}
                 >
                   <Camera size={13} />
                 </button>

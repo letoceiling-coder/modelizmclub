@@ -2,12 +2,29 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Inbox, Eye, Heart, TrendingUp, Tag, X, Filter, RotateCcw, Search } from "lucide-react";
+import {
+  Plus,
+  Inbox,
+  Eye,
+  Heart,
+  TrendingUp,
+  Tag,
+  X,
+  Filter,
+  RotateCcw,
+  Search,
+} from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type Ad, type AdCondition } from "@/lib/mock";
 import { type AdStatusKey } from "@/lib/store";
-import { fetchMyListings, publishListing, archiveListing, deleteListing, restoreListing } from "@/lib/api/listings";
+import {
+  fetchMyListings,
+  publishListing,
+  archiveListing,
+  deleteListing,
+  restoreListing,
+} from "@/lib/api/listings";
 import { MyAdCard, type MyAdStatus } from "@/components/MyAdCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
 import { Button } from "@/components/ui/button";
@@ -31,7 +48,14 @@ export const Route = createFileRoute("/my-ads")({
   component: MyAdsPage,
 });
 
-type TabKey = "active" | "moderation" | "rejected" | "unpublished" | "archived" | "deleted" | "draft";
+type TabKey =
+  | "active"
+  | "moderation"
+  | "rejected"
+  | "unpublished"
+  | "archived"
+  | "deleted"
+  | "draft";
 
 const TAB_KEYS: { key: TabKey; labelKey: string }[] = [
   { key: "active", labelKey: "pages.myAds.tabActive" },
@@ -91,8 +115,14 @@ function MyAdsPage() {
   const navigate = useNavigate();
   const { payment, reason } = Route.useSearch();
   const { guardAction } = useGuestAccess();
-  const tabs = useMemo(() => TAB_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
-  const quickChips = useMemo(() => QUICK_CHIP_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })), [t]);
+  const tabs = useMemo(
+    () => TAB_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })),
+    [t],
+  );
+  const quickChips = useMemo(
+    () => QUICK_CHIP_KEYS.map((item) => ({ key: item.key, label: t(item.labelKey) })),
+    [t],
+  );
   const [tab, setTab] = useState<TabKey>("active");
   const [items, setItems] = useState<{ ad: Ad; status: AdStatusKey }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,17 +146,21 @@ function MyAdsPage() {
   };
 
   const activeQuickChip = useMemo((): QuickChip => {
-    const isBase = filters.category === "all"
-      && filters.city === "all"
-      && filters.hasPhoto === "all"
-      && filters.priceMin === 0
-      && filters.priceMax === 0
-      && filters.sort === "new";
+    const isBase =
+      filters.category === "all" &&
+      filters.city === "all" &&
+      filters.hasPhoto === "all" &&
+      filters.priceMin === 0 &&
+      filters.priceMax === 0 &&
+      filters.sort === "new";
 
     if (!isBase) return "all";
-    if (filters.dateRange === "7d" && filters.condition === "all" && filters.delivery === "all") return "new";
-    if (filters.condition === "Б/у" && filters.delivery === "all" && filters.dateRange === "all") return "used";
-    if (filters.delivery === "yes" && filters.condition === "all" && filters.dateRange === "all") return "delivery";
+    if (filters.dateRange === "7d" && filters.condition === "all" && filters.delivery === "all")
+      return "new";
+    if (filters.condition === "Б/у" && filters.delivery === "all" && filters.dateRange === "all")
+      return "used";
+    if (filters.delivery === "yes" && filters.condition === "all" && filters.dateRange === "all")
+      return "delivery";
     return "all";
   }, [filters]);
 
@@ -134,10 +168,18 @@ function MyAdsPage() {
     let alive = true;
     setLoading(true);
     fetchMyListings()
-      .then((rows) => { if (alive) setItems(rows); })
-      .catch(() => { if (alive) setItems([]); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .then((rows) => {
+        if (alive) setItems(rows);
+      })
+      .catch(() => {
+        if (alive) setItems([]);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -160,13 +202,19 @@ function MyAdsPage() {
   const doDelete = (id: string) => {
     setLocalStatus(id, "deleted");
     deleteListing(id).catch(() => {
-      fetchMyListings().then(setItems).catch(() => {});
+      fetchMyListings()
+        .then(setItems)
+        .catch(() => {});
     });
   };
   const doRestore = (id: string) => {
     restoreListing(id)
       .then(() => fetchMyListings().then(setItems))
-      .catch(() => fetchMyListings().then(setItems).catch(() => {}));
+      .catch(() =>
+        fetchMyListings()
+          .then(setItems)
+          .catch(() => {}),
+      );
   };
 
   const decorated = items;
@@ -185,22 +233,30 @@ function MyAdsPage() {
 
   // Counts derived from store
   const counts = useMemo<Record<TabKey, number>>(() => {
-    const c: Record<TabKey, number> = { active: 0, moderation: 0, rejected: 0, unpublished: 0, archived: 0, deleted: 0, draft: 0 };
+    const c: Record<TabKey, number> = {
+      active: 0,
+      moderation: 0,
+      rejected: 0,
+      unpublished: 0,
+      archived: 0,
+      deleted: 0,
+      draft: 0,
+    };
     for (const { status } of decorated) c[statusToTab(status)] = (c[statusToTab(status)] ?? 0) + 1;
     return c;
   }, [decorated]);
 
   const filtersDirty = useMemo(
     () =>
-      filters.category !== "all"
-      || filters.city !== "all"
-      || filters.condition !== "all"
-      || filters.delivery !== "all"
-      || filters.hasPhoto !== "all"
-      || filters.dateRange !== "all"
-      || filters.priceMin > 0
-      || filters.priceMax > 0
-      || filters.sort !== "new",
+      filters.category !== "all" ||
+      filters.city !== "all" ||
+      filters.condition !== "all" ||
+      filters.delivery !== "all" ||
+      filters.hasPhoto !== "all" ||
+      filters.dateRange !== "all" ||
+      filters.priceMin > 0 ||
+      filters.priceMax > 0 ||
+      filters.sort !== "new",
     [filters],
   );
 
@@ -218,7 +274,7 @@ function MyAdsPage() {
       if (filters.category !== "all" && ad.category !== filters.category) return false;
       if (filters.city !== "all" && ad.city !== filters.city) return false;
       if (filters.condition !== "all" && ad.condition !== filters.condition) return false;
-      if (filters.delivery === "yes" && !(ad.delivery?.length)) return false;
+      if (filters.delivery === "yes" && !ad.delivery?.length) return false;
       if (filters.delivery === "no" && (ad.delivery?.length ?? 0) > 0) return false;
       const hasPhoto = Boolean(ad.image || ad.gallery?.length);
       if (filters.hasPhoto === "yes" && !hasPhoto) return false;
@@ -237,13 +293,20 @@ function MyAdsPage() {
       const ta = Date.parse(a.ad.publishedAt ?? "0");
       const tb = Date.parse(b.ad.publishedAt ?? "0");
       switch (filters.sort) {
-        case "old": return ta - tb;
-        case "views": return (b.ad.views ?? 0) - (a.ad.views ?? 0);
-        case "likes": return (b.ad.likes ?? 0) - (a.ad.likes ?? 0);
-        case "price_asc": return a.ad.price - b.ad.price;
-        case "price_desc": return b.ad.price - a.ad.price;
-        case "updated": return tb - ta;
-        default: return tb - ta;
+        case "old":
+          return ta - tb;
+        case "views":
+          return (b.ad.views ?? 0) - (a.ad.views ?? 0);
+        case "likes":
+          return (b.ad.likes ?? 0) - (a.ad.likes ?? 0);
+        case "price_asc":
+          return a.ad.price - b.ad.price;
+        case "price_desc":
+          return b.ad.price - a.ad.price;
+        case "updated":
+          return tb - ta;
+        default:
+          return tb - ta;
       }
     });
     return sorted.map((x) => ({ ad: x.ad, status: statusToMyAdStatus(x.status) }));
@@ -260,17 +323,31 @@ function MyAdsPage() {
     return { count: active.length, views, likes, activeValue };
   }, [decorated]);
 
-  const handleCreate = () => guardAction("layout.nav.ad_create", () => { void navigate({ to: "/ads/new" }); }, "/ads/new");
+  const handleCreate = () =>
+    guardAction(
+      "layout.nav.ad_create",
+      () => {
+        void navigate({ to: "/ads/new" });
+      },
+      "/ads/new",
+    );
   const handleSelect = (id: string, checked: boolean) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(id); else next.delete(id);
+      if (checked) next.add(id);
+      else next.delete(id);
       return next;
     });
   };
   const clearSelection = () => setSelected(new Set());
-  const archiveSelected = () => { selected.forEach((id) => doArchive(id)); clearSelection(); };
-  const deleteSelected = () => { selected.forEach((id) => doDelete(id)); clearSelection(); };
+  const archiveSelected = () => {
+    selected.forEach((id) => doArchive(id));
+    clearSelection();
+  };
+  const deleteSelected = () => {
+    selected.forEach((id) => doDelete(id));
+    clearSelection();
+  };
   const resetFilters = () => {
     setFilters(DEFAULT_FILTERS);
   };
@@ -281,10 +358,16 @@ function MyAdsPage() {
         {/* Header */}
         <header className="flex flex-wrap items-end justify-between gap-[12px]">
           <div className="min-w-0">
-            <h1 className="font-display text-[20px] font-bold leading-[1.15] sm:text-[28px]" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+            <h1
+              className="font-display text-[20px] font-bold leading-[1.15] sm:text-[28px]"
+              style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+            >
               {t("pages.myAds.title")}
             </h1>
-            <p className="mt-[4px] text-[12.5px] sm:text-[14px]" style={{ color: "var(--foreground-70)" }}>
+            <p
+              className="mt-[4px] text-[12.5px] sm:text-[14px]"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {t("pages.myAds.subtitle")}
             </p>
           </div>
@@ -299,15 +382,36 @@ function MyAdsPage() {
         </header>
 
         <section className="grid grid-cols-2 gap-[8px] sm:grid-cols-4 sm:gap-[12px]">
-          <StatCard icon={<TrendingUp size={14} />} label={t("pages.myAds.statActive")} value={stats.count.toString()} accent />
-          <StatCard icon={<Eye size={14} />} label={t("pages.myAds.statViews")} value={stats.views.toLocaleString("ru")} />
-          <StatCard icon={<Heart size={14} />} label={t("pages.myAds.statLikes")} value={stats.likes.toLocaleString("ru")} />
-          <StatCard icon={<Tag size={14} />} label={t("pages.myAds.statOnSale")} value={`${stats.activeValue.toLocaleString("ru")} ₽`} />
+          <StatCard
+            icon={<TrendingUp size={14} />}
+            label={t("pages.myAds.statActive")}
+            value={stats.count.toString()}
+            accent
+          />
+          <StatCard
+            icon={<Eye size={14} />}
+            label={t("pages.myAds.statViews")}
+            value={stats.views.toLocaleString("ru")}
+          />
+          <StatCard
+            icon={<Heart size={14} />}
+            label={t("pages.myAds.statLikes")}
+            value={stats.likes.toLocaleString("ru")}
+          />
+          <StatCard
+            icon={<Tag size={14} />}
+            label={t("pages.myAds.statOnSale")}
+            value={`${stats.activeValue.toLocaleString("ru")} ₽`}
+          />
         </section>
 
         <HorizontalScrollNav
           className="sticky top-0 z-10 py-[6px]"
-          style={{ background: "var(--background)", backdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
+          style={{
+            background: "var(--background)",
+            backdropFilter: "blur(8px)",
+            borderBottom: "1px solid var(--border)",
+          }}
           role="tablist"
         >
           {tabs.map((tabItem) => {
@@ -349,7 +453,11 @@ function MyAdsPage() {
         {/* Search + Filter (Avito-style) */}
         <div className="flex items-center gap-[8px]">
           <div className="relative flex-1">
-            <Search size={15} className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2" style={{ color: "var(--foreground-50)" }} />
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2"
+              style={{ color: "var(--foreground-50)" }}
+            />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -384,8 +492,10 @@ function MyAdsPage() {
             aria-label={t("pages.myAds.filters")}
             className="relative grid shrink-0 place-items-center transition-colors"
             style={{
-              height: 40, width: 40,
-              background: showFilters || filtersDirty ? "var(--accent-soft)" : "var(--background-surface)",
+              height: 40,
+              width: 40,
+              background:
+                showFilters || filtersDirty ? "var(--accent-soft)" : "var(--background-surface)",
               color: showFilters || filtersDirty ? "var(--accent)" : "var(--foreground)",
               border: `1px solid ${showFilters || filtersDirty ? "var(--accent)" : "var(--border)"}`,
               borderRadius: "var(--r-button)",
@@ -393,7 +503,10 @@ function MyAdsPage() {
           >
             <Filter size={16} />
             {filtersDirty && (
-              <span className="absolute right-[6px] top-[6px] h-[6px] w-[6px] rounded-full" style={{ background: "var(--accent)" }} />
+              <span
+                className="absolute right-[6px] top-[6px] h-[6px] w-[6px] rounded-full"
+                style={{ background: "var(--accent)" }}
+              />
             )}
           </button>
           {filtersDirty && (
@@ -403,8 +516,11 @@ function MyAdsPage() {
               aria-label={t("pages.myAds.resetFilters")}
               className="hidden shrink-0 items-center gap-[6px] px-[12px] text-[13px] font-medium sm:inline-flex"
               style={{
-                height: 40, color: "var(--foreground-70)",
-                border: "1px solid var(--border)", borderRadius: "var(--r-button)", background: "transparent",
+                height: 40,
+                color: "var(--foreground-70)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-button)",
+                background: "transparent",
               }}
             >
               <RotateCcw size={13} /> {t("pages.myAds.resetFilters")}
@@ -443,7 +559,11 @@ function MyAdsPage() {
           <div className="overflow-hidden">
             <div
               className="grid grid-cols-1 gap-[12px] p-[14px] sm:grid-cols-2 lg:grid-cols-3"
-              style={{ background: "var(--background-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)" }}
+              style={{
+                background: "var(--background-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-card-sm)",
+              }}
             >
               <FilterField label={t("pages.myAds.filterCategory")}>
                 <select
@@ -453,7 +573,11 @@ function MyAdsPage() {
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.allCategories")}</option>
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </FilterField>
               <FilterField label={t("pages.myAds.filterCity")}>
@@ -464,13 +588,19 @@ function MyAdsPage() {
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.allCities")}</option>
-                  {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {cities.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </FilterField>
               <FilterField label={t("pages.myAds.filterPeriod")}>
                 <select
                   value={filters.dateRange}
-                  onChange={(e) => setFilters((f) => ({ ...f, dateRange: e.target.value as DateRange }))}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, dateRange: e.target.value as DateRange }))
+                  }
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
@@ -483,7 +613,9 @@ function MyAdsPage() {
               <FilterField label={t("pages.myAds.filterCondition")}>
                 <select
                   value={filters.condition}
-                  onChange={(e) => setFilters((f) => ({ ...f, condition: e.target.value as ConditionFilter }))}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, condition: e.target.value as ConditionFilter }))
+                  }
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
@@ -497,7 +629,12 @@ function MyAdsPage() {
                   type="number"
                   min={0}
                   value={filters.priceMin || ""}
-                  onChange={(e) => setFilters((f) => ({ ...f, priceMin: Math.max(0, Number(e.target.value) || 0) }))}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      priceMin: Math.max(0, Number(e.target.value) || 0),
+                    }))
+                  }
                   placeholder="0"
                   className="w-full text-[13px]"
                   style={selectStyle}
@@ -508,7 +645,12 @@ function MyAdsPage() {
                   type="number"
                   min={0}
                   value={filters.priceMax || ""}
-                  onChange={(e) => setFilters((f) => ({ ...f, priceMax: Math.max(0, Number(e.target.value) || 0) }))}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      priceMax: Math.max(0, Number(e.target.value) || 0),
+                    }))
+                  }
                   placeholder="∞"
                   className="w-full text-[13px]"
                   style={selectStyle}
@@ -517,7 +659,9 @@ function MyAdsPage() {
               <FilterField label={t("pages.myAds.filterDelivery")}>
                 <select
                   value={filters.delivery}
-                  onChange={(e) => setFilters((f) => ({ ...f, delivery: e.target.value as DeliveryFilter }))}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, delivery: e.target.value as DeliveryFilter }))
+                  }
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
@@ -529,7 +673,9 @@ function MyAdsPage() {
               <FilterField label={t("pages.myAds.filterPhotos")}>
                 <select
                   value={filters.hasPhoto}
-                  onChange={(e) => setFilters((f) => ({ ...f, hasPhoto: e.target.value as PhotoFilter }))}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, hasPhoto: e.target.value as PhotoFilter }))
+                  }
                   className="w-full text-[13px]"
                   style={selectStyle}
                 >
@@ -562,16 +708,34 @@ function MyAdsPage() {
         <AnimatePresence>
           {selected.size > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
               className="flex flex-wrap items-center justify-between gap-[12px] px-[16px] py-[12px]"
-              style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", borderRadius: "var(--r-card-sm)" }}
+              style={{
+                background: "var(--accent-soft)",
+                border: "1px solid var(--accent)",
+                borderRadius: "var(--r-card-sm)",
+              }}
             >
-              <span className="text-[14px] font-semibold" style={{ color: "var(--accent)" }}>{t("pages.myAds.selected", { count: selected.size })}</span>
+              <span className="text-[14px] font-semibold" style={{ color: "var(--accent)" }}>
+                {t("pages.myAds.selected", { count: selected.size })}
+              </span>
               <div className="flex items-center gap-[8px]">
-                <Button variant="outline" size="sm" onClick={archiveSelected} className="rounded-[var(--r-button)]">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={archiveSelected}
+                  className="rounded-[var(--r-button)]"
+                >
                   {t("pages.myAds.archiveSelected")}
                 </Button>
-                <Button variant="destructive" size="sm" onClick={deleteSelected} className="rounded-[var(--r-button)]">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deleteSelected}
+                  className="rounded-[var(--r-button)]"
+                >
                   {t("pages.myAds.deleteSelected")}
                 </Button>
                 <Button
@@ -590,29 +754,36 @@ function MyAdsPage() {
 
         <ReducedMotionSwitch
           switchKey={tab}
-          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.18 }}
           className="flex flex-col gap-[12px] pb-[120px] md:pb-[40px]"
         >
-            {loading ? (
-              Array.from({ length: 6 }, (_, i) => <AdCardSkeleton key={i} />)
-            ) : visible.length === 0 ? (
-              <EmptyTab tab={tab} onCreate={handleCreate} dirty={filtersDirty} onReset={resetFilters} />
-            ) : (
-              visible.map(({ ad, status }) => (
-                <MyAdCard
-                  key={ad.id}
-                  ad={ad}
-                  status={status}
-                  selected={selected.has(ad.id)}
-                  onSelect={handleSelect}
-                  onArchive={(id) => doArchive(id)}
-                  onPublish={(id) => doPublish(id)}
-                  onDelete={(id) => doDelete(id)}
-                  onRestore={(id) => doRestore(id)}
-                />
-              ))
-            )}
+          {loading ? (
+            Array.from({ length: 6 }, (_, i) => <AdCardSkeleton key={i} />)
+          ) : visible.length === 0 ? (
+            <EmptyTab
+              tab={tab}
+              onCreate={handleCreate}
+              dirty={filtersDirty}
+              onReset={resetFilters}
+            />
+          ) : (
+            visible.map(({ ad, status }) => (
+              <MyAdCard
+                key={ad.id}
+                ad={ad}
+                status={status}
+                selected={selected.has(ad.id)}
+                onSelect={handleSelect}
+                onArchive={(id) => doArchive(id)}
+                onPublish={(id) => doPublish(id)}
+                onDelete={(id) => doDelete(id)}
+                onRestore={(id) => doRestore(id)}
+              />
+            ))
+          )}
         </ReducedMotionSwitch>
       </div>
 
@@ -653,13 +824,28 @@ function statusToMyAdStatus(s: AdStatusKey): MyAdStatus {
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-[6px]">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.04em]" style={{ color: "var(--foreground-50)", fontFamily: "var(--font-mono)" }}>{label}</span>
+      <span
+        className="text-[11px] font-semibold uppercase tracking-[0.04em]"
+        style={{ color: "var(--foreground-50)", fontFamily: "var(--font-mono)" }}
+      >
+        {label}
+      </span>
       {children}
     </label>
   );
 }
 
-function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
     <div
       className="flex flex-col gap-[4px] px-[12px] py-[10px] sm:px-[14px] sm:py-[12px]"
@@ -669,7 +855,13 @@ function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label
         borderRadius: "var(--r-card-sm)",
       }}
     >
-      <div className="flex items-center gap-[5px] text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: accent ? "var(--accent)" : "var(--foreground-50)", fontFamily: "var(--font-mono)" }}>
+      <div
+        className="flex items-center gap-[5px] text-[10.5px] font-semibold uppercase tracking-[0.04em]"
+        style={{
+          color: accent ? "var(--accent)" : "var(--foreground-50)",
+          fontFamily: "var(--font-mono)",
+        }}
+      >
         {icon}
         <span>{label}</span>
       </div>
@@ -683,16 +875,32 @@ function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label
   );
 }
 
-function EmptyTab({ tab, onCreate, dirty, onReset }: { tab: TabKey; onCreate: () => void; dirty: boolean; onReset: () => void }) {
+function EmptyTab({
+  tab,
+  onCreate,
+  dirty,
+  onReset,
+}: {
+  tab: TabKey;
+  onCreate: () => void;
+  dirty: boolean;
+  onReset: () => void;
+}) {
   const { t } = useTranslation();
   const config: Record<TabKey, { titleKey: string; descKey: string }> = {
-    active:       { titleKey: "pages.myAds.emptyActive", descKey: "pages.myAds.emptyActiveDesc" },
-    moderation:   { titleKey: "pages.myAds.emptyModeration", descKey: "pages.myAds.emptyModerationDesc" },
-    rejected:     { titleKey: "pages.myAds.emptyRejected", descKey: "pages.myAds.emptyRejectedDesc" },
-    unpublished:  { titleKey: "pages.myAds.emptyUnpublished", descKey: "pages.myAds.emptyUnpublishedDesc" },
-    archived:     { titleKey: "pages.myAds.emptyArchived", descKey: "pages.myAds.emptyArchivedDesc" },
-    deleted:      { titleKey: "pages.myAds.emptyDeleted", descKey: "pages.myAds.emptyDeletedDesc" },
-    draft:        { titleKey: "pages.myAds.emptyDraft", descKey: "pages.myAds.emptyDraftDesc" },
+    active: { titleKey: "pages.myAds.emptyActive", descKey: "pages.myAds.emptyActiveDesc" },
+    moderation: {
+      titleKey: "pages.myAds.emptyModeration",
+      descKey: "pages.myAds.emptyModerationDesc",
+    },
+    rejected: { titleKey: "pages.myAds.emptyRejected", descKey: "pages.myAds.emptyRejectedDesc" },
+    unpublished: {
+      titleKey: "pages.myAds.emptyUnpublished",
+      descKey: "pages.myAds.emptyUnpublishedDesc",
+    },
+    archived: { titleKey: "pages.myAds.emptyArchived", descKey: "pages.myAds.emptyArchivedDesc" },
+    deleted: { titleKey: "pages.myAds.emptyDeleted", descKey: "pages.myAds.emptyDeletedDesc" },
+    draft: { titleKey: "pages.myAds.emptyDraft", descKey: "pages.myAds.emptyDraftDesc" },
   };
   const c = config[tab];
   return (

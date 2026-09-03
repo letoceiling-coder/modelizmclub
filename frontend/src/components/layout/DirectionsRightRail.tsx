@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, ChevronRight, MessageCircle, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  MessageCircle,
+  PanelRightClose,
+  PanelRightOpen,
+  Search,
+} from "lucide-react";
 import { usePostCategoriesState, useListingCategoriesState } from "@/lib/hooks/useCategories";
 import {
   onlineForCategory,
@@ -154,10 +161,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
     return parseTaxonomyId(params.get("taxonomy_id") ?? undefined);
   }, [location.searchStr]);
 
-  const totalOnline = useMemo(
-    () => totalOnlineFromStats(roomStats),
-    [roomStats],
-  );
+  const totalOnline = useMemo(() => totalOnlineFromStats(roomStats), [roomStats]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -180,7 +184,9 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   }, [query, visible]);
 
   const catalog = variant !== "feed";
-  const title = catalog ? t("components.rightCategories.titleCatalog") : t("components.rightCategories.title");
+  const title = catalog
+    ? t("components.rightCategories.titleCatalog")
+    : t("components.rightCategories.title");
   const subtitle = catalog
     ? t(`components.rightCategories.subtitle${variant.charAt(0).toUpperCase()}${variant.slice(1)}`)
     : t("components.rightCategories.subtitle");
@@ -193,7 +199,11 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
           onClick={() => setCollapsed(false)}
           aria-label={t("components.rightCategories.expandPanel")}
           className="grid h-9 w-9 place-items-center rounded-[10px] border transition-colors hover:bg-[var(--background-surface)]"
-          style={{ background: "var(--background-elevated)", borderColor: "var(--border)", color: "var(--foreground-70)" }}
+          style={{
+            background: "var(--background-elevated)",
+            borderColor: "var(--border)",
+            color: "var(--foreground-70)",
+          }}
         >
           <PanelRightOpen className="h-[18px] w-[18px]" />
         </button>
@@ -202,7 +212,12 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   }
 
   const renderNodes = (nodes: RailNode[], ancestors: string[], depth: number) => (
-    <ul className={depth === 0 ? "p-[6px]" : "mb-[4px] ml-[36px] mt-[2px] space-y-[1px] border-l pl-[10px]"} style={depth === 0 ? undefined : { borderColor: "var(--border)" }}>
+    <ul
+      className={
+        depth === 0 ? "p-[6px]" : "mb-[4px] ml-[36px] mt-[2px] space-y-[1px] border-l pl-[10px]"
+      }
+      style={depth === 0 ? undefined : { borderColor: "var(--border)" }}
+    >
       {nodes.map((node) => {
         const open = Boolean(openIds[node.id]);
         const hasChildren = node.children.length > 0;
@@ -214,7 +229,12 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
           <>
             {depth === 0 && (
               <IconBox size="sm" variant="surface">
-                <CategoryIcon categoryId={node.id} name={categories.find((c) => c.id === node.id)?.icon} iconImageUrl={categories.find((c) => c.id === node.id)?.iconImageUrl} fill />
+                <CategoryIcon
+                  categoryId={node.id}
+                  name={categories.find((c) => c.id === node.id)?.icon}
+                  iconImageUrl={categories.find((c) => c.id === node.id)?.iconImageUrl}
+                  fill
+                />
               </IconBox>
             )}
             <span className="min-w-0 flex-1 text-left">
@@ -225,9 +245,17 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                 {node.name}
               </span>
               {depth === 0 && !catalog && (
-                <span className="mt-[1px] flex items-center gap-[5px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                  <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-                  {t("components.rightCategories.onlineCount", { count: onlineForCategory(roomStats, node.id) })}
+                <span
+                  className="mt-[1px] flex items-center gap-[5px] text-[11px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  <span
+                    className="inline-block h-[6px] w-[6px] rounded-full"
+                    style={{ background: "#22c55e" }}
+                  />
+                  {t("components.rightCategories.onlineCount", {
+                    count: onlineForCategory(roomStats, node.id),
+                  })}
                 </span>
               )}
             </span>
@@ -242,7 +270,13 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               {hasChildren ? (
                 // A branch expands on click; the filter lives on its leaves and
                 // on the chat icon next to it.
-                <button type="button" onClick={toggle} aria-expanded={open} className={rowClass} style={rowStyle}>
+                <button
+                  type="button"
+                  onClick={toggle}
+                  aria-expanded={open}
+                  className={rowClass}
+                  style={rowStyle}
+                >
                   {label}
                 </button>
               ) : (
@@ -293,7 +327,10 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                   guestGuard={guestGuard}
                   actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
                   className="mb-[2px] ml-[36px] mt-[2px] block border-l pl-[10px] text-[12px]"
-                  style={{ borderColor: "var(--border)", color: active ? "var(--accent)" : "var(--foreground-50)" }}
+                  style={{
+                    borderColor: "var(--border)",
+                    color: active ? "var(--accent)" : "var(--foreground-50)",
+                  }}
                 >
                   {t("components.rightCategories.allInCategory")}
                 </RailLink>
@@ -320,7 +357,10 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                   className="flex items-center gap-[8px] text-[14px] font-semibold"
                   style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
                 >
-                  <MessageCircle className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--accent)" }} />
+                  <MessageCircle
+                    className="h-[16px] w-[16px] shrink-0"
+                    style={{ color: "var(--accent)" }}
+                  />
                   {title}
                 </h3>
                 <p className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
@@ -351,7 +391,10 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
             </div>
 
             <label className="relative mt-[10px] block">
-              <Search className="pointer-events-none absolute left-[10px] top-1/2 h-[14px] w-[14px] -translate-y-1/2" style={{ color: "var(--foreground-50)" }} />
+              <Search
+                className="pointer-events-none absolute left-[10px] top-1/2 h-[14px] w-[14px] -translate-y-1/2"
+                style={{ color: "var(--foreground-50)" }}
+              />
               <input
                 type="search"
                 value={query}
@@ -400,7 +443,10 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               ))}
             </div>
           ) : visible.length === 0 ? (
-            <p className="px-[16px] py-[14px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            <p
+              className="px-[16px] py-[14px] text-[12px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
               {t("components.rightCategories.emptySearch")}
             </p>
           ) : (
@@ -415,11 +461,18 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               className="mb-[8px] flex items-center justify-between gap-[8px] rounded-[8px] px-[10px] py-[8px] text-[11px]"
               style={{ background: "var(--background-elevated)", color: "var(--foreground-50)" }}
             >
-              <span>{t("components.rightCategories.directionsCount", { count: categories.length })}</span>
+              <span>
+                {t("components.rightCategories.directionsCount", { count: categories.length })}
+              </span>
               {!catalog && (
                 <span className="flex items-center gap-[5px]">
-                  <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
-                  {t("components.rightCategories.totalOnline", { count: totalOnline.toLocaleString("ru-RU") })}
+                  <span
+                    className="inline-block h-[6px] w-[6px] rounded-full"
+                    style={{ background: "#22c55e" }}
+                  />
+                  {t("components.rightCategories.totalOnline", {
+                    count: totalOnline.toLocaleString("ru-RU"),
+                  })}
                 </span>
               )}
             </div>

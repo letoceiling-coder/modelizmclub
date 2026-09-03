@@ -57,7 +57,10 @@ export function seedStats(data: {
   statsCache = data;
 }
 
-export function getCachedStats(): { firstHundred: FirstHundredStats; referral?: ReferralProgramStats } | null {
+export function getCachedStats(): {
+  firstHundred: FirstHundredStats;
+  referral?: ReferralProgramStats;
+} | null {
   return statsCache;
 }
 
@@ -70,7 +73,10 @@ export function getCachedLandingFaq(): { name: string | null; articles: FaqArtic
   return landingFaqCache;
 }
 
-export async function fetchStats(): Promise<{ firstHundred: FirstHundredStats; referral?: ReferralProgramStats }> {
+export async function fetchStats(): Promise<{
+  firstHundred: FirstHundredStats;
+  referral?: ReferralProgramStats;
+}> {
   if (statsCache) return statsCache;
   try {
     const { startPublicBootstrap } = await import("./bootstrap");
@@ -100,10 +106,7 @@ export async function fetchStats(): Promise<{ firstHundred: FirstHundredStats; r
       first_hundred?: { taken?: number; total?: number; enabled?: boolean };
       referral?: { enabled?: boolean; per_invite?: number; max_bonus?: number };
     };
-  }>(
-    "/public/stats",
-    { auth: false },
-  );
+  }>("/public/stats", { auth: false });
   const fh = res.data?.first_hundred ?? {};
   const ref = res.data?.referral ?? {};
   statsCache = {

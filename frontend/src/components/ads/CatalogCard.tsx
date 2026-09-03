@@ -77,10 +77,14 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
                   return;
                 }
               }
-              toast.success(next ? "В избранное" : "Убрано из избранного", { id: "favorite-toggle" });
+              toast.success(next ? "В избранное" : "Убрано из избранного", {
+                id: "favorite-toggle",
+              });
             };
             if (guest) {
-              guest.requireAccount(() => { void run(); });
+              guest.requireAccount(() => {
+                void run();
+              });
               return;
             }
             void run();
@@ -100,7 +104,11 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
       <div className="flex flex-1 flex-col gap-[4px] p-[10px] sm:p-[12px]">
         <div
           className="text-[18px] font-bold leading-none sm:text-[20px]"
-          style={{ fontFamily: "var(--font-display)", color: "var(--foreground)", letterSpacing: "-0.01em" }}
+          style={{
+            fontFamily: "var(--font-display)",
+            color: "var(--foreground)",
+            letterSpacing: "-0.01em",
+          }}
         >
           {ad.price.toLocaleString("ru")} ₽
         </div>
@@ -114,7 +122,10 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
           {ad.title}
         </Link>
 
-        <div className="mt-auto flex items-center gap-[8px] pt-[4px] text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="mt-auto flex items-center gap-[8px] pt-[4px] text-[11.5px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           <span className="inline-flex min-w-0 items-center gap-[4px]">
             <MapPin size={12} className="shrink-0" />
             <span className="truncate">{ad.city}</span>

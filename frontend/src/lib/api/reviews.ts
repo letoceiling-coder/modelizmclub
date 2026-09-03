@@ -104,7 +104,8 @@ export async function fetchVideos(params: VideoListParams = {}): Promise<Video[]
     return demoVideos(params.q, params.categorySlug);
   }
   // "all" is a UI sentinel for the "Все" tab — never send it as a real filter.
-  const categorySlug = params.categorySlug && params.categorySlug !== "all" ? params.categorySlug : undefined;
+  const categorySlug =
+    params.categorySlug && params.categorySlug !== "all" ? params.categorySlug : undefined;
   const res = await api<Paginated<ApiVideo>>("/videos", {
     query: {
       q: params.q || undefined,
@@ -166,8 +167,8 @@ export interface VideoUploadInput {
   tags: string[];
   posterMediaId?: string;
   videoMediaId: string;
-  posterUrl: string;   // demo: blob URL for immediate preview
-  videoUrl: string;    // demo: blob URL for immediate playback
+  posterUrl: string; // demo: blob URL for immediate preview
+  videoUrl: string; // demo: blob URL for immediate playback
   isFeatured: boolean;
 }
 
@@ -254,12 +255,18 @@ export async function createVideoComment(
 // ── Admin management ──────────────────────────────────────────────────────
 
 export async function deleteVideo(id: string): Promise<void> {
-  if (isDemoMode()) { demoDeleteVideo(id); return; }
+  if (isDemoMode()) {
+    demoDeleteVideo(id);
+    return;
+  }
   await api(`/videos/${id}`, { method: "DELETE" });
 }
 
 export async function setVideoFeatured(id: string, on: boolean): Promise<void> {
-  if (isDemoMode()) { demoSetVideoFeatured(id, on); return; }
+  if (isDemoMode()) {
+    demoSetVideoFeatured(id, on);
+    return;
+  }
   await api(`/videos/${id}`, { method: "PATCH", json: { is_featured: on } });
 }
 

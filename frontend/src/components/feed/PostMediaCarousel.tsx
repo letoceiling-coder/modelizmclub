@@ -30,7 +30,9 @@ function clampAspect(ratio: number): number {
 }
 
 function useNaturalAspectRatio(url: string | null | undefined): number | null {
-  const [aspect, setAspect] = useState<number | null>(() => (url ? aspectCache.get(url) ?? null : null));
+  const [aspect, setAspect] = useState<number | null>(() =>
+    url ? (aspectCache.get(url) ?? null) : null,
+  );
 
   useEffect(() => {
     if (!url) {
@@ -152,8 +154,17 @@ function MediaFrame({
   );
 }
 
-
-function SingleMedia({ item, alt, onImageClick, priority = false }: { item: MediaCarouselItem; alt: string; onImageClick?: () => void; priority?: boolean }) {
+function SingleMedia({
+  item,
+  alt,
+  onImageClick,
+  priority = false,
+}: {
+  item: MediaCarouselItem;
+  alt: string;
+  onImageClick?: () => void;
+  priority?: boolean;
+}) {
   const aspect = useSlideAspect(item);
 
   if (item.type === "video") {
@@ -166,13 +177,28 @@ function SingleMedia({ item, alt, onImageClick, priority = false }: { item: Medi
 
   return (
     <MediaFrame aspect={aspect} className="bg-[var(--background-surface)]">
-      <GalleryImage src={item.url} alt={alt} width={item.width} height={item.height} priority={priority} onClick={onImageClick} />
+      <GalleryImage
+        src={item.url}
+        alt={alt}
+        width={item.width}
+        height={item.height}
+        priority={priority}
+        onClick={onImageClick}
+      />
     </MediaFrame>
   );
 }
 
 /** Mixed image/video carousel for feed and channel posts. */
-export function PostMediaCarousel({ items, alt, priority = false }: { items: MediaCarouselItem[]; alt: string; priority?: boolean }) {
+export function PostMediaCarousel({
+  items,
+  alt,
+  priority = false,
+}: {
+  items: MediaCarouselItem[];
+  alt: string;
+  priority?: boolean;
+}) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: items.length > 1 });
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -221,7 +247,12 @@ export function PostMediaCarousel({ items, alt, priority = false }: { items: Med
           onImageClick={item.type === "image" ? () => setLightbox(0) : undefined}
         />
         {lightbox !== null && item.type === "image" && (
-          <Lightbox images={[item.url]} startIndex={0} alt={alt} onClose={() => setLightbox(null)} />
+          <Lightbox
+            images={[item.url]}
+            startIndex={0}
+            alt={alt}
+            onClose={() => setLightbox(null)}
+          />
         )}
       </>
     );
@@ -265,7 +296,10 @@ export function PostMediaCarousel({ items, alt, priority = false }: { items: Med
         </div>
       </MediaFrame>
 
-      <div className="pointer-events-none absolute right-[10px] top-[10px] rounded-full px-[9px] py-[3px] text-[11px] font-medium text-white" style={{ background: "rgba(0,0,0,0.55)" }}>
+      <div
+        className="pointer-events-none absolute right-[10px] top-[10px] rounded-full px-[9px] py-[3px] text-[11px] font-medium text-white"
+        style={{ background: "rgba(0,0,0,0.55)" }}
+      >
         {selected + 1}/{items.length}
       </div>
 
@@ -306,7 +340,12 @@ export function PostMediaCarousel({ items, alt, priority = false }: { items: Med
       </div>
 
       {lightbox !== null && imageUrls.length > 0 && (
-        <Lightbox images={imageUrls} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />
+        <Lightbox
+          images={imageUrls}
+          startIndex={lightbox}
+          alt={alt}
+          onClose={() => setLightbox(null)}
+        />
       )}
     </div>
   );

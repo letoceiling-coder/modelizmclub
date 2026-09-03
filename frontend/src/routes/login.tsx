@@ -64,12 +64,16 @@ function LoginPage() {
       .catch(() => {
         if (alive) setCheckingSession(false);
       });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [nav, redirectTo, oauth_token, oauth_error]);
 
   useEffect(() => {
     if (oauth_error) {
-      toast.error(oauth_error === "auth_failed" ? "OAuth: не удалось войти" : `OAuth: ${oauth_error}`);
+      toast.error(
+        oauth_error === "auth_failed" ? "OAuth: не удалось войти" : `OAuth: ${oauth_error}`,
+      );
       nav({ to: "/login", search: { redirect: redirectTo }, replace: true });
       return;
     }
@@ -91,15 +95,21 @@ function LoginPage() {
         toast.error("OAuth: не удалось завершить вход");
         nav({ to: "/login", search: { redirect: redirectTo }, replace: true });
       })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [oauth_token, oauth_error, nav, redirectTo, t]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFieldError(false);
     const form = new FormData(e.currentTarget);
-    const email = String(form.get("email") ?? "").trim().toLowerCase();
+    const email = String(form.get("email") ?? "")
+      .trim()
+      .toLowerCase();
     const password = String(form.get("password") ?? "");
     const remember = form.get("remember") === "on";
     setLoading(true);
@@ -116,7 +126,7 @@ function LoginPage() {
       const msg =
         err instanceof ApiError
           ? err.errors
-            ? Object.values(err.errors)[0]?.[0] ?? err.message
+            ? (Object.values(err.errors)[0]?.[0] ?? err.message)
             : err.message
           : t("authPages.loginFailed");
       toast.error(msg);
@@ -141,11 +151,24 @@ function LoginPage() {
         >
           {t("authPages.loginTitle")}
         </h2>
-        <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
+        <p
+          style={{
+            color: "rgba(255,255,255,0.75)",
+            marginTop: 16,
+            maxWidth: 420,
+            fontSize: "var(--fs-body-lg)",
+          }}
+        >
           {t("authPages.loginSubtitle")}
         </p>
       </div>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--fs-xs)",
+          color: "rgba(255,255,255,0.4)",
+        }}
+      >
         {t("authPages.loginQuote")}
       </div>
     </>
@@ -168,11 +191,29 @@ function LoginPage() {
       }
     >
       <form onSubmit={submit} className="space-y-[12px]" autoComplete="on">
-        <Input required name="email" type="email" autoComplete="email" placeholder={t("auth.email")} error={fieldError} />
-        <PasswordInput required name="password" autoComplete="current-password" placeholder={t("auth.password")} error={fieldError} />
+        <Input
+          required
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder={t("auth.email")}
+          error={fieldError}
+        />
+        <PasswordInput
+          required
+          name="password"
+          autoComplete="current-password"
+          placeholder={t("auth.password")}
+          error={fieldError}
+        />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>
           <label className="flex items-center gap-[8px]" style={{ color: "var(--foreground-70)" }}>
-            <input type="checkbox" name="remember" defaultChecked style={{ accentColor: "var(--accent)" }} />
+            <input
+              type="checkbox"
+              name="remember"
+              defaultChecked
+              style={{ accentColor: "var(--accent)" }}
+            />
             {t("authPages.rememberMe")}
           </label>
           <Link to="/recover" style={{ color: "var(--accent)", fontWeight: 600 }}>

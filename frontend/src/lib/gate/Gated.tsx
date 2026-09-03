@@ -26,7 +26,8 @@ interface Props {
  */
 export function Gated({ level, action, entity, actionName, intent, children }: Props) {
   const { require, level: viewerLevel } = useGate();
-  if (viewerLevel !== "guest" && entity?.can && actionName && entity.can[actionName] === false) return null;
+  if (viewerLevel !== "guest" && entity?.can && actionName && entity.can[actionName] === false)
+    return null;
   if (!isValidElement(children)) return children;
 
   return cloneElement(children, {

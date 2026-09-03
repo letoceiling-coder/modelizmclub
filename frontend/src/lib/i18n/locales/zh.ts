@@ -21,7 +21,7 @@ export const zh: TranslationSchema = {
     close: "Close",
     online: "online",
     manage: "Manage",
-    subscriptionActive: "Year · active"
+    subscriptionActive: "Year · active",
   },
   nav: {
     sectionCommunity: "Community",
@@ -48,7 +48,7 @@ export const zh: TranslationSchema = {
     settings: "Settings",
     inviteFriend: "邀请好友",
     wallet: "余额与记录",
-    messagesTab: "消息"
+    messagesTab: "消息",
   },
   auth: {
     login: "Sign in",
@@ -58,7 +58,7 @@ export const zh: TranslationSchema = {
     email: "Email",
     password: "Password",
     forgot: "Forgot password?",
-    verifyEmail: "Email verification"
+    verifyEmail: "Email verification",
   },
   guestAuth: {
     title: "Sign in",
@@ -85,7 +85,7 @@ export const zh: TranslationSchema = {
     title: "语言",
     ru: "Русский",
     en: "English",
-    zh: "中文"
+    zh: "中文",
   },
   search: {
     placeholder: "搜索网站",
@@ -98,14 +98,14 @@ export const zh: TranslationSchema = {
       users: "用户",
       communities: "社区",
       ads: "公告",
-      categories: "分类"
+      categories: "分类",
     },
     groups: {
       categories: "分类",
       users: "用户",
       communities: "社区",
-      ads: "公告"
-    }
+      ads: "公告",
+    },
   },
   presence: {
     online: "在线",
@@ -141,7 +141,7 @@ export const zh: TranslationSchema = {
     metaTitle: "模艺社 — 模型爱好者社区",
     metaDescription: "模型爱好者社交平台：遥控车、飞机、无人机、舰船、电子。聊天、公告、社区。",
     rootMetaTitle: "模艺社 — 模型爱好者社区",
-    rootMetaDescription: "模型爱好者社交平台：遥控车、飞机、无人机、舰船、电子。聊天、公告、社区。"
+    rootMetaDescription: "模型爱好者社交平台：遥控车、飞机、无人机、舰船、电子。聊天、公告、社区。",
   },
   landing: {
     nav: {
@@ -154,54 +154,57 @@ export const zh: TranslationSchema = {
       cabinet: "Dashboard",
       register: "Create account",
       demo: "Open demo",
-      menu: "Menu"
+      menu: "Menu",
     },
     hero: {
       brand: "Modelizm",
       tagline: "A marketplace, feed and community for modelers",
-      subtitle: "Buy models and parts, share your builds, find clubs and connect with modelers across the country.",
+      subtitle:
+        "Buy models and parts, share your builds, find clubs and connect with modelers across the country.",
       metaTitle: "模艺社 — 模型爱好者市场与社区",
-      metaDescription: "模型爱好者的市场、动态和社区：遥控车、飞机、无人机、舰船、电子。购买、分享作品、寻找俱乐部。",
+      metaDescription:
+        "模型爱好者的市场、动态和社区：遥控车、飞机、无人机、舰船、电子。购买、分享作品、寻找俱乐部。",
       ctaBrowse: "Listings",
       scroll: "Scroll",
       videoAlt: "RC model builds",
       stats: {
         modelers: "modelers",
         communities: "communities",
-        categories: "directions"
-      }
+        categories: "directions",
+      },
     },
     quick: {
       eyebrow: "An ecosystem for modelers",
       title: "What's inside Modelizm",
-      subtitle: "Six tools that cover a modeler's everyday needs — from buying a single part to joining a race.",
+      subtitle:
+        "Six tools that cover a modeler's everyday needs — from buying a single part to joining a race.",
       open: "Open",
       items: {
         ads: {
           title: "Listings",
-          desc: "Buy and sell models, parts and gear, marketplace-style."
+          desc: "Buy and sell models, parts and gear, marketplace-style.",
         },
         feed: {
           title: "Activity feed",
-          desc: "Projects, builds, photos and videos from other modelers."
+          desc: "Projects, builds, photos and videos from other modelers.",
         },
         communities: {
           title: "Communities",
-          desc: "Interest clubs: RC, aircraft, ships, electronics."
+          desc: "Interest clubs: RC, aircraft, ships, electronics.",
         },
         channels: {
           title: "Channels",
-          desc: "Official channels of brands, shops and experts."
+          desc: "Official channels of brands, shops and experts.",
         },
         messenger: {
           title: "Messenger",
-          desc: "Private and group chats inside the platform."
+          desc: "Private and group chats inside the platform.",
         },
         reviews: {
           title: "Reviews",
-          desc: "Video reviews of models, builds, and gear from the community."
-        }
-      }
+          desc: "Video reviews of models, builds, and gear from the community.",
+        },
+      },
     },
     listings: {
       eyebrow: "Marketplace",
@@ -210,14 +213,14 @@ export const zh: TranslationSchema = {
       photoSoon: "Photo soon",
       loading: "Loading listings…",
       empty: "No published listings yet",
-      postCta: "Post a listing"
+      postCta: "Post a listing",
     },
     categories: {
       eyebrow: "Directions",
       title: "Everything that moves and flies",
       countSuffix: "listings",
       loading: "Loading directions…",
-      empty: "Directions coming soon"
+      empty: "Directions coming soon",
     },
     steps: {
       eyebrow: "How it works",
@@ -225,17 +228,17 @@ export const zh: TranslationSchema = {
       items: {
         direction: {
           title: "Pick your field",
-          desc: "Aviation, cars, ships, railways — mark what speaks to you."
+          desc: "Aviation, cars, ships, railways — mark what speaks to you.",
         },
         find: {
           title: "Find a model or part",
-          desc: "Listings, verified sellers, favorites and safe deals."
+          desc: "Listings, verified sellers, favorites and safe deals.",
         },
         share: {
           title: "Connect and show your builds",
-          desc: "Feed, communities and messenger — all of modeling in one place."
-        }
-      }
+          desc: "Feed, communities and messenger — all of modeling in one place.",
+        },
+      },
     },
     pricing: {
       eyebrow: "Plans",
@@ -248,33 +251,21 @@ export const zh: TranslationSchema = {
           name: "Start",
           price: "0 ₽",
           period: "trial period",
-          features: [
-            "Feed and chats",
-            "Browse listings",
-            "Up to 3 listings"
-          ]
+          features: ["Feed and chats", "Browse listings", "Up to 3 listings"],
         },
         month: {
           name: "Month",
           price: "from 99 ₽",
           period: "per month",
-          features: [
-            "All features",
-            "Unlimited posts",
-            "Priority in the feed"
-          ]
+          features: ["All features", "Unlimited posts", "Priority in the feed"],
         },
         year: {
           name: "Year",
           price: "from 990 ₽",
           period: "per year · best value",
-          features: [
-            "Save up to 30%",
-            "Free listings",
-            "Priority support"
-          ]
-        }
-      }
+          features: ["Save up to 30%", "Free listings", "Priority support"],
+        },
+      },
     },
     values: {
       eyebrow: "Why Modelizm",
@@ -282,21 +273,21 @@ export const zh: TranslationSchema = {
       items: {
         focus: {
           title: "Modeling only",
-          desc: "No noise — the feed and listings stay strictly on topic."
+          desc: "No noise — the feed and listings stay strictly on topic.",
         },
         community: {
           title: "A living community",
-          desc: "Clubs, experts and sellers with ratings and deal history."
+          desc: "Clubs, experts and sellers with ratings and deal history.",
         },
         allInOne: {
           title: "All in one place",
-          desc: "Buy, sell, discuss and agree — no external services."
+          desc: "Buy, sell, discuss and agree — no external services.",
         },
         direct: {
           title: "Direct contact",
-          desc: "A built-in messenger with sellers and clubs."
-        }
-      }
+          desc: "A built-in messenger with sellers and clubs.",
+        },
+      },
     },
     faq: {
       eyebrow: "Questions",
@@ -304,28 +295,29 @@ export const zh: TranslationSchema = {
       items: [
         {
           q: "Do I need to register to browse?",
-          a: "No. Listings, communities and channels are open without registration. An account is needed to post and send messages."
+          a: "No. Listings, communities and channels are open without registration. An account is needed to post and send messages.",
         },
         {
           q: "How much does it cost?",
-          a: "Basic use is free. A subscription from about 99 ₽ a month lifts the limits and unlocks advanced features."
+          a: "Basic use is free. A subscription from about 99 ₽ a month lifts the limits and unlocks advanced features.",
         },
         {
           q: "How do I post a listing?",
-          a: "After signing in, open the Listings section and click Create. Fill in the form — moderation takes up to a day."
+          a: "After signing in, open the Listings section and click Create. Fill in the form — moderation takes up to a day.",
         },
         {
           q: "Can I use it on a phone?",
-          a: "Yes. The interface is mobile-friendly — no separate app required."
+          a: "Yes. The interface is mobile-friendly — no separate app required.",
         },
         {
           q: "What directions are there?",
-          a: "Directions are managed automatically — see the current list in the listings catalog."
-        }
-      ]
+          a: "Directions are managed automatically — see the current list in the listings catalog.",
+        },
+      ],
     },
     footer: {
-      tagline: "A marketplace, feed and community for modelers. Modeling is life, the rest is details.",
+      tagline:
+        "A marketplace, feed and community for modelers. Modeling is life, the rest is details.",
       theme: "Theme",
       contacts: "Contacts",
       hours: "Mon–Sun, 10:00–20:00 MSK",
@@ -337,8 +329,8 @@ export const zh: TranslationSchema = {
             about: "About us",
             company: "Company",
             partners: "For partners",
-            advertising: "Advertising"
-          }
+            advertising: "Advertising",
+          },
         },
         docs: {
           title: "Documents",
@@ -346,8 +338,8 @@ export const zh: TranslationSchema = {
             rules: "Terms of use",
             privacy: "Privacy policy",
             compliance: "Compliance",
-            consent: "Personal data processing"
-          }
+            consent: "Personal data processing",
+          },
         },
         support: {
           title: "Support",
@@ -355,10 +347,10 @@ export const zh: TranslationSchema = {
             faq: "Answers to questions",
             support: "Support team",
             feedback: "Leave feedback",
-            contact: "Contact us"
-          }
-        }
-      }
+            contact: "Contact us",
+          },
+        },
+      },
     },
     card: {
       hide: "Hide",
@@ -366,8 +358,8 @@ export const zh: TranslationSchema = {
       report: "Report",
       favAdd: "Add to favorites",
       favRemove: "Remove from favorites",
-      adMenu: "Listing menu"
-    }
+      adMenu: "Listing menu",
+    },
   },
   errors: {
     notFound: "Page not found",
@@ -377,7 +369,7 @@ export const zh: TranslationSchema = {
     routeMap: "Route map",
     boundaryTitle: "Something went wrong",
     boundaryDesc: "Try refreshing the page.",
-    retry: "Retry"
+    retry: "Retry",
   },
   authPages: {
     loginTitle: "Welcome back",
@@ -389,7 +381,8 @@ export const zh: TranslationSchema = {
     noAccount: "No account?",
     registerLink: "Create one",
     registerTitle: "Join the modeling community",
-    registerSubtitle: "Create an account in a minute and get access to listings, communities and your modeler profile.",
+    registerSubtitle:
+      "Create an account in a minute and get access to listings, communities and your modeler profile.",
     registerBenefitAds: "Listings with no commission",
     registerBenefitCommunities: "Interest-based communities",
     registerBenefitProfile: "Personal modeler profile",
@@ -403,7 +396,7 @@ export const zh: TranslationSchema = {
     agreePrefix: "I accept the",
     rulesLink: "terms of service",
     and: "and",
-    privacyLink: "privacy policy"
+    privacyLink: "privacy policy",
   },
   components: {
     rightCategories: {
@@ -418,7 +411,7 @@ export const zh: TranslationSchema = {
       totalOnline: "{{count}} online",
       expandSubcategories: "Развернуть подкатегории",
       collapseSubcategories: "Свернуть подкатегории",
-      onlineCount: "{{count}} онлайн"
+      onlineCount: "{{count}} онлайн",
     },
     feedFilterTabs: {
       ariaLabel: "Feed filters",
@@ -426,7 +419,7 @@ export const zh: TranslationSchema = {
       following: "Подписки",
       categories: "Направления",
       saved: "Сохранённое",
-      scheduled: "Scheduled"
+      scheduled: "Scheduled",
     },
     postActionMenu: {
       ariaLabel: "Меню действий",
@@ -453,7 +446,7 @@ export const zh: TranslationSchema = {
       changeSchedule: "Change schedule",
       cancelSchedule: "Cancel schedule",
       reportDescription: "Жалоба на публикацию{{title}} — выберите причину и опишите ситуацию.",
-      reportSuffix: " (публикация)"
+      reportSuffix: " (публикация)",
     },
     commentSection: {
       reply: "Ответить",
@@ -550,7 +543,7 @@ export const zh: TranslationSchema = {
       video: "视频",
       sendAria: "发送",
       createAria: "创建帖子或视频",
-      addMediaAria: "添加照片或视频"
+      addMediaAria: "添加照片或视频",
     },
     adsCatalog: {
       sortNew: "最新优先",
@@ -580,7 +573,7 @@ export const zh: TranslationSchema = {
       justNow: "刚刚",
       hoursAgo: "{{count}} 小时前",
       yesterday: "昨天",
-      daysAgo: "{{count}} 天前"
+      daysAgo: "{{count}} 天前",
     },
     footerLinks: {
       supportTitle: "支持",
@@ -597,17 +590,18 @@ export const zh: TranslationSchema = {
       payment: "支付",
       safeDeal: "安全交易",
       refund: "退款",
-      security: "安全"
+      security: "安全",
     },
     themeToggle: {
       aria: "切换主题",
       light: "浅色主题",
-      dark: "深色主题"
+      dark: "深色主题",
     },
     photoEditor: {
       safeZoneMobile: "此区域在移动设备上可见",
       safeZoneDesktop: "此区域在电脑上可见",
-      safeZoneHint: "变暗的区域可能在部分屏幕上被裁剪。请将文字和标志放在重叠框内，以确保在手机和电脑上均可见。",
+      safeZoneHint:
+        "变暗的区域可能在部分屏幕上被裁剪。请将文字和标志放在重叠框内，以确保在手机和电脑上均可见。",
       interactionTitle: "编辑模式",
       modePan: "移动照片",
       modePanHint: "上下或左右拖动图片",
@@ -657,7 +651,7 @@ export const zh: TranslationSchema = {
       draftFound: "Unsaved draft found",
       continueDraft: "Continue",
       startNew: "Start over",
-      directionAndScale: "Направление и масштаб"
+      directionAndScale: "Направление и масштаб",
     },
     imageUploadGrid: {
       dropzoneTitle: "Drag photos here or click to choose",
@@ -676,8 +670,10 @@ export const zh: TranslationSchema = {
       moveRightAria: "Move photo right",
       menuAria: "Photo actions",
       dragHandleAria: "Drag to reorder",
-      hintFull: "{{current}} of {{max}}. Drag photos or use the menu to reorder. The first is the main card photo.",
-      hintMinimal: "{{current}} of {{max}}. Drag photos to reorder. The first is the main card photo."
+      hintFull:
+        "{{current}} of {{max}}. Drag photos or use the menu to reorder. The first is the main card photo.",
+      hintMinimal:
+        "{{current}} of {{max}}. Drag photos to reorder. The first is the main card photo.",
     },
     postSchedule: {
       publishNow: "Publish now",
@@ -690,7 +686,7 @@ export const zh: TranslationSchema = {
       rescheduled: "Schedule updated",
       saveFailed: "Could not save schedule",
       saving: "Saving…",
-      save: "Save"
+      save: "Save",
     },
     dialogContextMenu: {
       goProfile: "Перейти в профиль",
@@ -704,7 +700,7 @@ export const zh: TranslationSchema = {
       clearHistory: "Очистить историю",
       deleteChat: "Удалить чат",
       unblock: "Разблокировать",
-      blockUser: "Заблокировать пользователя"
+      blockUser: "Заблокировать пользователя",
     },
     findYourPeopleSheet: {
       title: "Найди своих",
@@ -712,7 +708,7 @@ export const zh: TranslationSchema = {
       chatHint: "Зайди в чат своего направления",
       expandSubcategories: "Развернуть подкатегории",
       collapseSubcategories: "Свернуть подкатегории",
-      onlineCount: "{{count}} онлайн"
+      onlineCount: "{{count}} онлайн",
     },
     eventsHero: {
       ariaLabel: "События и новости форума",
@@ -720,7 +716,7 @@ export const zh: TranslationSchema = {
       kindNews: "Новость",
       kindPromo: "Акция",
       prev: "Предыдущий",
-      next: "Следующий"
+      next: "Следующий",
     },
     settingsNav: {
       dashboard: "Статистика",
@@ -734,7 +730,7 @@ export const zh: TranslationSchema = {
       rating: "Рейтинг и отзывы",
       spaces: "Мой канал и сообщество",
       history: "История просмотров",
-      myAds: "Мои объявления"
+      myAds: "Мои объявления",
     },
     channelBranding: {
       demoLocalOnly: "In demo mode, branding is saved locally only",
@@ -760,7 +756,7 @@ export const zh: TranslationSchema = {
       avatarEditorTitle: "Channel avatar",
       bannerEditorTitle: "Channel cover",
       changeBannerAria: "Change cover",
-      changeAvatarAria: "Change avatar"
+      changeAvatarAria: "Change avatar",
     },
     channelManage: {
       otherDirection: "Other",
@@ -783,21 +779,24 @@ export const zh: TranslationSchema = {
       commentsLabel: "Allow comments",
       contactsLabel: "Contacts",
       rulesLabel: "Channel rules",
-      publicNotice: "Channels are public: everyone can see them. Privacy settings are not available yet.",
+      publicNotice:
+        "Channels are public: everyone can see them. Privacy settings are not available yet.",
       saving: "Saving…",
       saveChanges: "Save changes",
-      deleteWarning: "Deletion is permanent: the channel disappears from the catalog and subscribers lose access to all posts.",
+      deleteWarning:
+        "Deletion is permanent: the channel disappears from the catalog and subscribers lose access to all posts.",
       settingsTitle: "Channel settings",
       settingsDesc: "Name, description, branding and other channel options.",
       deleteTitle: "Delete channel?",
-      deleteDesc: "This cannot be undone. The channel will disappear and subscribers will lose access to all posts. Type the name to confirm",
+      deleteDesc:
+        "This cannot be undone. The channel will disappear and subscribers will lose access to all posts. Type the name to confirm",
       deleteCompact: "Delete",
       deleteChannel: "Delete channel",
       cancel: "Cancel",
       deleting: "Deleting…",
       deleteForever: "Delete permanently",
       deleted: "Channel deleted",
-      deleteFailed: "Could not delete channel"
+      deleteFailed: "Could not delete channel",
     },
     chatHeader: {
       searchAria: "Search messages",
@@ -835,7 +834,8 @@ export const zh: TranslationSchema = {
       userUnblocked: "{{name}} unblocked",
       userUnblockedDesc: "You can exchange messages again",
       userBlockedToast: "{{name}} blocked",
-      userBlockedDesc: "You will no longer receive messages from this user; they were removed from your friends"
+      userBlockedDesc:
+        "You will no longer receive messages from this user; they were removed from your friends",
     },
     callScreen: {
       ariaLabel: "Call screen",
@@ -867,23 +867,24 @@ export const zh: TranslationSchema = {
       cameraOn: "Turn camera on",
       cameraOff: "Turn camera off",
       switchCamera: "Switch camera",
-      endCall: "End call"
+      endCall: "End call",
     },
     voiceBubble: {
-      transcriptUnavailable: "Transcript unavailable — speech recognition is being enabled on the server.",
+      transcriptUnavailable:
+        "Transcript unavailable — speech recognition is being enabled on the server.",
       demoTranscript: "Sample voice message transcript.",
       speechNotRecognized: "Speech not recognized.",
       pause: "Pause",
       play: "Play",
       voiceLabel: "voice",
       hideText: "Hide text",
-      showText: "Show text"
+      showText: "Show text",
     },
     messageFileBubble: {
       download: "Download",
       sizeMb: "{{size}} MB",
-      sizeKb: "{{size}} KB"
-    }
+      sizeKb: "{{size}} KB",
+    },
   },
   pages: {
     shared: {
@@ -913,13 +914,14 @@ export const zh: TranslationSchema = {
       retry: "Повторить",
       backHome: "← На главную",
       info: "Информация",
-      membersNew: "Новое сообщество"
+      membersNew: "Новое сообщество",
     },
     feed: {
       metaTitle: "Лента — МоДелизМ",
       metaDescription: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения.",
       emptyFollowingTitle: "Здесь пока пусто",
-      emptyFollowingDesc: "Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте.",
+      emptyFollowingDesc:
+        "Подпишитесь на авторов и сообщества, чтобы видеть их публикации в ленте.",
       findAuthors: "Найти авторов",
       selectCategoryTitle: "Выберите категорию",
       selectCategoryDesc: "Отфильтруйте ленту по интересующему вас направлению моделизма.",
@@ -933,7 +935,7 @@ export const zh: TranslationSchema = {
       emptyPostsDesc: "В этой категории пока никто ничего не опубликовал.",
       showAll: "Показать все",
       loadingMore: "Загружаем ещё…",
-      endOfFeed: "Вы посмотрели всю ленту"
+      endOfFeed: "Вы посмотрели всю ленту",
     },
     messenger: {
       metaTitle: "Messenger — MoDelizM",
@@ -1002,7 +1004,7 @@ export const zh: TranslationSchema = {
       listingLabel: "Listing",
       postLabel: "Post",
       forwardedFrom: "Forwarded from {{name}}",
-      channelSubscribed: "Subscribed"
+      channelSubscribed: "Subscribed",
     },
     communities: {
       metaTitle: "Сообщества — МоДелизМ",
@@ -1064,7 +1066,8 @@ export const zh: TranslationSchema = {
       upcomingEvents: "Upcoming events",
       similarCommunities: "Similar communities",
       requestSent: "Request sent",
-      demoSignupNote: "Demo mode: event signup saved. Production will show a participant form and confirmation.",
+      demoSignupNote:
+        "Demo mode: event signup saved. Production will show a participant form and confirmation.",
       gotIt: "Got it",
       reportSuffix: " (community)",
       reportDesc: "You are reporting community «{{name}}». Describe the issue.",
@@ -1080,7 +1083,8 @@ export const zh: TranslationSchema = {
     },
     channels: {
       metaTitle: "Channels — MoDelizM",
-      metaDescription: "Subscribe to brand, shop, author and expert channels: news, reviews and offers.",
+      metaDescription:
+        "Subscribe to brand, shop, author and expert channels: news, reviews and offers.",
       title: "Channels",
       subtitle: "News, reviews and announcements — from channel owners only",
       searchPlaceholder: "Search channels",
@@ -1089,7 +1093,8 @@ export const zh: TranslationSchema = {
       emptyDesc: "Create a channel for posts — it will appear under My channels",
       createChannel: "Create channel",
       createNeedAccessTitle: "Subscription or a verified account is required",
-      createNeedAccessDesc: "Channels can be created by users with an active subscription or a verified brand/shop account.",
+      createNeedAccessDesc:
+        "Channels can be created by users with an active subscription or a verified brand/shop account.",
       createNeedAccessAction: "Get a subscription",
       sectionMine: "My channels",
       sectionMineSub: "Channels where you are owner or author",
@@ -1109,7 +1114,7 @@ export const zh: TranslationSchema = {
       postKindNews: "News",
       postKindReview: "Review",
       postKindAnnounce: "Announcement",
-      postKindPromo: "Special offer"
+      postKindPromo: "Special offer",
     },
     channelDetail: {
       metaTitle: "Channel — MoDelizM",
@@ -1133,11 +1138,13 @@ export const zh: TranslationSchema = {
       addVideo: "Add video",
       publishing: "Publishing…",
       publish: "Publish",
-      moderationPendingDesc: "Subscribers will see the post after moderator approval. Track status in the Posts tab.",
+      moderationPendingDesc:
+        "Subscribers will see the post after moderator approval. Track status in the Posts tab.",
       publishedDesc: "The post is already visible to subscribers and duplicated to the site feed.",
       rulePremodTitle: "Pre-moderation",
       rulePublishTitle: "Publishing",
-      rulePremodText: "Every post is reviewed before publishing. Subscribers cannot see it until approved.",
+      rulePremodText:
+        "Every post is reviewed before publishing. Subscribers cannot see it until approved.",
       rulePublishText: "Owner posts publish immediately and are visible to subscribers.",
       ruleNoChatTitle: "No chat",
       ruleNoChatText: "Subscribers cannot write to the feed — this is a one-way channel.",
@@ -1151,7 +1158,8 @@ export const zh: TranslationSchema = {
       emptyPosts: "No posts yet",
       emptyPostsDesc: "Channel posts will appear here",
       tabPosts: "Posts",
-      publicChannelNote: "This is a public channel: only the owner and assigned admins publish. Subscribers read and cannot post to the feed.",
+      publicChannelNote:
+        "This is a public channel: only the owner and assigned admins publish. Subscribers read and cannot post to the feed.",
       ownerViewTitle: "Owner view",
       ownerViewDesc: "Shows posts under moderation and rejected",
       emptyPostsChannel: "No posts in this channel yet",
@@ -1166,7 +1174,8 @@ export const zh: TranslationSchema = {
       deletePostFailed: "Could not delete post",
       postTextPlaceholder: "{{kind}} text for subscribers…",
       aboutTitle: "Description",
-      aboutExtra: "This channel publishes {{kind}} content: news, reviews, announcements and special offers for subscribers. Subscribe to get new posts in your feed.",
+      aboutExtra:
+        "This channel publishes {{kind}} content: news, reviews, announcements and special offers for subscribers. Subscribe to get new posts in your feed.",
       ownerSection: "Owner",
       ownerProfileAria: "Profile {{name}}",
       ownerLeads: "{{kind}} · runs channel «{{name}}»",
@@ -1198,7 +1207,7 @@ export const zh: TranslationSchema = {
       emptyDesc: "Здесь будут появляться уведомления о новых активностях",
       deleteAria: "Delete notification",
       deleted: "Notification deleted",
-      undo: "Undo"
+      undo: "Undo",
     },
     friends: {
       metaTitle: "Друзья — МоДелизМ",
@@ -1240,7 +1249,8 @@ export const zh: TranslationSchema = {
       hiddenFromRecommendations: "Скрыто из рекомендаций",
       blockFailed: "Не удалось заблокировать",
       userBlocked: "{{name}} заблокирован",
-      userBlockedDesc: "Пропал из друзей и списков — можно разблокировать в разделе «Заблокированные» в профиле",
+      userBlockedDesc:
+        "Пропал из друзей и списков — можно разблокировать в разделе «Заблокированные» в профиле",
       wantsToAdd: "Хочет добавить вас в друзья",
       myFriends: "Мои друзья",
       recommendations: "Рекомендации",
@@ -1361,11 +1371,12 @@ export const zh: TranslationSchema = {
       loading: "Loading…",
       notFound: "User not found",
       toFriends: "Back to friends",
-      dialogOpenFailed: "Could not open chat"
+      dialogOpenFailed: "Could not open chat",
     },
     ads: {
       metaTitle: "Объявления — МоДелизМ",
-      metaDescription: "Каталог объявлений: RC авто, самолёты, квадрокоптеры, корабли. Купить и продать модели и запчасти.",
+      metaDescription:
+        "Каталог объявлений: RC авто, самолёты, квадрокоптеры, корабли. Купить и продать модели и запчасти.",
       title: "Listings",
       subtitle: "Catalog of models, parts and gear",
       create: "Create",
@@ -1381,7 +1392,7 @@ export const zh: TranslationSchema = {
       loading: "Загружаем…",
       showMore: "Показать ещё",
       refreshing: "Обновляем объявления…",
-      loginToPost: "Войти и разместить"
+      loginToPost: "Войти и разместить",
     },
     adDetail: {
       metaTitle: "Listing — MoDelizM",
@@ -1431,7 +1442,8 @@ export const zh: TranslationSchema = {
       ownerEditShort: "Edit",
       ownerUnpublish: "Unpublish",
       ownerUnpublishShort: "Unpublish",
-      ownerUnpublishConfirm: "Unpublish this listing? It will leave the catalog but stay in My listings.",
+      ownerUnpublishConfirm:
+        "Unpublish this listing? It will leave the catalog but stay in My listings.",
       ownerUnpublished: "Listing unpublished",
       ownerPreviewAsBuyer: "View as buyer",
       ownerBoost: "Boost listing",
@@ -1442,7 +1454,7 @@ export const zh: TranslationSchema = {
       ownerActionFailed: "Action failed",
       previewModeTitle: "Buyer preview",
       previewModeDesc: "This is how other users see your listing.",
-      previewModeExit: "Back to owner mode"
+      previewModeExit: "Back to owner mode",
     },
     adsNew: {
       metaTitle: "New listing — MoDelizM",
@@ -1497,7 +1509,8 @@ export const zh: TranslationSchema = {
       contactFromProfile: "Taken from your profile. Buyers will see this number.",
       contactVerifiedBadge: "Verified by SMS",
       contactChange: "Change number",
-      contactChangeHint: "To use another number, confirm it with an SMS code — it will be saved to your profile.",
+      contactChangeHint:
+        "To use another number, confirm it with an SMS code — it will be saved to your profile.",
       contactSendCode: "Send code",
       contactConfirmCode: "Confirm",
       deliveryMethodsLabel: "Delivery methods",
@@ -1507,8 +1520,10 @@ export const zh: TranslationSchema = {
       titleFallback: "Listing title",
       descFallback: "Description not filled in.",
       moderationNoteFree: "Placement is free — the listing will go to moderation after publishing.",
-      moderationNotePaid: "To pay {{price}} ₽. After payment the listing goes to moderation (usually within 60 minutes).",
-      moderationNoteDefault: "After publishing the listing goes to moderation (usually within 60 minutes).",
+      moderationNotePaid:
+        "To pay {{price}} ₽. After payment the listing goes to moderation (usually within 60 minutes).",
+      moderationNoteDefault:
+        "After publishing the listing goes to moderation (usually within 60 minutes).",
       promocodeLabel: "Promo code",
       basePrice: "Base price: {{price}} ₽",
       promoDiscount: "Promo discount: −{{price}} ₽",
@@ -1520,7 +1535,7 @@ export const zh: TranslationSchema = {
       back: "Back",
       next: "Next",
       payAndPublish: "Pay {{price}} and publish",
-      priceMaxError: "Enter a valid price — maximum {{max}} ₽"
+      priceMaxError: "Enter a valid price — maximum {{max}} ₽",
     },
     myAds: {
       metaTitle: "My listings — MoDelizM",
@@ -1603,7 +1618,7 @@ export const zh: TranslationSchema = {
       subtitle: "Listings you marked with a heart",
       emptyTitle: "No favorites yet",
       emptyDesc: "Add listings with a heart in the catalog — they will appear here.",
-      toCatalog: "Browse catalog"
+      toCatalog: "Browse catalog",
     },
     categories: {
       metaTitle: "Направления — МоДелизМ",
@@ -1614,7 +1629,7 @@ export const zh: TranslationSchema = {
       modelsCount: "{{count}} models",
       open: "Open",
       openCategory: "Open category {{name}}",
-      members: "{{count}} members · {{rooms}} rooms"
+      members: "{{count}} members · {{rooms}} rooms",
     },
     categoryDetail: {
       metaTitle: "Category — MoDelizM",
@@ -1628,7 +1643,8 @@ export const zh: TranslationSchema = {
       roomsHeading: "Rooms by subcategory",
       chatLabel: "chat",
       noResults: "Nothing found for «{{query}}»",
-      footerNote: "Each subcategory has its own chat, listings and members. Pick a topic so you don't mix with other subjects.",
+      footerNote:
+        "Each subcategory has its own chat, listings and members. Pick a topic so you don't mix with other subjects.",
       roomPreview0: "Who ran the new track this weekend?",
       roomPreview1: "Share your setup — the suspension is floating.",
       roomPreview2: "Selling a kit — will let it go to good hands.",
@@ -1636,7 +1652,7 @@ export const zh: TranslationSchema = {
       roomPreview4: "Posted fresh break-in video in the chat.",
       roomPreview5: "Motor advice — what should I get?",
       roomPreview6: "Build is done — sharing photos.",
-      roomPreview7: "Who's racing on Saturday?"
+      roomPreview7: "Who's racing on Saturday?",
     },
     subcategoryDetail: {
       metaTitle: "Subcategory — MoDelizM",
@@ -1686,7 +1702,7 @@ export const zh: TranslationSchema = {
       writeInSub: "Write in «{{name}}»…",
       noAds: "No listings in «{{name}}» yet",
       noAdsDesc: "This is the local board for this subcategory. Be the first.",
-      postAd: "Post a listing"
+      postAd: "Post a listing",
     },
     settings: {
       metaTitle: "Settings — MoDelizM",
@@ -1726,11 +1742,13 @@ export const zh: TranslationSchema = {
       emailLabel: "Email",
       verificationSentTo: "A confirmation link was sent to {{email}}.",
       resendVerificationBtn: "Send confirmation email",
-      phoneConfirmNote: "Verification is SMS-only. The number is used in billing details and for site actions.",
+      phoneConfirmNote:
+        "Verification is SMS-only. The number is used in billing details and for site actions.",
       navBack: "Settings",
       securityTitle: "Security",
       changePassword: "Change password",
-      changePasswordDesc: "Enter your current and new password — the change takes effect immediately without signing out.",
+      changePasswordDesc:
+        "Enter your current and new password — the change takes effect immediately without signing out.",
       currentPassword: "Current password",
       newPassword: "New password",
       confirmNewPassword: "Confirm new password",
@@ -1743,7 +1761,8 @@ export const zh: TranslationSchema = {
       demoPasswordChange: "Password change is unavailable in demo mode",
       demoUnavailable: "Unavailable in demo mode",
       sessionsTitle: "Active sessions",
-      sessionsDesc: "If you signed in on someone else's device — end all sessions except this one. You'll stay signed in here.",
+      sessionsDesc:
+        "If you signed in on someone else's device — end all sessions except this one. You'll stay signed in here.",
       logoutOtherDevices: "Sign out on other devices",
       loggedOutOtherDevices: "Signed out on all other devices",
       logoutOthersFailed: "Could not end other sessions",
@@ -1874,7 +1893,8 @@ export const zh: TranslationSchema = {
       ratingEmpty: "No reviews yet",
       defaultUser: "User",
       paymentTitle: "Payment methods",
-      paymentDesc: "Cards for subscription and paid listings. We don't store the full card number — cards are linked via a secure bank gateway; we only keep a token and the last 4 digits for display.",
+      paymentDesc:
+        "Cards for subscription and paid listings. We don't store the full card number — cards are linked via a secure bank gateway; we only keep a token and the last 4 digits for display.",
       paymentSoon: "Card linking will be available after payment processing is connected",
       paymentDemo: "Payment gateway is not connected in demo mode.",
       paymentEmpty: "No linked cards yet.",
@@ -1890,7 +1910,8 @@ export const zh: TranslationSchema = {
       cardBrandMir: "MIR",
       cardBrandDefault: "Card",
       requisitesTitle: "Billing details",
-      requisitesDesc: "Stored in your account and used for transaction documents. Phone is pulled from",
+      requisitesDesc:
+        "Stored in your account and used for transaction documents. Phone is pulled from",
       requisitesProfileLink: "profile & account",
       requisitesSaved: "Billing details saved",
       requisitesSaveFailed: "Could not save billing details",
@@ -1904,7 +1925,8 @@ export const zh: TranslationSchema = {
       phoneMismatch: "A different number is on file ({{phone}}).",
       changeInProfile: "Change in profile",
       payoutCardTitle: "Payout card",
-      payoutCardDesc: "Card number is stored encrypted and used only for manual transfers by an administrator — no automatic payouts via payment gateway.",
+      payoutCardDesc:
+        "Card number is stored encrypted and used only for manual transfers by an administrator — no automatic payouts via payment gateway.",
       payoutCardSaved: "Saved card •••• {{last4}}",
       payoutCardNew: "New card number (to replace)",
       payoutCardNumber: "Card number",
@@ -1920,7 +1942,7 @@ export const zh: TranslationSchema = {
       spacesCommunity: "Community",
       spacesNoCommunity: "Create your community by city or niche topic",
       spacesMyCommunity: "My community",
-      spacesCreateCommunity: "Create community"
+      spacesCreateCommunity: "Create community",
     },
     register: {
       metaTitle: "Регистрация — МоДелизМ",
@@ -1945,7 +1967,7 @@ export const zh: TranslationSchema = {
       agreeError: "Подтвердите согласие с правилами",
       passwordMismatch: "Пароли не совпадают",
       registerSuccess: "Аккаунт создан. Введите код из письма",
-      registerFailed: "Не удалось зарегистрироваться. Попробуйте позже"
+      registerFailed: "Не удалось зарегистрироваться. Попробуйте позже",
     },
     recover: {
       metaTitle: "Восстановление пароля — МоДелизМ",
@@ -1953,11 +1975,12 @@ export const zh: TranslationSchema = {
       subtitle: "Мы пришлём ссылку для сброса на ваш email",
       rememberPassword: "Вспомнили пароль?",
       backToLogin: "Вернуться ко входу",
-      sentMessage: "Если такой email зарегистрирован — письмо со ссылкой уже у вас в почте. Проверьте папку «Спам».",
+      sentMessage:
+        "Если такой email зарегистрирован — письмо со ссылкой уже у вас в почте. Проверьте папку «Спам».",
       emailPlaceholder: "Ваш email",
       sending: "Отправляем…",
       sendLink: "Отправить ссылку",
-      emailSent: "Письмо отправлено"
+      emailSent: "Письмо отправлено",
     },
     resetPassword: {
       metaTitle: "Новый пароль — МоДелизМ",
@@ -1975,7 +1998,7 @@ export const zh: TranslationSchema = {
       saving: "Сохраняем…",
       saveButton: "Сохранить пароль",
       showPassword: "Показать пароль",
-      hidePassword: "Скрыть пароль"
+      hidePassword: "Скрыть пароль",
     },
     verifyEmail: {
       metaTitle: "Подтверждение email — МоДелизМ",
@@ -1987,14 +2010,15 @@ export const zh: TranslationSchema = {
       success: "Email подтверждён",
       failed: "Не удалось подтвердить email. Попробуйте позже",
       alreadyConfirmed: "Уже подтверждали?",
-      loginLink: "Войти"
+      loginLink: "Войти",
     },
     onboarding: {
       metaTitle: "Choose interests — MoDelizM",
       skip: "Skip",
       step: "Step 1 of 1",
       title: "What are you interested in?",
-      subtitle: "Pick categories — your feed, chats and listings will be tailored to them. You can change this later in your profile.",
+      subtitle:
+        "Pick categories — your feed, chats and listings will be tailored to them. You can change this later in your profile.",
       selected: "Selected: {{count}} of {{total}}",
       continue: "Continue →",
       selectOne: "Select at least one category",
@@ -2014,7 +2038,7 @@ export const zh: TranslationSchema = {
       interestTrade: "Buy & sell",
       interestTradeDesc: "Parts and ready-made models",
       interestEvents: "Events & races",
-      interestEventsDesc: "Local clubs and championships"
+      interestEventsDesc: "Local clubs and championships",
     },
     subscription: {
       metaTitle: "Subscription — MoDelizM",
@@ -2029,7 +2053,8 @@ export const zh: TranslationSchema = {
       subscribe: "Subscribe",
       freePlan: "Free plan",
       oneTimeTitle: "One-time listing",
-      oneTimeDesc: "One listing for {{price}} ₽ — no subscription or commitment. For when you need a single post, not ongoing access.",
+      oneTimeDesc:
+        "One listing for {{price}} ₽ — no subscription or commitment. For when you need a single post, not ongoing access.",
       oneTimeCta: "Post listing",
       paySoon: "Payment will be available after payment processing is connected",
       paySoonDesc: "One-time listing — {{price}} ₽",
@@ -2054,12 +2079,13 @@ export const zh: TranslationSchema = {
       defaultPlanName: "Subscription",
       day: "day",
       days2: "days",
-      days5: "days"
+      days5: "days",
     },
     stubPay: {
       bank: "VTB Acquiring · test contour",
       title: "Pay for order",
-      banner: "This is a simulated bank form. No money is charged. Live mode uses real VTB acquiring.",
+      banner:
+        "This is a simulated bank form. No money is charged. Live mode uses real VTB acquiring.",
       merchant: "Merchant",
       purpose: "Purpose",
       amount: "Amount",
@@ -2100,13 +2126,14 @@ export const zh: TranslationSchema = {
       emailPlaceholder: "Your email",
       message: "Message",
       messagePlaceholder: "Describe the issue in detail...",
-      send: "Send"
+      send: "Send",
     },
     legal: {
       metaTitle: "Legal — MoDelizM",
       safeDealMetaTitle: "Safe deal rules — MoDelizM",
       rulesMetaTitle: "Community rules — MoDelizM",
-      rulesMetaDescription: "Rules for posting, communication and behavior in the MoDelizM community.",
+      rulesMetaDescription:
+        "Rules for posting, communication and behavior in the MoDelizM community.",
       rulesTitle: "Community rules",
       rulesSubtitle: "These rules help everyone enjoy MoDelizM comfortably.",
       rule1Title: "Respect members",
@@ -2114,29 +2141,35 @@ export const zh: TranslationSchema = {
       rule2Title: "On-topic content",
       rule2Text: "Post modeling-related material: models, tech, reviews, events, tutorials.",
       rule3Title: "No spam or manipulation",
-      rule3Text: "Mass messaging, reaction farming, fake reviews and off-listing ads are prohibited.",
+      rule3Text:
+        "Mass messaging, reaction farming, fake reviews and off-listing ads are prohibited.",
       rule4Title: "Accuracy",
       rule4Text: "Do not publish knowingly false information about products, sellers or brands.",
       rule5Title: "Copyright",
       rule5Text: "Do not post others' content without permission and attribution.",
       rule6Title: "Moderation",
-      rule6Text: "Moderators may hide rule-breaking content. Repeated violations lead to account suspension.",
+      rule6Text:
+        "Moderators may hide rule-breaking content. Repeated violations lead to account suspension.",
       questions: "Questions and reports:",
       privacyMetaTitle: "Privacy policy — MoDelizM",
       privacyTitle: "Data processing policy",
       privacyDemo: "Demo version. The official policy will be published at production launch.",
       privacy1Title: "1. What data we collect",
-      privacy1Text: "Name, email, avatar, content you publish, and technical session data (IP, device, browser).",
+      privacy1Text:
+        "Name, email, avatar, content you publish, and technical session data (IP, device, browser).",
       privacy2Title: "2. Why we need it",
-      privacy2Text: "Authentication, feed personalization, fraud prevention, service quality analytics.",
+      privacy2Text:
+        "Authentication, feed personalization, fraud prevention, service quality analytics.",
       privacy3Title: "3. Third-party sharing",
-      privacy3Text: "We do not sell your data. Sharing is only required by law or with your explicit consent.",
+      privacy3Text:
+        "We do not sell your data. Sharing is only required by law or with your explicit consent.",
       privacy4Title: "4. Storage and deletion",
-      privacy4Text: "Data is kept while your account is active. You can delete your account and related data in profile settings or on request.",
+      privacy4Text:
+        "Data is kept while your account is active. You can delete your account and related data in profile settings or on request.",
       privacy5Title: "5. Cookies",
       privacy5Text: "We use cookies for authentication, UI preferences and basic analytics.",
       privacy6Title: "6. Contact",
-      privacy6Text: "Data processing requests:"
+      privacy6Text: "Data processing requests:",
     },
     info: {
       metaTitle: "Information — MoDelizM",
@@ -2148,26 +2181,34 @@ export const zh: TranslationSchema = {
       fallbackTitle: "Page in preparation",
       fallbackDesc: "This section is coming soon. You can return home or contact support for now.",
       aboutTitle: "About us",
-      aboutDesc: "MoDelizM is a marketplace, feed and community for modelers in Russia. We bring together people who build, fly and race.",
+      aboutDesc:
+        "MoDelizM is a marketplace, feed and community for modelers in Russia. We bring together people who build, fly and race.",
       companyTitle: "About the company",
-      companyDesc: "Legal and organizational information about MoDelizM. Company details will appear at production launch.",
+      companyDesc:
+        "Legal and organizational information about MoDelizM. Company details will appear at production launch.",
       partnersTitle: "For partners",
-      partnersDesc: "Partnerships with shops, brands and clubs. Joint promos, showcases and brand channels for the modeling world.",
+      partnersDesc:
+        "Partnerships with shops, brands and clubs. Joint promos, showcases and brand channels for the modeling world.",
       advertisingTitle: "Advertising",
-      advertisingDesc: "Promotion formats on the platform: banners, boosted listings and brand channels. Media kit in preparation.",
+      advertisingDesc:
+        "Promotion formats on the platform: banners, boosted listings and brand channels. Media kit in preparation.",
       complianceTitle: "Compliance",
       complianceDesc: "Principles for legal compliance, content moderation and safe transactions.",
       consentTitle: "Personal data consent",
       consentDesc: "Terms for processing personal data of MoDelizM platform users.",
       supportTitle: "Support",
-      supportDesc: "We're available daily 10:00–20:00 MSK. Write to us — we'll help with your account, listings or transactions.",
+      supportDesc:
+        "We're available daily 10:00–20:00 MSK. Write to us — we'll help with your account, listings or transactions.",
       feedbackTitle: "Feedback",
-      feedbackDesc: "Your ideas and feedback make the platform better. Leave a review or report an issue.",
+      feedbackDesc:
+        "Your ideas and feedback make the platform better. Leave a review or report an issue.",
       contactsTitle: "Contacts",
-      contactsDesc: "Reach us: support@modelizmclub.ru, 8 800 000-00-00, Mon–Sun 10:00–20:00 MSK. Social links will appear when official channels launch.",
+      contactsDesc:
+        "Reach us: support@modelizmclub.ru, 8 800 000-00-00, Mon–Sun 10:00–20:00 MSK. Social links will appear when official channels launch.",
       securityTitle: "Security",
-      securityDesc: "Safe transaction principles, listing moderation and personal data protection on MoDelizM. Full policy at production launch.",
-      returnHome: "Return home"
+      securityDesc:
+        "Safe transaction principles, listing moderation and personal data protection on MoDelizM. Full policy at production launch.",
+      returnHome: "Return home",
     },
     reviews: {
       metaTitle: "Reviews — MoDelizM",
@@ -2237,10 +2278,10 @@ export const zh: TranslationSchema = {
       commentFailed: "Could not post comment",
       categoryReviews: "{{name}}",
       editPoster: "Edit cover",
-      editPhoto: "Edit photo"
+      editPhoto: "Edit photo",
     },
     login: {
-      metaTitle: "Вход — МоДелизМ"
+      metaTitle: "Вход — МоДелизМ",
     },
     homeLink: "Home",
     adminReviews: {
@@ -2314,7 +2355,7 @@ export const zh: TranslationSchema = {
       mediaPosterMissing: "Cover: missing",
       previewStats: "Views {{views}} · {{duration}} · ♥ {{likes}} · 💬 {{comments}}",
       hideReview: "Hide from site",
-      replaceMedia: "Replace media"
+      replaceMedia: "Replace media",
     },
     adminShell: {
       metaTitle: "Admin panel — Modelizm",
@@ -2323,7 +2364,8 @@ export const zh: TranslationSchema = {
       checkingAccess: "Checking access…",
       forbiddenTitle: "Access denied",
       forbiddenDesc: "The admin panel is available only to super administrators (admin role).",
-      forbiddenSignedIn: "You are signed in as {{name}}. Your account does not have super admin rights — contact an existing administrator or sign in with another account.",
+      forbiddenSignedIn:
+        "You are signed in as {{name}}. Your account does not have super admin rights — contact an existing administrator or sign in with another account.",
       loginOther: "Sign in with another account",
       backHome: "Back to home",
       nav: {
@@ -2351,8 +2393,8 @@ export const zh: TranslationSchema = {
         legalPages: "Legal pages",
         rulesPages: "规则",
         footerLinks: "Footer links",
-        auditLog: "Change history"
-      }
+        auditLog: "Change history",
+      },
     },
     adminDashboard: {
       title: "Dashboard",
@@ -2371,8 +2413,8 @@ export const zh: TranslationSchema = {
         thu: "Thu",
         fri: "Fri",
         sat: "Sat",
-        sun: "Sun"
-      }
+        sun: "Sun",
+      },
     },
     adminCommon: {
       searchPlaceholder: "Search by title…",
@@ -2423,7 +2465,7 @@ export const zh: TranslationSchema = {
       add: "Add",
       saved: "Saved",
       save: "Save",
-      all: "All"
+      all: "All",
     },
     adminContent: {
       title: "Posts",
@@ -2431,7 +2473,7 @@ export const zh: TranslationSchema = {
       loadFailed: "Could not load posts",
       deleteConfirm: "Delete this post?",
       previewDialog: "Post preview",
-      noMedia: "No media attached"
+      noMedia: "No media attached",
     },
     adminAnalytics: {
       title: "Analytics",
@@ -2444,8 +2486,8 @@ export const zh: TranslationSchema = {
         listings: "Listings: created / sold",
         topCategories: "Top categories by activity",
         subscription: "Subscription conversion",
-        geo: "User geography"
-      }
+        geo: "User geography",
+      },
     },
     adminSettings: {
       title: "Settings",
@@ -2465,7 +2507,7 @@ export const zh: TranslationSchema = {
         design: "Design",
         footer: "Footer",
         feed: "Feed",
-        features: "Features"
+        features: "Features",
       },
       demoModeToast: "In demo mode the setting is not saved on the server",
       demoModeFlagToast: "In demo mode the flag is saved locally only, without a real server",
@@ -2473,98 +2515,105 @@ export const zh: TranslationSchema = {
       featureCards: {
         demoFlags: {
           title: "Feature flags (demo)",
-          subtitle: "Local flags for this browser only. The Communities section and other public toggles below are saved on the server and apply to all users.",
-          reviews: "Show Reviews section"
+          subtitle:
+            "Local flags for this browser only. The Communities section and other public toggles below are saved on the server and apply to all users.",
+          reviews: "Show Reviews section",
         },
         communities: {
           title: "Communities section",
-          subtitle: "The only visibility toggle for the section. Saved on the server and immediately shows or hides Communities in the menu for all users and devices.",
+          subtitle:
+            "The only visibility toggle for the section. Saved on the server and immediately shows or hides Communities in the menu for all users and devices.",
           toggle: "Show Communities section to all users",
           enabled: "Communities section enabled for everyone",
-          disabled: "Communities section disabled for everyone"
+          disabled: "Communities section disabled for everyone",
         },
         reviews: {
           title: "Reviews section",
-          subtitle: "Saved on the server and immediately shows or hides Reviews in the menu and /reviews routes for all users.",
+          subtitle:
+            "Saved on the server and immediately shows or hides Reviews in the menu and /reviews routes for all users.",
           toggle: "Show Reviews section to all users",
           enabled: "Reviews section enabled for everyone",
-          disabled: "Reviews section disabled for everyone"
+          disabled: "Reviews section disabled for everyone",
         },
         market: {
           title: "Market button",
-          subtitle: "Saved on the server — enables/disables the button for all users immediately, without a frontend deploy.",
+          subtitle:
+            "Saved on the server — enables/disables the button for all users immediately, without a frontend deploy.",
           toggle: "Show Market button",
           enabled: "Market button enabled for everyone",
-          disabled: "Market button disabled for everyone"
+          disabled: "Market button disabled for everyone",
         },
         escrow: {
           title: "Secure deal badge",
-          subtitle: "Saved on the server — shows the Secure deal / escrow badge on listings for everyone immediately. Enable only when YooKassa Secure deal is live on the backend.",
+          subtitle:
+            "Saved on the server — shows the Secure deal / escrow badge on listings for everyone immediately. Enable only when YooKassa Secure deal is live on the backend.",
           toggle: "Show Secure deal badge",
           enabled: "Secure deal badge enabled for everyone",
-          disabled: "Secure deal badge disabled for everyone"
+          disabled: "Secure deal badge disabled for everyone",
         },
         listingPayment: {
           title: "Paid listing placement",
-          subtitle: "Saved on the server. When enabled, listing publication requires placement payment (or free quota via subscription / promo code).",
+          subtitle:
+            "Saved on the server. When enabled, listing publication requires placement payment (or free quota via subscription / promo code).",
           toggle: "Require payment for listing placement",
           enabled: "Paid listing placement enabled",
-          disabled: "Listings publish for free"
+          disabled: "Listings publish for free",
         },
         feedAutoPublish: {
           title: "Feed auto-publish",
-          subtitle: "Saved on the server. Off — new feed and channel posts go to moderation (recommended). On — published immediately without manual review.",
+          subtitle:
+            "Saved on the server. Off — new feed and channel posts go to moderation (recommended). On — published immediately without manual review.",
           toggle: "Publish feed posts immediately",
           enabled: "Feed publishes immediately without moderation",
-          disabled: "Feed posts go to moderation"
-        }
+          disabled: "Feed posts go to moderation",
+        },
       },
       settingMeta: {
         feature_communities_enabled: {
           label: "Show Communities section to all users",
-          hint: "The only section toggle — managed by the card above, not localStorage"
+          hint: "The only section toggle — managed by the card above, not localStorage",
         },
         feature_reviews_enabled: {
           label: "Show Reviews section to all users",
-          hint: "The only section toggle — managed by the card above, not localStorage"
+          hint: "The only section toggle — managed by the card above, not localStorage",
         },
         feature_market_enabled: {
-          label: "Market button"
+          label: "Market button",
         },
         feature_escrow_enabled: {
-          label: "Secure deal badge"
+          label: "Secure deal badge",
         },
         feature_feed_auto_publish: {
-          label: "Feed auto-publish"
+          label: "Feed auto-publish",
         },
         feature_listing_payment_enabled: {
-          label: "Paid listing placement"
+          label: "Paid listing placement",
         },
         icon_overrides: {
-          label: "Icons"
+          label: "Icons",
         },
         footer_contacts: {
-          label: "Footer contacts"
+          label: "Footer contacts",
         },
         site_name: {
           label: "Site name",
           fields: {
             ru: "Name (Russian)",
-            en: "Name (English)"
-          }
+            en: "Name (English)",
+          },
         },
         first_hundred_stats: {
           label: "First hundred counter",
           fields: {
             taken: "Seats taken",
-            total: "Total seats"
-          }
+            total: "Total seats",
+          },
         },
         moderation_auto_publish: {
           label: "Auto-publish listings",
-          hint: "Publish listings immediately without manual moderation"
-        }
-      }
+          hint: "Publish listings immediately without manual moderation",
+        },
+      },
     },
     adminUsers: {
       title: "Users",
@@ -2605,11 +2654,12 @@ export const zh: TranslationSchema = {
       bulkStatusSuccess: "Updated listings: {{count}}",
       bulkDeleteSuccess: "Deleted listings: {{count}}",
       bulkDeleteConfirm: "Delete selected listings?",
-      bulkDeleteDesc: "{{count}} listings will be deleted. This cannot be undone."
+      bulkDeleteDesc: "{{count}} listings will be deleted. This cannot be undone.",
     },
     adminDesignSystem: {
       title: "Design system / Primary color",
-      subtitle: "Choose one of two brand accent presets. Updates CSS variables globally and persists in localStorage. Does not affect logic or data.",
+      subtitle:
+        "Choose one of two brand accent presets. Updates CSS variables globally and persists in localStorage. Does not affect logic or data.",
       uiKitLink: "UI Kit 2.0 preview →",
       themeMode: "Theme mode",
       reset: "Reset",
@@ -2659,8 +2709,8 @@ export const zh: TranslationSchema = {
         navHome: "Home",
         navFeed: "Feed",
         navChannels: "Channels",
-        navMessages: "Messages"
-      }
+        navMessages: "Messages",
+      },
     },
     adminDelivery: {
       title: "Shipments (CDEK / Yandex)",
@@ -2677,7 +2727,7 @@ export const zh: TranslationSchema = {
       allProviders: "All providers",
       providers: {
         cdek: "CDEK",
-        yandex: "Yandex"
+        yandex: "Yandex",
       },
       colListing: "Listing",
       colProvider: "Provider",
@@ -2706,8 +2756,8 @@ export const zh: TranslationSchema = {
         at_pickup: "At pickup point",
         delivered: "Delivered",
         cancelled: "Cancelled",
-        error: "Error"
-      }
+        error: "Error",
+      },
     },
     adminModeration: {
       title: "Moderation",
@@ -2741,14 +2791,14 @@ export const zh: TranslationSchema = {
         reviewing: "In review",
         resolved: "Resolved",
         rejected: "Rejected",
-        dismissed: "No action"
+        dismissed: "No action",
       },
       reportStatus: {
         pending: "New",
         reviewing: "In review",
         resolved: "Resolved",
         rejected: "Rejected",
-        dismissed: "No action"
+        dismissed: "No action",
       },
       reportTargets: {
         user: "User",
@@ -2782,13 +2832,13 @@ export const zh: TranslationSchema = {
         all: "All",
         new: "New",
         read: "Read",
-        resolved: "Resolved"
+        resolved: "Resolved",
       },
       status: {
         new: "New",
         read: "Read",
-        resolved: "Resolved"
-      }
+        resolved: "Resolved",
+      },
     },
     adminMonetization: {
       title: "Monetization",
@@ -2811,7 +2861,8 @@ export const zh: TranslationSchema = {
       placementPriceSaveFailed: "Could not save price",
       firstHundred: {
         title: "First N — free subscription",
-        subtitle: "When enabled, the first users within the limit get a free year. Disabling or lowering the limit revokes unpaid promo access.",
+        subtitle:
+          "When enabled, the first users within the limit get a free year. Disabling or lowering the limit revokes unpaid promo access.",
         toggle: "Promotion enabled",
         limitLabel: "User limit",
         progress: "Taken {{taken}} of {{total}}. {{left}} seats left.",
@@ -2870,14 +2921,14 @@ export const zh: TranslationSchema = {
       filters: {
         all: "All",
         active: "Active",
-        expired: "Expired"
+        expired: "Expired",
       },
       columns: {
         code: "Code",
         discount: "Discount",
         used: "Used",
         expires: "Expires",
-        status: "Status"
+        status: "Status",
       },
       statusActive: "Active",
       statusExpired: "Expired",
@@ -2890,14 +2941,15 @@ export const zh: TranslationSchema = {
       createdWithNotify: "Promo code created. Notifications sent: {{count}}",
       createFailed: "Could not create promo code",
       deleted: "Promo code deleted",
-      deleteFailed: "Could not delete promo code"
+      deleteFailed: "Could not delete promo code",
     },
     adminFeedBanners: {
-      title: "Ad block"
+      title: "Ad block",
     },
     adminLanding: {
       title: "首页",
-      subtitle: "首页全部区块（首屏、生态、广告、方向、步骤、套餐、FAQ）在此编辑。空字段不会显示在网站上。"
+      subtitle:
+        "首页全部区块（首屏、生态、广告、方向、步骤、套餐、FAQ）在此编辑。空字段不会显示在网站上。",
     },
     adminCategories: {
       title: "Categories",
@@ -2905,7 +2957,7 @@ export const zh: TranslationSchema = {
         post: "Posts",
         community: "Communities",
         listing: "Listings",
-        video: "Reviews"
+        video: "Reviews",
       },
       loadFailed: "Could not load categories",
       empty: "No categories yet",
@@ -2925,12 +2977,13 @@ export const zh: TranslationSchema = {
       pricesSaved: "Prices saved",
       pricesSaveFailed: "Could not save prices",
       deleteConfirm: "Delete «{{name}}»?",
-      deleteFailed: "Could not delete category"
+      deleteFailed: "Could not delete category",
     },
     adminNotifications: {
       title: "Notifications",
       broadcastTitle: "In-app broadcast",
-      broadcastHint: "All active users will receive the notification in the bell icon and on the Notifications page.",
+      broadcastHint:
+        "All active users will receive the notification in the bell icon and on the Notifications page.",
       fieldTitle: "Title *",
       fieldBody: "Body",
       fieldLink: "In-app link",
@@ -2942,7 +2995,7 @@ export const zh: TranslationSchema = {
       sent: "Sent to recipients: {{count}}",
       sendFailed: "Could not send broadcast",
       sending: "Sending…",
-      sendAll: "Send to all"
+      sendAll: "Send to all",
     },
     adminAuditLog: {
       title: "Change history",
@@ -2954,11 +3007,11 @@ export const zh: TranslationSchema = {
         who: "Who",
         when: "When",
         action: "Action",
-        entity: "Entity"
+        entity: "Entity",
       },
       prev: "← Back",
       next: "Forward →",
-      page: "Page {{page}} of {{last}}"
+      page: "Page {{page}} of {{last}}",
     },
     adminApplications: {
       title: "Creation requests",
@@ -2966,29 +3019,29 @@ export const zh: TranslationSchema = {
       filters: {
         pending: "New",
         approved: "Approved",
-        rejected: "Rejected"
+        rejected: "Rejected",
       },
       kinds: {
         channel: "Channel",
-        community: "Community"
-      }
+        community: "Community",
+      },
     },
     adminBanners: {
       placements: {
         events: "Feed — top slider",
-        feed: "Feed — inline ads"
+        feed: "Feed — inline ads",
       },
       kinds: {
         event: "Event",
         news: "News",
-        promo: "Promo"
+        promo: "Promo",
       },
       scheduleStatus: {
         hidden: "Hidden",
         test: "Test display",
         scheduled: "Scheduled",
         ended: "Ended",
-        active: "Active"
+        active: "Active",
       },
       defaultCta: "Learn more",
       imageHint: "Рекомендуемый размер: 1920×500 px (JPG, PNG или WebP).",
@@ -2996,7 +3049,7 @@ export const zh: TranslationSchema = {
         asOnFeed: "Как на ленте",
         fullImage: "Загруженное изображение целиком",
         asNativePost: "Как на ленте (нативный пост)",
-        bannerTitleFallback: "Заголовок баннера"
+        bannerTitleFallback: "Заголовок баннера",
       },
       photoEditorTitle: "Редактирование фото баннера",
       carousel: {
@@ -3009,7 +3062,7 @@ export const zh: TranslationSchema = {
         saving: "Сохранение…",
         save: "Сохранить настройки слайдера",
         saved: "Slider settings saved",
-        saveFailed: "Could not save slider settings"
+        saveFailed: "Could not save slider settings",
       },
       form: {
         newTitle: "Новый баннер",
@@ -3038,16 +3091,17 @@ export const zh: TranslationSchema = {
         untitled: "Без названия",
         creating: "Создание…",
         add: "Добавить баннер",
-        saving: "…"
+        saving: "…",
       },
       list: {
         title: "Баннеры ({{count}})",
         sliderSummary: "В слайдере сейчас: {{active}} активных из placement «{{placement}}»",
-        scheduledHint: "Баннер появится в ленте после наступления даты «С». Для теста включите «Тестовый показ».",
+        scheduledHint:
+          "Баннер появится в ленте после наступления даты «С». Для теста включите «Тестовый показ».",
         dateFrom: "с {{date}}",
         dateNoStart: "без начала",
         dateTo: " по {{date}}",
-        empty: "No banners yet — add the first one above."
+        empty: "No banners yet — add the first one above.",
       },
       toast: {
         loadFailed: "Could not load banners",
@@ -3060,8 +3114,8 @@ export const zh: TranslationSchema = {
         bannerCreated: "Баннер создан",
         bannerCreateFailed: "Не удалось создать баннер",
         imageUploaded: "Изображение загружено — сохраните баннер",
-        imageUploadFailed: "Не загрузить изображение"
-      }
+        imageUploadFailed: "Не загрузить изображение",
+      },
     },
     adminLandingBlocks: {
       sectionEcosystem: "МоДелизМ 里有什么",
@@ -3104,9 +3158,9 @@ export const zh: TranslationSchema = {
       loadFailed: "Could not load home page blocks",
       sections: {
         ecosystem: "What's in MoDelizM",
-        directions: "Everything that moves and flies"
+        directions: "Everything that moves and flies",
       },
-      sectionSaved: "Block headings saved"
+      sectionSaved: "Block headings saved",
     },
     adminFaq: {
       landingTitle: "Home FAQ — «Frequently asked»",
@@ -3158,14 +3212,15 @@ export const zh: TranslationSchema = {
       uploading: "Uploading…",
       uploadButton: "Upload PNG / SVG / WebP (up to 2 MB)",
       invalidType: "Upload PNG, SVG or WebP",
-      photoEditorTitle: "Edit icon"
+      photoEditorTitle: "Edit icon",
     },
     adminFeedGuestAccess: {
       loadFailed: "Could not load access rules",
       saved: "Access rules saved",
       saveFailed: "Could not save",
       title: "/feed 访问权限",
-      subtitle: "为每一项设置最低访问级别：访客、已登录用户，或需要有效订阅。访客会看到登录提示，已登录但无订阅的用户会看到订阅页。",
+      subtitle:
+        "为每一项设置最低访问级别：访客、已登录用户，或需要有效订阅。访客会看到登录提示，已登录但无订阅的用户会看到订阅页。",
       denyBehaviorTitle: "拒绝时的行为",
       showPopup: "显示弹窗",
       redirectSubscription: "跳转到 /login 或 /subscription",
@@ -3190,16 +3245,17 @@ export const zh: TranslationSchema = {
       denyModes: {
         inherit: "Default",
         popup: "Popup",
-        redirect: "Redirect"
+        redirect: "Redirect",
       },
-      save: "Save access rules"
+      save: "Save access rules",
     },
     adminNotificationPolicy: {
       loadFailed: "无法加载通知规则",
       saved: "通知规则已保存",
       saveFailed: "无法保存",
       title: "通知规则",
-      subtitle: "哪些事件发给用户，以及最低等级（已注册 / 已验证 / 订阅）。仅在您允许时显示个人开关。",
+      subtitle:
+        "哪些事件发给用户，以及最低等级（已注册 / 已验证 / 订阅）。仅在您允许时显示个人开关。",
       enabled: "类型已启用",
       minTierLabel: "接收者最低等级",
       tierRegistered: "已注册",
@@ -3236,18 +3292,19 @@ export const zh: TranslationSchema = {
         email: "Email",
         phone: "Phone",
         hours: "Business hours",
-        social: "Social networks"
+        social: "Social networks",
       },
       placeholders: {
         email: "support@modelizmclub.ru",
         phone: "8 800 000-00-00",
-        hours: "Mon–Sun, 10:00–20:00 MSK"
-      }
+        hours: "Mon–Sun, 10:00–20:00 MSK",
+      },
     },
     adminMedia: {
       loadFailed: "Could not load media files",
       title: "Media manager",
-      subtitle: "Upload and pick images (PNG, JPEG, WebP, SVG). Files tagged as icons can be added to the icon library in Design System.",
+      subtitle:
+        "Upload and pick images (PNG, JPEG, WebP, SVG). Files tagged as icons can be added to the icon library in Design System.",
       allPurposes: "All purposes",
       allFormats: "All formats",
       formatImage: "Изображения",
@@ -3279,7 +3336,7 @@ export const zh: TranslationSchema = {
         cover: "Covers",
         post: "Posts",
         listing: "Listings",
-        avatar: "Avatars"
+        avatar: "Avatars",
       },
       empty: "No files yet. Upload PNG, SVG or photos via Upload files.",
       uploading: "Uploading…",
@@ -3288,14 +3345,15 @@ export const zh: TranslationSchema = {
         png: "PNG",
         jpeg: "JPEG",
         webp: "WebP",
-        svg: "SVG"
+        svg: "SVG",
       },
       photoEditorTitle: "Edit image",
-      pageSummary: "{{page}} / {{lastPage}} · {{total}} total"
+      pageSummary: "{{page}} / {{lastPage}} · {{total}} total",
     },
     adminIcons: {
       title: "Site icons",
-      subtitle: "Замените иконки в меню, на главной и в блоках направлений. По умолчанию — текущие иконки платформы. Превью видите только вы; «Опубликовать» — для всех пользователей.",
+      subtitle:
+        "Замените иконки в меню, на главной и в блоках направлений. По умолчанию — текущие иконки платформы. Превью видите только вы; «Опубликовать» — для всех пользователей.",
       changesCount: "Изменено: {{count}}",
       publishing: "Публикация…",
       publishAll: "Опубликовать для всех",
@@ -3322,7 +3380,7 @@ export const zh: TranslationSchema = {
       preview: {
         landingCard: "Home page card",
         valueBlock: "«Why modelers choose us» block",
-        faqQuestion: "FAQ question"
+        faqQuestion: "FAQ question",
       },
       toasts: {
         addToLibraryFailed: "Не удалось добавить в библиотеку",
@@ -3340,13 +3398,13 @@ export const zh: TranslationSchema = {
         publishedAll: "Иконки опубликованы для всех",
         publishFailed: "Не удалось опубликовать",
         rollbackDone: "Откат выполнен",
-        rollbackFailed: "Не удалось откатить"
+        rollbackFailed: "Не удалось откатить",
       },
       pages: {
         landing: "Главная страница",
         navigation: "Навигация",
         feed: "Лента",
-        global: "Общее"
+        global: "Общее",
       },
       groups: {
         nav: "Боковое меню и таб-бар",
@@ -3355,7 +3413,7 @@ export const zh: TranslationSchema = {
         category: "Направления",
         landing: "Главная",
         ui: "Элементы интерфейса",
-        feed: "Лента"
+        feed: "Лента",
       },
       tokens: {
         accent: "Акцент",
@@ -3366,7 +3424,7 @@ export const zh: TranslationSchema = {
         info: "Инфо / синий",
         danger: "Опасность / красный",
         commercial: "Коммерческий / оранжевый",
-        neutral: "Нейтральный"
+        neutral: "Нейтральный",
       },
       slots: {
         nav_feed: "Лента",
@@ -3394,8 +3452,8 @@ export const zh: TranslationSchema = {
         landing_value_direct: "«Прямое общение»",
         ui_faq_expand: "FAQ — раскрытие",
         feed_find_people: "«Найди своих» — заголовок",
-        section_safe_deal: "Безопасная сделка"
-      }
-    }
-  }
+        section_safe_deal: "Безопасная сделка",
+      },
+    },
+  },
 };

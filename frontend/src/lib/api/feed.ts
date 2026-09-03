@@ -50,7 +50,13 @@ export interface ApiPost {
   } | null;
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
-  permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean; can_cancel_schedule?: boolean; can_interact?: boolean };
+  permissions?: {
+    can_delete?: boolean;
+    can_edit?: boolean;
+    can_publish?: boolean;
+    can_cancel_schedule?: boolean;
+    can_interact?: boolean;
+  };
   can?: Record<string, boolean>;
   published_at?: string | null;
   scheduled_at?: string | null;
@@ -92,10 +98,16 @@ function isVideoMedia(m: ApiPostMedia): boolean {
   return mime.startsWith("video/");
 }
 
-export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; mediaItems: PostMediaItem[] } {
+export function mapPostMedia(p: ApiPost): {
+  images: string[];
+  video?: string;
+  mediaItems: PostMediaItem[];
+} {
   const mediaItems = (p.media ?? [])
     .map((m) => {
-      const status = (m.media?.status as PostMediaItem["status"] | undefined) ?? (m.media?.url ? "ready" : undefined);
+      const status =
+        (m.media?.status as PostMediaItem["status"] | undefined) ??
+        (m.media?.url ? "ready" : undefined);
       const url = m.media?.url ?? "";
       if (!url && status !== "pending" && status !== "failed") return null;
       const width = m.media?.width ?? undefined;
@@ -167,7 +179,12 @@ export function mapPost(p: ApiPost): Post {
     comments: p.stats?.comments ?? 0,
     saves: 0,
     reposts: p.stats?.reposts ?? 0,
-    status: p.status === "published" ? "published" : p.status === "scheduled" ? "scheduled" : "moderation",
+    status:
+      p.status === "published"
+        ? "published"
+        : p.status === "scheduled"
+          ? "scheduled"
+          : "moderation",
     scheduledAt: p.scheduled_at ?? undefined,
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
@@ -215,7 +232,12 @@ export interface FeedResult {
 
 export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
   if (isDemoMode()) {
-    return demoFeed({ filter: opts.filter, categoryName: opts.categoryName, page: opts.page, perPage: opts.perPage });
+    return demoFeed({
+      filter: opts.filter,
+      categoryName: opts.categoryName,
+      page: opts.page,
+      perPage: opts.perPage,
+    });
   }
   const res = await api<Paginated<ApiPost>>("/feed", {
     auth: Boolean(getToken()),
@@ -311,7 +333,10 @@ async function fetchPostCommentsPage(
   };
 }
 
-export async function fetchAllPostComments(uuid: string, sort: CommentSort = "interesting"): Promise<Comment[]> {
+export async function fetchAllPostComments(
+  uuid: string,
+  sort: CommentSort = "interesting",
+): Promise<Comment[]> {
   if (isDemoMode()) return demoPostComments(uuid);
   const all: Comment[] = [];
   let page = 1;
@@ -481,7 +506,10 @@ export async function cancelScheduledPost(uuid: string): Promise<Post> {
   return mapPost(res.data);
 }
 
-export async function updatePost(uuid: string, data: { title?: string; body?: string }): Promise<Post> {
+export async function updatePost(
+  uuid: string,
+  data: { title?: string; body?: string },
+): Promise<Post> {
   if (isDemoMode()) {
     return {
       id: uuid,

@@ -92,7 +92,8 @@ export function ChatMessageSearch({
   }, [open]);
 
   const results = useMemo(
-    () => searchMessages(pool, query, { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined }),
+    () =>
+      searchMessages(pool, query, { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined }),
     [pool, query, dateFrom, dateTo],
   );
 
@@ -177,7 +178,10 @@ export function ChatMessageSearch({
             }}
           >
             <div className="flex items-center justify-between px-[18px] pt-[16px] pb-[10px]">
-              <div className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>
+              <div
+                className="font-display text-[16px] font-bold"
+                style={{ color: "var(--foreground)" }}
+              >
                 Поиск по сообщениям
               </div>
               <button
@@ -221,8 +225,12 @@ export function ChatMessageSearch({
                   onClick={() => setShowDates((v) => !v)}
                   className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] transition-colors"
                   style={{
-                    background: showDates || dateFrom || dateTo ? "var(--accent-soft)" : "var(--background-surface)",
-                    color: showDates || dateFrom || dateTo ? "var(--accent)" : "var(--foreground-50)",
+                    background:
+                      showDates || dateFrom || dateTo
+                        ? "var(--accent-soft)"
+                        : "var(--background-surface)",
+                    color:
+                      showDates || dateFrom || dateTo ? "var(--accent)" : "var(--foreground-50)",
                     border: "1.5px solid var(--border)",
                   }}
                   aria-label="Фильтр по дате"
@@ -235,7 +243,12 @@ export function ChatMessageSearch({
               {showDates && (
                 <div className="mt-[10px] grid grid-cols-2 gap-[8px]">
                   <label className="grid gap-[4px]">
-                    <span className="text-[11px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>С</span>
+                    <span
+                      className="text-[11px] uppercase tracking-wide"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
+                      С
+                    </span>
                     <input
                       type="date"
                       value={dateFrom}
@@ -252,7 +265,12 @@ export function ChatMessageSearch({
                     />
                   </label>
                   <label className="grid gap-[4px]">
-                    <span className="text-[11px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>По</span>
+                    <span
+                      className="text-[11px] uppercase tracking-wide"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
+                      По
+                    </span>
                     <input
                       type="date"
                       value={dateTo}
@@ -311,11 +329,17 @@ export function ChatMessageSearch({
                   </p>
                 </div>
               ) : loadingHistory && results.length === 0 ? (
-                <div className="py-[40px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                <div
+                  className="py-[40px] text-center text-[13px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
                   Загрузка…
                 </div>
               ) : results.length === 0 ? (
-                <div className="py-[40px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                <div
+                  className="py-[40px] text-center text-[13px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
                   Ничего не найдено
                 </div>
               ) : (
@@ -335,14 +359,23 @@ export function ChatMessageSearch({
                           }}
                         >
                           <div className="flex items-center justify-between gap-[8px]">
-                            <span className="truncate text-[12px] font-semibold" style={{ color: "var(--foreground)" }}>
+                            <span
+                              className="truncate text-[12px] font-semibold"
+                              style={{ color: "var(--foreground)" }}
+                            >
                               {m.authorId === meId ? "Вы" : author.name}
                             </span>
-                            <span className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                            <span
+                              className="shrink-0 font-mono text-[11px]"
+                              style={{ color: "var(--foreground-50)" }}
+                            >
                               {formatDate(m.time, "relative")}
                             </span>
                           </div>
-                          <div className="line-clamp-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
+                          <div
+                            className="line-clamp-2 text-[13px]"
+                            style={{ color: "var(--foreground-70)" }}
+                          >
                             {query.trim() ? (
                               <HighlightedText text={preview} query={query} />
                             ) : (

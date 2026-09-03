@@ -3,8 +3,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin, MoreHorizontal,
-  Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
+  ArrowLeft,
+  Check,
+  CheckCheck,
+  CornerUpLeft,
+  MessageSquare,
+  Pin,
+  MoreHorizontal,
+  Send,
+  Users,
+  X,
+  Plus,
+  Archive,
+  Ban,
+  BellOff,
+  Radio,
+  BadgeCheck,
+  ImageOff,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, makeMockWaveform } from "@/lib/mock";
@@ -13,13 +28,27 @@ import { useStore, actions, GUEST_USER, getState, markDialogDeleted } from "@/li
 import { useDialogs, useDialogMessages, messengerCache } from "@/lib/messenger";
 import { useCurrentUser } from "@/lib/session";
 import {
-  fetchConversation, fetchMessages, openConversation, sendMessage as apiSendMessage,
-  uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
-  uploadChatAttachment, sendAttachmentMessage,
-  hideMessageForMe, pinMessage as apiPinMessage, deleteConversation, clearConversationHistory,
+  fetchConversation,
+  fetchMessages,
+  openConversation,
+  sendMessage as apiSendMessage,
+  uploadVoice,
+  sendVoiceMessage as apiSendVoiceMessage,
+  uploadChatAttachment,
+  sendAttachmentMessage,
+  hideMessageForMe,
+  pinMessage as apiPinMessage,
+  deleteConversation,
+  clearConversationHistory,
   deleteMessageForEveryone,
 } from "@/lib/api/chat";
-import { chatAttachmentTooLargeMessage, chatAttachmentMessageType, formatChatAttachmentError, prepareChatAttachmentFile, readImageDimensions } from "@/lib/chat-attachments";
+import {
+  chatAttachmentTooLargeMessage,
+  chatAttachmentMessageType,
+  formatChatAttachmentError,
+  prepareChatAttachmentFile,
+  readImageDimensions,
+} from "@/lib/chat-attachments";
 import { isDemoMode } from "@/lib/demo-mode";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
@@ -36,7 +65,10 @@ import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
-import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
+import {
+  MessageActionsMenu,
+  type MessageActionsMenuHandle,
+} from "@/components/messenger/MessageActionsMenu";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
 import {
   ShareLinkDialog,
@@ -71,10 +103,8 @@ export const Route = createFileRoute("/messenger")({
     // Matrix §4: direct messages are a subscriber feature. The rung comes from
     // the admin's guest-access config; the gate shows exactly one window and
     // brings the user back here once the missing step is done.
-    const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] = await Promise.all([
-      import("@/lib/gate"),
-      import("@/lib/feed-guest-access/store"),
-    ]);
+    const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] =
+      await Promise.all([import("@/lib/gate"), import("@/lib/feed-guest-access/store")]);
     await loadFeedGuestAccess();
     await routeGuard(levelFromAccessTier(resolveMinTier("route.messenger")), location);
   },
@@ -116,11 +146,21 @@ function DialogListSkeleton() {
   return (
     <div className="flex flex-col">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-[12px] border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
+        <div
+          key={i}
+          className="flex items-center gap-[12px] border-b px-[16px] py-[12px]"
+          style={{ borderColor: "var(--border)" }}
+        >
           <Skeleton className="h-[48px] w-[48px] shrink-0 rounded-full" />
           <div className="flex-1 space-y-[8px]">
-            <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${50 + (i * 7) % 30}%` }} />
-            <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${60 + (i * 11) % 25}%` }} />
+            <Skeleton
+              className="h-[12px] rounded-[6px]"
+              style={{ width: `${50 + ((i * 7) % 30)}%` }}
+            />
+            <Skeleton
+              className="h-[12px] rounded-[6px]"
+              style={{ width: `${60 + ((i * 11) % 25)}%` }}
+            />
           </div>
         </div>
       ))}
@@ -156,9 +196,21 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
   if (!status) return null;
   // sent = one tick, delivered = two muted ticks, read = highlighted two ticks.
   if (status === "sent")
-    return <Check size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label={t("pages.messenger.statusSent")} />;
+    return (
+      <Check
+        size={13}
+        style={{ color: "rgba(255,255,255,0.65)" }}
+        aria-label={t("pages.messenger.statusSent")}
+      />
+    );
   if (status === "delivered")
-    return <CheckCheck size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label={t("pages.messenger.statusDelivered")} />;
+    return (
+      <CheckCheck
+        size={13}
+        style={{ color: "rgba(255,255,255,0.65)" }}
+        aria-label={t("pages.messenger.statusDelivered")}
+      />
+    );
   return (
     <CheckCheck
       size={13}
@@ -182,7 +234,10 @@ function fitImageSize(naturalW: number, naturalH: number): { w: number; h: numbe
   };
 }
 
-function resolveImageFrame(naturalWidth?: number, naturalHeight?: number): { w: number; h: number } {
+function resolveImageFrame(
+  naturalWidth?: number,
+  naturalHeight?: number,
+): { w: number; h: number } {
   if (naturalWidth && naturalHeight) return fitImageSize(naturalWidth, naturalHeight);
   return { w: IMAGE_MAX_W, h: IMAGE_MAX_H };
 }
@@ -264,10 +319,7 @@ function MessageImage({
           }}
         >
           {!loaded && (
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              aria-hidden
-            >
+            <div className="absolute inset-0 flex items-center justify-center" aria-hidden>
               <div
                 className="absolute inset-0 animate-pulse"
                 style={{ background: "color-mix(in oklab, var(--foreground) 8%, transparent)" }}
@@ -312,15 +364,31 @@ function ListingMessageCard({ listing }: { listing: NonNullable<Message["listing
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {listing.image ? (
-          <img src={listing.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img
+            src={listing.image}
+            width={52}
+            height={52}
+            loading="lazy"
+            decoding="async"
+            alt=""
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover"
+          />
         ) : (
-          <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
+          <div
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px]"
+            style={{ background: "var(--background-surface)" }}
+          />
         )}
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="text-[10px] uppercase tracking-wide"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {t("pages.messenger.listingLabel")}
           </div>
-          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{listing.title}</div>
+          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+            {listing.title}
+          </div>
           <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
             {listing.price.toLocaleString("ru")} ₽
           </div>
@@ -340,17 +408,35 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {post.image ? (
-          <img src={post.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img
+            src={post.image}
+            width={52}
+            height={52}
+            loading="lazy"
+            decoding="async"
+            alt=""
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover"
+          />
         ) : (
-          <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
+          <div
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px]"
+            style={{ background: "var(--background-surface)" }}
+          />
         )}
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="text-[10px] uppercase tracking-wide"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {t("pages.messenger.postLabel")}
           </div>
-          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{post.title}</div>
+          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+            {post.title}
+          </div>
           {post.excerpt && (
-            <div className="truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>{post.excerpt}</div>
+            <div className="truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
+              {post.excerpt}
+            </div>
           )}
         </div>
       </div>
@@ -359,10 +445,23 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
 }
 
 function MessageBubble({
-  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onDeleteForEveryone, onReport, onMediaResize,
-  searchHighlightId, searchQuery,
+  msg,
+  prev,
+  allMessages,
+  onReply,
+  onCopy,
+  onForward,
+  onPin,
+  onDelete,
+  onDeleteForEveryone,
+  onReport,
+  onMediaResize,
+  searchHighlightId,
+  searchQuery,
 }: {
-  msg: Message; prev?: Message; allMessages: Message[];
+  msg: Message;
+  prev?: Message;
+  allMessages: Message[];
   onReply: (m: Message) => void;
   onCopy: (m: Message) => void;
   onForward: (m: Message) => void;
@@ -424,7 +523,9 @@ function MessageBubble({
         {/* Hover affordance is desktop-only: on mobile the same menu opens via
             long-press → portal bottom-sheet, so this off-bubble trigger would
             only push the row past the viewport (horizontal overflow). */}
-        <div className={`absolute top-1/2 hidden -translate-y-1/2 sm:block ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
+        <div
+          className={`absolute top-1/2 hidden -translate-y-1/2 sm:block ${isMe ? "-left-[48px]" : "-right-[48px]"}`}
+        >
           <MessageActionsMenu
             ref={menuRef}
             isMe={isMe}
@@ -445,7 +546,9 @@ function MessageBubble({
             background: isMe ? "var(--accent)" : "var(--background-surface)",
             color: isMe ? "white" : "var(--foreground)",
             borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-            boxShadow: isSearchHit ? "0 0 0 2px var(--accent), 0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent)" : undefined,
+            boxShadow: isSearchHit
+              ? "0 0 0 2px var(--accent), 0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent)"
+              : undefined,
           }}
         >
           {forwardedAuthor && (
@@ -464,7 +567,9 @@ function MessageBubble({
                 color: isMe ? "rgba(255,255,255,0.85)" : "var(--foreground-50)",
               }}
             >
-              <div className="font-semibold">{reply.authorId === meId ? t("pages.shared.you") : replyAuthor?.name}</div>
+              <div className="font-semibold">
+                {reply.authorId === meId ? t("pages.shared.you") : replyAuthor?.name}
+              </div>
               <div className="truncate">{reply.text}</div>
             </div>
           )}
@@ -480,7 +585,10 @@ function MessageBubble({
           {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} onResize={onMediaResize} />}
           {msg.text && (
-            <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
+            <div
+              className="text-[14px] leading-[1.4]"
+              style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}
+            >
               {isSearchHit && searchQuery ? (
                 <HighlightedText
                   text={msg.text}
@@ -554,7 +662,8 @@ function MessengerPage() {
     scrollToBottom("smooth");
   }, [scrollToBottom]);
 
-  const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
+  const getMeta = (id: string) =>
+    dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
 
   // Respond to ?chat= search-param changes (e.g. "Написать" from another page).
   // Value is normally a conversation uuid; legacy links may pass a user uuid.
@@ -600,7 +709,14 @@ function MessengerPage() {
         if (isDemoMode()) {
           const partner = userById(chat);
           const existing = messengerCache.findByPartner(partner.id);
-          const dlg: Dialog = existing ?? { id: `d_${partner.id}`, userId: partner.id, lastMessage: "", time: new Date().toISOString(), unread: 0, messages: [] };
+          const dlg: Dialog = existing ?? {
+            id: `d_${partner.id}`,
+            userId: partner.id,
+            lastMessage: "",
+            time: new Date().toISOString(),
+            unread: 0,
+            messages: [],
+          };
           if (!existing) messengerCache.restoreDialog(dlg);
           if (!alive) return;
           selectDialog(dlg.id, dlg);
@@ -706,7 +822,9 @@ function MessengerPage() {
         const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
         if (message) toast.error(message);
       });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, chatLoading]);
 
@@ -724,9 +842,10 @@ function MessengerPage() {
   }, [activeId, meId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
-  const partner = active && active.type !== "community" && active.type !== "room"
-    ? userById(active.userId)
-    : null;
+  const partner =
+    active && active.type !== "community" && active.type !== "room"
+      ? userById(active.userId)
+      : null;
   const activeIdentity = active ? dialogIdentity(active) : null;
 
   // Upgrade sent → delivered when partner is online (realtime, before next API poll).
@@ -800,8 +919,12 @@ function MessengerPage() {
   );
 
   const archivedCount = useMemo(
-    () => dlgs.filter((d) => { const m = getMeta(d.id); return m.archived && !m.deletedLocally; }).length,
-    [dlgs, dialogMetaMap]
+    () =>
+      dlgs.filter((d) => {
+        const m = getMeta(d.id);
+        return m.archived && !m.deletedLocally;
+      }).length,
+    [dlgs, dialogMetaMap],
   );
 
   useEffect(() => {
@@ -849,7 +972,10 @@ function MessengerPage() {
     if (chat === id) void navigate({ to: "/messenger", search: {} });
   };
 
-  const [dialogCtxMenu, setDialogCtxMenu] = useState<{ dialogId: string; point: { x: number; y: number } } | null>(null);
+  const [dialogCtxMenu, setDialogCtxMenu] = useState<{
+    dialogId: string;
+    point: { x: number; y: number };
+  } | null>(null);
   const dialogLongPressTimer = useRef<number | null>(null);
   const suppressNextDialogClick = useRef(false);
   const startDialogLongPress = (dialogId: string, x: number, y: number) => {
@@ -868,10 +994,14 @@ function MessengerPage() {
   const send = async () => {
     if (!text.trim() || !active || sendingRef.current) return;
     let allowed = false;
-    guardAction("messenger.send", () => { allowed = true; });
+    guardAction("messenger.send", () => {
+      allowed = true;
+    });
     if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
-      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
+      toast.error(t("pages.messenger.userBlocked"), {
+        description: t("pages.messenger.unblockToSend"),
+      });
       return;
     }
     sendingRef.current = true;
@@ -907,10 +1037,14 @@ function MessengerPage() {
   const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
     let allowed = false;
-    guardAction("messenger.send", () => { allowed = true; });
+    guardAction("messenger.send", () => {
+      allowed = true;
+    });
     if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
-      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
+      toast.error(t("pages.messenger.userBlocked"), {
+        description: t("pages.messenger.unblockToSend"),
+      });
       return;
     }
     const dialogId = active.id;
@@ -953,7 +1087,9 @@ function MessengerPage() {
   const handleAttachment = async (file: File, kind: AttachmentKind) => {
     if (!active) return;
     let allowed = false;
-    guardAction("messenger.send", () => { allowed = true; });
+    guardAction("messenger.send", () => {
+      allowed = true;
+    });
     if (!allowed) return;
     const tooLarge = chatAttachmentTooLargeMessage(file);
     if (tooLarge) {
@@ -961,7 +1097,9 @@ function MessengerPage() {
       return;
     }
     if (isPartnerBlocked(active.userId)) {
-      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
+      toast.error(t("pages.messenger.userBlocked"), {
+        description: t("pages.messenger.unblockToSend"),
+      });
       return;
     }
 
@@ -997,7 +1135,9 @@ function MessengerPage() {
     setReplyTo(null);
     if (isDemoMode()) {
       toast(t("pages.messenger.attachmentSentDemo"), {
-        description: convertedFromHeic ? t("pages.messenger.heicConvertedDemo") : t("pages.messenger.uploadLater"),
+        description: convertedFromHeic
+          ? t("pages.messenger.heicConvertedDemo")
+          : t("pages.messenger.uploadLater"),
       });
       return;
     }
@@ -1022,25 +1162,34 @@ function MessengerPage() {
     }
   };
 
-  const insertEmoji = useCallback((emoji: string) => {
-    const el = composerRef.current;
-    if (!el) {
-      setText((prev) => prev + emoji);
-      return;
-    }
-    const start = el.selectionStart ?? text.length;
-    const end = el.selectionEnd ?? text.length;
-    const next = text.slice(0, start) + emoji + text.slice(end);
-    setText(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      const pos = start + emoji.length;
-      el.setSelectionRange(pos, pos);
-    });
-  }, [text]);
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const el = composerRef.current;
+      if (!el) {
+        setText((prev) => prev + emoji);
+        return;
+      }
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const next = text.slice(0, start) + emoji + text.slice(end);
+      setText(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    },
+    [text],
+  );
 
   const handleCopy = (m: Message) => {
-    const copyText = m.text || (m.file ? m.file.name : m.image ? t("pages.messenger.image") : t("pages.messenger.attachment"));
+    const copyText =
+      m.text ||
+      (m.file
+        ? m.file.name
+        : m.image
+          ? t("pages.messenger.image")
+          : t("pages.messenger.attachment"));
     navigator.clipboard.writeText(copyText).then(
       () => toast.success(t("pages.messenger.copied")),
       () => toast.error(t("pages.messenger.copyFailed")),
@@ -1092,14 +1241,17 @@ function MessengerPage() {
 
   const handleReportMessage = (m: Message) => {
     if (!partner) return;
-    const snippet = m.text?.trim()
-      || (m.voice ? t("pages.messenger.voiceMessage") : "")
-      || (m.image ? t("pages.messenger.image") : "")
-      || (m.file ? t("pages.messenger.filePrefix", { name: m.file.name }) : "");
+    const snippet =
+      m.text?.trim() ||
+      (m.voice ? t("pages.messenger.voiceMessage") : "") ||
+      (m.image ? t("pages.messenger.image") : "") ||
+      (m.file ? t("pages.messenger.filePrefix", { name: m.file.name }) : "");
     setMessageComplaint({
       target: partner,
       messageId: m.id,
-      contextNote: snippet ? t("pages.messenger.messageContext", { snippet: snippet.slice(0, 500) }) : undefined,
+      contextNote: snippet
+        ? t("pages.messenger.messageContext", { snippet: snippet.slice(0, 500) })
+        : undefined,
     });
   };
 
@@ -1127,9 +1279,18 @@ function MessengerPage() {
         {/* Dialog List */}
         <aside
           className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "list" ? "flex" : "hidden"}`}
-          style={{ background: "var(--background-elevated)", borderRight: "1px solid var(--border)" }}
+          style={{
+            background: "var(--background-elevated)",
+            borderRight: "1px solid var(--border)",
+          }}
         >
-          <div className="sticky top-0 z-10 flex flex-col gap-[10px] px-[16px] py-[12px]" style={{ background: "var(--background-elevated)", borderBottom: "1px solid var(--border)" }}>
+          <div
+            className="sticky top-0 z-10 flex flex-col gap-[10px] px-[16px] py-[12px]"
+            style={{
+              background: "var(--background-elevated)",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
             <div className="flex items-center gap-[8px]">
               <div className="min-w-0 flex-1">
                 <SearchInput
@@ -1145,12 +1306,15 @@ function MessengerPage() {
               className="grid w-full grid-cols-4 gap-[4px]"
               style={{ borderBottom: "1px solid var(--border)" }}
             >
-              {([
+              {[
                 { key: "chats-active" as const, label: t("pages.messenger.tabActive") },
                 { key: "channels" as const, label: t("pages.messenger.tabChannels") },
-                { key: "chats-archive" as const, label: `${t("pages.messenger.tabArchive")}${archivedCount ? ` · ${archivedCount}` : ""}` },
+                {
+                  key: "chats-archive" as const,
+                  label: `${t("pages.messenger.tabArchive")}${archivedCount ? ` · ${archivedCount}` : ""}`,
+                },
                 { key: "calls" as const, label: t("pages.messenger.tabCalls") },
-              ]).map((tabItem) => {
+              ].map((tabItem) => {
                 const isActive =
                   (tabItem.key === "calls" && listTab === "calls") ||
                   (tabItem.key === "channels" && listTab === "channels") ||
@@ -1183,12 +1347,12 @@ function MessengerPage() {
             </div>
             {listTab === "chats" && (
               <div className="flex gap-[6px] overflow-x-auto px-[12px] py-[8px]">
-                {([
+                {[
                   { key: "all" as const, label: t("pages.messenger.scopeAll") },
                   { key: "direct" as const, label: t("pages.messenger.scopeDirect") },
                   { key: "rooms" as const, label: t("pages.messenger.scopeCategory") },
                   { key: "deals" as const, label: t("pages.messenger.scopeDeal") },
-                ]).map((scope) => {
+                ].map((scope) => {
                   const on = chatScope === scope.key;
                   return (
                     <button
@@ -1222,18 +1386,23 @@ function MessengerPage() {
                 }}
               />
             ) : listTab === "channels" ? (
-              <ChannelsList query={query} communityDialogs={communityDialogs} onSelect={handleSelect} activeId={activeId} />
+              <ChannelsList
+                query={query}
+                communityDialogs={communityDialogs}
+                onSelect={handleSelect}
+                activeId={activeId}
+              />
             ) : loading ? (
               <DialogListSkeleton />
-
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
             ) : (
               <ul>
                 {filtered.map((d) => {
-                  const u = d.type === "room"
-                    ? { ...userById(d.userId), name: dialogIdentity(d).name, avatar: undefined }
-                    : userById(d.userId);
+                  const u =
+                    d.type === "room"
+                      ? { ...userById(d.userId), name: dialogIdentity(d).name, avatar: undefined }
+                      : userById(d.userId);
                   const isActive = d.id === activeId;
                   const isUnread = !!d.unread && !getMeta(d.id).muted;
                   return (
@@ -1248,7 +1417,10 @@ function MessengerPage() {
                         }}
                         onContextMenu={(e) => {
                           e.preventDefault();
-                          setDialogCtxMenu({ dialogId: d.id, point: { x: e.clientX, y: e.clientY } });
+                          setDialogCtxMenu({
+                            dialogId: d.id,
+                            point: { x: e.clientX, y: e.clientY },
+                          });
                         }}
                         onTouchStart={(e) => {
                           const t = e.touches[0];
@@ -1261,10 +1433,20 @@ function MessengerPage() {
                           background: isActive ? "var(--accent-soft)" : "transparent",
                           borderBottom: "1px solid var(--border)",
                         }}
-                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--background-surface-hover)"; }}
-                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                        onMouseEnter={(e) => {
+                          if (!isActive)
+                            e.currentTarget.style.background = "var(--background-surface-hover)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.background = "transparent";
+                        }}
                       >
-                        <ChatAvatar src={u.avatar} name={u.name} size={48} online={isUserOnline(d.userId, onlineSet, u)} />
+                        <ChatAvatar
+                          src={u.avatar}
+                          name={u.name}
+                          size={48}
+                          online={isUserOnline(d.userId, onlineSet, u)}
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
                             {/* Flex row of [pin?] name [muted?/blocked?/archived?].
@@ -1275,22 +1457,47 @@ function MessengerPage() {
                                 clipped (or hidden entirely) instead of ellipsizing.
                                 `truncate` on the flex *container* is a no-op, so it
                                 lives only on the text span. */}
-                            <span className="flex min-w-0 flex-1 items-center gap-[6px] font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-                              {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
-                              <span className="min-w-0 flex-1 truncate" title={u.name}>{u.name}</span>
-                              {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
-                              {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
-                              {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
+                            <span
+                              className="flex min-w-0 flex-1 items-center gap-[6px] font-display text-[14px] font-semibold"
+                              style={{ color: "var(--foreground)" }}
+                            >
+                              {d.pinned && (
+                                <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                              )}
+                              <span className="min-w-0 flex-1 truncate" title={u.name}>
+                                {u.name}
+                              </span>
+                              {getMeta(d.id).muted && (
+                                <BellOff
+                                  size={12}
+                                  style={{ color: "var(--foreground-50)", flexShrink: 0 }}
+                                />
+                              )}
+                              {isPartnerBlocked(d.userId) && (
+                                <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />
+                              )}
+                              {getMeta(d.id).archived && (
+                                <Archive
+                                  size={12}
+                                  style={{ color: "var(--foreground-50)", flexShrink: 0 }}
+                                />
+                              )}
                             </span>
                             <TimeAgo
                               iso={d.time}
                               className="shrink-0 font-mono text-[11px]"
-                              style={{ color: isUnread ? "var(--accent)" : "var(--foreground-50)", fontWeight: isUnread ? 700 : 400 }}
+                              style={{
+                                color: isUnread ? "var(--accent)" : "var(--foreground-50)",
+                                fontWeight: isUnread ? 700 : 400,
+                              }}
                             />
                           </div>
                           <div
                             className="truncate text-[13px]"
-                            style={{ color: isUnread ? "var(--foreground)" : "var(--foreground-50)", fontWeight: isUnread ? 600 : 400 }}
+                            style={{
+                              color: isUnread ? "var(--foreground)" : "var(--foreground-50)",
+                              fontWeight: isUnread ? 600 : 400,
+                            }}
                           >
                             {d.lastMessage}
                           </div>
@@ -1319,7 +1526,6 @@ function MessengerPage() {
                         >
                           <MoreHorizontal size={16} />
                         </span>
-
                       </button>
                     </li>
                   );
@@ -1330,76 +1536,108 @@ function MessengerPage() {
         </aside>
 
         {/* Chat Panel */}
-        <section className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`} style={{ background: "var(--background)" }}>
+        <section
+          className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`}
+          style={{ background: "var(--background)" }}
+        >
           {!active ? (
             <EmptyChat />
           ) : (
             <>
               {/* Header */}
-              <div className="sticky top-0 z-10 flex flex-col" style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-              <header className="flex items-center gap-[12px] px-[12px] sm:px-[20px]" style={{ height: 60 }}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMobileView("list")}
-                  className="rounded-full text-[var(--foreground-70)] md:hidden"
-                  aria-label={t("pages.messenger.back")}
+              <div
+                className="sticky top-0 z-10 flex flex-col"
+                style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}
+              >
+                <header
+                  className="flex items-center gap-[12px] px-[12px] sm:px-[20px]"
+                  style={{ height: 60 }}
                 >
-                  <ArrowLeft size={20} />
-                </Button>
-                <Link
-                  to={
-                    active.type === "community" && activeIdentity?.communitySlug
-                      ? "/communities/$id"
-                      : active.type === "room" && active.room?.rootId
-                        ? "/categories/$id/$subId"
-                        : "/user/$id"
-                  }
-                  params={
-                    active.type === "community" && activeIdentity?.communitySlug
-                      ? { id: activeIdentity.communitySlug }
-                      : active.type === "room" && active.room?.rootId
-                        ? { id: active.room.rootId, subId: active.room.categoryId }
-                        : { id: partner?.slug ?? partner?.id ?? active.userId }
-                  }
-                  className="flex min-w-0 items-center gap-[12px]"
-                >
-                  <ChatAvatar src={activeIdentity?.avatar ?? partner?.avatar} name={activeIdentity?.name ?? partner?.name ?? ""} size={40} />
-                    <div className="min-w-0 flex-1">
-                    <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={activeIdentity?.name}>{activeIdentity?.name ?? partner?.name}</div>
-                    <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
-                      {active.type === "community" || active.type === "room" ? (
-                        <span style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.tabChat")}</span>
-                      ) : partner ? (() => {
-                        void presenceTick;
-                        const { online, text, title } = presenceLabel(partner.id, onlineSet, partner, { compact: true });
-                        return online ? (
-                          <>
-                            <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ background: "var(--success)" }} />
-                            <span style={{ color: "var(--success)" }}>{text}</span>
-                          </>
-                        ) : (
-                          <span title={title} style={{ color: "var(--foreground-50)" }}>{text}</span>
-                        );
-                      })() : null}
-                    </div>
-                  </div>
-                </Link>
-                <div className="ml-auto flex items-center gap-[4px]">
-                  {partner && (
-                    <ChatHeaderActions
-                      partnerId={partner.id}
-                      partnerName={partner.name}
-                      partnerAvatar={partner.avatar}
-                      dialogId={active.id}
-                      pinned={Boolean(active.pinned)}
-                      onSearch={() => setChatSearchOpen(true)}
-                      onDeleted={() => deselectDialog(active.id)}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileView("list")}
+                    className="rounded-full text-[var(--foreground-70)] md:hidden"
+                    aria-label={t("pages.messenger.back")}
+                  >
+                    <ArrowLeft size={20} />
+                  </Button>
+                  <Link
+                    to={
+                      active.type === "community" && activeIdentity?.communitySlug
+                        ? "/communities/$id"
+                        : active.type === "room" && active.room?.rootId
+                          ? "/categories/$id/$subId"
+                          : "/user/$id"
+                    }
+                    params={
+                      active.type === "community" && activeIdentity?.communitySlug
+                        ? { id: activeIdentity.communitySlug }
+                        : active.type === "room" && active.room?.rootId
+                          ? { id: active.room.rootId, subId: active.room.categoryId }
+                          : { id: partner?.slug ?? partner?.id ?? active.userId }
+                    }
+                    className="flex min-w-0 items-center gap-[12px]"
+                  >
+                    <ChatAvatar
+                      src={activeIdentity?.avatar ?? partner?.avatar}
+                      name={activeIdentity?.name ?? partner?.name ?? ""}
+                      size={40}
                     />
-                  )}
-                </div>
-
-              </header>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="truncate font-display text-[15px] font-semibold"
+                        style={{ color: "var(--foreground)" }}
+                        title={activeIdentity?.name}
+                      >
+                        {activeIdentity?.name ?? partner?.name}
+                      </div>
+                      <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
+                        {active.type === "community" || active.type === "room" ? (
+                          <span style={{ color: "var(--foreground-50)" }}>
+                            {t("pages.communityDetail.tabChat")}
+                          </span>
+                        ) : partner ? (
+                          (() => {
+                            void presenceTick;
+                            const { online, text, title } = presenceLabel(
+                              partner.id,
+                              onlineSet,
+                              partner,
+                              { compact: true },
+                            );
+                            return online ? (
+                              <>
+                                <span
+                                  className="h-[8px] w-[8px] shrink-0 rounded-full"
+                                  style={{ background: "var(--success)" }}
+                                />
+                                <span style={{ color: "var(--success)" }}>{text}</span>
+                              </>
+                            ) : (
+                              <span title={title} style={{ color: "var(--foreground-50)" }}>
+                                {text}
+                              </span>
+                            );
+                          })()
+                        ) : null}
+                      </div>
+                    </div>
+                  </Link>
+                  <div className="ml-auto flex items-center gap-[4px]">
+                    {partner && (
+                      <ChatHeaderActions
+                        partnerId={partner.id}
+                        partnerName={partner.name}
+                        partnerAvatar={partner.avatar}
+                        dialogId={active.id}
+                        pinned={Boolean(active.pinned)}
+                        onSearch={() => setChatSearchOpen(true)}
+                        onDeleted={() => deselectDialog(active.id)}
+                      />
+                    )}
+                  </div>
+                </header>
               </div>
 
               {pinnedMessage && (
@@ -1409,8 +1647,14 @@ function MessengerPage() {
                   style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
                 >
                   <Pin size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                  <div className="min-w-0 flex-1 truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
-                    {pinnedMessage.text || (pinnedMessage.file ? pinnedMessage.file.name : t("pages.messenger.attachmentLabel"))}
+                  <div
+                    className="min-w-0 flex-1 truncate text-[12px]"
+                    style={{ color: "var(--foreground-70)" }}
+                  >
+                    {pinnedMessage.text ||
+                      (pinnedMessage.file
+                        ? pinnedMessage.file.name
+                        : t("pages.messenger.attachmentLabel"))}
                   </div>
                   <span
                     role="button"
@@ -1429,7 +1673,11 @@ function MessengerPage() {
               )}
 
               {/* Messages */}
-              <div ref={scrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]" style={{ overflowAnchor: "auto" }}>
+              <div
+                ref={scrollRef}
+                className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]"
+                style={{ overflowAnchor: "auto" }}
+              >
                 {chatLoading ? (
                   <MessageSkeleton />
                 ) : (
@@ -1459,7 +1707,10 @@ function MessengerPage() {
               </div>
 
               {/* Input */}
-              <div className="shrink-0" style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}>
+              <div
+                className="shrink-0"
+                style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}
+              >
                 <AnimatePresence>
                   {replyTo && (
                     <motion.div
@@ -1479,11 +1730,23 @@ function MessengerPage() {
                         <CornerUpLeft size={14} style={{ color: "var(--accent)" }} />
                         <div className="min-w-0 flex-1 text-[12px]">
                           <div className="font-semibold" style={{ color: "var(--foreground-70)" }}>
-                            {t("pages.messenger.replyTo", { name: replyTo.authorId === meId ? t("pages.shared.you") : userById(replyTo.authorId).name })}
+                            {t("pages.messenger.replyTo", {
+                              name:
+                                replyTo.authorId === meId
+                                  ? t("pages.shared.you")
+                                  : userById(replyTo.authorId).name,
+                            })}
                           </div>
-                          <div className="truncate" style={{ color: "var(--foreground-50)" }}>{replyTo.text}</div>
+                          <div className="truncate" style={{ color: "var(--foreground-50)" }}>
+                            {replyTo.text}
+                          </div>
                         </div>
-                        <button onClick={() => setReplyTo(null)} className="grid h-[20px] w-[20px] place-items-center rounded-full" style={{ color: "var(--foreground-50)" }} aria-label={t("pages.messenger.cancelReply")}>
+                        <button
+                          onClick={() => setReplyTo(null)}
+                          className="grid h-[20px] w-[20px] place-items-center rounded-full"
+                          style={{ color: "var(--foreground-50)" }}
+                          aria-label={t("pages.messenger.cancelReply")}
+                        >
                           <X size={14} />
                         </button>
                       </div>
@@ -1493,7 +1756,10 @@ function MessengerPage() {
                 {/* Composer: attach · emoji · input · mic/send — one optical
                     line (items-end), equal 44px tap targets, equal gaps. Attach
                     controls live outside the pill so the row reads as one set. */}
-                <div className="relative flex items-end gap-[4px] px-[8px] py-[8px]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
+                <div
+                  className="relative flex items-end gap-[4px] px-[8px] py-[8px]"
+                  style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+                >
                   <AttachmentMenu onPick={handleAttachment} />
                   <EmojiPicker onPick={insertEmoji} />
                   <div
@@ -1519,7 +1785,8 @@ function MessengerPage() {
                       rows={1}
                       className="min-w-0 flex-1 resize-none bg-transparent text-[14px] outline-none"
                       style={{
-                        minHeight: 24, maxHeight: 120,
+                        minHeight: 24,
+                        maxHeight: 120,
                         padding: "0",
                         color: "var(--foreground)",
                         lineHeight: 1.35,
@@ -1539,7 +1806,6 @@ function MessengerPage() {
                     <VoiceRecorder onSend={sendVoice} />
                   )}
                 </div>
-
               </div>
             </>
           )}
@@ -1564,7 +1830,9 @@ function MessengerPage() {
         page="/messenger"
         subjectSuffix={t("pages.messenger.reportSuffix")}
         contextNote={messageComplaint?.contextNote}
-        report={messageComplaint ? { type: "message", targetId: messageComplaint.messageId } : undefined}
+        report={
+          messageComplaint ? { type: "message", targetId: messageComplaint.messageId } : undefined
+        }
       />
       <DialogContextMenu
         point={dialogCtxMenu?.point ?? null}
@@ -1574,7 +1842,7 @@ function MessengerPage() {
         archived={Boolean(dialogCtxMenu && getMeta(dialogCtxMenu.dialogId).archived)}
         blocked={Boolean(
           dialogCtxMenu &&
-            blockedUserIds.includes(dlgs.find((x) => x.id === dialogCtxMenu.dialogId)?.userId ?? ""),
+          blockedUserIds.includes(dlgs.find((x) => x.id === dialogCtxMenu.dialogId)?.userId ?? ""),
         )}
         onMarkUnread={() => dialogCtxMenu && actions.markUnread(dialogCtxMenu.dialogId)}
         onGoProfile={() => {
@@ -1588,7 +1856,9 @@ function MessengerPage() {
           if (!dialogCtxMenu) return;
           const archived = getMeta(dialogCtxMenu.dialogId).archived;
           actions.setDialogMeta(dialogCtxMenu.dialogId, { archived: !archived });
-          toast.success(archived ? t("pages.messenger.chatRestored") : t("pages.messenger.chatArchived"));
+          toast.success(
+            archived ? t("pages.messenger.chatRestored") : t("pages.messenger.chatArchived"),
+          );
         }}
         onToggleBlock={async () => {
           if (!dialogCtxMenu) return;
@@ -1629,7 +1899,10 @@ function MessengerPage() {
         onToggleMute={() => {
           if (!dialogCtxMenu) return;
           const muted = getMeta(dialogCtxMenu.dialogId).muted;
-          actions.setDialogMeta(dialogCtxMenu.dialogId, muted ? { muted: false, mutedUntil: undefined } : { muted: true });
+          actions.setDialogMeta(
+            dialogCtxMenu.dialogId,
+            muted ? { muted: false, mutedUntil: undefined } : { muted: true },
+          );
         }}
         onClearHistory={async () => {
           if (!dialogCtxMenu) return;
@@ -1701,7 +1974,12 @@ function EmptyDialogs() {
   );
 }
 
-function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
+function ChannelsList({
+  query,
+  communityDialogs,
+  onSelect,
+  activeId,
+}: {
   query: string;
   communityDialogs: Dialog[];
   onSelect: (id: string) => void;
@@ -1711,17 +1989,26 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
   const { channels: all } = useChannels();
   const q = query.trim().toLowerCase();
   const chats = q
-    ? communityDialogs.filter((d) => dialogIdentity(d).name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q))
+    ? communityDialogs.filter(
+        (d) =>
+          dialogIdentity(d).name.toLowerCase().includes(q) ||
+          d.lastMessage.toLowerCase().includes(q),
+      )
     : communityDialogs;
-  const list = (q
-    ? all.filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
-    : all
-  ).slice().sort((a, b) => {
-    const sa = a.isSubscribed ? 1 : 0;
-    const sb = b.isSubscribed ? 1 : 0;
-    if (sa !== sb) return sb - sa;
-    return b.subscribers - a.subscribers;
-  });
+  const list = (
+    q
+      ? all.filter(
+          (c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q),
+        )
+      : all
+  )
+    .slice()
+    .sort((a, b) => {
+      const sa = a.isSubscribed ? 1 : 0;
+      const sb = b.isSubscribed ? 1 : 0;
+      if (sa !== sb) return sb - sa;
+      return b.subscribers - a.subscribers;
+    });
 
   if (list.length === 0 && chats.length === 0) {
     return <EmptyState icon={Radio} title={t("pages.messenger.channelsNotFound")} variant="bare" />;
@@ -1743,12 +2030,27 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
               <ChatAvatar src={identity.avatar} name={identity.name} size={48} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-[6px]">
-                  <span className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{identity.name}</span>
+                  <span
+                    className="truncate font-display text-[14px] font-semibold"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {identity.name}
+                  </span>
                   {d.unread ? (
-                    <span className="rounded-full px-[6px] py-[1px] text-[10px] font-bold text-white" style={{ background: "var(--accent)" }}>{d.unread}</span>
+                    <span
+                      className="rounded-full px-[6px] py-[1px] text-[10px] font-bold text-white"
+                      style={{ background: "var(--accent)" }}
+                    >
+                      {d.unread}
+                    </span>
                   ) : null}
                 </div>
-                <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{d.lastMessage || t("pages.communityDetail.tabChat")}</div>
+                <div
+                  className="mt-[2px] truncate text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  {d.lastMessage || t("pages.communityDetail.tabChat")}
+                </div>
               </div>
             </button>
           </li>
@@ -1762,8 +2064,12 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
               to="/channel/$id"
               params={{ id: c.id }}
               className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--background-surface-hover)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--background-surface-hover)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               <div
                 className="grid h-[48px] w-[48px] shrink-0 place-items-center font-display text-[18px] font-bold text-white"
@@ -1773,20 +2079,35 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-[6px]">
-                  <span className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  <span
+                    className="truncate font-display text-[14px] font-semibold"
+                    style={{ color: "var(--foreground)" }}
+                  >
                     {c.name}
                   </span>
-                  {c.kind === "official" && <BadgeCheck size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
+                  {c.kind === "official" && (
+                    <BadgeCheck size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                  )}
                 </div>
-                <div className="mt-[2px] flex items-center gap-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                  <span className="inline-flex items-center gap-[4px]"><Users size={11} /> {formatCount(c.subscribers)}</span>
+                <div
+                  className="mt-[2px] flex items-center gap-[8px] text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  <span className="inline-flex items-center gap-[4px]">
+                    <Users size={11} /> {formatCount(c.subscribers)}
+                  </span>
                   <span className="truncate">{c.description}</span>
                 </div>
               </div>
               {subscribed && (
                 <span
                   className="shrink-0 inline-flex items-center gap-[4px] text-[11px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: "var(--r-pill)" }}
+                  style={{
+                    background: "var(--accent-soft)",
+                    color: "var(--accent)",
+                    padding: "3px 8px",
+                    borderRadius: "var(--r-pill)",
+                  }}
                 >
                   <Check size={11} /> {t("pages.messenger.channelSubscribed")}
                 </span>

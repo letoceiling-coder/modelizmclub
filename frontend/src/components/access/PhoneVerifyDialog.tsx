@@ -37,7 +37,12 @@ export function PhoneVerifyDialog({ open, onOpenChange, onConfirm }: Props) {
           <Button type="button" className="w-full" onClick={onConfirm}>
             {t("phoneVerify.confirm")}
           </Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => onOpenChange(false)}
+          >
             {t("phoneVerify.later")}
           </Button>
         </DialogFooter>

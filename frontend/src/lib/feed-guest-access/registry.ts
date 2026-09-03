@@ -1,4 +1,8 @@
-import type { AccessTier, FeedGuestAccessConfig, GuestAccessActionConfig } from "@/lib/api/feed-guest-access";
+import type {
+  AccessTier,
+  FeedGuestAccessConfig,
+  GuestAccessActionConfig,
+} from "@/lib/api/feed-guest-access";
 
 export type { AccessTier };
 
@@ -92,9 +96,12 @@ export function normalizeActionConfig(
   } else if (patch && typeof patch.allowed === "boolean") {
     minTier = patch.allowed ? "guest" : fallbackTier === "guest" ? "auth" : fallbackTier;
   }
-  const denyMode = patch?.deny_mode === "popup" || patch?.deny_mode === "redirect" || patch?.deny_mode === "inherit"
-    ? patch.deny_mode
-    : "inherit";
+  const denyMode =
+    patch?.deny_mode === "popup" ||
+    patch?.deny_mode === "redirect" ||
+    patch?.deny_mode === "inherit"
+      ? patch.deny_mode
+      : "inherit";
   return { min_tier: minTier, allowed: minTier === "guest", deny_mode: denyMode };
 }
 

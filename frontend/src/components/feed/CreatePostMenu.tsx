@@ -74,31 +74,66 @@ function KindPickerMenu({
     return (
       <div role="menu" className={className} style={style}>
         {onAddFile && (
-          <button type="button" className={ROW_CLASS} style={{ color: "var(--foreground)" }} onClick={onAddFile}>
+          <button
+            type="button"
+            className={ROW_CLASS}
+            style={{ color: "var(--foreground)" }}
+            onClick={onAddFile}
+          >
             Фото или видео с устройства
           </button>
         )}
         {myChannel ? (
           <>
-            <button type="button" className={ROW_CLASS} style={{ color: "var(--foreground)" }} onClick={() => select("photo", "profile")}>
+            <button
+              type="button"
+              className={ROW_CLASS}
+              style={{ color: "var(--foreground)" }}
+              onClick={() => select("photo", "profile")}
+            >
               Пост от профиля
             </button>
-            <button type="button" className={ROW_CLASS} style={{ color: "var(--foreground)" }} onClick={() => select("photo", "channel")}>
+            <button
+              type="button"
+              className={ROW_CLASS}
+              style={{ color: "var(--foreground)" }}
+              onClick={() => select("photo", "channel")}
+            >
               Пост от канала «{myChannel.name}»
             </button>
-            <button type="button" className={ROW_CLASS} style={{ color: "var(--foreground)" }} onClick={() => select("video", "profile")}>
+            <button
+              type="button"
+              className={ROW_CLASS}
+              style={{ color: "var(--foreground)" }}
+              onClick={() => select("video", "profile")}
+            >
               Видео от профиля
             </button>
-            <button type="button" className={ROW_CLASS} style={{ color: "var(--foreground)" }} onClick={() => select("video", "channel")}>
+            <button
+              type="button"
+              className={ROW_CLASS}
+              style={{ color: "var(--foreground)" }}
+              onClick={() => select("video", "channel")}
+            >
               Видео от канала «{myChannel.name}»
             </button>
           </>
         ) : (
           <>
-            <button type="button" className={ROW_CLASS} style={{ color: "var(--foreground)" }} onClick={() => select("photo", "profile")}>
+            <button
+              type="button"
+              className={ROW_CLASS}
+              style={{ color: "var(--foreground)" }}
+              onClick={() => select("photo", "profile")}
+            >
               Пост
             </button>
-            <button type="button" className={ROW_CLASS} style={{ color: "var(--foreground)" }} onClick={() => select("video", "profile")}>
+            <button
+              type="button"
+              className={ROW_CLASS}
+              style={{ color: "var(--foreground)" }}
+              onClick={() => select("video", "profile")}
+            >
               Видео
             </button>
           </>
@@ -116,11 +151,7 @@ function KindPickerMenu({
       onMouseLeave={onMouseLeave}
     >
       {onAddFile && (
-        <button
-          type="button"
-          className={MENU_ITEM_CLASS}
-          onClick={onAddFile}
-        >
+        <button type="button" className={MENU_ITEM_CLASS} onClick={onAddFile}>
           Фото или видео с устройства
         </button>
       )}
@@ -138,16 +169,29 @@ function KindPickerMenu({
                 borderColor: "var(--border)",
               }}
             >
-              <button type="button" className={MENU_ITEM_CLASS} onClick={() => select(kind, "profile")}>
+              <button
+                type="button"
+                className={MENU_ITEM_CLASS}
+                onClick={() => select(kind, "profile")}
+              >
                 От своего профиля
               </button>
-              <button type="button" className={MENU_ITEM_CLASS} onClick={() => select(kind, "channel")}>
+              <button
+                type="button"
+                className={MENU_ITEM_CLASS}
+                onClick={() => select(kind, "channel")}
+              >
                 От канала «{myChannel.name}»
               </button>
             </div>
           </div>
         ) : (
-          <button key={kind} type="button" className={MENU_ITEM_CLASS} onClick={() => select(kind, "profile")}>
+          <button
+            key={kind}
+            type="button"
+            className={MENU_ITEM_CLASS}
+            onClick={() => select(kind, "profile")}
+          >
             {KIND_LABEL[kind]}
           </button>
         ),
@@ -176,7 +220,14 @@ function ComposerActions({
   className?: string;
 }) {
   const showSend = text.trim().length > 1;
-  const { open, setOpen, wrapperRef, onWrapperMouseEnter, onWrapperMouseLeave, onContentMouseEnter } = useHoverDropdown();
+  const {
+    open,
+    setOpen,
+    wrapperRef,
+    onWrapperMouseEnter,
+    onWrapperMouseLeave,
+    onContentMouseEnter,
+  } = useHoverDropdown();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const attachmentCount = files.length;
@@ -294,7 +345,11 @@ function ComposerActions({
       )}
 
       {isMobile && (
-        <Drawer open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} shouldScaleBackground={false}>
+        <Drawer
+          open={mobileMenuOpen}
+          onOpenChange={setMobileMenuOpen}
+          shouldScaleBackground={false}
+        >
           <DrawerContent className="pb-[calc(var(--safe-bottom)+12px)]">
             <div className="px-4 pt-3">
               <DrawerTitle className="text-base">Создать</DrawerTitle>
@@ -320,8 +375,14 @@ function CreatePostTrigger({
 }: {
   onSelectKind: (kind: ComposerKind, source: ComposerSourceKind) => void;
 }) {
-  const { open, setOpen, wrapperRef, onWrapperMouseEnter, onWrapperMouseLeave, onContentMouseEnter } =
-    useHoverDropdown();
+  const {
+    open,
+    setOpen,
+    wrapperRef,
+    onWrapperMouseEnter,
+    onWrapperMouseLeave,
+    onContentMouseEnter,
+  } = useHoverDropdown();
   const [clickedOpen, setClickedOpen] = useState(false);
   const menuOpen = open || clickedOpen;
 

@@ -5,7 +5,12 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import type { User, Post, Ad } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
 import {
-  fetchPublicProfile, fetchFriends, sendFriendRequest, removeFriend, followUser, unfollowUser,
+  fetchPublicProfile,
+  fetchFriends,
+  sendFriendRequest,
+  removeFriend,
+  followUser,
+  unfollowUser,
   type PublicProfile,
 } from "@/lib/api/social";
 import { openConversation } from "@/lib/api/chat";
@@ -59,7 +64,12 @@ function UserPage() {
         }
         setProfile(next);
         setLoading(false);
-        recordView({ id: next.user.slug ?? next.user.id, kind: "profile", title: next.user.name, thumb: next.user.avatar });
+        recordView({
+          id: next.user.slug ?? next.user.id,
+          kind: "profile",
+          title: next.user.name,
+          thumb: next.user.avatar,
+        });
 
         Promise.all([
           next.user.numericId
@@ -73,16 +83,29 @@ function UserPage() {
             setUserAds(ads.map((ad) => ({ ad, status: "active" as const })));
           })
           .catch(() => {})
-          .finally(() => { if (active) setContentLoading(false); });
+          .finally(() => {
+            if (active) setContentLoading(false);
+          });
       })
-      .catch(() => { if (active) { setNotFound(true); setLoading(false); setContentLoading(false); } });
-    return () => { active = false; };
+      .catch(() => {
+        if (active) {
+          setNotFound(true);
+          setLoading(false);
+          setContentLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) {
     return (
       <AppLayout rightColumn={false}>
-        <div className="flex items-center justify-center py-[120px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="flex items-center justify-center py-[120px] text-[14px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           {t("pages.user.loading")}
         </div>
       </AppLayout>
@@ -93,8 +116,25 @@ function UserPage() {
     return (
       <AppLayout rightColumn={false}>
         <div className="flex flex-col items-center justify-center py-[120px] text-center">
-          <div className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.user.notFound")}</div>
-          <Link to="/friends" className="mt-[16px] inline-flex font-semibold" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14, alignItems: "center" }}>
+          <div
+            className="font-display text-[24px] font-bold"
+            style={{ color: "var(--foreground)" }}
+          >
+            {t("pages.user.notFound")}
+          </div>
+          <Link
+            to="/friends"
+            className="mt-[16px] inline-flex font-semibold"
+            style={{
+              height: 40,
+              padding: "0 20px",
+              borderRadius: 10,
+              background: "var(--accent)",
+              color: "white",
+              fontSize: 14,
+              alignItems: "center",
+            }}
+          >
             {t("pages.user.toFriends")}
           </Link>
         </div>

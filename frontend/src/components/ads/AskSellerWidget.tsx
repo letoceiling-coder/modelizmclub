@@ -98,7 +98,13 @@ export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
             cursor: locked ? "pointer" : "text",
           }}
         />
-        <Button size="sm" onClick={send} disabled={!locked && !text.trim()} className="h-[36px] shrink-0 rounded-[var(--r-button)] px-[12px]" aria-label="Отправить вопрос">
+        <Button
+          size="sm"
+          onClick={send}
+          disabled={!locked && !text.trim()}
+          className="h-[36px] shrink-0 rounded-[var(--r-button)] px-[12px]"
+          aria-label="Отправить вопрос"
+        >
           <Send size={14} />
         </Button>
       </div>

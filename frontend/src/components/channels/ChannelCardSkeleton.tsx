@@ -6,7 +6,11 @@ export function ChannelCardSkeleton() {
     <li>
       <div
         className="flex h-full min-h-[168px] flex-col gap-3 p-4"
-        style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}
+        style={{
+          background: "var(--background)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-card)",
+        }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
           <Skeleton className="h-12 w-12 shrink-0 rounded-[12px]" />

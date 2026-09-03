@@ -1,10 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import {
+  PhoneOff,
+  Phone,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  SwitchCamera,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
-import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus, type CallResult } from "@/lib/calls";
+import {
+  useCalls,
+  calls,
+  formatCallDuration,
+  onCallEvent,
+  type CallStatus,
+  type CallResult,
+} from "@/lib/calls";
 import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 
@@ -51,7 +68,8 @@ export function CallScreen() {
       setElapsed(0);
       return;
     }
-    const update = () => setElapsed(Math.floor((Date.now() - (active.connectedAt as number)) / 1000));
+    const update = () =>
+      setElapsed(Math.floor((Date.now() - (active.connectedAt as number)) / 1000));
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
@@ -73,7 +91,11 @@ export function CallScreen() {
         } else if (rec.result === "busy") {
           toast.error(t("components.callScreen.toastBusy", { name: rec.peerName }));
         } else if (rec.result === "answered") {
-          toast.success(t("components.callScreen.toastAnsweredEnded", { duration: formatCallDuration(rec.durationSec) }));
+          toast.success(
+            t("components.callScreen.toastAnsweredEnded", {
+              duration: formatCallDuration(rec.durationSec),
+            }),
+          );
         } else {
           toast(t("components.callScreen.toastEnded"));
         }
@@ -169,16 +191,39 @@ function VideoLayer() {
       />
       <div
         className="absolute right-4 z-[2] overflow-hidden rounded-[var(--r-card)]"
-        style={{ top: "max(56px, env(safe-area-inset-top))", width: 110, height: 150, border: "2px solid rgba(255,255,255,0.6)", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
+        style={{
+          top: "max(56px, env(safe-area-inset-top))",
+          width: 110,
+          height: 150,
+          border: "2px solid rgba(255,255,255,0.6)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+        }}
       >
-        <video ref={localRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ background: "#111", transform: "scaleX(-1)" }} />
+        <video
+          ref={localRef}
+          autoPlay
+          playsInline
+          muted
+          className="h-full w-full object-cover"
+          style={{ background: "#111", transform: "scaleX(-1)" }}
+        />
         {cameraOff && (
-          <div className="absolute inset-0 grid place-items-center" style={{ background: "rgba(0,0,0,0.7)", color: "white" }}>
+          <div
+            className="absolute inset-0 grid place-items-center"
+            style={{ background: "rgba(0,0,0,0.7)", color: "white" }}
+          >
             <VideoOff size={20} />
           </div>
         )}
       </div>
-      <div className="absolute inset-0" style={{ zIndex: 1, background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 25%, transparent 60%, rgba(0,0,0,0.55) 100%)" }} />
+      <div
+        className="absolute inset-0"
+        style={{
+          zIndex: 1,
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 25%, transparent 60%, rgba(0,0,0,0.55) 100%)",
+        }}
+      />
     </>
   );
 }
@@ -197,7 +242,9 @@ function RemoteAudio() {
 
   if (!active || active.media !== "audio") return null;
 
-  return <audio ref={ref} data-call-media autoPlay playsInline className="hidden" aria-hidden="true" />;
+  return (
+    <audio ref={ref} data-call-media autoPlay playsInline className="hidden" aria-hidden="true" />
+  );
 }
 
 function CallBody({ elapsed }: { elapsed: number }) {
@@ -209,14 +256,17 @@ function CallBody({ elapsed }: { elapsed: number }) {
     active.status === "connected"
       ? formatCallDuration(elapsed)
       : active.status === "ended" && active.result
-        ? resultLabel[active.result] ?? statusLabel.ended
+        ? (resultLabel[active.result] ?? statusLabel.ended)
         : statusLabel[active.status];
   const incomingRinging = active.direction === "incoming" && active.status === "ringing";
 
   if (isVideoConnected) {
     return (
       <div className="relative z-[2] flex w-full shrink-0 items-start justify-center px-6 pt-2">
-        <div className="rounded-full px-4 py-1.5 text-[14px] font-semibold text-white" style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)" }}>
+        <div
+          className="rounded-full px-4 py-1.5 text-[14px] font-semibold text-white"
+          style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)" }}
+        >
           {active.peerName} · <span className="font-mono">{statusText}</span>
         </div>
       </div>
@@ -229,21 +279,38 @@ function CallBody({ elapsed }: { elapsed: number }) {
     <div
       className={`relative z-[2] flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center ${incomingRinging ? "pb-2" : ""}`}
     >
-      <div className="text-[12px] uppercase tracking-[0.18em]" style={{ color: "var(--foreground-50)" }}>
-        {active.direction === "outgoing" ? t("components.callScreen.directionOutgoing") : t("components.callScreen.directionIncoming")}
+      <div
+        className="text-[12px] uppercase tracking-[0.18em]"
+        style={{ color: "var(--foreground-50)" }}
+      >
+        {active.direction === "outgoing"
+          ? t("components.callScreen.directionOutgoing")
+          : t("components.callScreen.directionIncoming")}
         {active.media === "video" ? t("components.callScreen.videoSuffix") : ""}
       </div>
 
       <motion.div
         className="relative mt-3 sm:mt-4"
-        animate={active.status === "ringing" || active.status === "connecting" ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+        animate={
+          active.status === "ringing" || active.status === "connecting"
+            ? { scale: [1, 1.04, 1] }
+            : { scale: 1 }
+        }
         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       >
-        <span className="absolute inset-0 rounded-full" style={{ background: "color-mix(in oklab, var(--accent) 30%, transparent)", filter: "blur(28px)" }} />
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: "color-mix(in oklab, var(--accent) 30%, transparent)",
+            filter: "blur(28px)",
+          }}
+        />
         <PeerAvatar avatar={active.peerAvatar} name={active.peerName} initial={initial} />
       </motion.div>
 
-      <h2 className="mt-4 sm:mt-6 font-display text-[22px] sm:text-[26px] font-bold leading-tight">{active.peerName}</h2>
+      <h2 className="mt-4 sm:mt-6 font-display text-[22px] sm:text-[26px] font-bold leading-tight">
+        {active.peerName}
+      </h2>
       <div
         className="mt-2 sm:mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-medium"
         style={{
@@ -252,7 +319,9 @@ function CallBody({ elapsed }: { elapsed: number }) {
           backdropFilter: "blur(10px)",
         }}
       >
-        {active.status === "connected" && <span className="h-[6px] w-[6px] rounded-full" style={{ background: "var(--success)" }} />}
+        {active.status === "connected" && (
+          <span className="h-[6px] w-[6px] rounded-full" style={{ background: "var(--success)" }} />
+        )}
         <span className="font-mono">{statusText}</span>
       </div>
     </div>
@@ -284,11 +353,17 @@ function CallControls() {
               onClick={() => void calls.decline()}
               aria-label={t("components.callScreen.decline")}
               className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
-              style={{ background: "var(--error, var(--danger))", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)" }}
+              style={{
+                background: "var(--error, var(--danger))",
+                color: "white",
+                boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)",
+              }}
             >
               <PhoneOff size={28} />
             </button>
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.callScreen.decline")}</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("components.callScreen.decline")}
+            </span>
           </div>
           <div className="flex flex-col items-center gap-2">
             <button
@@ -296,11 +371,17 @@ function CallControls() {
               onClick={() => void calls.accept()}
               aria-label={t("components.callScreen.accept")}
               className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
-              style={{ background: "var(--success, #22c55e)", color: "white", boxShadow: "0 12px 30px -6px rgba(34,197,94,0.55)" }}
+              style={{
+                background: "var(--success, #22c55e)",
+                color: "white",
+                boxShadow: "0 12px 30px -6px rgba(34,197,94,0.55)",
+              }}
             >
               <Phone size={28} />
             </button>
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("components.callScreen.accept")}</span>
+            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("components.callScreen.accept")}
+            </span>
           </div>
         </div>
       </div>
@@ -323,7 +404,9 @@ function CallControls() {
           disabled={ended}
         />
         <ToggleBtn
-          label={speakerOn ? t("components.callScreen.speakerOff") : t("components.callScreen.speakerOn")}
+          label={
+            speakerOn ? t("components.callScreen.speakerOff") : t("components.callScreen.speakerOn")
+          }
           icon={speakerOn ? Volume2 : VolumeX}
           active={!speakerOn}
           onClick={() => void calls.toggleSpeaker()}
@@ -331,7 +414,9 @@ function CallControls() {
         />
         {isVideo && (
           <ToggleBtn
-            label={cameraOff ? t("components.callScreen.cameraOn") : t("components.callScreen.cameraOff")}
+            label={
+              cameraOff ? t("components.callScreen.cameraOn") : t("components.callScreen.cameraOff")
+            }
             icon={cameraOff ? VideoOff : Video}
             active={cameraOff}
             onClick={() => calls.toggleCamera()}
@@ -353,7 +438,12 @@ function CallControls() {
         disabled={ended}
         aria-label={t("components.callScreen.endCall")}
         className="grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
-        style={{ background: "var(--error, var(--danger))", color: "white", boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)", opacity: ended ? 0.6 : 1 }}
+        style={{
+          background: "var(--error, var(--danger))",
+          color: "white",
+          boxShadow: "0 12px 30px -6px rgba(239,68,68,0.55)",
+          opacity: ended ? 0.6 : 1,
+        }}
       >
         <PhoneOff size={28} />
       </button>
@@ -376,7 +466,10 @@ function PeerAvatar({ avatar, name, initial }: { avatar?: string; name: string; 
         alt={name}
         onError={() => setFailed(true)}
         className="relative h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] rounded-full object-cover"
-        style={{ boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
+        style={{
+          boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)",
+          border: "4px solid var(--background-elevated)",
+        }}
       />
     );
   }
@@ -384,7 +477,11 @@ function PeerAvatar({ avatar, name, initial }: { avatar?: string; name: string; 
   return (
     <div
       className="relative grid h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] place-items-center rounded-full font-display text-[44px] sm:text-[56px] font-bold text-white"
-      style={{ background: "var(--accent)", boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)", border: "4px solid var(--background-elevated)" }}
+      style={{
+        background: "var(--accent)",
+        boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)",
+        border: "4px solid var(--background-elevated)",
+      }}
     >
       {initial}
     </div>
@@ -412,7 +509,9 @@ function ToggleBtn({
       aria-label={label}
       className="grid h-[56px] w-[56px] place-items-center rounded-full transition-transform active:scale-95 touch-manipulation"
       style={{
-        background: active ? "white" : "color-mix(in oklab, var(--background-elevated) 75%, transparent)",
+        background: active
+          ? "white"
+          : "color-mix(in oklab, var(--background-elevated) 75%, transparent)",
         color: active ? "#111" : "var(--foreground-70)",
         backdropFilter: "blur(10px)",
         opacity: disabled ? 0.45 : 1,

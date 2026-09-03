@@ -20,7 +20,14 @@ interface Props {
 }
 
 /** Signed-in user without a subscription: never auth or phone copy. */
-export function SubscriptionPaywallDialog({ open, onOpenChange, onPrimary, title, description, primaryCta }: Props) {
+export function SubscriptionPaywallDialog({
+  open,
+  onOpenChange,
+  onPrimary,
+  title,
+  description,
+  primaryCta,
+}: Props) {
   const { t } = useTranslation();
 
   return (
@@ -34,13 +41,20 @@ export function SubscriptionPaywallDialog({ open, onOpenChange, onPrimary, title
             <Crown size={22} />
           </div>
           <DialogTitle>{title?.trim() || t("subscriptionPaywall.title")}</DialogTitle>
-          <DialogDescription>{description?.trim() || t("subscriptionPaywall.description")}</DialogDescription>
+          <DialogDescription>
+            {description?.trim() || t("subscriptionPaywall.description")}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
           <Button type="button" className="w-full" onClick={onPrimary}>
             {primaryCta?.trim() || t("subscriptionPaywall.confirm")}
           </Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => onOpenChange(false)}
+          >
             {t("subscriptionPaywall.later")}
           </Button>
         </DialogFooter>

@@ -11,10 +11,36 @@ import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 
 /** Common Lucide icons for landing blocks — click to pick. */
 export const LANDING_ICON_PRESETS = [
-  "Megaphone", "Newspaper", "Users2", "Radio", "MessageSquare", "Clapperboard",
-  "Plane", "Ship", "Tank", "Car", "Bot", "Cpu", "Box", "Home", "ShoppingCart",
-  "Wrench", "Hammer", "Camera", "Video", "Star", "Heart", "Globe", "MapPin",
-  "Truck", "Package", "Rocket", "Zap", "Award", "BookOpen", "Layers",
+  "Megaphone",
+  "Newspaper",
+  "Users2",
+  "Radio",
+  "MessageSquare",
+  "Clapperboard",
+  "Plane",
+  "Ship",
+  "Tank",
+  "Car",
+  "Bot",
+  "Cpu",
+  "Box",
+  "Home",
+  "ShoppingCart",
+  "Wrench",
+  "Hammer",
+  "Camera",
+  "Video",
+  "Star",
+  "Heart",
+  "Globe",
+  "MapPin",
+  "Truck",
+  "Package",
+  "Rocket",
+  "Zap",
+  "Award",
+  "BookOpen",
+  "Layers",
 ] as const;
 
 interface Props {
@@ -55,8 +81,8 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
     };
   }, [open]);
 
-  const filtered = LANDING_ICON_PRESETS.filter((name) =>
-    !query.trim() || name.toLowerCase().includes(query.trim().toLowerCase()),
+  const filtered = LANDING_ICON_PRESETS.filter(
+    (name) => !query.trim() || name.toLowerCase().includes(query.trim().toLowerCase()),
   );
 
   const pickLucide = (name: string) => {
@@ -114,7 +140,9 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
           if (fileRef.current) fileRef.current.value = "";
         }}
         onSave={(blob) => {
-          const file = new File([blob], editingFile?.name ?? "icon.png", { type: blob.type || "image/png" });
+          const file = new File([blob], editingFile?.name ?? "icon.png", {
+            type: blob.type || "image/png",
+          });
           setEditingFile(null);
           void handleUpload(file);
         }}
@@ -171,7 +199,10 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
             className="absolute left-0 right-0 top-[calc(100%+6px)] z-[80] overflow-hidden"
             style={panelStyle}
           >
-            <div className="flex items-center gap-[8px] border-b px-[12px] py-[10px]" style={{ borderColor: "var(--border)" }}>
+            <div
+              className="flex items-center gap-[8px] border-b px-[12px] py-[10px]"
+              style={{ borderColor: "var(--border)" }}
+            >
               <Search size={14} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />
               <input
                 value={query}
@@ -182,7 +213,10 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
               />
             </div>
 
-            <div className="max-h-[200px] overflow-y-auto p-[10px]" style={{ scrollbarWidth: "thin" }}>
+            <div
+              className="max-h-[200px] overflow-y-auto p-[10px]"
+              style={{ scrollbarWidth: "thin" }}
+            >
               <div className="grid grid-cols-6 gap-[4px] sm:grid-cols-8">
                 {filtered.map((name) => {
                   const I = resolveLucideIcon(name);
@@ -197,7 +231,9 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
                       style={{
                         background: selected ? "var(--accent-soft)" : "transparent",
                         color: selected ? "var(--accent)" : "var(--foreground-70)",
-                        border: selected ? "1px solid var(--border-accent)" : "1px solid transparent",
+                        border: selected
+                          ? "1px solid var(--border-accent)"
+                          : "1px solid transparent",
                       }}
                     >
                       <I size={18} />
@@ -206,7 +242,10 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
                 })}
               </div>
               {filtered.length === 0 && (
-                <p className="py-[12px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                <p
+                  className="py-[12px] text-center text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
                   {t("pages.adminLandingIcon.nothingFound")}
                 </p>
               )}
@@ -220,8 +259,14 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
                 className="flex w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] py-[10px] text-[13px] font-medium transition-colors hover:bg-[var(--background-surface)] disabled:opacity-60"
                 style={{ color: "var(--foreground)" }}
               >
-                {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-                {uploading ? t("pages.adminCommon.loading") : t("pages.adminLandingIcon.uploadLabel")}
+                {uploading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <ImagePlus size={16} />
+                )}
+                {uploading
+                  ? t("pages.adminCommon.loading")
+                  : t("pages.adminLandingIcon.uploadLabel")}
               </button>
             </div>
           </motion.div>

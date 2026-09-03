@@ -17,8 +17,7 @@ export async function requireAdmin(location?: {
   const ok = await ensureSession();
   if (!ok) {
     const pathname = location?.pathname ?? window.location.pathname;
-    const search =
-      typeof location?.search === "string" ? location.search : window.location.search;
+    const search = typeof location?.search === "string" ? location.search : window.location.search;
     throw redirect({ to: "/login", search: { redirect: pathname + search } });
   }
 }

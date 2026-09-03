@@ -99,7 +99,14 @@ export function applyEffectsAndShape(
     const r = Math.min(masked.width, masked.height) / 2;
     mctx.arc(masked.width / 2, masked.height / 2, r, 0, Math.PI * 2);
   } else {
-    roundRectPath(mctx, 0, 0, masked.width, masked.height, Math.min(masked.width, masked.height) * 0.12);
+    roundRectPath(
+      mctx,
+      0,
+      0,
+      masked.width,
+      masked.height,
+      Math.min(masked.width, masked.height) * 0.12,
+    );
   }
   mctx.closePath();
   mctx.clip();
@@ -108,7 +115,11 @@ export function applyEffectsAndShape(
   return masked;
 }
 
-export function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality = 0.92): Promise<Blob> {
+export function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  mime: string,
+  quality = 0.92,
+): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {

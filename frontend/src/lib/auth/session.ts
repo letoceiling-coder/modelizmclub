@@ -105,7 +105,10 @@ async function hydrateAuthenticatedSession(userId: string): Promise<void> {
   }
 }
 
-function toSession(user: Session["user"], sub: Awaited<ReturnType<typeof getMySubscription>>): Session {
+function toSession(
+  user: Session["user"],
+  sub: Awaited<ReturnType<typeof getMySubscription>>,
+): Session {
   return {
     user,
     phoneVerified: user.phone_verified === true,

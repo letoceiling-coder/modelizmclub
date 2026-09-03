@@ -60,7 +60,10 @@ export function LanguageSwitcher() {
         title={`${t("lang.title")}: ${current.native}`}
       >
         <Languages size={18} />
-        <span className="text-[12px] font-semibold uppercase" style={{ color: "var(--foreground-60)" }}>
+        <span
+          className="text-[12px] font-semibold uppercase"
+          style={{ color: "var(--foreground-60)" }}
+        >
           {current.code}
         </span>
       </button>

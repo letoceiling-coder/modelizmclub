@@ -14,7 +14,10 @@ import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 
 export function AdminFooterLinksSection() {
   const qc = useQueryClient();
-  const { data: links = [], isLoading } = useQuery({ queryKey: ["admin-footer-links"], queryFn: adminFetchFooterLinks });
+  const { data: links = [], isLoading } = useQuery({
+    queryKey: ["admin-footer-links"],
+    queryFn: adminFetchFooterLinks,
+  });
   const [form, setForm] = useState<Partial<AdminFooterLink> | null>(null);
 
   const saveMut = useMutation({
@@ -98,10 +101,20 @@ export function AdminFooterLinksSection() {
                   <Button type="button" size="sm" variant="ghost" onClick={() => move(l.id, 1)}>
                     ↓
                   </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => setForm({ ...l })}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setForm({ ...l })}
+                  >
                     Изм.
                   </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => deleteMut.mutate(l.id)}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => deleteMut.mutate(l.id)}
+                  >
                     ✕
                   </Button>
                 </td>
@@ -112,12 +125,22 @@ export function AdminFooterLinksSection() {
 
       {form && (
         <div className="grid gap-2 rounded-lg border p-4">
-          <Input value={form.label ?? ""} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Подпись" />
-          <Input value={form.target_value ?? ""} onChange={(e) => setForm({ ...form, target_value: e.target.value })} placeholder="/legal/rules" />
+          <Input
+            value={form.label ?? ""}
+            onChange={(e) => setForm({ ...form, label: e.target.value })}
+            placeholder="Подпись"
+          />
+          <Input
+            value={form.target_value ?? ""}
+            onChange={(e) => setForm({ ...form, target_value: e.target.value })}
+            placeholder="/legal/rules"
+          />
           <select
             className="rounded border px-2 py-2 text-sm"
             value={form.target_type ?? "internal"}
-            onChange={(e) => setForm({ ...form, target_type: e.target.value as AdminFooterLink["target_type"] })}
+            onChange={(e) =>
+              setForm({ ...form, target_type: e.target.value as AdminFooterLink["target_type"] })
+            }
           >
             <option value="internal">Внутренняя ссылка</option>
             <option value="external">Внешняя ссылка</option>
@@ -132,7 +155,11 @@ export function AdminFooterLinksSection() {
             <option value="contacts">contacts</option>
           </select>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.is_visible ?? true} onChange={(e) => setForm({ ...form, is_visible: e.target.checked })} />
+            <input
+              type="checkbox"
+              checked={form.is_visible ?? true}
+              onChange={(e) => setForm({ ...form, is_visible: e.target.checked })}
+            />
             Показывать
           </label>
           <div className="flex gap-2">

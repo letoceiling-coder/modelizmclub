@@ -21,7 +21,9 @@ export function MessageFileBubble({ file, isMe }: { file: MessageFile; isMe: boo
   const sizeLabel =
     file.size >= 1024 * 1024
       ? t("components.messageFileBubble.sizeMb", { size: (file.size / (1024 * 1024)).toFixed(1) })
-      : t("components.messageFileBubble.sizeKb", { size: String(Math.max(1, Math.round(file.size / 1024))) });
+      : t("components.messageFileBubble.sizeKb", {
+          size: String(Math.max(1, Math.round(file.size / 1024))),
+        });
 
   return (
     <a

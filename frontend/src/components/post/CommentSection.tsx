@@ -56,7 +56,11 @@ function likesOf(c: Comment, overrides: Record<string, number>): number {
   return overrides[c.id] ?? c.likes ?? 0;
 }
 
-function sortComments(list: Comment[], mode: CommentSort, overrides: Record<string, number> = {}): Comment[] {
+function sortComments(
+  list: Comment[],
+  mode: CommentSort,
+  overrides: Record<string, number> = {},
+): Comment[] {
   const copy = list.map((c) => ({
     ...c,
     replies: c.replies?.length ? sortComments(c.replies, mode, overrides) : c.replies,
@@ -78,9 +82,15 @@ function CommentSkeleton() {
     <div className="mt-[12px] space-y-[12px]" aria-hidden>
       {[0, 1].map((i) => (
         <div key={i} className="flex gap-[10px]">
-          <div className="h-[32px] w-[32px] shrink-0 animate-pulse rounded-full" style={{ background: "var(--background-surface)" }} />
+          <div
+            className="h-[32px] w-[32px] shrink-0 animate-pulse rounded-full"
+            style={{ background: "var(--background-surface)" }}
+          />
           <div className="min-w-0 flex-1">
-            <div className="h-[52px] w-full animate-pulse rounded-[12px]" style={{ background: "var(--background-surface)" }} />
+            <div
+              className="h-[52px] w-full animate-pulse rounded-[12px]"
+              style={{ background: "var(--background-surface)" }}
+            />
           </div>
         </div>
       ))}
@@ -107,12 +117,13 @@ function CommentAvatar({
   actionKey: string;
 }) {
   const src = author.avatar;
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .toUpperCase() || "?";
+  const initials =
+    name
+      .split(" ")
+      .slice(0, 2)
+      .map((w) => w[0] ?? "")
+      .join("")
+      .toUpperCase() || "?";
   const face = !src ? (
     <div
       className="grid h-[32px] w-[32px] place-items-center rounded-full text-[11px] font-bold text-white"
@@ -122,7 +133,15 @@ function CommentAvatar({
       {initials}
     </div>
   ) : (
-    <img src={src} width={32} height={32} loading="lazy" decoding="async" alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
+    <img
+      src={src}
+      width={32}
+      height={32}
+      loading="lazy"
+      decoding="async"
+      alt=""
+      className="h-[32px] w-[32px] rounded-full object-cover"
+    />
   );
   if (!author.id) return <span className="shrink-0">{face}</span>;
   return (
@@ -165,7 +184,15 @@ function CommentPhotos({ urls }: { urls: string[] }) {
             onClick={() => setOpen(src)}
             className="overflow-hidden rounded-[10px]"
           >
-            <img src={src} width={220} height={160} loading="lazy" decoding="async" alt="" className="max-h-[160px] max-w-[min(100%,220px)] object-cover" />
+            <img
+              src={src}
+              width={220}
+              height={160}
+              loading="lazy"
+              decoding="async"
+              alt=""
+              className="max-h-[160px] max-w-[min(100%,220px)] object-cover"
+            />
           </button>
         ))}
       </div>
@@ -298,7 +325,15 @@ function PhotoDraftStrip({
     <div className="flex flex-wrap gap-[8px] px-[4px] pt-[8px]">
       {photos.map((item, index) => (
         <div key={item.url} className="relative">
-          <img src={item.url} width={64} height={64} loading="lazy" decoding="async" alt="" className="h-[64px] w-[64px] rounded-[10px] object-cover" />
+          <img
+            src={item.url}
+            width={64}
+            height={64}
+            loading="lazy"
+            decoding="async"
+            alt=""
+            className="h-[64px] w-[64px] rounded-[10px] object-cover"
+          />
           <button
             type="button"
             onClick={() => onRemove(index)}
@@ -397,7 +432,10 @@ function CommentItem({
                       {author.name}
                     </GuestGuardLink>
                   ) : (
-                    <span className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+                    <span
+                      className="text-[13px] font-semibold"
+                      style={{ color: "var(--foreground)" }}
+                    >
                       {author.name}
                     </span>
                   )}
@@ -406,7 +444,10 @@ function CommentItem({
                   </span>
                 </div>
                 {comment.text ? (
-                  <p className="mt-[4px] whitespace-pre-line text-[14px]" style={{ color: "var(--foreground-90)" }}>
+                  <p
+                    className="mt-[4px] whitespace-pre-line text-[14px]"
+                    style={{ color: "var(--foreground-90)" }}
+                  >
                     {comment.text}
                   </p>
                 ) : null}
@@ -432,14 +473,23 @@ function CommentItem({
                           void deleteComment(comment.id)
                             .then(() => onDeleted?.(comment.id))
                             .catch((err) => {
-                              toast.error(formatApiErrorMessage(err, t("components.commentSection.deleteFailed")));
+                              toast.error(
+                                formatApiErrorMessage(
+                                  err,
+                                  t("components.commentSection.deleteFailed"),
+                                ),
+                              );
                             });
                         }}
                       >
                         {t("components.commentSection.delete")}
                       </DropdownMenuItem>
                     ) : (
-                      <DropdownMenuItem onClick={() => runGuarded(guest, "feed.post.comment", () => setReportOpen(true))}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          runGuarded(guest, "feed.post.comment", () => setReportOpen(true))
+                        }
+                      >
                         {t("components.commentSection.report")}
                       </DropdownMenuItem>
                     )}
@@ -448,14 +498,20 @@ function CommentItem({
               )}
             </div>
           </div>
-          <div className="mt-[6px] flex items-center gap-[12px] pl-[4px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+          <div
+            className="mt-[6px] flex items-center gap-[12px] pl-[4px] text-[12px]"
+            style={{ color: "var(--foreground-70)" }}
+          >
             <button
               type="button"
               onClick={toggleLike}
               className="flex items-center gap-[4px] transition-colors"
               style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
             >
-              <motion.span whileTap={{ scale: 1.4 }} transition={{ type: "spring", stiffness: 500, damping: 12 }}>
+              <motion.span
+                whileTap={{ scale: 1.4 }}
+                transition={{ type: "spring", stiffness: 500, damping: 12 }}
+              >
                 <Heart className="h-[12px] w-[12px]" fill={liked ? "currentColor" : "none"} />
               </motion.span>
               {likes > 0 && <span>{likes}</span>}
@@ -463,16 +519,18 @@ function CommentItem({
             {!readOnly && (
               <button
                 type="button"
-                onClick={() => runGuarded(guest, "feed.post.comment", () => {
-                  if (replying) {
-                    setReplying(false);
-                    setDraft("");
-                    replyPhotos.clear();
-                    return;
-                  }
-                  setReplying(true);
-                  setDraft((d) => (d.trim() ? d : `${author.name}, `));
-                })}
+                onClick={() =>
+                  runGuarded(guest, "feed.post.comment", () => {
+                    if (replying) {
+                      setReplying(false);
+                      setDraft("");
+                      replyPhotos.clear();
+                      return;
+                    }
+                    setReplying(true);
+                    setDraft((d) => (d.trim() ? d : `${author.name}, `));
+                  })
+                }
                 className="flex items-center gap-[4px] hover:opacity-80"
               >
                 <Reply className="h-[12px] w-[12px]" /> {t("components.commentSection.reply")}
@@ -509,7 +567,9 @@ function CommentItem({
                     <button
                       type="button"
                       onClick={submit}
-                      disabled={replyPhotos.uploading || (!draft.trim() && replyPhotos.photos.length === 0)}
+                      disabled={
+                        replyPhotos.uploading || (!draft.trim() && replyPhotos.photos.length === 0)
+                      }
                       className="grid h-[34px] w-[34px] place-items-center rounded-[10px] disabled:opacity-40"
                       style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
                     >
@@ -732,11 +792,13 @@ export function CommentSection({
                 className="z-[80] min-w-[220px] overflow-hidden rounded-[12px] border p-0"
                 style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
               >
-                {([
-                  ["interesting", t("components.commentSection.sortInteresting")],
-                  ["old", t("components.commentSection.sortOld")],
-                  ["new", t("components.commentSection.sortNew")],
-                ] as const).map(([key, label]) => (
+                {(
+                  [
+                    ["interesting", t("components.commentSection.sortInteresting")],
+                    ["old", t("components.commentSection.sortOld")],
+                    ["new", t("components.commentSection.sortNew")],
+                  ] as const
+                ).map(([key, label]) => (
                   <DropdownMenuItem
                     key={key}
                     onSelect={() => applySort(key)}

@@ -2,10 +2,10 @@ import { useEffect, useRef } from "react";
 import { X, Film, Pencil } from "lucide-react";
 
 interface Props {
-  fileUrl: string | null;         // blob preview URL, or null
+  fileUrl: string | null; // blob preview URL, or null
   onPick: (file: File) => void;
   onClear: () => void;
-  accept: string;                 // "video/*" or "image/*"
+  accept: string; // "video/*" or "image/*"
   label: string;
   /** Auto-clicks the hidden file input on mount, after a short delay to
    *  let the parent modal's mount/transition settle first. Used by
@@ -18,7 +18,16 @@ interface Props {
   progress?: number | null;
 }
 
-export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, autoOpen, onEdit, progress }: Props) {
+export function VideoUploadField({
+  fileUrl,
+  onPick,
+  onClear,
+  accept,
+  label,
+  autoOpen,
+  onEdit,
+  progress,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,36 +39,82 @@ export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, auto
   return (
     <div className="space-y-[8px]">
       {fileUrl ? (
-        <div className="relative overflow-hidden" style={{ borderRadius: "var(--r-card)", border: "1px solid var(--border)" }}>
+        <div
+          className="relative overflow-hidden"
+          style={{ borderRadius: "var(--r-card)", border: "1px solid var(--border)" }}
+        >
           {accept.startsWith("video") ? (
-            <video src={fileUrl} controls preload="metadata" className="w-full" style={{ maxHeight: 240, background: "#000" }} />
+            <video
+              src={fileUrl}
+              controls
+              preload="metadata"
+              className="w-full"
+              style={{ maxHeight: 240, background: "#000" }}
+            />
           ) : (
-            <img src={fileUrl} width={1200} height={675} loading="lazy" decoding="async" alt="" className="w-full object-cover" style={{ maxHeight: 240 }} />
+            <img
+              src={fileUrl}
+              width={1200}
+              height={675}
+              loading="lazy"
+              decoding="async"
+              alt=""
+              className="w-full object-cover"
+              style={{ maxHeight: 240 }}
+            />
           )}
           <div className="absolute right-[8px] top-[8px] flex gap-[6px]">
             {onEdit && !accept.startsWith("video") && (
-              <button type="button" onClick={onEdit} aria-label="Редактировать фото" className="grid h-[28px] w-[28px] place-items-center rounded-full" style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
+              <button
+                type="button"
+                onClick={onEdit}
+                aria-label="Редактировать фото"
+                className="grid h-[28px] w-[28px] place-items-center rounded-full"
+                style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
+              >
                 <Pencil size={14} />
               </button>
             )}
-            <button type="button" onClick={onClear} aria-label="Убрать" className="grid h-[28px] w-[28px] place-items-center rounded-full" style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>
+            <button
+              type="button"
+              onClick={onClear}
+              aria-label="Убрать"
+              className="grid h-[28px] w-[28px] place-items-center rounded-full"
+              style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
+            >
               <X size={14} />
             </button>
           </div>
           {progress != null && progress < 100 && (
             <div
               className="absolute inset-x-0 bottom-0 px-[10px] py-[8px] text-[12px] font-semibold"
-              style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.72))", color: "#fff" }}
+              style={{
+                background: "linear-gradient(transparent, rgba(0,0,0,0.72))",
+                color: "#fff",
+              }}
             >
               <div className="mb-[6px]">{progress}%</div>
-              <div className="h-[4px] overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.28)" }}>
-                <div className="h-full rounded-full" style={{ width: `${progress}%`, background: "var(--accent)" }} />
+              <div
+                className="h-[4px] overflow-hidden rounded-full"
+                style={{ background: "rgba(255,255,255,0.28)" }}
+              >
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${progress}%`, background: "var(--accent)" }}
+                />
               </div>
             </div>
           )}
         </div>
       ) : (
-        <label className="grid cursor-pointer place-items-center gap-[8px] py-[28px] text-center" style={{ border: "1.5px dashed var(--border)", borderRadius: "var(--r-card)", color: "var(--foreground-50)" }}>
+        <label
+          className="grid cursor-pointer place-items-center gap-[8px] py-[28px] text-center"
+          style={{
+            border: "1.5px dashed var(--border)",
+            borderRadius: "var(--r-card)",
+            color: "var(--foreground-50)",
+          }}
+        >
           <Film size={22} />
           <span className="text-[13px]">{label}</span>
           <input

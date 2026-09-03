@@ -11,10 +11,16 @@ export function AdDetailSkeleton() {
       <div className="grid gap-[24px] lg:grid-cols-[1fr_360px]">
         {/* Gallery */}
         <div className="min-w-0 flex flex-col gap-[12px]">
-          <Skeleton className="w-full" style={{ aspectRatio: "4 / 3", borderRadius: "var(--r-card)" }} />
+          <Skeleton
+            className="w-full"
+            style={{ aspectRatio: "4 / 3", borderRadius: "var(--r-card)" }}
+          />
           <div className="flex gap-[8px]">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} style={{ flex: "0 0 88px", height: 66, borderRadius: "var(--r-card-sm)" }} />
+              <Skeleton
+                key={i}
+                style={{ flex: "0 0 88px", height: 66, borderRadius: "var(--r-card-sm)" }}
+              />
             ))}
           </div>
         </div>

@@ -2,9 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import {
-  MapPin, UserPlus, MessageSquare, Check, X, Clock, Users,
-} from "lucide-react";
+import { MapPin, UserPlus, MessageSquare, Check, X, Clock, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
@@ -15,9 +13,17 @@ import { groupCalls } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline } from "@/lib/presence-status";
 import {
-  fetchFriends, fetchIncomingRequests, fetchOutgoingRequests, searchUsers,
-  sendFriendRequest, removeFriend, acceptFriendRequest, declineFriendRequest, cancelFriendRequest,
-  blockUser, formatSocialActionError,
+  fetchFriends,
+  fetchIncomingRequests,
+  fetchOutgoingRequests,
+  searchUsers,
+  sendFriendRequest,
+  removeFriend,
+  acceptFriendRequest,
+  declineFriendRequest,
+  cancelFriendRequest,
+  blockUser,
+  formatSocialActionError,
   type IncomingRequest,
 } from "@/lib/api/social";
 import { ApiError } from "@/lib/api/client";
@@ -55,8 +61,17 @@ function userInitials(name: string): string {
 }
 
 function FriendCard({
-  user, isAdded, isPending, online,
-  onToggleFriend, onWriteTo, onViewProfile, onRemoveFriend, onHide, onReport, onBlock,
+  user,
+  isAdded,
+  isPending,
+  online,
+  onToggleFriend,
+  onWriteTo,
+  onViewProfile,
+  onRemoveFriend,
+  onHide,
+  onReport,
+  onBlock,
 }: {
   user: User;
   isAdded: boolean;
@@ -106,14 +121,19 @@ function FriendCard({
           >
             {user.name}
           </Link>
-          <div className="mt-[2px] flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="mt-[2px] flex items-center gap-[4px] text-[12px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {user.city ? (
               <>
                 <MapPin size={11} /> <span className="truncate">{user.city}</span>
               </>
             ) : null}
           </div>
-          <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{interests}</div>
+          <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {interests}
+          </div>
         </div>
       </div>
       <div className="flex w-full flex-wrap items-center gap-[8px] sm:w-auto sm:flex-nowrap sm:shrink-0">
@@ -123,11 +143,19 @@ function FriendCard({
           onClick={onToggleFriend}
           className="h-[44px] rounded-[8px] px-[14px] text-[13px] gap-[6px] sm:h-[36px]"
         >
-          {isAdded
-            ? <><Check size={13} /> {t("pages.friends.inFriends")}</>
-            : isPending
-            ? <><Clock size={13} /> {t("pages.friends.requestSent")}</>
-            : <><UserPlus size={13} /> {t("pages.friends.add")}</>}
+          {isAdded ? (
+            <>
+              <Check size={13} /> {t("pages.friends.inFriends")}
+            </>
+          ) : isPending ? (
+            <>
+              <Clock size={13} /> {t("pages.friends.requestSent")}
+            </>
+          ) : (
+            <>
+              <UserPlus size={13} /> {t("pages.friends.add")}
+            </>
+          )}
         </Button>
         <Button
           size="sm"
@@ -152,7 +180,7 @@ function FriendCard({
 
 function FriendsPage() {
   const { t } = useTranslation();
-    const { requireAction } = useActionGate();
+  const { requireAction } = useActionGate();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const me = useCurrentUser();
@@ -202,7 +230,9 @@ function FriendsPage() {
       setPending(new Map(out.map((r) => [r.to.id, r.id])));
       setLoading(false);
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Keep friend last_seen_at fresh (same cadence as messenger dialog list).
@@ -211,7 +241,9 @@ function FriendsPage() {
     let active = true;
     const refresh = () => {
       fetchFriends()
-        .then((fr) => { if (active) setFriends(fr); })
+        .then((fr) => {
+          if (active) setFriends(fr);
+        })
         .catch(() => {});
     };
     refresh();
@@ -279,7 +311,11 @@ function FriendsPage() {
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "all", label: t("pages.friends.tabAll"), count: allUsers.length },
-    { key: "online", label: t("pages.friends.tabOnline"), count: friends.filter((u) => isOnline(u)).length },
+    {
+      key: "online",
+      label: t("pages.friends.tabOnline"),
+      count: friends.filter((u) => isOnline(u)).length,
+    },
     { key: "requests", label: t("pages.friends.tabRequests"), count: requests.length },
   ];
 
@@ -402,12 +438,19 @@ function FriendsPage() {
 
   const blockUserVia = async (u: User) => {
     if (!isDemoMode() && u.numericId) {
-      try { await blockUser(u.numericId); } catch { toast.error(t("pages.friends.blockFailed")); return; }
+      try {
+        await blockUser(u.numericId);
+      } catch {
+        toast.error(t("pages.friends.blockFailed"));
+        return;
+      }
     }
     actions.blockUser(u.id);
     setFriends((fs) => fs.filter((f) => f.id !== u.id));
     setRequests((rs) => rs.filter((r) => r.from.id !== u.id));
-    toast.success(t("pages.friends.userBlocked", { name: u.name }), { description: t("pages.friends.userBlockedDesc") });
+    toast.success(t("pages.friends.userBlocked", { name: u.name }), {
+      description: t("pages.friends.userBlockedDesc"),
+    });
   };
 
   return (
@@ -415,8 +458,15 @@ function FriendsPage() {
       <div className="space-y-[16px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="font-display text-[28px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.friends.title")}</h1>
-            <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>{t("pages.friends.subtitle")}</p>
+            <h1
+              className="font-display text-[28px] font-bold"
+              style={{ color: "var(--foreground)" }}
+            >
+              {t("pages.friends.title")}
+            </h1>
+            <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.friends.subtitle")}
+            </p>
           </div>
           {/* Full-width split on mobile so "Групповой звонок" never runs off the
               right edge; natural row on desktop. */}
@@ -440,11 +490,15 @@ function FriendsPage() {
               return (
                 <button
                   key={t.key}
-                  ref={(el) => { refs.current[t.key] = el; }}
+                  ref={(el) => {
+                    refs.current[t.key] = el;
+                  }}
                   onClick={() => setTab(t.key)}
                   className="inline-flex shrink-0 items-center gap-[6px] font-display transition-colors duration-200"
                   style={{
-                    height: 48, padding: "0 16px", fontSize: 14,
+                    height: 48,
+                    padding: "0 16px",
+                    fontSize: 14,
                     fontWeight: active ? 600 : 500,
                     color: active ? "var(--foreground)" : "var(--foreground-50)",
                   }}
@@ -490,33 +544,41 @@ function FriendsPage() {
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.2 }}
         >
-            {loading ? (
+          {loading ? (
+            <div className="flex flex-col gap-[10px]">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card
+                  key={i}
+                  className="flex items-center gap-[16px] p-[20px] shadow-none"
+                  style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+                >
+                  <Skeleton className="h-[56px] w-[56px] shrink-0 rounded-full" />
+                  <div className="flex-1 space-y-[8px]">
+                    <Skeleton
+                      className="h-[12px] rounded-[6px]"
+                      style={{ width: `${40 + ((i * 13) % 40)}%` }}
+                    />
+                    <Skeleton
+                      className="h-[10px] rounded-[6px]"
+                      style={{ width: `${30 + ((i * 11) % 30)}%` }}
+                    />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : tab === "requests" ? (
+            requests.length === 0 ? (
+              <EmptyState
+                icon={UserPlus}
+                title={t("pages.friends.requestsEmpty")}
+                description={t("pages.friends.requestsEmptyDesc")}
+                variant="compact"
+              />
+            ) : (
               <div className="flex flex-col gap-[10px]">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Card
-                    key={i}
-                    className="flex items-center gap-[16px] p-[20px] shadow-none"
-                    style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
-                  >
-                    <Skeleton className="h-[56px] w-[56px] shrink-0 rounded-full" />
-                    <div className="flex-1 space-y-[8px]">
-                      <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${40 + (i * 13) % 40}%` }} />
-                      <Skeleton className="h-[10px] rounded-[6px]" style={{ width: `${30 + (i * 11) % 30}%` }} />
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : tab === "requests" ? (
-              requests.length === 0 ? (
-                <EmptyState
-                  icon={UserPlus}
-                  title={t("pages.friends.requestsEmpty")}
-                  description={t("pages.friends.requestsEmptyDesc")}
-                  variant="compact"
-                />
-              ) : (
-                <div className="flex flex-col gap-[10px]">
-                  {requests.filter((r) => !isBlockedUser(r.from.id)).map((r) => {
+                {requests
+                  .filter((r) => !isBlockedUser(r.from.id))
+                  .map((r) => {
                     const u = r.from;
                     return (
                       <Card
@@ -547,7 +609,10 @@ function FriendsPage() {
                           <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
                             {t("pages.friends.wantsToAdd")}
                           </p>
-                          <p className="mt-[2px] flex items-center gap-[4px] text-[11px]" style={{ color: "var(--foreground-30)" }}>
+                          <p
+                            className="mt-[2px] flex items-center gap-[4px] text-[11px]"
+                            style={{ color: "var(--foreground-30)" }}
+                          >
                             <Clock size={10} /> {formatDate(r.date, "relative")}
                           </p>
                           <div className="mt-[12px] flex flex-wrap gap-[8px]">
@@ -582,57 +647,95 @@ function FriendsPage() {
                       </Card>
                     );
                   })}
-                </div>
-              )
-            ) : tab === "online" ? (
-              onlineFriends.length === 0 ? (
-                <EmptyState
-                  icon={Users}
-                  title={t("pages.friends.onlineEmpty")}
-                  description={t("pages.friends.onlineEmptyDesc")}
-                  variant="compact"
-                />
-              ) : (
-                <div className="flex flex-col gap-[10px]">
-                  {onlineFriends.map((u) => (
-                      <FriendCard
-                        key={u.id}
-                        user={u}
-                        isAdded={true}
-                        isPending={false}
-                        online={true}
-                        onToggleFriend={() => toggleFriend(u)}
-                        onWriteTo={() => writeTo(u)}
-                        onViewProfile={() => viewProfile(u)}
-                        onRemoveFriend={() => removeFriendVia(u)}
-                        onHide={() => hideUserFromList(u)}
-                        onReport={() => reportUser(u)}
-                        onBlock={() => blockUserVia(u)}
-                      />
-                  ))}
-                </div>
-              )
-            ) : connected.length === 0 && recommended.length === 0 ? (
+              </div>
+            )
+          ) : tab === "online" ? (
+            onlineFriends.length === 0 ? (
               <EmptyState
                 icon={Users}
-                title={q ? t("pages.friends.searchEmpty") : t("pages.friends.emptyTitle")}
-                description={q ? t("pages.friends.searchEmptyDesc") : t("pages.friends.emptyDesc")}
+                title={t("pages.friends.onlineEmpty")}
+                description={t("pages.friends.onlineEmptyDesc")}
                 variant="compact"
               />
             ) : (
-              <div className="flex flex-col gap-[24px]">
-                {connected.length > 0 && (
-                  <div className="flex flex-col gap-[10px]">
-                    <div className="flex items-center gap-[6px] px-[2px]">
-                      <h2 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.friends.myFriends")}</h2>
-                      <span className="text-[13px] font-semibold" style={{ color: "var(--foreground-50)" }}>{connected.length}</span>
-                    </div>
-                    {connected.map((u) => (
+              <div className="flex flex-col gap-[10px]">
+                {onlineFriends.map((u) => (
+                  <FriendCard
+                    key={u.id}
+                    user={u}
+                    isAdded={true}
+                    isPending={false}
+                    online={true}
+                    onToggleFriend={() => toggleFriend(u)}
+                    onWriteTo={() => writeTo(u)}
+                    onViewProfile={() => viewProfile(u)}
+                    onRemoveFriend={() => removeFriendVia(u)}
+                    onHide={() => hideUserFromList(u)}
+                    onReport={() => reportUser(u)}
+                    onBlock={() => blockUserVia(u)}
+                  />
+                ))}
+              </div>
+            )
+          ) : connected.length === 0 && recommended.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title={q ? t("pages.friends.searchEmpty") : t("pages.friends.emptyTitle")}
+              description={q ? t("pages.friends.searchEmptyDesc") : t("pages.friends.emptyDesc")}
+              variant="compact"
+            />
+          ) : (
+            <div className="flex flex-col gap-[24px]">
+              {connected.length > 0 && (
+                <div className="flex flex-col gap-[10px]">
+                  <div className="flex items-center gap-[6px] px-[2px]">
+                    <h2
+                      className="text-[13px] font-semibold"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      {t("pages.friends.myFriends")}
+                    </h2>
+                    <span
+                      className="text-[13px] font-semibold"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
+                      {connected.length}
+                    </span>
+                  </div>
+                  {connected.map((u) => (
+                    <FriendCard
+                      key={u.id}
+                      user={u}
+                      isAdded={true}
+                      isPending={false}
+                      online={isOnline(u)}
+                      onToggleFriend={() => toggleFriend(u)}
+                      onWriteTo={() => writeTo(u)}
+                      onViewProfile={() => viewProfile(u)}
+                      onRemoveFriend={() => removeFriendVia(u)}
+                      onHide={() => hideUserFromList(u)}
+                      onReport={() => reportUser(u)}
+                      onBlock={() => blockUserVia(u)}
+                    />
+                  ))}
+                </div>
+              )}
+              {recommended.length > 0 && (
+                <div className="flex flex-col gap-[10px]">
+                  <h2
+                    className="px-[2px] text-[13px] font-semibold"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {t("pages.friends.recommendations")}
+                  </h2>
+                  {recommended.map((u) => {
+                    const isPending = pending.has(u.id);
+                    return (
                       <FriendCard
                         key={u.id}
                         user={u}
-                        isAdded={true}
-                        isPending={false}
+                        isAdded={false}
+                        isPending={isPending}
                         online={isOnline(u)}
                         onToggleFriend={() => toggleFriend(u)}
                         onWriteTo={() => writeTo(u)}
@@ -642,41 +745,24 @@ function FriendsPage() {
                         onReport={() => reportUser(u)}
                         onBlock={() => blockUserVia(u)}
                       />
-                    ))}
-                  </div>
-                )}
-                {recommended.length > 0 && (
-                  <div className="flex flex-col gap-[10px]">
-                    <h2 className="px-[2px] text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.friends.recommendations")}</h2>
-                    {recommended.map((u) => {
-                      const isPending = pending.has(u.id);
-                      return (
-                        <FriendCard
-                          key={u.id}
-                          user={u}
-                          isAdded={false}
-                          isPending={isPending}
-                          online={isOnline(u)}
-                          onToggleFriend={() => toggleFriend(u)}
-                          onWriteTo={() => writeTo(u)}
-                          onViewProfile={() => viewProfile(u)}
-                          onRemoveFriend={() => removeFriendVia(u)}
-                          onHide={() => hideUserFromList(u)}
-                          onReport={() => reportUser(u)}
-                          onBlock={() => blockUserVia(u)}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </ReducedMotionSwitch>
       </div>
-      <ComplaintDialog target={complaintTarget} onClose={() => setComplaintTarget(null)} report={complaintTarget ? { type: "user", targetId: complaintTarget.id } : undefined} />
+      <ComplaintDialog
+        target={complaintTarget}
+        onClose={() => setComplaintTarget(null)}
+        report={complaintTarget ? { type: "user", targetId: complaintTarget.id } : undefined}
+      />
       <FriendRequiredDialog
         open={friendPrompt !== null}
-        onOpenChange={(open) => { if (!open) setFriendPrompt(null); }}
+        onOpenChange={(open) => {
+          if (!open) setFriendPrompt(null);
+        }}
         adding={friendPromptBusy}
         onAdd={() => {
           const u = friendPrompt;

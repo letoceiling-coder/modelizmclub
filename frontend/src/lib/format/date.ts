@@ -18,18 +18,47 @@
  */
 export type DateStyle = "relative" | "absolute" | "date" | "short";
 
-const MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+const MONTHS_SHORT = [
+  "янв",
+  "фев",
+  "мар",
+  "апр",
+  "мая",
+  "июн",
+  "июл",
+  "авг",
+  "сен",
+  "окт",
+  "ноя",
+  "дек",
+];
 const MONTHS_GENITIVE = [
-  "января", "февраля", "марта", "апреля", "мая", "июня",
-  "июля", "августа", "сентября", "октября", "ноября", "декабря",
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
 ];
 
 const pad = (n: number): string => String(n).padStart(2, "0");
 const hhmm = (d: Date): string => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const sameDay = (a: Date, b: Date): boolean =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
 
-export function formatDate(input: string | Date | null | undefined, style: DateStyle = "relative", now: Date = new Date()): string {
+export function formatDate(
+  input: string | Date | null | undefined,
+  style: DateStyle = "relative",
+  now: Date = new Date(),
+): string {
   if (input === null || input === undefined || input === "") return "";
   const d = input instanceof Date ? input : new Date(input);
   if (Number.isNaN(d.getTime())) return typeof input === "string" ? input : "";

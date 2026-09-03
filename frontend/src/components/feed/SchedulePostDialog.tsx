@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { buildSchedulePayload, defaultScheduleDateTime, defaultScheduleTimezone, isScheduleDateTimeValid } from "@/lib/post-schedule";
+  buildSchedulePayload,
+  defaultScheduleDateTime,
+  defaultScheduleTimezone,
+  isScheduleDateTimeValid,
+} from "@/lib/post-schedule";
 import { schedulePost } from "@/lib/api/feed";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import type { Post } from "@/lib/mock";
@@ -31,7 +31,9 @@ export function SchedulePostDialog({ post, open, onOpenChange, onUpdated }: Prop
     if (next && post?.scheduledAt) {
       const d = new Date(post.scheduledAt);
       setDate(d.toISOString().slice(0, 10));
-      setTime(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+      setTime(
+        `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+      );
     }
     onOpenChange(next);
   };
@@ -63,7 +65,10 @@ export function SchedulePostDialog({ post, open, onOpenChange, onUpdated }: Prop
         </DialogHeader>
         <div className="grid gap-[10px]">
           <label className="block">
-            <span className="mb-[6px] block text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span
+              className="mb-[6px] block text-[12px] font-medium"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {t("components.postSchedule.date")}
             </span>
             <input
@@ -71,11 +76,18 @@ export function SchedulePostDialog({ post, open, onOpenChange, onUpdated }: Prop
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="h-[44px] w-full rounded-[var(--r-input)] border px-[12px] text-[14px]"
-              style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }}
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--background)",
+                color: "var(--foreground)",
+              }}
             />
           </label>
           <label className="block">
-            <span className="mb-[6px] block text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span
+              className="mb-[6px] block text-[12px] font-medium"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {t("components.postSchedule.time")}
             </span>
             <input
@@ -83,18 +95,29 @@ export function SchedulePostDialog({ post, open, onOpenChange, onUpdated }: Prop
               value={time}
               onChange={(e) => setTime(e.target.value)}
               className="h-[44px] w-full rounded-[var(--r-input)] border px-[12px] text-[14px]"
-              style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }}
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--background)",
+                color: "var(--foreground)",
+              }}
             />
           </label>
           <label className="block">
-            <span className="mb-[6px] block text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span
+              className="mb-[6px] block text-[12px] font-medium"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {t("components.postSchedule.timezone")}
             </span>
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
               className="h-[44px] w-full rounded-[var(--r-input)] border px-[12px] text-[14px]"
-              style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }}
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--background)",
+                color: "var(--foreground)",
+              }}
             >
               <option value="Europe/Moscow">Москва (UTC+3)</option>
               <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>

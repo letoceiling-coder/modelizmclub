@@ -101,28 +101,41 @@ export async function adminCreateLegalPage(payload: {
   content_md?: string;
   meta_description?: string;
 }): Promise<AdminLegalPage> {
-  const res = await api<{ data: AdminLegalPage }>("/admin/legal-pages", { method: "POST", json: payload });
+  const res = await api<{ data: AdminLegalPage }>("/admin/legal-pages", {
+    method: "POST",
+    json: payload,
+  });
   return res.data;
 }
 
-export async function adminUpdateLegalPage(id: number, payload: {
-  slug: string;
-  title: string;
-  content_html?: string;
-  content_md?: string;
-  meta_description?: string;
-}): Promise<AdminLegalPage> {
-  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}`, { method: "PUT", json: payload });
+export async function adminUpdateLegalPage(
+  id: number,
+  payload: {
+    slug: string;
+    title: string;
+    content_html?: string;
+    content_md?: string;
+    meta_description?: string;
+  },
+): Promise<AdminLegalPage> {
+  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}`, {
+    method: "PUT",
+    json: payload,
+  });
   return res.data;
 }
 
 export async function adminPublishLegalPage(id: number): Promise<AdminLegalPage> {
-  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}/publish`, { method: "POST" });
+  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}/publish`, {
+    method: "POST",
+  });
   return res.data;
 }
 
 export async function adminArchiveLegalPage(id: number): Promise<AdminLegalPage> {
-  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}/archive`, { method: "POST" });
+  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}/archive`, {
+    method: "POST",
+  });
   return res.data;
 }
 
@@ -131,8 +144,14 @@ export async function adminFetchLegalPageRevisions(id: number): Promise<AdminLeg
   return res.data;
 }
 
-export async function adminRestoreLegalPageRevision(id: number, revisionId: number): Promise<AdminLegalPage> {
-  const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}/revisions/${revisionId}/restore`, { method: "POST" });
+export async function adminRestoreLegalPageRevision(
+  id: number,
+  revisionId: number,
+): Promise<AdminLegalPage> {
+  const res = await api<{ data: AdminLegalPage }>(
+    `/admin/legal-pages/${id}/revisions/${revisionId}/restore`,
+    { method: "POST" },
+  );
   return res.data;
 }
 
@@ -154,12 +173,21 @@ export async function adminFetchFooterLinks(): Promise<AdminFooterLink[]> {
   return res.data;
 }
 
-export async function adminUpsertFooterLink(id: number | null, payload: Partial<AdminFooterLink>): Promise<AdminFooterLink> {
+export async function adminUpsertFooterLink(
+  id: number | null,
+  payload: Partial<AdminFooterLink>,
+): Promise<AdminFooterLink> {
   if (id) {
-    const res = await api<{ data: AdminFooterLink }>(`/admin/footer-links/${id}`, { method: "PUT", json: payload });
+    const res = await api<{ data: AdminFooterLink }>(`/admin/footer-links/${id}`, {
+      method: "PUT",
+      json: payload,
+    });
     return res.data;
   }
-  const res = await api<{ data: AdminFooterLink }>("/admin/footer-links", { method: "POST", json: payload });
+  const res = await api<{ data: AdminFooterLink }>("/admin/footer-links", {
+    method: "POST",
+    json: payload,
+  });
   return res.data;
 }
 
@@ -167,6 +195,8 @@ export async function adminDeleteFooterLink(id: number): Promise<void> {
   await api(`/admin/footer-links/${id}`, { method: "DELETE" });
 }
 
-export async function adminReorderFooterLinks(items: { id: number; sort: number }[]): Promise<void> {
+export async function adminReorderFooterLinks(
+  items: { id: number; sort: number }[],
+): Promise<void> {
   await api("/admin/footer-links/reorder", { method: "POST", json: { items } });
 }

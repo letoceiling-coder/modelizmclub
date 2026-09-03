@@ -32,9 +32,13 @@ export function NativeSelect({
       >
         {options.map((o) =>
           typeof o === "string" ? (
-            <option key={o} value={o}>{o}</option>
+            <option key={o} value={o}>
+              {o}
+            </option>
           ) : (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ),
         )}
       </select>

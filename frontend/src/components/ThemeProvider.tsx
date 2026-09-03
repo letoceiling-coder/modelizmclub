@@ -66,7 +66,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [preference]);
 
   // Apply saved accent (admin Design System) on mount.
-  useEffect(() => { bootstrapTheme(); }, []);
+  useEffect(() => {
+    bootstrapTheme();
+  }, []);
 
   // Live-follow the OS only while preference is "system".
   useEffect(() => {
@@ -77,7 +79,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const resolved: Theme = e.matches ? "dark" : "light";
         setThemeState(resolved);
         applyTheme(resolved);
-        try { window.localStorage.setItem(LEGACY_KEY, resolved); } catch { /* ignore */ }
+        try {
+          window.localStorage.setItem(LEGACY_KEY, resolved);
+        } catch {
+          /* ignore */
+        }
         return prev;
       });
     }

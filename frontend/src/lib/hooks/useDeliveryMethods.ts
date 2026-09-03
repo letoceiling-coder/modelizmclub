@@ -19,8 +19,9 @@ function loadMethods(): Promise<DeliveryMethodOption[]> {
   if (inflight) return inflight;
   inflight = fetchDeliveryMethodsPublic()
     .then((rows) => {
-      const options = (rows.length > 0 ? toOptions(rows) : DELIVERY_METHODS_FALLBACK)
-        .filter((m) => m.id !== "boxberry");
+      const options = (rows.length > 0 ? toOptions(rows) : DELIVERY_METHODS_FALLBACK).filter(
+        (m) => m.id !== "boxberry",
+      );
       cache = options;
       return options;
     })
@@ -32,7 +33,9 @@ function loadMethods(): Promise<DeliveryMethodOption[]> {
 }
 
 export function useDeliveryMethods(): DeliveryMethodOption[] {
-  const [methods, setMethods] = useState<DeliveryMethodOption[]>(cache ?? DELIVERY_METHODS_FALLBACK);
+  const [methods, setMethods] = useState<DeliveryMethodOption[]>(
+    cache ?? DELIVERY_METHODS_FALLBACK,
+  );
 
   useEffect(() => {
     let active = true;
