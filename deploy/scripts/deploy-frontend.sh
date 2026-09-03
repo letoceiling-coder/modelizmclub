@@ -4,6 +4,8 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/modelizmclub}"
 FRONTEND_DIR="${APP_DIR}/frontend"
+SERVICE="modelizmclub-frontend.service"
+HEALTH_URL="${FRONTEND_HEALTH_URL:-https://modelizmclub.ru/}"
 
 cd "${APP_DIR}"
 git -c safe.directory="${APP_DIR}" pull origin master
@@ -11,7 +13,7 @@ git -c safe.directory="${APP_DIR}" pull origin master
 cd "${FRONTEND_DIR}"
 
 if ! command -v bun >/dev/null 2>&1; then
-  echo "bun not found — run deploy/scripts/setup-frontend-vps.sh first" >&2
+  echo "bun not found — run deploy/setup/setup-frontend-vps.sh first" >&2
   exit 1
 fi
 
@@ -32,17 +34,73 @@ export VITE_REVERB_SCHEME="${VITE_REVERB_SCHEME:-https}"
 export VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://api.modelizmclub.ru/api/v1}"
 export VITE_DEMO_MODE="${VITE_DEMO_MODE:-false}"
 
+# Build in an isolated git worktree instead of the live frontend/ directory.
+# The old script ran `bun run build` straight into the live .output the
+# running Node process was still serving from — a request landing mid-build
+# could hit a chunk file the build had just deleted (real outage on the neeklo
+# stand, 2026-07-14 17:43:51 UTC: ERR_MODULE_NOT_FOUND/ENOENT, user hit the
+# app's error boundary while browsing during a redeploy). Redirecting Nitro's
+# own output dir via the NITRO_OUTPUT_DIR env var turned out to be silently
+# ignored by this project's vite-tanstack-config wrapper, so building fully
+# outside frontend/ — where Nitro's default `<cwd>/.output` naturally lands
+# somewhere harmless — is the reliable way to keep the live .output
+# untouched until the swap at the very end.
+WORKTREES_DIR="${APP_DIR}/.worktrees"
+mkdir -p "${WORKTREES_DIR}"
+RELEASE_ID="$(date +%Y%m%d%H%M%S)"
+WORKTREE="${WORKTREES_DIR}/frontend-${RELEASE_ID}"
+
+# Remember what we are serving now, so a failed smoke check can go straight back.
+PREVIOUS_OUTPUT=""
+if [[ -L "${FRONTEND_DIR}/.output" ]]; then
+  PREVIOUS_OUTPUT="$(readlink -f "${FRONTEND_DIR}/.output" || true)"
+fi
+
+git worktree add --detach "${WORKTREE}" HEAD
+cd "${WORKTREE}/frontend"
 bun install --frozen-lockfile 2>/dev/null || bun install
 bun run build
 
-chown -R www-data:www-data "${FRONTEND_DIR}/.output" "${FRONTEND_DIR}/.output/public" 2>/dev/null || \
-  chown -R www-data:www-data "${FRONTEND_DIR}/.output" 2>/dev/null || true
+chown -R www-data:www-data "${WORKTREE}/frontend/.output"
 
-if systemctl is-enabled modelizmclub-frontend.service >/dev/null 2>&1; then
-  systemctl restart modelizmclub-frontend.service
-  systemctl --no-pager status modelizmclub-frontend.service | head -5
-else
-  echo "WARN: modelizmclub-frontend.service not enabled — run setup-frontend-vps.sh"
+cd "${FRONTEND_DIR}"
+if [[ -e .output && ! -L .output ]]; then
+  mv .output ".output.legacy-${RELEASE_ID}"
+fi
+ln -sfn "${WORKTREE}/frontend/.output" .output.next
+mv -Tf .output.next .output
+
+systemctl restart "${SERVICE}"
+systemctl --no-pager status "${SERVICE}" | head -5
+
+# Smoke check: a service that started is not the same as a site that answers.
+# On failure the symlink goes back to the previous release — which is why the
+# pruning below always keeps two.
+if ! "${APP_DIR}/deploy/scripts/smoke-check.sh" --frontend "${HEALTH_URL}"; then
+  echo "" >&2
+  echo "SMOKE CHECK FAILED after deploying ${RELEASE_ID}." >&2
+  if [[ -n "${PREVIOUS_OUTPUT}" && -d "${PREVIOUS_OUTPUT}" ]]; then
+    echo "Rolling back to ${PREVIOUS_OUTPUT}" >&2
+    ln -sfn "${PREVIOUS_OUTPUT}" "${FRONTEND_DIR}/.output.next"
+    mv -Tf "${FRONTEND_DIR}/.output.next" "${FRONTEND_DIR}/.output"
+    systemctl restart "${SERVICE}"
+    echo "Rolled back. The failed release is still at ${WORKTREE}" >&2
+  else
+    echo "No previous release to roll back to (first worktree deploy?)." >&2
+    echo "Fix forward, or restore manually from ${WORKTREE}" >&2
+  fi
+  exit 1
 fi
 
-echo "Frontend deploy OK: $(date -Iseconds)"
+# Keep the worktree just deployed plus one prior release for rollback
+# headroom (the live .output symlink points into whichever worktree is
+# current, so pruning must never touch the last two).
+cd "${APP_DIR}"
+mapfile -t OLD_WORKTREES < <(git worktree list --porcelain | awk '/^worktree /{print $2}' | grep "^${WORKTREES_DIR}/frontend-" | sort -r | tail -n +3)
+for wt in "${OLD_WORKTREES[@]}"; do
+  [[ -n "${wt}" ]] || continue
+  git worktree remove --force "${wt}" 2>/dev/null || rm -rf "${wt}"
+done
+git worktree prune
+
+echo "Frontend deploy OK: ${RELEASE_ID} $(date -Iseconds)"

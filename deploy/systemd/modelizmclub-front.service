@@ -11,6 +11,11 @@ Environment=NODE_ENV=production
 Environment=PORT=3001
 Environment=HOST=127.0.0.1
 ExecStart=/usr/bin/node .output/server/index.mjs
+# A started process is not a working site: block the unit from reporting
+# success until it actually answers, so `systemctl restart` fails loudly
+# instead of leaving a dead app marked active.
+ExecStartPost=/bin/sh -c 'for i in $(seq 1 30); do curl -fsS -o /dev/null --max-time 5 http://127.0.0.1:3001/ && exit 0; sleep 2; done; exit 1'
+TimeoutStartSec=120
 Restart=on-failure
 RestartSec=5
 
