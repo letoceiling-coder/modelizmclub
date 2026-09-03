@@ -1,3 +1,4 @@
+import { markConversationRead } from "@/lib/api/chat";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { Dialog, Message } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
@@ -26,13 +27,26 @@ import { qk } from "@/lib/queries/keys";
 export function useDialogs() {
   const me = useCurrentUser();
   const q = useQuery(conversationsQuery(me.id));
-  return { dialogs: q.data ?? EMPTY_DIALOGS, isPending: q.isPending, error: q.error, refetch: q.refetch };
+  return {
+    dialogs: q.data ?? EMPTY_DIALOGS,
+    isPending: q.isPending,
+    error: q.error,
+    refetch: q.refetch,
+  };
 }
 
 export function useDialogMessages(conversationUuid: string | null) {
   const qc = useQueryClient();
-  const q = useQuery({ ...messagesQuery(qc, conversationUuid ?? "_"), enabled: Boolean(conversationUuid) });
-  return { messages: q.data ?? EMPTY_MESSAGES, isPending: Boolean(conversationUuid) && q.isPending, error: q.error, refetch: q.refetch };
+  const q = useQuery({
+    ...messagesQuery(qc, conversationUuid ?? "_"),
+    enabled: Boolean(conversationUuid),
+  });
+  return {
+    messages: q.data ?? EMPTY_MESSAGES,
+    isPending: Boolean(conversationUuid) && q.isPending,
+    error: q.error,
+    refetch: q.refetch,
+  };
 }
 
 export function useUnreadMessagesTotal(): number {
@@ -74,12 +88,20 @@ export const messengerCache = {
   },
   addMessage(conversationUuid: string, message: Message): void {
     const c = qc();
-    if (c) addMessageToCache(c, conversationUuid, message, { incrementUnread: false, meUuid: getSessionUserId() });
+    if (c)
+      addMessageToCache(c, conversationUuid, message, {
+        incrementUnread: false,
+        meUuid: getSessionUserId(),
+      });
   },
   /** Server-confirmed or realtime message — dedupes by id and by optimistic twin. */
   upsert(conversationUuid: string, message: Message): void {
     const c = qc();
-    if (c) addMessageToCache(c, conversationUuid, message, { incrementUnread: false, meUuid: getSessionUserId() });
+    if (c)
+      addMessageToCache(c, conversationUuid, message, {
+        incrementUnread: false,
+        meUuid: getSessionUserId(),
+      });
   },
   replaceMessage(conversationUuid: string, tempId: string, saved: Message): void {
     const c = qc();
@@ -100,6 +122,9 @@ export const messengerCache = {
   markRead(conversationUuid: string): void {
     const c = qc();
     if (c) markConversationReadInCache(c, conversationUuid);
+    // The server owns last_read_message_id; the cache update above only keeps
+    // the badge honest until the next refetch.
+    void markConversationRead(conversationUuid).catch(() => {});
   },
   markOwnStatus(conversationUuid: string, to: "delivered" | "read"): void {
     const c = qc();
@@ -116,13 +141,21 @@ export const messengerCache = {
   ingestIncoming(conversationUuid: string, message: Message, incrementUnread: boolean): void {
     const c = qc();
     if (!c) return;
-    const known = c.getQueryData<Dialog[]>(qk.conversations)?.some((d) => d.id === conversationUuid);
+    const known = c
+      .getQueryData<Dialog[]>(qk.conversations)
+      ?.some((d) => d.id === conversationUuid);
     if (known) {
-      addMessageToCache(c, conversationUuid, message, { incrementUnread, meUuid: getSessionUserId() });
+      addMessageToCache(c, conversationUuid, message, {
+        incrementUnread,
+        meUuid: getSessionUserId(),
+      });
       return;
     }
     if (pendingHydrations.has(conversationUuid)) {
-      addMessageToCache(c, conversationUuid, message, { incrementUnread, meUuid: getSessionUserId() });
+      addMessageToCache(c, conversationUuid, message, {
+        incrementUnread,
+        meUuid: getSessionUserId(),
+      });
       return;
     }
     pendingHydrations.add(conversationUuid);
