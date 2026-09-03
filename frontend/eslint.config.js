@@ -34,6 +34,23 @@ export default tseslint.config(
       ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Дизайн-токены (W0-04): точные px в spacing-классах — предупреждение.
+      // Шкала Tailwind (4px) покрывает все значения проекта: p-[12px] → p-3.
+      // Уровень warn: существующие ~2200 вхождений мигрируют волнами (W4-09),
+      // правило останавливает только новые. См. docs/design-system.md.
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector:
+            'JSXAttribute[name.name="className"] Literal[value=/(^|\\s)-?(p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|space-[xy])-\\[\\d+px\\]/]',
+          message: "Используйте шкалу отступов Tailwind вместо точных px (p-[12px] → p-3). См. docs/design-system.md",
+        },
+        {
+          selector:
+            'JSXAttribute[name.name="className"] TemplateElement[value.raw=/(^|\\s)-?(p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|space-[xy])-\\[\\d+px\\]/]',
+          message: "Используйте шкалу отступов Tailwind вместо точных px (p-[12px] → p-3). См. docs/design-system.md",
+        },
+      ],
     },
   },
   eslintPluginPrettier,

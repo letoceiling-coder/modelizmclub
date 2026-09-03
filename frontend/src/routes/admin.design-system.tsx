@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Home, Bell, Settings, Heart, Star, Search as SearchIcon, ChevronRight,
   Camera, ShieldCheck, Award, Wrench, Plane, Ship, Car,
@@ -14,10 +14,11 @@ import { useState } from "react";
 
 export const Route = createFileRoute("/admin/design-system")({
   head: () => ({ meta: [{ title: "Design System — МоДелизМ" }] }),
+  // Живая страница токенов доступна и в prod — только под админом.
+  // Роль проверяется в компоненте по той же схеме, что и /admin (см. requireAdmin).
   beforeLoad: async ({ location }) => {
-    if (import.meta.env.PROD) throw notFound();
-    const { requireAuth } = await import("@/lib/auth/requireAuth");
-    await requireAuth(location);
+    const { requireAdmin } = await import("@/lib/auth/requireAdmin");
+    await requireAdmin(location);
   },
   component: DesignSystemPage,
 });
@@ -55,12 +56,14 @@ function Swatch({ name, hex, varName }: { name: string; hex: string; varName: st
 const navSections = [
   { id: "palette", label: "Палитра" },
   { id: "typography", label: "Типографика" },
+  { id: "spacing", label: "Отступы" },
   { id: "buttons", label: "Кнопки" },
   { id: "badges", label: "Бейджи" },
   { id: "alerts", label: "Уведомления" },
   { id: "forms", label: "Формы" },
   { id: "cards", label: "Карточки" },
   { id: "navigation", label: "Навигация" },
+  { id: "breakpoints", label: "Брейкпоинты" },
 ];
 
 function DesignSystemPage() {
@@ -175,10 +178,56 @@ function DesignSystemPage() {
               <span className="ml-3 text-xs text-[var(--foreground-50)]">Button text · Manrope SemiBold · 14px</span>
             </div>
           </div>
+
+          <h3 className="mb-3 mt-10 text-sm font-semibold text-[var(--foreground-70)]">
+            Утилиты для контента (styles.css → @utility)
+          </h3>
+          <div className="space-y-4 rounded-[var(--r-card)] border border-[var(--border)] bg-[var(--background-elevated)] p-5">
+            {([
+              { cls: "text-card-title", spec: "20px / 1.3 / 600", sample: "Продам багги Kyosho Inferno MP10, готова к гонкам" },
+              { cls: "text-body", spec: "16px / 1.5", sample: "Полностью обслужена перед продажей: новые подшипники, свежее масло в амортизаторах, аккумулятор 2S держит заряд." },
+              { cls: "text-meta", spec: "14px / 1.4", sample: "Краснодар · Б/у · 18 000 ₽ · доставка СДЭК" },
+              { cls: "text-caption", spec: "12px / 1.3", sample: "Опубликовано сегодня в 14:32 · 1 240 просмотров" },
+            ]).map((t) => (
+              <div key={t.cls}>
+                <p className={t.cls}>{t.sample}</p>
+                <span className="text-xs text-[var(--foreground-50)]">
+                  <code className="font-mono">.{t.cls}</code> · {t.spec}
+                </span>
+              </div>
+            ))}
+          </div>
         </Section>
 
-        {/* ===== 3. Кнопки ===== */}
-        <Section id="buttons" title="3. Кнопки">
+        {/* ===== 3. Шкала отступов ===== */}
+        <Section id="spacing" title="3. Шкала отступов">
+          <p className="mb-5 text-sm text-[var(--foreground-70)]">
+            Дефолтная шкала Tailwind v4: <code className="font-mono">--spacing = 0.25rem = 4px</code>. Она покрывает
+            все значения проекта, поэтому точные px в классах отступов не нужны:{" "}
+            <code className="font-mono">p-[12px] → p-3</code>. Линт предупреждает о новых px.
+          </p>
+          <div className="space-y-2">
+            {([0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8, 10, 12]).map((step) => {
+              const px = step * 4;
+              return (
+                <div key={step} className="flex items-center gap-4">
+                  <code className="w-14 shrink-0 text-right font-mono text-xs text-[var(--foreground-70)]">{step}</code>
+                  <div
+                    className="h-4 shrink-0 rounded-sm bg-[var(--accent)]"
+                    style={{ width: `${px}px` }}
+                    aria-hidden
+                  />
+                  <span className="text-xs text-[var(--foreground-50)]">
+                    {px}px · <code className="font-mono">p-{step} / gap-{step} / m-{step}</code>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+
+        {/* ===== 4. Кнопки ===== */}
+        <Section id="buttons" title="4. Кнопки">
           <div className="flex flex-wrap items-center gap-3">
             <Button>Подать объявление</Button>
             <Button variant="secondary">Сохранить черновик</Button>
@@ -188,6 +237,17 @@ function DesignSystemPage() {
             <Button variant="destructive">Удалить модель</Button>
             <Button disabled>Недоступно</Button>
           </div>
+          <h3 className="mb-3 mt-6 text-sm font-semibold text-[var(--foreground-70)]">
+            Приоритеты (docs/design-system.md): primary → secondary → tertiary; detached — отдельно стоящая; icon — только иконка
+          </h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="primary" size="md">Написать</Button>
+            <Button variant="secondary" size="md">Позвонить</Button>
+            <Button variant="tertiary" size="md">Пожаловаться</Button>
+            <Button variant="detached" size="md">Подписаться</Button>
+            <Button variant="icon" size="icon" aria-label="В избранное"><Heart className="size-5" /></Button>
+            <Button variant="icon" size="icon" aria-label="Поделиться"><ChevronRight className="size-5" /></Button>
+          </div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button>
               Смотреть каталог <ChevronRight className="size-4" />
@@ -195,16 +255,20 @@ function DesignSystemPage() {
             <SplitButton onDropdownClick={() => {}}>Действия с объявлением</SplitButton>
             <SplitButton variant="outline" onDropdownClick={() => {}}>Сортировка</SplitButton>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button size="sm">Маленькая</Button>
-            <Button size="default">Стандартная</Button>
-            <Button size="lg">Большая</Button>
-            <Button size="icon" aria-label="В избранное"><Heart className="size-4" /></Button>
+          <h3 className="mb-3 mt-6 text-sm font-semibold text-[var(--foreground-70)]">
+            Размеры: sm 36 · md 44 · icon 44×44 (тап-таргет). default 40 и lg 44 — legacy-имена для существующего кода
+          </h3>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <Button size="sm">sm · 36</Button>
+            <Button size="md">md · 44</Button>
+            <Button size="icon" variant="icon" aria-label="icon · 44"><Heart className="size-5" /></Button>
+            <Button size="default" variant="outline">default · 40 (legacy)</Button>
+            <Button size="lg" variant="outline">lg · 44 (legacy)</Button>
           </div>
         </Section>
 
-        {/* ===== 4. Бейджи ===== */}
-        <Section id="badges" title="4. Бейджи">
+        {/* ===== 5. Бейджи ===== */}
+        <Section id="badges" title="5. Бейджи">
           <div className="flex flex-wrap gap-3">
             <Badge variant="top">ТОП</Badge>
             <Badge variant="top-outline">ТОП</Badge>
@@ -218,8 +282,8 @@ function DesignSystemPage() {
           </div>
         </Section>
 
-        {/* ===== 5. Уведомления ===== */}
-        <Section id="alerts" title="5. Уведомления / Alerts">
+        {/* ===== 6. Уведомления ===== */}
+        <Section id="alerts" title="6. Уведомления / Alerts">
           <div className="space-y-3">
             <Alert variant="success">
               <AlertTitle>Объявление опубликовано</AlertTitle>
@@ -240,8 +304,8 @@ function DesignSystemPage() {
           </div>
         </Section>
 
-        {/* ===== 6. Формы ===== */}
-        <Section id="forms" title="6. Формы">
+        {/* ===== 7. Формы ===== */}
+        <Section id="forms" title="7. Формы">
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium">Название модели</label>
@@ -301,8 +365,8 @@ function DesignSystemPage() {
           </div>
         </Section>
 
-        {/* ===== 7. Карточки ===== */}
-        <Section id="cards" title="7. Карточки">
+        {/* ===== 8. Карточки ===== */}
+        <Section id="cards" title="8. Карточки">
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="p-5">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--foreground-50)]">Default card</div>
@@ -385,8 +449,8 @@ function DesignSystemPage() {
           </div>
         </Section>
 
-        {/* ===== 8. Навигация ===== */}
-        <Section id="navigation" title="8. Навигация (preview)">
+        {/* ===== 9. Навигация ===== */}
+        <Section id="navigation" title="9. Навигация (preview)">
           <h3 className="mb-3 text-sm font-semibold text-[var(--foreground-70)]">Sidebar — состояния</h3>
           <div className="mb-8 max-w-xs space-y-1 rounded-[var(--r-card-sm)] border border-[var(--border)] bg-[var(--background-elevated)] p-2">
             {([
@@ -456,6 +520,49 @@ function DesignSystemPage() {
             ))}
             <Button variant="outline" size="sm">Дальше</Button>
           </div>
+        </Section>
+
+        {/* ===== 10. Брейкпоинты ===== */}
+        <Section id="breakpoints" title="10. Брейкпоинты и ширины контента">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-[var(--foreground-50)]">
+                  <th className="py-2 pr-4 font-semibold">Точка</th>
+                  <th className="py-2 pr-4 font-semibold">Tailwind</th>
+                  <th className="py-2 pr-4 font-semibold">Раскладка</th>
+                  <th className="py-2 font-semibold">Ширина контента</th>
+                </tr>
+              </thead>
+              <tbody className="[&_td]:border-t [&_td]:border-[var(--border)] [&_td]:py-2 [&_td]:pr-4 [&_td]:align-top">
+                <tr>
+                  <td className="font-mono">375</td>
+                  <td className="font-mono">(base)</td>
+                  <td>Одна колонка, нижняя навигация, шапка <code className="font-mono">--mobile-header-h</code></td>
+                  <td>100% − 2 × 16px</td>
+                </tr>
+                <tr>
+                  <td className="font-mono">768</td>
+                  <td className="font-mono">md:</td>
+                  <td>Одна колонка шире, сетки 2 в ряд, боковые панели скрыты</td>
+                  <td>100% − 2 × 24px</td>
+                </tr>
+                <tr>
+                  <td className="font-mono">1280</td>
+                  <td className="font-mono">xl:</td>
+                  <td>Sidebar <code className="font-mono">--sidebar-w</code> 240 + контент + rightbar <code className="font-mono">--rightbar-w</code> 260</td>
+                  <td>
+                    до <code className="font-mono">--container-max</code> 1560, поля <code className="font-mono">--container-pad</code>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-xs text-[var(--foreground-50)]">
+            Mobile-first: базовые классы — для 375, модификаторы <code className="font-mono">md:</code> и{" "}
+            <code className="font-mono">xl:</code> добавляют, а не переопределяют. Промежуточный <code className="font-mono">lg:</code> (1024)
+            используется точечно для появления сайдбара.
+          </p>
         </Section>
 
         <footer className="flex items-center gap-2 pb-12 pt-6 text-xs text-[var(--foreground-50)]">
