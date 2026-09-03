@@ -12,6 +12,11 @@ if [[ "${DEPLOY_REEXECED:-}" != 1 ]]; then
   exec bash "$0" "$@"
 fi
 
+# Snapshot the database before migrations touch it. Migrations run --force on a
+# live database, so this is the only thing standing between a bad migration and
+# permanent data loss; a non-zero exit aborts the deploy before `migrate` runs.
+"${APP_DIR}/deploy/scripts/backup-db.sh" --pre-deploy
+
 cd backend
 composer install --optimize-autoloader --no-interaction
 php artisan config:clear
