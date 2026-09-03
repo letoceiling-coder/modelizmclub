@@ -9,7 +9,7 @@ import { userById } from "@/lib/mock";
 import { fetchVideo, fetchVideos, incrementVideoView, reactToVideo, fetchVideoComments, createVideoComment } from "@/lib/api/reviews";
 import { VideoCard } from "@/components/reviews/VideoCard";
 import { ReviewPlayerSettings } from "@/components/reviews/ReviewPlayerSettings";
-import { CommentSection } from "@/components/feed/CommentSection";
+import { CommentSection } from "@/components/post/CommentSection";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
@@ -21,7 +21,7 @@ import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { appendToCommentThread, removeFromCommentThread } from "@/lib/comment-thread";
 import { recordView } from "@/lib/view-history";
 import { isWatchLater, toggleWatchLater, notifyWatchLaterChanged } from "@/lib/watch-later";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 const actionCls =
@@ -68,7 +68,7 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
     );
   }
   return (
-    <img src={src} alt={name} loading="lazy" className="h-[40px] w-[40px] shrink-0 rounded-full object-cover" onError={() => setErr(true)} />
+    <img src={src} width={40} height={40} decoding="async" alt={name} loading="lazy" className="h-[40px] w-[40px] shrink-0 rounded-full object-cover" onError={() => setErr(true)} />
   );
 }
 
@@ -111,7 +111,7 @@ function WatchPageInner() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [showAllComments, setShowAllComments] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const { requireAccount, requirePremium } = useGuestAccess();
 
   useEffect(() => {
@@ -341,9 +341,13 @@ function WatchPageInner() {
             <>
               <img
                 src={poster}
+                width={1600}
+                height={900}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 alt={video.title}
                 className="h-full w-full object-contain"
-                loading={saveData ? "lazy" : "eager"}
                 onError={() => setPosterFailed(true)}
               />
               {canPlay ? (

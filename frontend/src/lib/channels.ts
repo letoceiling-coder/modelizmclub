@@ -67,6 +67,8 @@ export interface Channel {
   canManage?: boolean;
   isSubscribed?: boolean;
   commentsEnabled?: boolean;
+  /** Reactions on channel posts; undefined = allowed. */
+  reactionsEnabled?: boolean;
   rules?: string;
   contacts?: string;
   ownerNumericId?: number;

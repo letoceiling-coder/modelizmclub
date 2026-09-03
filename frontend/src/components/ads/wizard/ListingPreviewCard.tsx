@@ -30,7 +30,7 @@ function PreviewImg({ src, className }: { src: string; className?: string }) {
       </div>
     );
   }
-  return <img src={src} alt="" className={`object-cover ${className ?? ""}`} onError={() => setBroken(true)} />;
+  return <img src={src} width={800} height={600} loading="lazy" decoding="async" alt="" className={`object-cover ${className ?? ""}`} onError={() => setBroken(true)} />;
 }
 
 /** Compact listing preview used in the wizard's final step — mirrors how the

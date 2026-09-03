@@ -19,6 +19,8 @@ function SellerAvatar({ seller }: { seller: AdSeller }) {
     return (
       <img
         src={seller.avatar}
+        loading="lazy"
+        decoding="async"
         alt={seller.name}
         width={44}
         height={44}

@@ -15,7 +15,8 @@ import {
   type CabinetNotifItem,
 } from "@/lib/api/notification-prefs";
 import { fetchMe } from "@/lib/api/auth";
-import { useStore, selectors, setCurrentUser } from "@/lib/store";
+import { setCurrentUser } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { isMaxOAuthUser } from "@/lib/auth/verification";
 
 export const Route = createFileRoute("/settings/notifications")({
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/settings/notifications")({
 
 function NotificationsSettings() {
   const { t } = useTranslation();
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const maxLinked = isMaxOAuthUser(currentUser);
   const [items, setItems] = useState<CabinetNotifItem[] | null>(null);
   const [groupLabels, setGroupLabels] = useState<Record<string, string>>({});

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send, MoreHorizontal, ChevronDown, Paperclip, X } from "lucide-react";
 import type { Comment, User } from "@/lib/mock";
 import { userById } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { reactToComment, deleteComment, type CommentSort } from "@/lib/api/feed";
 import { uploadMediaDeduped } from "@/lib/api/media";
@@ -39,6 +39,8 @@ interface Props {
   onHide?: () => void;
   totalCount?: number;
   onSortChange?: (sort: CommentSort) => void;
+  /** Server verdict for the whole thread: `can.comment === false` makes it read-only. */
+  can?: Record<string, boolean>;
 }
 
 /** Expanded lists grow in chunks so a thread with hundreds of replies
@@ -120,7 +122,7 @@ function CommentAvatar({
       {initials}
     </div>
   ) : (
-    <img src={src} alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
+    <img src={src} width={32} height={32} loading="lazy" decoding="async" alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
   );
   if (!author.id) return <span className="shrink-0">{face}</span>;
   return (
@@ -163,7 +165,7 @@ function CommentPhotos({ urls }: { urls: string[] }) {
             onClick={() => setOpen(src)}
             className="overflow-hidden rounded-[10px]"
           >
-            <img src={src} alt="" className="max-h-[160px] max-w-[min(100%,220px)] object-cover" />
+            <img src={src} width={220} height={160} loading="lazy" decoding="async" alt="" className="max-h-[160px] max-w-[min(100%,220px)] object-cover" />
           </button>
         ))}
       </div>
@@ -296,7 +298,7 @@ function PhotoDraftStrip({
     <div className="flex flex-wrap gap-[8px] px-[4px] pt-[8px]">
       {photos.map((item, index) => (
         <div key={item.url} className="relative">
-          <img src={item.url} alt="" className="h-[64px] w-[64px] rounded-[10px] object-cover" />
+          <img src={item.url} width={64} height={64} loading="lazy" decoding="async" alt="" className="h-[64px] w-[64px] rounded-[10px] object-cover" />
           <button
             type="button"
             onClick={() => onRemove(index)}
@@ -331,7 +333,7 @@ function CommentItem({
 }) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const author = userById(comment.authorId);
   const [liked, setLiked] = useState(false);
   const likes = likeOverrides[comment.id] ?? comment.likes ?? 0;
@@ -339,6 +341,8 @@ function CommentItem({
   const [draft, setDraft] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const isOwn = comment.authorId === me.id;
+  // Server verdict wins when present (moderators); the author always may.
+  const canDelete = isOwn || comment.can?.delete === true;
   const replyPhotos = useCommentPhotoDraft();
 
   const submit = () => {
@@ -408,7 +412,7 @@ function CommentItem({
                 ) : null}
                 <CommentPhotos urls={comment.images ?? []} />
               </div>
-              {(isOwn || !readOnly) && (
+              {(canDelete || !readOnly) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -421,7 +425,7 @@ function CommentItem({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {isOwn ? (
+                    {canDelete ? (
                       <DropdownMenuItem
                         onClick={() => {
                           if (!window.confirm(t("components.commentSection.deleteConfirm"))) return;
@@ -553,7 +557,7 @@ export function CommentSection({
   comments,
   onAdd,
   loading,
-  readOnly = false,
+  readOnly: readOnlyProp = false,
   previewLimit = 3,
   showAll = false,
   onShowAll,
@@ -561,10 +565,12 @@ export function CommentSection({
   totalCount,
   onSortChange,
   onDeleted,
+  can,
 }: Props) {
+  const readOnly = readOnlyProp || can?.comment === false;
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const [draft, setDraft] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<CommentSort>("interesting");

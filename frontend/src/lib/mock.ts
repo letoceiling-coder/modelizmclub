@@ -61,6 +61,8 @@ export interface Comment {
   likes?: number;
   replies?: Comment[];
   images?: string[];
+  /** Per-ability verdicts from the API (`can: { edit, delete, react }`). */
+  can?: Record<string, boolean>;
 }
 
 export interface VideoCategory {
@@ -131,6 +133,8 @@ export interface Post {
   canPublish?: boolean;
   canCancelSchedule?: boolean;
   canInteract?: boolean;
+  /** Per-ability verdicts from the API (`can: { edit, delete, react, comment }`); absent until the backend sends them. */
+  can?: Record<string, boolean>;
   isFollowing?: boolean;
   isLiked?: boolean;
   isSaved?: boolean;

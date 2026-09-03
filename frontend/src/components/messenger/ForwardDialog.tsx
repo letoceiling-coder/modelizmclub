@@ -7,6 +7,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import type { Message } from "@/lib/mock";
 import { userById } from "@/lib/mock";
 import { useStore, selectors, actions, upsertMessage } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 
 interface Props {
   message: Message | null;
@@ -15,7 +16,7 @@ interface Props {
 
 export function ForwardDialog({ message, onClose }: Props) {
   const dialogs = useStore(selectors.dialogsList);
-  const meId = useStore((s) => s.currentUserId);
+  const meId = useCurrentUser().id;
   const ref = useRef<HTMLDivElement>(null);
   const open = Boolean(message);
 
@@ -114,7 +115,7 @@ export function ForwardDialog({ message, onClose }: Props) {
                         onClick={() => forwardTo(d.id)}
                         className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)]"
                       >
-                        <img src={u.avatar} alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
+                        <img src={u.avatar} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
                         <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
                           {u.name}
                         </span>

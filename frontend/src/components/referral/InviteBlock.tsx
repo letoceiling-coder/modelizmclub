@@ -10,7 +10,8 @@ import {
 import { useReferral } from "@/lib/api/referral";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
-import { GUEST_USER, useStore, selectors } from "@/lib/store";
+import { GUEST_USER } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { ROUTES } from "@/lib/routes";
 import { fetchStats } from "@/lib/api/content";
 
@@ -108,7 +109,7 @@ function InviteGuestCta() {
 }
 
 export function InviteBlock() {
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const isGuest = me.id === GUEST_USER.id && !isAuthenticated() && !isDemoMode();
 
   if (isGuest) {

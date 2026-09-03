@@ -112,7 +112,7 @@ export function IconManagerSection() {
 
   function renderAssetThumb(a: IconAsset, size = 22) {
     if (a.format === "png" && a.url) {
-      return <img src={a.url} alt="" aria-hidden style={{ width: size, height: size, objectFit: "contain" }} />;
+      return <img src={a.url} width={size} height={size} loading="lazy" decoding="async" alt="" aria-hidden style={{ width: size, height: size, objectFit: "contain" }} />;
     }
     if (a.svg && isSafeSvgMarkup(a.svg)) {
       return (

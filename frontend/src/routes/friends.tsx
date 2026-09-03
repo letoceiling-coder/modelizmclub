@@ -9,7 +9,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { userById, type User } from "@/lib/mock";
-import { useStore, selectors, actions } from "@/lib/store";
+import { useStore, actions } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { groupCalls } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline } from "@/lib/presence-status";
@@ -154,7 +155,7 @@ function FriendsPage() {
   const { requireAccount } = useGuestAccess();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const [friends, setFriends] = useState<User[]>([]);
   const [requests, setRequests] = useState<IncomingRequest[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);

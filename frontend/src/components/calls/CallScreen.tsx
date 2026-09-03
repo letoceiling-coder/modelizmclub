@@ -5,7 +5,8 @@ import { PhoneOff, Phone, Mic, MicOff, Video, VideoOff, SwitchCamera, Volume2, V
 import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
 import { useCalls, calls, formatCallDuration, onCallEvent, type CallStatus, type CallResult } from "@/lib/calls";
-import { GUEST_USER, useStore, selectors } from "@/lib/store";
+import { GUEST_USER } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 
 function useCallLabels() {
   const { t } = useTranslation();
@@ -28,7 +29,7 @@ function useCallLabels() {
 
 export function CallScreen() {
   const active = useCalls((s) => s.active);
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -368,6 +369,10 @@ function PeerAvatar({ avatar, name, initial }: { avatar?: string; name: string; 
     return (
       <img
         src={avatar}
+        width={120}
+        height={120}
+        loading="lazy"
+        decoding="async"
         alt={name}
         onError={() => setFailed(true)}
         className="relative h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] rounded-full object-cover"

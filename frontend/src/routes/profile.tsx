@@ -12,8 +12,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import type { User, Post, Ad, Community, Category } from "@/lib/mock";
 import { useStore, actions, selectors, setCurrentUser } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import type { AdStatusKey } from "@/lib/store";
-import { PostCard } from "@/components/PostCard";
+import { PostCard } from "@/components/post/PostCard";
 import { AdCard } from "@/components/AdCard";
 import { toast } from "@/lib/toast";
 import { InvitedFriendsSection } from "@/components/referral/InvitedFriendsSection";
@@ -81,7 +82,7 @@ function toAdStatus(k: AdStatusKey): AdStatus {
 
 function ProfilePage() {
   const { t } = useTranslation();
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const [myAds, setMyAds] = useState<{ ad: Ad; status: AdStatus }[]>([]);
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);
@@ -264,7 +265,7 @@ export function ProfileView({
   const [friendPromptOpen, setFriendPromptOpen] = useState(false);
   const [friendPromptBusy, setFriendPromptBusy] = useState(false);
   const navigateToMessenger = useNavigate();
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const storeFriendIds = useStore(selectors.friendsOf(currentUser?.id ?? user.id));
 
   const [isFriend, setIsFriend] = useState(
@@ -519,13 +520,13 @@ export function ProfileView({
               {tab === "posts" && (
                 loading ? <ProfileTabSkeleton /> :
                 originalPosts.length === 0 ? <EmptyTab text={t("pages.profile.emptyPostsShort")} /> : (
-                  <div className="space-y-[16px]">{originalPosts.map((p) => <PostCard key={p.id} post={p} onDelete={onDeletePost} />)}</div>
+                  <div className="space-y-[16px]">{originalPosts.map((p) => <PostCard key={p.id} variant="profile" post={p} onDelete={onDeletePost} />)}</div>
                 )
               )}
               {tab === "reposts" && (
                 loading ? <ProfileTabSkeleton /> :
                 repostedPosts.length === 0 ? <EmptyTab text={t("pages.profile.emptyReposts")} /> : (
-                  <div className="space-y-[16px]">{repostedPosts.map((p) => <PostCard key={p.id} post={p} onDelete={onDeletePost} />)}</div>
+                  <div className="space-y-[16px]">{repostedPosts.map((p) => <PostCard key={p.id} variant="profile" post={p} onDelete={onDeletePost} />)}</div>
                 )
               )}
               {tab === "reviews" && <ProfileReviewsTab numericUserId={user.numericId} isOwn={isOwn} />}
@@ -1120,7 +1121,7 @@ function initials(name: string): string {
 function ProfileAvatar({ src, name, editable }: { src?: string; name: string; editable?: boolean }) {
   const { t } = useTranslation();
   const hasSrc = Boolean(src && src.trim());
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -1285,7 +1286,7 @@ function ProfileAvatar({ src, name, editable }: { src?: string; name: string; ed
 function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
   const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -1338,7 +1339,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
   return (
     <div className="group relative">
       {showImg ? (
-        <img src={src} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} onError={() => setBroken(true)} />
+        <img src={src} width={1200} height={420} loading="lazy" decoding="async" alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} onError={() => setBroken(true)} />
       ) : (
         <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
       )}

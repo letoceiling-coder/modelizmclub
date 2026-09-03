@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, ImageOff, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { Img } from "@/components/ui/Img";
+import { Lightbox } from "@/components/post/Lightbox";
 
-export type MediaCarouselItem = { type: "image" | "video"; url: string };
+export type MediaCarouselItem = {
+  type: "image" | "video";
+  url: string;
+  /** Intrinsic size when the API knows it — reserves the box before the bytes arrive. */
+  width?: number;
+  height?: number;
+};
+
+/** Fallback intrinsic size for images whose dimensions the API did not send (4:3). */
+const FALLBACK_W = 1200;
+const FALLBACK_H = 900;
 
 /** Portrait 4:5 … landscape 16:9 — keeps feed layout predictable. */
 const MIN_ASPECT = 4 / 5;
@@ -62,11 +73,17 @@ function GalleryImage({
   alt,
   onClick,
   contain = true,
+  width = FALLBACK_W,
+  height = FALLBACK_H,
+  priority = false,
 }: {
   src: string;
   alt: string;
   onClick?: () => void;
   contain?: boolean;
+  width?: number;
+  height?: number;
+  priority?: boolean;
 }) {
   const [err, setErr] = useState(false);
   if (err) {
@@ -82,11 +99,12 @@ function GalleryImage({
     );
   }
   return (
-    <img
+    <Img
       src={src}
       alt={alt}
-      loading="lazy"
-      decoding="async"
+      width={width}
+      height={height}
+      priority={priority}
       onClick={onClick}
       className={`h-full w-full ${contain ? "object-contain" : "cursor-zoom-in object-cover"} ${onClick ? "cursor-zoom-in" : ""}`}
       onError={() => setErr(true)}
@@ -134,110 +152,8 @@ function MediaFrame({
   );
 }
 
-function Lightbox({
-  images,
-  startIndex,
-  alt,
-  onClose,
-}: {
-  images: string[];
-  startIndex: number;
-  alt: string;
-  onClose: () => void;
-}) {
-  const [viewportRef, embla] = useEmblaCarousel({ loop: images.length > 1, startIndex });
-  const [selected, setSelected] = useState(startIndex);
 
-  const onSelect = useCallback(() => {
-    if (embla) setSelected(embla.selectedScrollSnap());
-  }, [embla]);
-
-  useEffect(() => {
-    if (!embla) return;
-    onSelect();
-    embla.on("select", onSelect);
-    return () => {
-      embla.off("select", onSelect);
-    };
-  }, [embla, onSelect]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowLeft") embla?.scrollPrev();
-      else if (e.key === "ArrowRight") embla?.scrollNext();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [embla, onClose]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.9)" }}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Закрыть"
-        className="absolute right-[16px] top-[16px] z-[2] grid h-[40px] w-[40px] place-items-center rounded-full text-white"
-        style={{ background: "rgba(255,255,255,0.14)" }}
-      >
-        <X className="h-[20px] w-[20px]" />
-      </button>
-
-      <div className="absolute left-1/2 top-[20px] z-[2] -translate-x-1/2 rounded-full px-[12px] py-[5px] text-[13px] font-medium text-white" style={{ background: "rgba(0,0,0,0.5)" }}>
-        {selected + 1} / {images.length}
-      </div>
-
-      <div className="h-full w-full overflow-hidden" ref={viewportRef} onClick={(e) => e.stopPropagation()}>
-        <div className="flex h-full">
-          {images.map((src, i) => (
-            <div key={i} className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]">
-              <GalleryImage src={src} alt={`${alt} — фото ${i + 1}`} contain />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {images.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); embla?.scrollPrev(); }}
-            aria-label="Предыдущее фото"
-            className="absolute left-[16px] top-1/2 z-[2] grid h-[44px] w-[44px] -translate-y-1/2 place-items-center rounded-full text-white"
-            style={{ background: "rgba(255,255,255,0.14)" }}
-          >
-            <ChevronLeft className="h-[22px] w-[22px]" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); embla?.scrollNext(); }}
-            aria-label="Следующее фото"
-            className="absolute right-[16px] top-1/2 z-[2] grid h-[44px] w-[44px] -translate-y-1/2 place-items-center rounded-full text-white"
-            style={{ background: "rgba(255,255,255,0.14)" }}
-          >
-            <ChevronRight className="h-[22px] w-[22px]" />
-          </button>
-        </>
-      )}
-    </div>,
-    document.body,
-  );
-}
-
-function SingleMedia({ item, alt, onImageClick }: { item: MediaCarouselItem; alt: string; onImageClick?: () => void }) {
+function SingleMedia({ item, alt, onImageClick, priority = false }: { item: MediaCarouselItem; alt: string; onImageClick?: () => void; priority?: boolean }) {
   const aspect = useSlideAspect(item);
 
   if (item.type === "video") {
@@ -250,13 +166,13 @@ function SingleMedia({ item, alt, onImageClick }: { item: MediaCarouselItem; alt
 
   return (
     <MediaFrame aspect={aspect} className="bg-[var(--background-surface)]">
-      <GalleryImage src={item.url} alt={alt} onClick={onImageClick} />
+      <GalleryImage src={item.url} alt={alt} width={item.width} height={item.height} priority={priority} onClick={onImageClick} />
     </MediaFrame>
   );
 }
 
 /** Mixed image/video carousel for feed and channel posts. */
-export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; alt: string }) {
+export function PostMediaCarousel({ items, alt, priority = false }: { items: MediaCarouselItem[]; alt: string; priority?: boolean }) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: items.length > 1 });
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -301,6 +217,7 @@ export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; 
         <SingleMedia
           item={item}
           alt={alt}
+          priority={priority}
           onImageClick={item.type === "image" ? () => setLightbox(0) : undefined}
         />
         {lightbox !== null && item.type === "image" && (
@@ -333,6 +250,9 @@ export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; 
                   <GalleryImage
                     src={item.url}
                     alt={`${alt} — фото ${i + 1}`}
+                    width={item.width}
+                    height={item.height}
+                    priority={priority && i === 0}
                     onClick={() => {
                       const idx = imageIndexBySlide[i];
                       if (idx >= 0) setLightbox(idx);

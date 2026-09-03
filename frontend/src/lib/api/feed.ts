@@ -51,6 +51,7 @@ export interface ApiPost {
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
   permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean; can_cancel_schedule?: boolean; can_interact?: boolean };
+  can?: Record<string, boolean>;
   published_at?: string | null;
   scheduled_at?: string | null;
   created_at?: string;
@@ -177,6 +178,7 @@ export function mapPost(p: ApiPost): Post {
     canPublish: p.permissions?.can_publish ?? false,
     canCancelSchedule: p.permissions?.can_cancel_schedule ?? false,
     canInteract: p.permissions?.can_interact ?? p.status === "published",
+    can: p.can,
     channel: p.channel?.slug
       ? {
           slug: p.channel.slug,
@@ -253,6 +255,7 @@ export async function repostPost(uuid: string, on: boolean, body?: string): Prom
 
 export interface ApiComment {
   uuid: string;
+  can?: Record<string, boolean>;
   body?: string | null;
   author?: ApiPostAuthor | null;
   parent_uuid?: string | null;
@@ -270,6 +273,7 @@ export function mapComment(c: ApiComment): Comment {
     id: c.uuid,
     authorId: author?.id ?? "",
     time: c.created_at ?? "",
+    can: c.can,
     text: c.body ?? "",
     likes: c.stats?.reactions ?? 0,
     replies: (c.replies ?? []).map(mapComment),

@@ -14,7 +14,7 @@ import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useStore, selectors, getState } from "@/lib/store";
+import { getSessionUser, useCurrentUser } from "@/lib/session";
 import { setFeatureFlag, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
@@ -131,7 +131,7 @@ function AdminPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isNestedAdminRoute = pathname.startsWith("/admin/") && pathname !== "/admin";
   const { section: sectionFromUrl } = Route.useSearch();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [section, setSection] = useState<Section>(sectionFromUrl ?? "dashboard");
@@ -150,7 +150,7 @@ function AdminPage() {
         navigate({ to: "/login", search: { redirect: "/admin" } });
         return;
       }
-      const current = selectors.currentUser(getState());
+      const current = getSessionUser();
       // `role` is the source of truth when present (real API sessions);
       // demo-mode sessions only set `isAdmin` (see lib/demo-data.ts DEMO_USER),
       // so fall back to treating isAdmin as "admin" there.
@@ -1025,7 +1025,7 @@ function SubscriptionCell({
 
 function UsersSection() {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const roleOptions = useMemo(() => ([
     { value: "user" as const, label: t("pages.adminUsers.roleUser") },
     { value: "subscriber" as const, label: t("pages.adminUsers.roleSubscriber") },
@@ -1438,6 +1438,10 @@ function ContentSection() {
             ) : preview.images[0] ? (
               <img
                 src={preview.images[0]}
+                width={1200}
+                height={675}
+                loading="lazy"
+                decoding="async"
                 alt={preview.title}
                 style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }}
               />
@@ -3266,7 +3270,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
             {preview.videoUrl ? (
               <video src={preview.videoUrl} controls preload="metadata" playsInline poster={preview.posterUrl} style={{ marginTop: "16px", width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }} />
             ) : preview.posterUrl ? (
-              <img src={preview.posterUrl} alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
+              <img src={preview.posterUrl} width={1200} height={675} loading="lazy" decoding="async" alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
             ) : (
               <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.videoUnavailable")}</p>
             )}

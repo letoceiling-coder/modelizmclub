@@ -18,6 +18,7 @@ import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
 import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
 import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider";
 import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
+import { GateHost } from "@/lib/gate";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
@@ -211,6 +212,7 @@ function RootComponent() {
           <GuestAccessProvider>
             <RouteAccessEnforcer />
             <FadingOutlet />
+            <GateHost />
           </GuestAccessProvider>
           <CallScreen />
           <GroupCallScreen />

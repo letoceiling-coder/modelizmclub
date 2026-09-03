@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { InviteFriendNavLink } from "@/components/referral/InviteFriendNavLink";
 import { MobileSearchOverlay } from "@/components/layout/MobileSearchOverlay";
@@ -117,7 +117,7 @@ function MoreMenu() {
   const reviewsEnabled = useFeatureFlag("reviewsEnabled");
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const marketEnabled = useFeatureFlag("marketEnabled");
-  const isGuest = useStore(selectors.currentUser).id === "guest";
+  const isGuest = useCurrentUser().id === "guest";
 
   // Dev-time guarantee that every section is reachable on mobile (no-op in prod).
   useEffect(() => { assertMobileNavCoverage(); }, []);

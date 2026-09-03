@@ -15,7 +15,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useStore, selectors, setCurrentUser } from "@/lib/store";
+import { setCurrentUser } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { fetchMe } from "@/lib/api/auth";
 import { pollMaxAuth, startMaxLink, unlinkMax } from "@/lib/api/oauth";
 import { fetchNotifPrefs, saveMaxChannelPref } from "@/lib/api/notification-prefs";
@@ -49,7 +50,7 @@ function readStored(): StoredLink | null {
 
 export function MaxAccountCard() {
   const { t } = useTranslation();
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const linked = isMaxOAuthUser(currentUser);
   const canUnlink = canUnlinkMax(currentUser);
 
