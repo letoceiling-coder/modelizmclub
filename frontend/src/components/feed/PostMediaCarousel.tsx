@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, ImageOff, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { Img } from "@/components/ui/Img";
+import { Lightbox } from "@/components/post/Lightbox";
 
 export type MediaCarouselItem = {
   type: "image" | "video";
@@ -152,108 +152,6 @@ function MediaFrame({
   );
 }
 
-function Lightbox({
-  images,
-  startIndex,
-  alt,
-  onClose,
-}: {
-  images: string[];
-  startIndex: number;
-  alt: string;
-  onClose: () => void;
-}) {
-  const [viewportRef, embla] = useEmblaCarousel({ loop: images.length > 1, startIndex });
-  const [selected, setSelected] = useState(startIndex);
-
-  const onSelect = useCallback(() => {
-    if (embla) setSelected(embla.selectedScrollSnap());
-  }, [embla]);
-
-  useEffect(() => {
-    if (!embla) return;
-    onSelect();
-    embla.on("select", onSelect);
-    return () => {
-      embla.off("select", onSelect);
-    };
-  }, [embla, onSelect]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowLeft") embla?.scrollPrev();
-      else if (e.key === "ArrowRight") embla?.scrollNext();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [embla, onClose]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.9)" }}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Закрыть"
-        className="absolute right-[16px] top-[16px] z-[2] grid h-[40px] w-[40px] place-items-center rounded-full text-white"
-        style={{ background: "rgba(255,255,255,0.14)" }}
-      >
-        <X className="h-[20px] w-[20px]" />
-      </button>
-
-      <div className="absolute left-1/2 top-[20px] z-[2] -translate-x-1/2 rounded-full px-[12px] py-[5px] text-[13px] font-medium text-white" style={{ background: "rgba(0,0,0,0.5)" }}>
-        {selected + 1} / {images.length}
-      </div>
-
-      <div className="h-full w-full overflow-hidden" ref={viewportRef} onClick={(e) => e.stopPropagation()}>
-        <div className="flex h-full">
-          {images.map((src, i) => (
-            <div key={i} className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]">
-              <GalleryImage src={src} alt={`${alt} — фото ${i + 1}`} width={1600} height={1200} contain />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {images.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); embla?.scrollPrev(); }}
-            aria-label="Предыдущее фото"
-            className="absolute left-[16px] top-1/2 z-[2] grid h-[44px] w-[44px] -translate-y-1/2 place-items-center rounded-full text-white"
-            style={{ background: "rgba(255,255,255,0.14)" }}
-          >
-            <ChevronLeft className="h-[22px] w-[22px]" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); embla?.scrollNext(); }}
-            aria-label="Следующее фото"
-            className="absolute right-[16px] top-1/2 z-[2] grid h-[44px] w-[44px] -translate-y-1/2 place-items-center rounded-full text-white"
-            style={{ background: "rgba(255,255,255,0.14)" }}
-          >
-            <ChevronRight className="h-[22px] w-[22px]" />
-          </button>
-        </>
-      )}
-    </div>,
-    document.body,
-  );
-}
 
 function SingleMedia({ item, alt, onImageClick, priority = false }: { item: MediaCarouselItem; alt: string; onImageClick?: () => void; priority?: boolean }) {
   const aspect = useSlideAspect(item);
