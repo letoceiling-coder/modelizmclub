@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send, MoreHorizontal, ChevronDown, Paperclip, X } from "lucide-react";
 import type { Comment, User } from "@/lib/mock";
-import { userById, formatRelativeTime } from "@/lib/mock";
+import { userById } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { reactToComment, deleteComment, type CommentSort } from "@/lib/api/feed";
@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatDate } from "@/lib/format/date";
 
 type CommentPhotosPayload = { mediaIds: string[]; urls: string[] };
 
@@ -397,7 +398,7 @@ function CommentItem({
                     </span>
                   )}
                   <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                    {formatRelativeTime(comment.time)}
+                    {formatDate(comment.time, "relative")}
                   </span>
                 </div>
                 {comment.text ? (

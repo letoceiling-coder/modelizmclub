@@ -6,8 +6,9 @@ import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoListings, demoListingsFiltered, demoMyListings, demoListing, demoAddListing, demoPublicProfile } from "@/lib/demo-data";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
-import { formatTimeAgo } from "@/lib/utils";
+
 import { toDisplayMedia, type MediaVariantSet } from "@/lib/media/variants";
+import { formatDate } from "@/lib/format/date";
 
 interface ApiListingAuthor {
   id?: number;
@@ -135,7 +136,7 @@ export function mapListing(l: ApiListing): Ad {
     views: l.views_count ?? 0,
     likes: l.favorites_count ?? 0,
     promoted: Boolean(l.is_promoted),
-    createdAt: (l.published_at ?? l.created_at) ? formatTimeAgo(l.published_at ?? l.created_at ?? "") : undefined,
+    createdAt: (l.published_at ?? l.created_at) ? formatDate(l.published_at ?? l.created_at ?? "", "relative") : undefined,
     publishedAt: l.published_at ?? l.created_at ?? undefined,
     categoryId: l.category?.id != null ? String(l.category.id) : undefined,
     subcategoryId: l.subcategory?.id != null ? String(l.subcategory.id) : undefined,

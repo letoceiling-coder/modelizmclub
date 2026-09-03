@@ -16,6 +16,7 @@ import {
 } from "@/lib/api/legal";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { formatDate } from "@/lib/format/date";
 
 const EMPTY_DRAFT = { slug: "", title: "", meta_description: "", content_html: "", content_md: "" };
 const FEATURED_SLUG = "safe-deal";
@@ -292,7 +293,7 @@ export function AdminLegalPagesSection() {
                     <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
                       <span>
                         v{r.version} · {r.title} · {r.status}
-                        {r.created_at ? ` · ${new Date(r.created_at).toLocaleString("ru-RU")}` : ""}
+                        {r.created_at ? ` · ${formatDate(r.created_at, "absolute")}` : ""}
                         {r.editor ? ` · ${r.editor}` : ""}
                       </span>
                       <Button type="button" size="sm" variant="outline" disabled={restoreMut.isPending} onClick={() => restoreMut.mutate(r.id)}>

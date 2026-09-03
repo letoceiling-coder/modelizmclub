@@ -5,6 +5,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMySubscription, type MySubscription } from "@/lib/api/payment";
 import { isAuthenticated } from "@/lib/auth/session";
 import { useSessionResolved } from "@/lib/session";
+import { formatDate } from "@/lib/format/date";
 
 /** Demo-only constants (neeklo stand / local dev — no billing backend). */
 const DEMO_DAYS_LEFT = 287;
@@ -101,9 +102,5 @@ export function useMySubscription(): { sub: MySubscription | null; loading: bool
 
 export function formatSubscriptionEndDate(sub: MySubscription | null): string {
   if (!sub?.ends_at) return "";
-  return new Date(sub.ends_at).toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return formatDate(sub.ends_at, "date");
 }

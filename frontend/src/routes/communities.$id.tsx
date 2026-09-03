@@ -41,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import i18n from "@/lib/i18n";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/communities/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.communityDetail.metaTitle") }] }),
@@ -303,7 +304,7 @@ function DiscussionRow({ d }: { d: DemoDiscussion }) {
 function HubEventCard({ e, onToggle, busy }: { e: CommunityEvent; onToggle: (e: CommunityEvent) => void; busy?: boolean }) {
   const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
-  const when = e.startsAt ? new Date(e.startsAt).toLocaleString("ru") : "";
+  const when = e.startsAt ? formatDate(e.startsAt, "absolute") : "";
   return (
     <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="relative h-[140px] w-full overflow-hidden" style={{ background: "var(--background-surface)" }}>

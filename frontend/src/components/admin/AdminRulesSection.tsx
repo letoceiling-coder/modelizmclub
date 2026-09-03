@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/rules";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { formatDate } from "@/lib/format/date";
 
 const SECTION_TYPES: { value: RuleSectionType; label: string }[] = [
   { value: "intro", label: "Вступление" },
@@ -237,7 +238,7 @@ export function AdminRulesSection() {
               <td className="py-2">{p.title}</td>
               <td className="py-2 font-mono text-xs">{p.slug}</td>
               <td className="py-2">{p.version}</td>
-              <td className="py-2 text-xs">{p.published_at ? new Date(p.published_at).toLocaleDateString("ru-RU") : "—"}</td>
+              <td className="py-2 text-xs">{p.published_at ? formatDate(p.published_at, "date") : "—"}</td>
               <td className="py-2">{p.status === "published" ? "Опубликована" : p.status === "draft" ? "Черновик" : "Архив"}</td>
               <td className="py-2 text-right">
                 <div className="flex flex-wrap justify-end gap-1">
@@ -419,7 +420,7 @@ export function AdminRulesSection() {
               {(revisionsQuery.data ?? []).map((r) => (
                 <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2" style={{ borderColor: "var(--border)" }}>
                   <span>
-                    v{r.version} · {r.title} · {r.created_at ? new Date(r.created_at).toLocaleString("ru-RU") : ""}
+                    v{r.version} · {r.title} · {r.created_at ? formatDate(r.created_at, "absolute") : ""}
                     {r.editor ? ` · ${r.editor}` : ""}
                   </span>
                   <Button type="button" size="sm" variant="outline" onClick={() => restoreMut.mutate(r.id)}>

@@ -73,6 +73,7 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
 }
 
 import i18n from "@/lib/i18n";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/reviews/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.detailMetaTitle") }] }),
@@ -410,7 +411,7 @@ function WatchPageInner() {
             {durationLabel && (
               <span className="inline-flex items-center gap-[4px]"><Clock size={13} /> {durationLabel}</span>
             )}
-            {video.publishedAt && <span>· {new Date(video.publishedAt).toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" })}</span>}
+            {video.publishedAt && <span>· {formatDate(video.publishedAt, "absolute")}</span>}
             {video.categoryName && video.categorySlug && (
               <>
                 <span aria-hidden>·</span>

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Heart, MessageCircle, Bookmark, Eye, Clock, Check, Radio, Loader2, AlertTriangle, Repeat2 } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
-import { userById, formatRelativeTime } from "@/lib/mock";
+import { userById } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
 import {
   reactToPost,
@@ -39,6 +39,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { setChannelSubscription } from "@/lib/channels";
 import { Button } from "@/components/ui/button";
 import { RepostComposerDialog } from "@/components/feed/RepostComposerDialog";
+import { formatDate } from "@/lib/format/date";
 
 interface Props {
   post: Post;
@@ -416,7 +417,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
             <div className="mt-[1px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
               {isScheduled && post.scheduledAt
                 ? formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())
-                : formatRelativeTime(post.date)}
+                : formatDate(post.date, "relative")}
               {!isShare && post.category ? (
                 <>
                   {" · "}

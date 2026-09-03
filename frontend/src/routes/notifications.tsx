@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { formatRelativeTime } from "@/lib/mock";
+
 import {
   fetchNotifications,
   markAllNotificationsRead,
@@ -28,6 +28,7 @@ import {
 import { isDemoMode } from "@/lib/demo-mode";
 
 import i18n from "@/lib/i18n";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({ meta: [{ title: i18n.t("pages.notifications.metaTitle") }] }),
@@ -86,7 +87,7 @@ function NotificationItem({
         )}
         {n.createdAt && (
           <div className="mt-[4px]" style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-            {formatRelativeTime(n.createdAt)}
+            {formatDate(n.createdAt, "relative")}
           </div>
         )}
       </div>
