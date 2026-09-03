@@ -33,18 +33,73 @@ jobs:
       - name: Install (frozen lockfile)
         run: bun install --frozen-lockfile
 
-      # 84 tsc errors and 92 eslint errors are pre-existing (docs/audit/01-baseline.md).
-      # Reported, not blocking — drop continue-on-error after W4-10 clears them.
+      # Must run before tsc: the build generates src/routeTree.gen.ts, and without it
+      # every route import resolves to nothing and the type-error count is fiction.
+      - name: Build
+        run: bun run build
+
+      # ~75 tsc errors and ~17 eslint errors are pre-existing (docs/audit/01-baseline.md).
+      # Counted into the job summary, not blocking — drop continue-on-error once a
+      # checker reaches 0 so it can start guarding the baseline.
       - name: tsc
         continue-on-error: true
-        run: npx tsc --noEmit
+        run: |
+          set +e
+          npx tsc --noEmit > "$RUNNER_TEMP/tsc.log" 2>&1
+          status=$?
+          count=$(grep -c "error TS" "$RUNNER_TEMP/tsc.log")
+          {
+            echo "## tsc — $count error(s)"
+            echo
+            echo "Baseline is 75; this run must not exceed it."
+            echo
+            echo "<details><summary>Errors by code</summary>"
+            echo
+            echo '```'
+            grep -o "error TS[0-9]*" "$RUNNER_TEMP/tsc.log" | sort | uniq -c | sort -rn
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
 
       - name: eslint
         continue-on-error: true
-        run: npx eslint . --max-warnings=0
-
-      - name: Build
-        run: bun run build
+        run: |
+          set +e
+          npx eslint . --max-warnings=0 -f json -o "$RUNNER_TEMP/eslint.json"
+          status=$?
+          if [ -s "$RUNNER_TEMP/eslint.json" ]; then
+            node -e '
+              const fs = require("fs");
+              const files = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              const errors = files.reduce((n, f) => n + f.errorCount, 0);
+              const warnings = files.reduce((n, f) => n + f.warningCount, 0);
+              const rules = new Map();
+              for (const f of files)
+                for (const m of f.messages)
+                  if (m.severity === 2) rules.set(m.ruleId ?? "(parse error)", (rules.get(m.ruleId ?? "(parse error)") ?? 0) + 1);
+              const top = [...rules].sort((a, b) => b[1] - a[1]);
+              const out = [
+                `## eslint — ${errors} error(s), ${warnings} warning(s)`,
+                "",
+                "Errors block the merge once this reaches 0 and continue-on-error is dropped.",
+                "",
+                "<details><summary>Errors by rule</summary>",
+                "",
+                "```",
+                ...top.map(([rule, n]) => `${String(n).padStart(5)} ${rule}`),
+                "```",
+                "",
+                "</details>",
+                "",
+              ].join("\n");
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);
+            ' "$RUNNER_TEMP/eslint.json"
+          else
+            echo "## eslint — did not produce a report (see the step log)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $status
 
   backend:
     name: backend · phpunit
