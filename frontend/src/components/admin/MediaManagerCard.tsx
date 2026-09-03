@@ -60,6 +60,9 @@ function MediaThumb({ item }: { item: AdminMediaItem }) {
   return (
     <img
       src={item.url}
+      width={160}
+      height={160}
+      decoding="async"
       alt=""
       className="h-full w-full object-contain p-1"
       loading="lazy"

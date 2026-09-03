@@ -20,7 +20,7 @@ export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props)
     if (slot.defaultImageUrl) {
       return (
         <IconBox size="lg" variant="accent-soft">
-          <img src={slot.defaultImageUrl} alt="" className="icon-box__content" style={{ objectFit: "contain" }} />
+          <img src={slot.defaultImageUrl} width={44} height={44} loading="lazy" decoding="async" alt="" className="icon-box__content" style={{ objectFit: "contain" }} />
         </IconBox>
       );
     }

@@ -23,9 +23,13 @@ export function ReviewsHero({ videos }: { videos: Video[] }) {
             >
               <img
                 src={v.posterUrl || categoryPlaceholder(v.id, "")}
+                width={1600}
+                height={700}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 alt={v.title}
                 className="h-full w-full object-cover"
-                loading="eager"
               />
               <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(9,11,20,0.1) 0%, rgba(9,11,20,0.85) 100%)" }} />
               <div className="absolute inset-x-0 bottom-0 flex items-center gap-[12px] p-[16px] sm:p-[24px]">

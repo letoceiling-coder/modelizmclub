@@ -147,7 +147,7 @@ function BannerImagePreview({
                 className="flex min-h-[100px] items-center justify-center rounded-[12px] border p-[10px]"
                 style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
               >
-                <img src={banner.imageUrl} alt="" className="max-h-[220px] max-w-full object-contain" />
+                <img src={banner.imageUrl} width={1200} height={400} loading="lazy" decoding="async" alt="" className="max-h-[220px] max-w-full object-contain" />
               </div>
             </div>
           )}

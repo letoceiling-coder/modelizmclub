@@ -78,7 +78,7 @@ export function CallsList({ onOpenChat }: Props) {
             style={{ borderBottom: "1px solid var(--border)" }}
           >
             {rec.peer.avatar ? (
-              <img src={rec.peer.avatar} alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
+              <img src={rec.peer.avatar} width={44} height={44} loading="lazy" decoding="async" alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
             ) : (
               <div className="grid h-[44px] w-[44px] place-items-center rounded-full font-display text-[16px] font-bold text-[var(--accent-foreground)]" style={{ background: "var(--accent)" }}>
                 {initial}

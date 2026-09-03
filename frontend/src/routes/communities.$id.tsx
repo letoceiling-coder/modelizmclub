@@ -215,7 +215,7 @@ function CommunityPostCard({
       <div className="flex items-center gap-[10px] px-[16px] pt-[14px]">
         <div className="grid h-[38px] w-[38px] shrink-0 place-items-center overflow-hidden rounded-[10px]" style={{ background: "var(--accent-soft)" }}>
           {showAvatar ? (
-            <img src={community.avatarImage} alt="" className="h-full w-full object-cover" />
+            <img src={community.avatarImage} width={38} height={38} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" />
           ) : (
             <Icon size={18} style={{ color: "var(--accent)" }} />
           )}
@@ -258,7 +258,7 @@ function CommunityPostCard({
       </div>
       {img && !broken && (
         <div className="aspect-video overflow-hidden" style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+          <img src={img} width={1600} height={900} decoding="async" alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
         </div>
       )}
       <div className="flex items-center gap-[18px] px-[16px] py-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
@@ -308,7 +308,7 @@ function HubEventCard({ e, onToggle, busy }: { e: CommunityEvent; onToggle: (e: 
     <Card className="overflow-hidden shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
       <div className="relative h-[140px] w-full overflow-hidden" style={{ background: "var(--background-surface)" }}>
         {e.coverUrl && !broken ? (
-          <img src={e.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+          <img src={e.coverUrl} width={1200} height={420} decoding="async" alt="" loading="lazy" className="h-full w-full object-cover" onError={() => setBroken(true)} />
         ) : (
           <div className="grid h-full w-full place-items-center" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))", color: "#fff" }}>
             <CalendarDays size={30} />
@@ -464,7 +464,7 @@ function CommunityRightRail({
                 return (
                   <Link key={c.id} to="/communities/$id" params={{ id: c.id }} className="flex items-center gap-[10px] rounded-[10px] p-[6px] transition-colors hover:bg-[var(--background-surface)]">
                     <span className="grid h-[36px] w-[36px] shrink-0 place-items-center overflow-hidden rounded-[10px]" style={{ background: "var(--accent-soft)" }}>
-                      {c.avatarImage ? <img src={c.avatarImage} alt="" className="h-full w-full object-cover" /> : <CIcon size={16} style={{ color: "var(--accent)" }} />}
+                      {c.avatarImage ? <img src={c.avatarImage} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" /> : <CIcon size={16} style={{ color: "var(--accent)" }} />}
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{c.name}</span>

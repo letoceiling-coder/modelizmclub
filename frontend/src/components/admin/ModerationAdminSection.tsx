@@ -166,7 +166,7 @@ function ModerationDetailCard({
           {item.media.map((m) =>
             m.mime_type?.startsWith("image/") ? (
               <a key={m.url} href={m.url} target="_blank" rel="noreferrer">
-                <img src={m.url} alt="" style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
+                <img src={m.url} width={88} height={88} loading="lazy" decoding="async" alt="" style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
               </a>
             ) : null,
           )}

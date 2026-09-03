@@ -236,7 +236,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
           <div className="space-y-[12px]">
             <div className="flex gap-[12px] rounded-[var(--r-card)] p-[12px]" style={{ background: "var(--background-surface)" }}>
               {ad.image ? (
-                <img src={ad.image} alt="" className="h-[72px] w-[72px] rounded-[10px] object-cover" />
+                <img src={ad.image} width={72} height={72} loading="lazy" decoding="async" alt="" className="h-[72px] w-[72px] rounded-[10px] object-cover" />
               ) : (
                 <div className="h-[72px] w-[72px] rounded-[10px]" style={{ background: "var(--border)" }} />
               )}

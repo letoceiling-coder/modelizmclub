@@ -49,6 +49,10 @@ export function ImageLightbox({ src, alt, onClose }: { src: string; alt?: string
       {/* stopPropagation so tapping the image itself doesn't close (only backdrop/button do) */}
       <img
         src={src}
+        width={1600}
+        height={1200}
+        loading="lazy"
+        decoding="async"
         alt={alt ?? ""}
         className="max-h-full max-w-full object-contain"
         style={{ borderRadius: 4 }}

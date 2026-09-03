@@ -404,6 +404,7 @@ function FeedPage() {
                 <PostCard
                   key={post.id}
                   post={post}
+                  priority={idx === 0}
                   isSavedExternal={savedIds.has(post.id)}
                   onToggleSave={toggleSave}
                   onDelete={removePost}

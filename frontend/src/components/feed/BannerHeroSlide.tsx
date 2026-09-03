@@ -44,7 +44,7 @@ export function BannerHeroSlide({
     <>
       <div className="absolute inset-0">
         {banner.image ? (
-          <img src={banner.image} alt="" className="h-full w-full object-cover" />
+          <img src={banner.image} width={1600} height={900} loading="eager" fetchPriority="high" decoding="async" alt="" className="h-full w-full object-cover" />
         ) : (
           <div className={`h-full w-full bg-gradient-to-br ${banner.color ?? "from-slate-600 to-slate-800"}`} />
         )}

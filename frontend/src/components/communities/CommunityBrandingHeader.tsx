@@ -11,6 +11,7 @@ import { updateCommunityBranding } from "@/lib/api/communities";
 import type { Community } from "@/lib/mock";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
+import { Img } from "@/components/ui/Img";
 
 interface Props {
   community: Community;
@@ -144,8 +145,10 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
     <>
       <div className="group relative">
         {showCover ? (
-          <img
+          <Img
             src={coverUrl}
+            width={1200}
+            height={420}
             alt=""
             className="w-full object-cover"
             style={{ height: "min(220px, 38vw)" }}
@@ -195,7 +198,7 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
               style={{ background: "transparent", border: "4px solid var(--background)", borderRadius: 18 }}
             >
               {showAvatar ? (
-                <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />
+                <Img src={avatarUrl} width={96} height={96} alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />
               ) : (
                 <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
                   <Icon size={34} style={{ color: "var(--accent)" }} />

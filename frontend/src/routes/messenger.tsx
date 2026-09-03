@@ -288,6 +288,10 @@ function MessageImage({
           )}
           <img
             src={src}
+            width={frame.w}
+            height={frame.h}
+            loading="lazy"
+            decoding="async"
             alt=""
             draggable={false}
             className="h-full w-full"
@@ -316,7 +320,7 @@ function ListingMessageCard({ listing }: { listing: NonNullable<Message["listing
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {listing.image ? (
-          <img src={listing.image} alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img src={listing.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
         ) : (
           <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
         )}
@@ -344,7 +348,7 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {post.image ? (
-          <img src={post.image} alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img src={post.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
         ) : (
           <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
         )}

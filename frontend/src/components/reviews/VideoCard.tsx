@@ -31,6 +31,8 @@ export function VideoCard({ video, className }: { video: Video; className?: stri
       >
         <img
           src={src}
+          width={1600}
+          height={900}
           alt={video.title}
           loading="lazy"
           decoding="async"

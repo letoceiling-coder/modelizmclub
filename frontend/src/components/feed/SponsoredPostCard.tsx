@@ -115,6 +115,10 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         {banner.image ? (
           <img
             src={banner.image}
+            width={1600}
+            height={900}
+            loading="lazy"
+            decoding="async"
             alt=""
             className="h-full w-full object-cover"
           />

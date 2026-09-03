@@ -2,8 +2,19 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff, X } from "lucide-react";
+import { Img } from "@/components/ui/Img";
 
-export type MediaCarouselItem = { type: "image" | "video"; url: string };
+export type MediaCarouselItem = {
+  type: "image" | "video";
+  url: string;
+  /** Intrinsic size when the API knows it — reserves the box before the bytes arrive. */
+  width?: number;
+  height?: number;
+};
+
+/** Fallback intrinsic size for images whose dimensions the API did not send (4:3). */
+const FALLBACK_W = 1200;
+const FALLBACK_H = 900;
 
 /** Portrait 4:5 … landscape 16:9 — keeps feed layout predictable. */
 const MIN_ASPECT = 4 / 5;
@@ -62,11 +73,17 @@ function GalleryImage({
   alt,
   onClick,
   contain = true,
+  width = FALLBACK_W,
+  height = FALLBACK_H,
+  priority = false,
 }: {
   src: string;
   alt: string;
   onClick?: () => void;
   contain?: boolean;
+  width?: number;
+  height?: number;
+  priority?: boolean;
 }) {
   const [err, setErr] = useState(false);
   if (err) {
@@ -82,11 +99,12 @@ function GalleryImage({
     );
   }
   return (
-    <img
+    <Img
       src={src}
       alt={alt}
-      loading="lazy"
-      decoding="async"
+      width={width}
+      height={height}
+      priority={priority}
       onClick={onClick}
       className={`h-full w-full ${contain ? "object-contain" : "cursor-zoom-in object-cover"} ${onClick ? "cursor-zoom-in" : ""}`}
       onError={() => setErr(true)}
@@ -204,7 +222,7 @@ function Lightbox({
         <div className="flex h-full">
           {images.map((src, i) => (
             <div key={i} className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]">
-              <GalleryImage src={src} alt={`${alt} — фото ${i + 1}`} contain />
+              <GalleryImage src={src} alt={`${alt} — фото ${i + 1}`} width={1600} height={1200} contain />
             </div>
           ))}
         </div>
@@ -237,7 +255,7 @@ function Lightbox({
   );
 }
 
-function SingleMedia({ item, alt, onImageClick }: { item: MediaCarouselItem; alt: string; onImageClick?: () => void }) {
+function SingleMedia({ item, alt, onImageClick, priority = false }: { item: MediaCarouselItem; alt: string; onImageClick?: () => void; priority?: boolean }) {
   const aspect = useSlideAspect(item);
 
   if (item.type === "video") {
@@ -250,13 +268,13 @@ function SingleMedia({ item, alt, onImageClick }: { item: MediaCarouselItem; alt
 
   return (
     <MediaFrame aspect={aspect} className="bg-[var(--background-surface)]">
-      <GalleryImage src={item.url} alt={alt} onClick={onImageClick} />
+      <GalleryImage src={item.url} alt={alt} width={item.width} height={item.height} priority={priority} onClick={onImageClick} />
     </MediaFrame>
   );
 }
 
 /** Mixed image/video carousel for feed and channel posts. */
-export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; alt: string }) {
+export function PostMediaCarousel({ items, alt, priority = false }: { items: MediaCarouselItem[]; alt: string; priority?: boolean }) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: items.length > 1 });
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -301,6 +319,7 @@ export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; 
         <SingleMedia
           item={item}
           alt={alt}
+          priority={priority}
           onImageClick={item.type === "image" ? () => setLightbox(0) : undefined}
         />
         {lightbox !== null && item.type === "image" && (
@@ -333,6 +352,9 @@ export function PostMediaCarousel({ items, alt }: { items: MediaCarouselItem[]; 
                   <GalleryImage
                     src={item.url}
                     alt={`${alt} — фото ${i + 1}`}
+                    width={item.width}
+                    height={item.height}
+                    priority={priority && i === 0}
                     onClick={() => {
                       const idx = imageIndexBySlide[i];
                       if (idx >= 0) setLightbox(idx);

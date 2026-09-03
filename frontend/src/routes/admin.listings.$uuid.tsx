@@ -208,6 +208,10 @@ function AdminListingPage() {
                     <img
                       key={`${src}-${i}`}
                       src={src}
+                      width={120}
+                      height={120}
+                      loading="lazy"
+                      decoding="async"
                       alt=""
                       className="h-[120px] w-[120px] rounded-[10px] object-cover"
                       style={{ border: i === 0 ? "2px solid var(--accent)" : "1px solid var(--border)" }}

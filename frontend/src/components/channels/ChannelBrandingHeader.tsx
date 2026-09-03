@@ -13,6 +13,7 @@ import { uploadMedia } from "@/lib/api/media";
 import { updateChannelBranding, type Channel } from "@/lib/channels";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
+import { Img } from "@/components/ui/Img";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -153,8 +154,10 @@ export function ChannelBrandingHeader({ channel, editable, onUpdated }: Props) {
     <>
       <div className="relative h-28 sm:h-36">
         {showBanner ? (
-          <img
+          <Img
             src={bannerUrl}
+            width={1200}
+            height={300}
             alt=""
             className="h-full w-full object-cover"
             onError={() => setBrokenBanner(true)}

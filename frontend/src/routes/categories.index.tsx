@@ -53,6 +53,9 @@ function CategoriesPage() {
               >
                 <img
                   src={s.url}
+                  width={400}
+                  height={400}
+                  decoding="async"
                   alt={s.title}
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-contain p-2"

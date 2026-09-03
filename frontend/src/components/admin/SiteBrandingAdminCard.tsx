@@ -113,7 +113,7 @@ export function SiteBrandingAdminCard({ cardStyle }: { cardStyle: CSSProperties 
         }}
       >
         {preview ? (
-          <img src={preview} alt="" style={{ height: size, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
+          <img src={preview} width={Math.round(size * 1600 / 514)} height={size} loading="lazy" decoding="async" alt="" style={{ height: size, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
         ) : (
           <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>{t("pages.adminBranding.noLogo")}</span>
         )}
