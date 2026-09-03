@@ -905,7 +905,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               }}
               className={`flex gap-[10px] ${mine ? "flex-row-reverse" : ""}`}
             >
-              <img src={u.avatar} alt={u.name} className="h-[32px] w-[32px] shrink-0 rounded-full" />
+              <img src={u.avatar} width={32} height={32} loading="lazy" decoding="async" alt={u.name} className="h-[32px] w-[32px] shrink-0 rounded-full" />
               <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                 <div className="mb-[2px] flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
                   {!mine && (
@@ -956,6 +956,9 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
                         >
                           <img
                             src={src}
+                            width={800}
+                            height={600}
+                            decoding="async"
                             alt={t("pages.subcategoryDetail.attachmentAlt")}
                             className="h-full max-h-[220px] w-full object-cover"
                             loading="lazy"
@@ -1042,7 +1045,7 @@ function ChatTab({ category, subId, subName, pool }: { category: Category; subId
               className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[10px] border"
               style={{ borderColor: "var(--border)", background: "var(--background)" }}
             >
-              <img src={item.preview} alt={t("pages.subcategoryDetail.previewAlt")} className="h-full w-full object-cover" />
+              <img src={item.preview} width={64} height={64} loading="lazy" decoding="async" alt={t("pages.subcategoryDetail.previewAlt")} className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => setEditingAttachment(item.preview)}
@@ -1247,7 +1250,7 @@ function MembersTab({
             className="flex items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
           >
             <div className="relative shrink-0">
-              <img src={u.avatar} alt={u.name} className="h-[40px] w-[40px] rounded-full" />
+              <img src={u.avatar} width={40} height={40} loading="lazy" decoding="async" alt={u.name} className="h-[40px] w-[40px] rounded-full" />
               <span
                 className="absolute -bottom-[1px] -right-[1px] h-[11px] w-[11px] rounded-full border-[2px]"
                 style={{

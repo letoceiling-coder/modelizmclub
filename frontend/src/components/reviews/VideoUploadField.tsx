@@ -34,7 +34,7 @@ export function VideoUploadField({ fileUrl, onPick, onClear, accept, label, auto
           {accept.startsWith("video") ? (
             <video src={fileUrl} controls preload="metadata" className="w-full" style={{ maxHeight: 240, background: "#000" }} />
           ) : (
-            <img src={fileUrl} alt="" className="w-full object-cover" style={{ maxHeight: 240 }} />
+            <img src={fileUrl} width={1200} height={675} loading="lazy" decoding="async" alt="" className="w-full object-cover" style={{ maxHeight: 240 }} />
           )}
           <div className="absolute right-[8px] top-[8px] flex gap-[6px]">
             {onEdit && !accept.startsWith("video") && (

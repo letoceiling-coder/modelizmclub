@@ -408,7 +408,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
         {sel.source === "profile" && (
           <div className="space-y-[4px]">
             <div className="flex items-start gap-[12px]">
-              <img src={me.avatar} alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />
+              <img src={me.avatar} width={40} height={40} loading="lazy" decoding="async" alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />
               <input
                 value={title}
                 maxLength={POST_TITLE_MAX_LENGTH}

@@ -256,11 +256,11 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                 <button type="button" onClick={() => avatarInputRef.current?.click()} className="rounded-[8px] border px-3 py-2 text-[12px] font-medium" style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}>
                   {avatarPreview ? t("pages.communityWizard.changeAvatar") : t("pages.communityWizard.uploadAvatar")}
                 </button>
-                {avatarPreview && <img src={avatarPreview} alt="" className="h-12 w-12 rounded-full object-cover" />}
+                {avatarPreview && <img src={avatarPreview} width={48} height={48} loading="lazy" decoding="async" alt="" className="h-12 w-12 rounded-full object-cover" />}
                 <button type="button" onClick={() => coverInputRef.current?.click()} className="rounded-[8px] border px-3 py-2 text-[12px] font-medium" style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}>
                   {coverPreview ? t("pages.communityWizard.changeCover") : t("pages.communityWizard.uploadCover")}
                 </button>
-                {coverPreview && <img src={coverPreview} alt="" className="h-10 w-[80px] rounded-[6px] object-cover" />}
+                {coverPreview && <img src={coverPreview} width={80} height={40} loading="lazy" decoding="async" alt="" className="h-10 w-[80px] rounded-[6px] object-cover" />}
               </div>
               <input ref={avatarInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
                 const file = e.target.files?.[0];

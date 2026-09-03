@@ -1339,7 +1339,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
   return (
     <div className="group relative">
       {showImg ? (
-        <img src={src} alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} onError={() => setBroken(true)} />
+        <img src={src} width={1200} height={420} loading="lazy" decoding="async" alt="" className="w-full object-cover" style={{ height: "clamp(120px, 22vw, 220px)" }} onError={() => setBroken(true)} />
       ) : (
         <div className="w-full" style={{ height: "clamp(120px, 22vw, 220px)", background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }} />
       )}

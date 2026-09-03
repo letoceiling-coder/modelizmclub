@@ -120,7 +120,7 @@ function CommentAvatar({
       {initials}
     </div>
   ) : (
-    <img src={src} alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
+    <img src={src} width={32} height={32} loading="lazy" decoding="async" alt="" className="h-[32px] w-[32px] rounded-full object-cover" />
   );
   if (!author.id) return <span className="shrink-0">{face}</span>;
   return (
@@ -163,7 +163,7 @@ function CommentPhotos({ urls }: { urls: string[] }) {
             onClick={() => setOpen(src)}
             className="overflow-hidden rounded-[10px]"
           >
-            <img src={src} alt="" className="max-h-[160px] max-w-[min(100%,220px)] object-cover" />
+            <img src={src} width={220} height={160} loading="lazy" decoding="async" alt="" className="max-h-[160px] max-w-[min(100%,220px)] object-cover" />
           </button>
         ))}
       </div>
@@ -296,7 +296,7 @@ function PhotoDraftStrip({
     <div className="flex flex-wrap gap-[8px] px-[4px] pt-[8px]">
       {photos.map((item, index) => (
         <div key={item.url} className="relative">
-          <img src={item.url} alt="" className="h-[64px] w-[64px] rounded-[10px] object-cover" />
+          <img src={item.url} width={64} height={64} loading="lazy" decoding="async" alt="" className="h-[64px] w-[64px] rounded-[10px] object-cover" />
           <button
             type="button"
             onClick={() => onRemove(index)}

@@ -10,6 +10,8 @@ interface Props {
   sizes: string;
   className?: string;
   loading?: "lazy" | "eager";
+  /** LCP candidate: pair with loading="eager". */
+  fetchPriority?: "high" | "low" | "auto";
   decoding?: "async" | "auto" | "sync";
   draggable?: boolean;
   width?: number;
@@ -25,6 +27,7 @@ export function ResponsiveImage({
   sizes,
   className,
   loading = "lazy",
+  fetchPriority,
   decoding = "async",
   draggable,
   width,
@@ -51,6 +54,7 @@ export function ResponsiveImage({
         alt={alt}
         className={className}
         loading={loading}
+        fetchPriority={fetchPriority}
         decoding={decoding}
         draggable={draggable}
         width={width}
@@ -70,6 +74,7 @@ export function ResponsiveImage({
         alt={alt}
         className={className}
         loading={loading}
+        fetchPriority={fetchPriority}
         decoding={decoding}
         draggable={draggable}
         width={width}

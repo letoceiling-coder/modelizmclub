@@ -75,6 +75,10 @@ function TileImage({ src }: { src: string }) {
   return (
     <img
       src={src}
+      width={400}
+      height={400}
+      loading="lazy"
+      decoding="async"
       alt=""
       draggable={false}
       className="pointer-events-none h-full w-full object-cover"

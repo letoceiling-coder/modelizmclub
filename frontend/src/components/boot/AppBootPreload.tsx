@@ -13,6 +13,10 @@ export function AppBootPreload() {
       <div className="flex flex-col items-center gap-5 px-6">
         <img
           src={wordmark}
+          width={1600}
+          height={514}
+          loading="lazy"
+          decoding="async"
           alt="МоДелизМ"
           className="block object-contain"
           style={{ height: 40, width: "auto", maxWidth: 220 }}

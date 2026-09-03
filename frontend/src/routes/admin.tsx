@@ -1438,6 +1438,10 @@ function ContentSection() {
             ) : preview.images[0] ? (
               <img
                 src={preview.images[0]}
+                width={1200}
+                height={675}
+                loading="lazy"
+                decoding="async"
                 alt={preview.title}
                 style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }}
               />
@@ -3266,7 +3270,7 @@ function ReviewsSection({ initialSubTab = "list" }: { initialSubTab?: "list" | "
             {preview.videoUrl ? (
               <video src={preview.videoUrl} controls preload="metadata" playsInline poster={preview.posterUrl} style={{ marginTop: "16px", width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }} />
             ) : preview.posterUrl ? (
-              <img src={preview.posterUrl} alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
+              <img src={preview.posterUrl} width={1200} height={675} loading="lazy" decoding="async" alt={preview.title} style={{ marginTop: "16px", width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 10, background: "var(--background-surface)" }} />
             ) : (
               <p style={{ marginTop: "16px", fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminReviews.videoUnavailable")}</p>
             )}

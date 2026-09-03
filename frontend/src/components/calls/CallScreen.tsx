@@ -369,6 +369,10 @@ function PeerAvatar({ avatar, name, initial }: { avatar?: string; name: string; 
     return (
       <img
         src={avatar}
+        width={120}
+        height={120}
+        loading="lazy"
+        decoding="async"
         alt={name}
         onError={() => setFailed(true)}
         className="relative h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] rounded-full object-cover"

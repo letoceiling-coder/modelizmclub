@@ -183,7 +183,7 @@ export function GroupCallInviteDialog() {
             <div className="flex min-h-[44px] shrink-0 flex-wrap items-center gap-[6px] px-[18px] pb-[10px]">
               {selectedUsers.map((u) => (
                 <button key={u.id} type="button" onClick={() => toggle(u.id)} className="inline-flex items-center gap-[6px] rounded-full py-[4px] pl-[4px] pr-[10px] text-[12px]" style={{ background: "var(--background-surface)", color: "var(--foreground)" }}>
-                  <img src={u.avatar} alt="" className="h-[20px] w-[20px] rounded-full object-cover" />
+                  <img src={u.avatar} width={20} height={20} loading="lazy" decoding="async" alt="" className="h-[20px] w-[20px] rounded-full object-cover" />
                   {u.name}
                   <X size={12} style={{ color: "var(--foreground-50)" }} />
                 </button>
@@ -244,7 +244,7 @@ export function GroupCallInviteDialog() {
                       className="flex w-full items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                     >
                       <span className="relative shrink-0">
-                        <img src={u.avatar} alt="" className="h-[40px] w-[40px] rounded-full object-cover" />
+                        <img src={u.avatar} width={40} height={40} loading="lazy" decoding="async" alt="" className="h-[40px] w-[40px] rounded-full object-cover" />
                         {on && <span className="absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full" style={{ background: "var(--success)", border: "2px solid var(--background-elevated)" }} />}
                       </span>
                       <span className="min-w-0 flex-1">

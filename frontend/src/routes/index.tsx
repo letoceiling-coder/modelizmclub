@@ -362,7 +362,7 @@ function Hero() {
             <source src={sources.mp4} type="video/mp4" />
           </video>
         ) : (
-          <img src={cover} alt={brand || t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
+          <img src={cover} width={1920} height={1080} loading="eager" fetchPriority="high" decoding="async" alt={brand || t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
         )}
         {/* dark overlay — fixed dark color at the bottom, independent of theme
             (var(--background) turned white in light theme and washed out the video).
@@ -732,6 +732,9 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
         {hasImages && !imgErrors[hovIdx] ? (
           <img
             src={gallery[hovIdx]}
+            width={800}
+            height={600}
+            decoding="async"
             alt={ad.title}
             loading="lazy"
             className="h-full w-full object-cover"

@@ -40,6 +40,7 @@ import { setChannelSubscription } from "@/lib/channels";
 import { Button } from "@/components/ui/button";
 import { RepostComposerDialog } from "@/components/feed/RepostComposerDialog";
 import { formatDate } from "@/lib/format/date";
+import { Img } from "@/components/ui/Img";
 
 interface Props {
   post: Post;
@@ -52,6 +53,8 @@ interface Props {
   variant?: "full" | "embed";
   /** Fired after a successful share/undo so a wrapper card can leave the list. */
   onRepostedChange?: (on: boolean) => void;
+  /** First card in the feed — its media is the LCP candidate: loads eagerly with fetchpriority=high. */
+  priority?: boolean;
 }
 
 /** Avatar with initials fallback when the image fails to load or src is empty */
@@ -75,10 +78,11 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
     );
   }
   return (
-    <img
+    <Img
       src={src}
+      width={40}
+      height={40}
       alt={name}
-      loading="lazy"
       className="h-[40px] w-[40px] shrink-0 rounded-full object-cover"
       onError={() => setErr(true)}
     />
@@ -105,7 +109,7 @@ function VideoProcessingFrame({ failed }: { failed: boolean }) {
   );
 }
 
-function PostMediaBlock({ post }: { post: Post }) {
+function PostMediaBlock({ post, priority = false }: { post: Post; priority?: boolean }) {
   const items =
     post.mediaItems ??
     [
@@ -122,20 +126,20 @@ function PostMediaBlock({ post }: { post: Post }) {
 
   const hasVideo = items.some((item) => item.type === "video");
   if (hasVideo) {
-    return <PostMediaCarousel items={items} alt={post.title} />;
+    return <PostMediaCarousel items={items} alt={post.title} priority={priority} />;
   }
 
   const imageItems = items
     .filter((item) => item.type === "image")
     .map((item) => ({ url: item.url, variants: item.variants }));
-  return <FeedMediaGrid images={imageItems} alt={post.title} />;
+  return <FeedMediaGrid images={imageItems} alt={post.title} priority={priority} />;
 }
 
 /** Shared class for footer action buttons — ghost-style, accent hover */
 const actionCls =
   "inline-flex items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45";
 
-export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost, variant = "full", onRepostedChange }: Props) {
+export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost, variant = "full", onRepostedChange, priority = false }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const me = useCurrentUser();
@@ -480,8 +484,10 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
               className="flex min-w-0 flex-1 items-center gap-[10px]"
             >
               {post.channel.avatar ? (
-                <img
+                <Img
                   src={post.channel.avatar}
+                  width={32}
+                  height={32}
                   alt=""
                   className="h-8 w-8 shrink-0 rounded-[8px] object-cover"
                 />
@@ -639,7 +645,7 @@ export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide
 
         {/* Media */}
         {(post.video || post.image || (post.images?.length ?? 0) > 0 || (post.mediaItems?.length ?? 0) > 0) && (
-          <PostMediaBlock post={mediaPost} />
+          <PostMediaBlock post={mediaPost} priority={priority} />
         )}
 
         {/* Footer actions */}

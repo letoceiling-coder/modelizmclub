@@ -115,7 +115,7 @@ export function ForwardDialog({ message, onClose }: Props) {
                         onClick={() => forwardTo(d.id)}
                         className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)]"
                       >
-                        <img src={u.avatar} alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
+                        <img src={u.avatar} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
                         <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
                           {u.name}
                         </span>

@@ -305,7 +305,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 >
                   {avatarPreview ? "Изменить аватар" : "Загрузить аватар"}
                 </button>
-                {avatarPreview && <img src={avatarPreview} alt="" className="h-12 w-12 rounded-full object-cover" />}
+                {avatarPreview && <img src={avatarPreview} width={48} height={48} loading="lazy" decoding="async" alt="" className="h-12 w-12 rounded-full object-cover" />}
                 <button
                   type="button"
                   onClick={() => bannerInputRef.current?.click()}
@@ -314,7 +314,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 >
                   {bannerPreview ? "Изменить обложку" : "Загрузить обложку"}
                 </button>
-                {bannerPreview && <img src={bannerPreview} alt="" className="h-10 w-[80px] rounded-[6px] object-cover" />}
+                {bannerPreview && <img src={bannerPreview} width={80} height={40} loading="lazy" decoding="async" alt="" className="h-10 w-[80px] rounded-[6px] object-cover" />}
               </div>
               <input ref={avatarInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
                 const file = e.target.files?.[0];

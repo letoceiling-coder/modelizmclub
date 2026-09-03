@@ -71,6 +71,8 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         {showCover ? (
           <img
             src={c.coverImage}
+            width={1200}
+            height={360}
             alt=""
             loading="lazy"
             decoding="async"
@@ -115,6 +117,8 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
           {showAvatar ? (
             <img
               src={c.avatarImage}
+              width={96}
+              height={96}
               alt=""
               loading="lazy"
               decoding="async"
@@ -172,7 +176,7 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
               {(c.onlineAvatars?.length ?? 0) > 0 ? (
                 <span className="flex -space-x-2">
                   {c.onlineAvatars!.slice(0, 3).map((a) => (
-                    <img key={a.uuid} src={a.url ?? ""} alt="" className="h-[18px] w-[18px] rounded-full object-cover" style={{ border: "2px solid var(--background)" }} />
+                    <img key={a.uuid} src={a.url ?? ""} width={18} height={18} loading="lazy" decoding="async" alt="" className="h-[18px] w-[18px] rounded-full object-cover" style={{ border: "2px solid var(--background)" }} />
                   ))}
                 </span>
               ) : (

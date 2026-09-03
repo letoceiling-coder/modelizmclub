@@ -149,7 +149,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
               style={{ background: "transparent", border: "2px solid var(--border)", borderRadius: 16 }}
             >
               {showAvatar ? (
-                <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />
+                <img src={avatarUrl} width={96} height={96} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />
               ) : (
                 <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
                   <Icon size={28} style={{ color: "var(--accent)" }} />
@@ -185,7 +185,7 @@ export function CommunityBrandingForm({ community, Icon, onUpdated }: Props) {
             }}
           >
             {showCover ? (
-              <img src={coverUrl} alt="" className="h-24 w-full object-cover" onError={() => setBrokenCover(true)} />
+              <img src={coverUrl} width={1200} height={300} loading="lazy" decoding="async" alt="" className="h-24 w-full object-cover" onError={() => setBrokenCover(true)} />
             ) : (
               <div className="grid h-24 place-items-center opacity-40">
                 <Icon size={40} color="#fff" />
