@@ -872,6 +872,7 @@ class SafeDealService
         }
 
         return [
+            'can' => $this->canFlags($deal, $viewer),
             'uuid' => $deal->uuid,
             'listing_uuid' => $deal->listing?->uuid,
             'listing_title' => $deal->listing?->title,
@@ -1134,4 +1135,16 @@ class SafeDealService
             SafeDealStatus::Cancelled => 'Отменена',
         };
     }
+
+    /** @return array<string, bool> per-ability flags for the viewer (see SafeDealPolicy). */
+    private function canFlags(SafeDeal $deal, ?User $viewer): array
+    {
+        $flags = [];
+        foreach (['view', 'pay', 'ship', 'markDelivered', 'confirmDelivery', 'cancel', 'openDispute', 'review'] as $ability) {
+            $flags[$ability] = $viewer ? $viewer->can($ability, $deal) : false;
+        }
+
+        return $flags;
+    }
+
 }

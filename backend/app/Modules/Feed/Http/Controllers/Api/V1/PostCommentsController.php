@@ -33,6 +33,7 @@ class PostCommentsController extends Controller
     public function store(string $uuid, StoreCommentRequest $request, PostService $posts, CommentService $comments): JsonResponse
     {
         $post = $posts->findByUuid($uuid, $request->user());
+        $this->authorize('comment', $post);
         $comment = $comments->createOnPost(
             $post,
             $request->user(),

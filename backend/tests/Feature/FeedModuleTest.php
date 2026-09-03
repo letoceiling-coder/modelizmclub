@@ -283,7 +283,7 @@ class FeedModuleTest extends TestCase
 
         $this->actingAs($stranger, 'sanctum')
             ->deleteJson("/api/v1/comments/{$rootUuid}")
-            ->assertStatus(422);
+            ->assertForbidden(); // CommentPolicy::delete — author or moderator
 
         $this->assertDatabaseHas('comments', ['uuid' => $rootUuid, 'deleted_at' => null]);
 

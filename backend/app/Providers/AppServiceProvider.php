@@ -12,8 +12,20 @@ use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Event;
+use App\Models\Comment;
+use App\Models\Conversation;
+use App\Models\Dispute;
+use App\Models\Listing;
+use App\Models\Message;
 use App\Models\Post;
+use App\Models\SafeDeal;
+use App\Policies\CommentPolicy;
+use App\Policies\ConversationPolicy;
+use App\Policies\DisputePolicy;
+use App\Policies\ListingPolicy;
+use App\Policies\MessagePolicy;
 use App\Policies\PostPolicy;
+use App\Policies\SafeDealPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -159,6 +171,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::policy(Post::class, PostPolicy::class);
+        Gate::policy(SafeDeal::class, SafeDealPolicy::class);
+        Gate::policy(Dispute::class, DisputePolicy::class);
+        Gate::policy(Conversation::class, ConversationPolicy::class);
+        Gate::policy(Message::class, MessagePolicy::class);
+        Gate::policy(Comment::class, CommentPolicy::class);
+        Gate::policy(Listing::class, ListingPolicy::class);
 
         Gate::define('viewApiDocs', function () {
             if (app()->environment(['local', 'development', 'staging'])) {

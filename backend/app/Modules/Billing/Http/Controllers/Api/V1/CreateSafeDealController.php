@@ -7,12 +7,14 @@ use App\Models\Listing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Billing\Services\SafeDealService;
+use App\Models\SafeDeal;
 
 class CreateSafeDealController extends Controller
 {
     public function __invoke(Request $request, string $uuid, SafeDealService $deals): JsonResponse
     {
         $listing = Listing::query()->with(['city', 'author'])->where('uuid', $uuid)->firstOrFail();
+        $this->authorize('create', [SafeDeal::class, $listing]);
 
         $data = $request->validate([
             'accept_terms' => ['required', 'accepted'],

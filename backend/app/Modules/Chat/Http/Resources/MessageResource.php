@@ -3,6 +3,7 @@
 namespace Modules\Chat\Http\Resources;
 
 use App\Models\ConversationParticipant;
+use App\Http\Resources\Concerns\HasCanFlags;
 use App\Models\Message;
 use App\Models\User;
 use Carbon\Carbon;
@@ -14,10 +15,13 @@ use Modules\User\Http\Resources\UserCompactResource;
 /** @mixin Message */
 class MessageResource extends JsonResource
 {
+    use HasCanFlags;
+
     public function toArray(Request $request): array
     {
         return [
             'uuid' => $this->uuid,
+            'can' => $this->canFlags($request->user(), ['delete', 'hide', 'pin']),
             'body' => $this->body,
             'type' => $this->type,
             'status' => $this->resolveStatus($request),
