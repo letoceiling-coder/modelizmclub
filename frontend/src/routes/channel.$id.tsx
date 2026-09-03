@@ -25,7 +25,7 @@ import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHead
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
 import { openConversation } from "@/lib/api/chat";
 import type { User } from "@/lib/mock";
@@ -100,7 +100,7 @@ function ChannelPage() {
   const { id } = Route.useParams();
   const { tab: tabSearch, section: sectionSearch, settings: settingsSearch } = Route.useSearch();
   const navigate = useNavigate();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { requirePremium } = useGuestAccess();
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
   const { posts, reload: reloadPosts } = useChannelPosts(id);

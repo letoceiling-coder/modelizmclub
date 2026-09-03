@@ -8,7 +8,8 @@ import { loadFeedGuestAccess, resolveMinTier } from "@/lib/feed-guest-access/sto
 import { getMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
-import { getState, selectors, setCurrentUser } from "@/lib/store";
+import { setCurrentUser } from "@/lib/store";
+import { getSessionUser } from "@/lib/session";
 
 export type ClientRouteRedirect = {
   to: string;
@@ -68,7 +69,7 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
     if (!ok) {
       return { to: "/login", search: { redirect: pathname }, replace: true };
     }
-    let user = selectors.currentUser(getState());
+    let user = getSessionUser();
     if (user.id === "guest") {
       const me = await fetchMe();
       if (me) {
@@ -87,7 +88,7 @@ export async function enforceClientRouteAccess(pathname: string): Promise<Client
   }
 
   if (minTier === "subscription") {
-    const user = selectors.currentUser(getState());
+    const user = getSessionUser();
     if (isStaffUser(user)) return null;
     const sub = await getMySubscription();
     if (sub?.is_active === true) return null;

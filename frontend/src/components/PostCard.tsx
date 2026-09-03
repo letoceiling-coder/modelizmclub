@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Heart, MessageCircle, Bookmark, Eye, Clock, Check, Radio, Loader2, AlertTriangle, Repeat2 } from "lucide-react";
 import type { Post, Comment } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import {
   reactToPost,
   bookmarkPost,
@@ -135,7 +135,7 @@ const actionCls =
 export function PostCard({ post, isSavedExternal, onToggleSave, onDelete, onHide, onTogglePost, variant = "full", onRepostedChange }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const author = userById(post.authorId);
   const isShare = variant === "full" && Boolean(post.repostOf);
   const isStaff = me.role === "admin" || me.role === "moderator" || !!me.isAdmin;

@@ -3,13 +3,18 @@ import { getToken } from "@/lib/api/client";
 import { fetchFavoriteListings } from "@/lib/api/listings";
 import { fetchConversations } from "@/lib/api/chat";
 import { shutdownCalls } from "@/lib/calls";
-import { actions, GUEST_USER, setCurrentUser, setDialogs, setSessionResolved } from "@/lib/store";
+import { actions, setDialogs } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
 import { seedDemoStore } from "@/lib/demo-data";
-import { getMySubscription } from "@/lib/subscription";
+import { getMySubscription, invalidateMySubscription } from "@/lib/subscription";
 import { claimReferralCode } from "@/lib/api/referral";
 import { peekStoredReferralCode, consumeStoredReferralCode } from "@/lib/referral-cookie";
+import { GUEST_USER } from "@/lib/session/guest";
+import { setSession } from "@/lib/session/cache";
+import { getSessionQueryClient } from "@/lib/session/queryClient";
+import { sessionQueryOptions } from "@/lib/session/options";
+import { SESSION_KEY, type Session } from "@/lib/session/types";
 
 /** Replace local favorite IDs with the server list (source of truth for the badge). */
 export async function syncFavoritesFromServer(): Promise<void> {
@@ -39,97 +44,117 @@ export async function syncDialogsFromServer(meUuid: string): Promise<void> {
   }
 }
 
-let sessionPromise: Promise<boolean> | null = null;
-
 /**
- * Validates the stored token against /auth/me and hydrates the store.
- * Returns true when the user is authenticated.
+ * The single source of truth for "who is signed in": one fetch of /auth/me
+ * plus the subscription, cached under ['session'].
+ *
+ * Resolves to null for a guest — no token, or a real 401 (fetchMe clears the
+ * token on that). Any other failure while the token is still present (a
+ * network blip, a slow/failed CORS preflight, a timeout) is *thrown*: React
+ * Query then keeps the query in error state and the next ensureSession() or
+ * mounted useSession() refetches, instead of a false "guest" being cached for
+ * five minutes and every later auth check rendering the user as signed out.
  */
-export async function ensureSession(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
+export async function fetchSession(): Promise<Session | null> {
+  if (typeof window === "undefined") return null;
+
   // Demo mode: no token, no network — seed the store with the mock session.
   if (isDemoMode()) {
     seedDemoStore();
     await syncFavoritesFromServer();
-    return true;
+    const me = await fetchMe();
+    const sub = await getMySubscription();
+    return me ? toSession(me, sub) : null;
   }
-  if (!getToken()) return false;
 
-  if (!sessionPromise) {
-    sessionPromise = loadSession();
-  }
-  return sessionPromise;
-}
+  if (!getToken()) return null;
 
-async function loadSession(): Promise<boolean> {
   const me = await fetchMe();
   if (!me) {
-    // fetchMe() only clears the token on a real 401 — anything else (a
-    // transient network blip, a slow/failed CORS preflight, a timeout)
-    // also resolves to null here, but the token is still valid. Without
-    // this reset, sessionPromise permanently caches that one failed
-    // attempt for the rest of the SPA session: every later ensureSession()
-    // call (requireAuth, requireAdmin, the landing page, /admin,
-    // /reviews/upload — anything that checks auth after the first one)
-    // would keep getting the same stale "false" and render as a guest
-    // even though the user is still logged in, until a full page reload
-    // happens to retry successfully. Clearing it here lets the next call
-    // make a fresh attempt instead of being stuck for the whole session.
-    sessionPromise = null;
-    return false;
+    if (getToken()) throw new Error("session: /auth/me failed while the token is still valid");
+    return null;
   }
-  setCurrentUser(me);
+
   shutdownCalls();
   await startRealtimeHub(me.id);
-  await Promise.all([
+  const [, , sub] = await Promise.all([
     syncFavoritesFromServer(),
     syncDialogsFromServer(me.id),
     getMySubscription(),
   ]);
+
   const pendingRef = peekStoredReferralCode();
   if (pendingRef) {
-    await claimReferralCode(pendingRef);
-    consumeStoredReferralCode();
+    try {
+      await claimReferralCode(pendingRef);
+      consumeStoredReferralCode();
+    } catch {
+      // A failed referral claim must not turn a signed-in user into a guest;
+      // the code stays stored and is retried on the next session fetch.
+    }
   }
-  return true;
+
+  return toSession(me, sub);
 }
 
-/** Clears the in-flight session promise (after login / logout). */
+function toSession(user: Session["user"], sub: Awaited<ReturnType<typeof getMySubscription>>): Session {
+  return {
+    user,
+    phoneVerified: user.phone_verified === true,
+    subscription: {
+      active: sub?.is_active === true,
+      plan: sub?.plan?.slug ?? null,
+      endsAt: sub?.ends_at ?? null,
+    },
+  };
+}
+
+/**
+ * Route-guard entry point. Returns true when the user is authenticated.
+ * Serves the cached session when there is one; fetches otherwise.
+ */
+export async function ensureSession(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const qc = getSessionQueryClient();
+  if (!qc) return false;
+  if (!getToken() && !isDemoMode()) return false;
+  try {
+    return Boolean(await qc.ensureQueryData(sessionQueryOptions));
+  } catch {
+    return false;
+  }
+}
+
+/** Marks the session stale so the next read refetches (after login / logout). */
 export function resetSessionCache(): void {
-  sessionPromise = null;
   shutdownCalls();
   stopRealtimeHub();
+  invalidateMySubscription();
+  void getSessionQueryClient()?.invalidateQueries({ queryKey: SESSION_KEY });
 }
 
-// Restore the authenticated user into the store on app boot.
+// Prefetch the session on app boot (root beforeLoad) and on bfcache restore.
 export async function restoreSession(): Promise<void> {
+  if (typeof window === "undefined") return;
+  const qc = getSessionQueryClient();
+  if (!qc) return;
+
   if (!getToken() && !isDemoMode()) {
-    resetSessionCache();
+    shutdownCalls();
+    stopRealtimeHub();
     actions.setFavoriteAdIds([]);
-    setCurrentUser(GUEST_USER);
-    setSessionResolved(true);
+    setSession(null);
     return;
   }
 
-  try {
-    const ok = await ensureSession();
-    // Root-mount is the *only* unconditional session check — most pages
-    // (e.g. /feed) never call ensureSession() themselves, they just read the
-    // store reactively, so if this one attempt fails there's otherwise no
-    // automatic retry until either the user navigates to one of the few
-    // routes that do call ensureSession() again (requireAuth/requireAdmin
-    // guards), or reloads the whole page. One immediate retry here — now a
-    // genuine second attempt, since loadSession() resets sessionPromise on
-    // failure — self-heals a transient first-attempt failure (network blip,
-    // slow/failed CORS preflight) without either of those.
-    if (!ok && getToken() && !isDemoMode()) {
-      await ensureSession();
-    }
-  } finally {
-    // Flip regardless of success/failure — UI that gates on this (e.g. the
-    // account-verification banner) must stop treating the user as "unknown"
-    // once the boot-time probe has had its shot, even if it ultimately failed.
-    setSessionResolved(true);
+  // prefetchQuery never throws — a failed attempt leaves the query in error
+  // state, which still counts as "resolved" for UI that gates on the probe.
+  await qc.prefetchQuery(sessionQueryOptions);
+  // Root-mount is the *only* unconditional session check — most pages just
+  // read useSession() and never call ensureSession() themselves. One immediate
+  // retry self-heals a transient first-attempt failure without a reload.
+  if (getToken() && !isDemoMode() && qc.getQueryState(SESSION_KEY)?.status === "error") {
+    await qc.prefetchQuery(sessionQueryOptions);
   }
 }
 
@@ -139,7 +164,9 @@ export function isAuthenticated(): boolean {
 
 export async function signOut(): Promise<void> {
   await apiLogout();
+  // Synchronous null first so every mounted useSession() sees the sign-out
+  // in the same tick; the invalidation below refetches to confirm.
+  setSession(null);
   resetSessionCache();
   actions.setFavoriteAdIds([]);
-  setCurrentUser(GUEST_USER);
 }

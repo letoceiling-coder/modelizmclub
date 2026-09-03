@@ -15,7 +15,7 @@ import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { getState, selectors } from "@/lib/store";
+import { getSessionUser } from "@/lib/session";
 import { ensureSession } from "@/lib/auth/session";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 
@@ -66,7 +66,7 @@ function UploadPage() {
     ensureSession().then((ok) => {
       if (!alive) return;
       if (!ok) { navigate({ to: "/login" }); return; }
-      const me = selectors.currentUser(getState());
+      const me = getSessionUser();
       setAccess(me.isAdmin ? "granted" : "forbidden");
     });
     fetchVideoCategories()

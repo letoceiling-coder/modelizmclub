@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { getToken } from "@/lib/api/client";
-import { selectors, useStore } from "@/lib/store";
+import { useCurrentUser, useSessionResolved } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
   isAnonymousUser,
@@ -49,10 +49,10 @@ const GuestAccessContext = createContext<GuestAccessContextValue | null>(null);
 
 export function GuestAccessProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const me = useStore(selectors.currentUser);
-  const sessionResolved = useStore(selectors.sessionResolved);
+  const me = useCurrentUser();
+  const sessionReady = useSessionResolved();
   const { sub, loading: subLoading } = useMySubscription();
-  const isGuest = !getToken() || (sessionResolved && isAnonymousUser(me));
+  const isGuest = !getToken() || (sessionReady && isAnonymousUser(me));
   const needsPhone =
     !isDemoMode() &&
     !isGuest &&

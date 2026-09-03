@@ -6,7 +6,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useReferral } from "@/lib/api/referral";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
-import { GUEST_USER, useStore, selectors } from "@/lib/store";
+import { GUEST_USER } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { getReferralLink, REFERRAL_BONUS_PER_INVITE, REFERRAL_MAX_BONUS } from "@/lib/referral";
 import { formatRelativeTime } from "@/lib/mock";
 
@@ -23,7 +24,7 @@ const card: React.CSSProperties = {
 };
 
 function ReferralPage() {
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const isGuest = me.id === GUEST_USER.id && !isAuthenticated() && !isDemoMode();
 
   return (

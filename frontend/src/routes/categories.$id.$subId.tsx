@@ -27,7 +27,8 @@ import { usePostCategories } from "@/lib/hooks/useCategories";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
-import { useStore, selectors, GUEST_USER } from "@/lib/store";
+import { GUEST_USER } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { searchUsers } from "@/lib/api/social";
 import { fetchListings } from "@/lib/api/listings";
 import {
@@ -219,7 +220,7 @@ function SubcategoryRoomPage() {
   // Rooms exist on levels 2 and 3, so the id can sit anywhere in the subtree.
   const sub = c ? findDescendant(c.subcategories, subId) : null;
   const onlineSet = useOnlineSet();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
 
   const [tab, setTab] = useState<Tab>("chat");
   const [subSheetOpen, setSubSheetOpen] = useState(false);
@@ -477,7 +478,7 @@ function dedupeRoomMessages(messages: RoomMessage[]): RoomMessage[] {
 
 function ChatTab({ category, subId, subName, pool }: { category: Category; subId: string; subName: string; pool: User[] }) {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const navigate = useNavigate();
   const openPrivateChat = useCallback(async (partner: User) => {
     try {
@@ -1194,7 +1195,7 @@ function MembersTab({
   onlineSet: Set<string>;
 }) {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const navigate = useNavigate();
   const openPrivateChat = useCallback(async (partner: User) => {
     try {

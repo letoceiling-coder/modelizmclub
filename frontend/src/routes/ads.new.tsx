@@ -47,7 +47,8 @@ import {
 } from "lucide-react";
 import { fetchMe } from "@/lib/api/auth";
 import { sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
-import { selectors, setCurrentUser, useStore } from "@/lib/store";
+import { setCurrentUser } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { isPhoneVerified } from "@/lib/auth/verification";
 
 type NewAdSearch = { edit?: string; promo?: string };
@@ -276,7 +277,7 @@ function NewAdPage() {
   const { edit: editId, promo: promoFromUrl } = Route.useSearch();
   const listingPaymentEnabled = useFeatureFlag("listingPaymentEnabled");
   const flagsHydrated = useFeatureFlagsHydrated();
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const [verifiedPhone, setVerifiedPhone] = useState("");
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>({ ...initial, promocode: promoFromUrl?.toUpperCase() ?? "" });

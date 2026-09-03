@@ -9,12 +9,8 @@ import {
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
 import type { Dialog, Message } from "@/lib/mock";
-import {
-  useStore, actions, selectors,
-  setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage,
-  GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog,
-  openOrCreateDialogWith,
-} from "@/lib/store";
+import { useStore, actions, selectors, setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage, GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog, openOrCreateDialogWith } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import {
   fetchConversations, fetchConversation, fetchMessages, openConversation, sendMessage as apiSendMessage,
   uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
@@ -379,7 +375,7 @@ function MessageBubble({
   searchQuery?: string;
 }) {
   const { t } = useTranslation();
-  const meId = useStore((s) => s.currentUserId);
+  const meId = useCurrentUser().id;
   const isMe = msg.authorId === meId;
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
@@ -517,7 +513,7 @@ function MessengerPage() {
   const { t } = useTranslation();
   const { guardAction } = useGuestAccess();
   const dlgs = useStore(selectors.dialogsList);
-  const meId = useStore((s) => s.currentUserId);
+  const meId = useCurrentUser().id;
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
   const isPartnerBlocked = (dialogUserId: string) => blockedUserIds.includes(dialogUserId);

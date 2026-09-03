@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send, MoreHorizontal, ChevronDown, Paperclip, X } from "lucide-react";
 import type { Comment, User } from "@/lib/mock";
 import { userById, formatRelativeTime } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { reactToComment, deleteComment, type CommentSort } from "@/lib/api/feed";
 import { uploadMediaDeduped } from "@/lib/api/media";
@@ -330,7 +330,7 @@ function CommentItem({
 }) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const author = userById(comment.authorId);
   const [liked, setLiked] = useState(false);
   const likes = likeOverrides[comment.id] ?? comment.likes ?? 0;
@@ -563,7 +563,7 @@ export function CommentSection({
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const [draft, setDraft] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<CommentSort>("interesting");

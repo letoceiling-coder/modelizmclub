@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronDown, X, Newspaper, Star, Megaphone, Tag, FileText } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { uploadMediaDeduped, validatePostVideoFile, beginPresignedUpload, type PresignedUploadHandle } from "@/lib/api/media";
 import { createPost, publishPost, schedulePost } from "@/lib/api/feed";
@@ -90,7 +90,7 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
   const sel: ComposerSelection = selection ?? { kind: "photo", source: "profile" };
   const { t } = useTranslation();
   const categories = usePostCategories();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { requirePremium } = useGuestAccess();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");

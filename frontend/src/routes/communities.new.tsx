@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Users } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { isFullyVerified, isStaffUser } from "@/lib/auth/verification";
 import { useMySubscription } from "@/lib/subscription";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -36,7 +36,7 @@ const STEPS = 4;
 function CommunityNewPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { requirePremium, requireAccount, isGuest } = useGuestAccess();
   const { sub, loading: subLoading } = useMySubscription();
   const eligible = isStaffUser(me) || isFullyVerified(me) || sub?.is_active === true;

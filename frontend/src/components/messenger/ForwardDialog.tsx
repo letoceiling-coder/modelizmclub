@@ -7,6 +7,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import type { Message } from "@/lib/mock";
 import { userById } from "@/lib/mock";
 import { useStore, selectors, actions, upsertMessage } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 
 interface Props {
   message: Message | null;
@@ -15,7 +16,7 @@ interface Props {
 
 export function ForwardDialog({ message, onClose }: Props) {
   const dialogs = useStore(selectors.dialogsList);
-  const meId = useStore((s) => s.currentUserId);
+  const meId = useCurrentUser().id;
   const ref = useRef<HTMLDivElement>(null);
   const open = Boolean(message);
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMySubscription, type MySubscription } from "@/lib/api/payment";
 import { isAuthenticated } from "@/lib/auth/session";
-import { selectors, useStore } from "@/lib/store";
+import { useSessionResolved } from "@/lib/session";
 
 /** Demo-only constants (neeklo stand / local dev — no billing backend). */
 const DEMO_DAYS_LEFT = 287;
@@ -68,7 +68,7 @@ export function invalidateMySubscription(): void {
 
 /** React hook over getMySubscription(). `sub` is null when on the free tier. */
 export function useMySubscription(): { sub: MySubscription | null; loading: boolean } {
-  const sessionResolved = useStore(selectors.sessionResolved);
+  const sessionReady = useSessionResolved();
   const [sub, setSub] = useState<MySubscription | null>(() => cache ?? null);
   const [loading, setLoading] = useState(() => cache === undefined);
   const [tick, setTick] = useState(0);
@@ -82,7 +82,7 @@ export function useMySubscription(): { sub: MySubscription | null; loading: bool
   }, []);
 
   useEffect(() => {
-    if (!sessionResolved) return;
+    if (!sessionReady) return;
     let alive = true;
     void getMySubscription(tick > 0)
       .then((s) => {
@@ -94,7 +94,7 @@ export function useMySubscription(): { sub: MySubscription | null; loading: bool
     return () => {
       alive = false;
     };
-  }, [sessionResolved, tick]);
+  }, [sessionReady, tick]);
 
   return { sub, loading };
 }

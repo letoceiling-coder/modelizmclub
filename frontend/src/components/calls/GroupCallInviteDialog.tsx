@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Check, Video, Phone, Users } from "lucide-react";
 import { fetchFriends, searchUsers } from "@/lib/api/social";
 import type { User } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { groupCalls, useGroupCall, type GroupMedia } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
 
@@ -26,7 +26,7 @@ function ParticipantSkeleton() {
 
 export function GroupCallInviteDialog() {
   const picker = useGroupCall((s) => s.picker);
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const [mounted, setMounted] = useState(false);
   const [friends, setFriends] = useState<User[]>([]);
   const [all, setAll] = useState<User[]>([]);

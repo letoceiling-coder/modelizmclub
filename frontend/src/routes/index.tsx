@@ -15,6 +15,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
+import { useCurrentUser, useSessionResolved } from "@/lib/session";
 import { fetchPopularListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
 import { toast } from "@/lib/toast";
 import { fetchLandingStats, formatLandingStat, getCachedLandingStats } from "@/lib/api/landing";
@@ -91,12 +92,12 @@ function LandingPage() {
 function TopNav() {
   const { t } = useTranslation();
   const enter = useEnter();
-  const me = useStore(selectors.currentUser);
-  const sessionResolved = useStore(selectors.sessionResolved);
+  const me = useCurrentUser();
+  const sessionReady = useSessionResolved();
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const loggedIn = sessionResolved && me.id !== GUEST_USER.id;
+  const loggedIn = sessionReady && me.id !== GUEST_USER.id;
   const navLinks = useMemo(
     () =>
       (

@@ -16,7 +16,7 @@ import {
   type Channel, type ChannelKind,
 } from "@/lib/channels";
 
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 
 import { toast } from "@/lib/toast";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -225,7 +225,7 @@ function ChannelsPage() {
 
   const { channels: all, loading, reload } = useChannels(taxonomyId);
 
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
 
   const navigate = useNavigate();
 

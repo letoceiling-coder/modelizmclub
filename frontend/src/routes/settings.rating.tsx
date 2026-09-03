@@ -6,7 +6,7 @@ import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { mockMyRating, mockMyReviews } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchUserRating, fetchUserReviews } from "@/lib/api/rating";
 
@@ -40,7 +40,7 @@ interface ReviewRow {
 
 function RatingSection() {
   const { t } = useTranslation();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const demo = isDemoMode();
   const [rating, setRating] = useState(demo ? mockMyRating : { average: 0, count: 0 });
   const [reviews, setReviews] = useState<ReviewRow[]>(demo ? mockMyReviews : []);

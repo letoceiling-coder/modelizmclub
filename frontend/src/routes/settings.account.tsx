@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
-import { useStore, selectors, setCurrentUser } from "@/lib/store";
+import { setCurrentUser } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
 import { requestEmailChange, resendVerificationEmail, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
@@ -37,7 +38,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function AccountSection() {
   const { t } = useTranslation();
   const { redirect: afterVerify } = Route.useSearch();
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const [loading, setLoading] = useState(!isDemoMode());
   const [accountEmail, setAccountEmail] = useState("");
   const [newEmail, setNewEmail] = useState("");

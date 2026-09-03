@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { User, Post, Ad } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import {
   fetchPublicProfile, fetchFriends, sendFriendRequest, removeFriend, followUser, unfollowUser,
   type PublicProfile,
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/user/$id")({
 function UserPage() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);

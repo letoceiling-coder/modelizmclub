@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Search } from "lucide-react";
 import type { User } from "@/lib/mock";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { searchUsers } from "@/lib/api/social";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOnlineSet } from "@/lib/realtime/presence";
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function CreateChatDialog({ open, onClose, onPick }: Props) {
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const onlineSet = useOnlineSet();
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);

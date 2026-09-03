@@ -21,7 +21,7 @@ import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { appendToCommentThread, removeFromCommentThread } from "@/lib/comment-thread";
 import { recordView } from "@/lib/view-history";
 import { isWatchLater, toggleWatchLater, notifyWatchLaterChanged } from "@/lib/watch-later";
-import { useStore, selectors } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
 const actionCls =
@@ -110,7 +110,7 @@ function WatchPageInner() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [showAllComments, setShowAllComments] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const currentUser = useStore(selectors.currentUser);
+  const currentUser = useCurrentUser();
   const { requireAccount, requirePremium } = useGuestAccess();
 
   useEffect(() => {

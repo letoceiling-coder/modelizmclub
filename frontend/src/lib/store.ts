@@ -16,15 +16,12 @@ import type {
   ID,
 } from "./mock";
 
-// Neutral placeholder used before the session is restored / when signed out.
-// Carries no mock identity so nothing fake ever reaches the UI.
-export const GUEST_USER: User = {
-  id: "guest",
-  name: "Гость",
-  city: "",
-  interests: "",
-  avatar: "",
-};
+import { GUEST_USER } from "@/lib/session/guest";
+import { getSessionUserId, setSessionUser } from "@/lib/session/cache";
+
+// The signed-in user lives in the ['session'] query (lib/session), not here.
+// GUEST_USER is re-exported so existing importers keep working.
+export { GUEST_USER };
 
 export type AdStatusKey =
   | "active"
@@ -83,12 +80,6 @@ export interface AppState {
   revealedPhones: Record<ID, string>;
   /** Partner user ids whose chat the current user deleted — used to clear stale history on reopen. */
   deletedChatPartnerIds: ID[];
-  currentUserId: ID;
-  /** False until the boot-time `restoreSession()` call resolves. While false, `currentUser`
-   *  is only the neutral GUEST_USER placeholder — UI that depends on real account flags
-   *  (e.g. email/phone verification) must treat this as "unknown yet", not "guest/unverified",
-   *  otherwise a hard refresh briefly flashes incorrect verified-status UI. */
-  sessionResolved: boolean;
 }
 
 const FAVORITES_KEY = "modelizm:favorites";
@@ -106,7 +97,7 @@ function readPersistedFavorites(): ID[] {
 
 // The store starts empty and is hydrated exclusively from the API
 // (session restore, feed/listing/chat mappers, friend hydration, …).
-// Only a neutral guest user is present so `currentUser` is always defined.
+// Only a neutral guest user is present so userById("guest") always resolves.
 export function createInitialState(): AppState {
   return {
     users: { [GUEST_USER.id]: GUEST_USER },
@@ -126,8 +117,6 @@ export function createInitialState(): AppState {
     pendingDialogMessages: {},
     revealedPhones: {},
     deletedChatPartnerIds: [],
-    currentUserId: GUEST_USER.id,
-    sessionResolved: false,
   };
 }
 
@@ -182,8 +171,7 @@ type Action =
   | { type: "SAVE_POST"; postId: ID; save: boolean }
   | { type: "ADD_COMMENT"; postId: ID; comment: Comment }
   | { type: "SET_DIALOG_META"; dialogId: ID; patch: Partial<DialogMeta> }
-  | { type: "SET_CURRENT_USER"; user: User }
-  | { type: "SET_SESSION_RESOLVED"; resolved: boolean }
+  | { type: "UPSERT_USER"; user: User }
   | { type: "SET_DIALOGS"; dialogs: Dialog[] }
   | { type: "RESTORE_DIALOG"; dialog: Dialog }
   | { type: "MARK_DIALOG_DELETED"; dialogId: ID; partnerId: ID }
@@ -228,7 +216,7 @@ function reducer(s: AppState, a: Action): AppState {
             : a.message.file
               ? a.message.file.name
               : "";
-      const shouldUnread = Boolean(a.incrementUnread) && a.message.authorId !== s.currentUserId;
+      const shouldUnread = Boolean(a.incrementUnread) && a.message.authorId !== getSessionUserId();
       const unread = shouldUnread ? (d.unread ?? 0) + 1 : d.unread ?? 0;
       const nextDialog: Dialog = {
         ...d,
@@ -398,17 +386,9 @@ function reducer(s: AppState, a: Action): AppState {
       const prev = s.dialogMeta[a.dialogId] ?? { archived: false, muted: false, blocked: false };
       return { ...s, dialogMeta: { ...s.dialogMeta, [a.dialogId]: { ...prev, ...a.patch } } };
     }
-    case "SET_CURRENT_USER": {
+    case "UPSERT_USER": {
       const existing = s.users[a.user.id];
-      return {
-        ...s,
-        users: { ...s.users, [a.user.id]: { ...existing, ...a.user } },
-        currentUserId: a.user.id,
-      };
-    }
-    case "SET_SESSION_RESOLVED": {
-      if (s.sessionResolved === a.resolved) return s;
-      return { ...s, sessionResolved: a.resolved };
+      return { ...s, users: { ...s.users, [a.user.id]: { ...existing, ...a.user } } };
     }
     case "SET_DIALOGS": {
       const dialogs: Record<ID, Dialog> = {};
@@ -504,7 +484,7 @@ function reducer(s: AppState, a: Action): AppState {
     }
     case "BLOCK_USER": {
       if (s.blockedUserIds.includes(a.userId)) return s;
-      const meId = s.currentUserId;
+      const meId = getSessionUserId();
       return {
         ...s,
         blockedUserIds: [...s.blockedUserIds, a.userId],
@@ -616,17 +596,17 @@ export const actions = {
   queuePendingMessage: (dialogId: ID, text: string) => dispatch({ type: "QUEUE_PENDING_MESSAGE", dialogId, text }),
   clearPendingMessage: (dialogId: ID) => dispatch({ type: "CLEAR_PENDING_MESSAGE", dialogId }),
   setRevealedPhone: (adId: ID, phone: string) => dispatch({ type: "SET_REVEALED_PHONE", adId, phone }),
-  setCurrentUser: (user: User) => dispatch({ type: "SET_CURRENT_USER", user }),
 };
 
-// Hydrate the current session user into the store (used after login / on boot).
+/**
+ * Patch the signed-in user after login / a profile edit. The user itself is
+ * written to the ['session'] query — the single source of truth read by
+ * useSession(); the store only keeps a copy in `users` so userById() resolves
+ * the author of your own messages and comments.
+ */
 export function setCurrentUser(user: User): void {
-  dispatch({ type: "SET_CURRENT_USER", user });
-}
-
-/** Marks whether the boot-time session probe has finished (see AppState.sessionResolved). */
-export function setSessionResolved(resolved: boolean): void {
-  dispatch({ type: "SET_SESSION_RESOLVED", resolved });
+  dispatch({ type: "UPSERT_USER", user });
+  setSessionUser(user);
 }
 
 export function setDialogs(dialogs: Dialog[]): void {
@@ -708,7 +688,7 @@ export function mergeDialogMessages(dialogId: ID, incoming: Message[]): void {
 export function markOwnMessagesRead(dialogId: ID): void {
   const d = state.dialogs[dialogId];
   if (!d) return;
-  const meId = state.currentUserId;
+  const meId = getSessionUserId();
   const messages = d.messages.map((m) =>
     m.authorId === meId && m.status !== "read" ? { ...m, status: "read" as const } : m,
   );
@@ -720,7 +700,7 @@ export function markOwnMessagesRead(dialogId: ID): void {
 export function markOwnMessagesDelivered(dialogId: ID): void {
   const d = state.dialogs[dialogId];
   if (!d) return;
-  const meId = state.currentUserId;
+  const meId = getSessionUserId();
   const messages = d.messages.map((m) =>
     m.authorId === meId && m.status === "sent" ? { ...m, status: "delivered" as const } : m,
   );
@@ -747,7 +727,7 @@ function hydrateDialogForIncoming(
   message: Message,
   incrementUnread: boolean,
 ): void {
-  const meId = state.currentUserId;
+  const meId = getSessionUserId();
   if (!meId || meId === GUEST_USER.id) return;
 
   const pending = pendingDialogHydrations.get(dialogId);
@@ -852,8 +832,6 @@ export function openOrCreateDialogWith(userId: ID): ID {
 
 
 export const selectors = {
-  currentUser: (s: AppState): User => s.users[s.currentUserId] ?? GUEST_USER,
-  sessionResolved: (s: AppState): boolean => s.sessionResolved,
   dialogsList: (s: AppState): Dialog[] => Object.values(s.dialogs),
   friendsOf: (userId: ID) => (s: AppState): ID[] =>
     s.friendships

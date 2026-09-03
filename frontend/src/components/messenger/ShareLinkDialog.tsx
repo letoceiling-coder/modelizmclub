@@ -6,15 +6,8 @@ import { getToken } from "@/lib/api/client";
 import { fetchConversations, openConversation, sendMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { userById } from "@/lib/mock";
-import {
-  actions,
-  getState,
-  openOrCreateDialogWith,
-  selectors,
-  setDialogs,
-  upsertMessage,
-  useStore,
-} from "@/lib/store";
+import { actions, getState, openOrCreateDialogWith, selectors, setDialogs, upsertMessage, useStore } from "@/lib/store";
+import { useCurrentUser } from "@/lib/session";
 import { toast } from "@/lib/toast";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 
@@ -39,7 +32,7 @@ function shareMessage(payload: ShareLinkPayload): string {
 }
 
 export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
-  const me = useStore(selectors.currentUser);
+  const me = useCurrentUser();
   const { requirePremium } = useGuestAccess();
   const dialogs = useStore(selectors.dialogsList);
   const ref = useRef<HTMLDivElement>(null);
