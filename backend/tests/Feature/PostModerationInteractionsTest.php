@@ -90,10 +90,10 @@ class PostModerationInteractionsTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['post']);
 
+        // PostPolicy::comment — published posts only, answered before the service runs.
         $this->actingAs($author, 'sanctum')
             ->postJson("/api/v1/posts/{$uuid}/comments", ['body' => 'Hello'])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['post']);
+            ->assertForbidden();
     }
 
     public function test_author_can_view_and_delete_pending_post(): void

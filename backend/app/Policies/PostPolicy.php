@@ -58,6 +58,17 @@ class PostPolicy
         return $user->isModerator();
     }
 
+    /** Reactions and comments — any signed-in account, published posts only. */
+    public function react(User $user, Post $post): bool
+    {
+        return $post->status === ContentStatus::Published;
+    }
+
+    public function comment(User $user, Post $post): bool
+    {
+        return $post->status === ContentStatus::Published;
+    }
+
     public function publish(User $user, Post $post): bool
     {
         return $post->user_id === $user->id

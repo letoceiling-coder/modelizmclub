@@ -3,6 +3,7 @@
 namespace Modules\Feed\Http\Resources;
 
 use App\Models\Post;
+use App\Http\Resources\Concerns\HasCanFlags;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\User\Http\Resources\UserCompactResource;
@@ -10,6 +11,8 @@ use Modules\User\Http\Resources\UserCompactResource;
 /** @mixin Post */
 class PostResource extends JsonResource
 {
+    use HasCanFlags;
+
     public function toArray(Request $request): array
     {
         $user = $request->user();
@@ -84,6 +87,7 @@ class PostResource extends JsonResource
                 'bookmarked' => $this->viewer_bookmarked,
                 'reposted' => $this->viewer_reposted,
             ],
+            'can' => $this->canFlags($user, ['edit' => 'update', 'delete', 'react', 'comment']),
             'permissions' => [
                 'can_edit' => $user ? $user->can('update', $this->resource) : false,
                 'can_publish' => $user ? $user->can('publish', $this->resource) : false,

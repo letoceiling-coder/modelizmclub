@@ -97,6 +97,7 @@ class AdminSafeDealController extends Controller
     public function release(Request $request, string $uuid): JsonResponse
     {
         $deal = SafeDeal::query()->where('uuid', $uuid)->firstOrFail();
+        $this->authorize('resolve', $deal);
         $deal = $this->deals->confirm($request->user(), $deal);
 
         return response()->json(['data' => $this->deals->toArray($deal), 'message' => 'Средства переведены продавцу.']);
@@ -105,6 +106,7 @@ class AdminSafeDealController extends Controller
     public function refund(Request $request, string $uuid): JsonResponse
     {
         $deal = SafeDeal::query()->where('uuid', $uuid)->firstOrFail();
+        $this->authorize('resolve', $deal);
         $deal = $this->deals->cancel($request->user(), $deal);
 
         return response()->json(['data' => $this->deals->toArray($deal), 'message' => 'Средства возвращены покупателю.']);

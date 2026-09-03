@@ -3,6 +3,7 @@
 namespace Modules\Feed\Http\Resources;
 
 use App\Models\Comment;
+use App\Http\Resources\Concerns\HasCanFlags;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\User\Http\Resources\UserCompactResource;
@@ -10,10 +11,13 @@ use Modules\User\Http\Resources\UserCompactResource;
 /** @mixin Comment */
 class CommentResource extends JsonResource
 {
+    use HasCanFlags;
+
     public function toArray(Request $request): array
     {
         return [
             'uuid' => $this->uuid,
+            'can' => $this->canFlags($request->user(), ['edit' => 'update', 'delete', 'react']),
             'body' => $this->body,
             'depth' => $this->depth,
             'author' => new UserCompactResource($this->whenLoaded('author')),

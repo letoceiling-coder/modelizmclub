@@ -11,7 +11,9 @@ class DestroyCommentController extends Controller
 {
     public function __invoke(string $uuid, Request $request, CommentService $comments): JsonResponse
     {
-        $comments->delete($comments->findByUuid($uuid), $request->user());
+        $comment = $comments->findByUuid($uuid);
+        $this->authorize('delete', $comment);
+        $comments->delete($comment, $request->user());
 
         return response()->json(['message' => 'Комментарий удалён.']);
     }

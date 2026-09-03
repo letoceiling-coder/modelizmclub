@@ -18,6 +18,7 @@ class PromoteListingController extends Controller
         ]);
 
         $listing = Listing::query()->where('uuid', $uuid)->firstOrFail();
+        $this->authorize('promote', $listing);
 
         $result = $boost->createPromoteCheckout(
             $request->user(),

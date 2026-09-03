@@ -12,7 +12,9 @@ class CommentReactionController extends Controller
     public function store(Request $request, string $uuid, CommentService $comments): JsonResponse
     {
         $type = $request->string('type')->toString() ?: 'like';
-        $comment = $comments->react($comments->findByUuid($uuid), $request->user(), $type);
+        $comment = $comments->findByUuid($uuid);
+        $this->authorize('react', $comment);
+        $comment = $comments->react($comment, $request->user(), $type);
 
         return response()->json([
             'data' => [
@@ -25,7 +27,9 @@ class CommentReactionController extends Controller
 
     public function destroy(Request $request, string $uuid, CommentService $comments): JsonResponse
     {
-        $comment = $comments->removeReaction($comments->findByUuid($uuid), $request->user());
+        $comment = $comments->findByUuid($uuid);
+        $this->authorize('react', $comment);
+        $comment = $comments->removeReaction($comment, $request->user());
 
         return response()->json([
             'data' => [

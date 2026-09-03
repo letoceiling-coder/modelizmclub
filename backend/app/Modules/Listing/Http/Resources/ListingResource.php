@@ -3,6 +3,7 @@
 namespace Modules\Listing\Http\Resources;
 
 use App\Models\Listing;
+use App\Http\Resources\Concerns\HasCanFlags;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Listing\Services\ListingBoostService;
@@ -11,6 +12,8 @@ use Modules\User\Http\Resources\UserCompactResource;
 /** @mixin Listing */
 class ListingResource extends JsonResource
 {
+    use HasCanFlags;
+
     public function toArray(Request $request): array
     {
         $boost = app(ListingBoostService::class);
@@ -18,6 +21,7 @@ class ListingResource extends JsonResource
 
         return [
             'uuid' => $this->uuid,
+            'can' => $this->canFlags($request->user(), ['edit' => 'update', 'delete', 'restore', 'promote']),
             'title' => $this->title,
             'slug' => $this->slug,
             'description' => $this->description,

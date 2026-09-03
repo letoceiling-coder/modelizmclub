@@ -17,6 +17,7 @@ class ShowSafeDealController extends Controller
     {
         $deal = SafeDeal::query()->with(['listing', 'dispute', 'shipment', 'reviews'])->where('uuid', $uuid)->firstOrFail();
         $user = $request->user();
+        $this->authorize('view', $deal);
 
         if (! $deal->involves($user) && ! $user->isModerator()) {
             abort(403);
@@ -40,6 +41,11 @@ class ShowSafeDealController extends Controller
         if ($deal->dispute) {
             $payload['dispute'] = [
                 'uuid' => $deal->dispute->uuid,
+                'can' => [
+                    'view' => $user->can('view', $deal->dispute),
+                    'addEvidence' => $user->can('addEvidence', $deal->dispute),
+                    'resolve' => $user->can('resolve', $deal->dispute),
+                ],
                 'status' => $deal->dispute->status->value,
                 'reason' => $deal->dispute->reason,
                 'evidence' => $deal->dispute->evidence ?? [],
