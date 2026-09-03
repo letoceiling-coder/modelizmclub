@@ -3,11 +3,12 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X, ChevronUp, ChevronDown, CalendarDays } from "lucide-react";
 import type { Message } from "@/lib/mock";
-import { formatRelativeTime, userById } from "@/lib/mock";
+import { userById } from "@/lib/mock";
 import { fetchMessagesForSearch } from "@/lib/api/chat";
 import { messagePreview, searchMessages } from "@/lib/message-search";
 import { HighlightedText } from "@/components/messenger/HighlightedText";
 import { isDemoMode } from "@/lib/demo-mode";
+import { formatDate } from "@/lib/format/date";
 
 interface Props {
   open: boolean;
@@ -338,7 +339,7 @@ export function ChatMessageSearch({
                               {m.authorId === meId ? "Вы" : author.name}
                             </span>
                             <span className="shrink-0 font-mono text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                              {formatRelativeTime(m.time)}
+                              {formatDate(m.time, "relative")}
                             </span>
                           </div>
                           <div className="line-clamp-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>

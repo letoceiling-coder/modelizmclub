@@ -57,6 +57,7 @@ import { firstFieldError } from "@/lib/api/validationErrors";
 
 import i18n from "@/lib/i18n";
 import { ProfilePageSkeleton } from "@/components/boot/PageSkeletons";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: i18n.t("pages.profile.metaTitle") }] }),
@@ -842,7 +843,7 @@ function ProfileReviewsTab({ numericUserId, isOwn }: { numericUserId?: number; i
             <p className="text-[14px] leading-[1.5]" style={{ color: "var(--foreground-70)" }}>{review.text}</p>
           )}
           <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            {new Date(review.date).toLocaleDateString("ru-RU")}
+            {formatDate(review.date, "date")}
           </div>
 
           {review.reply && (

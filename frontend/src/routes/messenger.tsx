@@ -7,7 +7,7 @@ import {
   Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { userById, formatRelativeTime, makeMockWaveform } from "@/lib/mock";
+import { userById, makeMockWaveform } from "@/lib/mock";
 import type { Dialog, Message } from "@/lib/mock";
 import {
   useStore, actions, selectors,
@@ -66,6 +66,7 @@ import { ChatAvatar } from "@/components/messenger/ChatAvatar";
 
 import i18n from "@/lib/i18n";
 import { MessengerPageSkeleton } from "@/components/boot/PageSkeletons";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
@@ -118,7 +119,6 @@ function dialogIdentity(d: Dialog): { name: string; avatar?: string; communitySl
   const u = userById(d.userId);
   return { name: u.name, avatar: u.avatar };
 }
-
 
 function DialogListSkeleton() {
   return (
@@ -561,7 +561,6 @@ function MessengerPage() {
   }, [scrollToBottom]);
 
   const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
-
 
   // Respond to ?chat= search-param changes (e.g. "Написать" from another page).
   // Value is normally a conversation uuid; legacy links may pass a user uuid.
@@ -1253,8 +1252,6 @@ function MessengerPage() {
             )}
           </div>
 
-
-
           <div className="min-h-0 flex-1 overflow-y-auto">
             {listTab === "calls" ? (
               <CallsList
@@ -1270,7 +1267,6 @@ function MessengerPage() {
               <ChannelsList query={query} communityDialogs={communityDialogs} onSelect={handleSelect} activeId={activeId} />
             ) : loading ? (
               <DialogListSkeleton />
-
 
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
@@ -1444,7 +1440,6 @@ function MessengerPage() {
                     />
                   )}
                 </div>
-
 
               </header>
               </div>

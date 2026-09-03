@@ -8,6 +8,7 @@ import {
   completeAdminPromoPool,
   type AdminPromoPool,
 } from "@/lib/api/admin";
+import { formatDate } from "@/lib/format/date";
 
 type CardStyle = React.CSSProperties;
 
@@ -198,7 +199,7 @@ export function PromoPoolsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
                     {p.current_activations} / {p.max_activations} занято
                   </td>
                   <td className="py-2 pr-3" style={{ color: "var(--foreground-50)" }}>
-                    {p.expires_at ? new Date(p.expires_at).toLocaleDateString("ru-RU") : "—"}
+                    {p.expires_at ? formatDate(p.expires_at, "date") : "—"}
                   </td>
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">

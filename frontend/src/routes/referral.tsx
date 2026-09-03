@@ -8,7 +8,7 @@ import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER, useStore, selectors } from "@/lib/store";
 import { getReferralLink, REFERRAL_BONUS_PER_INVITE, REFERRAL_MAX_BONUS } from "@/lib/referral";
-import { formatRelativeTime } from "@/lib/mock";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/referral")({
   head: () => ({ meta: [{ title: "Пригласи друга — МоДелизМ Клуб" }] }),
@@ -193,7 +193,7 @@ function Dashboard({ meId }: { meId: string }) {
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{inv.user.displayName}</div>
                   <div style={{ fontSize: 12, color: "var(--foreground-50)" }}>
-                    {inv.joinedAt ? formatRelativeTime(inv.joinedAt) : ""}
+                    {inv.joinedAt ? formatDate(inv.joinedAt, "relative") : ""}
                   </div>
                 </div>
                 <span

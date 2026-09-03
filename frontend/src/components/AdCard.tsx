@@ -15,6 +15,7 @@ import type { Ad } from "@/lib/mock";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia } from "@/lib/media/variants";
+import { formatDate } from "@/lib/format/date";
 
 const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: string }> = {
   "Продаю":  { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
@@ -30,7 +31,7 @@ function relativeTime(input?: string): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
   if (diff < 172800) return "Вчера";
   if (diff < 604800) return `${Math.floor(diff / 86400)} дн назад`;
-  return d.toLocaleDateString("ru-RU");
+  return formatDate(d, "date");
 }
 
 const DELIVERY_ICON: Record<string, { Icon: typeof Package; label: string }> = {

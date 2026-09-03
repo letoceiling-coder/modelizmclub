@@ -25,6 +25,7 @@ import {
   type SafeDealRole,
 } from "@/lib/api/safe-deals";
 import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
+import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/deals/$uuid")({
   validateSearch: (search: Record<string, unknown>): { role?: SafeDealRole } => ({
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/deals/$uuid")({
 });
 
 function fmt(date: string | null): string {
-  return date ? new Date(date).toLocaleString("ru-RU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  return date ? formatDate(date, "absolute") : "—";
 }
 
 function reviewDismissedKey(uuid: string): string {
