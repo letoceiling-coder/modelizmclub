@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+###############################################################################
+#                                                                             #
+#   DANGEROUS — DELETES USER-GENERATED CONTENT FROM THE PRODUCTION DATABASE   #
+#                                                                             #
+#   Disabled on purpose. It sat in deploy/scripts/ unreferenced by any doc    #
+#   or script, one tab-completion away from the deploy commands, with nothing #
+#   between it and the live database.                                         #
+#                                                                             #
+#   Before it can run:                                                        #
+#     1. take a dump you have actually verified:                              #
+#          deploy/scripts/backup-db.sh                                        #
+#          pg_restore -l /root/backups/auto/daily/<newest>.dump | head        #
+#     2. rename it back to purge-prod-database.sh                             #
+#     3. run it with the confirmation variable set:                           #
+#          CONFIRM=yes-i-mean-it bash purge-prod-database.sh                  #
+#                                                                             #
+#   There is no undo. The restore path is deploy/README.md.                   #
+#                                                                             #
+###############################################################################
+set -euo pipefail
+
+if [[ "${CONFIRM:-}" != "yes-i-mean-it" ]]; then
+  cat >&2 <<'REFUSED'
+REFUSED: this script deletes production content and is disabled.
+
+It only runs with an explicit confirmation:
+
+  CONFIRM=yes-i-mean-it bash purge-prod-database.sh
+
+Take and verify a backup first (deploy/scripts/backup-db.sh). There is no undo.
+REFUSED
+  exit 1
+fi
+
+echo "CONFIRM accepted — purging production content in 5 seconds, Ctrl-C to abort." >&2
+sleep 5
+
+# Purge user-generated content on production, keeping only specified admin accounts.
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-/var/www/modelizmclub}"
+KEEP1="${1:-dmikhaylov79@yandex.ru}"
+KEEP2="${2:-dsc-23@yandex.ru}"
+
+cd "${APP_DIR}/backend"
+
+echo "==> Purging content (keepers: ${KEEP1}, ${KEEP2})"
+php artisan db:purge-content \
+  --keep="${KEEP1}" \
+  --keep="${KEEP2}" \
+  --force
+
+php artisan cache:clear
+php artisan config:cache
+
+echo "==> Purge complete: $(date -Iseconds)"
