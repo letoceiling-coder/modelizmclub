@@ -5,7 +5,7 @@ import { ArrowLeft, Users, Check, BadgeCheck, Heart, Eye, Clock, ShieldCheck, Al
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useChannel, useChannelPosts, setChannelSubscription, createChannelPost, deleteChannelPost, isChannelOwner, isChannelManager,
-  formatCount, formatDate, setChannelPostLiked, recordChannelPostView, setChannelPostPinned,
+  formatCount, formatChannelDate, setChannelPostLiked, recordChannelPostView, setChannelPostPinned,
   type Channel, type ChannelPost, type PostStatus, type PostKind, type ChannelKind,
 } from "@/lib/channels";
 import { toast } from "@/lib/toast";
@@ -596,7 +596,7 @@ function PostItem({
             )}
           </div>
           <div className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            {formatDate(post.createdAt)}
+            {formatChannelDate(post.createdAt)}
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
