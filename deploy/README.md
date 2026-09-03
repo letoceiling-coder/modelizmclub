@@ -129,3 +129,129 @@ bash /var/www/modelizmclub-neeklo/deploy/scripts/deploy-neeklo-frontend.sh
 
 Учётные данные БД: `/root/modelizmclub-neeklo-db.env`
 
+
+---
+
+# Резервные копии базы и восстановление
+
+## Что и куда сохраняется
+
+`deploy/scripts/backup-db.sh` снимает дамп в формате `pg_dump -Fc`. Имя файла —
+момент снятия плюс короткий хеш задеплоенного коммита, чтобы дамп всегда можно
+было сопоставить с кодом, который сформировал схему:
+`20260903T040000-4dd1901.dump`.
+
+| Что | Где на сервере | Сколько хранится |
+|---|---|---|
+| Ежедневный | `/root/backups/auto/daily/` | 14 копий |
+| Еженедельный (понедельник) | `/root/backups/auto/weekly/` | 8 копий |
+| Перед деплоем | `/root/backups/auto/pre-deploy/` | 7 дней |
+| Перед восстановлением | `/root/backups/auto/pre-restore/` | не удаляется автоматически |
+| Все они же | S3, префикс `backups/` | 60 дней (lifecycle) |
+| Лог запусков | `/root/backups/auto/backup.log` | — |
+| Ошибки | `/root/backups/auto/FAILURES.log` | — |
+
+Копия на той же машине бэкапом не считается, поэтому каждый дамп уходит в S3.
+Если выгрузка не удалась, скрипт завершается ненулевым кодом и ротация **не
+выполняется** — последние удачные копии не удаляются из-за сбойного запуска.
+
+## Установка (один раз, на сервере)
+
+```bash
+cp /var/www/modelizmclub/deploy/systemd/backup-db.service          /etc/systemd/system/
+cp /var/www/modelizmclub/deploy/systemd/backup-db.timer            /etc/systemd/system/
+cp /var/www/modelizmclub/deploy/systemd/backup-db-failure@.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now backup-db.timer
+systemctl list-timers backup-db.timer --no-pager
+```
+
+Политику удаления в S3 старше 60 дней применить отдельно — см.
+`deploy/s3/README.md`.
+
+## Проверить, что бэкапы живы
+
+```bash
+systemctl list-timers backup-db.timer --no-pager   # когда следующий запуск
+tail -20 /root/backups/auto/backup.log             # чем закончился прошлый
+ls -lht /root/backups/auto/daily | head            # свежие файлы на месте
+cat /root/backups/auto/FAILURES.log 2>/dev/null    # пусто = сбоев не было
+```
+
+Разовый прогон вручную: `systemctl start backup-db.service`.
+
+## Восстановление — по шагам
+
+**Шаг 1. Выбрать дамп.**
+
+```bash
+ls -lht /root/backups/auto/daily /root/backups/auto/weekly /root/backups/auto/pre-deploy
+```
+
+Если локальных копий нет, забрать из S3 (`backups/daily/…`) — например через
+консоль провайдера или `aws s3 cp` с рабочей машины.
+
+**Шаг 2. Проверить, что дамп читается,** прежде чем что-либо останавливать:
+
+```bash
+pg_restore -l /root/backups/auto/daily/20260903T040000-4dd1901.dump | head
+```
+
+**Шаг 3. Закрыть приложение,** чтобы во время восстановления не было записи:
+
+```bash
+cd /var/www/modelizmclub/backend && php artisan down
+systemctl stop modelizmclub-worker.service
+```
+
+**Шаг 4. Восстановить.** Скрипт сам снимет дамп текущего состояния в
+`pre-restore/` и спросит подтверждение — нужно ввести имя базы:
+
+```bash
+/var/www/modelizmclub/deploy/scripts/restore-db.sh \
+  /root/backups/auto/daily/20260903T040000-4dd1901.dump
+```
+
+**Шаг 5. Поднять обратно:**
+
+```bash
+cd /var/www/modelizmclub/backend
+php artisan migrate --force      # если дамп старее текущего кода
+php artisan config:cache && php artisan route:cache
+systemctl start modelizmclub-worker.service
+php artisan up
+```
+
+**Шаг 6. Убедиться, что работает:**
+
+```bash
+bash /var/www/modelizmclub/deploy/scripts/smoke-new-routes.sh
+curl -s -o /dev/null -w '%{http_code}\n' https://modelizmclub.ru/
+```
+
+## Если восстановление пошло не так
+
+`restore-db.sh` перед перезаписью всегда кладёт дамп текущего состояния в
+`/root/backups/auto/pre-restore/` и печатает его путь. Вернуться к тому, что
+было до попытки:
+
+```bash
+/var/www/modelizmclub/deploy/scripts/restore-db.sh \
+  /root/backups/auto/pre-restore/<файл>.dump --yes
+```
+
+## Восстановление в отдельную базу (без риска для прода)
+
+Чтобы проверить дамп или достать из него данные, не трогая боевую базу:
+
+```bash
+sudo -u postgres createdb -O modelizmclub modelizmclub_check
+/var/www/modelizmclub/deploy/scripts/restore-db.sh <дамп> --database modelizmclub_check --yes
+# после проверки
+sudo -u postgres dropdb modelizmclub_check
+```
+
+> **Важно:** `dev.modelizmclub.ru` и `modelizmclub.ru` используют один каталог
+> `/var/www/modelizmclub` и **одну базу** `modelizmclub`. «Проверить на dev» не
+> означает «безопасно» — для любых экспериментов заводите отдельную базу, как
+> показано выше.

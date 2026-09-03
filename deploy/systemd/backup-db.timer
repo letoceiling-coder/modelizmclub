@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the ModelizmClub database backup every night at 04:00
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+# A missed run (box was off) fires as soon as it is back, rather than being skipped.
+Persistent=true
+# Keeps the whole fleet from hitting S3 on the same second.
+RandomizedDelaySec=300
+Unit=backup-db.service
+
+[Install]
+WantedBy=timers.target

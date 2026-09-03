@@ -1,0 +1,16 @@
+[Unit]
+Description=ModelizmClub PostgreSQL backup (daily, rotated, copied to S3)
+Documentation=file:///var/www/modelizmclub/deploy/README.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+OnFailure=backup-db-failure@%n.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/var/www/modelizmclub
+ExecStart=/var/www/modelizmclub/deploy/scripts/backup-db.sh
+# A dump of a 25 MB database takes seconds; anything past 30 min is stuck.
+TimeoutStartSec=1800
+Nice=10
+IOSchedulingClass=idle
