@@ -5,6 +5,7 @@ namespace Modules\Chat\Http\Resources;
 use App\Enums\ConversationType;
 use App\Http\Resources\Concerns\HasCanFlags;
 use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\PostCategory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -37,6 +38,10 @@ class ConversationResource extends JsonResource
             $title = $other?->user?->profile?->display_name ?? $other?->user?->name ?? 'Диалог';
         }
 
+        $lastReadMessageId = $myParticipant?->last_read_message_id !== null
+            ? (int) $myParticipant->last_read_message_id
+            : null;
+
         return [
             'uuid' => $this->uuid,
             'can' => $this->canFlags($request->user(), ['view', 'send', 'delete', 'pin']),
@@ -58,6 +63,12 @@ class ConversationResource extends JsonResource
                     : new MessageResource($this->pinnedMessage);
             }),
             'last_message_at' => $this->last_message_at?->toIso8601String(),
+            // Курсор «докуда дочитано»: id — для сервера, uuid — для клиента,
+            // который открывает диалог на первом непрочитанном сообщении.
+            'last_read_message_id' => $lastReadMessageId,
+            'last_read_message_uuid' => $lastReadMessageId === null
+                ? null
+                : $this->resolveLastReadMessageUuid($lastReadMessageId),
             'participants' => $participants
                 ? $this->participants->map(fn ($p) => [
                     'user' => new UserCompactResource($p->user),
@@ -91,6 +102,23 @@ class ConversationResource extends JsonResource
                 ] : null,
             ),
         ];
+    }
+
+    /**
+     * uuid последнего прочитанного сообщения. В списке диалогов приходит
+     * подзапросом (my_last_read_message_uuid), в одиночном ресурсе — точечным
+     * запросом: одна строка на диалог, не на сообщение.
+     */
+    private function resolveLastReadMessageUuid(int $messageId): ?string
+    {
+        $preloaded = $this->resource->getAttribute('my_last_read_message_uuid');
+        if (is_string($preloaded) && $preloaded !== '') {
+            return $preloaded;
+        }
+
+        $uuid = Message::query()->whereKey($messageId)->value('uuid');
+
+        return is_string($uuid) ? $uuid : null;
     }
 
     /** Top-level ancestor of the room's category — the /categories/{root}/{sub} URL needs it. */

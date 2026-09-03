@@ -75,6 +75,13 @@ class ChatService
                     OR messages.id > cp.last_read_message_id
                 )
             ) as unread_count', [$user->id, $user->id])
+            // Курсор прочитанного отдаём в uuid'ах — фронт сравнивает сообщения
+            // по uuid, а подзапрос избавляет список от N+1 на каждый диалог.
+            ->selectRaw('(
+                SELECT messages.uuid
+                FROM messages
+                WHERE messages.id = cp.last_read_message_id
+            ) as my_last_read_message_uuid')
             ->with([
                 'participants.user.profile.avatar',
                 'listing.mediaItems.media',
@@ -230,7 +237,12 @@ class ChatService
      *     by_parent: array<string, array{members: int, online: int}>
      * }
      */
-    public function postCategoryRoomStats(?int $parentCategoryId = null): array
+    /**
+     * Счётчики комнат направлений. members/online — публичные, а unread_count и
+     * last_message_at имеют смысл только для участника: гость и просто зритель
+     * получают null, чтобы на карточке не появилось чужое «непрочитано».
+     */
+    public function postCategoryRoomStats(?int $parentCategoryId = null, ?User $user = null): array
     {
         $query = Conversation::query()
             ->where('type', ConversationType::Room)
@@ -258,14 +270,46 @@ class ChatService
                 ->filter(fn (ConversationParticipant $p) => $this->isRecentlyActive($p->user))
                 ->count();
 
-            $bySubcategory[$subId] = ['members' => $members, 'online' => $online];
+            $myParticipant = $user
+                ? $conversation->participants->first(
+                    fn (ConversationParticipant $p) => $p->user_id === $user->id,
+                )
+                : null;
+
+            $unread = $myParticipant
+                ? $this->unreadCountFor($conversation, $user, $myParticipant->last_read_message_id)
+                : null;
+            $lastMessageAt = $myParticipant
+                ? $conversation->last_message_at?->toIso8601String()
+                : null;
+
+            $bySubcategory[$subId] = [
+                'members' => $members,
+                'online' => $online,
+                'unread_count' => $unread,
+                'last_message_at' => $lastMessageAt,
+            ];
 
             $parentId = $parentIdsBySub->get($conversation->post_category_id);
             if ($parentId) {
                 $parentKey = (string) $parentId;
                 $byParent[$parentKey]['members'] = ($byParent[$parentKey]['members'] ?? 0) + $members;
                 $byParent[$parentKey]['online'] = ($byParent[$parentKey]['online'] ?? 0) + $online;
+                if ($unread !== null) {
+                    $byParent[$parentKey]['unread_count'] = ($byParent[$parentKey]['unread_count'] ?? 0) + $unread;
+                }
+                if ($lastMessageAt !== null) {
+                    $known = $byParent[$parentKey]['last_message_at'] ?? null;
+                    $byParent[$parentKey]['last_message_at'] = $known === null || $lastMessageAt > $known
+                        ? $lastMessageAt
+                        : $known;
+                }
             }
+        }
+
+        foreach ($byParent as $parentKey => $stats) {
+            $byParent[$parentKey]['unread_count'] = $stats['unread_count'] ?? null;
+            $byParent[$parentKey]['last_message_at'] = $stats['last_message_at'] ?? null;
         }
 
         return [
