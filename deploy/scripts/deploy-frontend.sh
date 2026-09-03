@@ -32,7 +32,7 @@ export VITE_REVERB_SCHEME="${VITE_REVERB_SCHEME:-https}"
 export VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://api.modelizmclub.ru/api/v1}"
 export VITE_DEMO_MODE="${VITE_DEMO_MODE:-false}"
 
-bun install --frozen-lockfile 2>/dev/null || bun install
+bun install --frozen-lockfile
 bun run build
 
 chown -R www-data:www-data "${FRONTEND_DIR}/.output" "${FRONTEND_DIR}/.output/public" 2>/dev/null || \
