@@ -3,7 +3,11 @@ import { PhoneIncoming, PhoneOutgoing, PhoneMissed, Phone, Video, MessageSquare 
 import { useNavigate } from "@tanstack/react-router";
 import { calls } from "@/lib/calls";
 import { fetchCallHistory, type ApiCallRecord } from "@/lib/api/calls";
-import { openOrCreateDialogWith } from "@/lib/store";
+import { registerUser, userById } from "@/lib/mock";
+import { navigateToPartnerChat } from "@/lib/api/chat";
+import { useCurrentUser } from "@/lib/session";
+import { useActionGate } from "@/lib/gate";
+import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/format/date";
 
 function formatWhen(iso: string): string {
@@ -28,6 +32,8 @@ interface Props {
 }
 
 export function CallsList({ onOpenChat }: Props) {
+  const me = useCurrentUser();
+  const { requireAction } = useActionGate();
   const navigate = useNavigate();
   const [history, setHistory] = useState<ApiCallRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,10 +115,22 @@ export function CallsList({ onOpenChat }: Props) {
               <button
                 type="button"
                 onClick={() => {
-                  const did = openOrCreateDialogWith(rec.peer.uuid);
-                  onOpenChat(did);
-                  navigate({ to: "/messenger", search: { chat: did } });
-                }}
+                    void requireAction("messenger.send", async () => {
+                      registerUser({ id: rec.peer.uuid, name: rec.peer.name, avatar: rec.peer.avatar ?? "", city: "", interests: "" });
+                      try {
+                        await navigateToPartnerChat(
+                          (opts) => {
+                            onOpenChat(opts.search.chat);
+                            navigate(opts);
+                          },
+                          userById(rec.peer.uuid),
+                          me.id,
+                        );
+                      } catch {
+                        toast.error("Не удалось открыть чат");
+                      }
+                    });
+                  }}
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
                 aria-label="Открыть чат"

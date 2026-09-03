@@ -50,7 +50,7 @@ export const GUEST_ACCESS_DEFAULT_TIERS: Record<string, AccessTier> = {
   "layout.nav.communities": "auth",
   "layout.nav.reviews": "auth",
   "layout.nav.channels": "auth",
-  "layout.nav.messenger": "auth",
+  "layout.nav.messenger": "subscription",
   "layout.nav.friends": "auth",
   "layout.nav.settings": "auth",
   "layout.header.notifications": "auth",
@@ -63,7 +63,7 @@ export const GUEST_ACCESS_DEFAULT_TIERS: Record<string, AccessTier> = {
   "route.favorites": "auth",
   "route.reviews": "auth",
   "route.channels": "auth",
-  "route.messenger": "auth",
+  "route.messenger": "subscription",
   "route.friends": "auth",
   "route.communities": "auth",
   "route.categories": "auth",
@@ -71,11 +71,11 @@ export const GUEST_ACCESS_DEFAULT_TIERS: Record<string, AccessTier> = {
   "route.settings": "auth",
   "route.profile": "auth",
   "route.user": "guest",
-  "ads.write_seller": "auth",
+  "ads.write_seller": "subscription",
   "ads.seller.profile": "auth",
   "ads.call_seller": "auth",
   "ads.safe_deal": "auth",
-  "messenger.send": "auth",
+  "messenger.send": "subscription",
 };
 
 export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = Object.fromEntries(

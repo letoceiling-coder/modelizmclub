@@ -34,6 +34,7 @@ import { openConversation } from "@/lib/api/chat";
 
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
+import { useActionGate } from "@/lib/gate";
 
 export const Route = createFileRoute("/channel/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.channelDetail.metaTitle") }] }),
@@ -104,6 +105,7 @@ function ChannelPage() {
   const navigate = useNavigate();
   const me = useCurrentUser();
   const { requirePremium } = useGuestAccess();
+  const { requireAction } = useActionGate();
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
   const { posts, reload: reloadPosts } = useChannelPosts(id);
   const [tab, setTab] = useState<ChannelTab>(tabSearch === "about" ? "about" : "posts");
@@ -173,7 +175,7 @@ function ChannelPage() {
       toast.error(t("pages.channelDetail.dialogOpenFailed"));
       return;
     }
-    requirePremium(() => {
+    void requireAction("messenger.send", () => {
       void (async () => {
         setMessaging(true);
         try {

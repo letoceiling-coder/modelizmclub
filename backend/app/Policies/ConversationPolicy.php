@@ -5,7 +5,12 @@ namespace App\Policies;
 use App\Models\Conversation;
 use App\Models\User;
 
-/** Every ability on a conversation reduces to "is a current participant". */
+/**
+ * Viewing needs participation; writing needs participation *and* the
+ * subscriber rung — the access matrix puts direct messages, category
+ * rooms and community chats behind the subscription. Moderators bypass the
+ * subscription, not the participation.
+ */
 class ConversationPolicy
 {
     public function view(User $user, Conversation $conversation): bool
@@ -13,9 +18,15 @@ class ConversationPolicy
         return $this->isParticipant($user, $conversation);
     }
 
+    /** Start a direct conversation with another user. */
+    public function create(User $user): bool
+    {
+        return $this->isSubscriber($user);
+    }
+
     public function send(User $user, Conversation $conversation): bool
     {
-        return $this->isParticipant($user, $conversation);
+        return $this->isParticipant($user, $conversation) && $this->isSubscriber($user);
     }
 
     public function delete(User $user, Conversation $conversation): bool
@@ -26,6 +37,11 @@ class ConversationPolicy
     public function pin(User $user, Conversation $conversation): bool
     {
         return $this->isParticipant($user, $conversation);
+    }
+
+    private function isSubscriber(User $user): bool
+    {
+        return $user->isModerator() || $user->hasActiveSubscription();
     }
 
     private function isParticipant(User $user, Conversation $conversation): bool

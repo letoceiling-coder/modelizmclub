@@ -33,6 +33,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { ShareSheet } from "@/components/communities/ShareSheet";
 
 import i18n from "@/lib/i18n";
+import { useActionGate } from "@/lib/gate";
 
 export const Route = createFileRoute("/ads/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.adDetail.metaTitle") }] }),
@@ -99,7 +100,8 @@ function AdDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const me = useCurrentUser();
-  const { requireAccount, guardAction } = useGuestAccess();
+  const { requireAccount } = useGuestAccess();
+  const { requireAction } = useActionGate();
   const [ad, setAd] = useState<Ad | null>(null);
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -160,7 +162,7 @@ function AdDetailPage() {
   };
 
   const requireAuthAndNotOwnAd = (actionKey: string, onAllowed: () => void): void => {
-    guardAction(actionKey, () => {
+    void requireAction(actionKey, () => {
       if (me && ad?.seller?.numericId && me.numericId === ad.seller.numericId) {
         toast.info(t("pages.adDetail.ownListing"));
         return;

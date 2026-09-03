@@ -59,6 +59,7 @@ import { firstFieldError } from "@/lib/api/validationErrors";
 import i18n from "@/lib/i18n";
 import { ProfilePageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatDate } from "@/lib/format/date";
+import { useActionGate } from "@/lib/gate";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: i18n.t("pages.profile.metaTitle") }] }),
@@ -259,6 +260,7 @@ export function ProfileView({
 }: ProfileViewProps) {
   const { t } = useTranslation();
   const { requireAccount } = useGuestAccess();
+  const { requireAction } = useActionGate();
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
@@ -435,7 +437,7 @@ export function ProfileView({
                   title={t("pages.profile.writeMessage")}
                   aria-label={t("pages.profile.writeMessageAria")}
                   onClick={() => {
-                    requireAccount(() => {
+                    void requireAction("messenger.send", () => {
                       if (!isFriend) {
                         setFriendPromptOpen(true);
                         return;

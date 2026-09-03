@@ -25,7 +25,6 @@ import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { openConversation } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "@/lib/toast";
-import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
@@ -37,6 +36,7 @@ import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog"
 
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
+import { useActionGate } from "@/lib/gate";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: i18n.t("pages.friends.metaTitle") }] }),
@@ -152,7 +152,7 @@ function FriendCard({
 
 function FriendsPage() {
   const { t } = useTranslation();
-  const { requireAccount } = useGuestAccess();
+    const { requireAction } = useActionGate();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const me = useCurrentUser();
@@ -361,21 +361,21 @@ function FriendsPage() {
   };
 
   const writeTo = async (u: User) => {
-    if (!u.numericId || !me) return;
-    let allowed = false;
-    requireAccount(() => { allowed = true; });
-    if (!allowed) return;
-    if (!added.has(u.id)) {
-      setFriendPrompt(u);
-      return;
-    }
-    try {
-      const dialog = await openConversation(u.numericId, me.id, u.id);
-      navigateMessenger({ to: "/messenger", search: { chat: dialog.id } });
-    } catch (err) {
-      const message = formatApiErrorMessage(err, t("pages.friends.dialogOpenFailed"));
-      if (message) toast.error(message);
-    }
+    const numericId = u.numericId;
+    if (!numericId || !me) return;
+    await requireAction("messenger.send", async () => {
+      if (!added.has(u.id)) {
+        setFriendPrompt(u);
+        return;
+      }
+      try {
+        const dialog = await openConversation(numericId, me.id, u.id);
+        navigateMessenger({ to: "/messenger", search: { chat: dialog.id } });
+      } catch (err) {
+        const message = formatApiErrorMessage(err, t("pages.friends.dialogOpenFailed"));
+        if (message) toast.error(message);
+      }
+    });
   };
 
   const viewProfile = (u: User) => {

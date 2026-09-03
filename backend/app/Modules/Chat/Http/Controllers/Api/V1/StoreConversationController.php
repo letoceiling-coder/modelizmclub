@@ -3,6 +3,7 @@
 namespace Modules\Chat\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Conversation;
 use App\Models\Listing;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,8 @@ class StoreConversationController extends Controller
             'listing_uuid' => ['nullable', 'string', 'uuid'],
             'listing_id' => ['nullable'],
         ]);
+
+        $this->authorize('create', Conversation::class);
 
         $to = User::query()->findOrFail($data['user_id']);
         $listing = $this->resolveListing($data);

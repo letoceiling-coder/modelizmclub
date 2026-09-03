@@ -20,6 +20,9 @@ use App\Models\Post;
 use App\Models\SafeDeal;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Models\SubscriptionPlan;
+use App\Models\UserSubscription;
+use Database\Seeders\SubscriptionPlansSeeder;
 use Illuminate\Support\Str;
 
 /** Minimal fixtures for the policy tests — no factories exist beyond User. */
@@ -36,6 +39,23 @@ trait PolicyFixtures
         ]);
 
         return $user;
+    }
+
+    /** Active paid subscription: the row hasActiveSubscription() checks plus the paid payment it requires. */
+    protected function grantSubscription(User $user): void
+    {
+        if (! SubscriptionPlan::query()->where('slug', 'month')->exists()) {
+            $this->seed(SubscriptionPlansSeeder::class);
+        }
+        $planId = (int) SubscriptionPlan::query()->where('slug', 'month')->value('id');
+        UserSubscription::query()->create([
+            'user_id' => $user->id,
+            'plan_id' => $planId,
+            'status' => 'active',
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addMonth(),
+        ]);
+        $this->recordPaidPlanPayment($user, $planId);
     }
 
     protected function seedListing(User $seller, ListingStatus $status = ListingStatus::Published): Listing

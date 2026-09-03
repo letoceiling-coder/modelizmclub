@@ -466,11 +466,19 @@ export async function navigateToPartnerChat(
     return;
   }
 
-  if (!partner.numericId) {
+  // Call records, share sheets and similar carry only the partner's uuid.
+  // The public profile endpoint accepts a uuid as well as a slug, so resolve
+  // the numeric id from there instead of failing.
+  let numericId = partner.numericId;
+  if (!numericId) {
+    const { fetchPublicProfile } = await import("@/lib/api/social");
+    numericId = (await fetchPublicProfile(partner.slug ?? partner.id)).user.numericId;
+  }
+  if (!numericId) {
     throw new Error("Partner numeric id is missing");
   }
 
-  const dialog = await openConversation(partner.numericId, meUuid, partner.id);
+  const dialog = await openConversation(numericId, meUuid, partner.id);
   navigate({ to: "/messenger", search: { chat: dialog.id } });
 }
 

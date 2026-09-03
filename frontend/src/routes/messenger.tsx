@@ -28,7 +28,7 @@ import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
+import { GuestSectionStub } from "@/components/access/GuestSectionStub";
 import { ChatMessageSearch } from "@/components/messenger/ChatMessageSearch";
 import { HighlightedText } from "@/components/messenger/HighlightedText";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
@@ -67,8 +67,15 @@ import { formatDate } from "@/lib/format/date";
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
   beforeLoad: async ({ location }) => {
-    const { requireVerified } = await import("@/lib/auth/verification");
-    await requireVerified(location);
+    // Matrix §4: direct messages are a subscriber feature. The rung comes from
+    // the admin's guest-access config; the gate shows exactly one window and
+    // brings the user back here once the missing step is done.
+    const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] = await Promise.all([
+      import("@/lib/gate"),
+      import("@/lib/feed-guest-access/store"),
+    ]);
+    await loadFeedGuestAccess();
+    await routeGuard(levelFromAccessTier(resolveMinTier("route.messenger")), location);
   },
   validateSearch: (search: Record<string, unknown>): { chat?: string; share?: boolean } => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
@@ -79,20 +86,8 @@ export const Route = createFileRoute("/messenger")({
 });
 
 function MessengerRoute() {
-  const guestBlocked = useGuestRouteBlocked("route.messenger");
-  if (guestBlocked) {
-    return (
-      <AppLayout>
-        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
-          <GuestSectionStub
-            icon={MessageSquare}
-            title="Чтобы общаться, войдите в аккаунт"
-            description="Личные и категорийные чаты доступны зарегистрированным пользователям."
-          />
-        </div>
-      </AppLayout>
-    );
-  }
+  // Guests never reach this component: routeGuard in beforeLoad opens the
+  // sign-in window and parks them on /feed with the navigation as intent.
   return <MessengerPage />;
 }
 

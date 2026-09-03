@@ -17,6 +17,7 @@ import { ProfileView } from "./profile";
 import { toast } from "@/lib/toast";
 
 import i18n from "@/lib/i18n";
+import { useActionGate } from "@/lib/gate";
 
 export const Route = createFileRoute("/user/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.user.metaTitle") }] }),
@@ -27,6 +28,7 @@ function UserPage() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
   const me = useCurrentUser();
+  const { requireAction } = useActionGate();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
@@ -128,12 +130,14 @@ function UserPage() {
   };
 
   const write = async () => {
-    if (!user.numericId || !me) {
-      toast.error(t("pages.user.dialogOpenFailed"));
-      return;
-    }
-    const dialog = await openConversation(user.numericId, me.id, user.id);
-    navigate({ to: "/messenger", search: { chat: dialog.id } });
+    await requireAction("messenger.send", async () => {
+      if (!user.numericId || !me) {
+        toast.error(t("pages.user.dialogOpenFailed"));
+        return;
+      }
+      const dialog = await openConversation(user.numericId, me.id, user.id);
+      navigate({ to: "/messenger", search: { chat: dialog.id } });
+    });
   };
 
   return (
