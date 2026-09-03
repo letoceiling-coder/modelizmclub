@@ -19,16 +19,21 @@ use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Feature\Policies\PolicyFixtures;
 use Tests\TestCase;
 
 class ChatFrontendIntegrationTest extends TestCase
 {
+    use PolicyFixtures;
+
     use RefreshDatabase;
 
     private function usersWithProfiles(): array
     {
         $a = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($a);
         $b = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($b);
 
         UserProfile::create(['user_id' => $a->id, 'display_name' => 'Alice', 'slug' => 'alice']);
         UserProfile::create(['user_id' => $b->id, 'display_name' => 'Bob', 'slug' => 'bob']);
@@ -559,6 +564,7 @@ class ChatFrontendIntegrationTest extends TestCase
     {
         [$a, $b] = $this->usersWithProfiles();
         $c = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($c);
         UserProfile::create(['user_id' => $c->id, 'display_name' => 'Carol', 'slug' => 'carol']);
 
         $convAb = $this->directConversation($a, $b);
@@ -635,6 +641,8 @@ class ChatFrontendIntegrationTest extends TestCase
         config(['filesystems.default' => 's3']);
 
         $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $this->grantSubscription($user);
         UserProfile::create(['user_id' => $user->id, 'display_name' => 'User', 'slug' => 'user']);
 
         $media = Media::create([
