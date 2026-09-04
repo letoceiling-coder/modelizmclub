@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDate } from "@/lib/format/date";
+import { TimeAgo } from "@/components/TimeAgo";
 
 type CommentPhotosPayload = { mediaIds: string[]; urls: string[] };
 
@@ -453,7 +453,7 @@ function CommentItem({
                     </span>
                   )}
                   <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                    {formatDate(comment.time, "relative")}
+                    <TimeAgo iso={comment.time} />
                   </span>
                 </div>
                 {comment.text ? (
