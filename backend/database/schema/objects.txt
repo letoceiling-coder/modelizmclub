@@ -383,25 +383,6 @@ COLUMN|email_verification_codes.id|bigint|NO
 COLUMN|email_verification_codes.updated_at|timestamp without time zone|YES
 COLUMN|email_verification_codes.used_at|timestamp without time zone|YES
 COLUMN|email_verification_codes.user_id|bigint|NO
-COLUMN|escrow_deals.amount_cents|integer|NO
-COLUMN|escrow_deals.buyer_id|bigint|NO
-COLUMN|escrow_deals.completed_at|timestamp without time zone|YES
-COLUMN|escrow_deals.created_at|timestamp without time zone|YES
-COLUMN|escrow_deals.currency|character varying|NO
-COLUMN|escrow_deals.id|bigint|NO
-COLUMN|escrow_deals.listing_id|bigint|NO
-COLUMN|escrow_deals.metadata|json|YES
-COLUMN|escrow_deals.paid_at|timestamp without time zone|YES
-COLUMN|escrow_deals.payment_id|bigint|YES
-COLUMN|escrow_deals.platform_fee_cents|integer|NO
-COLUMN|escrow_deals.seller_id|bigint|NO
-COLUMN|escrow_deals.seller_payout_cents|integer|NO
-COLUMN|escrow_deals.status|character varying|NO
-COLUMN|escrow_deals.updated_at|timestamp without time zone|YES
-COLUMN|escrow_deals.uuid|uuid|NO
-COLUMN|escrow_deals.yookassa_deal_id|character varying|YES
-COLUMN|escrow_deals.yookassa_payment_id|character varying|YES
-COLUMN|escrow_deals.yookassa_payout_id|character varying|YES
 COLUMN|escrow_transactions.actor_id|bigint|YES
 COLUMN|escrow_transactions.amount_kopecks|bigint|YES
 COLUMN|escrow_transactions.created_at|timestamp without time zone|YES
@@ -1423,10 +1404,6 @@ FK|disputes|disputes_opened_by_foreign
 FK|disputes|disputes_resolved_by_foreign
 FK|disputes|disputes_safe_deal_id_foreign
 FK|email_verification_codes|email_verification_codes_user_id_foreign
-FK|escrow_deals|escrow_deals_buyer_id_foreign
-FK|escrow_deals|escrow_deals_listing_id_foreign
-FK|escrow_deals|escrow_deals_payment_id_foreign
-FK|escrow_deals|escrow_deals_seller_id_foreign
 FK|escrow_transactions|escrow_transactions_actor_id_foreign
 FK|escrow_transactions|escrow_transactions_safe_deal_id_foreign
 FK|escrow_transactions|escrow_transactions_wallet_transaction_id_foreign
@@ -1674,11 +1651,6 @@ INDEX|email_templates|email_templates_pkey
 INDEX|email_templates|email_templates_slug_unique
 INDEX|email_verification_codes|email_verification_codes_pkey
 INDEX|email_verification_codes|email_verification_codes_user_id_code_index
-INDEX|escrow_deals|escrow_deals_buyer_id_status_index
-INDEX|escrow_deals|escrow_deals_pkey
-INDEX|escrow_deals|escrow_deals_seller_id_status_index
-INDEX|escrow_deals|escrow_deals_uuid_unique
-INDEX|escrow_deals|escrow_deals_yookassa_deal_id_index
 INDEX|escrow_transactions|escrow_transactions_pkey
 INDEX|escrow_transactions|escrow_transactions_safe_deal_id_type_index
 INDEX|failed_jobs|failed_jobs_pkey
@@ -1938,7 +1910,6 @@ SEQ|delivery_quotes_id_seq
 SEQ|disputes_id_seq
 SEQ|email_templates_id_seq
 SEQ|email_verification_codes_id_seq
-SEQ|escrow_deals_id_seq
 SEQ|escrow_transactions_id_seq
 SEQ|failed_jobs_id_seq
 SEQ|faq_articles_id_seq
@@ -2059,7 +2030,6 @@ TABLE|delivery_quotes
 TABLE|disputes
 TABLE|email_templates
 TABLE|email_verification_codes
-TABLE|escrow_deals
 TABLE|escrow_transactions
 TABLE|failed_jobs
 TABLE|faq_articles
@@ -2160,4 +2130,3 @@ TABLE|videos
 TABLE|wallet_transactions
 TABLE|wallets
 TABLE|withdrawal_requests
-Формат вывода: unaligned.
