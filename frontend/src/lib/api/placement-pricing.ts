@@ -15,16 +15,26 @@ export async function fetchPublicPlacementPricing(): Promise<PublicPlacementPric
   return res.data;
 }
 
-export function usePublicPlacementPricing(): {
+/**
+ * @param initial pricing fetched by a route loader. `payment_enabled` decides
+ *   whether a whole block renders, so learning it after mount inserts that
+ *   block into a page the visitor is already reading. The feature flag from the
+ *   public bootstrap is the same setting but is not applied until after the
+ *   first paint, so it cannot stand in for this.
+ */
+export function usePublicPlacementPricing(initial?: PublicPlacementPricing | null): {
   registeredRub: number;
   paymentEnabled: boolean;
   loading: boolean;
 } {
-  const [registeredRub, setRegisteredRub] = useState(20);
-  const [paymentEnabled, setPaymentEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [registeredRub, setRegisteredRub] = useState(
+    initial ? Math.round(initial.registered_price_cents / 100) : 20,
+  );
+  const [paymentEnabled, setPaymentEnabled] = useState(Boolean(initial?.payment_enabled));
+  const [loading, setLoading] = useState(!initial);
 
   useEffect(() => {
+    if (initial) return;
     let active = true;
     fetchPublicPlacementPricing()
       .then((data) => {
@@ -39,7 +49,7 @@ export function usePublicPlacementPricing(): {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initial]);
 
   return { registeredRub, paymentEnabled, loading };
 }
