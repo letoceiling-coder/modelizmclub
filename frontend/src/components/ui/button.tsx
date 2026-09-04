@@ -48,18 +48,19 @@ const buttonVariants = cva(
         detached:
           "border border-[var(--border)] bg-[var(--background-elevated)] text-[var(--foreground)] shadow-[var(--shadow-card-airy)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:border-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none",
         // Icon — только иконка, квадрат; сочетать с size="icon" (44×44).
-        icon:
-          "aspect-square p-0 text-[var(--foreground-70)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:text-[var(--neutral-400)]",
+        icon: "aspect-square p-0 text-[var(--foreground-70)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:text-[var(--neutral-400)]",
       },
       // Тап-таргет: md и icon — 44px (минимум для мобильного), sm — 36px.
       // `default` (40) и `lg` (44) — legacy-имена для существующих вызовов;
       // новый код использует sm | md | icon (docs/design-system.md).
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-[var(--r-button)] px-3 text-xs",
+        // `hit-target` (styles.css) добирает зону нажатия до 44×44 через
+        // ::after — визуальная высота у sm/default остаётся прежней.
+        default: "h-10 px-4 py-2 hit-target",
+        sm: "h-9 rounded-[var(--r-button)] px-3 text-xs hit-target",
         md: "h-11 rounded-[var(--r-button)] px-5",
         lg: "h-11 rounded-[var(--r-button)] px-8",
-        icon: "h-11 w-11 p-0",
+        icon: "h-11 w-11 p-0 hit-target",
       },
     },
     defaultVariants: {
@@ -77,13 +78,21 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
+  (
+    { className, variant, size, asChild = false, loading = false, disabled, children, ...props },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
     // asChild wraps arbitrary elements (e.g. <Link>) — Slot needs a single child
     // and can't take `disabled`, so the spinner/disable only apply to real buttons.
     if (asChild) {
       return (
-        <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} disabled={disabled} {...props}>
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          disabled={disabled}
+          {...props}
+        >
           {children}
         </Comp>
       );
@@ -116,9 +125,23 @@ export interface SplitButtonProps extends Omit<ButtonProps, "size"> {
 }
 
 const SplitButton = React.forwardRef<HTMLButtonElement, SplitButtonProps>(
-  ({ className, variant = "default", size = "default", onDropdownClick, dropdownLabel = "Открыть меню", children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant = "default",
+      size = "default",
+      onDropdownClick,
+      dropdownLabel = "Открыть меню",
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     const dividerColor =
-      variant === "default" || variant === "secondary" || variant === "commercial" || variant === "destructive"
+      variant === "default" ||
+      variant === "secondary" ||
+      variant === "commercial" ||
+      variant === "destructive"
         ? "rgba(255,255,255,0.35)"
         : "var(--border)";
     return (
