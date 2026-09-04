@@ -1,5 +1,5 @@
 // frontend/src/components/ui/Icon.tsx
-import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { resolveLucideIcon, useLucideTail } from "@/lib/lucide-icon";
 import { isSafeSvgMarkup } from "@/lib/safe-svg";
 import { useIconOverride } from "@/lib/icon-overrides";
 import { ICON_SLOTS, tokenCssVar, categorySlotKey, landingCardSlotKey, getIconSlot, type TokenKey } from "@/lib/icon-slots";
@@ -51,6 +51,7 @@ function PngIcon({ url, className, size, fill }: { url: string; className?: stri
 }
 
 function LucideFallback({ lucideName, color, className, size, strokeWidth, fill }: { lucideName: string; color?: string; className?: string; size?: number; strokeWidth?: number; fill?: boolean }) {
+  useLucideTail();
   const LucideIcon = resolveLucideIcon(lucideName);
   if (fill) {
     return <LucideIcon className={cn(FILL_CLASS, className)} style={color ? { color } : undefined} strokeWidth={strokeWidth} />;
@@ -92,6 +93,7 @@ export function CategoryIcon({
   categoryId, name, iconImageUrl, className, size, fill,
 }: { categoryId: string | number; name?: string | null; iconImageUrl?: string | null; className?: string; size?: number; fill?: boolean }) {
   const override = useIconOverride(categorySlotKey(categoryId));
+  useLucideTail();
   if (override) {
     const rendered = renderOverride(override, { className, size, fill });
     if (rendered) return rendered;
@@ -120,6 +122,7 @@ export function LandingCardIconSlot({
 }) {
   const slotKey = cardId != null ? landingCardSlotKey(cardId) : "__landing_none__";
   const override = useIconOverride(slotKey);
+  useLucideTail();
 
   if (cardId != null && override) {
     const rendered = renderOverride(override, { className: imgClassName ?? className, size, fill });

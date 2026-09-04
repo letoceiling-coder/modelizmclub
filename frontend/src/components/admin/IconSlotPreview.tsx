@@ -1,6 +1,6 @@
 import { Icon, CategoryIcon, LandingCardIconSlot, IconBox } from "@/components/ui/Icon";
 import type { AdminIconSlotEntry } from "@/lib/icon-slots";
-import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { resolveLucideIcon, useLucideTail } from "@/lib/lucide-icon";
 import { useTranslation } from "react-i18next";
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
 /** Inline preview of how an icon slot renders on the site. */
 export function IconSlotPreview({ slot, label, size = 20, forceDefault }: Props) {
   const { t } = useTranslation();
+  useLucideTail();
   const previewLabel = label ?? slot.label;
 
   if (forceDefault) {
