@@ -22,6 +22,12 @@
 # call sites to --strict once it has.
 set -uo pipefail
 
+# The object lists are sorted and compared byte by byte. Without a fixed locale
+# `sort` and `comm` disagree on a Russian-locale server and every line looks
+# out of order, and psql announces its \pset changes in the server's language
+# straight into the output — both were hit on production on 04.09.
+export LC_ALL=C
+
 APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 BACKEND_DIR="${APP_DIR}/backend"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -67,7 +73,7 @@ build_reference() {
     PGPASSWORD="${pass}" dropdb -h "${host}" -p "${port}" -U "${user}" "${db}" >/dev/null 2>&1
     echo "schema-drift: migrations failed against the scratch database" >&2; return 1; }
 
-  PGPASSWORD="${pass}" psql -h "${host}" -p "${port}" -U "${user}" -d "${db}" -f "${QUERY}" 2>/dev/null | grep . | LC_ALL=C sort
+  PGPASSWORD="${pass}" psql -q -h "${host}" -p "${port}" -U "${user}" -d "${db}" -f "${QUERY}" 2>/dev/null | grep -E '^(TABLE|COLUMN|INDEX|FK|SEQ)\|' | sort
   PGPASSWORD="${pass}" dropdb -h "${host}" -p "${port}" -U "${user}" "${db}" >/dev/null 2>&1
 }
 
@@ -76,7 +82,7 @@ dump_target() {
   host="$(envval DB_HOST)"; port="$(envval DB_PORT)"
   user="$(envval DB_USERNAME)"; pass="$(envval DB_PASSWORD)"; name="$(envval DB_DATABASE)"
   [[ -n "${name}" ]] || { echo "schema-drift: DB_DATABASE is empty in ${BACKEND_DIR}/.env" >&2; return 1; }
-  PGPASSWORD="${pass}" psql -h "${host}" -p "${port}" -U "${user}" -d "${name}" -f "${QUERY}" 2>/dev/null | grep . | LC_ALL=C sort
+  PGPASSWORD="${pass}" psql -q -h "${host}" -p "${port}" -U "${user}" -d "${name}" -f "${QUERY}" 2>/dev/null | grep -E '^(TABLE|COLUMN|INDEX|FK|SEQ)\|' | sort
 }
 
 if [[ "${MODE}" == "update" ]]; then
@@ -91,7 +97,7 @@ if [[ "${MODE}" == "build" ]]; then
   build_reference > "${TMP}/ref" || exit 1
 else
   [[ -f "${BASELINE}" ]] || { echo "schema-drift: no baseline at ${BASELINE} — run --update-baseline" >&2; exit 2; }
-  grep . "${BASELINE}" | LC_ALL=C sort > "${TMP}/ref"
+  grep -E '^(TABLE|COLUMN|INDEX|FK|SEQ)\|' "${BASELINE}" | sort > "${TMP}/ref"
 fi
 
 dump_target > "${TMP}/target" || exit 1
