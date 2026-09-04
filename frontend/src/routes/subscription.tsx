@@ -1,3 +1,4 @@
+import { openRouteGate } from "@/lib/gate";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,8 +54,8 @@ function daysWord(n: number): string {
 
 function requireAuthForCheckout(navigate: ReturnType<typeof useNavigate>): boolean {
   if (isAuthenticated() || isDemoMode()) return true;
-  toast.info(i18n.t("pages.subscription.loginRequired"));
-  navigate({ to: "/login", search: { redirect: "/subscription" } });
+  // Guest: the login window opens over the page and the checkout resumes.
+  openRouteGate("verified", "/subscription");
   return false;
 }
 

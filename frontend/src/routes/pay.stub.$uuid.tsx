@@ -1,3 +1,4 @@
+import { openRouteGate } from "@/lib/gate";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -54,7 +55,8 @@ function StubAcquiringPage() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      navigate({ to: "/login", search: { redirect: `/pay/stub/${uuid}` } });
+      openRouteGate("verified", `/pay/stub/${uuid}`);
+      navigate({ to: "/feed", replace: true });
       return;
     }
     let alive = true;

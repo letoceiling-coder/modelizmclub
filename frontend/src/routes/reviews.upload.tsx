@@ -1,3 +1,4 @@
+import { openRouteGate } from "@/lib/gate";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -75,7 +76,8 @@ function UploadPage() {
     ensureSession().then((ok) => {
       if (!alive) return;
       if (!ok) {
-        navigate({ to: "/login" });
+        openRouteGate("verified", "/reviews/upload");
+        navigate({ to: "/feed", replace: true });
         return;
       }
       const me = getSessionUser();
