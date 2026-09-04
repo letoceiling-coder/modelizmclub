@@ -12,7 +12,7 @@ import {
 } from "@/lib/feed-guest-access/routes";
 import { loadFeedGuestAccess, resolveMinTier } from "@/lib/feed-guest-access/store";
 import { levelFromAccessTier, type Level } from "@/lib/gate/levels";
-import { gateFallbackPath, openRouteGate } from "@/lib/gate/routeGate";
+import { openRouteGate } from "@/lib/gate/routeGate";
 import { getMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
@@ -33,8 +33,13 @@ export type ClientRouteRedirect = {
 function gateRoute(need: Level, pathname: string): ClientRouteRedirect | null {
   const search = typeof window === "undefined" ? "" : window.location.search;
   openRouteGate(need, pathname + search);
-  const fallback = gateFallbackPath(pathname);
-  return fallback ? { to: fallback, replace: true } : null;
+  // Раньше здесь стоял редирект на /feed, и адрес запрошенной страницы
+  // терялся: гость, открывший /messenger, видел окно уже поверх ленты и после
+  // входа оставался на ней. /deals вёл себя иначе только потому, что числился
+  // «гостевой заглушкой» и до этой ветки не доходил. Теперь одинаково для всех:
+  // окно открывается поверх запрошенной страницы, адрес сохраняется, намерение
+  // в lib/gate само доводит переход после входа.
+  return null;
 }
 
 /**

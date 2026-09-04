@@ -150,6 +150,13 @@ export function PostCard({
   const [channelSubscribed, setChannelSubscribed] = useState(Boolean(post.channel?.isSubscribed));
   const isScheduled = post.status === "scheduled";
   const canInteract = post.canInteract ?? post.status === "published";
+  // Гостю сервер отвечает canInteract=false, и раньше это сворачивало
+  // ветку комментариев в режим чтения: ни поля, ни кнопки «Ответить» —
+  // точки входа в окно входа не существовало, хотя карта доступа обещает
+  // popup на feed.post.comment. Для гостя оставляем композер видимым, он
+  // сам открывает окно по нажатию; для авторизованного без права писать
+  // всё остаётся как было.
+  const guestNeedsAuth = !isAllowed("feed.post.comment");
   const [mediaPost, setMediaPost] = useState(post);
 
   useEffect(() => {
@@ -685,7 +692,7 @@ export function PostCard({
                 comments={commentList}
                 onAdd={addComment}
                 loading={commentsFetchStarted && !commentsFetched}
-                readOnly={!canInteract}
+                readOnly={!canInteract && !guestNeedsAuth}
                 can={post.can}
                 previewLimit={3}
                 showAll={showAllComments}
