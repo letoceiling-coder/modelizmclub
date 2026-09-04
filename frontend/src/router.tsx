@@ -31,6 +31,13 @@ export const getRouter = () => {
     defaultPendingMs: 200,
     defaultPendingMinMs: 0,
     defaultStaleTime: 30_000,
+    // Fetch the route chunk (and its loader data) on hover/touch-start, so the
+    // click has nothing left to download. Every route loader is a read-only
+    // GET, and `defaultPreloadStaleTime` keeps a repeated hover from refetching.
+    defaultPreload: "intent",
+    // Long enough that dragging the pointer across a nav bar does not preload
+    // every link it crosses, short enough to finish before the click lands.
+    defaultPreloadDelay: 120,
     defaultPreloadStaleTime: 30_000,
   });
 
