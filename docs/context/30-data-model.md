@@ -85,7 +85,6 @@
 | `SafeDealIncomingPayment` | `(по имени класса)` | 23 | belongsTo:safeDeal → SafeDeal, belongsTo:payment → Payment, belongsTo:buyer → User, hasMany:gatewayEvents → SafeDealGatewayEvent |
 | `SafeDealPayout` | `(по имени класса)` | 28 | belongsTo:safeDeal → SafeDeal, belongsTo:seller → User, hasMany:gatewayEvents → SafeDealGatewayEvent |
 | `SafeDealGatewayEvent` | `(по имени класса)` | 9 | belongsTo:safeDeal → SafeDeal, belongsTo:incomingPayment → SafeDealIncomingPayment, belongsTo:payout → SafeDealPayout |
-| `EscrowDeal` | `(по имени класса)` | 16 | belongsTo:listing → Listing, belongsTo:buyer → User, belongsTo:seller → User, belongsTo:payment → Payment |
 | `EscrowTransaction` | `(по имени класса)` | 7 | belongsTo:safeDeal → SafeDeal, belongsTo:actor → User |
 
 ### Споры
@@ -166,10 +165,11 @@
 
 ## Наблюдения
 
-**Два параллельных контура эскроу.** В коде одновременно живут `SafeDeal` +
-`EscrowTransaction` (миграция 17.08) и `EscrowDeal` (миграция
-`2026_07_15_140000_create_escrow_deals.php`). Первый — актуальный, второй —
-от предыдущей итерации. Разбор того, какой используется, — в `80-payments.md`.
+**Контур эскроу один.** Актуальный — `SafeDeal` + `EscrowTransaction`
+(миграция 17.08); он и описан в `80-payments.md`. Прототип предыдущей итерации
+`EscrowDeal` (миграция `2026_07_15_140000_create_escrow_deals.php`) не получил
+ни роутов, ни контроллеров и удалён вместе с таблицей миграцией
+`2026_09_04_100000_drop_escrow_deals_table.php`.
 
 **Комиссия 5% хранится в трёх местах:** `safe_deals.platform_fee_kopecks`
 (факт по сделке), `config/billing.php` → `safe_deal.platform_fee_percent`

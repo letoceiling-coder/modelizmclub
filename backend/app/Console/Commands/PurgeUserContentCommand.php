@@ -75,7 +75,6 @@ class PurgeUserContentCommand extends Command
         'audit_logs',
         'support_messages',
         'support_tickets',
-        'escrow_deals',
         'shipment_events',
         'shipments',
         'delivery_quotes',
