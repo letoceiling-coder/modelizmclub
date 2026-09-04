@@ -34,7 +34,7 @@ export interface PresignedUploadHandle {
   done: Promise<UploadedMedia>;
 }
 
-function usePresignedUpload(file: File, purpose: MediaPurpose): boolean {
+function shouldUsePresignedUpload(file: File, purpose: MediaPurpose): boolean {
   if (purpose === "post_video" || purpose === "review_video") return true;
   return file.size > PRESIGNED_THRESHOLD;
 }
@@ -245,7 +245,7 @@ export async function uploadMedia(
     return { uuid: url, url };
   }
 
-  if (usePresignedUpload(file, purpose)) {
+  if (shouldUsePresignedUpload(file, purpose)) {
     try {
       return await uploadViaPresigned(file, purpose, onProgress);
     } catch (error) {
@@ -268,7 +268,11 @@ export function uploadMediaDeduped(
   purpose: MediaPurpose,
   onProgress?: UploadProgress,
 ): Promise<UploadedMedia> {
-  if (usePresignedUpload(file, purpose) || purpose === "post_video" || purpose === "review_video") {
+  if (
+    shouldUsePresignedUpload(file, purpose) ||
+    purpose === "post_video" ||
+    purpose === "review_video"
+  ) {
     return beginPresignedUpload(file, purpose, onProgress).then((handle) => handle.done);
   }
   const existing = inflightUploads.get(file);

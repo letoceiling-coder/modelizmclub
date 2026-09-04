@@ -113,12 +113,14 @@ export function EventsHero() {
     if (Math.abs(dy) > Math.abs(dx)) return;
     const SWIPE_THRESHOLD = 40;
     if (Math.abs(dx) > SWIPE_THRESHOLD) {
-      dx < 0 ? next() : prev();
+      if (dx < 0) next();
+      else prev();
       return;
     }
     const rect = e.currentTarget.getBoundingClientRect();
     const tapX = e.clientX - rect.left;
-    tapX < rect.width / 2 ? prev() : next();
+    if (tapX < rect.width / 2) prev();
+    else next();
   };
   const stopPointerPropagation = {
     onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),

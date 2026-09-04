@@ -17,6 +17,19 @@ import { GUEST_USER } from "./store";
 import { subscribeCalls, onEchoConnection } from "./realtime/echo";
 import { initLogger, logEvent, setLogCall } from "./logger";
 import { handleGroupInvite } from "./groupCall";
+
+/** One RTCStatsReport row — the spec types it as a bag of optional fields. */
+type StatsEntry = {
+  type?: string;
+  id?: string;
+  selected?: boolean;
+  nominated?: boolean;
+  state?: string;
+  localCandidateId?: string;
+  remoteCandidateId?: string;
+  bytesReceived?: number;
+  [k: string]: unknown;
+};
 import {
   bindCallAudioUnlock,
   unlockCallAudio,
@@ -250,19 +263,15 @@ async function logSelectedPair(reason: string): Promise<void> {
   if (!pc) return;
   try {
     const stats = await pc.getStats();
-    let local: any = null;
-    let remote: any = null;
-    let pair: any = null;
-    stats.forEach((r: any) => {
-      if (r.type === "candidate-pair" && (r.selected || r.nominated) && r.state === "succeeded")
-        pair = r;
-    });
-    if (pair) {
-      stats.forEach((r: any) => {
-        if (r.id === pair.localCandidateId) local = r;
-        if (r.id === pair.remoteCandidateId) remote = r;
-      });
-    }
+    const rows: StatsEntry[] = [];
+    stats.forEach((r: StatsEntry) => rows.push(r));
+    const pair =
+      rows.find(
+        (r) =>
+          r.type === "candidate-pair" && (r.selected || r.nominated) && r.state === "succeeded",
+      ) ?? null;
+    const local = pair ? (rows.find((r) => r.id === pair.localCandidateId) ?? null) : null;
+    const remote = pair ? (rows.find((r) => r.id === pair.remoteCandidateId) ?? null) : null;
     logEvent("info", "calls", `ice pair (${reason})`, {
       ice: pc.iceConnectionState,
       conn: pc.connectionState,
@@ -461,7 +470,7 @@ async function checkMediaAlive(): Promise<void> {
   try {
     const stats = await pc.getStats();
     let inbound = 0;
-    stats.forEach((r: any) => {
+    stats.forEach((r: StatsEntry) => {
       if (r.type === "inbound-rtp") inbound += r.bytesReceived ?? 0;
     });
     if (inbound > lastInboundBytes) {
@@ -480,7 +489,7 @@ async function checkMediaAlive(): Promise<void> {
 
 /** Try opening the camera with progressively looser constraints. */
 async function tryAcquireVideoTrack(): Promise<MediaStreamTrack | null> {
-  const attempts: MediaTrackConstraints[] = [
+  const attempts: Array<MediaTrackConstraints | boolean> = [
     { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
     { facingMode: { ideal: "user" }, width: { ideal: 1280 }, height: { ideal: 720 } },
     { facingMode: "user" },
@@ -784,6 +793,8 @@ function finish(result: CallResult): void {
   dismissTimer = setTimeout(() => setState({ active: null }), AUTO_DISMISS_MS);
 }
 
+// The signal payload is shaped by the server per `type`; each branch below narrows it.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleSignal(payload: { type: string; [k: string]: any }): Promise<void> {
   const type = payload.type;
   clog(
@@ -941,6 +952,7 @@ function dismissSilently(): void {
 }
 
 export function ingestCallSignal(payload: { type: string; [k: string]: unknown }): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   void handleSignal(payload as { type: string; [k: string]: any });
 }
 
@@ -1008,7 +1020,7 @@ export const calls = {
         return;
       }
       patchActive({ id: callUuid });
-      if (!state.active || state.active.status === "ended") return;
+      if (!state.active) return;
       flushPendingLocalIce(callUuid);
       startRingback();
       ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);

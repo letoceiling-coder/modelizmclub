@@ -404,7 +404,6 @@ export function PhotoEditorDialog({
                   </div>
                 )}
                 <div className="relative h-full min-h-[280px] w-full [&_.cropper-container]:!max-h-full">
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
                   <img
                     ref={imgRef}
                     src={localUrl}

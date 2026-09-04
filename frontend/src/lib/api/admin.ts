@@ -1413,7 +1413,7 @@ async function downloadCsv(
   }
   const blob = await res.blob();
   const disposition = res.headers.get("content-disposition") ?? "";
-  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  const match = disposition.match(/filename="?([^";]+)"?/i);
   const filename = match?.[1] ?? `${fallbackPrefix}-${new Date().toISOString().slice(0, 10)}.csv`;
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
