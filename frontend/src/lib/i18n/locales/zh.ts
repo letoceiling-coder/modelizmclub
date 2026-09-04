@@ -398,6 +398,26 @@ export const zh: TranslationSchema = {
     and: "and",
     privacyLink: "privacy policy",
   },
+  gate: {
+    auth: {
+      title: "登录或注册",
+      description: "此操作仅对俱乐部会员开放。",
+      submit: "登录",
+      noAccount: "还没有账号？",
+      register: "注册",
+    },
+    verify: {
+      title: "请验证手机号",
+      description: "验证手机号后即可使用此功能",
+      submit: "验证手机号",
+    },
+    paywall: {
+      title: "需要订阅",
+      description: "订阅后即可使用此功能",
+      submit: "订阅",
+      later: "稍后",
+    },
+  },
   components: {
     rightCategories: {
       title: "Найди своих",
