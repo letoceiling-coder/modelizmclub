@@ -338,8 +338,16 @@ export function PhotoEditorDialog({
     }
   };
 
+  // mobileSheet={false}: кроп-редактор занимает весь экран и ловит жесты
+  // сам — bottom sheet с перетаскиванием мешал бы панорамированию фото.
   return (
-    <Dialog open={isOpen} onOpenChange={(v) => { if (!v) handleCancel(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(v) => {
+        if (!v) handleCancel();
+      }}
+      mobileSheet={false}
+    >
       <DialogContent
         className="!flex h-[90vh] w-[90vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-[var(--r-card)]"
         onPointerDown={(e) => e.stopPropagation()}
