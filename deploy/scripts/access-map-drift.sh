@@ -55,50 +55,58 @@ if [[ -z "${TOTAL}" ]]; then
 fi
 OVERRIDES="$(grep -c '^OVERRIDE|' "${TMP}" || true)"
 EXTRA="$(grep -c '^EXTRA|' "${TMP}" || true)"
-MISSING="$(grep -c '^MISSING|' "${TMP}" || true)"
+NOTSAVED="$(grep -c '^NOTSAVED|' "${TMP}" || true)"
 META="$(grep -c '^META|' "${TMP}" || true)"
 TIER_DIFFS="$(awk -F'|' '$1=="OVERRIDE" && $4!=$5' "${TMP}" | grep -c . || true)"
 DENY_DIFFS=$(( OVERRIDES - TIER_DIFFS ))
-DIFFS=$(( OVERRIDES + EXTRA + MISSING + META ))
+# NOTSAVED не входит в число расхождений: действующая карта уже содержит
+# эти ключи со значениями реестра, устарела только сохранённая строка.
+DIFFS=$(( OVERRIDES + EXTRA + META ))
 
 report() {
   {
-    if [[ "${DIFFS}" == "0" ]]; then
-      echo "access map: no overrides — ${TOTAL:-0} actions match the registry defaults"
+    if [[ "${DIFFS}" == "0" && "${NOTSAVED}" == "0" ]]; then
+      echo "access map: расхождений нет — ${TOTAL:-0} действий совпадают с реестром"
       return
     fi
-    echo "access map: ${DIFFS} difference(s) against the registry defaults (${TOTAL:-0} actions)"
-    # Two very different things end up in this list. A changed min_tier moves
-    # the wall — someone can now see what they could not, or the other way
-    # round. A changed deny_mode only picks the window; saving the map from
-    # /admin writes deny_mode on every row at once, so those lines are usually
-    # an artefact of one visit to the settings page. Printed apart, because
-    # forty of the second kind will hide eight of the first.
+
+    if [[ "${DIFFS}" == "0" ]]; then
+      echo "access map: действующая карта совпадает с реестром (${TOTAL:-0} действий)"
+    else
+      echo "access map: ${DIFFS} расхождени(е/я) с умолчаниями реестра (${TOTAL:-0} действий)"
+      echo "  из них ${TIER_DIFFS} меняют уровень доступа, ${DENY_DIFFS} — только вид окна"
+    fi
+
+    # Два разных по смыслу изменения попадали бы в один список. Изменённый
+    # min_tier двигает стену: кто-то видит то, чего не видел, или наоборот.
+    # Изменённый deny_mode выбирает лишь вид окна, и сохранение карты из
+    # /admin переписывает его сразу во всех строках. Без разделения три
+    # десятка строк второго рода прячут десяток первого.
     if [[ "${TIER_DIFFS}" != "0" ]]; then
-      echo "  access level changed — this is what decides who sees what:"
+      echo "  уровень доступа изменён — именно это решает, кто что видит:"
       while IFS='|' read -r _ key label want have _ _; do
         [[ "${want}" == "${have}" ]] && continue
         printf '    %-34s %-12s -> %-12s (%s)\n' "${key}" "${want}" "${have}" "${label}"
       done < <(grep '^OVERRIDE|' "${TMP}")
     fi
+
     if [[ "${DENY_DIFFS}" != "0" ]]; then
-      echo "  window kind only (deny_mode), level unchanged — ${DENY_DIFFS} action(s):"
-      while IFS='|' read -r _ key label want have wantDeny haveDeny; do
-        [[ "${want}" != "${have}" ]] && continue
-        printf '    %-34s deny %s -> %s\n' "${key}" "${wantDeny}" "${haveDeny}"
-      done < <(grep '^OVERRIDE|' "${TMP}" | head -5)
-      [[ "${DENY_DIFFS}" -gt 5 ]] && echo "    … и ещё $(( DENY_DIFFS - 5 ))"
+      echo "  только вид окна (deny_mode), уровень тот же — действий: ${DENY_DIFFS}"
     fi
-    if [[ "${MISSING}" != "0" ]]; then
-      echo "  declared by the registry but absent from the saved map:"
-      grep '^MISSING|' "${TMP}" | awk -F'|' '{printf "    %-34s default %s\n", $2, $3}'
+
+    if [[ "${NOTSAVED}" != "0" ]]; then
+      echo "  добавлено в реестр после последнего сохранения карты — действует по"
+      echo "  умолчанию, в сохранённой строке появится при первом сохранении из /admin:"
+      grep '^NOTSAVED|' "${TMP}" | awk -F'|' '{printf "    %-34s %s\n", $2, $3}'
     fi
+
     if [[ "${EXTRA}" != "0" ]]; then
-      echo "  saved in the database but unknown to the registry — a renamed or dropped key:"
+      echo "  сохранено в базе, но реестру неизвестно — переименованный или удалённый ключ:"
       grep '^EXTRA|' "${TMP}" | awk -F'|' '{printf "    %-34s %s\n", $2, $3}'
     fi
+
     if [[ "${META}" != "0" ]]; then
-      echo "  top-level settings:"
+      echo "  верхнеуровневые настройки:"
       grep '^META|' "${TMP}" | awk -F'|' '{printf "    %-34s %s -> %s\n", $2, $3, $4}'
     fi
   } >> "$1"
