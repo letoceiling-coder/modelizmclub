@@ -486,6 +486,7 @@ export const en: TranslationSchema = {
       delete: "Delete comment",
       deleteConfirm: "Delete this comment?",
       deleteFailed: "Could not delete the comment",
+      sendFailed: "Couldn’t post the comment",
       sortInteresting: "Most interesting first",
       sortNew: "Newest first",
       sortOld: "Oldest first",
@@ -665,7 +666,10 @@ export const en: TranslationSchema = {
       draftFound: "Unsaved draft found",
       continueDraft: "Continue",
       startNew: "Start over",
-      directionAndScale: "Направление и масштаб"
+      directionAndScale: "Направление и масштаб",
+      directionAndScaleOptional: "Direction and scale — optional",
+      directionAny: "No direction",
+      scaleAny: "No scale",
     },
     imageUploadGrid: {
       dropzoneTitle: "Drag photos here or click to choose",
@@ -941,7 +945,15 @@ export const en: TranslationSchema = {
       emptyPostsDesc: "В этой категории пока никто ничего не опубликовал.",
       showAll: "Показать все",
       loadingMore: "Загружаем ещё…",
-      endOfFeed: "Вы посмотрели всю ленту"
+      endOfFeed: "Вы посмотрели всю ленту",
+      tagFilter: "Hashtag filter:",
+      tagClear: "Clear the #{{tag}} hashtag filter",
+      tagReset: "Show the whole feed",
+      emptyTagTitle: "Nothing tagged #{{tag}}",
+      emptyTagDesc: "No one has posted under this hashtag yet.",
+      loadFailedTitle: "The feed did not load",
+      loadFailedDesc: "Check your connection and try again.",
+      retry: "Try again",
     },
     messenger: {
       metaTitle: "Messenger — MoDelizM",

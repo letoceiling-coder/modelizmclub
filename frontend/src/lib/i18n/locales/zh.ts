@@ -475,6 +475,7 @@ export const zh: TranslationSchema = {
       report: "投诉",
       reportSuffix: "（评论）",
       reportDesc: "请说明这条评论有什么问题。",
+      sendFailed: "评论发送失败",
       sortInteresting: "先看热门",
       sortNew: "先看新的",
       sortOld: "先看旧的",
@@ -657,7 +658,10 @@ export const zh: TranslationSchema = {
       draftFound: "Unsaved draft found",
       continueDraft: "Continue",
       startNew: "Start over",
-      directionAndScale: "Направление и масштаб"
+      directionAndScale: "Направление и масштаб",
+      directionAndScaleOptional: "方向与比例 — 可选",
+      directionAny: "不选方向",
+      scaleAny: "不选比例",
     },
     imageUploadGrid: {
       dropzoneTitle: "Drag photos here or click to choose",
@@ -933,7 +937,15 @@ export const zh: TranslationSchema = {
       emptyPostsDesc: "В этой категории пока никто ничего не опубликовал.",
       showAll: "Показать все",
       loadingMore: "Загружаем ещё…",
-      endOfFeed: "Вы посмотрели всю ленту"
+      endOfFeed: "Вы посмотрели всю ленту",
+      tagFilter: "标签筛选：",
+      tagClear: "清除 #{{tag}} 标签筛选",
+      tagReset: "显示全部动态",
+      emptyTagTitle: "没有 #{{tag}} 的帖子",
+      emptyTagDesc: "还没有人使用这个标签发帖。",
+      loadFailedTitle: "动态加载失败",
+      loadFailedDesc: "请检查网络后重试。",
+      retry: "重试",
     },
     messenger: {
       metaTitle: "Messenger — MoDelizM",
