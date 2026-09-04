@@ -80,6 +80,8 @@ export function ListingCard({ ad, status, selected, onSelect, actions, className
             alt={ad.title}
             variants={["thumb", "card"]}
             sizes="96px"
+            width={96}
+            height={96}
             className="h-full w-full object-cover"
             onError={() => setImgErr(true)}
           />

@@ -1,4 +1,6 @@
 export type MediaVariantUrls = {
+  /** Best-first: AVIF is only present when the backend measured it smaller than the WebP. */
+  avif?: string;
   webp?: string;
   jpeg?: string;
 };
@@ -35,17 +37,29 @@ export function displaySrc(media: DisplayMedia, preferred: keyof MediaVariantSet
   return slot?.webp ?? slot?.jpeg ?? media.url;
 }
 
+/** Formats offered as <source> elements, most efficient first. */
+export const PICTURE_FORMATS = ["avif", "webp", "jpeg"] as const;
+export type PictureFormat = (typeof PICTURE_FORMATS)[number];
+
+export const PICTURE_MIME: Record<PictureFormat, string> = {
+  avif: "image/avif",
+  webp: "image/webp",
+  jpeg: "image/jpeg",
+};
+
 export function pictureSrcSet(
   media: DisplayMedia,
   names: Array<keyof MediaVariantSet>,
-): { webp?: string; jpeg?: string; src: string } {
-  const webpParts: string[] = [];
-  const jpegParts: string[] = [];
+): { sources: Array<{ format: PictureFormat; type: string; srcSet: string }>; src: string } {
+  const parts: Record<PictureFormat, string[]> = { avif: [], webp: [], jpeg: [] };
 
   for (const name of names) {
     const slot = media.variants?.[name];
-    if (slot?.webp) webpParts.push(`${slot.webp} ${WIDTH[name]}w`);
-    if (slot?.jpeg) jpegParts.push(`${slot.jpeg} ${WIDTH[name]}w`);
+    if (!slot) continue;
+    for (const format of PICTURE_FORMATS) {
+      const url = slot[format];
+      if (url) parts[format].push(`${url} ${WIDTH[name]}w`);
+    }
   }
 
   const last = names[names.length - 1];
@@ -57,8 +71,11 @@ export function pictureSrcSet(
     media.url;
 
   return {
-    webp: webpParts.length ? webpParts.join(", ") : undefined,
-    jpeg: jpegParts.length ? jpegParts.join(", ") : undefined,
+    sources: PICTURE_FORMATS.filter((f) => parts[f].length > 0).map((format) => ({
+      format,
+      type: PICTURE_MIME[format],
+      srcSet: parts[format].join(", "),
+    })),
     src,
   };
 }

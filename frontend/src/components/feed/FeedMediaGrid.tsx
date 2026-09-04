@@ -8,6 +8,8 @@ import { displaySrc, toDisplayMedia, type DisplayMedia } from "@/lib/media/varia
 const MAX_HEIGHT_DESKTOP = 480;
 const MAX_HEIGHT_MOBILE = 420;
 const GRID_GAP = 2;
+/** Reference width used to turn a measured aspect ratio into width/height attrs. */
+const SINGLE_BASE_WIDTH = 680;
 
 function useImageAspect(url: string): number | null {
   const [aspect, setAspect] = useState<number | null>(() => getMediaAspect(url) ?? null);
@@ -39,6 +41,8 @@ function GridImage({
   onClick,
   className = "",
   priority = false,
+  width = 680,
+  height = 680,
 }: {
   media: DisplayMedia;
   alt: string;
@@ -46,6 +50,9 @@ function GridImage({
   className?: string;
   /** LCP candidate (first image of the first feed card). */
   priority?: boolean;
+  /** Intrinsic box the grid cell reserves — square by default. */
+  width?: number;
+  height?: number;
 }) {
   const [err, setErr] = useState(false);
   if (err) {
@@ -61,6 +68,8 @@ function GridImage({
       alt={alt}
       variants={["card", "medium"]}
       sizes="(max-width:768px) 100vw, 680px"
+      width={width}
+      height={height}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}
       className={`h-full w-full cursor-zoom-in object-cover ${className}`}
@@ -84,7 +93,15 @@ function SingleImage({ media, alt, onOpen, priority = false }: { media: DisplayM
 
   return (
     <div className="overflow-hidden rounded-[var(--r-card)] bg-[var(--background-surface)] sm:max-h-[480px]" style={style}>
-      <GridImage media={media} alt={alt} onClick={onOpen} priority={priority} className="!object-contain sm:!object-cover" />
+      <GridImage
+        media={media}
+        alt={alt}
+        onClick={onOpen}
+        priority={priority}
+        width={SINGLE_BASE_WIDTH}
+        height={Math.max(1, Math.round(SINGLE_BASE_WIDTH / aspect))}
+        className="!object-contain sm:!object-cover"
+      />
     </div>
   );
 }
@@ -128,13 +145,32 @@ export function FeedMediaGrid({ images, alt, priority = false }: { images: Array
       <>
         <div className="grid overflow-hidden rounded-[var(--r-card)]" style={{ gap: GRID_GAP, gridTemplateColumns: "2fr 1fr", gridTemplateRows: "1fr 1fr", maxHeight: MAX_HEIGHT_DESKTOP, aspectRatio: "16/9" }}>
           <div className="relative row-span-2 min-h-0 overflow-hidden">
-            <GridImage media={items[0]} alt={`${alt} — 1`} priority={priority} onClick={() => setLightbox(0)} />
+            <GridImage
+              media={items[0]}
+              alt={`${alt} — 1`}
+              priority={priority}
+              width={640}
+              height={720}
+              onClick={() => setLightbox(0)}
+            />
           </div>
           <div className="relative min-h-0 overflow-hidden">
-            <GridImage media={items[1]} alt={`${alt} — 2`} onClick={() => setLightbox(1)} />
+            <GridImage
+              media={items[1]}
+              alt={`${alt} — 2`}
+              width={320}
+              height={360}
+              onClick={() => setLightbox(1)}
+            />
           </div>
           <div className="relative min-h-0 overflow-hidden">
-            <GridImage media={items[2]} alt={`${alt} — 3`} onClick={() => setLightbox(2)} />
+            <GridImage
+              media={items[2]}
+              alt={`${alt} — 3`}
+              width={320}
+              height={360}
+              onClick={() => setLightbox(2)}
+            />
           </div>
         </div>
         {lightbox !== null && <Lightbox images={lightboxUrls} startIndex={lightbox} alt={alt} onClose={() => setLightbox(null)} />}
