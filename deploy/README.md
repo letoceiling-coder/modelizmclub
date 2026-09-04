@@ -21,6 +21,67 @@
 - Supervisor (очереди Laravel)
 - Node.js 22 + Bun (frontend на modelizmclub.ru)
 
+## systemd-юниты
+
+Каталог `deploy/systemd/` — источник правды для всех юнитов. Скрипты деплоя их
+**не раскладывают**: `deploy-frontend.sh` обновляет код и перезапускает службу,
+но файл юнита на сервере остаётся тем, что положили руками. Поэтому правка юнита
+в репозитории доезжает до сервера только отдельным шагом, и именно из-за его
+отсутствия таймер бэкапов простоял неустановленным с момента написания: команды
+лежали в разделе про бэкапы, их никто не выполнил, а проверить было нечем.
+
+| Юнит | Что делает |
+|---|---|
+| `modelizmclub-frontend.service` | Nitro на :3000, боевой фронтенд |
+| `modelizmclub-front.service` | Nitro на :3001, поддомен front |
+| `modelizmclub-reverb.service` | WebSocket-сервер Reverb |
+| `modelizmclub-worker.service` | Очередь Laravel |
+| `backup-db.timer` + `backup-db.service` | Ночной дамп базы в 04:00 с выгрузкой в S3 |
+| `backup-db-failure@.service` | Уведомление о неудачном дампе, вызывается через `OnFailure` |
+| `neeklo-*` | То же для dev-контура `neeklo.modelizmclub.ru` |
+
+### Установка на новом сервере или после правки юнита
+
+```bash
+cd /var/www/modelizmclub
+for u in modelizmclub-frontend modelizmclub-front modelizmclub-reverb modelizmclub-worker; do
+  install -m 644 "deploy/systemd/${u}.service" /etc/systemd/system/
+done
+install -m 644 deploy/systemd/backup-db.service          /etc/systemd/system/
+install -m 644 deploy/systemd/backup-db.timer            /etc/systemd/system/
+install -m 644 deploy/systemd/backup-db-failure@.service /etc/systemd/system/
+
+systemctl daemon-reload
+systemctl enable --now modelizmclub-frontend modelizmclub-reverb modelizmclub-worker
+systemctl enable --now backup-db.timer
+```
+
+`daemon-reload` обязателен: без него systemd продолжит использовать прежнюю
+версию юнита, и правка не даст эффекта, хотя файл на диске уже новый.
+
+### Проверить, что установлено всё
+
+```bash
+# юнит на сервере отличается от репозитория — значит правка не доехала
+for u in modelizmclub-frontend.service modelizmclub-reverb.service \
+         modelizmclub-worker.service backup-db.service backup-db.timer \
+         "backup-db-failure@.service"; do
+  diff -q "/var/www/modelizmclub/deploy/systemd/$u" "/etc/systemd/system/$u" >/dev/null 2>&1 \
+    && echo "ok         $u" || echo "РАСХОДИТСЯ $u"
+done
+
+# таймер живой и знает, когда сработает
+systemctl list-timers backup-db.timer --no-pager
+```
+
+Первая команда 04.09 сразу нашла расхождение: установленный
+`modelizmclub-frontend.service` был от 25.06 и не имел ни `ExecStartPost` с
+проверкой отклика, ни `TimeoutStartSec`, добавленных в репозиторий позже. Юнит
+жил своей жизнью три месяца, и заметить это было нечем.
+
+Пустой вывод `list-timers` означает, что таймера нет вовсе, а не что он просто
+ещё не срабатывал.
+
 ## Backend (dev.modelizmclub.ru)
 
 На сервере под root (один раз):
@@ -344,3 +405,24 @@ sudo -u postgres dropdb modelizmclub_check
 > `/var/www/modelizmclub` и **одну базу** `modelizmclub`. «Проверить на dev» не
 > означает «безопасно» — для любых экспериментов заводите отдельную базу, как
 > показано выше.
+
+## Конфигурация сервера вне репозитория
+
+Эти файлы правились прямо на проде и до 04.09 существовали в единственном
+экземпляре — при пересборке машины восстанавливать их было бы неоткуда.
+Здесь лежат копии; путь установки указан рядом.
+
+| В репозитории | Куда ставится | Зачем |
+| --- | --- | --- |
+| `php-fpm/pool.d/www.conf` | `/etc/php/8.3/fpm/pool.d/www.conf` | Пул на 30 воркеров вместо пяти, `pm.status_path`, медленный лог с порогом 5 с |
+| `nginx/fpm-status.conf` | `/etc/nginx/conf.d/fpm-status.conf` | Счётчики пула на `127.0.0.1:8081`, наружу не смотрят |
+| `scripts/fpm-watch.sh` | `/usr/local/bin/fpm-watch.sh` | Раз в пять минут пишет счётчики в лог и поднимает тревогу при `max children reached` |
+| `cron/fpm-watch` | `/etc/cron.d/fpm-watch` | Запуск предыдущего |
+| `nginx/img.modelizmclub.ru.conf`, `nginx/livekit.modelizmclub.ru.conf`, `nginx/dev-cloude.modelizmclub.ru.conf` | `/etc/nginx/sites-available/` | Три вхоста, которых в репозитории не было |
+
+Копии, а не источник истины: правка здесь сама на сервер не приедет.
+Сверить расхождение:
+
+```bash
+ssh root@31.207.75.124 'cat /etc/php/8.3/fpm/pool.d/www.conf' | diff - deploy/php-fpm/pool.d/www.conf
+```
