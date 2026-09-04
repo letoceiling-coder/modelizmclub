@@ -33,7 +33,12 @@ import {
   type PhotoShape,
 } from "@/lib/photo-editor";
 import { CropSafeZoneOverlay } from "@/components/media/CropSafeZoneOverlay";
-import { BANNER_ASPECT, BANNER_EXPORT_HEIGHT, BANNER_EXPORT_WIDTH, type SafeZonePreset } from "@/lib/photo-editor-safe-zones";
+import {
+  BANNER_ASPECT,
+  BANNER_EXPORT_HEIGHT,
+  BANNER_EXPORT_WIDTH,
+  type SafeZonePreset,
+} from "@/lib/photo-editor-safe-zones";
 
 export type CropInteractionMode = "pan" | "frame";
 
@@ -66,10 +71,30 @@ export interface PhotoEditorDialogProps {
 }
 
 const SHAPES: { value: PhotoShape; labelKey: string; hintKey: string; icon: typeof Square }[] = [
-  { value: "free", labelKey: "components.photoEditor.shapeFree", hintKey: "components.photoEditor.shapeFreeHint", icon: RectangleHorizontal },
-  { value: "rect", labelKey: "components.photoEditor.shapeRect", hintKey: "components.photoEditor.shapeRectHint", icon: Square },
-  { value: "rounded", labelKey: "components.photoEditor.shapeRounded", hintKey: "components.photoEditor.shapeRoundedHint", icon: SquareRoundCorner },
-  { value: "circle", labelKey: "components.photoEditor.shapeCircle", hintKey: "components.photoEditor.shapeCircleHint", icon: Circle },
+  {
+    value: "free",
+    labelKey: "components.photoEditor.shapeFree",
+    hintKey: "components.photoEditor.shapeFreeHint",
+    icon: RectangleHorizontal,
+  },
+  {
+    value: "rect",
+    labelKey: "components.photoEditor.shapeRect",
+    hintKey: "components.photoEditor.shapeRectHint",
+    icon: Square,
+  },
+  {
+    value: "rounded",
+    labelKey: "components.photoEditor.shapeRounded",
+    hintKey: "components.photoEditor.shapeRoundedHint",
+    icon: SquareRoundCorner,
+  },
+  {
+    value: "circle",
+    labelKey: "components.photoEditor.shapeCircle",
+    hintKey: "components.photoEditor.shapeCircleHint",
+    icon: Circle,
+  },
 ];
 
 /**
@@ -339,13 +364,21 @@ export function PhotoEditorDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(v) => { if (!v) handleCancel(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(v) => {
+        if (!v) handleCancel();
+      }}
+    >
       <DialogContent
         className="!flex h-[90vh] w-[90vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-[var(--r-card)]"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        <DialogHeader className="shrink-0 border-b px-[20px] py-[14px]" style={{ borderColor: "var(--border)" }}>
+        <DialogHeader
+          className="shrink-0 border-b px-[20px] py-[14px]"
+          style={{ borderColor: "var(--border)" }}
+        >
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
@@ -363,13 +396,25 @@ export function PhotoEditorDialog({
             ) : (
               <>
                 {!ready && (
-                  <div className="absolute inset-0 z-10 grid place-items-center" style={{ background: "#111114" }}>
+                  <div
+                    className="absolute inset-0 z-10 grid place-items-center"
+                    style={{ background: "#111114" }}
+                  >
                     <Loader2 className="h-8 w-8 animate-spin text-white/70" />
                   </div>
                 )}
                 <div className="relative h-full min-h-[280px] w-full [&_.cropper-container]:!max-h-full">
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <img ref={imgRef} src={localUrl} width={1200} height={900} loading="lazy" decoding="async" className="block max-w-full" style={{ maxHeight: "min(70vh, 720px)" }} />
+                  <img
+                    ref={imgRef}
+                    src={localUrl}
+                    width={1200}
+                    height={900}
+                    loading="lazy"
+                    decoding="async"
+                    className="block max-w-full"
+                    style={{ maxHeight: "min(70vh, 720px)" }}
+                  />
                   {safeZonePreset && (
                     <CropSafeZoneOverlay
                       cropper={activeCropper}
@@ -394,7 +439,11 @@ export function PhotoEditorDialog({
             className="flex w-full shrink-0 flex-col overflow-y-auto border-t md:h-full md:w-[340px] md:border-l md:border-t-0"
             style={{ borderColor: "var(--border)", background: "var(--background)" }}
           >
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "crop" | "effects")} className="flex min-h-0 flex-1 flex-col">
+            <Tabs
+              value={tab}
+              onValueChange={(v) => setTab(v as "crop" | "effects")}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <TabsList className="shrink-0 px-[16px]">
                 <TabsTrigger value="crop">Обрезка</TabsTrigger>
                 <TabsTrigger value="effects">Эффекты</TabsTrigger>
@@ -403,7 +452,10 @@ export function PhotoEditorDialog({
               <div className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[18px]">
                 <TabsContent value="crop" className="mt-0 space-y-[18px]">
                   <div className="space-y-[8px]">
-                    <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                    <span
+                      className="text-[12px] font-medium"
+                      style={{ color: "var(--foreground-70)" }}
+                    >
                       {t("components.photoEditor.interactionTitle")}
                     </span>
                     <div className="grid grid-cols-2 gap-[8px]">
@@ -413,15 +465,22 @@ export function PhotoEditorDialog({
                         disabled={!ready}
                         className="flex items-center gap-[8px] rounded-[var(--r-card-sm)] border px-[12px] py-[10px] text-left text-[12px] transition-colors disabled:opacity-50"
                         style={{
-                          borderColor: interactionMode === "pan" ? "var(--accent)" : "var(--border)",
-                          background: interactionMode === "pan" ? "var(--accent-soft)" : "transparent",
-                          color: interactionMode === "pan" ? "var(--accent)" : "var(--foreground-70)",
+                          borderColor:
+                            interactionMode === "pan" ? "var(--accent)" : "var(--border)",
+                          background:
+                            interactionMode === "pan" ? "var(--accent-soft)" : "transparent",
+                          color:
+                            interactionMode === "pan" ? "var(--accent)" : "var(--foreground-70)",
                         }}
                       >
                         <Hand className="h-[16px] w-[16px] shrink-0" />
                         <span>
-                          <span className="block font-semibold">{t("components.photoEditor.modePan")}</span>
-                          <span className="block text-[10px] opacity-80">{t("components.photoEditor.modePanHint")}</span>
+                          <span className="block font-semibold">
+                            {t("components.photoEditor.modePan")}
+                          </span>
+                          <span className="block text-[10px] opacity-80">
+                            {t("components.photoEditor.modePanHint")}
+                          </span>
                         </span>
                       </button>
                       <button
@@ -430,42 +489,83 @@ export function PhotoEditorDialog({
                         disabled={!ready}
                         className="flex items-center gap-[8px] rounded-[var(--r-card-sm)] border px-[12px] py-[10px] text-left text-[12px] transition-colors disabled:opacity-50"
                         style={{
-                          borderColor: interactionMode === "frame" ? "var(--accent)" : "var(--border)",
-                          background: interactionMode === "frame" ? "var(--accent-soft)" : "transparent",
-                          color: interactionMode === "frame" ? "var(--accent)" : "var(--foreground-70)",
+                          borderColor:
+                            interactionMode === "frame" ? "var(--accent)" : "var(--border)",
+                          background:
+                            interactionMode === "frame" ? "var(--accent-soft)" : "transparent",
+                          color:
+                            interactionMode === "frame" ? "var(--accent)" : "var(--foreground-70)",
                         }}
                       >
                         <Crop className="h-[16px] w-[16px] shrink-0" />
                         <span>
-                          <span className="block font-semibold">{t("components.photoEditor.modeFrame")}</span>
-                          <span className="block text-[10px] opacity-80">{t("components.photoEditor.modeFrameHint")}</span>
+                          <span className="block font-semibold">
+                            {t("components.photoEditor.modeFrame")}
+                          </span>
+                          <span className="block text-[10px] opacity-80">
+                            {t("components.photoEditor.modeFrameHint")}
+                          </span>
                         </span>
                       </button>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-center gap-[8px]">
-                    <Button type="button" variant="outline" size="icon" onClick={() => rotate(-90)} title="Повернуть влево" disabled={!ready}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => rotate(-90)}
+                      title="Повернуть влево"
+                      disabled={!ready}
+                    >
                       <RotateCcw />
                     </Button>
-                    <Button type="button" variant="outline" size="icon" onClick={() => rotate(90)} title="Повернуть вправо" disabled={!ready}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => rotate(90)}
+                      title="Повернуть вправо"
+                      disabled={!ready}
+                    >
                       <RotateCw />
                     </Button>
-                    <Button type="button" variant="outline" size="icon" onClick={toggleFlipX} title="Отразить по горизонтали" disabled={!ready}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleFlipX}
+                      title="Отразить по горизонтали"
+                      disabled={!ready}
+                    >
                       <FlipHorizontal2 />
                     </Button>
-                    <Button type="button" variant="outline" size="icon" onClick={toggleFlipY} title="Отразить по вертикали" disabled={!ready}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleFlipY}
+                      title="Отразить по вертикали"
+                      disabled={!ready}
+                    >
                       <FlipVertical2 />
                     </Button>
                   </div>
 
                   <div className="space-y-[8px]">
-                    <div className="flex items-center justify-between text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                    <div
+                      className="flex items-center justify-between text-[12px] font-medium"
+                      style={{ color: "var(--foreground-70)" }}
+                    >
                       <span>Масштаб</span>
                       <span>{Math.round(zoom * 100)}%</span>
                     </div>
                     <div className="flex items-center gap-[10px]">
-                      <ZoomOut className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--foreground-50)" }} />
+                      <ZoomOut
+                        className="h-[16px] w-[16px] shrink-0"
+                        style={{ color: "var(--foreground-50)" }}
+                      />
                       <Slider
                         value={[zoom]}
                         min={0.1}
@@ -474,17 +574,26 @@ export function PhotoEditorDialog({
                         onValueChange={([v]) => applyZoom(v)}
                         disabled={!ready}
                       />
-                      <ZoomIn className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--foreground-50)" }} />
+                      <ZoomIn
+                        className="h-[16px] w-[16px] shrink-0"
+                        style={{ color: "var(--foreground-50)" }}
+                      />
                     </div>
                   </div>
 
                   {!effectiveLockShape && (
                     <div className="space-y-[8px]">
                       <div>
-                        <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                        <span
+                          className="text-[12px] font-medium"
+                          style={{ color: "var(--foreground-70)" }}
+                        >
                           {t("components.photoEditor.shapeTitle")}
                         </span>
-                        <p className="mt-[4px] text-[10px] leading-snug" style={{ color: "var(--foreground-50)" }}>
+                        <p
+                          className="mt-[4px] text-[10px] leading-snug"
+                          style={{ color: "var(--foreground-50)" }}
+                        >
                           {t("components.photoEditor.shapeSectionHint")}
                         </p>
                       </div>
@@ -499,8 +608,10 @@ export function PhotoEditorDialog({
                             className="flex flex-col items-start gap-[2px] rounded-[var(--r-card-sm)] border px-[10px] py-[8px] text-left text-[10px] transition-colors"
                             style={{
                               borderColor: shapeState === value ? "var(--accent)" : "var(--border)",
-                              color: shapeState === value ? "var(--accent)" : "var(--foreground-70)",
-                              background: shapeState === value ? "var(--accent-soft)" : "transparent",
+                              color:
+                                shapeState === value ? "var(--accent)" : "var(--foreground-70)",
+                              background:
+                                shapeState === value ? "var(--accent-soft)" : "transparent",
                             }}
                           >
                             <span className="flex items-center gap-[6px] font-semibold">
@@ -516,38 +627,62 @@ export function PhotoEditorDialog({
 
                   <div
                     className="rounded-[var(--r-card-sm)] border px-[12px] py-[10px] space-y-[8px]"
-                    style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+                    style={{
+                      borderColor: "var(--border)",
+                      background: "var(--background-surface)",
+                    }}
                   >
                     {exportWidth && exportHeight && (
                       <div className="flex items-center justify-between text-[12px]">
-                        <span style={{ color: "var(--foreground-50)" }}>{t("components.photoEditor.exportSize")}</span>
-                        <span className="font-mono font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>
+                        <span style={{ color: "var(--foreground-50)" }}>
+                          {t("components.photoEditor.exportSize")}
+                        </span>
+                        <span
+                          className="font-mono font-semibold tabular-nums"
+                          style={{ color: "var(--foreground)" }}
+                        >
                           {exportWidth} × {exportHeight} px
                         </span>
                       </div>
                     )}
                     <div className="flex items-center justify-between text-[12px]">
-                      <span style={{ color: "var(--foreground-50)" }}>{t("components.photoEditor.cropBoxSize")}</span>
-                      <span className="font-mono font-semibold tabular-nums" style={{ color: "var(--foreground)" }}>
+                      <span style={{ color: "var(--foreground-50)" }}>
+                        {t("components.photoEditor.cropBoxSize")}
+                      </span>
+                      <span
+                        className="font-mono font-semibold tabular-nums"
+                        style={{ color: "var(--foreground)" }}
+                      >
                         {cropBoxSize ? `${cropBoxSize.width} × ${cropBoxSize.height} px` : "—"}
                       </span>
                     </div>
                     {effectiveLockAspect && effectiveAspect && (
                       <div className="flex items-center justify-between text-[12px]">
-                        <span style={{ color: "var(--foreground-50)" }}>{t("components.photoEditor.aspectLocked")}</span>
-                        <span className="font-mono tabular-nums" style={{ color: "var(--foreground-70)" }}>
+                        <span style={{ color: "var(--foreground-50)" }}>
+                          {t("components.photoEditor.aspectLocked")}
+                        </span>
+                        <span
+                          className="font-mono tabular-nums"
+                          style={{ color: "var(--foreground-70)" }}
+                        >
                           {effectiveAspect.toFixed(2)}:1
                         </span>
                       </div>
                     )}
                   </div>
-                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
+                  <p
+                    className="text-[11px] leading-relaxed"
+                    style={{ color: "var(--foreground-50)" }}
+                  >
                     {interactionMode === "pan"
                       ? t("components.photoEditor.helpPan")
                       : t("components.photoEditor.helpFrame")}
                   </p>
                   {safeZonePreset && (
-                    <p className="text-[11px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
+                    <p
+                      className="text-[11px] leading-relaxed"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
                       {t("components.photoEditor.safeZoneHint")}
                     </p>
                   )}
@@ -573,7 +708,10 @@ export function PhotoEditorDialog({
                     disabled={!ready}
                   />
                   <div className="space-y-[8px]">
-                    <div className="flex items-center justify-between text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                    <div
+                      className="flex items-center justify-between text-[12px] font-medium"
+                      style={{ color: "var(--foreground-70)" }}
+                    >
                       <span>Размытие</span>
                       <span>{effects.blur} px</span>
                     </div>
@@ -590,13 +728,17 @@ export function PhotoEditorDialog({
                     <ToggleChip
                       label="Ч/б"
                       active={effects.grayscale}
-                      onClick={() => setEffects((e) => ({ ...e, grayscale: !e.grayscale, sepia: false }))}
+                      onClick={() =>
+                        setEffects((e) => ({ ...e, grayscale: !e.grayscale, sepia: false }))
+                      }
                       disabled={!ready}
                     />
                     <ToggleChip
                       label="Сепия"
                       active={effects.sepia}
-                      onClick={() => setEffects((e) => ({ ...e, sepia: !e.sepia, grayscale: false }))}
+                      onClick={() =>
+                        setEffects((e) => ({ ...e, sepia: !e.sepia, grayscale: false }))
+                      }
                       disabled={!ready}
                     />
                   </div>
@@ -604,7 +746,10 @@ export function PhotoEditorDialog({
               </div>
             </Tabs>
 
-            <div className="flex shrink-0 flex-col gap-[10px] border-t px-[20px] py-[16px]" style={{ borderColor: "var(--border)" }}>
+            <div
+              className="flex shrink-0 flex-col gap-[10px] border-t px-[20px] py-[16px]"
+              style={{ borderColor: "var(--border)" }}
+            >
               <div className="flex items-center justify-between gap-[10px]">
                 <Button type="button" variant="ghost" onClick={reset} disabled={!ready || saving}>
                   Сбросить
@@ -626,7 +771,12 @@ export function PhotoEditorDialog({
                 <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
                   Отмена
                 </Button>
-                <Button type="button" onClick={handleSave} disabled={!ready || saving} loading={saving}>
+                <Button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!ready || saving}
+                  loading={saving}
+                >
                   {saving ? "Сохранение…" : "Сохранить"}
                 </Button>
               </div>
@@ -651,11 +801,21 @@ function EffectSlider({
 }) {
   return (
     <div className="space-y-[8px]">
-      <div className="flex items-center justify-between text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+      <div
+        className="flex items-center justify-between text-[12px] font-medium"
+        style={{ color: "var(--foreground-70)" }}
+      >
         <span>{label}</span>
         <span>{value > 0 ? `+${value}` : value}</span>
       </div>
-      <Slider value={[value]} min={-100} max={100} step={1} onValueChange={([v]) => onChange(v)} disabled={disabled} />
+      <Slider
+        value={[value]}
+        min={-100}
+        max={100}
+        step={1}
+        onValueChange={([v]) => onChange(v)}
+        disabled={disabled}
+      />
     </div>
   );
 }
