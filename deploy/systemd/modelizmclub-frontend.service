@@ -10,12 +10,21 @@ WorkingDirectory=/var/www/modelizmclub/frontend
 Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=HOST=127.0.0.1
-ExecStart=/usr/bin/node .output/server/index.mjs
+# srvx waits this many seconds for in-flight requests before destroying the
+# rest; server-graceful.mjs then guarantees the process actually exits.
+Environment=SERVER_SHUTDOWN_TIMEOUT=5
+Environment=SHUTDOWN_DEADLINE_MS=8000
+ExecStart=/usr/bin/node --import ./server-graceful.mjs .output/server/index.mjs
 # A started process is not a working site: block the unit from reporting
 # success until it actually answers, so `systemctl restart` fails loudly
 # instead of leaving a dead app marked active.
 ExecStartPost=/bin/sh -c 'for i in $(seq 1 30); do curl -fsS -o /dev/null --max-time 5 http://127.0.0.1:3000/ && exit 0; sleep 2; done; exit 1'
 TimeoutStartSec=120
+# The stop path is bounded by the two settings above (5s drain + 8s deadline).
+# systemd's default of 90s is what turned a hung shutdown into a 90-second 502
+# during the 04.09 deploy.
+TimeoutStopSec=15
+KillMode=mixed
 Restart=on-failure
 RestartSec=5
 

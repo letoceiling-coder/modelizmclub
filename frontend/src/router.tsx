@@ -5,11 +5,18 @@ import { routeTree } from "./routeTree.gen";
 import { setSessionQueryClient } from "@/lib/session/queryClient";
 
 export const getRouter = () => {
+  // On the server every request gets its own client that is thrown away right
+  // after dehydration, but each query still arms a gc timer for its gcTime.
+  // Those timers hold the event loop open, so a 30-minute gcTime kept the
+  // process alive for half an hour after SIGTERM and systemd had to SIGKILL it
+  // mid-deploy. The browser is where a long gcTime actually pays off.
+  const isServer = typeof window === "undefined";
+
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 5 * 60_000,
-        gcTime: 30 * 60_000,
+        gcTime: isServer ? 1_000 : 30 * 60_000,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
         retry: 1,
@@ -19,7 +26,7 @@ export const getRouter = () => {
 
   // Guards and imperative session helpers run outside React — hand them the
   // same client the provider uses. Client only: SSR gets a client per request.
-  if (typeof window !== "undefined") setSessionQueryClient(queryClient);
+  if (!isServer) setSessionQueryClient(queryClient);
 
   const router = createRouter({
     routeTree,
