@@ -5,21 +5,38 @@ import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category } from "@/lib/mock";
-import { fetchListingCategories, fetchPostCategories, mapCategorySelectionByName } from "@/lib/api/categories";
+import {
+  fetchListingCategories,
+  fetchPostCategories,
+  mapCategorySelectionByName,
+} from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { PickupAddressField, rememberPickupAddress } from "@/components/ads/PickupAddressField";
 import { uploadMediaDeduped } from "@/lib/api/media";
 import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
-import { fetchPlacementQuote, formatQuoteRub, type PlacementQuote } from "@/lib/api/listing-placement";
+import {
+  fetchPlacementQuote,
+  formatQuoteRub,
+  type PlacementQuote,
+} from "@/lib/api/listing-placement";
 import { createListingPlacementPayment, type PayWith } from "@/lib/api/payment";
 import { PaymentSourceDialog } from "@/components/billing/PaymentSourceDialog";
 import { ApiError } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { firstFieldError, MAX_LISTING_PRICE_RUB, priceRubToCents } from "@/lib/api/validationErrors";
+import {
+  firstFieldError,
+  MAX_LISTING_PRICE_RUB,
+  priceRubToCents,
+} from "@/lib/api/validationErrors";
 import { isInsufficientFunds } from "@/lib/api/wallet";
 import { notifyBillingChanged } from "@/lib/billing-events";
-import { getFeatureFlags, loadFeatureFlagsFromServer, useFeatureFlag, useFeatureFlagsHydrated } from "@/lib/config/featureFlags";
+import {
+  getFeatureFlags,
+  loadFeatureFlagsFromServer,
+  useFeatureFlag,
+  useFeatureFlagsHydrated,
+} from "@/lib/config/featureFlags";
 import { StepIndicator } from "@/components/ads/wizard/StepIndicator";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
@@ -42,8 +59,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  ChevronLeft, ChevronRight, Tag,
-  MapPin, Truck, Loader2, Phone, CircleHelp,
+  ChevronLeft,
+  ChevronRight,
+  Tag,
+  MapPin,
+  Truck,
+  Loader2,
+  Phone,
+  CircleHelp,
 } from "lucide-react";
 import { fetchMe } from "@/lib/api/auth";
 import { sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
@@ -77,15 +100,24 @@ const PHOTOS_REQUIRED_KEYS = {
   description: "pages.adsNew.photoRequiredDesc",
 } as const;
 
-function notifyPhotosRequired(setStep: (fn: (s: number) => number) => void, tr: (key: string) => string) {
-  toast.error(tr(PHOTOS_REQUIRED_KEYS.title), { description: tr(PHOTOS_REQUIRED_KEYS.description) });
+function notifyPhotosRequired(
+  setStep: (fn: (s: number) => number) => void,
+  tr: (key: string) => string,
+) {
+  toast.error(tr(PHOTOS_REQUIRED_KEYS.title), {
+    description: tr(PHOTOS_REQUIRED_KEYS.description),
+  });
   setStep(() => 1);
 }
 
 function hasListingPhotos(form: Form): boolean {
   return form.photoItems.length > 0;
 }
-const STEPS_KEYS = ["pages.adsNew.stepPhoto", "pages.adsNew.stepData", "pages.adsNew.stepPreview"] as const;
+const STEPS_KEYS = [
+  "pages.adsNew.stepPhoto",
+  "pages.adsNew.stepData",
+  "pages.adsNew.stepPreview",
+] as const;
 
 type PhotoItem = {
   id: string;
@@ -94,7 +126,10 @@ type PhotoItem = {
   mediaId?: string;
 };
 
-function listingCategoryPath(cats: Category[], leafId: string): { l1: string; l2: string; l3: string } {
+function listingCategoryPath(
+  cats: Category[],
+  leafId: string,
+): { l1: string; l2: string; l3: string } {
   for (const c of cats) {
     if (c.id === leafId) return { l1: c.id, l2: "", l3: "" };
     for (const s of c.subcategories) {
@@ -177,7 +212,12 @@ interface Form {
   promocode: string;
 }
 
-function parcelFromForm(form: Pick<Form, "deliveries" | "packageSize" | "weightKg" | "dimL" | "dimW" | "dimH" | "pickupAddress">): {
+function parcelFromForm(
+  form: Pick<
+    Form,
+    "deliveries" | "packageSize" | "weightKg" | "dimL" | "dimW" | "dimH" | "pickupAddress"
+  >,
+): {
   packageSize?: "s" | "m" | "l";
   weightKg?: number;
   dimensionsCm?: { length: number; width: number; height: number };
@@ -185,7 +225,10 @@ function parcelFromForm(form: Pick<Form, "deliveries" | "packageSize" | "weightK
 } {
   const cdek = form.deliveries.some(isCdekDelivery);
   const pickup = form.deliveries.some(isPickupDelivery);
-  const preset = form.packageSize === "s" || form.packageSize === "m" || form.packageSize === "l" ? form.packageSize : undefined;
+  const preset =
+    form.packageSize === "s" || form.packageSize === "m" || form.packageSize === "l"
+      ? form.packageSize
+      : undefined;
   const length = Number(form.dimL);
   const width = Number(form.dimW);
   const height = Number(form.dimH);
@@ -202,8 +245,11 @@ function parcelFromForm(form: Pick<Form, "deliveries" | "packageSize" | "weightK
 function deliveryDetailsValid(form: Form): string | null {
   if (form.deliveries.some(isCdekDelivery)) {
     const preset = form.packageSize === "s" || form.packageSize === "m" || form.packageSize === "l";
-    const custom = Number(form.dimL) > 0 && Number(form.dimW) > 0 && Number(form.dimH) > 0
-      && Number(form.weightKg.replace(",", ".")) > 0;
+    const custom =
+      Number(form.dimL) > 0 &&
+      Number(form.dimW) > 0 &&
+      Number(form.dimH) > 0 &&
+      Number(form.weightKg.replace(",", ".")) > 0;
     if (!preset && !custom) return "Для СДЭК укажите типоразмер S/M/L или габариты и вес посылки.";
   }
   if (form.deliveries.some(isPickupDelivery) && form.pickupAddress.trim().length < 3) {
@@ -280,10 +326,17 @@ function NewAdPage() {
   const currentUser = useCurrentUser();
   const [verifiedPhone, setVerifiedPhone] = useState("");
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<Form>({ ...initial, promocode: promoFromUrl?.toUpperCase() ?? "" });
+  const [form, setForm] = useState<Form>({
+    ...initial,
+    promocode: promoFromUrl?.toUpperCase() ?? "",
+  });
   const [cats, setCats] = useState<Category[]>([]);
   const [listingCats, setListingCats] = useState<Category[]>([]);
-  const [listingPathToMap, setListingPathToMap] = useState<{ categoryId: string; subcategoryId: string; nestedCategoryId: string } | null>(null);
+  const [listingPathToMap, setListingPathToMap] = useState<{
+    categoryId: string;
+    subcategoryId: string;
+    nestedCategoryId: string;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -372,8 +425,12 @@ function NewAdPage() {
         }));
       })
       .catch(() => toast.error(t("pages.adsNew.loadFailed")))
-      .finally(() => { if (alive) setLoadingEdit(false); });
-    return () => { alive = false; };
+      .finally(() => {
+        if (alive) setLoadingEdit(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [editId, t]);
 
   useEffect(() => {
@@ -411,7 +468,10 @@ function NewAdPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const cat = useMemo(() => cats.find((c) => c.id === form.categoryId) ?? cats[0], [cats, form.categoryId]);
+  const cat = useMemo(
+    () => cats.find((c) => c.id === form.categoryId) ?? cats[0],
+    [cats, form.categoryId],
+  );
   const subcategories = cat?.subcategories ?? [];
   const nestedCategories = useMemo(
     () => subcategories.find((s) => s.id === form.subcategoryId)?.children ?? [],
@@ -443,7 +503,12 @@ function NewAdPage() {
       const l2 = cats.find((c) => c.id === path.l1)?.subcategories.find((s) => s.id === path.l2);
       const firstNested = l2?.children?.[0]?.id ?? "";
       const nestedCategoryId = path.l3 || f.nestedCategoryId || firstNested;
-      if (f.categoryId === path.l1 && f.subcategoryId === path.l2 && f.nestedCategoryId === nestedCategoryId) return f;
+      if (
+        f.categoryId === path.l1 &&
+        f.subcategoryId === path.l2 &&
+        f.nestedCategoryId === nestedCategoryId
+      )
+        return f;
       return { ...f, categoryId: path.l1, subcategoryId: path.l2, nestedCategoryId };
     });
   }, [cats, listingCats, editId, listingPathToMap]);
@@ -463,25 +528,43 @@ function NewAdPage() {
       subcategoryId: ids.subcategoryId,
       promocode: form.promocode,
     })
-      .then((q) => { if (alive) setPlacementQuote(q); })
-      .catch(() => { if (alive) setPlacementQuote(null); })
-      .finally(() => { if (alive) setQuoteLoading(false); });
-    return () => { alive = false; };
-  }, [listingPaymentEnabled, editId, step, form.categoryId, form.subcategoryId, form.nestedCategoryId, form.promocode, cats, listingCats]);
+      .then((q) => {
+        if (alive) setPlacementQuote(q);
+      })
+      .catch(() => {
+        if (alive) setPlacementQuote(null);
+      })
+      .finally(() => {
+        if (alive) setQuoteLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [
+    listingPaymentEnabled,
+    editId,
+    step,
+    form.categoryId,
+    form.subcategoryId,
+    form.nestedCategoryId,
+    form.promocode,
+    cats,
+    listingCats,
+  ]);
 
   const valid = useMemo(() => {
     const photosOk = hasListingPhotos(form);
     const dataOk =
-      photosOk
-      && form.title.trim().length >= 4
-      && form.description.trim().length >= 20
-      && form.price
-      && Number(form.categoryId) > 0
-      && (nestedCategories.length === 0 || Boolean(form.nestedCategoryId))
-      && form.city.trim().length >= 2
-      && (form.cityId != null || form.city.trim().length >= 3)
-      && phonesMatch(form.contact, verifiedPhone)
-      && deliveryDetailsValid(form) === null;
+      photosOk &&
+      form.title.trim().length >= 4 &&
+      form.description.trim().length >= 20 &&
+      form.price &&
+      Number(form.categoryId) > 0 &&
+      (nestedCategories.length === 0 || Boolean(form.nestedCategoryId)) &&
+      form.city.trim().length >= 2 &&
+      (form.cityId != null || form.city.trim().length >= 3) &&
+      phonesMatch(form.contact, verifiedPhone) &&
+      deliveryDetailsValid(form) === null;
     if (editId) return dataOk;
     if (step === 1) return photosOk;
     if (step === 2) return dataOk;
@@ -529,7 +612,9 @@ function NewAdPage() {
 
     const priceCents = priceRubToCents(form.price);
     if (priceCents === null) {
-      toast.error(t("pages.adsNew.priceMaxError", { max: MAX_LISTING_PRICE_RUB.toLocaleString("ru-RU") }));
+      toast.error(
+        t("pages.adsNew.priceMaxError", { max: MAX_LISTING_PRICE_RUB.toLocaleString("ru-RU") }),
+      );
       return;
     }
 
@@ -548,7 +633,9 @@ function NewAdPage() {
         }
       }
       if (mediaIds.length === 0) {
-        toast.error(t(PHOTOS_REQUIRED_KEYS.title), { description: t(PHOTOS_REQUIRED_KEYS.description) });
+        toast.error(t(PHOTOS_REQUIRED_KEYS.title), {
+          description: t(PHOTOS_REQUIRED_KEYS.description),
+        });
         setStep(1);
         setSubmitting(false);
         return;
@@ -569,7 +656,8 @@ function NewAdPage() {
           priceCents,
           taxonomyId,
           categoryId,
-          subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+          subcategoryId:
+            subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
           cityId: resolvedCityId,
           deliveryMethods: form.deliveries,
           mediaIds,
@@ -594,7 +682,8 @@ function NewAdPage() {
             quote = await fetchPlacementQuote({
               taxonomyId,
               categoryId,
-              subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+              subcategoryId:
+                subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
               promocode,
             });
             setPlacementQuote(quote);
@@ -623,7 +712,8 @@ function NewAdPage() {
             mediaIds,
             taxonomyId,
             categoryId,
-            subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+            subcategoryId:
+              subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
             cityId: resolvedCityId,
             priceCents,
             promocode,
@@ -647,7 +737,8 @@ function NewAdPage() {
             priceCents,
             taxonomyId,
             categoryId,
-            subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+            subcategoryId:
+              subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
             cityId: resolvedCityId,
             deliveryMethods: form.deliveries,
             mediaIds,
@@ -716,7 +807,9 @@ function NewAdPage() {
         return;
       }
       notifyBillingChanged();
-      toast.success(source === "wallet" ? t("pages.subscription.payWalletPaid") : t("pages.adsNew.paySuccess"));
+      toast.success(
+        source === "wallet" ? t("pages.subscription.payWalletPaid") : t("pages.adsNew.paySuccess"),
+      );
       void navigate({ to: "/my-ads" });
     } catch (err) {
       setSubmitError(true);
@@ -725,14 +818,18 @@ function NewAdPage() {
         void navigate({ to: "/settings/wallet" });
       } else {
         const fallback = t("pages.adsNew.publishFailed");
-        toast.error(err instanceof ApiError ? firstFieldError(err.errors, err.message || fallback) : fallback);
+        toast.error(
+          err instanceof ApiError ? firstFieldError(err.errors, err.message || fallback) : fallback,
+        );
       }
       setSubmitting(false);
     }
   };
 
   const placementPriceLabel = placementQuote
-    ? (placementQuote.is_free ? t("pages.adsNew.free") : `${formatQuoteRub(placementQuote.final_cents)} ₽`)
+    ? placementQuote.is_free
+      ? t("pages.adsNew.free")
+      : `${formatQuoteRub(placementQuote.final_cents)} ₽`
     : "…";
 
   const publishButtonLabel = useMemo(
@@ -754,16 +851,24 @@ function NewAdPage() {
     <AppLayout rightColumn={false}>
       <div className="mx-auto flex max-w-[760px] flex-col gap-[24px] pb-[calc(var(--bottom-nav-space)+88px)] lg:pb-[96px]">
         <header className="space-y-[6px]">
-          <Link to="/ads" className="inline-flex items-center gap-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          <Link
+            to="/ads"
+            className="inline-flex items-center gap-[4px] text-[12px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
             <ChevronLeft size={14} /> {t("pages.adsNew.backToListings")}
           </Link>
-          <h1 className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
-            style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+          <h1
+            className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
+            style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+          >
             {editId ? t("pages.adsNew.editListingTitle") : t("pages.adsNew.newListingTitle")}
           </h1>
           <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
             {listingPaymentEnabled
-              ? (quoteLoading ? t("pages.adsNew.calculatingCost") : t("pages.adsNew.paidPlacement", { price: placementPriceLabel }))
+              ? quoteLoading
+                ? t("pages.adsNew.calculatingCost")
+                : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
               : t("pages.adsNew.freePlacement")}
           </p>
         </header>
@@ -790,43 +895,43 @@ function NewAdPage() {
             />
           </>
         ) : (
-        <ReducedMotionSwitch
-          switchKey={step}
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -12 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {step === 1 && <StepPhotos form={form} set={set} />}
-          {step === 2 && (
-            <StepData
-              form={form}
-              set={set}
-              cat={cat}
-              cats={cats}
-              subcategories={subcategories}
-              touched={touched}
-              touch={touch}
-              verifiedPhone={verifiedPhone}
-              onVerifiedPhone={(phone) => {
-                setVerifiedPhone(phone);
-                set("contact", phone);
-              }}
-            />
-          )}
-          {step === 3 && (
-            <StepPreview
-              form={form}
-              set={set}
-              cat={cat}
-              submitError={submitError}
-              listingPaymentEnabled={listingPaymentEnabled}
-              publishButtonLabel={publishButtonLabel}
-              placementQuote={placementQuote}
-              quoteLoading={quoteLoading}
-            />
-          )}
-        </ReducedMotionSwitch>
+          <ReducedMotionSwitch
+            switchKey={step}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {step === 1 && <StepPhotos form={form} set={set} />}
+            {step === 2 && (
+              <StepData
+                form={form}
+                set={set}
+                cat={cat}
+                cats={cats}
+                subcategories={subcategories}
+                touched={touched}
+                touch={touch}
+                verifiedPhone={verifiedPhone}
+                onVerifiedPhone={(phone) => {
+                  setVerifiedPhone(phone);
+                  set("contact", phone);
+                }}
+              />
+            )}
+            {step === 3 && (
+              <StepPreview
+                form={form}
+                set={set}
+                cat={cat}
+                submitError={submitError}
+                listingPaymentEnabled={listingPaymentEnabled}
+                publishButtonLabel={publishButtonLabel}
+                placementQuote={placementQuote}
+                quoteLoading={quoteLoading}
+              />
+            )}
+          </ReducedMotionSwitch>
         )}
       </div>
 
@@ -864,7 +969,11 @@ function NewAdPage() {
               aria-label={publishButtonLabel}
               className="h-11 w-full shrink-0 rounded-[var(--r-button)] px-4 sm:min-w-[220px] sm:w-auto"
             >
-              {submitting ? (editId ? t("pages.adsNew.saving") : t("pages.adsNew.publishing")) : publishButtonLabel}
+              {submitting
+                ? editId
+                  ? t("pages.adsNew.saving")
+                  : t("pages.adsNew.publishing")
+                : publishButtonLabel}
             </Button>
           ) : (
             <Button
@@ -887,7 +996,9 @@ function NewAdPage() {
 
       <PaymentSourceDialog
         open={pendingPay !== null}
-        onOpenChange={(v) => { if (!v) setPendingPay(null); }}
+        onOpenChange={(v) => {
+          if (!v) setPendingPay(null);
+        }}
         amountRub={pendingPay?.amountRub ?? 0}
         onSelect={(source) => void completePaidListing(source)}
         onTopUp={() => {
@@ -895,16 +1006,12 @@ function NewAdPage() {
           void navigate({ to: "/settings/wallet" });
         }}
       />
-
     </AppLayout>
   );
 }
 
 /* ────────── Photo helpers ────────── */
-function usePhotoGridHandlers(
-  photoItems: PhotoItem[],
-  setPhotoItems: (next: PhotoItem[]) => void,
-) {
+function usePhotoGridHandlers(photoItems: PhotoItem[], setPhotoItems: (next: PhotoItem[]) => void) {
   const photoItemsRef = useRef(photoItems);
   photoItemsRef.current = photoItems;
 
@@ -914,7 +1021,9 @@ function usePhotoGridHandlers(
   const reorderByUrls = (newPhotos: string[]) => {
     const items = photoItemsRef.current;
     const byPreview = new Map(items.map((p) => [p.preview, p]));
-    const next = newPhotos.map((url) => byPreview.get(url)).filter((p): p is PhotoItem => p != null);
+    const next = newPhotos
+      .map((url) => byPreview.get(url))
+      .filter((p): p is PhotoItem => p != null);
     if (next.length === items.length) setPhotoItems(next);
   };
 
@@ -1039,14 +1148,28 @@ function ListingPhotoGrid({
 }
 
 /* ────────── STEP 1: Photos ────────── */
-function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: K, v: Form[K]) => void }) {
+function StepPhotos({
+  form,
+  set,
+}: {
+  form: Form;
+  set: <K extends keyof Form>(k: K, v: Form[K]) => void;
+}) {
   const { t } = useTranslation();
   return (
     <section className="space-y-[16px]">
-      <StepHeading title={t("pages.adsNew.photosHeading")} description={t("pages.adsNew.photosDesc", { max: MAX_PHOTOS })} />
+      <StepHeading
+        title={t("pages.adsNew.photosHeading")}
+        description={t("pages.adsNew.photosDesc", { max: MAX_PHOTOS })}
+      />
       <Card
         className="p-[16px] sm:p-[20px]"
-        style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
+        style={{
+          background: "var(--background-elevated)",
+          borderColor: "var(--border)",
+          borderRadius: "var(--r-card)",
+          boxShadow: "var(--shadow-card)",
+        }}
       >
         <ListingPhotoGrid
           photoItems={form.photoItems}
@@ -1059,7 +1182,16 @@ function StepPhotos({ form, set }: { form: Form; set: <K extends keyof Form>(k: 
 
 /* ────────── STEP 2: Data ────────── */
 function StepData({
-  form, set, cat, cats, subcategories, touched, touch, verifiedPhone, onVerifiedPhone, hidePhotoPreview = false,
+  form,
+  set,
+  cat,
+  cats,
+  subcategories,
+  touched,
+  touch,
+  verifiedPhone,
+  onVerifiedPhone,
+  hidePhotoPreview = false,
 }: {
   form: Form;
   set: <K extends keyof Form>(k: K, v: Form[K]) => void;
@@ -1076,18 +1208,22 @@ function StepData({
   const deliveryMethods = useDeliveryMethods();
   const titleErr = touched.has("title") && form.title.trim().length < 4;
   const conditionOptions = useMemo(
-    () => CONDITIONS.map((c) => ({
-      label: c === "Новое" ? t("pages.myAds.conditionNew") : t("pages.myAds.conditionUsed"),
-      value: c,
-    })),
+    () =>
+      CONDITIONS.map((c) => ({
+        label: c === "Новое" ? t("pages.myAds.conditionNew") : t("pages.myAds.conditionUsed"),
+        value: c,
+      })),
     [t],
   );
   const descErr = touched.has("description") && form.description.trim().length < 20;
   const priceErr = touched.has("price") && !form.price;
-  const cityErr = touched.has("city") && (form.city.trim().length < 2 || (!form.cityId && form.city.trim().length < 3));
+  const cityErr =
+    touched.has("city") &&
+    (form.city.trim().length < 2 || (!form.cityId && form.city.trim().length < 3));
   const contactVerified = phonesMatch(form.contact, verifiedPhone);
   const contactErr = touched.has("contact") && !contactVerified;
-  const nestedCategories = cat?.subcategories.find((s) => s.id === form.subcategoryId)?.children ?? [];
+  const nestedCategories =
+    cat?.subcategories.find((s) => s.id === form.subcategoryId)?.children ?? [];
 
   // Keep the focused field clear of the mobile soft keyboard + the fixed
   // wizard footer: on focus, centre the field in the viewport. Delayed so the
@@ -1113,7 +1249,11 @@ function StepData({
       )}
 
       <Block title={t("pages.adsNew.descriptionBlock")}>
-        <Field label={t("pages.adsNew.titleLabel")} required error={titleErr ? t("pages.adsNew.titleMinError") : undefined}>
+        <Field
+          label={t("pages.adsNew.titleLabel")}
+          required
+          error={titleErr ? t("pages.adsNew.titleMinError") : undefined}
+        >
           <Input
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
@@ -1123,7 +1263,11 @@ function StepData({
             placeholder={t("pages.adsNew.titlePlaceholder")}
           />
         </Field>
-        <Field label={t("pages.adsNew.descLabel")} required error={descErr ? t("pages.adsNew.descMinError") : undefined}>
+        <Field
+          label={t("pages.adsNew.descLabel")}
+          required
+          error={descErr ? t("pages.adsNew.descMinError") : undefined}
+        >
           <Textarea
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
@@ -1136,7 +1280,11 @@ function StepData({
 
       <Block title={t("pages.adsNew.paramsBlock")}>
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label={t("pages.adsNew.priceLabel")} required error={priceErr ? t("pages.adsNew.priceError") : undefined}>
+          <Field
+            label={t("pages.adsNew.priceLabel")}
+            required
+            error={priceErr ? t("pages.adsNew.priceError") : undefined}
+          >
             <Input
               value={form.price}
               onChange={(e) => set("price", e.target.value.replace(/\D/g, "").slice(0, 9))}
@@ -1148,7 +1296,11 @@ function StepData({
             />
           </Field>
           <Field label={t("pages.adsNew.conditionLabel")}>
-            <NativeSelect value={form.condition} onChange={(v) => set("condition", v as AdCondition)} options={conditionOptions} />
+            <NativeSelect
+              value={form.condition}
+              onChange={(v) => set("condition", v as AdCondition)}
+              options={conditionOptions}
+            />
             <p className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
               {t("pages.adsNew.conditionHint")}
             </p>
@@ -1197,7 +1349,11 @@ function StepData({
 
       <Block title={t("pages.adsNew.contactsBlock")}>
         <div className="grid gap-[12px] sm:grid-cols-2">
-          <Field label={t("pages.profile.fieldCity")} required error={cityErr ? t("pages.adsNew.cityError") : undefined}>
+          <Field
+            label={t("pages.profile.fieldCity")}
+            required
+            error={cityErr ? t("pages.adsNew.cityError") : undefined}
+          >
             <CitySelect
               value={form.city}
               cityId={form.cityId}
@@ -1211,7 +1367,8 @@ function StepData({
           </Field>
           <div className="block space-y-[6px]">
             <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
-              {t("pages.adsNew.contactLabel")}<span style={{ color: "var(--accent)" }}> *</span>
+              {t("pages.adsNew.contactLabel")}
+              <span style={{ color: "var(--accent)" }}> *</span>
             </span>
             <ListingContactPhoneField
               value={form.contact}
@@ -1231,9 +1388,15 @@ function StepData({
         <Field label="Способы доставки">
           <div className="space-y-[14px]">
             {(() => {
-              const cdek = deliveryMethods.filter((m) => isCdekDelivery(m.label) || m.id === "cdek");
-              const pickup = deliveryMethods.filter((m) => isPickupDelivery(m.label) || m.id === "pickup");
-              const others = deliveryMethods.filter((m) => !cdek.includes(m) && !pickup.includes(m));
+              const cdek = deliveryMethods.filter(
+                (m) => isCdekDelivery(m.label) || m.id === "cdek",
+              );
+              const pickup = deliveryMethods.filter(
+                (m) => isPickupDelivery(m.label) || m.id === "pickup",
+              );
+              const others = deliveryMethods.filter(
+                (m) => !cdek.includes(m) && !pickup.includes(m),
+              );
               const toggle = (m: { id: string; label: string }) => {
                 const next = toggleDeliveryMethod(form.deliveries, m);
                 set("deliveries", next);
@@ -1262,7 +1425,8 @@ function StepData({
                               </button>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-[260px] text-[12px] leading-snug">
-                              Оплата холдируется до подтверждения получения. Доставка — через ПВЗ СДЭК.
+                              Оплата холдируется до подтверждения получения. Доставка — через ПВЗ
+                              СДЭК.
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1277,7 +1441,10 @@ function StepData({
                         </a>
                       </div>
                       {isDeliveryOn(form.deliveries, m) && (
-                        <div className="ml-[4px] space-y-[10px] rounded-[var(--r-card)] p-[12px]" style={{ background: "var(--background-surface)" }}>
+                        <div
+                          className="ml-[4px] space-y-[10px] rounded-[var(--r-card)] p-[12px]"
+                          style={{ background: "var(--background-surface)" }}
+                        >
                           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
                             Укажите типоразмер или точные габариты — от них считается тариф СДЭК.
                           </p>
@@ -1288,21 +1455,58 @@ function StepData({
                                 type="button"
                                 className="min-h-[40px] rounded-[var(--r-tag)] border px-[14px] text-[13px] font-semibold"
                                 style={{
-                                  borderColor: form.packageSize === size ? "var(--accent)" : "var(--border)",
-                                  background: form.packageSize === size ? "var(--accent-soft)" : "var(--background-elevated)",
-                                  color: form.packageSize === size ? "var(--accent)" : "var(--foreground-70)",
+                                  borderColor:
+                                    form.packageSize === size ? "var(--accent)" : "var(--border)",
+                                  background:
+                                    form.packageSize === size
+                                      ? "var(--accent-soft)"
+                                      : "var(--background-elevated)",
+                                  color:
+                                    form.packageSize === size
+                                      ? "var(--accent)"
+                                      : "var(--foreground-70)",
                                 }}
-                                onClick={() => set("packageSize", form.packageSize === size ? "" : size)}
+                                onClick={() =>
+                                  set("packageSize", form.packageSize === size ? "" : size)
+                                }
                               >
                                 {size.toUpperCase()}
                               </button>
                             ))}
                           </div>
                           <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-4">
-                            <Input value={form.dimL} onChange={(e) => set("dimL", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="Д, см" inputMode="numeric" />
-                            <Input value={form.dimW} onChange={(e) => set("dimW", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="Ш, см" inputMode="numeric" />
-                            <Input value={form.dimH} onChange={(e) => set("dimH", e.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="В, см" inputMode="numeric" />
-                            <Input value={form.weightKg} onChange={(e) => set("weightKg", e.target.value.replace(/[^\d.,]/g, "").slice(0, 6))} placeholder="Вес, кг" inputMode="decimal" />
+                            <Input
+                              value={form.dimL}
+                              onChange={(e) =>
+                                set("dimL", e.target.value.replace(/\D/g, "").slice(0, 3))
+                              }
+                              placeholder="Д, см"
+                              inputMode="numeric"
+                            />
+                            <Input
+                              value={form.dimW}
+                              onChange={(e) =>
+                                set("dimW", e.target.value.replace(/\D/g, "").slice(0, 3))
+                              }
+                              placeholder="Ш, см"
+                              inputMode="numeric"
+                            />
+                            <Input
+                              value={form.dimH}
+                              onChange={(e) =>
+                                set("dimH", e.target.value.replace(/\D/g, "").slice(0, 3))
+                              }
+                              placeholder="В, см"
+                              inputMode="numeric"
+                            />
+                            <Input
+                              value={form.weightKg}
+                              onChange={(e) =>
+                                set("weightKg", e.target.value.replace(/[^\d.,]/g, "").slice(0, 6))
+                              }
+                              placeholder="Вес, кг"
+                              inputMode="decimal"
+                            />
                           </div>
                         </div>
                       )}
@@ -1310,7 +1514,10 @@ function StepData({
                   ))}
                   {others.length > 0 && (
                     <div className="space-y-[8px]">
-                      <p className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                      <p
+                        className="text-[12px] font-medium"
+                        style={{ color: "var(--foreground-70)" }}
+                      >
                         Другие службы (прямая договорённость, без трекинга)
                       </p>
                       <div className="flex flex-wrap gap-[8px]">
@@ -1336,14 +1543,22 @@ function StepData({
                         <Field
                           label="Адрес или ориентир"
                           required
-                          error={form.pickupAddress.trim().length < 3 ? "Укажите адрес или ориентир для самовывоза" : undefined}
+                          error={
+                            form.pickupAddress.trim().length < 3
+                              ? "Укажите адрес или ориентир для самовывоза"
+                              : undefined
+                          }
                         >
                           <PickupAddressField
                             value={form.pickupAddress}
                             onChange={(v) => set("pickupAddress", v)}
                             city={form.city}
                             error={form.pickupAddress.trim().length < 3}
-                            placeholder={form.city.trim() ? `${form.city.trim()}, улица, дом` : "Город, улица, дом"}
+                            placeholder={
+                              form.city.trim()
+                                ? `${form.city.trim()}, улица, дом`
+                                : "Город, улица, дом"
+                            }
                           />
                         </Field>
                       )}
@@ -1385,7 +1600,10 @@ function StepPreview({
 
   return (
     <section className="space-y-[16px]">
-      <StepHeading title={t("pages.adsNew.previewHeading")} description={t("pages.adsNew.previewDesc")} />
+      <StepHeading
+        title={t("pages.adsNew.previewHeading")}
+        description={t("pages.adsNew.previewDesc")}
+      />
 
       {submitError && (
         <Alert variant="error">
@@ -1407,35 +1625,62 @@ function StepPreview({
 
         <Card
           className="space-y-[16px] p-[20px]"
-          style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
+          style={{
+            background: "var(--background-elevated)",
+            borderColor: "var(--border)",
+            borderRadius: "var(--r-card)",
+            boxShadow: "var(--shadow-card)",
+          }}
         >
           <h3 className="font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>
             {form.title || t("pages.adsNew.titleFallback")}
           </h3>
-          <p className="whitespace-pre-line text-[13px] leading-[1.6]" style={{ color: "var(--foreground-90)" }}>
+          <p
+            className="whitespace-pre-line text-[13px] leading-[1.6]"
+            style={{ color: "var(--foreground-90)" }}
+          >
             {form.description || t("pages.adsNew.descFallback")}
           </p>
           <div className="grid gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            <div className="inline-flex items-center gap-[6px]"><MapPin size={14} /> {form.city || "—"}</div>
-            <div className="inline-flex items-center gap-[6px]"><Phone size={14} /> {form.contact || "—"}</div>
-            <div className="inline-flex items-center gap-[6px]"><Truck size={14} /> {form.deliveries.join(", ") || "—"}</div>
-            <div className="inline-flex items-center gap-[6px]"><Tag size={14} /> {form.condition}</div>
+            <div className="inline-flex items-center gap-[6px]">
+              <MapPin size={14} /> {form.city || "—"}
+            </div>
+            <div className="inline-flex items-center gap-[6px]">
+              <Phone size={14} /> {form.contact || "—"}
+            </div>
+            <div className="inline-flex items-center gap-[6px]">
+              <Truck size={14} /> {form.deliveries.join(", ") || "—"}
+            </div>
+            <div className="inline-flex items-center gap-[6px]">
+              <Tag size={14} /> {form.condition}
+            </div>
           </div>
         </Card>
       </div>
 
       <Alert variant="info">
         <AlertDescription>
-          {listingPaymentEnabled ? (
-            quoteLoading ? t("pages.adsNew.calculatingCost") : placementQuote?.is_free
-              ? t("pages.adsNew.moderationNoteFree")
-              : t("pages.adsNew.moderationNotePaid", { price: formatQuoteRub(placementQuote?.final_cents ?? 0) })
-          ) : t("pages.adsNew.moderationNoteDefault")}
+          {listingPaymentEnabled
+            ? quoteLoading
+              ? t("pages.adsNew.calculatingCost")
+              : placementQuote?.is_free
+                ? t("pages.adsNew.moderationNoteFree")
+                : t("pages.adsNew.moderationNotePaid", {
+                    price: formatQuoteRub(placementQuote?.final_cents ?? 0),
+                  })
+            : t("pages.adsNew.moderationNoteDefault")}
         </AlertDescription>
       </Alert>
 
       {listingPaymentEnabled && (
-        <Card className="space-y-[10px] p-[16px]" style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+        <Card
+          className="space-y-[10px] p-[16px]"
+          style={{
+            background: "var(--background-elevated)",
+            borderColor: "var(--border)",
+            borderRadius: "var(--r-card)",
+          }}
+        >
           <label className="grid gap-[6px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
             {t("pages.adsNew.promocodeLabel")}
             <Input
@@ -1446,19 +1691,36 @@ function StepPreview({
             />
           </label>
           {placementQuote?.promocode?.error && (
-            <p className="text-[12px]" style={{ color: "var(--destructive, #c0392b)" }}>{placementQuote.promocode.error}</p>
+            <p className="text-[12px]" style={{ color: "var(--destructive, #c0392b)" }}>
+              {placementQuote.promocode.error}
+            </p>
           )}
           {placementQuote && !quoteLoading && (
             <div className="text-[12px] space-y-[4px]" style={{ color: "var(--foreground-50)" }}>
-              <div>{t("pages.adsNew.basePrice", { price: formatQuoteRub(placementQuote.base_cents) })}</div>
+              <div>
+                {t("pages.adsNew.basePrice", { price: formatQuoteRub(placementQuote.base_cents) })}
+              </div>
               {placementQuote.promo_discount_cents > 0 && (
-                <div>{t("pages.adsNew.promoDiscount", { price: formatQuoteRub(placementQuote.promo_discount_cents) })}</div>
+                <div>
+                  {t("pages.adsNew.promoDiscount", {
+                    price: formatQuoteRub(placementQuote.promo_discount_cents),
+                  })}
+                </div>
               )}
-              {placementQuote.has_active_subscription && placementQuote.free_listings_remaining != null && (
-                <div>{t("pages.adsNew.freeListingsRemaining", { count: placementQuote.free_listings_remaining })}</div>
-              )}
+              {placementQuote.has_active_subscription &&
+                placementQuote.free_listings_remaining != null && (
+                  <div>
+                    {t("pages.adsNew.freeListingsRemaining", {
+                      count: placementQuote.free_listings_remaining,
+                    })}
+                  </div>
+                )}
               {(placementQuote.listing_placement_credits ?? 0) > 0 && (
-                <div>{t("pages.adsNew.listingCreditsRemaining", { count: placementQuote.listing_placement_credits })}</div>
+                <div>
+                  {t("pages.adsNew.listingCreditsRemaining", {
+                    count: placementQuote.listing_placement_credits,
+                  })}
+                </div>
               )}
             </div>
           )}
@@ -1472,10 +1734,15 @@ function StepPreview({
 function StepHeading({ title, description }: { title: string; description: string }) {
   return (
     <div>
-      <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+      <h2
+        className="font-display text-[20px] font-bold"
+        style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+      >
         {title}
       </h2>
-      <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>{description}</p>
+      <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+        {description}
+      </p>
     </div>
   );
 }
@@ -1579,7 +1846,9 @@ function ListingContactPhoneField({
       />
       {locked ? (
         <div className="flex flex-wrap items-center gap-[8px]">
-          <Badge variant="published" withIcon={false}>{t("pages.adsNew.contactVerifiedBadge")}</Badge>
+          <Badge variant="published" withIcon={false}>
+            {t("pages.adsNew.contactVerifiedBadge")}
+          </Badge>
           <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
             {t("pages.adsNew.contactFromProfile")}
           </span>
@@ -1602,7 +1871,9 @@ function ListingContactPhoneField({
               type="button"
               variant="outline"
               className="h-10"
-              disabled={smsSending || smsCooldown > 0 || phoneDigits(value).length !== 11 || verified}
+              disabled={
+                smsSending || smsCooldown > 0 || phoneDigits(value).length !== 11 || verified
+              }
               onClick={() => void sendSms()}
             >
               {smsSending && <Loader2 size={14} className="mr-[6px] animate-spin" />}
@@ -1648,23 +1919,47 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   return (
     <Card
       className="space-y-[14px] p-[16px] sm:p-[20px]"
-      style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-card)" }}
+      style={{
+        background: "var(--background-elevated)",
+        borderColor: "var(--border)",
+        borderRadius: "var(--r-card)",
+        boxShadow: "var(--shadow-card)",
+      }}
     >
-      <h3 className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>{title}</h3>
+      <h3
+        className="text-[12px] font-semibold uppercase tracking-wider"
+        style={{ color: "var(--foreground-50)" }}
+      >
+        {title}
+      </h3>
       <div className="space-y-[12px]">{children}</div>
     </Card>
   );
 }
 
-function Field({ label, children, required, error }: { label: string; children: React.ReactNode; required?: boolean; error?: string }) {
+function Field({
+  label,
+  children,
+  required,
+  error,
+}: {
+  label: string;
+  children: React.ReactNode;
+  required?: boolean;
+  error?: string;
+}) {
   return (
     <label className="block space-y-[6px]">
       <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
-        {label}{required && <span style={{ color: "var(--accent)" }}> *</span>}
+        {label}
+        {required && <span style={{ color: "var(--accent)" }}> *</span>}
       </span>
       {children}
-      {error && <span className="block text-[11px] font-medium" style={{ color: "var(--danger)" }}>{error}</span>}
+      {error && (
+        <span className="block text-[11px] font-medium" style={{ color: "var(--danger)" }}>
+          {error}
+        </span>
+      )}
     </label>
   );
 }
-

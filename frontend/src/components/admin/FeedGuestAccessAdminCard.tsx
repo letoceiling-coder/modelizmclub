@@ -48,7 +48,9 @@ function ActionRow({
 }: {
   item: FeedGuestAccessRegistryItem;
   config: FeedGuestAccessConfig;
-  onChange: (patch: Partial<{ min_tier: AccessTier; deny_mode: "inherit" | "popup" | "redirect" }>) => void;
+  onChange: (
+    patch: Partial<{ min_tier: AccessTier; deny_mode: "inherit" | "popup" | "redirect" }>,
+  ) => void;
 }) {
   const { t } = useTranslation();
   const fallbackTier = item.default_min_tier ?? (item.default_allowed ? "guest" : "auth");
@@ -65,9 +67,15 @@ function ActionRow({
       style={{ borderColor: "var(--border)" }}
     >
       <div className="min-w-0">
-        <div className="text-[13.5px] font-semibold" style={{ color: "var(--foreground)" }}>{item.label}</div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{item.hint}</div>
-        <code className="mt-1 block text-[11px]" style={{ color: "var(--foreground-30)" }}>{item.key}</code>
+        <div className="text-[13.5px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {item.label}
+        </div>
+        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          {item.hint}
+        </div>
+        <code className="mt-1 block text-[11px]" style={{ color: "var(--foreground-30)" }}>
+          {item.key}
+        </code>
       </div>
       <select
         value={minTier}
@@ -81,7 +89,9 @@ function ActionRow({
       </select>
       <select
         value={current.deny_mode}
-        onChange={(e) => onChange({ deny_mode: e.target.value as "inherit" | "popup" | "redirect" })}
+        onChange={(e) =>
+          onChange({ deny_mode: e.target.value as "inherit" | "popup" | "redirect" })
+        }
         disabled={minTier === "guest"}
         style={{ ...inputStyle, width: 160, opacity: minTier === "guest" ? 0.5 : 1 }}
       >
@@ -122,10 +132,17 @@ export function FeedGuestAccessAdminCard() {
     return map;
   }, [registry]);
 
-  const patchAction = (key: string, patch: Partial<{ min_tier: AccessTier; deny_mode: "inherit" | "popup" | "redirect" }>) => {
+  const patchAction = (
+    key: string,
+    patch: Partial<{ min_tier: AccessTier; deny_mode: "inherit" | "popup" | "redirect" }>,
+  ) => {
     setConfig((prev) => {
       if (!prev) return prev;
-      const current = prev.actions[key] ?? { min_tier: "auth" as const, allowed: false, deny_mode: "inherit" as const };
+      const current = prev.actions[key] ?? {
+        min_tier: "auth" as const,
+        allowed: false,
+        deny_mode: "inherit" as const,
+      };
       const next = { ...current, ...patch };
       if (patch.min_tier) next.allowed = patch.min_tier === "guest";
       return {
@@ -155,20 +172,31 @@ export function FeedGuestAccessAdminCard() {
   };
 
   if (loading || !config) {
-    return <p className="text-sm" style={{ color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>;
+    return (
+      <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
+        {t("pages.adminCommon.loading")}
+      </p>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>{t("pages.adminFeedGuestAccess.title")}</h2>
+        <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+          {t("pages.adminFeedGuestAccess.title")}
+        </h2>
         <p className="mt-1 text-sm" style={{ color: "var(--foreground-50)" }}>
           {t("pages.adminFeedGuestAccess.subtitle")}
         </p>
       </div>
 
-      <div className="rounded-[var(--r-card)] border p-4" style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}>
-        <h3 className="mb-3 text-sm font-semibold">{t("pages.adminFeedGuestAccess.denyBehaviorTitle")}</h3>
+      <div
+        className="rounded-[var(--r-card)] border p-4"
+        style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+      >
+        <h3 className="mb-3 text-sm font-semibold">
+          {t("pages.adminFeedGuestAccess.denyBehaviorTitle")}
+        </h3>
         <div className="grid gap-3 lg:grid-cols-2">
           <label className="flex items-center gap-2 text-[13px]">
             <input
@@ -195,7 +223,9 @@ export function FeedGuestAccessAdminCard() {
             <input
               style={{ ...inputStyle, marginTop: 6 }}
               value={config.popup.title}
-              onChange={(e) => setConfig({ ...config, popup: { ...config.popup, title: e.target.value } })}
+              onChange={(e) =>
+                setConfig({ ...config, popup: { ...config.popup, title: e.target.value } })
+              }
             />
           </label>
           <label className="block text-[12px]" style={{ color: "var(--foreground-70)" }}>
@@ -203,22 +233,33 @@ export function FeedGuestAccessAdminCard() {
             <input
               style={{ ...inputStyle, marginTop: 6 }}
               value={config.popup.primary_cta}
-              onChange={(e) => setConfig({ ...config, popup: { ...config.popup, primary_cta: e.target.value } })}
+              onChange={(e) =>
+                setConfig({ ...config, popup: { ...config.popup, primary_cta: e.target.value } })
+              }
             />
           </label>
-          <label className="block text-[12px] lg:col-span-2" style={{ color: "var(--foreground-70)" }}>
+          <label
+            className="block text-[12px] lg:col-span-2"
+            style={{ color: "var(--foreground-70)" }}
+          >
             {t("pages.adminFeedGuestAccess.popupTextLabel")}
             <textarea
               style={{ ...textareaStyle, marginTop: 6 }}
               value={config.popup.description}
-              onChange={(e) => setConfig({ ...config, popup: { ...config.popup, description: e.target.value } })}
+              onChange={(e) =>
+                setConfig({ ...config, popup: { ...config.popup, description: e.target.value } })
+              }
             />
           </label>
         </div>
       </div>
 
       {[...grouped.entries()].map(([group, items]) => (
-        <div key={group} className="rounded-[var(--r-card)] border p-4" style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}>
+        <div
+          key={group}
+          className="rounded-[var(--r-card)] border p-4"
+          style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+        >
           <h3 className="mb-2 text-sm font-semibold">{groupLabels[group] ?? group}</h3>
           <div
             className="mb-1 hidden gap-3 text-[11px] font-medium uppercase tracking-wide lg:grid lg:grid-cols-[1fr_auto_auto]"
@@ -240,7 +281,9 @@ export function FeedGuestAccessAdminCard() {
       ))}
 
       <button type="button" style={primaryBtn} disabled={saving} onClick={() => void save()}>
-        {saving ? t("pages.adminFeedGuestAccess.saving") : t("pages.adminFeedGuestAccess.saveButton")}
+        {saving
+          ? t("pages.adminFeedGuestAccess.saving")
+          : t("pages.adminFeedGuestAccess.saveButton")}
       </button>
     </div>
   );

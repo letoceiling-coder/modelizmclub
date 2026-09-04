@@ -127,11 +127,7 @@ function unwrapFriendRequestPayload(res: unknown): ApiFriendRequest {
     throw new ApiError(502, "Сервер вернул некорректный ответ при отправке заявки");
   }
   const root = res as Record<string, unknown>;
-  const data = (
-    root.data && typeof root.data === "object"
-      ? root.data
-      : res
-  ) as ApiFriendRequest;
+  const data = (root.data && typeof root.data === "object" ? root.data : res) as ApiFriendRequest;
   if (typeof data.id !== "number" || typeof data.status !== "string") {
     throw new ApiError(502, "Сервер вернул некорректный ответ при отправке заявки");
   }

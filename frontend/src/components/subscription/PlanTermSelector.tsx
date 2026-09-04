@@ -91,10 +91,20 @@ export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTe
 
         <div className="mt-[20px] text-center">
           <div className="flex items-baseline justify-center gap-[8px]">
-            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 40, letterSpacing: "-0.025em", color: "var(--foreground)" }}>
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize: 40,
+                letterSpacing: "-0.025em",
+                color: "var(--foreground)",
+              }}
+            >
               {selected.price} ₽
             </span>
-            <span className="text-[14px]" style={{ color: "var(--foreground-50)" }}>/ {selected.period}</span>
+            <span className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
+              / {selected.period}
+            </span>
           </div>
           <div className="mt-[8px] flex min-h-[24px] items-center justify-center">
             {selected.savings && <SavingsBadge text={selected.savings} />}
@@ -107,7 +117,9 @@ export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTe
 
       {/* ===== Desktop: all plans open at once ===== */}
       <div className="hidden md:block">
-        <div className={`grid gap-[16px] ${plans.length <= 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"}`}>
+        <div
+          className={`grid gap-[16px] ${plans.length <= 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"}`}
+        >
           {plans.map((p) => (
             <div
               key={p.id}
@@ -122,12 +134,24 @@ export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTe
                   <BestBadge />
                 </div>
               )}
-              <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{p.name}</div>
+              <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+                {p.name}
+              </div>
               <div className="mt-[14px] flex items-baseline gap-[6px]">
-                <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, letterSpacing: "-0.025em", color: "var(--foreground)" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 800,
+                    fontSize: 34,
+                    letterSpacing: "-0.025em",
+                    color: "var(--foreground)",
+                  }}
+                >
                   {p.price} ₽
                 </span>
-                <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>/ {p.period}</span>
+                <span className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                  / {p.period}
+                </span>
               </div>
               <div className="mt-[8px] flex min-h-[24px] items-center justify-center">
                 {p.savings && <SavingsBadge text={p.savings} />}
@@ -167,7 +191,10 @@ function BestBadge() {
 
 function SavingsBadge({ text }: { text: string }) {
   return (
-    <span className="inline-flex rounded-full px-[10px] py-[3px] text-[12px] font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+    <span
+      className="inline-flex rounded-full px-[10px] py-[3px] text-[12px] font-bold"
+      style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+    >
       {text}
     </span>
   );
@@ -190,7 +217,11 @@ function FeatureList({
   return (
     <ul className={`space-y-[10px] ${center ? "mx-auto" : ""} ${className ?? ""}`}>
       {items.map((f) => (
-        <li key={f} className="flex items-start gap-[10px] text-[14px]" style={{ color: "var(--foreground-70)" }}>
+        <li
+          key={f}
+          className="flex items-start gap-[10px] text-[14px]"
+          style={{ color: "var(--foreground-70)" }}
+        >
           <Check size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
           <span>{f}</span>
         </li>

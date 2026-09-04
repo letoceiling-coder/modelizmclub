@@ -14,12 +14,24 @@ const SKELETON_ROWS = 6;
 function ParticipantSkeleton() {
   return (
     <div className="flex animate-pulse items-center gap-[12px] rounded-[12px] px-[10px] py-[8px]">
-      <div className="h-[40px] w-[40px] shrink-0 rounded-full" style={{ background: "var(--background-surface)" }} />
+      <div
+        className="h-[40px] w-[40px] shrink-0 rounded-full"
+        style={{ background: "var(--background-surface)" }}
+      />
       <div className="min-w-0 flex-1 space-y-[6px]">
-        <div className="h-[14px] w-[58%] rounded-[6px]" style={{ background: "var(--background-surface)" }} />
-        <div className="h-[12px] w-[36%] rounded-[6px]" style={{ background: "var(--background-surface)" }} />
+        <div
+          className="h-[14px] w-[58%] rounded-[6px]"
+          style={{ background: "var(--background-surface)" }}
+        />
+        <div
+          className="h-[12px] w-[36%] rounded-[6px]"
+          style={{ background: "var(--background-surface)" }}
+        />
       </div>
-      <div className="h-[22px] w-[22px] shrink-0 rounded-full" style={{ border: "2px solid var(--border)" }} />
+      <div
+        className="h-[22px] w-[22px] shrink-0 rounded-full"
+        style={{ border: "2px solid var(--border)" }}
+      />
     </div>
   );
 }
@@ -94,7 +106,10 @@ export function GroupCallInviteDialog() {
   const list = useMemo(() => {
     const ql = q.trim().toLowerCase();
     let base: User[];
-    if (ql) base = all.filter((u) => u.name.toLowerCase().includes(ql) || (u.interests ?? "").toLowerCase().includes(ql));
+    if (ql)
+      base = all.filter(
+        (u) => u.name.toLowerCase().includes(ql) || (u.interests ?? "").toLowerCase().includes(ql),
+      );
     else if (tab === "online") base = [...friends, ...all].filter((u) => onlineMap.get(u.id));
     else base = friends.length ? friends : all;
     const seen = new Set<string>();
@@ -162,11 +177,20 @@ export function GroupCallInviteDialog() {
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between px-[18px] pb-[12px] pt-[16px]">
               <div className="flex items-center gap-[10px]">
-                <span className="grid h-[34px] w-[34px] place-items-center rounded-full" style={{ background: "color-mix(in oklab, var(--accent) 18%, transparent)", color: "var(--accent)" }}>
+                <span
+                  className="grid h-[34px] w-[34px] place-items-center rounded-full"
+                  style={{
+                    background: "color-mix(in oklab, var(--accent) 18%, transparent)",
+                    color: "var(--accent)",
+                  }}
+                >
                   <Users size={18} />
                 </span>
                 <div>
-                  <div className="font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>
+                  <div
+                    className="font-display text-[16px] font-bold"
+                    style={{ color: "var(--foreground)" }}
+                  >
                     {isInvite ? "Пригласить в звонок" : "Групповой звонок"}
                   </div>
                   <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
@@ -174,7 +198,13 @@ export function GroupCallInviteDialog() {
                   </div>
                 </div>
               </div>
-              <button type="button" onClick={() => groupCalls.closePicker()} className="grid h-[32px] w-[32px] place-items-center rounded-full hover:bg-[var(--background-surface)]" style={{ color: "var(--foreground-50)" }} aria-label="Закрыть">
+              <button
+                type="button"
+                onClick={() => groupCalls.closePicker()}
+                className="grid h-[32px] w-[32px] place-items-center rounded-full hover:bg-[var(--background-surface)]"
+                style={{ color: "var(--foreground-50)" }}
+                aria-label="Закрыть"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -182,8 +212,22 @@ export function GroupCallInviteDialog() {
             {/* Selected chips — fixed height so list below doesn't jump */}
             <div className="flex min-h-[44px] shrink-0 flex-wrap items-center gap-[6px] px-[18px] pb-[10px]">
               {selectedUsers.map((u) => (
-                <button key={u.id} type="button" onClick={() => toggle(u.id)} className="inline-flex items-center gap-[6px] rounded-full py-[4px] pl-[4px] pr-[10px] text-[12px]" style={{ background: "var(--background-surface)", color: "var(--foreground)" }}>
-                  <img src={u.avatar} width={20} height={20} loading="lazy" decoding="async" alt="" className="h-[20px] w-[20px] rounded-full object-cover" />
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => toggle(u.id)}
+                  className="inline-flex items-center gap-[6px] rounded-full py-[4px] pl-[4px] pr-[10px] text-[12px]"
+                  style={{ background: "var(--background-surface)", color: "var(--foreground)" }}
+                >
+                  <img
+                    src={u.avatar}
+                    width={20}
+                    height={20}
+                    loading="lazy"
+                    decoding="async"
+                    alt=""
+                    className="h-[20px] w-[20px] rounded-full object-cover"
+                  />
                   {u.name}
                   <X size={12} style={{ color: "var(--foreground-50)" }} />
                 </button>
@@ -208,15 +252,31 @@ export function GroupCallInviteDialog() {
               ))}
             </div>
             <div className="relative shrink-0 px-[18px] pt-[10px]">
-              <Search className="pointer-events-none absolute left-[30px] top-1/2 -translate-y-1/2" size={15} style={{ color: "var(--foreground-50)" }} />
+              <Search
+                className="pointer-events-none absolute left-[30px] top-1/2 -translate-y-1/2"
+                size={15}
+                style={{ color: "var(--foreground-50)" }}
+              />
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Поиск людей"
                 className="w-full text-[14px] outline-none"
-                style={{ height: 38, paddingLeft: 30, paddingRight: 12, background: "var(--background-surface)", borderRadius: 10, border: "1.5px solid transparent", color: "var(--foreground)" }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
+                style={{
+                  height: 38,
+                  paddingLeft: 30,
+                  paddingRight: 12,
+                  background: "var(--background-surface)",
+                  borderRadius: 10,
+                  border: "1.5px solid transparent",
+                  color: "var(--foreground)",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "var(--accent)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "transparent";
+                }}
               />
             </div>
 
@@ -229,7 +289,10 @@ export function GroupCallInviteDialog() {
                   ))}
                 </div>
               ) : list.length === 0 ? (
-                <div className="flex h-full min-h-[200px] items-center justify-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                <div
+                  className="flex h-full min-h-[200px] items-center justify-center text-[13px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
                   Никого не найдено
                 </div>
               ) : (
@@ -244,14 +307,49 @@ export function GroupCallInviteDialog() {
                       className="flex w-full items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                     >
                       <span className="relative shrink-0">
-                        <img src={u.avatar} width={40} height={40} loading="lazy" decoding="async" alt="" className="h-[40px] w-[40px] rounded-full object-cover" />
-                        {on && <span className="absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full" style={{ background: "var(--success)", border: "2px solid var(--background-elevated)" }} />}
+                        <img
+                          src={u.avatar}
+                          width={40}
+                          height={40}
+                          loading="lazy"
+                          decoding="async"
+                          alt=""
+                          className="h-[40px] w-[40px] rounded-full object-cover"
+                        />
+                        {on && (
+                          <span
+                            className="absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full"
+                            style={{
+                              background: "var(--success)",
+                              border: "2px solid var(--background-elevated)",
+                            }}
+                          />
+                        )}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{u.name}</span>
-                        {u.city && <span className="block truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{u.city}</span>}
+                        <span
+                          className="block truncate text-[14px] font-medium"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          {u.name}
+                        </span>
+                        {u.city && (
+                          <span
+                            className="block truncate text-[12px]"
+                            style={{ color: "var(--foreground-50)" }}
+                          >
+                            {u.city}
+                          </span>
+                        )}
                       </span>
-                      <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full" style={{ background: checked ? "var(--accent)" : "transparent", border: checked ? "none" : "2px solid var(--border)", color: "white" }}>
+                      <span
+                        className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full"
+                        style={{
+                          background: checked ? "var(--accent)" : "transparent",
+                          border: checked ? "none" : "2px solid var(--border)",
+                          color: "white",
+                        }}
+                      >
                         {checked && <Check size={14} />}
                       </span>
                     </button>
@@ -261,13 +359,37 @@ export function GroupCallInviteDialog() {
             </div>
 
             {/* Footer */}
-            <div className="flex shrink-0 items-center gap-[10px] border-t px-[18px] py-[12px]" style={{ borderColor: "var(--border)" }}>
+            <div
+              className="flex shrink-0 items-center gap-[10px] border-t px-[18px] py-[12px]"
+              style={{ borderColor: "var(--border)" }}
+            >
               {!isInvite && (
-                <div className="flex items-center gap-[4px] rounded-full p-[3px]" style={{ background: "var(--background-surface)" }}>
-                  <button type="button" onClick={() => setMedia("video")} className="grid h-[30px] w-[34px] place-items-center rounded-full" style={{ background: media === "video" ? "var(--accent)" : "transparent", color: media === "video" ? "white" : "var(--foreground-50)" }} aria-label="Видео">
+                <div
+                  className="flex items-center gap-[4px] rounded-full p-[3px]"
+                  style={{ background: "var(--background-surface)" }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setMedia("video")}
+                    className="grid h-[30px] w-[34px] place-items-center rounded-full"
+                    style={{
+                      background: media === "video" ? "var(--accent)" : "transparent",
+                      color: media === "video" ? "white" : "var(--foreground-50)",
+                    }}
+                    aria-label="Видео"
+                  >
                     <Video size={16} />
                   </button>
-                  <button type="button" onClick={() => setMedia("audio")} className="grid h-[30px] w-[34px] place-items-center rounded-full" style={{ background: media === "audio" ? "var(--accent)" : "transparent", color: media === "audio" ? "white" : "var(--foreground-50)" }} aria-label="Только звук">
+                  <button
+                    type="button"
+                    onClick={() => setMedia("audio")}
+                    className="grid h-[30px] w-[34px] place-items-center rounded-full"
+                    style={{
+                      background: media === "audio" ? "var(--accent)" : "transparent",
+                      color: media === "audio" ? "white" : "var(--foreground-50)",
+                    }}
+                    aria-label="Только звук"
+                  >
                     <Phone size={16} />
                   </button>
                 </div>
@@ -277,9 +399,15 @@ export function GroupCallInviteDialog() {
                 disabled={selected.size === 0}
                 onClick={confirm}
                 className="flex-1 rounded-[10px] py-[11px] text-center text-[14px] font-semibold transition-opacity"
-                style={{ background: "var(--accent)", color: "white", opacity: selected.size === 0 ? 0.5 : 1 }}
+                style={{
+                  background: "var(--accent)",
+                  color: "white",
+                  opacity: selected.size === 0 ? 0.5 : 1,
+                }}
               >
-                {isInvite ? `Пригласить${selected.size ? ` (${selected.size})` : ""}` : `Начать звонок${selected.size ? ` (${selected.size})` : ""}`}
+                {isInvite
+                  ? `Пригласить${selected.size ? ` (${selected.size})` : ""}`
+                  : `Начать звонок${selected.size ? ` (${selected.size})` : ""}`}
               </button>
             </div>
           </motion.div>

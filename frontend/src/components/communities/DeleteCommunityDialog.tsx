@@ -41,7 +41,11 @@ export function DeleteCommunityDialog({ slug, name, onDeleted, compact }: Props)
         variant={compact ? "ghost" : "outline"}
         size={compact ? "sm" : "default"}
         className={compact ? "gap-1.5 text-[13px]" : "gap-2 rounded-[12px]"}
-        style={compact ? { color: "var(--danger, #dc2626)" } : { borderColor: "rgba(239,68,68,0.35)", color: "rgb(185,28,28)" }}
+        style={
+          compact
+            ? { color: "var(--danger, #dc2626)" }
+            : { borderColor: "rgba(239,68,68,0.35)", color: "rgb(185,28,28)" }
+        }
         onClick={() => setOpen(true)}
       >
         <Trash2 size={compact ? 14 : 16} />
@@ -61,19 +65,30 @@ export function DeleteCommunityDialog({ slug, name, onDeleted, compact }: Props)
         style={{ background: "var(--background-elevated)", border: "1px solid var(--border)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="font-display text-[18px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           Удалить сообщество?
         </h3>
         <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-          Это действие необратимо. Сообщество исчезнет из поиска и списков. Чтобы подтвердить, введите название{" "}
-          <span className="font-semibold" style={{ color: "var(--foreground)" }}>{name}</span>.
+          Это действие необратимо. Сообщество исчезнет из поиска и списков. Чтобы подтвердить,
+          введите название{" "}
+          <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+            {name}
+          </span>
+          .
         </p>
         <input
           value={confirmName}
           onChange={(e) => setConfirmName(e.target.value)}
           placeholder={name}
           className="mt-4 h-11 w-full rounded-[10px] border px-3 text-[14px] outline-none"
-          style={{ borderColor: "var(--border)", background: "var(--background-surface)", color: "var(--foreground)" }}
+          style={{
+            borderColor: "var(--border)",
+            background: "var(--background-surface)",
+            color: "var(--foreground)",
+          }}
           autoFocus
         />
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

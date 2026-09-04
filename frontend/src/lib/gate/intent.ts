@@ -22,7 +22,10 @@ const MAX_AGE_MS = 30 * 60_000;
 export function saveIntent(intent: Omit<Intent, "createdAt"> & { createdAt?: number }): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ createdAt: Date.now(), ...intent }));
+    window.sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ createdAt: Date.now(), ...intent }),
+    );
   } catch {
     // Private mode / quota — the in-memory pending action still covers the same-page flow.
   }

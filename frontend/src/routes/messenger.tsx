@@ -1,41 +1,85 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft, Check, CheckCheck, CornerUpLeft, MessageSquare, Pin, MoreHorizontal,
-  Send, Users, X, Plus, Archive, Ban, BellOff, Radio, BadgeCheck, ImageOff,
+  ArrowLeft,
+  Check,
+  CheckCheck,
+  CornerUpLeft,
+  MessageSquare,
+  Pin,
+  MoreHorizontal,
+  Send,
+  Users,
+  X,
+  Plus,
+  Archive,
+  Ban,
+  BellOff,
+  Radio,
+  BadgeCheck,
+  ImageOff,
+  AlertCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, makeMockWaveform } from "@/lib/mock";
 import type { Dialog, Message } from "@/lib/mock";
-import { useStore, actions, selectors, setDialogs, setDialogMessages, mergeDialogMessages, replaceMessage, upsertMessage, GUEST_USER, getState, markOwnMessagesDelivered, markDialogDeleted, restoreDialog, openOrCreateDialogWith } from "@/lib/store";
+import { useStore, actions, GUEST_USER, getState, markDialogDeleted } from "@/lib/store";
+import {
+  useDialogs,
+  useDialogMessages,
+  messengerCache,
+  useVisualViewportInset,
+  rememberDialogScroll,
+  recallDialogScroll,
+  findFirstUnreadMessageId,
+  TAP_TARGET_44,
+  TAP_TARGET_ROW_44,
+} from "@/lib/messenger";
 import { useCurrentUser } from "@/lib/session";
 import {
-  fetchConversations, fetchConversation, fetchMessages, openConversation, sendMessage as apiSendMessage,
-  uploadVoice, sendVoiceMessage as apiSendVoiceMessage,
-  uploadChatAttachment, sendAttachmentMessage,
-  hideMessageForMe, pinMessage as apiPinMessage, deleteConversation, clearConversationHistory,
+  fetchConversation,
+  fetchMessages,
+  openConversation,
+  sendMessage as apiSendMessage,
+  uploadVoice,
+  sendVoiceMessage as apiSendVoiceMessage,
+  uploadChatAttachment,
+  sendAttachmentMessage,
+  hideMessageForMe,
+  pinMessage as apiPinMessage,
+  deleteConversation,
+  clearConversationHistory,
   deleteMessageForEveryone,
 } from "@/lib/api/chat";
-import { chatAttachmentTooLargeMessage, chatAttachmentMessageType, formatChatAttachmentError, prepareChatAttachmentFile, readImageDimensions } from "@/lib/chat-attachments";
+import {
+  chatAttachmentTooLargeMessage,
+  chatAttachmentMessageType,
+  formatChatAttachmentError,
+  prepareChatAttachmentFile,
+  readImageDimensions,
+} from "@/lib/chat-attachments";
 import { isDemoMode } from "@/lib/demo-mode";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { setHubConversation } from "@/lib/realtime/hub";
-import { isEchoConnected, onEchoConnection } from "@/lib/realtime/echo";
+import { onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
+import { GuestSectionStub } from "@/components/access/GuestSectionStub";
 import { ChatMessageSearch } from "@/components/messenger/ChatMessageSearch";
 import { HighlightedText } from "@/components/messenger/HighlightedText";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { AttachmentMenu, type AttachmentKind } from "@/components/messenger/AttachmentMenu";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { MessageFileBubble } from "@/components/messenger/MessageFileBubble";
-import { MessageActionsMenu, type MessageActionsMenuHandle } from "@/components/messenger/MessageActionsMenu";
+import {
+  MessageActionsMenu,
+  type MessageActionsMenuHandle,
+} from "@/components/messenger/MessageActionsMenu";
 import { ForwardDialog } from "@/components/messenger/ForwardDialog";
 import {
   ShareLinkDialog,
@@ -67,32 +111,27 @@ import { formatDate } from "@/lib/format/date";
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
   beforeLoad: async ({ location }) => {
-    const { requireVerified } = await import("@/lib/auth/verification");
-    await requireVerified(location);
+    // Matrix §4: direct messages are a subscriber feature. The rung comes from
+    // the admin's guest-access config; the gate shows exactly one window and
+    // brings the user back here once the missing step is done.
+    const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] =
+      await Promise.all([import("@/lib/gate"), import("@/lib/feed-guest-access/store")]);
+    await loadFeedGuestAccess();
+    await routeGuard(levelFromAccessTier(resolveMinTier("route.messenger")), location);
   },
   validateSearch: (search: Record<string, unknown>): { chat?: string; share?: boolean } => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
-    share: search.share === true || search.share === "1" || search.share === 1,
+    // undefined, а не false: иначе роутер дописывает в адрес ?share=false и
+    // пользователь копирует ссылку с мусорным параметром.
+    share: search.share === true || search.share === "1" || search.share === 1 ? true : undefined,
   }),
   component: MessengerRoute,
   pendingComponent: MessengerPageSkeleton,
 });
 
 function MessengerRoute() {
-  const guestBlocked = useGuestRouteBlocked("route.messenger");
-  if (guestBlocked) {
-    return (
-      <AppLayout>
-        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
-          <GuestSectionStub
-            icon={MessageSquare}
-            title="Чтобы общаться, войдите в аккаунт"
-            description="Личные и категорийные чаты доступны зарегистрированным пользователям."
-          />
-        </div>
-      </AppLayout>
-    );
-  }
+  // Guests never reach this component: routeGuard in beforeLoad opens the
+  // sign-in window and parks them on /feed with the navigation as intent.
   return <MessengerPage />;
 }
 
@@ -101,7 +140,9 @@ type ChatScope = "all" | "direct" | "rooms" | "deals";
 /** Chats split into the three sections of the left panel. */
 function dialogScope(d: Dialog): Exclude<ChatScope, "all"> {
   if (d.type === "room") return "rooms";
-  if (d.listing) return "deals";
+  // Чат сделки — это отдельный тип; личный чат про объявление тоже живёт
+  // во вкладке «Сделок», пока у него нет своей сделки.
+  if (d.type === "deal" || d.listing) return "deals";
   return "direct";
 }
 
@@ -120,11 +161,21 @@ function DialogListSkeleton() {
   return (
     <div className="flex flex-col">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-[12px] border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
+        <div
+          key={i}
+          className="flex items-center gap-[12px] border-b px-[16px] py-[12px]"
+          style={{ borderColor: "var(--border)" }}
+        >
           <Skeleton className="h-[48px] w-[48px] shrink-0 rounded-full" />
           <div className="flex-1 space-y-[8px]">
-            <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${50 + (i * 7) % 30}%` }} />
-            <Skeleton className="h-[12px] rounded-[6px]" style={{ width: `${60 + (i * 11) % 25}%` }} />
+            <Skeleton
+              className="h-[12px] rounded-[6px]"
+              style={{ width: `${50 + ((i * 7) % 30)}%` }}
+            />
+            <Skeleton
+              className="h-[12px] rounded-[6px]"
+              style={{ width: `${60 + ((i * 11) % 25)}%` }}
+            />
           </div>
         </div>
       ))}
@@ -160,9 +211,21 @@ function StatusIcon({ status }: { status?: Message["status"] }) {
   if (!status) return null;
   // sent = one tick, delivered = two muted ticks, read = highlighted two ticks.
   if (status === "sent")
-    return <Check size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label={t("pages.messenger.statusSent")} />;
+    return (
+      <Check
+        size={13}
+        style={{ color: "rgba(255,255,255,0.65)" }}
+        aria-label={t("pages.messenger.statusSent")}
+      />
+    );
   if (status === "delivered")
-    return <CheckCheck size={13} style={{ color: "rgba(255,255,255,0.65)" }} aria-label={t("pages.messenger.statusDelivered")} />;
+    return (
+      <CheckCheck
+        size={13}
+        style={{ color: "rgba(255,255,255,0.65)" }}
+        aria-label={t("pages.messenger.statusDelivered")}
+      />
+    );
   return (
     <CheckCheck
       size={13}
@@ -186,7 +249,10 @@ function fitImageSize(naturalW: number, naturalH: number): { w: number; h: numbe
   };
 }
 
-function resolveImageFrame(naturalWidth?: number, naturalHeight?: number): { w: number; h: number } {
+function resolveImageFrame(
+  naturalWidth?: number,
+  naturalHeight?: number,
+): { w: number; h: number } {
   if (naturalWidth && naturalHeight) return fitImageSize(naturalWidth, naturalHeight);
   return { w: IMAGE_MAX_W, h: IMAGE_MAX_H };
 }
@@ -268,10 +334,7 @@ function MessageImage({
           }}
         >
           {!loaded && (
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              aria-hidden
-            >
+            <div className="absolute inset-0 flex items-center justify-center" aria-hidden>
               <div
                 className="absolute inset-0 animate-pulse"
                 style={{ background: "color-mix(in oklab, var(--foreground) 8%, transparent)" }}
@@ -316,15 +379,31 @@ function ListingMessageCard({ listing }: { listing: NonNullable<Message["listing
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {listing.image ? (
-          <img src={listing.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img
+            src={listing.image}
+            width={52}
+            height={52}
+            loading="lazy"
+            decoding="async"
+            alt=""
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover"
+          />
         ) : (
-          <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
+          <div
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px]"
+            style={{ background: "var(--background-surface)" }}
+          />
         )}
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="text-[10px] uppercase tracking-wide"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {t("pages.messenger.listingLabel")}
           </div>
-          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{listing.title}</div>
+          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+            {listing.title}
+          </div>
           <div className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
             {listing.price.toLocaleString("ru")} ₽
           </div>
@@ -344,17 +423,35 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
     >
       <div className="flex items-center gap-[10px] p-[10px]">
         {post.image ? (
-          <img src={post.image} width={52} height={52} loading="lazy" decoding="async" alt="" className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" />
+          <img
+            src={post.image}
+            width={52}
+            height={52}
+            loading="lazy"
+            decoding="async"
+            alt=""
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover"
+          />
         ) : (
-          <div className="h-[52px] w-[52px] shrink-0 rounded-[10px]" style={{ background: "var(--background-surface)" }} />
+          <div
+            className="h-[52px] w-[52px] shrink-0 rounded-[10px]"
+            style={{ background: "var(--background-surface)" }}
+          />
         )}
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="text-[10px] uppercase tracking-wide"
+            style={{ color: "var(--foreground-50)" }}
+          >
             {t("pages.messenger.postLabel")}
           </div>
-          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{post.title}</div>
+          <div className="truncate text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+            {post.title}
+          </div>
           {post.excerpt && (
-            <div className="truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>{post.excerpt}</div>
+            <div className="truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
+              {post.excerpt}
+            </div>
           )}
         </div>
       </div>
@@ -363,10 +460,23 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
 }
 
 function MessageBubble({
-  msg, prev, allMessages, onReply, onCopy, onForward, onPin, onDelete, onDeleteForEveryone, onReport, onMediaResize,
-  searchHighlightId, searchQuery,
+  msg,
+  prev,
+  allMessages,
+  onReply,
+  onCopy,
+  onForward,
+  onPin,
+  onDelete,
+  onDeleteForEveryone,
+  onReport,
+  onMediaResize,
+  searchHighlightId,
+  searchQuery,
 }: {
-  msg: Message; prev?: Message; allMessages: Message[];
+  msg: Message;
+  prev?: Message;
+  allMessages: Message[];
   onReply: (m: Message) => void;
   onCopy: (m: Message) => void;
   onForward: (m: Message) => void;
@@ -428,7 +538,9 @@ function MessageBubble({
         {/* Hover affordance is desktop-only: on mobile the same menu opens via
             long-press → portal bottom-sheet, so this off-bubble trigger would
             only push the row past the viewport (horizontal overflow). */}
-        <div className={`absolute top-1/2 hidden -translate-y-1/2 sm:block ${isMe ? "-left-[48px]" : "-right-[48px]"}`}>
+        <div
+          className={`absolute top-1/2 hidden -translate-y-1/2 sm:block ${isMe ? "-left-[48px]" : "-right-[48px]"}`}
+        >
           <MessageActionsMenu
             ref={menuRef}
             isMe={isMe}
@@ -449,7 +561,9 @@ function MessageBubble({
             background: isMe ? "var(--accent)" : "var(--background-surface)",
             color: isMe ? "white" : "var(--foreground)",
             borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-            boxShadow: isSearchHit ? "0 0 0 2px var(--accent), 0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent)" : undefined,
+            boxShadow: isSearchHit
+              ? "0 0 0 2px var(--accent), 0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent)"
+              : undefined,
           }}
         >
           {forwardedAuthor && (
@@ -468,7 +582,9 @@ function MessageBubble({
                 color: isMe ? "rgba(255,255,255,0.85)" : "var(--foreground-50)",
               }}
             >
-              <div className="font-semibold">{reply.authorId === meId ? t("pages.shared.you") : replyAuthor?.name}</div>
+              <div className="font-semibold">
+                {reply.authorId === meId ? t("pages.shared.you") : replyAuthor?.name}
+              </div>
               <div className="truncate">{reply.text}</div>
             </div>
           )}
@@ -484,7 +600,10 @@ function MessageBubble({
           {msg.file && <MessageFileBubble file={msg.file} isMe={isMe} />}
           {msg.voice && <VoiceBubble voice={msg.voice} isMe={isMe} onResize={onMediaResize} />}
           {msg.text && (
-            <div className="text-[14px] leading-[1.4]" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>
+            <div
+              className="text-[14px] leading-[1.4]"
+              style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}
+            >
               {isSearchHit && searchQuery ? (
                 <HighlightedText
                   text={msg.text}
@@ -516,7 +635,12 @@ function MessageBubble({
 function MessengerPage() {
   const { t } = useTranslation();
   const { guardAction } = useGuestAccess();
-  const dlgs = useStore(selectors.dialogsList);
+  const {
+    dialogs: dlgs,
+    isPending: loading,
+    error: dialogsError,
+    refetch: refetchDialogs,
+  } = useDialogs();
   const meId = useCurrentUser().id;
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
@@ -535,8 +659,6 @@ function MessengerPage() {
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">(chat ? "chat" : "list");
-  const [loading, setLoading] = useState(true);
-  const [chatLoading, setChatLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
   const [chatScope, setChatScope] = useState<ChatScope>("all");
@@ -549,6 +671,13 @@ function MessengerPage() {
   const stickToBottomRef = useRef(true);
   const sendingRef = useRef(false);
   const openingChatRef = useRef<string | null>(null);
+  // Первое непрочитанное сообщение открытого диалога — под ним рисуется
+  // разделитель, и именно к нему уезжает скролл при открытии.
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  const openAnchorResolvedRef = useRef<string | null>(null);
+  const pendingScrollRestoreRef = useRef<number | null>(null);
+  const scrollMemoryArmedRef = useRef(false);
+  const keyboardInset = useVisualViewportInset();
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;
@@ -560,7 +689,8 @@ function MessengerPage() {
     scrollToBottom("smooth");
   }, [scrollToBottom]);
 
-  const getMeta = (id: string) => dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
+  const getMeta = (id: string) =>
+    dialogMetaMap[id] ?? { archived: false, muted: false, blocked: false };
 
   // Respond to ?chat= search-param changes (e.g. "Написать" from another page).
   // Value is normally a conversation uuid; legacy links may pass a user uuid.
@@ -574,10 +704,10 @@ function MessengerPage() {
     if (!chat) return;
 
     const selectDialog = (dialogId: string, dlg: (typeof dlgs)[number]) => {
-      if (dialogMetaMap[dialogId]?.deletedLocally) restoreDialog(dlg);
+      if (dialogMetaMap[dialogId]?.deletedLocally) messengerCache.restoreDialog(dlg);
       setActiveId(dialogId);
       setMobileView("chat");
-      if (dlg.unread) actions.markRead(dialogId);
+      if (dlg.unread) messengerCache.markRead(dialogId);
     };
 
     const byConversation = dlgs.find((d) => d.id === chat);
@@ -605,17 +735,25 @@ function MessengerPage() {
       try {
         if (isDemoMode()) {
           const partner = userById(chat);
-          const dialogId = openOrCreateDialogWith(partner.id);
-          const dlg = getState().dialogs[dialogId];
-          if (!alive || !dlg) return;
-          selectDialog(dialogId, dlg);
-          void navigate({ to: "/messenger", search: { chat: dialogId }, replace: true });
+          const existing = messengerCache.findByPartner(partner.id);
+          const dlg: Dialog = existing ?? {
+            id: `d_${partner.id}`,
+            userId: partner.id,
+            lastMessage: "",
+            time: new Date().toISOString(),
+            unread: 0,
+            messages: [],
+          };
+          if (!existing) messengerCache.restoreDialog(dlg);
+          if (!alive) return;
+          selectDialog(dlg.id, dlg);
+          void navigate({ to: "/messenger", search: { chat: dlg.id }, replace: true });
           return;
         }
         try {
           const dialog = await fetchConversation(chat, meId);
           if (!alive) return;
-          restoreDialog(dialog);
+          messengerCache.restoreDialog(dialog);
           selectDialog(dialog.id, dialog);
           return;
         } catch {
@@ -674,71 +812,53 @@ function MessengerPage() {
   );
 
   useEffect(() => {
-    let alive = true;
-    fetchConversations(meId)
-      .then((list) => {
-        if (!alive) return;
-        setDialogs(list);
-      })
-      .catch(() => {})
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [meId]);
-
-  useEffect(() => {
     setWatchingDialog(activeId);
     return () => setWatchingDialog(null);
   }, [activeId]);
 
   useEffect(() => {
     if (!activeId) return;
-    actions.markRead(activeId);
+    messengerCache.markRead(activeId);
   }, [activeId]);
 
-  // Refresh dialog list for unread counts and partner presence (last_seen_at).
+  // The list polls itself (conversationsQuery.refetchInterval); a socket
+  // reconnect just asks for a fresh page right away.
   useEffect(() => {
     if (meId === GUEST_USER.id) return;
-    const tick = () => {
-      fetchConversations(meId)
-        .then((list) => setDialogs(list))
-        .catch(() => {});
-    };
-    tick();
-    const interval = window.setInterval(tick, isEchoConnected() ? 45_000 : 20_000);
-    const unsubConn = onEchoConnection((connected) => {
-      if (connected) tick();
+    return onEchoConnection((connected) => {
+      if (connected) messengerCache.invalidateDialogs();
     });
-    return () => {
-      window.clearInterval(interval);
-      unsubConn();
-    };
   }, [meId]);
 
+  const {
+    messages,
+    isPending: chatLoading,
+    error: chatError,
+    refetch: refetchMessages,
+  } = useDialogMessages(activeId);
+
+  // A message queued from another page ("Написать продавцу" with text) goes
+  // out as soon as the thread is on screen.
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId || chatLoading) return;
+    const pending = getState().pendingDialogMessages[activeId];
+    if (!pending) return;
+    actions.clearPendingMessage(activeId);
     let alive = true;
-    setChatLoading(true);
-    fetchMessages(activeId)
-      .then(async (msgs) => {
-        if (!alive) return;
-        setDialogMessages(activeId, msgs);
-        const pending = getState().pendingDialogMessages[activeId];
-        if (pending) {
-          actions.clearPendingMessage(activeId);
-          try {
-            const saved = await apiSendMessage(activeId, pending);
-            if (alive) actions.addMessage(activeId, saved);
-          } catch (err) {
-            if (!alive) return;
-            const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
-            if (message) toast.error(message);
-          }
-        }
+    apiSendMessage(activeId, pending)
+      .then((saved) => {
+        if (alive) messengerCache.addMessage(activeId, saved);
       })
-      .catch(() => {})
-      .finally(() => { if (alive) setChatLoading(false); });
-    return () => { alive = false; };
-  }, [activeId]);
+      .catch((err) => {
+        if (!alive) return;
+        const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
+        if (message) toast.error(message);
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, chatLoading]);
 
   useEffect(() => {
     if (!activeId || meId === GUEST_USER.id) {
@@ -747,41 +867,30 @@ function MessengerPage() {
     }
     setHubConversation(
       activeId,
-      (m) => upsertMessage(activeId, m),
-      (messageUuid) => actions.removeMessage(activeId, messageUuid),
+      (m) => messengerCache.upsert(activeId, m),
+      (messageUuid) => messengerCache.removeMessage(activeId, messageUuid),
     );
     return () => setHubConversation(null);
   }, [activeId, meId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
-  const partner = active && active.type !== "community" && active.type !== "room"
-    ? userById(active.userId)
-    : null;
+  const partner =
+    active && active.type !== "community" && active.type !== "room"
+      ? userById(active.userId)
+      : null;
   const activeIdentity = active ? dialogIdentity(active) : null;
 
   // Upgrade sent → delivered when partner is online (realtime, before next API poll).
   useEffect(() => {
     if (!activeId || !partner) return;
     if (isUserOnline(partner.id, onlineSet, partner)) {
-      markOwnMessagesDelivered(activeId);
+      messengerCache.markOwnStatus(activeId, "delivered");
     }
   }, [activeId, partner, onlineSet, presenceTick]);
 
-  // Sync delivery/read ticks while chat is open (WebSocket carries new messages, not status changes).
-  useEffect(() => {
-    if (!activeId || meId === GUEST_USER.id) return;
-    const id = activeId;
-    const syncStatuses = () => {
-      fetchMessages(id)
-        .then((msgs) => mergeDialogMessages(id, msgs))
-        .catch(() => {});
-    };
-    syncStatuses();
-    const interval = window.setInterval(syncStatuses, isEchoConnected() ? 20_000 : 10_000);
-    return () => window.clearInterval(interval);
-  }, [activeId, meId]);
+  // Delivery/read ticks: messagesQuery re-polls itself and merges over the cache.
 
-  const pinnedMessage = active?.messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
+  const pinnedMessage = messages.find((m) => m.pinned && !m.deletedForMe) ?? null;
 
   const scrollToMessage = useCallback((id: string, attempt = 0) => {
     const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${id}"]`);
@@ -811,6 +920,12 @@ function MessengerPage() {
     setChatSearchOpen(false);
     setSearchHighlightId(null);
     setSearchHighlightQuery("");
+    // Сохранённую позицию забираем сразу при переключении: дальше по списку
+    // поедут события скролла нового диалога и перезапишут её.
+    setFirstUnreadId(null);
+    openAnchorResolvedRef.current = null;
+    scrollMemoryArmedRef.current = false;
+    pendingScrollRestoreRef.current = activeId ? (recallDialogScroll(activeId) ?? null) : null;
   }, [activeId]);
 
   const filtered = useMemo(() => {
@@ -842,8 +957,12 @@ function MessengerPage() {
   );
 
   const archivedCount = useMemo(
-    () => dlgs.filter((d) => { const m = getMeta(d.id); return m.archived && !m.deletedLocally; }).length,
-    [dlgs, dialogMetaMap]
+    () =>
+      dlgs.filter((d) => {
+        const m = getMeta(d.id);
+        return m.archived && !m.deletedLocally;
+      }).length,
+    [dlgs, dialogMetaMap],
   );
 
   useEffect(() => {
@@ -851,6 +970,9 @@ function MessengerPage() {
     if (!el) return;
     const onScroll = () => {
       stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+      // Пока диалог не отрисован целиком, scrollTop ничего не значит —
+      // запоминаем позицию только после того, как чат встал на своё место.
+      if (activeId && scrollMemoryArmedRef.current) rememberDialogScroll(activeId, el.scrollTop);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
@@ -860,7 +982,7 @@ function MessengerPage() {
   useEffect(() => {
     if (!scrollRef.current || chatLoading) return;
     scrollToBottom(stickToBottomRef.current ? "smooth" : "auto");
-  }, [active?.messages.length, chatLoading, activeId, scrollToBottom]);
+  }, [messages.length, chatLoading, activeId, scrollToBottom]);
 
   useEffect(() => {
     const target = messagesContentRef.current;
@@ -870,13 +992,60 @@ function MessengerPage() {
     });
     ro.observe(target);
     return () => ro.disconnect();
-  }, [activeId, active?.messages.length, scrollToBottom]);
+  }, [activeId, messages.length, scrollToBottom]);
+
+  // Где открыть диалог: на первом непрочитанном, иначе на сохранённой позиции,
+  // иначе внизу. Решаем один раз за открытие — список продолжает опрашиваться,
+  // и без заморозки разделитель исчезал бы прямо под курсором.
+  useEffect(() => {
+    if (!activeId || chatLoading) return;
+    if (openAnchorResolvedRef.current === activeId) return;
+    const dialog = dlgs.find((d) => d.id === activeId);
+    if (!dialog) return;
+    openAnchorResolvedRef.current = activeId;
+
+    const visible = messages.filter((m) => !m.deletedForMe);
+    const firstUnread = findFirstUnreadMessageId(visible, dialog.lastReadMessageId, meId);
+
+    if (firstUnread) {
+      stickToBottomRef.current = false;
+      setFirstUnreadId(firstUnread);
+      scrollMemoryArmedRef.current = true;
+      return;
+    }
+
+    const restored = pendingScrollRestoreRef.current;
+    pendingScrollRestoreRef.current = null;
+    const el = scrollRef.current;
+    if (restored !== null && el) {
+      stickToBottomRef.current = false;
+      el.scrollTop = restored;
+      stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+    } else {
+      stickToBottomRef.current = true;
+      scrollToBottom("auto");
+    }
+    scrollMemoryArmedRef.current = true;
+  }, [activeId, chatLoading, messages, dlgs, meId, scrollToBottom]);
+
+  // Разделитель появляется только после ре-рендера — скроллим к нему отдельно.
+  useEffect(() => {
+    if (!firstUnreadId) return;
+    const divider = scrollRef.current?.querySelector<HTMLElement>("[data-unread-divider]");
+    divider?.scrollIntoView({ block: "start" });
+  }, [firstUnreadId]);
+
+  // Клавиатура открылась — последнее сообщение должно остаться на виду.
+  useEffect(() => {
+    if (!keyboardInset || !stickToBottomRef.current) return;
+    scrollToBottom("auto");
+  }, [keyboardInset, scrollToBottom]);
 
   const handleSelect = (id: string) => {
     setActiveId(id);
     setMobileView("chat");
     setReplyTo(null);
-    actions.markRead(id);
+    messengerCache.markRead(id);
   };
 
   // Used after "Удалить чат". Also clears the ?chat= search param when it
@@ -891,7 +1060,10 @@ function MessengerPage() {
     if (chat === id) void navigate({ to: "/messenger", search: {} });
   };
 
-  const [dialogCtxMenu, setDialogCtxMenu] = useState<{ dialogId: string; point: { x: number; y: number } } | null>(null);
+  const [dialogCtxMenu, setDialogCtxMenu] = useState<{
+    dialogId: string;
+    point: { x: number; y: number };
+  } | null>(null);
   const dialogLongPressTimer = useRef<number | null>(null);
   const suppressNextDialogClick = useRef(false);
   const startDialogLongPress = (dialogId: string, x: number, y: number) => {
@@ -910,10 +1082,14 @@ function MessengerPage() {
   const send = async () => {
     if (!text.trim() || !active || sendingRef.current) return;
     let allowed = false;
-    guardAction("messenger.send", () => { allowed = true; });
+    guardAction("messenger.send", () => {
+      allowed = true;
+    });
     if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
-      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
+      toast.error(t("pages.messenger.userBlocked"), {
+        description: t("pages.messenger.unblockToSend"),
+      });
       return;
     }
     sendingRef.current = true;
@@ -930,14 +1106,14 @@ function MessengerPage() {
       status: "sent",
       replyTo: replyId,
     };
-    actions.addMessage(dialogId, optimistic);
+    messengerCache.addMessage(dialogId, optimistic);
     setText("");
     setReplyTo(null);
     try {
       const saved = await apiSendMessage(dialogId, body, replyId);
-      replaceMessage(dialogId, tempId, saved);
+      messengerCache.replaceMessage(dialogId, tempId, saved);
     } catch (err) {
-      actions.removeMessage(dialogId, tempId);
+      messengerCache.removeMessage(dialogId, tempId);
       setText((current) => current || body);
       const message = formatApiErrorMessage(err, t("pages.messenger.sendFailed"));
       if (message) toast.error(message);
@@ -949,10 +1125,14 @@ function MessengerPage() {
   const sendVoice = async (blob: Blob, durationSec: number) => {
     if (!active) return;
     let allowed = false;
-    guardAction("messenger.send", () => { allowed = true; });
+    guardAction("messenger.send", () => {
+      allowed = true;
+    });
     if (!allowed) return;
     if (isPartnerBlocked(active.userId)) {
-      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
+      toast.error(t("pages.messenger.userBlocked"), {
+        description: t("pages.messenger.unblockToSend"),
+      });
       return;
     }
     const dialogId = active.id;
@@ -973,7 +1153,7 @@ function MessengerPage() {
         src: localUrl,
       },
     };
-    actions.addMessage(dialogId, optimistic);
+    messengerCache.addMessage(dialogId, optimistic);
     setReplyTo(null);
     // Demo mode has no media backend — the optimistic message already carries a
     // playable blob URL + waveform + duration, so it IS the final message. Skip
@@ -982,10 +1162,10 @@ function MessengerPage() {
     try {
       const { uuid } = await uploadVoice(blob, durationSec);
       const saved = await apiSendVoiceMessage(dialogId, uuid, durationSec, replyId);
-      replaceMessage(dialogId, tempId, saved);
+      messengerCache.replaceMessage(dialogId, tempId, saved);
       URL.revokeObjectURL(localUrl);
     } catch (err) {
-      actions.removeMessage(dialogId, tempId);
+      messengerCache.removeMessage(dialogId, tempId);
       URL.revokeObjectURL(localUrl);
       const message = formatApiErrorMessage(err, t("pages.messenger.voiceSendFailed"));
       if (message) toast.error(message);
@@ -995,7 +1175,9 @@ function MessengerPage() {
   const handleAttachment = async (file: File, kind: AttachmentKind) => {
     if (!active) return;
     let allowed = false;
-    guardAction("messenger.send", () => { allowed = true; });
+    guardAction("messenger.send", () => {
+      allowed = true;
+    });
     if (!allowed) return;
     const tooLarge = chatAttachmentTooLargeMessage(file);
     if (tooLarge) {
@@ -1003,7 +1185,9 @@ function MessengerPage() {
       return;
     }
     if (isPartnerBlocked(active.userId)) {
-      toast.error(t("pages.messenger.userBlocked"), { description: t("pages.messenger.unblockToSend") });
+      toast.error(t("pages.messenger.userBlocked"), {
+        description: t("pages.messenger.unblockToSend"),
+      });
       return;
     }
 
@@ -1035,11 +1219,13 @@ function MessengerPage() {
       kind === "image"
         ? { ...base, image: url, imageSize: imageSize ?? undefined }
         : { ...base, file: { name: readyFile.name, size: readyFile.size, kind, url } };
-    actions.addMessage(dialogId, optimistic);
+    messengerCache.addMessage(dialogId, optimistic);
     setReplyTo(null);
     if (isDemoMode()) {
       toast(t("pages.messenger.attachmentSentDemo"), {
-        description: convertedFromHeic ? t("pages.messenger.heicConvertedDemo") : t("pages.messenger.uploadLater"),
+        description: convertedFromHeic
+          ? t("pages.messenger.heicConvertedDemo")
+          : t("pages.messenger.uploadLater"),
       });
       return;
     }
@@ -1051,38 +1237,47 @@ function MessengerPage() {
         chatAttachmentMessageType(kind),
         replyId,
       );
-      replaceMessage(dialogId, tempId, saved);
+      messengerCache.replaceMessage(dialogId, tempId, saved);
       if (saved.file?.url && !saved.file.url.startsWith("blob:")) {
         URL.revokeObjectURL(url);
       } else if (saved.image && !saved.image.startsWith("blob:")) {
         URL.revokeObjectURL(url);
       }
     } catch (err) {
-      actions.removeMessage(dialogId, tempId);
+      messengerCache.removeMessage(dialogId, tempId);
       URL.revokeObjectURL(url);
       toast.error(formatChatAttachmentError(err));
     }
   };
 
-  const insertEmoji = useCallback((emoji: string) => {
-    const el = composerRef.current;
-    if (!el) {
-      setText((prev) => prev + emoji);
-      return;
-    }
-    const start = el.selectionStart ?? text.length;
-    const end = el.selectionEnd ?? text.length;
-    const next = text.slice(0, start) + emoji + text.slice(end);
-    setText(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      const pos = start + emoji.length;
-      el.setSelectionRange(pos, pos);
-    });
-  }, [text]);
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const el = composerRef.current;
+      if (!el) {
+        setText((prev) => prev + emoji);
+        return;
+      }
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const next = text.slice(0, start) + emoji + text.slice(end);
+      setText(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    },
+    [text],
+  );
 
   const handleCopy = (m: Message) => {
-    const copyText = m.text || (m.file ? m.file.name : m.image ? t("pages.messenger.image") : t("pages.messenger.attachment"));
+    const copyText =
+      m.text ||
+      (m.file
+        ? m.file.name
+        : m.image
+          ? t("pages.messenger.image")
+          : t("pages.messenger.attachment"));
     navigator.clipboard.writeText(copyText).then(
       () => toast.success(t("pages.messenger.copied")),
       () => toast.error(t("pages.messenger.copyFailed")),
@@ -1118,7 +1313,7 @@ function MessengerPage() {
     if (!window.confirm(t("pages.messenger.deleteForAllConfirm"))) return;
 
     const dialogId = active.id;
-    actions.removeMessage(dialogId, m.id);
+    messengerCache.removeMessage(dialogId, m.id);
 
     if (!isDemoMode()) {
       try {
@@ -1126,7 +1321,7 @@ function MessengerPage() {
       } catch {
         toast.error(t("pages.messenger.deleteFailed"));
         fetchMessages(dialogId)
-          .then((msgs) => setDialogMessages(dialogId, msgs))
+          .then((msgs) => messengerCache.setMessages(dialogId, msgs))
           .catch(() => {});
       }
     }
@@ -1134,14 +1329,17 @@ function MessengerPage() {
 
   const handleReportMessage = (m: Message) => {
     if (!partner) return;
-    const snippet = m.text?.trim()
-      || (m.voice ? t("pages.messenger.voiceMessage") : "")
-      || (m.image ? t("pages.messenger.image") : "")
-      || (m.file ? t("pages.messenger.filePrefix", { name: m.file.name }) : "");
+    const snippet =
+      m.text?.trim() ||
+      (m.voice ? t("pages.messenger.voiceMessage") : "") ||
+      (m.image ? t("pages.messenger.image") : "") ||
+      (m.file ? t("pages.messenger.filePrefix", { name: m.file.name }) : "");
     setMessageComplaint({
       target: partner,
       messageId: m.id,
-      contextNote: snippet ? t("pages.messenger.messageContext", { snippet: snippet.slice(0, 500) }) : undefined,
+      contextNote: snippet
+        ? t("pages.messenger.messageContext", { snippet: snippet.slice(0, 500) })
+        : undefined,
     });
   };
 
@@ -1169,9 +1367,18 @@ function MessengerPage() {
         {/* Dialog List */}
         <aside
           className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "list" ? "flex" : "hidden"}`}
-          style={{ background: "var(--background-elevated)", borderRight: "1px solid var(--border)" }}
+          style={{
+            background: "var(--background-elevated)",
+            borderRight: "1px solid var(--border)",
+          }}
         >
-          <div className="sticky top-0 z-10 flex flex-col gap-[10px] px-[16px] py-[12px]" style={{ background: "var(--background-elevated)", borderBottom: "1px solid var(--border)" }}>
+          <div
+            className="sticky top-0 z-10 flex flex-col gap-[10px] px-[16px] py-[12px]"
+            style={{
+              background: "var(--background-elevated)",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
             <div className="flex items-center gap-[8px]">
               <div className="min-w-0 flex-1">
                 <SearchInput
@@ -1187,12 +1394,15 @@ function MessengerPage() {
               className="grid w-full grid-cols-4 gap-[4px]"
               style={{ borderBottom: "1px solid var(--border)" }}
             >
-              {([
+              {[
                 { key: "chats-active" as const, label: t("pages.messenger.tabActive") },
                 { key: "channels" as const, label: t("pages.messenger.tabChannels") },
-                { key: "chats-archive" as const, label: `${t("pages.messenger.tabArchive")}${archivedCount ? ` · ${archivedCount}` : ""}` },
+                {
+                  key: "chats-archive" as const,
+                  label: `${t("pages.messenger.tabArchive")}${archivedCount ? ` · ${archivedCount}` : ""}`,
+                },
                 { key: "calls" as const, label: t("pages.messenger.tabCalls") },
-              ]).map((tabItem) => {
+              ].map((tabItem) => {
                 const isActive =
                   (tabItem.key === "calls" && listTab === "calls") ||
                   (tabItem.key === "channels" && listTab === "channels") ||
@@ -1209,7 +1419,7 @@ function MessengerPage() {
                         setShowArchived(tabItem.key === "chats-archive");
                       }
                     }}
-                    className="min-w-0 px-[2px] text-center text-[12px] transition-colors sm:text-[13px]"
+                    className={`min-w-0 px-[2px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
                     title={tabItem.label}
                     style={{
                       height: 32,
@@ -1224,20 +1434,24 @@ function MessengerPage() {
               })}
             </div>
             {listTab === "chats" && (
-              <div className="flex gap-[6px] overflow-x-auto px-[12px] py-[8px]">
-                {([
+              <div
+                // py-3, а не py-2: прокрутка по X обрезает всё, что вылезает за
+                // высоту ряда, а 44-пиксельной хит-зоне чипов нужен запас.
+                className="flex gap-[6px] overflow-x-auto px-[12px] py-3"
+              >
+                {[
                   { key: "all" as const, label: t("pages.messenger.scopeAll") },
                   { key: "direct" as const, label: t("pages.messenger.scopeDirect") },
                   { key: "rooms" as const, label: t("pages.messenger.scopeCategory") },
                   { key: "deals" as const, label: t("pages.messenger.scopeDeal") },
-                ]).map((scope) => {
+                ].map((scope) => {
                   const on = chatScope === scope.key;
                   return (
                     <button
                       key={scope.key}
                       type="button"
                       onClick={() => setChatScope(scope.key)}
-                      className="shrink-0 rounded-full px-[10px] py-[4px] text-[11.5px] font-medium transition-colors"
+                      className={`shrink-0 rounded-full px-[10px] py-[4px] text-[11.5px] font-medium transition-colors ${TAP_TARGET_ROW_44}`}
                       style={{
                         background: on ? "var(--accent-soft)" : "transparent",
                         color: on ? "var(--accent)" : "var(--foreground-50)",
@@ -1260,22 +1474,35 @@ function MessengerPage() {
                   setShowArchived(false);
                   setActiveId(did);
                   setMobileView("chat");
-                  actions.markRead(did);
+                  messengerCache.markRead(did);
                 }}
               />
             ) : listTab === "channels" ? (
-              <ChannelsList query={query} communityDialogs={communityDialogs} onSelect={handleSelect} activeId={activeId} />
+              <ChannelsList
+                query={query}
+                communityDialogs={communityDialogs}
+                onSelect={handleSelect}
+                activeId={activeId}
+              />
             ) : loading ? (
               <DialogListSkeleton />
-
+            ) : dialogsError && dlgs.length === 0 ? (
+              <EmptyState
+                icon={AlertCircle}
+                title={t("pages.messenger.dialogsErrorTitle")}
+                description={t("pages.messenger.dialogsErrorDesc")}
+                variant="bare"
+                action={{ label: t("pages.shared.retry"), onClick: () => void refetchDialogs() }}
+              />
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
             ) : (
               <ul>
                 {filtered.map((d) => {
-                  const u = d.type === "room"
-                    ? { ...userById(d.userId), name: dialogIdentity(d).name, avatar: undefined }
-                    : userById(d.userId);
+                  const u =
+                    d.type === "room"
+                      ? { ...userById(d.userId), name: dialogIdentity(d).name, avatar: undefined }
+                      : userById(d.userId);
                   const isActive = d.id === activeId;
                   const isUnread = !!d.unread && !getMeta(d.id).muted;
                   return (
@@ -1290,7 +1517,10 @@ function MessengerPage() {
                         }}
                         onContextMenu={(e) => {
                           e.preventDefault();
-                          setDialogCtxMenu({ dialogId: d.id, point: { x: e.clientX, y: e.clientY } });
+                          setDialogCtxMenu({
+                            dialogId: d.id,
+                            point: { x: e.clientX, y: e.clientY },
+                          });
                         }}
                         onTouchStart={(e) => {
                           const t = e.touches[0];
@@ -1303,10 +1533,20 @@ function MessengerPage() {
                           background: isActive ? "var(--accent-soft)" : "transparent",
                           borderBottom: "1px solid var(--border)",
                         }}
-                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--background-surface-hover)"; }}
-                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                        onMouseEnter={(e) => {
+                          if (!isActive)
+                            e.currentTarget.style.background = "var(--background-surface-hover)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.background = "transparent";
+                        }}
                       >
-                        <ChatAvatar src={u.avatar} name={u.name} size={48} online={isUserOnline(d.userId, onlineSet, u)} />
+                        <ChatAvatar
+                          src={u.avatar}
+                          name={u.name}
+                          size={48}
+                          online={isUserOnline(d.userId, onlineSet, u)}
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-[8px]">
                             {/* Flex row of [pin?] name [muted?/blocked?/archived?].
@@ -1317,22 +1557,47 @@ function MessengerPage() {
                                 clipped (or hidden entirely) instead of ellipsizing.
                                 `truncate` on the flex *container* is a no-op, so it
                                 lives only on the text span. */}
-                            <span className="flex min-w-0 flex-1 items-center gap-[6px] font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-                              {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
-                              <span className="min-w-0 flex-1 truncate" title={u.name}>{u.name}</span>
-                              {getMeta(d.id).muted && <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
-                              {isPartnerBlocked(d.userId) && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
-                              {getMeta(d.id).archived && <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />}
+                            <span
+                              className="flex min-w-0 flex-1 items-center gap-[6px] font-display text-[14px] font-semibold"
+                              style={{ color: "var(--foreground)" }}
+                            >
+                              {d.pinned && (
+                                <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                              )}
+                              <span className="min-w-0 flex-1 truncate" title={u.name}>
+                                {u.name}
+                              </span>
+                              {getMeta(d.id).muted && (
+                                <BellOff
+                                  size={12}
+                                  style={{ color: "var(--foreground-50)", flexShrink: 0 }}
+                                />
+                              )}
+                              {isPartnerBlocked(d.userId) && (
+                                <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />
+                              )}
+                              {getMeta(d.id).archived && (
+                                <Archive
+                                  size={12}
+                                  style={{ color: "var(--foreground-50)", flexShrink: 0 }}
+                                />
+                              )}
                             </span>
                             <TimeAgo
                               iso={d.time}
                               className="shrink-0 font-mono text-[11px]"
-                              style={{ color: isUnread ? "var(--accent)" : "var(--foreground-50)", fontWeight: isUnread ? 700 : 400 }}
+                              style={{
+                                color: isUnread ? "var(--accent)" : "var(--foreground-50)",
+                                fontWeight: isUnread ? 700 : 400,
+                              }}
                             />
                           </div>
                           <div
                             className="truncate text-[13px]"
-                            style={{ color: isUnread ? "var(--foreground)" : "var(--foreground-50)", fontWeight: isUnread ? 600 : 400 }}
+                            style={{
+                              color: isUnread ? "var(--foreground)" : "var(--foreground-50)",
+                              fontWeight: isUnread ? 600 : 400,
+                            }}
                           >
                             {d.lastMessage}
                           </div>
@@ -1356,12 +1621,11 @@ function MessengerPage() {
                             const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                             setDialogCtxMenu({ dialogId: d.id, point: { x: r.left, y: r.bottom } });
                           }}
-                          className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                          className={`grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${TAP_TARGET_44}`}
                           style={{ color: "var(--foreground-50)" }}
                         >
                           <MoreHorizontal size={16} />
                         </span>
-
                       </button>
                     </li>
                   );
@@ -1372,76 +1636,119 @@ function MessengerPage() {
         </aside>
 
         {/* Chat Panel */}
-        <section className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`} style={{ background: "var(--background)" }}>
+        <section
+          className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`}
+          // Клавиатура не уменьшает 100dvh — отдаём ей нижние пиксели сами,
+          // тогда композер остаётся над ней, а не под.
+          style={{ background: "var(--background)", paddingBottom: keyboardInset || undefined }}
+        >
           {!active ? (
             <EmptyChat />
           ) : (
             <>
               {/* Header */}
-              <div className="sticky top-0 z-10 flex flex-col" style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-              <header className="flex items-center gap-[12px] px-[12px] sm:px-[20px]" style={{ height: 60 }}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMobileView("list")}
-                  className="rounded-full text-[var(--foreground-70)] md:hidden"
-                  aria-label={t("pages.messenger.back")}
+              <div
+                className="sticky top-0 z-10 flex flex-col"
+                style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}
+              >
+                <header
+                  className="flex items-center gap-[12px] px-[12px] sm:px-[20px]"
+                  style={{ height: 60 }}
                 >
-                  <ArrowLeft size={20} />
-                </Button>
-                <Link
-                  to={
-                    active.type === "community" && activeIdentity?.communitySlug
-                      ? "/communities/$id"
-                      : active.type === "room" && active.room?.rootId
-                        ? "/categories/$id/$subId"
-                        : "/user/$id"
-                  }
-                  params={
-                    active.type === "community" && activeIdentity?.communitySlug
-                      ? { id: activeIdentity.communitySlug }
-                      : active.type === "room" && active.room?.rootId
-                        ? { id: active.room.rootId, subId: active.room.categoryId }
-                        : { id: partner?.slug ?? partner?.id ?? active.userId }
-                  }
-                  className="flex min-w-0 items-center gap-[12px]"
-                >
-                  <ChatAvatar src={activeIdentity?.avatar ?? partner?.avatar} name={activeIdentity?.name ?? partner?.name ?? ""} size={40} />
-                    <div className="min-w-0 flex-1">
-                    <div className="truncate font-display text-[15px] font-semibold" style={{ color: "var(--foreground)" }} title={activeIdentity?.name}>{activeIdentity?.name ?? partner?.name}</div>
-                    <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
-                      {active.type === "community" || active.type === "room" ? (
-                        <span style={{ color: "var(--foreground-50)" }}>{t("pages.communityDetail.tabChat")}</span>
-                      ) : partner ? (() => {
-                        void presenceTick;
-                        const { online, text, title } = presenceLabel(partner.id, onlineSet, partner, { compact: true });
-                        return online ? (
-                          <>
-                            <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ background: "var(--success)" }} />
-                            <span style={{ color: "var(--success)" }}>{text}</span>
-                          </>
-                        ) : (
-                          <span title={title} style={{ color: "var(--foreground-50)" }}>{text}</span>
-                        );
-                      })() : null}
-                    </div>
-                  </div>
-                </Link>
-                <div className="ml-auto flex items-center gap-[4px]">
-                  {partner && (
-                    <ChatHeaderActions
-                      partnerId={partner.id}
-                      partnerName={partner.name}
-                      partnerAvatar={partner.avatar}
-                      dialogId={active.id}
-                      pinned={Boolean(active.pinned)}
-                      onSearch={() => setChatSearchOpen(true)}
-                      onDeleted={() => deselectDialog(active.id)}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileView("list")}
+                    className="rounded-full text-[var(--foreground-70)] md:hidden"
+                    aria-label={t("pages.messenger.back")}
+                  >
+                    <ArrowLeft size={20} />
+                  </Button>
+                  <Link
+                    to={
+                      active.type === "community" && activeIdentity?.communitySlug
+                        ? "/communities/$id"
+                        : active.type === "room" && active.room?.rootId
+                          ? "/categories/$id/$subId"
+                          : "/user/$id"
+                    }
+                    params={
+                      active.type === "community" && activeIdentity?.communitySlug
+                        ? { id: activeIdentity.communitySlug }
+                        : active.type === "room" && active.room?.rootId
+                          ? { id: active.room.rootId, subId: active.room.categoryId }
+                          : { id: partner?.slug ?? partner?.id ?? active.userId }
+                    }
+                    className="flex min-w-0 items-center gap-[12px]"
+                  >
+                    <ChatAvatar
+                      src={activeIdentity?.avatar ?? partner?.avatar}
+                      name={activeIdentity?.name ?? partner?.name ?? ""}
+                      size={40}
                     />
-                  )}
-                </div>
-
-              </header>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="truncate font-display text-[15px] font-semibold"
+                        style={{ color: "var(--foreground)" }}
+                        title={activeIdentity?.name}
+                      >
+                        {activeIdentity?.name ?? partner?.name}
+                      </div>
+                      <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
+                        {active.deal && (
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                            title={t("pages.messenger.dealStatus")}
+                          >
+                            {active.deal.statusLabel || active.deal.status}
+                          </span>
+                        )}
+                        {active.type === "community" || active.type === "room" ? (
+                          <span style={{ color: "var(--foreground-50)" }}>
+                            {t("pages.communityDetail.tabChat")}
+                          </span>
+                        ) : partner ? (
+                          (() => {
+                            void presenceTick;
+                            const { online, text, title } = presenceLabel(
+                              partner.id,
+                              onlineSet,
+                              partner,
+                              { compact: true },
+                            );
+                            return online ? (
+                              <>
+                                <span
+                                  className="h-[8px] w-[8px] shrink-0 rounded-full"
+                                  style={{ background: "var(--success)" }}
+                                />
+                                <span style={{ color: "var(--success)" }}>{text}</span>
+                              </>
+                            ) : (
+                              <span title={title} style={{ color: "var(--foreground-50)" }}>
+                                {text}
+                              </span>
+                            );
+                          })()
+                        ) : null}
+                      </div>
+                    </div>
+                  </Link>
+                  <div className="ml-auto flex items-center gap-[4px]">
+                    {partner && (
+                      <ChatHeaderActions
+                        partnerId={partner.id}
+                        partnerName={partner.name}
+                        partnerAvatar={partner.avatar}
+                        dialogId={active.id}
+                        pinned={Boolean(active.pinned)}
+                        onSearch={() => setChatSearchOpen(true)}
+                        onDeleted={() => deselectDialog(active.id)}
+                      />
+                    )}
+                  </div>
+                </header>
               </div>
 
               {pinnedMessage && (
@@ -1451,8 +1758,14 @@ function MessengerPage() {
                   style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
                 >
                   <Pin size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                  <div className="min-w-0 flex-1 truncate text-[12px]" style={{ color: "var(--foreground-70)" }}>
-                    {pinnedMessage.text || (pinnedMessage.file ? pinnedMessage.file.name : t("pages.messenger.attachmentLabel"))}
+                  <div
+                    className="min-w-0 flex-1 truncate text-[12px]"
+                    style={{ color: "var(--foreground-70)" }}
+                  >
+                    {pinnedMessage.text ||
+                      (pinnedMessage.file
+                        ? pinnedMessage.file.name
+                        : t("pages.messenger.attachmentLabel"))}
                   </div>
                   <span
                     role="button"
@@ -1461,7 +1774,7 @@ function MessengerPage() {
                       e.stopPropagation();
                       actions.pinMessage(active!.id, pinnedMessage.id);
                     }}
-                    className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full"
+                    className={`grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full ${TAP_TARGET_44}`}
                     style={{ color: "var(--foreground-50)" }}
                     aria-label={t("pages.messenger.unpinMessage")}
                   >
@@ -1471,37 +1784,57 @@ function MessengerPage() {
               )}
 
               {/* Messages */}
-              <div ref={scrollRef} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]" style={{ overflowAnchor: "auto" }}>
+              <div
+                ref={scrollRef}
+                className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]"
+                style={{ overflowAnchor: "auto" }}
+              >
                 {chatLoading ? (
                   <MessageSkeleton />
+                ) : chatError && messages.length === 0 ? (
+                  <EmptyState
+                    icon={AlertCircle}
+                    title={t("pages.messenger.chatErrorTitle")}
+                    description={t("pages.messenger.chatErrorDesc")}
+                    variant="bare"
+                    action={{
+                      label: t("pages.shared.retry"),
+                      onClick: () => void refetchMessages(),
+                    }}
+                  />
                 ) : (
                   <div ref={messagesContentRef}>
-                    {active.messages
+                    {messages
                       .filter((m) => !m.deletedForMe)
                       .map((m, i, arr) => (
-                        <MessageBubble
-                          key={m.clientKey ?? m.id}
-                          msg={m}
-                          prev={arr[i - 1]}
-                          allMessages={active.messages}
-                          onReply={setReplyTo}
-                          onCopy={handleCopy}
-                          onForward={setForwardMsg}
-                          onPin={handlePinMessage}
-                          onDelete={handleDeleteMessage}
-                          onDeleteForEveryone={handleDeleteForEveryone}
-                          onReport={handleReportMessage}
-                          onMediaResize={handleMediaResize}
-                          searchHighlightId={searchHighlightId}
-                          searchQuery={searchHighlightQuery}
-                        />
+                        <Fragment key={m.clientKey ?? m.id}>
+                          {m.id === firstUnreadId && <NewMessagesDivider />}
+                          <MessageBubble
+                            msg={m}
+                            prev={arr[i - 1]}
+                            allMessages={messages}
+                            onReply={setReplyTo}
+                            onCopy={handleCopy}
+                            onForward={setForwardMsg}
+                            onPin={handlePinMessage}
+                            onDelete={handleDeleteMessage}
+                            onDeleteForEveryone={handleDeleteForEveryone}
+                            onReport={handleReportMessage}
+                            onMediaResize={handleMediaResize}
+                            searchHighlightId={searchHighlightId}
+                            searchQuery={searchHighlightQuery}
+                          />
+                        </Fragment>
                       ))}
                   </div>
                 )}
               </div>
 
               {/* Input */}
-              <div className="shrink-0" style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}>
+              <div
+                className="shrink-0"
+                style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}
+              >
                 <AnimatePresence>
                   {replyTo && (
                     <motion.div
@@ -1521,11 +1854,23 @@ function MessengerPage() {
                         <CornerUpLeft size={14} style={{ color: "var(--accent)" }} />
                         <div className="min-w-0 flex-1 text-[12px]">
                           <div className="font-semibold" style={{ color: "var(--foreground-70)" }}>
-                            {t("pages.messenger.replyTo", { name: replyTo.authorId === meId ? t("pages.shared.you") : userById(replyTo.authorId).name })}
+                            {t("pages.messenger.replyTo", {
+                              name:
+                                replyTo.authorId === meId
+                                  ? t("pages.shared.you")
+                                  : userById(replyTo.authorId).name,
+                            })}
                           </div>
-                          <div className="truncate" style={{ color: "var(--foreground-50)" }}>{replyTo.text}</div>
+                          <div className="truncate" style={{ color: "var(--foreground-50)" }}>
+                            {replyTo.text}
+                          </div>
                         </div>
-                        <button onClick={() => setReplyTo(null)} className="grid h-[20px] w-[20px] place-items-center rounded-full" style={{ color: "var(--foreground-50)" }} aria-label={t("pages.messenger.cancelReply")}>
+                        <button
+                          onClick={() => setReplyTo(null)}
+                          className={`grid h-[20px] w-[20px] place-items-center rounded-full ${TAP_TARGET_44}`}
+                          style={{ color: "var(--foreground-50)" }}
+                          aria-label={t("pages.messenger.cancelReply")}
+                        >
                           <X size={14} />
                         </button>
                       </div>
@@ -1535,7 +1880,10 @@ function MessengerPage() {
                 {/* Composer: attach · emoji · input · mic/send — one optical
                     line (items-end), equal 44px tap targets, equal gaps. Attach
                     controls live outside the pill so the row reads as one set. */}
-                <div className="relative flex items-end gap-[4px] px-[8px] py-[8px]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
+                <div
+                  className="relative flex items-end gap-[4px] px-[8px] py-[8px]"
+                  style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
+                >
                   <AttachmentMenu onPick={handleAttachment} />
                   <EmojiPicker onPick={insertEmoji} />
                   <div
@@ -1561,7 +1909,8 @@ function MessengerPage() {
                       rows={1}
                       className="min-w-0 flex-1 resize-none bg-transparent text-[14px] outline-none"
                       style={{
-                        minHeight: 24, maxHeight: 120,
+                        minHeight: 24,
+                        maxHeight: 120,
                         padding: "0",
                         color: "var(--foreground)",
                         lineHeight: 1.35,
@@ -1572,7 +1921,7 @@ function MessengerPage() {
                     <Button
                       size="icon"
                       onClick={send}
-                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[40px] sm:w-[40px]"
+                      className={`h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[40px] sm:w-[40px] ${TAP_TARGET_44}`}
                       aria-label={t("pages.messenger.send")}
                     >
                       <Send size={18} />
@@ -1581,7 +1930,6 @@ function MessengerPage() {
                     <VoiceRecorder onSend={sendVoice} />
                   )}
                 </div>
-
               </div>
             </>
           )}
@@ -1593,11 +1941,11 @@ function MessengerPage() {
         <ChatMessageSearch
           open={chatSearchOpen}
           dialogId={active.id}
-          messages={active.messages.filter((m) => !m.deletedForMe)}
+          messages={messages.filter((m) => !m.deletedForMe)}
           meId={meId}
           onClose={() => setChatSearchOpen(false)}
           onJumpTo={handleSearchJump}
-          onMessagesLoaded={(all) => setDialogMessages(active.id, all)}
+          onMessagesLoaded={(all) => messengerCache.setMessages(active.id, all)}
         />
       )}
       <ComplaintDialog
@@ -1606,7 +1954,9 @@ function MessengerPage() {
         page="/messenger"
         subjectSuffix={t("pages.messenger.reportSuffix")}
         contextNote={messageComplaint?.contextNote}
-        report={messageComplaint ? { type: "message", targetId: messageComplaint.messageId } : undefined}
+        report={
+          messageComplaint ? { type: "message", targetId: messageComplaint.messageId } : undefined
+        }
       />
       <DialogContextMenu
         point={dialogCtxMenu?.point ?? null}
@@ -1616,7 +1966,7 @@ function MessengerPage() {
         archived={Boolean(dialogCtxMenu && getMeta(dialogCtxMenu.dialogId).archived)}
         blocked={Boolean(
           dialogCtxMenu &&
-            blockedUserIds.includes(dlgs.find((x) => x.id === dialogCtxMenu.dialogId)?.userId ?? ""),
+          blockedUserIds.includes(dlgs.find((x) => x.id === dialogCtxMenu.dialogId)?.userId ?? ""),
         )}
         onMarkUnread={() => dialogCtxMenu && actions.markUnread(dialogCtxMenu.dialogId)}
         onGoProfile={() => {
@@ -1630,7 +1980,9 @@ function MessengerPage() {
           if (!dialogCtxMenu) return;
           const archived = getMeta(dialogCtxMenu.dialogId).archived;
           actions.setDialogMeta(dialogCtxMenu.dialogId, { archived: !archived });
-          toast.success(archived ? t("pages.messenger.chatRestored") : t("pages.messenger.chatArchived"));
+          toast.success(
+            archived ? t("pages.messenger.chatRestored") : t("pages.messenger.chatArchived"),
+          );
         }}
         onToggleBlock={async () => {
           if (!dialogCtxMenu) return;
@@ -1671,7 +2023,10 @@ function MessengerPage() {
         onToggleMute={() => {
           if (!dialogCtxMenu) return;
           const muted = getMeta(dialogCtxMenu.dialogId).muted;
-          actions.setDialogMeta(dialogCtxMenu.dialogId, muted ? { muted: false, mutedUntil: undefined } : { muted: true });
+          actions.setDialogMeta(
+            dialogCtxMenu.dialogId,
+            muted ? { muted: false, mutedUntil: undefined } : { muted: true },
+          );
         }}
         onClearHistory={async () => {
           if (!dialogCtxMenu) return;
@@ -1705,11 +2060,33 @@ function MessengerPage() {
           }
           actions.clearHistory(dialogId);
           if (partnerId) markDialogDeleted(dialogId, partnerId);
+          messengerCache.removeDialog(dialogId);
           if (activeId === dialogId) deselectDialog(dialogId);
           toast.success(t("pages.messenger.chatDeleted"));
         }}
       />
     </AppLayout>
+  );
+}
+
+/** «Новые сообщения» — граница, с которой продолжается чтение. */
+function NewMessagesDivider() {
+  const { t } = useTranslation();
+  return (
+    <div
+      data-unread-divider="1"
+      className="my-4 flex items-center gap-3"
+      aria-label={t("pages.messenger.newMessages")}
+    >
+      <span className="h-px flex-1" style={{ background: "var(--border-accent)" }} />
+      <span
+        className="shrink-0 rounded-full px-3 py-0.5 text-[11px] font-semibold"
+        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      >
+        {t("pages.messenger.newMessages")}
+      </span>
+      <span className="h-px flex-1" style={{ background: "var(--border-accent)" }} />
+    </div>
   );
 }
 
@@ -1742,7 +2119,12 @@ function EmptyDialogs() {
   );
 }
 
-function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
+function ChannelsList({
+  query,
+  communityDialogs,
+  onSelect,
+  activeId,
+}: {
   query: string;
   communityDialogs: Dialog[];
   onSelect: (id: string) => void;
@@ -1752,17 +2134,26 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
   const { channels: all } = useChannels();
   const q = query.trim().toLowerCase();
   const chats = q
-    ? communityDialogs.filter((d) => dialogIdentity(d).name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q))
+    ? communityDialogs.filter(
+        (d) =>
+          dialogIdentity(d).name.toLowerCase().includes(q) ||
+          d.lastMessage.toLowerCase().includes(q),
+      )
     : communityDialogs;
-  const list = (q
-    ? all.filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
-    : all
-  ).slice().sort((a, b) => {
-    const sa = a.isSubscribed ? 1 : 0;
-    const sb = b.isSubscribed ? 1 : 0;
-    if (sa !== sb) return sb - sa;
-    return b.subscribers - a.subscribers;
-  });
+  const list = (
+    q
+      ? all.filter(
+          (c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q),
+        )
+      : all
+  )
+    .slice()
+    .sort((a, b) => {
+      const sa = a.isSubscribed ? 1 : 0;
+      const sb = b.isSubscribed ? 1 : 0;
+      if (sa !== sb) return sb - sa;
+      return b.subscribers - a.subscribers;
+    });
 
   if (list.length === 0 && chats.length === 0) {
     return <EmptyState icon={Radio} title={t("pages.messenger.channelsNotFound")} variant="bare" />;
@@ -1784,12 +2175,27 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
               <ChatAvatar src={identity.avatar} name={identity.name} size={48} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-[6px]">
-                  <span className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{identity.name}</span>
+                  <span
+                    className="truncate font-display text-[14px] font-semibold"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {identity.name}
+                  </span>
                   {d.unread ? (
-                    <span className="rounded-full px-[6px] py-[1px] text-[10px] font-bold text-white" style={{ background: "var(--accent)" }}>{d.unread}</span>
+                    <span
+                      className="rounded-full px-[6px] py-[1px] text-[10px] font-bold text-white"
+                      style={{ background: "var(--accent)" }}
+                    >
+                      {d.unread}
+                    </span>
                   ) : null}
                 </div>
-                <div className="mt-[2px] truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>{d.lastMessage || t("pages.communityDetail.tabChat")}</div>
+                <div
+                  className="mt-[2px] truncate text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  {d.lastMessage || t("pages.communityDetail.tabChat")}
+                </div>
               </div>
             </button>
           </li>
@@ -1803,8 +2209,12 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
               to="/channel/$id"
               params={{ id: c.id }}
               className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--background-surface-hover)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--background-surface-hover)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               <div
                 className="grid h-[48px] w-[48px] shrink-0 place-items-center font-display text-[18px] font-bold text-white"
@@ -1814,20 +2224,35 @@ function ChannelsList({ query, communityDialogs, onSelect, activeId }: {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-[6px]">
-                  <span className="truncate font-display text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  <span
+                    className="truncate font-display text-[14px] font-semibold"
+                    style={{ color: "var(--foreground)" }}
+                  >
                     {c.name}
                   </span>
-                  {c.kind === "official" && <BadgeCheck size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
+                  {c.kind === "official" && (
+                    <BadgeCheck size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                  )}
                 </div>
-                <div className="mt-[2px] flex items-center gap-[8px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                  <span className="inline-flex items-center gap-[4px]"><Users size={11} /> {formatCount(c.subscribers)}</span>
+                <div
+                  className="mt-[2px] flex items-center gap-[8px] text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  <span className="inline-flex items-center gap-[4px]">
+                    <Users size={11} /> {formatCount(c.subscribers)}
+                  </span>
                   <span className="truncate">{c.description}</span>
                 </div>
               </div>
               {subscribed && (
                 <span
                   className="shrink-0 inline-flex items-center gap-[4px] text-[11px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", padding: "3px 8px", borderRadius: "var(--r-pill)" }}
+                  style={{
+                    background: "var(--accent-soft)",
+                    color: "var(--accent)",
+                    padding: "3px 8px",
+                    borderRadius: "var(--r-pill)",
+                  }}
                 >
                   <Check size={11} /> {t("pages.messenger.channelSubscribed")}
                 </span>

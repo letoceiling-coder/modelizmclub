@@ -2,7 +2,19 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { BellOff, Bell, Pin, PinOff, MailQuestion, Trash2, Archive, ArchiveRestore, Ban, ShieldOff, User } from "lucide-react";
+import {
+  BellOff,
+  Bell,
+  Pin,
+  PinOff,
+  MailQuestion,
+  Trash2,
+  Archive,
+  ArchiveRestore,
+  Ban,
+  ShieldOff,
+  User,
+} from "lucide-react";
 
 interface Point {
   x: number;
@@ -103,29 +115,63 @@ export function DialogContextMenu({
             boxShadow: "var(--shadow-float)",
           }}
         >
-          <Item icon={User} label={t("components.dialogContextMenu.goProfile")} onClick={run(onGoProfile)} />
-          <Item icon={MailQuestion} label={t("components.dialogContextMenu.markUnread")} onClick={run(onMarkUnread)} />
+          <Item
+            icon={User}
+            label={t("components.dialogContextMenu.goProfile")}
+            onClick={run(onGoProfile)}
+          />
+          <Item
+            icon={MailQuestion}
+            label={t("components.dialogContextMenu.markUnread")}
+            onClick={run(onMarkUnread)}
+          />
           <Item
             icon={pinned ? PinOff : Pin}
-            label={pinned ? t("components.dialogContextMenu.unpinChat") : t("components.dialogContextMenu.pinChat")}
+            label={
+              pinned
+                ? t("components.dialogContextMenu.unpinChat")
+                : t("components.dialogContextMenu.pinChat")
+            }
             onClick={run(onTogglePin)}
           />
           <Item
             icon={muted ? Bell : BellOff}
-            label={muted ? t("components.dialogContextMenu.enableNotifications") : t("components.dialogContextMenu.disableNotifications")}
+            label={
+              muted
+                ? t("components.dialogContextMenu.enableNotifications")
+                : t("components.dialogContextMenu.disableNotifications")
+            }
             onClick={run(onToggleMute)}
           />
           <Item
             icon={archived ? ArchiveRestore : Archive}
-            label={archived ? t("components.dialogContextMenu.restoreFromArchive") : t("components.dialogContextMenu.moveToArchive")}
+            label={
+              archived
+                ? t("components.dialogContextMenu.restoreFromArchive")
+                : t("components.dialogContextMenu.moveToArchive")
+            }
             onClick={run(onToggleArchive)}
           />
           <div className="border-t" style={{ borderColor: "var(--border)" }} />
-          <Item icon={Trash2} label={t("components.dialogContextMenu.clearHistory")} onClick={run(onClearHistory)} danger />
-          <Item icon={Trash2} label={t("components.dialogContextMenu.deleteChat")} onClick={run(onDeleteChat)} danger />
+          <Item
+            icon={Trash2}
+            label={t("components.dialogContextMenu.clearHistory")}
+            onClick={run(onClearHistory)}
+            danger
+          />
+          <Item
+            icon={Trash2}
+            label={t("components.dialogContextMenu.deleteChat")}
+            onClick={run(onDeleteChat)}
+            danger
+          />
           <Item
             icon={blocked ? ShieldOff : Ban}
-            label={blocked ? t("components.dialogContextMenu.unblock") : t("components.dialogContextMenu.blockUser")}
+            label={
+              blocked
+                ? t("components.dialogContextMenu.unblock")
+                : t("components.dialogContextMenu.blockUser")
+            }
             onClick={run(onToggleBlock)}
             danger={!blocked}
           />
@@ -152,7 +198,7 @@ function Item({
       role="menuitem"
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-[10px] px-[14px] py-[12px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+      className="flex min-h-11 w-full items-center gap-[10px] px-[14px] py-[12px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: danger ? "var(--error)" : "var(--foreground)" }}
     >
       <Icon className="h-[16px] w-[16px]" />

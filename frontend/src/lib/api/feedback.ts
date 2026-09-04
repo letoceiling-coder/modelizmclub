@@ -7,7 +7,9 @@ export interface FeedbackInput {
   guestEmail?: string;
 }
 
-export async function submitFeedback(input: FeedbackInput): Promise<{ id: number; status: string }> {
+export async function submitFeedback(
+  input: FeedbackInput,
+): Promise<{ id: number; status: string }> {
   const res = await api<{ data: { id: number; status: string } }>("/feedback", {
     method: "POST",
     auth: Boolean(getToken()),

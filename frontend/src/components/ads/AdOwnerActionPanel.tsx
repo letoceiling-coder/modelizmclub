@@ -23,8 +23,8 @@ import { cn } from "@/lib/utils";
 import { BoostSheet } from "@/components/ads/BoostSheet";
 
 const DEAL_VARIANT: Record<Ad["status"], NonNullable<BadgeProps["variant"]>> = {
-  "Продаю": "info",
-  "Куплю": "info",
+  Продаю: "info",
+  Куплю: "info",
 };
 
 interface AdOwnerActionPanelProps {
@@ -38,16 +38,30 @@ interface AdOwnerActionPanelProps {
   className?: string;
 }
 
-function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+}) {
   return (
     <div
       className="grid h-full min-h-[92px] grid-rows-[18px_minmax(0,1fr)_auto] items-center justify-items-center gap-[4px] rounded-[10px] px-[6px] py-[10px] text-center"
       style={{ background: "var(--background-surface)" }}
     >
-      <span className="grid h-[16px] w-[16px] place-items-center" style={{ color: "var(--foreground-50)" }}>
+      <span
+        className="grid h-[16px] w-[16px] place-items-center"
+        style={{ color: "var(--foreground-50)" }}
+      >
         {icon}
       </span>
-      <span className="font-display text-[18px] font-bold tabular-nums leading-none" style={{ color: "var(--foreground)" }}>
+      <span
+        className="font-display text-[18px] font-bold tabular-nums leading-none"
+        style={{ color: "var(--foreground)" }}
+      >
         {value}
       </span>
       <span
@@ -120,7 +134,10 @@ export function AdOwnerActionPanel({
           {ad.price.toLocaleString("ru")} ₽
         </div>
 
-        <div className="flex flex-wrap gap-x-[16px] gap-y-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
+        <div
+          className="flex flex-wrap gap-x-[16px] gap-y-[8px] text-[13px]"
+          style={{ color: "var(--foreground-70)" }}
+        >
           {ad.city && (
             <span className="inline-flex items-center gap-[6px]">
               <MapPin size={14} className="shrink-0" />
@@ -154,7 +171,12 @@ export function AdOwnerActionPanel({
         </div>
 
         <div className="flex flex-col gap-[8px]">
-          <Button onClick={onEdit} size="lg" className="w-full rounded-[var(--r-button)]" disabled={busy}>
+          <Button
+            onClick={onEdit}
+            size="lg"
+            className="w-full rounded-[var(--r-button)]"
+            disabled={busy}
+          >
             <Pencil size={16} /> {t("pages.adDetail.ownerEdit")}
           </Button>
           <Button
@@ -208,7 +230,10 @@ export function AdOwnerActionPanel({
             onClick={onDelete}
             className="inline-flex h-[44px] min-w-0 w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] px-[12px] text-[13px] leading-snug"
             disabled={busy}
-            style={{ color: "var(--error)", borderColor: "color-mix(in oklab, var(--error) 35%, var(--border))" }}
+            style={{
+              color: "var(--error)",
+              borderColor: "color-mix(in oklab, var(--error) 35%, var(--border))",
+            }}
           >
             <Trash2 size={16} className="shrink-0" />
             <span className="min-w-0 text-center">{t("pages.adDetail.ownerDelete")}</span>

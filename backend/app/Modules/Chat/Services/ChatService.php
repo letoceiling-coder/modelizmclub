@@ -63,7 +63,7 @@ class ChatService
                 SELECT COUNT(*)
                 FROM messages
                 WHERE messages.conversation_id = conversations.id
-                AND messages.user_id != ?
+                AND (messages.user_id IS NULL OR messages.user_id != ?)
                 AND messages.deleted_at IS NULL
                 AND NOT EXISTS (
                     SELECT 1 FROM message_user_hides
@@ -75,6 +75,13 @@ class ChatService
                     OR messages.id > cp.last_read_message_id
                 )
             ) as unread_count', [$user->id, $user->id])
+            // Курсор прочитанного отдаём в uuid'ах — фронт сравнивает сообщения
+            // по uuid, а подзапрос избавляет список от N+1 на каждый диалог.
+            ->selectRaw('(
+                SELECT messages.uuid
+                FROM messages
+                WHERE messages.id = cp.last_read_message_id
+            ) as my_last_read_message_uuid')
             ->with([
                 'participants.user.profile.avatar',
                 'listing.mediaItems.media',
@@ -83,6 +90,7 @@ class ChatService
                 'latestMessage.post.mediaItems.media',
                 'pinnedMessage.author.profile.avatar',
                 'community.avatar',
+                'safeDeal',
             ])
             ->orderByRaw('cp.pinned_at IS NULL')
             ->orderByDesc('cp.pinned_at')
@@ -105,6 +113,7 @@ class ChatService
                 'latestMessage.attachments.media',
                 'latestMessage.post.mediaItems.media',
                 'community.avatar',
+                'safeDeal',
             ])
             ->first();
 
@@ -230,7 +239,12 @@ class ChatService
      *     by_parent: array<string, array{members: int, online: int}>
      * }
      */
-    public function postCategoryRoomStats(?int $parentCategoryId = null): array
+    /**
+     * Счётчики комнат направлений. members/online — публичные, а unread_count и
+     * last_message_at имеют смысл только для участника: гость и просто зритель
+     * получают null, чтобы на карточке не появилось чужое «непрочитано».
+     */
+    public function postCategoryRoomStats(?int $parentCategoryId = null, ?User $user = null): array
     {
         $query = Conversation::query()
             ->where('type', ConversationType::Room)
@@ -258,14 +272,46 @@ class ChatService
                 ->filter(fn (ConversationParticipant $p) => $this->isRecentlyActive($p->user))
                 ->count();
 
-            $bySubcategory[$subId] = ['members' => $members, 'online' => $online];
+            $myParticipant = $user
+                ? $conversation->participants->first(
+                    fn (ConversationParticipant $p) => $p->user_id === $user->id,
+                )
+                : null;
+
+            $unread = $myParticipant
+                ? $this->unreadCountFor($conversation, $user, $myParticipant->last_read_message_id)
+                : null;
+            $lastMessageAt = $myParticipant
+                ? $conversation->last_message_at?->toIso8601String()
+                : null;
+
+            $bySubcategory[$subId] = [
+                'members' => $members,
+                'online' => $online,
+                'unread_count' => $unread,
+                'last_message_at' => $lastMessageAt,
+            ];
 
             $parentId = $parentIdsBySub->get($conversation->post_category_id);
             if ($parentId) {
                 $parentKey = (string) $parentId;
                 $byParent[$parentKey]['members'] = ($byParent[$parentKey]['members'] ?? 0) + $members;
                 $byParent[$parentKey]['online'] = ($byParent[$parentKey]['online'] ?? 0) + $online;
+                if ($unread !== null) {
+                    $byParent[$parentKey]['unread_count'] = ($byParent[$parentKey]['unread_count'] ?? 0) + $unread;
+                }
+                if ($lastMessageAt !== null) {
+                    $known = $byParent[$parentKey]['last_message_at'] ?? null;
+                    $byParent[$parentKey]['last_message_at'] = $known === null || $lastMessageAt > $known
+                        ? $lastMessageAt
+                        : $known;
+                }
             }
+        }
+
+        foreach ($byParent as $parentKey => $stats) {
+            $byParent[$parentKey]['unread_count'] = $stats['unread_count'] ?? null;
+            $byParent[$parentKey]['last_message_at'] = $stats['last_message_at'] ?? null;
         }
 
         return [
@@ -703,7 +749,8 @@ class ChatService
 
         $query = Message::query()
             ->where('conversation_id', $conversation->id)
-            ->where('user_id', '!=', $user->id)
+            // System messages (deal status notices) have no author and count as unread too.
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', '!=', $user->id))
             ->whereNotExists(function ($q) use ($user): void {
                 $q->select(DB::raw(1))
                     ->from('message_user_hides')
@@ -1040,5 +1087,37 @@ class ChatService
                 return true;
             })
             ->values();
+    }
+
+    /**
+     * Append an authorless notice ("Сделка №… — Отправлена") to a conversation.
+     *
+     * System messages have no sender, so they are not attributed to either
+     * side and never count towards anyone's unread badge; the client renders
+     * type `system` as a centred notice.
+     */
+    public function postSystemMessage(Conversation $conversation, string $body): Message
+    {
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => null,
+            'body' => $body,
+            'type' => 'system',
+            'status' => 'sent',
+        ]);
+
+        $conversation->forceFill(['last_message_at' => now()])->save();
+
+        $message->setRelation('conversation', $conversation);
+
+        DB::afterCommit(function () use ($message): void {
+            try {
+                broadcast(new MessageSent($message));
+            } catch (\Throwable) {
+                // Reverb may be unavailable during tests or maintenance
+            }
+        });
+
+        return $message;
     }
 }

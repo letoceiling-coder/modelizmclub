@@ -5,7 +5,15 @@ import { formatDate } from "@/lib/format/date";
  * Hydration-safe relative-time label. Renders a stable placeholder until the
  * client has mounted, then shows the relative form.
  */
-export function TimeAgo({ iso, className, style }: { iso: string; className?: string; style?: React.CSSProperties }) {
+export function TimeAgo({
+  iso,
+  className,
+  style,
+}: {
+  iso: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const [text, setText] = useState<string>(() => placeholder(iso));
   const [mounted, setMounted] = useState(false);
 

@@ -15,7 +15,15 @@ interface Props {
 
 const EXIT_MS = 200;
 
-export function CreatePostModal({ open, selection, initialDraft, formKey, communityId, onClose, onCreate }: Props) {
+export function CreatePostModal({
+  open,
+  selection,
+  initialDraft,
+  formKey,
+  communityId,
+  onClose,
+  onCreate,
+}: Props) {
   // Plain CSS transition instead of framer-motion's AnimatePresence: that
   // component's exit-sequencing on this tree was taking 1.2-1.4s to actually
   // unmount (proven by A/B — removing it dropped close time to ~55ms), likely
@@ -56,7 +64,11 @@ export function CreatePostModal({ open, selection, initialDraft, formKey, commun
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center transition-opacity sm:items-center"
-      style={{ background: "rgba(0,0,0,0.55)", transitionDuration: `${EXIT_MS}ms`, opacity: visible ? 1 : 0 }}
+      style={{
+        background: "rgba(0,0,0,0.55)",
+        transitionDuration: `${EXIT_MS}ms`,
+        opacity: visible ? 1 : 0,
+      }}
       onClick={onClose}
     >
       <div

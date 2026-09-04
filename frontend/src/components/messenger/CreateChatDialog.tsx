@@ -29,7 +29,9 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
     searchUsers(debounced.trim())
       .then((list) => active && setCandidates(list.filter((u) => u.id !== me.id)))
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [debounced, open, me.id]);
 
   useEffect(() => {
@@ -85,8 +87,16 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
               boxShadow: "var(--shadow-float)",
             }}
           >
-            <div className="flex items-center gap-[8px] border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
-              <h3 className="flex-1 font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>Новый чат</h3>
+            <div
+              className="flex items-center gap-[8px] border-b px-[16px] py-[12px]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <h3
+                className="flex-1 font-display text-[16px] font-bold"
+                style={{ color: "var(--foreground)" }}
+              >
+                Новый чат
+              </h3>
               <button
                 onClick={onClose}
                 className="grid h-[32px] w-[32px] place-items-center rounded-full"
@@ -98,7 +108,11 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
             </div>
 
             <div className="relative p-[12px]">
-              <Search className="pointer-events-none absolute left-[24px] top-1/2 -translate-y-1/2" size={16} style={{ color: "var(--foreground-50)" }} />
+              <Search
+                className="pointer-events-none absolute left-[24px] top-1/2 -translate-y-1/2"
+                size={16}
+                style={{ color: "var(--foreground-50)" }}
+              />
               <input
                 ref={inputRef}
                 value={query}
@@ -118,18 +132,29 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                 placeholder="Поиск по имени"
                 className="w-full text-[14px] outline-none"
                 style={{
-                  height: 40, paddingLeft: 36, paddingRight: 12,
-                  background: "var(--background-surface)", borderRadius: 10,
-                  border: "1.5px solid transparent", color: "var(--foreground)",
+                  height: 40,
+                  paddingLeft: 36,
+                  paddingRight: 12,
+                  background: "var(--background-surface)",
+                  borderRadius: 10,
+                  border: "1.5px solid transparent",
+                  color: "var(--foreground)",
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "transparent"; }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "var(--accent)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "transparent";
+                }}
               />
             </div>
 
             <ul className="max-h-[320px] overflow-y-auto pb-[8px]" role="listbox">
               {candidates.length === 0 ? (
-                <li className="px-[20px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                <li
+                  className="px-[20px] py-[24px] text-center text-[13px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
                   Никого не найдено
                 </li>
               ) : (
@@ -143,10 +168,26 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                         className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left"
                         style={{ background: active ? "var(--background-surface)" : "transparent" }}
                       >
-                        <img src={u.avatar} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
+                        <img
+                          src={u.avatar}
+                          width={36}
+                          height={36}
+                          loading="lazy"
+                          decoding="async"
+                          alt=""
+                          className="h-[36px] w-[36px] rounded-full object-cover"
+                        />
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{u.name}</div>
-                          <div className="truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                          <div
+                            className="truncate text-[14px] font-semibold"
+                            style={{ color: "var(--foreground)" }}
+                          >
+                            {u.name}
+                          </div>
+                          <div
+                            className="truncate text-[12px]"
+                            style={{ color: "var(--foreground-50)" }}
+                          >
                             {presenceLabel(u.id, onlineSet, u).text}
                           </div>
                         </div>

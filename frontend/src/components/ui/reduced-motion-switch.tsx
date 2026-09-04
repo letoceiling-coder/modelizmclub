@@ -25,17 +25,32 @@ interface Props {
  * unmounts the old child and mounts the new one synchronously.
  */
 export function ReducedMotionSwitch({
-  switchKey, children, className,
-  initial = { opacity: 0, y: 8 }, animate = { opacity: 1, y: 0 }, exit = { opacity: 0, y: -8 },
+  switchKey,
+  children,
+  className,
+  initial = { opacity: 0, y: 8 },
+  animate = { opacity: 1, y: 0 },
+  exit = { opacity: 0, y: -8 },
   transition = { duration: 0.2 },
 }: Props) {
   const reduce = useReducedMotion();
   if (reduce) {
-    return <div key={switchKey} className={className}>{children}</div>;
+    return (
+      <div key={switchKey} className={className}>
+        {children}
+      </div>
+    );
   }
   return (
     <AnimatePresence mode="wait">
-      <motion.div key={switchKey} className={className} initial={initial} animate={animate} exit={exit} transition={transition}>
+      <motion.div
+        key={switchKey}
+        className={className}
+        initial={initial}
+        animate={animate}
+        exit={exit}
+        transition={transition}
+      >
         {children}
       </motion.div>
     </AnimatePresence>

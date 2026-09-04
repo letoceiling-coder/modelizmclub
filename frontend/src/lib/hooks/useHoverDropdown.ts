@@ -52,5 +52,12 @@ export function useHoverDropdown() {
     cancelClose();
   };
 
-  return { open, setOpen, wrapperRef, onWrapperMouseEnter, onWrapperMouseLeave, onContentMouseEnter };
+  return {
+    open,
+    setOpen,
+    wrapperRef,
+    onWrapperMouseEnter,
+    onWrapperMouseLeave,
+    onContentMouseEnter,
+  };
 }

@@ -93,7 +93,10 @@ export async function fetchPublicPlans(): Promise<SubscriptionPlanApi[]> {
  * Create a subscription checkout for the given plan slug.
  * planSlug must exist in subscription_plans.slug (month | half | year).
  */
-export async function createSubscriptionPayment(planSlug: string, payWith: PayWith = "gateway"): Promise<PaymentCheckout> {
+export async function createSubscriptionPayment(
+  planSlug: string,
+  payWith: PayWith = "gateway",
+): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>("/payments", {
     method: "POST",
     json: { plan_slug: planSlug, pay_with: payWith, idempotency_key: newIdempotencyKey() },
@@ -134,15 +137,21 @@ export async function fetchPayment(uuid: string): Promise<PaymentStatus> {
 }
 
 export async function syncPayment(uuid: string): Promise<{ status: string; payment_uuid: string }> {
-  const res = await api<{ data: { status: string; payment_uuid: string } }>(`/payments/${uuid}/sync`, {
-    method: "POST",
-  });
+  const res = await api<{ data: { status: string; payment_uuid: string } }>(
+    `/payments/${uuid}/sync`,
+    {
+      method: "POST",
+    },
+  );
   return res.data;
 }
 
 /** Test acquiring only: resolve a stub payment with a simulated bank outcome.
  *  Backend rejects this while BILLING_PROVIDER=vtb (live VTB). */
-export async function resolveStubPayment(uuid: string, outcome: StubPayOutcome = "paid"): Promise<StubPayResult> {
+export async function resolveStubPayment(
+  uuid: string,
+  outcome: StubPayOutcome = "paid",
+): Promise<StubPayResult> {
   const res = await api<{ data: StubPayResult }>(`/payments/${uuid}/confirm-stub`, {
     method: "POST",
     json: { outcome },
@@ -219,7 +228,10 @@ export async function deletePaymentMethod(id: string): Promise<void> {
 /** Start a checkout to promote (boost) a single listing. Returns the same
  *  PaymentCheckout shape — redirect to checkout_url (vtb/yookassa) or
  *  confirm-stub in the test contour. */
-export async function createListingBoostPayment(listingUuid: string, packageId: string): Promise<PaymentCheckout> {
+export async function createListingBoostPayment(
+  listingUuid: string,
+  packageId: string,
+): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>(`/listings/${listingUuid}/promote`, {
     method: "POST",
     json: { package: packageId, idempotency_key: newIdempotencyKey() },

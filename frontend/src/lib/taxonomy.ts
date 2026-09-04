@@ -32,23 +32,36 @@ export function pathToDescendant<T extends TaxonomyNode>(nodes: T[], targetId: s
 }
 
 export function collectDescendantNames(
-  nodes: Array<{ id: string; name: string; children?: Array<{ id: string; name: string; children?: unknown[] }> }>,
+  nodes: Array<{
+    id: string;
+    name: string;
+    children?: Array<{ id: string; name: string; children?: unknown[] }>;
+  }>,
   targetId: string,
 ): string[] | null {
   for (const node of nodes) {
     if (node.id === targetId) {
       return flattenNames(node);
     }
-    const nested = node.children ? collectDescendantNames(node.children as typeof nodes, targetId) : null;
+    const nested = node.children
+      ? collectDescendantNames(node.children as typeof nodes, targetId)
+      : null;
     if (nested) return nested;
   }
   return null;
 }
 
-function flattenNames(node: { name: string; children?: Array<{ name: string; children?: unknown[] }> }): string[] {
+function flattenNames(node: {
+  name: string;
+  children?: Array<{ name: string; children?: unknown[] }>;
+}): string[] {
   const names = [node.name];
   for (const child of node.children ?? []) {
-    names.push(...flattenNames(child as { name: string; children?: Array<{ name: string; children?: unknown[] }> }));
+    names.push(
+      ...flattenNames(
+        child as { name: string; children?: Array<{ name: string; children?: unknown[] }> },
+      ),
+    );
   }
   return names;
 }

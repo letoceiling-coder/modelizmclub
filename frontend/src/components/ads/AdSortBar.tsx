@@ -24,7 +24,16 @@ interface Props {
   refreshing?: boolean;
 }
 
-export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, filterCount = 0, refreshing = false }: Props) {
+export function AdSortBar({
+  query,
+  onQuery,
+  sort,
+  onSort,
+  onOpenFilters,
+  count,
+  filterCount = 0,
+  refreshing = false,
+}: Props) {
   const { t } = useTranslation();
 
   return (
@@ -72,7 +81,12 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
           {filterCount > 0 && (
             <span
               className="absolute -right-[6px] -top-[6px] grid min-w-[18px] place-items-center rounded-full px-[5px] text-[10px] font-bold sm:static sm:min-w-[20px] sm:px-[6px] sm:text-[11px]"
-              style={{ height: 18, background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "0 0 0 2px var(--background)" }}
+              style={{
+                height: 18,
+                background: "var(--accent)",
+                color: "var(--accent-foreground)",
+                boxShadow: "0 0 0 2px var(--background)",
+              }}
             >
               {filterCount}
             </span>
@@ -87,8 +101,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
           ) : (
             <>
               {t("components.adsCatalog.found")}{" "}
-              <span style={{ color: "var(--foreground)" }}>{count}</span>{" "}
-              {pluralListings(count, t)}
+              <span style={{ color: "var(--foreground)" }}>{count}</span> {pluralListings(count, t)}
             </>
           )}
         </div>
@@ -107,7 +120,9 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, count, 
           }}
         >
           {SORT_KEYS.map((k) => (
-            <option key={k} value={k}>{t(SORT_LABEL_KEY[k])}</option>
+            <option key={k} value={k}>
+              {t(SORT_LABEL_KEY[k])}
+            </option>
           ))}
         </select>
       </div>
@@ -119,6 +134,7 @@ function pluralListings(n: number, t: (key: string) => string) {
   const mod10 = n % 10;
   const mod100 = n % 100;
   if (mod10 === 1 && mod100 !== 11) return t("components.adsCatalog.listing_one");
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return t("components.adsCatalog.listing_few");
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100))
+    return t("components.adsCatalog.listing_few");
   return t("components.adsCatalog.listing_many");
 }

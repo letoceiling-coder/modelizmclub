@@ -63,11 +63,24 @@ function DefaultLeftContent() {
         >
           Сообщество моделистов
         </h2>
-        <p style={{ color: "rgba(255,255,255,0.75)", marginTop: 16, maxWidth: 420, fontSize: "var(--fs-body-lg)" }}>
+        <p
+          style={{
+            color: "rgba(255,255,255,0.75)",
+            marginTop: 16,
+            maxWidth: 420,
+            fontSize: "var(--fs-body-lg)",
+          }}
+        >
           Сборки, обсуждения, объявления и тематические чаты — для тех, для кого моделизм это жизнь.
         </p>
       </div>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "rgba(255,255,255,0.4)" }}>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--fs-xs)",
+          color: "rgba(255,255,255,0.4)",
+        }}
+      >
         «Моделизм — это жизнь, остальное детали»
       </div>
     </>
@@ -82,15 +95,25 @@ export function AuthShell({ title, subtitle, children, footer, leftContent }: Pr
     >
       {/* LEFT — visual */}
       <div className="relative hidden overflow-hidden lg:block">
-        <img src={cover} width={1200} height={1600} loading="lazy" decoding="async" alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={cover}
+          width={1200}
+          height={1600}
+          loading="lazy"
+          decoding="async"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div
           className="absolute inset-0"
           style={{
-            background:
-              "linear-gradient(135deg, rgba(200,16,46,0.85) 0%, rgba(15,15,20,0.92) 70%)",
+            background: "linear-gradient(135deg, rgba(200,16,46,0.85) 0%, rgba(15,15,20,0.92) 70%)",
           }}
         />
-        <div className="relative flex h-full flex-col justify-between p-[40px]" style={{ color: "#fff" }}>
+        <div
+          className="relative flex h-full flex-col justify-between p-[40px]"
+          style={{ color: "#fff" }}
+        >
           {leftContent ?? <DefaultLeftContent />}
         </div>
       </div>
@@ -106,13 +129,28 @@ export function AuthShell({ title, subtitle, children, footer, leftContent }: Pr
         </div>
         <div className="flex flex-1 flex-col justify-center px-[24px] pb-[40px] sm:px-[48px]">
           <div className="mx-auto w-full" style={{ maxWidth: 400 }}>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.15 }}>{title}</h1>
+            <h1
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 38,
+                fontWeight: 800,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.15,
+              }}
+            >
+              {title}
+            </h1>
             {subtitle && (
-              <p style={{ color: "var(--foreground-70)", marginTop: 10, fontSize: "var(--fs-sm)" }}>{subtitle}</p>
+              <p style={{ color: "var(--foreground-70)", marginTop: 10, fontSize: "var(--fs-sm)" }}>
+                {subtitle}
+              </p>
             )}
             <div className="mt-[32px]">{children}</div>
             {footer && (
-              <div className="mt-[24px]" style={{ fontSize: "var(--fs-sm)", color: "var(--foreground-70)" }}>
+              <div
+                className="mt-[24px]"
+                style={{ fontSize: "var(--fs-sm)", color: "var(--foreground-70)" }}
+              >
                 {footer}
               </div>
             )}

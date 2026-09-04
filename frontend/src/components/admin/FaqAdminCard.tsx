@@ -77,7 +77,15 @@ function ArticleEditor({
 }) {
   const { t } = useTranslation();
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card-sm)", padding: "12px", display: "grid", gap: "8px" }}>
+    <div
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-card-sm)",
+        padding: "12px",
+        display: "grid",
+        gap: "8px",
+      }}
+    >
       <input
         value={article.question}
         onChange={(e) => onChange({ question: e.target.value })}
@@ -90,17 +98,38 @@ function ArticleEditor({
         placeholder={t("pages.adminFaq.answerPlaceholder")}
         style={textareaStyle}
       />
-      <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--foreground-70)" }}>
-        <input type="checkbox" checked={article.is_active} onChange={(e) => onChange({ is_active: e.target.checked })} />
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          fontSize: "13px",
+          color: "var(--foreground-70)",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={article.is_active}
+          onChange={(e) => onChange({ is_active: e.target.checked })}
+        />
         {t("pages.adminFaq.visibleOnSite")}
       </label>
       <div className="flex flex-wrap gap-2">
-        <button type="button" style={ghostBtn} onClick={() => onMove(-1)}>↑</button>
-        <button type="button" style={ghostBtn} onClick={() => onMove(1)}>↓</button>
+        <button type="button" style={ghostBtn} onClick={() => onMove(-1)}>
+          ↑
+        </button>
+        <button type="button" style={ghostBtn} onClick={() => onMove(1)}>
+          ↓
+        </button>
         <button type="button" style={primaryBtn} disabled={saving} onClick={onSave}>
           {saving ? "…" : t("pages.adminCommon.save")}
         </button>
-        <button type="button" style={{ ...ghostBtn, color: "var(--destructive)" }} onClick={onDelete} aria-label={t("pages.adminFaq.deleteQuestion")}>
+        <button
+          type="button"
+          style={{ ...ghostBtn, color: "var(--destructive)" }}
+          onClick={onDelete}
+          aria-label={t("pages.adminFaq.deleteQuestion")}
+        >
           <Trash2 size={14} />
         </button>
       </div>
@@ -223,27 +252,61 @@ function CategoryBlock({
   };
 
   return (
-    <div style={{ ...cardStyle, padding: "20px", marginBottom: "16px", border: highlight ? "1px solid var(--accent)" : cardStyle.border }}>
+    <div
+      style={{
+        ...cardStyle,
+        padding: "20px",
+        marginBottom: "16px",
+        border: highlight ? "1px solid var(--accent)" : cardStyle.border,
+      }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div style={{ flex: 1, minWidth: 220, display: "grid", gap: "8px" }}>
-          <input value={local.name} onChange={(e) => setLocal({ ...local, name: e.target.value })} style={inputStyle} />
+          <input
+            value={local.name}
+            onChange={(e) => setLocal({ ...local, name: e.target.value })}
+            style={inputStyle}
+          />
           <input
             value={local.slug}
-            onChange={(e) => setLocal({ ...local, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+            onChange={(e) =>
+              setLocal({ ...local, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })
+            }
             style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: "12px" }}
             placeholder="slug"
           />
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--foreground-70)" }}>
-            <input type="checkbox" checked={local.is_active} onChange={(e) => setLocal({ ...local, is_active: e.target.checked })} />
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "13px",
+              color: "var(--foreground-70)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={local.is_active}
+              onChange={(e) => setLocal({ ...local, is_active: e.target.checked })}
+            />
             {t("pages.adminFaq.categoryVisible")}
           </label>
         </div>
         <div className="flex gap-2">
-          <button type="button" style={primaryBtn} disabled={savingCat} onClick={() => void saveCategory()}>
+          <button
+            type="button"
+            style={primaryBtn}
+            disabled={savingCat}
+            onClick={() => void saveCategory()}
+          >
             {savingCat ? "…" : t("pages.adminCommon.save")}
           </button>
           {!highlight && (
-            <button type="button" style={{ ...ghostBtn, color: "var(--destructive)" }} onClick={() => void deleteCategory()}>
+            <button
+              type="button"
+              style={{ ...ghostBtn, color: "var(--destructive)" }}
+              onClick={() => void deleteCategory()}
+            >
               {t("pages.adminFaq.deleteCategory")}
             </button>
           )}
@@ -261,7 +324,9 @@ function CategoryBlock({
               onChange={(patch) =>
                 setLocal({
                   ...local,
-                  articles: local.articles.map((a) => (a.id === article.id ? { ...a, ...patch } : a)),
+                  articles: local.articles.map((a) =>
+                    a.id === article.id ? { ...a, ...patch } : a,
+                  ),
                 })
               }
               onSave={() => {
@@ -274,7 +339,17 @@ function CategoryBlock({
           ))}
       </div>
 
-      <button type="button" style={{ ...ghostBtn, marginTop: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }} onClick={() => void addArticle()}>
+      <button
+        type="button"
+        style={{
+          ...ghostBtn,
+          marginTop: "12px",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+        }}
+        onClick={() => void addArticle()}
+      >
         <Plus size={14} /> {t("pages.adminFaq.addQuestion")}
       </button>
     </div>
@@ -294,10 +369,16 @@ export function FaqAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
   useEffect(() => {
     let active = true;
     adminFetchFaq()
-      .then((data) => { if (active) setCategories(data); })
+      .then((data) => {
+        if (active) setCategories(data);
+      })
       .catch(() => toast.error(t("pages.adminFaq.loadFailed")))
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [t]);
 
   const ensureLandingCategory = async () => {
@@ -331,14 +412,26 @@ export function FaqAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
     }
   };
 
-  if (loading) return <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>;
+  if (loading)
+    return (
+      <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+        {t("pages.adminCommon.loading")}
+      </p>
+    );
 
   const landing = categories.find((c) => c.slug === LANDING_SLUG);
   const helpCategories = categories.filter((c) => c.slug !== LANDING_SLUG);
 
   return (
     <div style={{ marginTop: "24px" }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: "16px",
+          color: "var(--foreground)",
+        }}
+      >
         {t("pages.adminFaq.landingTitle")}
       </h4>
       <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "6px" }}>
@@ -349,7 +442,9 @@ export function FaqAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
         <CategoryBlock category={landing} cardStyle={cardStyle} highlight onReload={reload} />
       ) : (
         <div style={{ ...cardStyle, padding: "20px", marginTop: "12px" }}>
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "12px" }}>{t("pages.adminFaq.landingMissing")}</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "12px" }}>
+            {t("pages.adminFaq.landingMissing")}
+          </p>
           <button type="button" style={primaryBtn} onClick={() => void ensureLandingCategory()}>
             {t("pages.adminFaq.createLandingCategory")}
           </button>
@@ -358,10 +453,19 @@ export function FaqAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
 
       <div className="flex items-center justify-between" style={{ marginTop: "8px" }}>
         <div>
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
+          <h4
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              fontSize: "16px",
+              color: "var(--foreground)",
+            }}
+          >
             {t("pages.adminFaq.helpTitle")}
           </h4>
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "6px" }}>{t("pages.adminFaq.helpHint")}</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "6px" }}>
+            {t("pages.adminFaq.helpHint")}
+          </p>
         </div>
         <button type="button" style={ghostBtn} onClick={() => void addHelpCategory()}>
           <Plus size={14} className="inline mr-1" /> {t("pages.adminFaq.addCategory")}

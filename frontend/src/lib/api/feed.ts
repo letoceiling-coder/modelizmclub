@@ -50,7 +50,13 @@ export interface ApiPost {
   } | null;
   stats?: { views?: number; reactions?: number; comments?: number; reposts?: number };
   viewer?: { reacted?: boolean; bookmarked?: boolean; reposted?: boolean };
-  permissions?: { can_delete?: boolean; can_edit?: boolean; can_publish?: boolean; can_cancel_schedule?: boolean; can_interact?: boolean };
+  permissions?: {
+    can_delete?: boolean;
+    can_edit?: boolean;
+    can_publish?: boolean;
+    can_cancel_schedule?: boolean;
+    can_interact?: boolean;
+  };
   can?: Record<string, boolean>;
   published_at?: string | null;
   scheduled_at?: string | null;
@@ -92,23 +98,32 @@ function isVideoMedia(m: ApiPostMedia): boolean {
   return mime.startsWith("video/");
 }
 
-export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; mediaItems: PostMediaItem[] } {
+export function mapPostMedia(p: ApiPost): {
+  images: string[];
+  video?: string;
+  mediaItems: PostMediaItem[];
+} {
   const mediaItems = (p.media ?? [])
     .map((m) => {
-      const status = (m.media?.status as PostMediaItem["status"] | undefined) ?? (m.media?.url ? "ready" : undefined);
+      const status =
+        (m.media?.status as PostMediaItem["status"] | undefined) ??
+        (m.media?.url ? "ready" : undefined);
       const url = m.media?.url ?? "";
       if (!url && status !== "pending" && status !== "failed") return null;
       const width = m.media?.width ?? undefined;
       const height = m.media?.height ?? undefined;
       if (url && width && height) rememberMediaAspect(url, width / height);
-      return {
-        type: isVideoMedia(m) ? ("video" as const) : ("image" as const),
+      // Annotated, not inferred: an inferred literal makes every key required,
+      // which the `item is PostMediaItem` predicate below then rejects.
+      const item: PostMediaItem = {
+        type: isVideoMedia(m) ? "video" : "image",
         url,
         status,
         width,
         height,
         variants: m.media?.variants,
       };
+      return item;
     })
     .filter((item): item is PostMediaItem => item !== null);
 
@@ -124,6 +139,7 @@ export function mapEmbeddedOriginal(r: NonNullable<ApiPost["repost_of"]>): Post 
   return {
     id: r.uuid,
     authorId: author?.id ?? "",
+    author: author ?? undefined,
     date: r.published_at ?? "",
     category: r.category ?? "",
     title: r.title ?? "",
@@ -153,6 +169,7 @@ export function mapPost(p: ApiPost): Post {
   return {
     id: p.uuid,
     authorId: author?.id ?? "",
+    author: author ?? undefined,
     date: p.published_at ?? p.scheduled_at ?? p.created_at ?? "",
     category: p.category?.name ?? "",
     title: isShare ? "" : p.title || "",
@@ -167,12 +184,17 @@ export function mapPost(p: ApiPost): Post {
     comments: p.stats?.comments ?? 0,
     saves: 0,
     reposts: p.stats?.reposts ?? 0,
-    status: p.status === "published" ? "published" : p.status === "scheduled" ? "scheduled" : "moderation",
+    status:
+      p.status === "published"
+        ? "published"
+        : p.status === "scheduled"
+          ? "scheduled"
+          : "moderation",
     scheduledAt: p.scheduled_at ?? undefined,
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
     isReposted: p.viewer?.reposted ?? false,
-    repostOf: isShare ? mapEmbeddedOriginal(p.repost_of) : undefined,
+    repostOf: isShare && p.repost_of ? mapEmbeddedOriginal(p.repost_of) : undefined,
     canDelete: p.permissions?.can_delete ?? false,
     canEdit: p.permissions?.can_edit ?? false,
     canPublish: p.permissions?.can_publish ?? false,
@@ -202,6 +224,8 @@ export interface FeedQuery {
    *  in-app link from a page that already warmed the cache). Real backend
    *  filtering still uses categoryId below; this is ignored on that path. */
   categoryName?: string;
+  /** Bare hashtag name (no "#"); FeedService matches it against tag name/slug. */
+  hashtag?: string;
   page?: number;
   perPage?: number;
 }
@@ -215,7 +239,12 @@ export interface FeedResult {
 
 export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
   if (isDemoMode()) {
-    return demoFeed({ filter: opts.filter, categoryName: opts.categoryName, page: opts.page, perPage: opts.perPage });
+    return demoFeed({
+      filter: opts.filter,
+      categoryName: opts.categoryName,
+      page: opts.page,
+      perPage: opts.perPage,
+    });
   }
   const res = await api<Paginated<ApiPost>>("/feed", {
     auth: Boolean(getToken()),
@@ -223,6 +252,7 @@ export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
       filter: opts.filter ?? "all",
       category_id: opts.categoryId,
       author_id: opts.authorId,
+      hashtag: opts.hashtag,
       page: opts.page,
       per_page: opts.perPage ?? 20,
     },
@@ -272,6 +302,7 @@ export function mapComment(c: ApiComment): Comment {
   return {
     id: c.uuid,
     authorId: author?.id ?? "",
+    author: author ?? undefined,
     time: c.created_at ?? "",
     can: c.can,
     text: c.body ?? "",
@@ -311,7 +342,10 @@ async function fetchPostCommentsPage(
   };
 }
 
-export async function fetchAllPostComments(uuid: string, sort: CommentSort = "interesting"): Promise<Comment[]> {
+export async function fetchAllPostComments(
+  uuid: string,
+  sort: CommentSort = "interesting",
+): Promise<Comment[]> {
   if (isDemoMode()) return demoPostComments(uuid);
   const all: Comment[] = [];
   let page = 1;
@@ -362,6 +396,11 @@ export async function createComment(
 export interface CreatePostInput {
   title: string;
   body: string;
+  /** Post taxonomy node — pass the deepest one the author picked ("Масштаб"
+   *  when set, otherwise "Направление"): post categories are a single tree,
+   *  and the feed's category filter already matches descendants, so storing
+   *  the leaf keeps the direction filter working while preserving the scale.
+   *  Optional — like VK, a post may carry no category at all. */
   categoryId?: number;
   communityId?: number;
   /** Media UUIDs from uploadMedia() — the backend's StorePostRequest
@@ -481,12 +520,14 @@ export async function cancelScheduledPost(uuid: string): Promise<Post> {
   return mapPost(res.data);
 }
 
-export async function updatePost(uuid: string, data: { title?: string; body?: string }): Promise<Post> {
+export async function updatePost(
+  uuid: string,
+  data: { title?: string; body?: string },
+): Promise<Post> {
   if (isDemoMode()) {
     return {
       id: uuid,
       authorId: "",
-      author: "Вы",
       date: "",
       category: "",
       title: data.title ?? "",

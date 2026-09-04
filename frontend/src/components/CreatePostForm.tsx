@@ -5,11 +5,20 @@ import { toast } from "@/lib/toast";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
-import { uploadMediaDeduped, validatePostVideoFile, beginPresignedUpload, type PresignedUploadHandle } from "@/lib/api/media";
+import {
+  uploadMediaDeduped,
+  validatePostVideoFile,
+  beginPresignedUpload,
+  type PresignedUploadHandle,
+} from "@/lib/api/media";
 import { createPost, publishPost, schedulePost } from "@/lib/api/feed";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { buildSchedulePayload, isScheduleDateTimeValid, type PublishMode } from "@/lib/post-schedule";
+import {
+  buildSchedulePayload,
+  isScheduleDateTimeValid,
+  type PublishMode,
+} from "@/lib/post-schedule";
 import { PostSchedulePicker, useInitialScheduleState } from "@/components/feed/PostSchedulePicker";
 import { createChannelPost, POST_KIND_LABEL, type PostKind } from "@/lib/channels";
 import type { Post } from "@/lib/mock";
@@ -41,7 +50,11 @@ const POST_KIND_ICON: Record<PostKind, typeof Newspaper> = {
 /** Compact chromed <select> chip for the composer — quieter and auto-width,
  *  unlike the full-width NativeSelect used in forms. */
 function ChipSelect({
-  value, onChange, options, disabled, ariaLabel,
+  value,
+  onChange,
+  options,
+  disabled,
+  ariaLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -59,7 +72,9 @@ function ChipSelect({
         className="h-[44px] w-full cursor-pointer appearance-none truncate rounded-[var(--r-button)] border border-[var(--border)] bg-[var(--background-surface)] pl-[14px] pr-[30px] text-[14px] font-medium text-[var(--foreground)] outline-none transition-colors focus-visible:border-[var(--accent)] disabled:opacity-40"
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
         ))}
       </select>
       <ChevronDown
@@ -71,7 +86,13 @@ function ChipSelect({
   );
 }
 
-export function CreatePostForm({ onCreate, onClose, selection, initialDraft, communityId }: {
+export function CreatePostForm({
+  onCreate,
+  onClose,
+  selection,
+  initialDraft,
+  communityId,
+}: {
   /** Fired once the post is actually created (and, outside demo mode,
    *  published) on the backend — the real Post the API returned, not a
    *  locally-fabricated stand-in. Only called for selection.source ===
@@ -119,18 +140,16 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
   const photoDraftCache = useRef<Map<File, DraftPhoto>>(new Map());
   const draftEnabled = sel.source === "profile";
 
-  useEffect(() => {
-    if (!catId && categories.length > 0) {
-      setCatId(categories[0].id);
-      setSubId(categories[0].subcategories[0]?.id ?? "");
-    }
-  }, [categories, catId]);
+  // Direction and scale are optional (VK-style): nothing is preselected, and
+  // an empty pick publishes a post with no category at all.
 
   // On open, offer to restore a persisted draft (unless an in-session draft
   // was passed in from the inline composer).
   useEffect(() => {
     if (!draftEnabled) return;
-    const hasInitial = Boolean(initialDraft && (initialDraft.text?.trim() || initialDraft.files.length));
+    const hasInitial = Boolean(
+      initialDraft && (initialDraft.text?.trim() || initialDraft.files.length),
+    );
     if (hasInitial) return;
     const stored = readPostDraft();
     if (stored && isDraftMeaningful(stored)) setDraftPrompt(stored);
@@ -211,10 +230,12 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
       setVideoUrl(URL.createObjectURL(video));
       setVideoProgress(0);
       videoUploadRef.current = beginPresignedUpload(video, "post_video", setVideoProgress);
-      void videoUploadRef.current.then((h) => h.done).catch(() => {
-        setVideoProgress(null);
-        toast.error(t("components.createPostForm.publishFailed"));
-      });
+      void videoUploadRef.current
+        .then((h) => h.done)
+        .catch(() => {
+          setVideoProgress(null);
+          toast.error(t("components.createPostForm.publishFailed"));
+        });
     }
   }, [initialDraft, sel.kind]);
 
@@ -243,7 +264,9 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
   const replacePhoto = (i: number, blob: Blob) => {
     const oldUrl = photos[i];
     const oldFile = photoFiles[i];
-    const newFile = new File([blob], oldFile?.name ?? `photo-${i}.jpg`, { type: blob.type || "image/jpeg" });
+    const newFile = new File([blob], oldFile?.name ?? `photo-${i}.jpg`, {
+      type: blob.type || "image/jpeg",
+    });
     const newUrl = URL.createObjectURL(blob);
     setPhotos((p) => p.map((u, idx) => (idx === i ? newUrl : u)));
     setPhotoFiles((f) => f.map((file, idx) => (idx === i ? newFile : file)));
@@ -252,17 +275,28 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
   };
 
   const publish = async () => {
-    if (sel.source === "profile" && !title.trim()) { toast.error(t("components.createPostForm.titleRequired")); return; }
+    if (sel.source === "profile" && !title.trim()) {
+      toast.error(t("components.createPostForm.titleRequired"));
+      return;
+    }
     if (sel.source === "profile" && title.trim().length > POST_TITLE_MAX_LENGTH) {
       toast.error(t("components.createPostForm.titleTooLong", { max: POST_TITLE_MAX_LENGTH }));
       return;
     }
-    if (!text.trim()) { toast.error(t("components.createPostForm.textRequired")); return; }
-    if (sel.source === "profile" && !cat) { toast.error(t("components.createPostForm.categoryRequired")); return; }
-    if (sel.kind === "video" && !videoFile) { toast.error(t("components.createPostForm.videoRequired")); return; }
+    if (!text.trim()) {
+      toast.error(t("components.createPostForm.textRequired"));
+      return;
+    }
+    if (sel.kind === "video" && !videoFile) {
+      toast.error(t("components.createPostForm.videoRequired"));
+      return;
+    }
     if (sel.kind === "video" && videoFile) {
       const videoErr = validatePostVideoFile(videoFile);
-      if (videoErr) { toast.error(videoErr); return; }
+      if (videoErr) {
+        toast.error(videoErr);
+        return;
+      }
     }
     requirePremium(() => {
       void runPublish();
@@ -279,7 +313,8 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
           mediaIds.push(m.uuid);
         }
       } else if (videoFile) {
-        const handle = await (videoUploadRef.current ?? beginPresignedUpload(videoFile, "post_video", setVideoProgress));
+        const handle = await (videoUploadRef.current ??
+          beginPresignedUpload(videoFile, "post_video", setVideoProgress));
         videoUploadRef.current = Promise.resolve(handle);
         mediaIds.push(handle.uuid);
         void handle.done.catch(() => {
@@ -288,10 +323,14 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
       }
 
       if (sel.source === "profile") {
+        // «Масштаб» is a child node of «Направление» in the same post-category
+        // tree, so the deepest pick is what gets stored — the feed's direction
+        // filter still matches it through the taxonomy's descendants.
+        const taxonomyId = subId || catId;
         let post = await createPost({
           title: title.trim(),
           body: text.trim(),
-          categoryId: Number(cat!.id),
+          categoryId: taxonomyId ? Number(taxonomyId) : undefined,
           communityId,
           mediaIds,
         });
@@ -301,7 +340,10 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
               toast.error(t("components.postSchedule.invalidDateTime"));
               return;
             }
-            post = await schedulePost(post.id, buildSchedulePayload(scheduleDate, scheduleTime, scheduleTimezone));
+            post = await schedulePost(
+              post.id,
+              buildSchedulePayload(scheduleDate, scheduleTime, scheduleTimezone),
+            );
             toast.success(t("components.createPostForm.scheduled"));
           } else {
             post = await publishPost(post.id);
@@ -379,10 +421,21 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
             role="region"
             aria-label={t("components.createPostForm.draftFound")}
             className="flex flex-wrap items-center gap-x-[8px] gap-y-[6px] rounded-[var(--r-card-sm)] border px-[10px] py-[8px] sm:px-[12px] sm:py-[10px]"
-            style={{ borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)", background: "var(--accent-soft)" }}
+            style={{
+              borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)",
+              background: "var(--accent-soft)",
+            }}
           >
-            <FileText size={15} className="shrink-0" style={{ color: "var(--accent)" }} aria-hidden />
-            <p className="min-w-0 flex-1 truncate text-[12px] font-medium leading-tight sm:text-[13px]" style={{ color: "var(--foreground)" }}>
+            <FileText
+              size={15}
+              className="shrink-0"
+              style={{ color: "var(--accent)" }}
+              aria-hidden
+            />
+            <p
+              className="min-w-0 flex-1 truncate text-[12px] font-medium leading-tight sm:text-[13px]"
+              style={{ color: "var(--foreground)" }}
+            >
               {t("components.createPostForm.draftFound")}
             </p>
             <div className="flex w-full shrink-0 items-center gap-[6px] sm:ml-auto sm:w-auto">
@@ -398,7 +451,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
                 type="button"
                 onClick={discardDraft}
                 className="h-[32px] min-w-[44px] flex-1 rounded-[var(--r-button)] border px-[12px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:flex-none sm:h-[34px] sm:px-[14px] sm:text-[13px]"
-                style={{ borderColor: "var(--border)", color: "var(--foreground-70)", background: "var(--background-elevated)" }}
+                style={{
+                  borderColor: "var(--border)",
+                  color: "var(--foreground-70)",
+                  background: "var(--background-elevated)",
+                }}
               >
                 {t("components.createPostForm.startNew")}
               </button>
@@ -408,7 +465,15 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
         {sel.source === "profile" && (
           <div className="space-y-[4px]">
             <div className="flex items-start gap-[12px]">
-              <img src={me.avatar} width={40} height={40} loading="lazy" decoding="async" alt="" className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full" />
+              <img
+                src={me.avatar}
+                width={40}
+                height={40}
+                loading="lazy"
+                decoding="async"
+                alt=""
+                className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full"
+              />
               <input
                 value={title}
                 maxLength={POST_TITLE_MAX_LENGTH}
@@ -431,11 +496,17 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
               id="post-title-counter"
               className="text-right text-[11px] tabular-nums"
               style={{
-                color: title.length >= POST_TITLE_MAX_LENGTH - 10 ? "rgb(217,119,6)" : "var(--foreground-50)",
+                color:
+                  title.length >= POST_TITLE_MAX_LENGTH - 10
+                    ? "rgb(217,119,6)"
+                    : "var(--foreground-50)",
                 paddingLeft: 52,
               }}
             >
-              {t("components.createPostForm.titleCounter", { current: title.length, max: POST_TITLE_MAX_LENGTH })}
+              {t("components.createPostForm.titleCounter", {
+                current: title.length,
+                max: POST_TITLE_MAX_LENGTH,
+              })}
             </p>
           </div>
         )}
@@ -445,7 +516,9 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
           onChange={(e) => setText(e.target.value)}
           placeholder={
             sel.source === "channel"
-              ? t("components.createPostForm.channelTextPlaceholder", { kind: POST_KIND_LABEL[channelKind].toLowerCase() })
+              ? t("components.createPostForm.channelTextPlaceholder", {
+                  kind: POST_KIND_LABEL[channelKind].toLowerCase(),
+                })
               : t("components.createPostForm.profileTextPlaceholder")
           }
           className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none"
@@ -454,8 +527,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
 
         {sel.source === "profile" ? (
           <div className="flex flex-col gap-[8px]">
-            <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--foreground-50)" }}>
-              {t("components.createPostForm.directionAndScale")}
+            <span
+              className="text-[12px] font-semibold uppercase tracking-wide"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              {t("components.createPostForm.directionAndScaleOptional")}
             </span>
             <div className="flex items-center gap-[8px]">
               <ChipSelect
@@ -463,17 +539,22 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
                 value={catId}
                 onChange={(v) => {
                   setCatId(v);
-                  const c = categories.find((cc) => cc.id === v)!;
-                  setSubId(c.subcategories[0]?.id ?? "");
+                  setSubId("");
                 }}
-                options={categories.map((c) => ({ label: c.name, value: c.id }))}
+                options={[
+                  { label: t("components.createPostForm.directionAny"), value: "" },
+                  ...categories.map((c) => ({ label: c.name, value: c.id })),
+                ]}
               />
               <ChipSelect
                 ariaLabel={t("components.createPostForm.subcategoryLabel")}
                 value={subId}
                 onChange={setSubId}
                 disabled={!cat || cat.subcategories.length === 0}
-                options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))}
+                options={[
+                  { label: t("components.createPostForm.scaleAny"), value: "" },
+                  ...(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id })),
+                ]}
               />
             </div>
           </div>
@@ -494,7 +575,9 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
                     borderRadius: 9,
                     background: active ? "var(--accent-soft)" : "var(--background-surface)",
                     color: active ? "var(--accent)" : "var(--foreground-70)",
-                    border: active ? "1px solid color-mix(in oklab, var(--accent) 35%, transparent)" : "1px solid transparent",
+                    border: active
+                      ? "1px solid color-mix(in oklab, var(--accent) 35%, transparent)"
+                      : "1px solid transparent",
                   }}
                 >
                   <Icon size={12} /> {POST_KIND_LABEL[k]}
@@ -522,15 +605,20 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
             label={t("components.createPostForm.addVideo")}
             onPick={(file) => {
               const err = validatePostVideoFile(file);
-              if (err) { toast.error(err); return; }
+              if (err) {
+                toast.error(err);
+                return;
+              }
               setVideoFile(file);
               setVideoUrl(URL.createObjectURL(file));
               setVideoProgress(0);
               videoUploadRef.current = beginPresignedUpload(file, "post_video", setVideoProgress);
-              void videoUploadRef.current.then((h) => h.done).catch(() => {
-                setVideoProgress(null);
-                toast.error(t("components.createPostForm.publishFailed"));
-              });
+              void videoUploadRef.current
+                .then((h) => h.done)
+                .catch(() => {
+                  setVideoProgress(null);
+                  toast.error(t("components.createPostForm.publishFailed"));
+                });
             }}
             onClear={() => {
               setVideoFile(null);
@@ -544,7 +632,10 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
       </div>
 
       {sel.source === "profile" && (
-        <div className="shrink-0 border-t px-[16px] pt-[12px]" style={{ borderColor: "var(--border)" }}>
+        <div
+          className="shrink-0 border-t px-[16px] pt-[12px]"
+          style={{ borderColor: "var(--border)" }}
+        >
           <PostSchedulePicker
             mode={publishMode}
             onModeChange={setPublishMode}
@@ -561,7 +652,10 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
 
       <div
         className="shrink-0 border-t px-[16px] pt-[10px]"
-        style={{ borderColor: "var(--border)", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+        style={{
+          borderColor: "var(--border)",
+          paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+        }}
       >
         <button
           type="button"
@@ -580,7 +674,11 @@ export function CreatePostForm({ onCreate, onClose, selection, initialDraft, com
 
       <PhotoEditorDialog
         open={editingPhotoIndex != null}
-        src={editingPhotoIndex != null ? (photoFiles[editingPhotoIndex] ?? photos[editingPhotoIndex] ?? null) : null}
+        src={
+          editingPhotoIndex != null
+            ? (photoFiles[editingPhotoIndex] ?? photos[editingPhotoIndex] ?? null)
+            : null
+        }
         title="Редактирование фото"
         onCancel={() => setEditingPhotoIndex(null)}
         onSave={(blob) => {

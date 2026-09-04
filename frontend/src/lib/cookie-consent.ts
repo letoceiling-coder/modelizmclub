@@ -30,7 +30,9 @@ export function readCookiePrefs(): StoredCookiePrefs | null {
   }
 }
 
-export function writeCookiePrefs(prefs: Omit<StoredCookiePrefs, "necessary"> & { necessary?: true }): void {
+export function writeCookiePrefs(
+  prefs: Omit<StoredCookiePrefs, "necessary"> & { necessary?: true },
+): void {
   const payload: StoredCookiePrefs = {
     necessary: true,
     analytics: prefs.analytics,

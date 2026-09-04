@@ -1,8 +1,23 @@
 import { api } from "./client";
 
-export type ReportType = "post" | "listing" | "comment" | "user" | "video" | "conversation" | "message" | "community";
+export type ReportType =
+  | "post"
+  | "listing"
+  | "comment"
+  | "user"
+  | "video"
+  | "conversation"
+  | "message"
+  | "community";
 
-export type ReportReason = "spam" | "offensive" | "adult" | "fraud" | "violence" | "copyright" | "other";
+export type ReportReason =
+  | "spam"
+  | "offensive"
+  | "adult"
+  | "fraud"
+  | "violence"
+  | "copyright"
+  | "other";
 
 export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   spam: "Спам",
@@ -30,7 +45,9 @@ export interface SubmitReportInput {
   description?: string;
 }
 
-export async function submitReport(input: SubmitReportInput): Promise<{ id: number; status: string }> {
+export async function submitReport(
+  input: SubmitReportInput,
+): Promise<{ id: number; status: string }> {
   const res = await api<{ data: { id: number; status: string }; message?: string }>("/reports", {
     method: "POST",
     json: {

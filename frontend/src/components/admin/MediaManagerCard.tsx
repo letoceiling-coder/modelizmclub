@@ -40,8 +40,7 @@ const PURPOSES: AdminMediaPurpose[] = ["icon", "banner", "cover", "post", "listi
 function useMediaPurposeLabel() {
   const { t } = useTranslation();
   return useCallback(
-    (purpose: string) =>
-      t(`pages.adminMedia.purposes.${purpose}`, { defaultValue: purpose }),
+    (purpose: string) => t(`pages.adminMedia.purposes.${purpose}`, { defaultValue: purpose }),
     [t],
   );
 }
@@ -133,7 +132,10 @@ export function MediaManagerCard() {
       if (failed.length > 0) {
         toast.error(
           failed.length === 1
-            ? t("pages.adminMedia.uploadOneFailed", { filename: failed[0].filename, error: failed[0].error })
+            ? t("pages.adminMedia.uploadOneFailed", {
+                filename: failed[0].filename,
+                error: failed[0].error,
+              })
             : t("pages.adminMedia.uploadManyFailed", { failed: failed.length, total: list.length }),
         );
       }
@@ -147,21 +149,47 @@ export function MediaManagerCard() {
 
   return (
     <div style={{ ...card, padding: 24 }}>
-      <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 18, color: "var(--foreground)", marginBottom: 4 }}>
+      <h3
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 18,
+          color: "var(--foreground)",
+          marginBottom: 4,
+        }}
+      >
         {t("pages.adminMedia.title")}
       </h3>
       <p style={{ fontSize: 12, color: "var(--foreground-50)", marginBottom: 16 }}>
         {t("pages.adminMedia.subtitle")}
       </p>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16, alignItems: "center" }}>
-        <select value={purpose} onChange={(e) => setPurpose(e.target.value as AdminMediaPurpose | "")} style={selectStyle}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          marginBottom: 16,
+          alignItems: "center",
+        }}
+      >
+        <select
+          value={purpose}
+          onChange={(e) => setPurpose(e.target.value as AdminMediaPurpose | "")}
+          style={selectStyle}
+        >
           <option value="">{t("pages.adminMedia.allPurposes")}</option>
           {PURPOSES.map((p) => (
-            <option key={p} value={p}>{purposeLabel(p)}</option>
+            <option key={p} value={p}>
+              {purposeLabel(p)}
+            </option>
           ))}
         </select>
-        <select value={mime} onChange={(e) => setMime(e.target.value as typeof mime)} style={selectStyle}>
+        <select
+          value={mime}
+          onChange={(e) => setMime(e.target.value as typeof mime)}
+          style={selectStyle}
+        >
           <option value="">{t("pages.adminMedia.allFormats")}</option>
           <option value="image">{t("pages.adminMedia.formatImage")}</option>
           <option value="png">PNG</option>
@@ -170,7 +198,10 @@ export function MediaManagerCard() {
           <option value="svg">SVG</option>
         </select>
         <div style={{ position: "relative", flex: "1 1 180px", minWidth: 160 }}>
-          <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--foreground-50)" }} />
+          <Search
+            size={14}
+            style={{ position: "absolute", left: 10, top: 12, color: "var(--foreground-50)" }}
+          />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -178,9 +209,15 @@ export function MediaManagerCard() {
             style={{ ...selectStyle, width: "100%", paddingLeft: 32 }}
           />
         </div>
-        <select value={uploadPurpose} onChange={(e) => setUploadPurpose(e.target.value as AdminMediaPurpose)} style={selectStyle}>
+        <select
+          value={uploadPurpose}
+          onChange={(e) => setUploadPurpose(e.target.value as AdminMediaPurpose)}
+          style={selectStyle}
+        >
           {PURPOSES.map((p) => (
-            <option key={p} value={p}>{t("pages.adminMedia.uploadAs", { purpose: purposeLabel(p) })}</option>
+            <option key={p} value={p}>
+              {t("pages.adminMedia.uploadAs", { purpose: purposeLabel(p) })}
+            </option>
           ))}
         </select>
         <button
@@ -239,13 +276,21 @@ export function MediaManagerCard() {
       />
 
       {loading ? (
-        <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
+        <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>
+          {t("pages.adminCommon.loading")}
+        </p>
       ) : filtered.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>
           {t("pages.adminMedia.emptyState")}
         </p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+            gap: 10,
+          }}
+        >
           {filtered.map((item) => (
             <div
               key={item.uuid}
@@ -329,7 +374,13 @@ interface MediaPickerDialogProps {
   onSelect: (item: AdminMediaItem) => void | Promise<void>;
 }
 
-export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSelect }: MediaPickerDialogProps) {
+export function MediaPickerDialog({
+  open,
+  onClose,
+  purpose = "icon",
+  title,
+  onSelect,
+}: MediaPickerDialogProps) {
   const { t } = useTranslation();
   const purposeLabel = useMediaPurposeLabel();
   const [mime, setMime] = useState<"" | "svg" | "png" | "image">("");
@@ -344,10 +395,16 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
     let alive = true;
     setLoading(true);
     fetchAdminMedia({ purpose, mime: mime || undefined, perPage: 100 })
-      .then((res) => { if (alive) setItems(res.items); })
+      .then((res) => {
+        if (alive) setItems(res.items);
+      })
       .catch(() => toast.error(t("pages.adminMedia.loadMediaFailed")))
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [open, purpose, mime, t]);
 
   if (!open) return null;
@@ -362,13 +419,18 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
       if (uploaded.length > 0) {
         setItems((prev) => [...uploaded, ...prev]);
         toast.success(
-          uploaded.length === 1 ? t("pages.adminMedia.fileUploadedShort") : t("pages.adminMedia.filesUploaded", { count: uploaded.length }),
+          uploaded.length === 1
+            ? t("pages.adminMedia.fileUploadedShort")
+            : t("pages.adminMedia.filesUploaded", { count: uploaded.length }),
         );
       }
       if (failed.length > 0) {
         toast.error(
           failed.length === 1
-            ? t("pages.adminMedia.uploadOneFailed", { filename: failed[0].filename, error: failed[0].error })
+            ? t("pages.adminMedia.uploadOneFailed", {
+                filename: failed[0].filename,
+                error: failed[0].error,
+              })
             : t("pages.adminMedia.uploadManyFailed", { failed: failed.length, total: list.length }),
         );
       }
@@ -408,10 +470,24 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
       onClick={onClose}
     >
       <div
-        style={{ ...card, width: "min(640px, 100%)", maxHeight: "min(80vh, 720px)", display: "flex", flexDirection: "column" }}
+        style={{
+          ...card,
+          width: "min(640px, 100%)",
+          maxHeight: "min(80vh, 720px)",
+          display: "flex",
+          flexDirection: "column",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", gap: 12 }}>
+        <div
+          style={{
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--border)",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
           <div>
             <h4 style={{ fontSize: 16, fontWeight: 600, color: "var(--foreground)", margin: 0 }}>
               {title ?? t("pages.adminMedia.pickerDefaultTitle")}
@@ -420,11 +496,30 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
               {t("pages.adminMedia.pickerFormatsHint", { purpose: purposeLabel(purpose) })}
             </p>
           </div>
-          <button type="button" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, color: "var(--foreground-50)" }} aria-label={t("pages.adminCommon.close")}>×</button>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ fontSize: 20, lineHeight: 1, color: "var(--foreground-50)" }}
+            aria-label={t("pages.adminCommon.close")}
+          >
+            ×
+          </button>
         </div>
 
-        <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", borderBottom: "1px solid var(--border)" }}>
-          <select value={mime} onChange={(e) => setMime(e.target.value as typeof mime)} style={selectStyle}>
+        <div
+          style={{
+            padding: "12px 20px",
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <select
+            value={mime}
+            onChange={(e) => setMime(e.target.value as typeof mime)}
+            style={selectStyle}
+          >
             <option value="">{t("pages.adminMedia.allFormats")}</option>
             <option value="image">{t("pages.adminMedia.formatImage")}</option>
             <option value="png">PNG</option>
@@ -465,13 +560,21 @@ export function MediaPickerDialog({ open, onClose, purpose = "icon", title, onSe
 
         <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
           {loading ? (
-            <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
+            <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>
+              {t("pages.adminCommon.loading")}
+            </p>
           ) : items.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>
               {t("pages.adminMedia.pickerEmpty")}
             </p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 8 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+                gap: 8,
+              }}
+            >
               {items.map((item) => (
                 <button
                   key={item.uuid}

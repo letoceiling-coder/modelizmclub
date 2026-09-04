@@ -74,14 +74,23 @@ function demoItems(prefs: NotificationPrefs): CabinetNotifItem[] {
   }));
 }
 
-function parsePayload(raw: unknown): { prefs: ApiPref[]; items: CabinetNotifItem[]; groupLabels: Record<string, string>; userTier: string; maxEnabled: boolean } {
-  const data = raw as {
-    preferences?: ApiPref[];
-    items?: CabinetNotifItem[];
-    group_labels?: Record<string, string>;
-    user_tier?: string;
-    max_enabled?: boolean;
-  } | ApiPref[] | null;
+function parsePayload(raw: unknown): {
+  prefs: ApiPref[];
+  items: CabinetNotifItem[];
+  groupLabels: Record<string, string>;
+  userTier: string;
+  maxEnabled: boolean;
+} {
+  const data = raw as
+    | {
+        preferences?: ApiPref[];
+        items?: CabinetNotifItem[];
+        group_labels?: Record<string, string>;
+        user_tier?: string;
+        max_enabled?: boolean;
+      }
+    | ApiPref[]
+    | null;
 
   if (Array.isArray(data)) {
     return { prefs: data, items: [], groupLabels: {}, userTier: "registered", maxEnabled: true };

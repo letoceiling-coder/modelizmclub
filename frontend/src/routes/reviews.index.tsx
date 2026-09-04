@@ -38,14 +38,28 @@ function WatchLaterCard({ item }: { item: WatchLaterItem }) {
         style={{ aspectRatio: "16 / 9", background: "var(--background-surface)" }}
       >
         {item.posterUrl ? (
-          <img src={item.posterUrl} width={1600} height={900} decoding="async" alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
+          <img
+            src={item.posterUrl}
+            width={1600}
+            height={900}
+            decoding="async"
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            loading="lazy"
+          />
         ) : (
-          <div className="grid h-full w-full place-items-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="grid h-full w-full place-items-center text-[12px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
             <Bookmark size={24} />
           </div>
         )}
       </div>
-      <div className="mt-[8px] line-clamp-2 text-[13px] font-semibold leading-[1.35]" style={{ color: "var(--foreground)" }}>
+      <div
+        className="mt-[8px] line-clamp-2 text-[13px] font-semibold leading-[1.35]"
+        style={{ color: "var(--foreground)" }}
+      >
         {item.title}
       </div>
     </GuardedReviewLink>
@@ -88,9 +102,14 @@ function ReviewsPage() {
 
   const tabs = useMemo(() => {
     const sorted = [...categories].sort(
-      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || (a.name ?? "").localeCompare(b.name ?? "", "ru"),
+      (a, b) =>
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || (a.name ?? "").localeCompare(b.name ?? "", "ru"),
     );
-    return [{ id: WATCH_LATER, name: t("pages.reviews.watchLaterTab"), slug: WATCH_LATER }, { id: ALL, name: t("pages.reviews.allCategory"), slug: ALL }, ...sorted];
+    return [
+      { id: WATCH_LATER, name: t("pages.reviews.watchLaterTab"), slug: WATCH_LATER },
+      { id: ALL, name: t("pages.reviews.allCategory"), slug: ALL },
+      ...sorted,
+    ];
   }, [categories, t]);
 
   const isWatchLaterTab = activeCat === WATCH_LATER;
@@ -101,7 +120,9 @@ function ReviewsPage() {
     if (tagFromUrl) return t("pages.reviews.tagResults", { tag: tagFromUrl });
     if (activeCat === ALL) return t("pages.reviews.allReviews");
     const cat = categories.find((c) => c.slug === activeCat);
-    return cat?.name ? t("pages.reviews.categoryReviews", { name: cat.name }) : t("pages.reviews.allReviews");
+    return cat?.name
+      ? t("pages.reviews.categoryReviews", { name: cat.name })
+      : t("pages.reviews.allReviews");
   }, [query, activeCat, categories, t, isWatchLaterTab, tagFromUrl]);
 
   useEffect(() => {
@@ -126,7 +147,9 @@ function ReviewsPage() {
         setFeatured(feat);
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -147,7 +170,9 @@ function ReviewsPage() {
         setRefreshing(false);
         hasLoadedOnceRef.current = true;
       });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [query, activeCat, isWatchLaterTab, tagFromUrl]);
 
   const newest = videos.slice(0, 10);
@@ -186,14 +211,22 @@ function ReviewsPage() {
           })}
         </div>
 
-        {activeCat === ALL && !query && !tagFromUrl && featured.length > 0 && <ReviewsHero videos={featured} />}
+        {activeCat === ALL && !query && !tagFromUrl && featured.length > 0 && (
+          <ReviewsHero videos={featured} />
+        )}
 
         {activeCat === ALL && !query && !tagFromUrl && newest.length > 0 && (
           <section className="space-y-[12px]">
-            <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+            <h2
+              className="font-display text-[20px] font-bold"
+              style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+            >
               {t("pages.reviews.newReleases")}
             </h2>
-            <div className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0" style={{ scrollbarWidth: "thin" }}>
+            <div
+              className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0"
+              style={{ scrollbarWidth: "thin" }}
+            >
               {newest.map((v) => (
                 <div key={v.id} className="snap-start" style={{ flex: "0 0 240px" }}>
                   <VideoCard video={v} />
@@ -204,14 +237,21 @@ function ReviewsPage() {
         )}
 
         <section className="relative space-y-[12px]">
-          <h2 className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+          <h2
+            className="font-display text-[20px] font-bold"
+            style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+          >
             {sectionTitle}
           </h2>
-          {((initialLoading || refreshing) && videos.length === 0 && !isWatchLaterTab) ? (
+          {(initialLoading || refreshing) && videos.length === 0 && !isWatchLaterTab ? (
             <VideoGridSkeleton />
           ) : isWatchLaterTab ? (
             watchLaterItems.length === 0 ? (
-              <EmptyState icon={Bookmark} title={t("pages.reviews.watchLaterEmpty")} description={t("pages.reviews.watchLaterEmptyDesc")} />
+              <EmptyState
+                icon={Bookmark}
+                title={t("pages.reviews.watchLaterEmpty")}
+                description={t("pages.reviews.watchLaterEmptyDesc")}
+              />
             ) : (
               <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-4">
                 {watchLaterItems.map((item) => (
@@ -220,7 +260,11 @@ function ReviewsPage() {
               </div>
             )
           ) : videos.length === 0 ? (
-            <EmptyState icon={SearchX} title={t("pages.reviews.nothingFound")} description={t("pages.reviews.nothingFoundDesc")} />
+            <EmptyState
+              icon={SearchX}
+              title={t("pages.reviews.nothingFound")}
+              description={t("pages.reviews.nothingFoundDesc")}
+            />
           ) : (
             <div
               className={cn(
@@ -237,7 +281,11 @@ function ReviewsPage() {
             <div className="pointer-events-none absolute inset-x-0 top-[44px] flex justify-center pt-[48px]">
               <span
                 className="inline-flex items-center gap-[8px] rounded-full px-[12px] py-[6px] text-[12px] font-medium"
-                style={{ background: "var(--background-elevated)", color: "var(--foreground-70)", boxShadow: "var(--shadow-card)" }}
+                style={{
+                  background: "var(--background-elevated)",
+                  color: "var(--foreground-70)",
+                  boxShadow: "var(--shadow-card)",
+                }}
               >
                 <Loader2 size={14} className="animate-spin" style={{ color: "var(--accent)" }} />
                 {t("pages.reviews.loading")}

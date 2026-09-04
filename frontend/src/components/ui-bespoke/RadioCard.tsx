@@ -33,14 +33,20 @@ export function RadioCard({ selected, onClick, icon: Icon, title, description, c
       <div
         className={cn(
           "grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[var(--r-card-sm)] transition-colors",
-          selected ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "bg-[var(--background-surface)] text-[var(--foreground-70)]",
+          selected
+            ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+            : "bg-[var(--background-surface)] text-[var(--foreground-70)]",
         )}
       >
         <Icon size={20} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>{title}</div>
-        <div className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-70)" }}>{description}</div>
+        <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {title}
+        </div>
+        <div className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-70)" }}>
+          {description}
+        </div>
       </div>
       <div
         className={cn(

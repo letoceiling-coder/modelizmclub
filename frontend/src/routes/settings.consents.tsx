@@ -2,7 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Button } from "@/components/ui/button";
-import { deleteMyAccount, exportMyData, fetchMyConsents, revokeConsent, type ConsentRecord } from "@/lib/api/legal";
+import {
+  deleteMyAccount,
+  exportMyData,
+  fetchMyConsents,
+  revokeConsent,
+  type ConsentRecord,
+} from "@/lib/api/legal";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -125,7 +131,12 @@ function ConsentsSettingsPage() {
         <Button type="button" variant="outline" disabled={busy === "export"} onClick={onExport}>
           Экспорт моих данных
         </Button>
-        <Button type="button" variant="destructive" disabled={busy === "delete"} onClick={onDeleteAccount}>
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={busy === "delete"}
+          onClick={onDeleteAccount}
+        >
           Удалить аккаунт
         </Button>
       </div>

@@ -7,9 +7,11 @@ interface Props {
   level: Level;
   action: () => void | Promise<void>;
   /**
-   * Server-side verdict. When the entity carries `can` and the flag for this
-   * action is explicitly false, the control is not rendered at all — a
-   * missing button, not a window.
+   * Server-side verdict for a signed-in viewer. When the entity carries `can`
+   * and the flag for this action is explicitly false, the control is not
+   * rendered at all — a missing button, not a window. Guests are exempt: the
+   * server answers `false` to everyone it cannot identify, and a guest must
+   * see the button so the gate can open.
    */
   entity?: { can?: Record<string, boolean> | null };
   actionName?: string;
@@ -23,8 +25,9 @@ interface Props {
  * replayed after the missing step succeeds.
  */
 export function Gated({ level, action, entity, actionName, intent, children }: Props) {
-  const { require } = useGate();
-  if (entity?.can && actionName && entity.can[actionName] === false) return null;
+  const { require, level: viewerLevel } = useGate();
+  if (viewerLevel !== "guest" && entity?.can && actionName && entity.can[actionName] === false)
+    return null;
   if (!isValidElement(children)) return children;
 
   return cloneElement(children, {

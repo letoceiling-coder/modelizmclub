@@ -39,7 +39,10 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
     setBrokenAvatar(false);
   }, [community.avatarImage, community.coverImage]);
 
-  const saveBranding = async (patch: { avatar_media_uuid?: string | null; cover_media_uuid?: string | null }) => {
+  const saveBranding = async (patch: {
+    avatar_media_uuid?: string | null;
+    cover_media_uuid?: string | null;
+  }) => {
     if (isDemoMode()) {
       toast("В демо-режиме оформление сохраняется только локально");
       return community;
@@ -155,7 +158,13 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
             onError={() => setBrokenCover(true)}
           />
         ) : (
-          <div className="relative w-full overflow-hidden" style={{ height: 200, background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}>
+          <div
+            className="relative w-full overflow-hidden"
+            style={{
+              height: 200,
+              background: "linear-gradient(135deg, var(--accent), var(--accent-muted))",
+            }}
+          >
             <div className="absolute inset-0 grid place-items-center opacity-25">
               <Icon size={90} color="#fff" />
             </div>
@@ -195,12 +204,26 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
           <div className="relative inline-block shrink-0">
             <div
               className="grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden sm:h-[88px] sm:w-[88px]"
-              style={{ background: "transparent", border: "4px solid var(--background)", borderRadius: 18 }}
+              style={{
+                background: "transparent",
+                border: "4px solid var(--background)",
+                borderRadius: 18,
+              }}
             >
               {showAvatar ? (
-                <Img src={avatarUrl} width={96} height={96} alt="" className="h-full w-full object-cover" onError={() => setBrokenAvatar(true)} />
+                <Img
+                  src={avatarUrl}
+                  width={96}
+                  height={96}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  onError={() => setBrokenAvatar(true)}
+                />
               ) : (
-                <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
+                <div
+                  className="grid h-full w-full place-items-center"
+                  style={{ background: "var(--accent-soft)" }}
+                >
                   <Icon size={34} style={{ color: "var(--accent)" }} />
                 </div>
               )}
@@ -220,7 +243,11 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
                   className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 disabled:opacity-60"
-                  style={{ background: "var(--accent)", color: "#fff", borderColor: "var(--background)" }}
+                  style={{
+                    background: "var(--accent)",
+                    color: "#fff",
+                    borderColor: "var(--background)",
+                  }}
                 >
                   <Camera size={13} />
                 </button>
@@ -229,7 +256,10 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
           </div>
         </div>
         {editable && (
-          <p className="mt-2 max-w-[280px] text-[11px] leading-snug" style={{ color: "var(--foreground-50)" }}>
+          <p
+            className="mt-2 max-w-[280px] text-[11px] leading-snug"
+            style={{ color: "var(--foreground-50)" }}
+          >
             Аватар: JPG, PNG, WEBP · до 5 МБ · рекомендуется 480×480
           </p>
         )}

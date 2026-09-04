@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchPublicPlans, type SubscriptionPlanApi } from "@/lib/api/payment";
-import {
-  mapApiPlansToPricingPlans,
-  type PricingPlan,
-} from "@/lib/config/pricing";
+import { mapApiPlansToPricingPlans, type PricingPlan } from "@/lib/config/pricing";
 
 export function usePricingPlans(): { plans: PricingPlan[]; loading: boolean } {
   const [plans, setPlans] = useState<PricingPlan[]>([]);

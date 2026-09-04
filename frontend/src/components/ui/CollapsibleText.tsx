@@ -57,7 +57,9 @@ export function CollapsibleText({ text, maxLines = 6, className, style }: Props)
           className="mt-[8px] text-[13px] font-semibold transition-opacity hover:opacity-80"
           style={{ color: "var(--accent)" }}
         >
-          {expanded ? t("components.collapsibleText.collapse") : t("components.collapsibleText.expand")}
+          {expanded
+            ? t("components.collapsibleText.collapse")
+            : t("components.collapsibleText.expand")}
         </button>
       )}
     </div>

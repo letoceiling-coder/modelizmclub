@@ -123,7 +123,14 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
     <div style={{ ...cardStyle, padding: 20, marginBottom: 16 }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>
+          <h4
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              fontSize: 16,
+              color: "var(--foreground)",
+            }}
+          >
             Платежи для бухгалтерии
           </h4>
           <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 6 }}>
@@ -141,12 +148,17 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Тип</span>
           <select
             value={type}
-            onChange={(e) => { setType(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setType(e.target.value);
+              setPage(1);
+            }}
             style={{ ...inputStyle, minWidth: 180 }}
           >
             <option value="">Все типы</option>
             {Object.entries(typeLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+              <option key={key} value={key}>
+                {label}
+              </option>
             ))}
           </select>
         </label>
@@ -154,22 +166,43 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Статус</span>
           <select
             value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
             style={{ ...inputStyle, minWidth: 140 }}
           >
             <option value="">Все статусы</option>
             {(Object.keys(STATUS_LABELS) as AdminPaymentStatus[]).map((key) => (
-              <option key={key} value={key}>{STATUS_LABELS[key]}</option>
+              <option key={key} value={key}>
+                {STATUS_LABELS[key]}
+              </option>
             ))}
           </select>
         </label>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>С</span>
-          <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} style={inputStyle} />
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => {
+              setFrom(e.target.value);
+              setPage(1);
+            }}
+            style={inputStyle}
+          />
         </label>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>По</span>
-          <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} style={inputStyle} />
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => {
+              setTo(e.target.value);
+              setPage(1);
+            }}
+            style={inputStyle}
+          />
         </label>
       </div>
 
@@ -179,9 +212,14 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
         ) : rows.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Платежей не найдено.</p>
         ) : (
-          <table className="w-full min-w-[920px] text-left text-[13px]" style={{ borderCollapse: "collapse" }}>
+          <table
+            className="w-full min-w-[920px] text-left text-[13px]"
+            style={{ borderCollapse: "collapse" }}
+          >
             <thead>
-              <tr style={{ color: "var(--foreground-50)", borderBottom: "1px solid var(--border)" }}>
+              <tr
+                style={{ color: "var(--foreground-50)", borderBottom: "1px solid var(--border)" }}
+              >
                 <th className="py-2 pr-3 font-medium">Дата</th>
                 <th className="py-2 pr-3 font-medium">Email</th>
                 <th className="py-2 pr-3 font-medium">Сумма</th>
@@ -193,18 +231,30 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
             <tbody>
               {rows.map((row) => (
                 <tr key={row.uuid} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td className="py-2 pr-3 whitespace-nowrap" style={{ color: "var(--foreground-70)" }}>
+                  <td
+                    className="py-2 pr-3 whitespace-nowrap"
+                    style={{ color: "var(--foreground-70)" }}
+                  >
                     {formatDateCell(row.paid_at ?? row.created_at)}
                   </td>
-                  <td className="py-2 pr-3" style={{ color: "var(--foreground)" }}>{row.user_email ?? "—"}</td>
-                  <td className="py-2 pr-3 whitespace-nowrap" style={{ color: "var(--foreground)" }}>
+                  <td className="py-2 pr-3" style={{ color: "var(--foreground)" }}>
+                    {row.user_email ?? "—"}
+                  </td>
+                  <td
+                    className="py-2 pr-3 whitespace-nowrap"
+                    style={{ color: "var(--foreground)" }}
+                  >
                     {formatMoney(row.amount_rub)}
                   </td>
-                  <td className="py-2 pr-3" style={{ color: "var(--foreground-70)" }}>{row.type_label}</td>
+                  <td className="py-2 pr-3" style={{ color: "var(--foreground-70)" }}>
+                    {row.type_label}
+                  </td>
                   <td className="py-2 pr-3" style={{ color: "var(--foreground-70)" }}>
                     {STATUS_LABELS[row.status] ?? row.status}
                   </td>
-                  <td className="py-2" style={{ color: "var(--foreground-50)" }}>{row.provider ?? "—"}</td>
+                  <td className="py-2" style={{ color: "var(--foreground-50)" }}>
+                    {row.provider ?? "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -216,11 +266,23 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>Всего: {total}</span>
           <div className="flex items-center gap-2">
-            <button type="button" style={ghostBtn} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            <button
+              type="button"
+              style={ghostBtn}
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
               Назад
             </button>
-            <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>{page} / {lastPage}</span>
-            <button type="button" style={ghostBtn} disabled={page >= lastPage} onClick={() => setPage((p) => p + 1)}>
+            <span style={{ fontSize: 12, color: "var(--foreground-50)" }}>
+              {page} / {lastPage}
+            </span>
+            <button
+              type="button"
+              style={ghostBtn}
+              disabled={page >= lastPage}
+              onClick={() => setPage((p) => p + 1)}
+            >
               Далее
             </button>
           </div>

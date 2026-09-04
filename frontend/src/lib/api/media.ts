@@ -2,7 +2,19 @@ import { api, API_BASE_URL, ApiError, getLocale, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { MediaVariantSet } from "@/lib/media/variants";
 
-export type MediaPurpose = "avatar" | "cover" | "post" | "post_video" | "review_video" | "comment" | "listing" | "chat" | "icon" | "banner" | "logo" | "dispute";
+export type MediaPurpose =
+  | "avatar"
+  | "cover"
+  | "post"
+  | "post_video"
+  | "review_video"
+  | "comment"
+  | "listing"
+  | "chat"
+  | "icon"
+  | "banner"
+  | "logo"
+  | "dispute";
 export type UploadProgress = (pct: number) => void;
 
 export interface UploadedMedia {
@@ -22,7 +34,7 @@ export interface PresignedUploadHandle {
   done: Promise<UploadedMedia>;
 }
 
-function usePresignedUpload(file: File, purpose: MediaPurpose): boolean {
+function shouldUsePresignedUpload(file: File, purpose: MediaPurpose): boolean {
   if (purpose === "post_video" || purpose === "review_video") return true;
   return file.size > PRESIGNED_THRESHOLD;
 }
@@ -233,7 +245,7 @@ export async function uploadMedia(
     return { uuid: url, url };
   }
 
-  if (usePresignedUpload(file, purpose)) {
+  if (shouldUsePresignedUpload(file, purpose)) {
     try {
       return await uploadViaPresigned(file, purpose, onProgress);
     } catch (error) {
@@ -256,12 +268,18 @@ export function uploadMediaDeduped(
   purpose: MediaPurpose,
   onProgress?: UploadProgress,
 ): Promise<UploadedMedia> {
-  if (usePresignedUpload(file, purpose) || purpose === "post_video" || purpose === "review_video") {
+  if (
+    shouldUsePresignedUpload(file, purpose) ||
+    purpose === "post_video" ||
+    purpose === "review_video"
+  ) {
     return beginPresignedUpload(file, purpose, onProgress).then((handle) => handle.done);
   }
   const existing = inflightUploads.get(file);
   if (existing) return existing;
-  const pending = uploadMedia(file, purpose, onProgress).finally(() => inflightUploads.delete(file));
+  const pending = uploadMedia(file, purpose, onProgress).finally(() =>
+    inflightUploads.delete(file),
+  );
   inflightUploads.set(file, pending);
   return pending;
 }

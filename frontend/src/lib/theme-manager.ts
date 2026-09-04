@@ -23,7 +23,12 @@ export type { AccentPreset, AccentPresetId };
 export { ACCENT_PRESETS, ACCENT_PRESET_LIST, DEFAULT_ACCENT_ID, getAccentPreset, isAccentPresetId };
 
 // Kept for the admin swatch grid — now the two brand presets, not orange/red.
-export type AccentSwatch = { id: string; label: string; hex: string; kind: "base" | "light" | "dark" };
+export type AccentSwatch = {
+  id: string;
+  label: string;
+  hex: string;
+  kind: "base" | "light" | "dark";
+};
 export const BASE_ACCENTS: AccentSwatch[] = ACCENT_PRESET_LIST.map((p) => ({
   id: p.id,
   label: p.label,
@@ -34,10 +39,17 @@ export const BASE_ACCENTS: AccentSwatch[] = ACCENT_PRESET_LIST.map((p) => ({
 // --- color utils (used by the advanced/debug hex path) ---
 function hexToRgb(hex: string) {
   const h = hex.replace("#", "");
-  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
 }
 function rgbToHex(r: number, g: number, b: number) {
-  const c = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+  const c = (n: number) =>
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${c(r)}${c(g)}${c(b)}`.toUpperCase();
 }
 function mix(hex: string, target: "white" | "black", amount: number) {
@@ -52,17 +64,26 @@ function rgbaFrom(hex: string, alpha: number) {
 /** Relative luminance → pick readable ink for text on a colored fill. */
 function readableForeground(hex: string): string {
   const { r, g, b } = hexToRgb(hex);
-  const lin = (c: number) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
   const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
   return L > 0.45 ? "#0F1519" : "#FFFFFF";
 }
 
 export function generateVariations(baseHex: string): AccentSwatch[] {
   const lighter = [0.12, 0.24, 0.36, 0.5, 0.65].map((a, i) => ({
-    id: `light-${i + 1}`, label: `+${Math.round(a * 100)}%`, hex: mix(baseHex, "white", a), kind: "light" as const,
+    id: `light-${i + 1}`,
+    label: `+${Math.round(a * 100)}%`,
+    hex: mix(baseHex, "white", a),
+    kind: "light" as const,
   }));
   const darker = [0.12, 0.24, 0.36, 0.5, 0.65].map((a, i) => ({
-    id: `dark-${i + 1}`, label: `-${Math.round(a * 100)}%`, hex: mix(baseHex, "black", a), kind: "dark" as const,
+    id: `dark-${i + 1}`,
+    label: `-${Math.round(a * 100)}%`,
+    hex: mix(baseHex, "black", a),
+    kind: "dark" as const,
   }));
   return [...lighter, ...darker];
 }
@@ -85,12 +106,18 @@ export function loadTheme(): ThemeState | null {
       }
       return p;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
 export function saveTheme(state: ThemeState) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Apply the full token set for a raw hex (advanced/debug path). */
@@ -98,7 +125,7 @@ export function applyAccent(hex: string) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const hover = mix(hex, "white", 0.12);
-  const active = mix(hex, "black", 0.20);
+  const active = mix(hex, "black", 0.2);
   const fg = readableForeground(hex);
   root.style.setProperty("--accent", hex);
   root.style.setProperty("--accent-hover", hover);
@@ -107,9 +134,9 @@ export function applyAccent(hex: string) {
   root.style.setProperty("--accent-foreground", fg);
   root.style.setProperty("--accent-soft", rgbaFrom(hex, 0.14));
   root.style.setProperty("--accent-glow", rgbaFrom(hex, 0.28));
-  root.style.setProperty("--border-accent", rgbaFrom(hex, 0.40));
+  root.style.setProperty("--border-accent", rgbaFrom(hex, 0.4));
   root.style.setProperty("--focus-ring", hex);
-  root.style.setProperty("--shadow-button", `0 2px 8px ${rgbaFrom(hex, 0.30)}`);
+  root.style.setProperty("--shadow-button", `0 2px 8px ${rgbaFrom(hex, 0.3)}`);
   root.style.setProperty("--shadow-glow-accent", `0 0 24px ${rgbaFrom(hex, 0.28)}`);
   root.style.setProperty("--shadow-card-hover", `0 4px 24px ${rgbaFrom(hex, 0.15)}`);
   root.removeAttribute("data-accent");
@@ -142,7 +169,11 @@ export function applyMode(mode: Mode) {
   const root = document.documentElement;
   root.setAttribute("data-theme", mode);
   root.classList.toggle("dark", mode === "dark");
-  try { localStorage.setItem("theme", mode); } catch { /* ignore */ }
+  try {
+    localStorage.setItem("theme", mode);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function applyTheme(state: ThemeState) {

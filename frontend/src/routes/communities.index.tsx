@@ -2,7 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging, Users, Search, ArrowRight, Plus,
+  Car,
+  Plane,
+  Ship,
+  Send,
+  Code2,
+  Wrench,
+  Cpu,
+  BatteryCharging,
+  Users,
+  Search,
+  ArrowRight,
+  Plus,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
@@ -29,7 +40,9 @@ export const Route = createFileRoute("/communities/")({
   loaderDeps: ({ search }) => ({ taxonomy_id: search.taxonomy_id }),
   loader: async ({ deps }) => {
     await ensurePublicBootstrap();
-    const communities = await fetchCommunities(undefined, deps.taxonomy_id).catch(() => [] as Community[]);
+    const communities = await fetchCommunities(undefined, deps.taxonomy_id).catch(
+      () => [] as Community[],
+    );
     void prefetchCategoryRoomStats();
     return { communities };
   },
@@ -38,7 +51,14 @@ export const Route = createFileRoute("/communities/")({
 });
 
 const ICON_MAP: Record<string, typeof Car> = {
-  Car, Plane, Ship, Send, Code2, Wrench, Cpu, BatteryCharging,
+  Car,
+  Plane,
+  Ship,
+  Send,
+  Code2,
+  Wrench,
+  Cpu,
+  BatteryCharging,
 };
 
 const ROLE_LABEL_KEY: Record<NonNullable<Community["role"]>, string> = {
@@ -59,7 +79,11 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
   return (
     <Card
       className="overflow-hidden flex flex-col shadow-none"
-      style={{ background: "var(--background-elevated)", borderColor: "var(--border)", borderRadius: 16 }}
+      style={{
+        background: "var(--background-elevated)",
+        borderColor: "var(--border)",
+        borderRadius: 16,
+      }}
     >
       {/* banner */}
       <Link to="/communities/$id" params={{ id: c.id }} className="relative block">
@@ -75,7 +99,10 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
             onError={() => setBrokenCover(true)}
           />
         ) : (
-          <div className="relative h-[120px] w-full overflow-hidden" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}>
+          <div
+            className="relative h-[120px] w-full overflow-hidden"
+            style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}
+          >
             <div className="absolute inset-0 grid place-items-center opacity-25">
               <Icon size={54} color="#fff" />
             </div>
@@ -83,7 +110,10 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         )}
         {/* category chip */}
         {c.category && (
-          <span className="absolute right-[10px] top-[10px] rounded-full px-[10px] py-[3px] text-[11px] font-semibold text-white" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }}>
+          <span
+            className="absolute right-[10px] top-[10px] rounded-full px-[10px] py-[3px] text-[11px] font-semibold text-white"
+            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }}
+          >
             {c.category}
           </span>
         )}
@@ -107,7 +137,11 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         {/* avatar */}
         <div
           className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
-          style={{ border: "3px solid var(--background)", borderRadius: "var(--r-card)", background: "transparent" }}
+          style={{
+            border: "3px solid var(--background)",
+            borderRadius: "var(--r-card)",
+            background: "transparent",
+          }}
         >
           {showAvatar ? (
             <img
@@ -121,20 +155,29 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
               onError={() => setBrokenAvatar(true)}
             />
           ) : (
-            <div className="grid h-full w-full place-items-center" style={{ background: "var(--accent-soft)" }}>
+            <div
+              className="grid h-full w-full place-items-center"
+              style={{ background: "var(--accent-soft)" }}
+            >
               <Icon size={26} style={{ color: "var(--accent)" }} />
             </div>
           )}
         </div>
-        {(c.unreadPosts || c.unreadMessages) ? (
+        {c.unreadPosts || c.unreadMessages ? (
           <div className="absolute bottom-[8px] right-[10px] flex gap-[4px]">
             {c.unreadPosts ? (
-              <span className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white" style={{ background: "var(--accent)" }}>
+              <span
+                className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white"
+                style={{ background: "var(--accent)" }}
+              >
                 {c.unreadPosts}
               </span>
             ) : null}
             {c.unreadMessages ? (
-              <span className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white" style={{ background: "#2563eb" }}>
+              <span
+                className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white"
+                style={{ background: "#2563eb" }}
+              >
                 {c.unreadMessages}
               </span>
             ) : null}
@@ -144,7 +187,10 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
 
       <div className="flex flex-1 flex-col gap-[10px] px-[16px] pt-[32px] pb-[16px]">
         <Link to="/communities/$id" params={{ id: c.id }} className="min-w-0">
-          <h3 className="truncate font-display text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+          <h3
+            className="truncate font-display text-[16px] font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
             {c.name}
           </h3>
           <p
@@ -162,20 +208,40 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         </Link>
         <div className="mt-auto flex items-center justify-between gap-[8px] pt-[4px]">
           <div className="flex flex-col gap-[2px]">
-            <span className="inline-flex items-center gap-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              <Users size={14} /> {c.members > 0
+            <span
+              className="inline-flex items-center gap-[6px] text-[12px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              <Users size={14} />{" "}
+              {c.members > 0
                 ? t("pages.shared.members", { count: c.members.toLocaleString("ru") })
                 : t("pages.shared.membersNew")}
             </span>
-            <span className="inline-flex items-center gap-[6px] text-[11px]" style={{ color: "var(--foreground-50)" }}>
+            <span
+              className="inline-flex items-center gap-[6px] text-[11px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
               {(c.onlineAvatars?.length ?? 0) > 0 ? (
                 <span className="flex -space-x-2">
                   {c.onlineAvatars!.slice(0, 3).map((a) => (
-                    <img key={a.uuid} src={a.url ?? ""} width={18} height={18} loading="lazy" decoding="async" alt="" className="h-[18px] w-[18px] rounded-full object-cover" style={{ border: "2px solid var(--background)" }} />
+                    <img
+                      key={a.uuid}
+                      src={a.url ?? ""}
+                      width={18}
+                      height={18}
+                      loading="lazy"
+                      decoding="async"
+                      alt=""
+                      className="h-[18px] w-[18px] rounded-full object-cover"
+                      style={{ border: "2px solid var(--background)" }}
+                    />
                   ))}
                 </span>
               ) : (
-                <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ background: "#22c55e" }} />
+                <span
+                  className="inline-block h-[6px] w-[6px] rounded-full"
+                  style={{ background: "#22c55e" }}
+                />
               )}
               {t("pages.shared.activeToday")}
             </span>
@@ -232,7 +298,11 @@ function CommunityCardSkeleton() {
   return (
     <Card
       className="overflow-hidden"
-      style={{ borderColor: "var(--border)", borderRadius: 16, background: "var(--background-elevated)" }}
+      style={{
+        borderColor: "var(--border)",
+        borderRadius: 16,
+        background: "var(--background-elevated)",
+      }}
     >
       <Skeleton className="h-[120px] w-full rounded-none" />
       <div className="space-y-[10px] px-[16px] pb-[16px] pt-[32px]">
@@ -267,17 +337,26 @@ function CommunitySection({
     <section className="space-y-[14px]">
       <div className="flex items-end justify-between gap-[12px]">
         <div className="min-w-0">
-          <h2 className="flex items-center gap-[8px] font-display text-[18px] font-bold sm:text-[20px]" style={{ color: "var(--foreground)" }}>
+          <h2
+            className="flex items-center gap-[8px] font-display text-[18px] font-bold sm:text-[20px]"
+            style={{ color: "var(--foreground)" }}
+          >
             {title}
             <span
               className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[7px] text-[12px] font-bold"
-              style={{ background: "var(--accent-soft)", color: "var(--accent)", borderRadius: "var(--r-pill)" }}
+              style={{
+                background: "var(--accent-soft)",
+                color: "var(--accent)",
+                borderRadius: "var(--r-pill)",
+              }}
             >
               {items.length}
             </span>
           </h2>
           {subtitle && (
-            <p className="mt-[2px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{subtitle}</p>
+            <p className="mt-[2px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              {subtitle}
+            </p>
           )}
         </div>
         {canExpand && (
@@ -340,7 +419,9 @@ function CommunitiesPage() {
   }, [taxonomyId]);
 
   const reloadCommunities = () => {
-    fetchCommunities(undefined, taxonomyId).then(setAll).catch(() => {});
+    fetchCommunities(undefined, taxonomyId)
+      .then(setAll)
+      .catch(() => {});
   };
 
   const [query, setQuery] = useState("");
@@ -366,10 +447,7 @@ function CommunitiesPage() {
     () => filtered.filter((c) => resolveRole(c) === "member"),
     [filtered],
   );
-  const recommended = useMemo(
-    () => filtered.filter((c) => !resolveRole(c)),
-    [filtered],
-  );
+  const recommended = useMemo(() => filtered.filter((c) => !resolveRole(c)), [filtered]);
 
   const hasQuery = debounced.trim().length > 0;
   const nothing = filtered.length === 0;
@@ -380,15 +458,15 @@ function CommunitiesPage() {
       <div className="space-y-[24px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-end sm:justify-between">
           <div>
-          <h1
-            className="font-display text-[24px] font-bold sm:text-[28px]"
-            style={{ color: "var(--foreground)" }}
-          >
-            {t("pages.communities.title")}
-          </h1>
-          <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
-            {t("pages.communities.subtitle")}
-          </p>
+            <h1
+              className="font-display text-[24px] font-bold sm:text-[28px]"
+              style={{ color: "var(--foreground)" }}
+            >
+              {t("pages.communities.title")}
+            </h1>
+            <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.communities.subtitle")}
+            </p>
           </div>
           <Button asChild className="shrink-0 gap-[6px]">
             <Link to="/communities/new">
@@ -412,7 +490,15 @@ function CommunitiesPage() {
             ))}
           </div>
         ) : nothing ? (
-          hasQuery ? <EmptySearch /> : <EmptyMy onSwitch={() => { /* scroll handled naturally */ }} />
+          hasQuery ? (
+            <EmptySearch />
+          ) : (
+            <EmptyMy
+              onSwitch={() => {
+                /* scroll handled naturally */
+              }}
+            />
+          )
         ) : (
           <div className="space-y-[28px]">
             <CommunitySection
@@ -429,7 +515,11 @@ function CommunitiesPage() {
             />
             <CommunitySection
               title={t("pages.communities.sectionRecommended")}
-              subtitle={noneJoined ? t("pages.communities.sectionRecommendedSubNone") : t("pages.communities.sectionRecommendedSub")}
+              subtitle={
+                noneJoined
+                  ? t("pages.communities.sectionRecommendedSubNone")
+                  : t("pages.communities.sectionRecommendedSub")
+              }
               items={recommended}
               onDeleted={reloadCommunities}
             />

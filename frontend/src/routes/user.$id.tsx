@@ -5,7 +5,12 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import type { User, Post, Ad } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
 import {
-  fetchPublicProfile, fetchFriends, sendFriendRequest, removeFriend, followUser, unfollowUser,
+  fetchPublicProfile,
+  fetchFriends,
+  sendFriendRequest,
+  removeFriend,
+  followUser,
+  unfollowUser,
   type PublicProfile,
 } from "@/lib/api/social";
 import { openConversation } from "@/lib/api/chat";
@@ -17,6 +22,7 @@ import { ProfileView } from "./profile";
 import { toast } from "@/lib/toast";
 
 import i18n from "@/lib/i18n";
+import { useActionGate } from "@/lib/gate";
 
 export const Route = createFileRoute("/user/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.user.metaTitle") }] }),
@@ -27,6 +33,7 @@ function UserPage() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
   const me = useCurrentUser();
+  const { requireAction } = useActionGate();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
@@ -57,7 +64,12 @@ function UserPage() {
         }
         setProfile(next);
         setLoading(false);
-        recordView({ id: next.user.slug ?? next.user.id, kind: "profile", title: next.user.name, thumb: next.user.avatar });
+        recordView({
+          id: next.user.slug ?? next.user.id,
+          kind: "profile",
+          title: next.user.name,
+          thumb: next.user.avatar,
+        });
 
         Promise.all([
           next.user.numericId
@@ -71,16 +83,29 @@ function UserPage() {
             setUserAds(ads.map((ad) => ({ ad, status: "active" as const })));
           })
           .catch(() => {})
-          .finally(() => { if (active) setContentLoading(false); });
+          .finally(() => {
+            if (active) setContentLoading(false);
+          });
       })
-      .catch(() => { if (active) { setNotFound(true); setLoading(false); setContentLoading(false); } });
-    return () => { active = false; };
+      .catch(() => {
+        if (active) {
+          setNotFound(true);
+          setLoading(false);
+          setContentLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) {
     return (
       <AppLayout rightColumn={false}>
-        <div className="flex items-center justify-center py-[120px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="flex items-center justify-center py-[120px] text-[14px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           {t("pages.user.loading")}
         </div>
       </AppLayout>
@@ -91,8 +116,25 @@ function UserPage() {
     return (
       <AppLayout rightColumn={false}>
         <div className="flex flex-col items-center justify-center py-[120px] text-center">
-          <div className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>{t("pages.user.notFound")}</div>
-          <Link to="/friends" className="mt-[16px] inline-flex font-semibold" style={{ height: 40, padding: "0 20px", borderRadius: 10, background: "var(--accent)", color: "white", fontSize: 14, alignItems: "center" }}>
+          <div
+            className="font-display text-[24px] font-bold"
+            style={{ color: "var(--foreground)" }}
+          >
+            {t("pages.user.notFound")}
+          </div>
+          <Link
+            to="/friends"
+            className="mt-[16px] inline-flex font-semibold"
+            style={{
+              height: 40,
+              padding: "0 20px",
+              borderRadius: 10,
+              background: "var(--accent)",
+              color: "white",
+              fontSize: 14,
+              alignItems: "center",
+            }}
+          >
             {t("pages.user.toFriends")}
           </Link>
         </div>
@@ -128,12 +170,14 @@ function UserPage() {
   };
 
   const write = async () => {
-    if (!user.numericId || !me) {
-      toast.error(t("pages.user.dialogOpenFailed"));
-      return;
-    }
-    const dialog = await openConversation(user.numericId, me.id, user.id);
-    navigate({ to: "/messenger", search: { chat: dialog.id } });
+    await requireAction("messenger.send", async () => {
+      if (!user.numericId || !me) {
+        toast.error(t("pages.user.dialogOpenFailed"));
+        return;
+      }
+      const dialog = await openConversation(user.numericId, me.id, user.id);
+      navigate({ to: "/messenger", search: { chat: dialog.id } });
+    });
   };
 
   return (

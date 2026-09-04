@@ -28,7 +28,8 @@ function PaymentMethodsSection() {
     unionpay: "UnionPay",
   };
   const brandLabel = (b: string): string =>
-    BRAND_LABEL[b.toLowerCase()] ?? (b ? b.charAt(0).toUpperCase() + b.slice(1) : t("pages.settings.cardBrandDefault"));
+    BRAND_LABEL[b.toLowerCase()] ??
+    (b ? b.charAt(0).toUpperCase() + b.slice(1) : t("pages.settings.cardBrandDefault"));
 
   const demo = isDemoMode();
   const [cards, setCards] = useState<PaymentMethod[]>([]);
@@ -90,7 +91,11 @@ function PaymentMethodsSection() {
       {demo ? (
         <Card
           className="p-[20px]"
-          style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}
+          style={{
+            borderColor: "var(--border)",
+            borderRadius: "var(--r-card)",
+            background: "var(--background-surface)",
+          }}
         >
           <div className="flex items-start gap-[12px]">
             <span
@@ -110,7 +115,10 @@ function PaymentMethodsSection() {
           </div>
         </Card>
       ) : loading ? (
-        <div className="flex items-center gap-[8px] py-[24px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="flex items-center gap-[8px] py-[24px] text-[14px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           <Loader2 size={16} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       ) : (
@@ -118,19 +126,33 @@ function PaymentMethodsSection() {
           {cards.length === 0 ? (
             <Card
               className="p-[20px] text-center"
-              style={{ borderColor: "var(--border)", borderStyle: "dashed", borderRadius: "var(--r-card)" }}
+              style={{
+                borderColor: "var(--border)",
+                borderStyle: "dashed",
+                borderRadius: "var(--r-card)",
+              }}
             >
               <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
                 {t("pages.settings.paymentEmpty")}
               </p>
             </Card>
           ) : (
-            <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+            <Card
+              className="divide-y p-0"
+              style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+            >
               {cards.map((c) => (
-                <div key={c.id} className="flex items-center gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
+                <div
+                  key={c.id}
+                  className="flex items-center gap-[12px] px-[16px] py-[14px]"
+                  style={{ borderColor: "var(--border)" }}
+                >
                   <span
                     className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[8px]"
-                    style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
+                    style={{
+                      background: "var(--background-surface)",
+                      color: "var(--foreground-70)",
+                    }}
                   >
                     <CreditCard size={18} />
                   </span>
@@ -139,7 +161,9 @@ function PaymentMethodsSection() {
                       {brandLabel(c.brand)} •••• {c.last4}
                     </div>
                     {c.is_default && (
-                      <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.paymentPrimary")}</div>
+                      <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                        {t("pages.settings.paymentPrimary")}
+                      </div>
                     )}
                   </div>
                   {confirmingId === c.id ? (

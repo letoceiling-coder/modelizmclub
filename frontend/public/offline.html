@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1a1e" />
+    <title>Нет соединения — МоДелизМ</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #1a1a1e;
+        --surface: #2a2a2e;
+        --border: #333338;
+        --text: #f0f0f0;
+        --muted: rgba(240, 240, 240, 0.7);
+        --accent: #627fff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Manrope",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .card {
+        max-width: 30rem;
+        width: 100%;
+        text-align: center;
+      }
+      .mark {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 20px;
+        border-radius: 20px;
+        display: block;
+        background: var(--surface);
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 22px;
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 8px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      ul {
+        margin: 16px auto 24px;
+        padding: 0;
+        list-style: none;
+        text-align: left;
+        max-width: 22rem;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+      li {
+        padding-left: 20px;
+        position: relative;
+      }
+      li::before {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 10px;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+      button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        min-height: 44px;
+        padding: 0 24px;
+        border-radius: 12px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        font-size: 15px;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img class="mark" src="/pwa/icon-192.png" width="72" height="72" alt="МоДелизМ" />
+      <h1>Нет соединения</h1>
+      <p>Страница не загрузилась — устройство сейчас офлайн.</p>
+      <ul>
+        <li>Проверьте Wi-Fi или мобильный интернет</li>
+        <li>Отключите режим полёта</li>
+        <li>Уже открытые разделы продолжат работать из кеша</li>
+      </ul>
+      <button type="button" onclick="location.reload()">Попробовать снова</button>
+    </div>
+    <script>
+      // Как только сеть вернулась — уходим со страницы-заглушки сами.
+      window.addEventListener("online", function () {
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

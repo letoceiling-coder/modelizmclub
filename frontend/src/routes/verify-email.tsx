@@ -40,7 +40,7 @@ function VerifyEmailPage() {
       const msg =
         err instanceof ApiError
           ? err.errors
-            ? Object.values(err.errors)[0]?.[0] ?? err.message
+            ? (Object.values(err.errors)[0]?.[0] ?? err.message)
             : err.message
           : t("pages.verifyEmail.failed");
       toast.error(msg);
@@ -81,7 +81,11 @@ function VerifyEmailPage() {
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           style={inputStyle}
         />
-        <button type="submit" disabled={loading} style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{ ...primaryBtn, marginTop: 8, opacity: loading ? 0.7 : 1 }}
+        >
           {loading ? t("pages.verifyEmail.verifying") : t("pages.verifyEmail.confirm")}
         </button>
       </form>

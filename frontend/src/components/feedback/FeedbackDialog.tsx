@@ -140,20 +140,17 @@ export function FeedbackDialog() {
         <SlotIcon slot="nav.feedback" className="h-4 w-4" size={16} inheritColor />
         Обратная связь
       </button>
-      <Dialog
-        open={open && !isGuest}
-        onOpenChange={setOpen}
-      >
+      <Dialog open={open && !isGuest} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Книга замечаний и предложений</DialogTitle>
-          <DialogDescription>
-            Расскажите, что улучшить, или сообщите о проблеме — мы читаем каждое сообщение.
-          </DialogDescription>
-        </DialogHeader>
-        <FeedbackForm onSent={() => setOpen(false)} />
-      </DialogContent>
-    </Dialog>
+          <DialogHeader>
+            <DialogTitle>Книга замечаний и предложений</DialogTitle>
+            <DialogDescription>
+              Расскажите, что улучшить, или сообщите о проблеме — мы читаем каждое сообщение.
+            </DialogDescription>
+          </DialogHeader>
+          <FeedbackForm onSent={() => setOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

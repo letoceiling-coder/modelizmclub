@@ -165,7 +165,11 @@ export function MaxAccountCard() {
       setBotUrl(started.bot_url);
       sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ session: started.session, bot_url: started.bot_url, expires_at: expiresAt } satisfies StoredLink),
+        JSON.stringify({
+          session: started.session,
+          bot_url: started.bot_url,
+          expires_at: expiresAt,
+        } satisfies StoredLink),
       );
       if (popup && !popup.closed) {
         popup.location.replace(started.bot_url);
@@ -219,17 +223,27 @@ export function MaxAccountCard() {
   };
 
   return (
-    <Card id="max-account" className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+    <Card
+      id="max-account"
+      className="p-[20px]"
+      style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+    >
       <div className="mb-[10px] flex flex-wrap items-center gap-[8px]">
         <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
           {t("pages.settings.maxTitle")}
         </h2>
         {linked && !waiting ? (
-          <Badge variant="published" withIcon={false}>{t("pages.settings.maxConnected")}</Badge>
+          <Badge variant="published" withIcon={false}>
+            {t("pages.settings.maxConnected")}
+          </Badge>
         ) : waiting ? (
-          <Badge variant="moderation" withIcon={false}>{t("pages.settings.maxWaiting")}</Badge>
+          <Badge variant="moderation" withIcon={false}>
+            {t("pages.settings.maxWaiting")}
+          </Badge>
         ) : (
-          <Badge variant="draft" withIcon={false}>{t("pages.settings.maxDisconnected")}</Badge>
+          <Badge variant="draft" withIcon={false}>
+            {t("pages.settings.maxDisconnected")}
+          </Badge>
         )}
       </div>
 
@@ -243,7 +257,9 @@ export function MaxAccountCard() {
           </p>
           <div className="flex flex-wrap gap-[8px]">
             <Button asChild variant="outline" size="sm">
-              <a href={botUrl} target="_blank" rel="noreferrer">{t("pages.settings.maxOpenAgain")}</a>
+              <a href={botUrl} target="_blank" rel="noreferrer">
+                {t("pages.settings.maxOpenAgain")}
+              </a>
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={clearWaiting}>
               {t("pages.settings.maxCancel")}
@@ -253,7 +269,9 @@ export function MaxAccountCard() {
       ) : (
         <>
           <p className="text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-            {linked ? t("pages.settings.maxConnectedDesc") : t("pages.settings.maxDisconnectedDesc")}
+            {linked
+              ? t("pages.settings.maxConnectedDesc")
+              : t("pages.settings.maxDisconnectedDesc")}
           </p>
           {linked && (
             <div className="mt-[14px] flex items-center justify-between gap-[12px]">
@@ -283,7 +301,10 @@ export function MaxAccountCard() {
             )}
           </div>
           {linked && !canUnlink && (
-            <p className="mt-[10px] text-[12px] leading-relaxed" style={{ color: "var(--foreground-50)" }}>
+            <p
+              className="mt-[10px] text-[12px] leading-relaxed"
+              style={{ color: "var(--foreground-50)" }}
+            >
               {t("pages.settings.maxUnlinkBlocked")}
             </p>
           )}

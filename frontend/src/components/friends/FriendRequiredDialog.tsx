@@ -38,7 +38,12 @@ export function FriendRequiredDialog({ open, onOpenChange, onAdd, adding = false
           <Button type="button" className="w-full" loading={adding} onClick={onAdd}>
             <UserPlus size={16} /> {t("pages.friends.writeNeedFriendAdd")}
           </Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => onOpenChange(false)}
+          >
             {t("pages.friends.cancel")}
           </Button>
         </DialogFooter>

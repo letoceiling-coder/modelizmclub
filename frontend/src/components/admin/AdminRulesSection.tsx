@@ -43,7 +43,10 @@ function emptySection(type: RuleSectionType, position: number): RuleSection {
 
 export function AdminRulesSection() {
   const qc = useQueryClient();
-  const { data: pages = [], isLoading } = useQuery({ queryKey: ["admin-rule-pages"], queryFn: adminFetchRulePages });
+  const { data: pages = [], isLoading } = useQuery({
+    queryKey: ["admin-rule-pages"],
+    queryFn: adminFetchRulePages,
+  });
   const [editing, setEditing] = useState<AdminRulePage | null>(null);
   const [creating, setCreating] = useState(false);
   const [meta, setMeta] = useState(EMPTY_PAGE);
@@ -68,7 +71,8 @@ export function AdminRulesSection() {
   });
 
   const saveMut = useMutation({
-    mutationFn: () => (editing ? adminUpdateRulePage(editing.id, payload()) : adminCreateRulePage(payload())),
+    mutationFn: () =>
+      editing ? adminUpdateRulePage(editing.id, payload()) : adminCreateRulePage(payload()),
     onSuccess: async (page) => {
       await qc.invalidateQueries({ queryKey: ["admin-rule-pages"] });
       toast.success(editing ? "Черновик сохранён" : "Страница создана как черновик");
@@ -80,7 +84,9 @@ export function AdminRulesSection() {
 
   const publishMut = useMutation({
     mutationFn: async () => {
-      const saved = editing ? await adminUpdateRulePage(editing.id, payload()) : await adminCreateRulePage(payload());
+      const saved = editing
+        ? await adminUpdateRulePage(editing.id, payload())
+        : await adminCreateRulePage(payload());
       return adminPublishRulePage(saved.id);
     },
     onSuccess: async (page) => {
@@ -143,7 +149,9 @@ export function AdminRulesSection() {
       summary: p.summary ?? "",
       sort: p.sort,
     });
-    setSections(p.sections.map((s, i) => ({ ...s, position: i, is_visible: s.is_visible !== false })));
+    setSections(
+      p.sections.map((s, i) => ({ ...s, position: i, is_visible: s.is_visible !== false })),
+    );
     setShowPreview(false);
   }
 
@@ -203,7 +211,8 @@ export function AdminRulesSection() {
         </Button>
       </div>
       <p className="text-xs" style={{ color: "var(--foreground-50)" }}>
-        Хаб /rules собирается из опубликованных документов. Каждый документ редактируется блоками (вступление, разделы, реквизиты). Публикация сохраняет версию и дату редакции — без деплоя.
+        Хаб /rules собирается из опубликованных документов. Каждый документ редактируется блоками
+        (вступление, разделы, реквизиты). Публикация сохраняет версию и дату редакции — без деплоя.
       </p>
 
       <div
@@ -215,7 +224,8 @@ export function AdminRulesSection() {
           <div>
             <div className="text-sm font-semibold">Раздел «Правила Моделизма»</div>
             <p className="mt-1 text-xs" style={{ color: "var(--foreground-70)" }}>
-              Публичные адреса /rules, /rules/terms, /rules/ads, /rules/services-offer, /rules/safe-deal
+              Публичные адреса /rules, /rules/terms, /rules/ads, /rules/services-offer,
+              /rules/safe-deal
             </p>
           </div>
         </div>
@@ -238,14 +248,27 @@ export function AdminRulesSection() {
               <td className="py-2">{p.title}</td>
               <td className="py-2 font-mono text-xs">{p.slug}</td>
               <td className="py-2">{p.version}</td>
-              <td className="py-2 text-xs">{p.published_at ? formatDate(p.published_at, "date") : "—"}</td>
-              <td className="py-2">{p.status === "published" ? "Опубликована" : p.status === "draft" ? "Черновик" : "Архив"}</td>
+              <td className="py-2 text-xs">
+                {p.published_at ? formatDate(p.published_at, "date") : "—"}
+              </td>
+              <td className="py-2">
+                {p.status === "published"
+                  ? "Опубликована"
+                  : p.status === "draft"
+                    ? "Черновик"
+                    : "Архив"}
+              </td>
               <td className="py-2 text-right">
                 <div className="flex flex-wrap justify-end gap-1">
                   <Button type="button" size="sm" variant="outline" onClick={() => startEdit(p)}>
                     Редактировать
                   </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => duplicateMut.mutate(p.id)}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => duplicateMut.mutate(p.id)}
+                  >
                     Дублировать
                   </Button>
                   <Button
@@ -268,7 +291,9 @@ export function AdminRulesSection() {
       {editorOpen && (
         <div className="grid gap-4 rounded-lg border p-4" style={{ borderColor: "var(--border)" }}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">{creating ? "Новая страница" : `Редактирование: ${editing?.title}`}</h3>
+            <h3 className="text-sm font-semibold">
+              {creating ? "Новая страница" : `Редактирование: ${editing?.title}`}
+            </h3>
             <Button type="button" size="sm" variant="ghost" onClick={resetEditor}>
               Закрыть
             </Button>
@@ -276,23 +301,39 @@ export function AdminRulesSection() {
           <div className="grid gap-3 md:grid-cols-2">
             <label className="grid gap-1 text-xs">
               Title (H1)
-              <Input value={meta.title} onChange={(e) => setMeta({ ...meta, title: e.target.value })} />
+              <Input
+                value={meta.title}
+                onChange={(e) => setMeta({ ...meta, title: e.target.value })}
+              />
             </label>
             <label className="grid gap-1 text-xs">
               Slug
-              <Input value={meta.slug} onChange={(e) => setMeta({ ...meta, slug: e.target.value })} placeholder="terms" />
+              <Input
+                value={meta.slug}
+                onChange={(e) => setMeta({ ...meta, slug: e.target.value })}
+                placeholder="terms"
+              />
             </label>
             <label className="grid gap-1 text-xs">
               SEO title
-              <Input value={meta.seo_title} onChange={(e) => setMeta({ ...meta, seo_title: e.target.value })} />
+              <Input
+                value={meta.seo_title}
+                onChange={(e) => setMeta({ ...meta, seo_title: e.target.value })}
+              />
             </label>
             <label className="grid gap-1 text-xs">
               SEO description
-              <Input value={meta.seo_description} onChange={(e) => setMeta({ ...meta, seo_description: e.target.value })} />
+              <Input
+                value={meta.seo_description}
+                onChange={(e) => setMeta({ ...meta, seo_description: e.target.value })}
+              />
             </label>
             <label className="grid gap-1 text-xs md:col-span-2">
               Краткое описание для хаба
-              <Input value={meta.summary} onChange={(e) => setMeta({ ...meta, summary: e.target.value })} />
+              <Input
+                value={meta.summary}
+                onChange={(e) => setMeta({ ...meta, summary: e.target.value })}
+              />
             </label>
           </div>
 
@@ -305,7 +346,9 @@ export function AdminRulesSection() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => setSections((prev) => [...prev, emptySection(t.value, prev.length)])}
+                  onClick={() =>
+                    setSections((prev) => [...prev, emptySection(t.value, prev.length)])
+                  }
                 >
                   + {t.label}
                 </Button>
@@ -314,7 +357,11 @@ export function AdminRulesSection() {
           </div>
 
           {sections.map((section, index) => (
-            <div key={`${section.type}-${index}`} className="grid gap-2 rounded-md border p-3" style={{ borderColor: "var(--border)" }}>
+            <div
+              key={`${section.type}-${index}`}
+              className="grid gap-2 rounded-md border p-3"
+              style={{ borderColor: "var(--border)" }}
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <select
                   className="rounded-md border px-2 py-1 text-xs"
@@ -344,10 +391,22 @@ export function AdminRulesSection() {
                   Показывать на сайте
                 </label>
                 <div className="ml-auto flex gap-1">
-                  <Button type="button" size="sm" variant="ghost" onClick={() => move(index, -1)} disabled={index === 0}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => move(index, -1)}
+                    disabled={index === 0}
+                  >
                     <ChevronUp size={14} />
                   </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => move(index, 1)} disabled={index === sections.length - 1}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => move(index, 1)}
+                    disabled={index === sections.length - 1}
+                  >
                     <ChevronDown size={14} />
                   </Button>
                   <Button
@@ -386,17 +445,29 @@ export function AdminRulesSection() {
           ))}
 
           <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={() => saveMut.mutate()} disabled={saveMut.isPending || publishMut.isPending}>
+            <Button
+              type="button"
+              onClick={() => saveMut.mutate()}
+              disabled={saveMut.isPending || publishMut.isPending}
+            >
               Сохранить черновик
             </Button>
-            <Button type="button" onClick={() => publishMut.mutate()} disabled={saveMut.isPending || publishMut.isPending}>
+            <Button
+              type="button"
+              onClick={() => publishMut.mutate()}
+              disabled={saveMut.isPending || publishMut.isPending}
+            >
               Опубликовать
             </Button>
             <Button type="button" variant="outline" onClick={() => setShowPreview((v) => !v)}>
               Предпросмотр
             </Button>
             {editing?.status === "published" && (
-              <Button type="button" variant="outline" onClick={() => window.open(`/rules/${editing.slug}`, "_blank")}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.open(`/rules/${editing.slug}`, "_blank")}
+              >
                 Открыть на сайте
               </Button>
             )}
@@ -408,7 +479,10 @@ export function AdminRulesSection() {
           </div>
 
           {showPreview && (
-            <div className="rounded-md border p-4" style={{ borderColor: "var(--border)", background: "var(--background)" }}>
+            <div
+              className="rounded-md border p-4"
+              style={{ borderColor: "var(--border)", background: "var(--background)" }}
+            >
               <RulesDocumentView page={previewPage} hub={previewHub} />
             </div>
           )}
@@ -418,19 +492,30 @@ export function AdminRulesSection() {
               <h4 className="font-semibold">История публикаций</h4>
               {revisionsQuery.isLoading && <p>Загрузка…</p>}
               {(revisionsQuery.data ?? []).map((r) => (
-                <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2" style={{ borderColor: "var(--border)" }}>
+                <div
+                  key={r.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
+                  style={{ borderColor: "var(--border)" }}
+                >
                   <span>
-                    v{r.version} · {r.title} · {r.created_at ? formatDate(r.created_at, "absolute") : ""}
+                    v{r.version} · {r.title} ·{" "}
+                    {r.created_at ? formatDate(r.created_at, "absolute") : ""}
                     {r.editor ? ` · ${r.editor}` : ""}
                   </span>
-                  <Button type="button" size="sm" variant="outline" onClick={() => restoreMut.mutate(r.id)}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => restoreMut.mutate(r.id)}
+                  >
                     Откатить
                   </Button>
                 </div>
               ))}
               {!revisionsQuery.isLoading && (revisionsQuery.data ?? []).length === 0 && (
                 <p className="text-xs" style={{ color: "var(--foreground-50)" }}>
-                  Пока нет снимков. Они появляются при публикации и при первом редактировании опубликованной страницы.
+                  Пока нет снимков. Они появляются при публикации и при первом редактировании
+                  опубликованной страницы.
                 </p>
               )}
             </div>

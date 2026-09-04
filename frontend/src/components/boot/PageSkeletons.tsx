@@ -68,7 +68,11 @@ export function DealsPageSkeleton() {
             <div
               key={i}
               className="flex items-center gap-[14px] p-[16px]"
-              style={{ border: "1px solid var(--border)", borderRadius: "var(--r-card)", background: "var(--background-elevated)" }}
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-card)",
+                background: "var(--background-elevated)",
+              }}
             >
               <Skeleton className="h-[40px] w-[40px] shrink-0 rounded-full" />
               <div className="min-w-0 flex-1 space-y-[8px]">
@@ -88,11 +92,23 @@ export function MessengerPageSkeleton() {
   return (
     <AppLayout rightColumn={false}>
       <Fade>
-        <div className="flex min-h-[60vh] overflow-hidden rounded-[var(--r-card)]" style={{ border: "1px solid var(--border)" }}>
-          <div className="hidden w-[320px] shrink-0 flex-col sm:flex" style={{ borderRight: "1px solid var(--border)" }}>
-            <div className="p-[14px]"><Skeleton className="h-[36px] w-full rounded-[10px]" /></div>
+        <div
+          className="flex min-h-[60vh] overflow-hidden rounded-[var(--r-card)]"
+          style={{ border: "1px solid var(--border)" }}
+        >
+          <div
+            className="hidden w-[320px] shrink-0 flex-col sm:flex"
+            style={{ borderRight: "1px solid var(--border)" }}
+          >
+            <div className="p-[14px]">
+              <Skeleton className="h-[36px] w-full rounded-[10px]" />
+            </div>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-[12px] px-[16px] py-[12px]" style={{ borderTop: "1px solid var(--border)" }}>
+              <div
+                key={i}
+                className="flex items-center gap-[12px] px-[16px] py-[12px]"
+                style={{ borderTop: "1px solid var(--border)" }}
+              >
                 <Skeleton className="h-[48px] w-[48px] shrink-0 rounded-full" />
                 <div className="min-w-0 flex-1 space-y-[8px]">
                   <Skeleton className="h-[12px] w-[60%] rounded-[6px]" />
@@ -102,7 +118,10 @@ export function MessengerPageSkeleton() {
             ))}
           </div>
           <div className="flex min-w-0 flex-1 flex-col p-[16px]">
-            <div className="flex items-center gap-[12px] pb-[16px]" style={{ borderBottom: "1px solid var(--border)" }}>
+            <div
+              className="flex items-center gap-[12px] pb-[16px]"
+              style={{ borderBottom: "1px solid var(--border)" }}
+            >
               <Skeleton className="h-[40px] w-[40px] shrink-0 rounded-full" />
               <Skeleton className="h-[14px] w-[140px] rounded-[6px]" />
             </div>
@@ -123,9 +142,19 @@ export function ProfilePageSkeleton() {
   return (
     <AppLayout>
       <Fade>
-        <div className="overflow-hidden" style={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "var(--r-card)" }}>
+        <div
+          className="overflow-hidden"
+          style={{
+            background: "var(--background)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-card)",
+          }}
+        >
           <Skeleton className="h-[140px] w-full rounded-none md:h-[180px]" />
-          <div className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:items-end md:px-[32px]" style={{ marginTop: -44 }}>
+          <div
+            className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:items-end md:px-[32px]"
+            style={{ marginTop: -44 }}
+          >
             <Skeleton className="h-[88px] w-[88px] shrink-0 rounded-full md:h-[112px] md:w-[112px]" />
             <div className="min-w-0 flex-1 space-y-[8px] pb-[8px]">
               <Skeleton className="h-[22px] w-[42%] rounded-[8px]" />

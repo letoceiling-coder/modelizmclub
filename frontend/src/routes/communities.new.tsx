@@ -15,8 +15,17 @@ import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { applyCommunity } from "@/lib/api/entity-requests";
 import { uploadMedia } from "@/lib/api/media";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { blobToImageFile, prepareProfileImageFile, PROFILE_COVER_MAX_BYTES, PROFILE_IMAGE_ACCEPT } from "@/lib/profile-image";
-import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX, COMMUNITY_RULES_MAX } from "@/lib/community-limits";
+import {
+  blobToImageFile,
+  prepareProfileImageFile,
+  PROFILE_COVER_MAX_BYTES,
+  PROFILE_IMAGE_ACCEPT,
+} from "@/lib/profile-image";
+import {
+  COMMUNITY_DESCRIPTION_MAX,
+  COMMUNITY_NAME_MAX,
+  COMMUNITY_RULES_MAX,
+} from "@/lib/community-limits";
 import { toast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 
@@ -129,7 +138,9 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
   }, [directions]);
 
   const toggleTopic = (id: number) => {
-    setSelectedTopics((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(0, 12)));
+    setSelectedTopics((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(0, 12),
+    );
   };
 
   const submit = async () => {
@@ -168,7 +179,11 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
       void navigate({ to: "/communities" });
     } catch (e) {
       const already = e instanceof Error && /рассмотрении|pending|application/i.test(e.message);
-      toast.error(already ? t("pages.communityWizard.alreadyPending") : t("pages.communityWizard.submitFailed"));
+      toast.error(
+        already
+          ? t("pages.communityWizard.alreadyPending")
+          : t("pages.communityWizard.submitFailed"),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -200,20 +215,34 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
           />
         ))}
       </div>
-      <div className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--foreground-50)" }}>
+      <div
+        className="text-[12px] font-semibold uppercase tracking-wider"
+        style={{ color: "var(--foreground-50)" }}
+      >
         {t("pages.communityWizard.stepLabel", { current: step + 1, total: STEPS })}
       </div>
 
-      <Card className="space-y-[14px] p-[20px] shadow-none" style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}>
+      <Card
+        className="space-y-[14px] p-[20px] shadow-none"
+        style={{ background: "var(--background)", borderColor: "var(--border)", borderRadius: 16 }}
+      >
         {step === 0 && (
           <>
-            <h2 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <h2
+              className="font-display text-[18px] font-semibold"
+              style={{ color: "var(--foreground)" }}
+            >
               {t("pages.communityWizard.stepBasics")}
             </h2>
             <label className="flex flex-col gap-1.5">
-              <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              <span
+                className="flex items-center justify-between text-[13px] font-medium"
+                style={{ color: "var(--foreground-70)" }}
+              >
                 <span>{t("pages.communityWizard.name")}</span>
-                <span className="font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>{name.length}/{COMMUNITY_NAME_MAX}</span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
+                  {name.length}/{COMMUNITY_NAME_MAX}
+                </span>
               </span>
               <input
                 value={name}
@@ -224,9 +253,14 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
               />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              <span
+                className="flex items-center justify-between text-[13px] font-medium"
+                style={{ color: "var(--foreground-70)" }}
+              >
                 <span>{t("pages.communityWizard.description")}</span>
-                <span className="font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>{description.length}/{COMMUNITY_DESCRIPTION_MAX}</span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
+                  {description.length}/{COMMUNITY_DESCRIPTION_MAX}
+                </span>
               </span>
               <textarea
                 value={description}
@@ -238,7 +272,9 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
               />
             </label>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.communityWizard.city")}</span>
+              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                {t("pages.communityWizard.city")}
+              </span>
               <CitySelect
                 value={cityName}
                 cityId={cityId}
@@ -249,43 +285,113 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                 placeholder={t("pages.communityWizard.cityPlaceholder")}
               />
             </div>
-            <div className="rounded-[12px] border p-3" style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}>
-              <p className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>{t("pages.communityWizard.branding")}</p>
-              <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>{t("pages.communityWizard.brandingHint")}</p>
+            <div
+              className="rounded-[12px] border p-3"
+              style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+            >
+              <p className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+                {t("pages.communityWizard.branding")}
+              </p>
+              <p className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                {t("pages.communityWizard.brandingHint")}
+              </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button type="button" onClick={() => avatarInputRef.current?.click()} className="rounded-[8px] border px-3 py-2 text-[12px] font-medium" style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}>
-                  {avatarPreview ? t("pages.communityWizard.changeAvatar") : t("pages.communityWizard.uploadAvatar")}
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="rounded-[8px] border px-3 py-2 text-[12px] font-medium"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+                >
+                  {avatarPreview
+                    ? t("pages.communityWizard.changeAvatar")
+                    : t("pages.communityWizard.uploadAvatar")}
                 </button>
-                {avatarPreview && <img src={avatarPreview} width={48} height={48} loading="lazy" decoding="async" alt="" className="h-12 w-12 rounded-full object-cover" />}
-                <button type="button" onClick={() => coverInputRef.current?.click()} className="rounded-[8px] border px-3 py-2 text-[12px] font-medium" style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}>
-                  {coverPreview ? t("pages.communityWizard.changeCover") : t("pages.communityWizard.uploadCover")}
+                {avatarPreview && (
+                  <img
+                    src={avatarPreview}
+                    width={48}
+                    height={48}
+                    loading="lazy"
+                    decoding="async"
+                    alt=""
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="rounded-[8px] border px-3 py-2 text-[12px] font-medium"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+                >
+                  {coverPreview
+                    ? t("pages.communityWizard.changeCover")
+                    : t("pages.communityWizard.uploadCover")}
                 </button>
-                {coverPreview && <img src={coverPreview} width={80} height={40} loading="lazy" decoding="async" alt="" className="h-10 w-[80px] rounded-[6px] object-cover" />}
+                {coverPreview && (
+                  <img
+                    src={coverPreview}
+                    width={80}
+                    height={40}
+                    loading="lazy"
+                    decoding="async"
+                    alt=""
+                    className="h-10 w-[80px] rounded-[6px] object-cover"
+                  />
+                )}
               </div>
-              <input ref={avatarInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (!file) return;
-                try { setAvatarEditorFile(await prepareProfileImageFile(file)); }
-                catch (err) { toast.error(err instanceof Error ? err.message : t("pages.communityWizard.fileFailed")); }
-              }} />
-              <input ref={coverInputRef} type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (!file) return;
-                try { setCoverEditorFile(await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES)); }
-                catch (err) { toast.error(err instanceof Error ? err.message : t("pages.communityWizard.fileFailed")); }
-              }} />
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept={PROFILE_IMAGE_ACCEPT}
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  try {
+                    setAvatarEditorFile(await prepareProfileImageFile(file));
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error ? err.message : t("pages.communityWizard.fileFailed"),
+                    );
+                  }
+                }}
+              />
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept={PROFILE_IMAGE_ACCEPT}
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  try {
+                    setCoverEditorFile(
+                      await prepareProfileImageFile(file, PROFILE_COVER_MAX_BYTES),
+                    );
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error ? err.message : t("pages.communityWizard.fileFailed"),
+                    );
+                  }
+                }}
+              />
             </div>
           </>
         )}
 
         {step === 1 && (
           <>
-            <h2 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <h2
+              className="font-display text-[18px] font-semibold"
+              style={{ color: "var(--foreground)" }}
+            >
               {t("pages.communityWizard.stepTopics")}
             </h2>
-            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.communityWizard.topicsHint")}</p>
+            <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.communityWizard.topicsHint")}
+            </p>
             <div className="flex max-h-[320px] flex-col gap-[6px] overflow-y-auto">
               {topicOptions.map((opt) => {
                 const on = selectedTopics.includes(opt.id);
@@ -307,7 +413,9 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
               })}
             </div>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.communityWizard.customCategory")}</span>
+              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                {t("pages.communityWizard.customCategory")}
+              </span>
               <input
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
@@ -322,13 +430,21 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
 
         {step === 2 && (
           <>
-            <h2 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <h2
+              className="font-display text-[18px] font-semibold"
+              style={{ color: "var(--foreground)" }}
+            >
               {t("pages.communityWizard.stepRules")}
             </h2>
             <label className="flex flex-col gap-1.5">
-              <span className="flex items-center justify-between text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              <span
+                className="flex items-center justify-between text-[13px] font-medium"
+                style={{ color: "var(--foreground-70)" }}
+              >
                 <span>{t("pages.communityWizard.rules")}</span>
-                <span className="font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>{rules.length}/{COMMUNITY_RULES_MAX}</span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--foreground-30)" }}>
+                  {rules.length}/{COMMUNITY_RULES_MAX}
+                </span>
               </span>
               <textarea
                 value={rules}
@@ -348,14 +464,19 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                   className="rounded-[12px] border p-3 text-left"
                   style={{
                     borderColor: accessType === kind ? "var(--accent)" : "var(--border)",
-                    background: accessType === kind ? "var(--accent-soft)" : "var(--background-surface)",
+                    background:
+                      accessType === kind ? "var(--accent-soft)" : "var(--background-surface)",
                   }}
                 >
                   <div className="text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-                    {kind === "open" ? t("pages.communityWizard.accessOpen") : t("pages.communityWizard.accessClosed")}
+                    {kind === "open"
+                      ? t("pages.communityWizard.accessOpen")
+                      : t("pages.communityWizard.accessClosed")}
                   </div>
                   <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                    {kind === "open" ? t("pages.communityWizard.accessOpenHint") : t("pages.communityWizard.accessClosedHint")}
+                    {kind === "open"
+                      ? t("pages.communityWizard.accessOpenHint")
+                      : t("pages.communityWizard.accessClosedHint")}
                   </div>
                 </button>
               ))}
@@ -365,33 +486,69 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
 
         {step === 3 && (
           <>
-            <h2 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+            <h2
+              className="font-display text-[18px] font-semibold"
+              style={{ color: "var(--foreground)" }}
+            >
               {t("pages.communityWizard.stepContacts")}
             </h2>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.communityWizard.telegram")}</span>
-              <input value={telegram} onChange={(e) => setTelegram(e.target.value)} className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle} placeholder="https://t.me/…" />
+              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                {t("pages.communityWizard.telegram")}
+              </span>
+              <input
+                value={telegram}
+                onChange={(e) => setTelegram(e.target.value)}
+                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                style={inputStyle}
+                placeholder="https://t.me/…"
+              />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.communityWizard.website")}</span>
-              <input value={website} onChange={(e) => setWebsite(e.target.value)} className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle} placeholder="https://" />
+              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                {t("pages.communityWizard.website")}
+              </span>
+              <input
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                style={inputStyle}
+                placeholder="https://"
+              />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.communityWizard.phone")}</span>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 rounded-[10px] border px-3 text-[14px] outline-none" style={inputStyle} />
+              <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+                {t("pages.communityWizard.phone")}
+              </span>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                style={inputStyle}
+              />
             </label>
           </>
         )}
       </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-[8px]">
-        <Button type="button" variant="ghost" onClick={onCancel}>{t("common.cancel")}</Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          {t("common.cancel")}
+        </Button>
         <div className="flex flex-wrap gap-[8px]">
-          {step > 0 && <Button type="button" variant="outline" onClick={goPrev}>{t("pages.communityWizard.back")}</Button>}
+          {step > 0 && (
+            <Button type="button" variant="outline" onClick={goPrev}>
+              {t("pages.communityWizard.back")}
+            </Button>
+          )}
           {step < STEPS - 1 ? (
             <>
-              <Button type="button" variant="outline" onClick={goNext}>{t("pages.communityWizard.skip")}</Button>
-              <Button type="button" onClick={goNext}>{t("pages.communityWizard.next")}</Button>
+              <Button type="button" variant="outline" onClick={goNext}>
+                {t("pages.communityWizard.skip")}
+              </Button>
+              <Button type="button" onClick={goNext}>
+                {t("pages.communityWizard.next")}
+              </Button>
             </>
           ) : (
             <Button type="button" onClick={() => void submit()} disabled={submitting}>
@@ -401,7 +558,10 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
         </div>
       </div>
       <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-        {t("pages.communityWizard.moderationNote")} <Link to="/communities" className="underline">{t("pages.communityWizard.toList")}</Link>
+        {t("pages.communityWizard.moderationNote")}{" "}
+        <Link to="/communities" className="underline">
+          {t("pages.communityWizard.toList")}
+        </Link>
       </p>
 
       <PhotoEditorDialog

@@ -1,20 +1,49 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Users2, Radio, MessageSquare, Megaphone, UserPlus, ClipboardList, Plus, ExternalLink, Heart, Clapperboard, Settings, ShieldCheck, Wallet } from "lucide-react";
+import {
+  Newspaper,
+  Users2,
+  Radio,
+  MessageSquare,
+  Megaphone,
+  UserPlus,
+  ClipboardList,
+  Plus,
+  ExternalLink,
+  Heart,
+  Clapperboard,
+  Settings,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { InviteFriendNavLink } from "@/components/referral/InviteFriendNavLink";
+import { InstallAppNavRow } from "@/components/pwa/InstallAppNavRow";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useMySubscription, formatSubscriptionEndDate } from "@/lib/subscription";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
-import { useStore } from "@/lib/store";
+import { useUnreadMessagesTotal } from "@/lib/messenger";
 
 interface Item {
-  to: "/feed" | "/ads" | "/ads/new" | "/my-ads" | "/deals" | "/favorites" | "/communities" | "/reviews" | "/channels" | "/messenger" | "/friends" | "/settings" | "/settings/wallet";
+  to:
+    | "/feed"
+    | "/ads"
+    | "/ads/new"
+    | "/my-ads"
+    | "/deals"
+    | "/favorites"
+    | "/communities"
+    | "/reviews"
+    | "/channels"
+    | "/messenger"
+    | "/friends"
+    | "/settings"
+    | "/settings/wallet";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
@@ -27,25 +56,43 @@ interface NavGroup {
 }
 
 const COMMUNITY_ITEMS: Item[] = [
-  { to: ROUTES.feed,       labelKey: "nav.feed",        icon: Newspaper,     section: "feed" },
-  { to: ROUTES.messenger,  labelKey: "nav.messenger",   icon: MessageSquare, section: "messenger" },
-  { to: ROUTES.reviews,    labelKey: "nav.reviews",     icon: Clapperboard,  section: "reviews" },
-  { to: ROUTES.communities, labelKey: "nav.communities", icon: Users2,        section: "communities" },
-  { to: ROUTES.channels,   labelKey: "nav.channels",    icon: Radio,         section: "channels" },
-  { to: ROUTES.friends,    labelKey: "nav.friends",     icon: UserPlus,      section: "friends" },
+  { to: ROUTES.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
+  { to: ROUTES.messenger, labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
+  { to: ROUTES.reviews, labelKey: "nav.reviews", icon: Clapperboard, section: "reviews" },
+  { to: ROUTES.communities, labelKey: "nav.communities", icon: Users2, section: "communities" },
+  { to: ROUTES.channels, labelKey: "nav.channels", icon: Radio, section: "channels" },
+  { to: ROUTES.friends, labelKey: "nav.friends", icon: UserPlus, section: "friends" },
 ];
 
 const ADS_ITEMS: Item[] = [
-  { to: ROUTES.ads,      labelKey: "nav.catalog",  icon: Megaphone,     section: "ads" },
-  { to: ROUTES.adCreate, labelKey: "nav.adCreate", icon: Plus,          section: "ad-create" },
-  { to: ROUTES.myAds,    labelKey: "nav.myAds",    icon: ClipboardList, section: "my-ads", authOnly: true },
-  { to: ROUTES.deals,    labelKey: "nav.deals",    icon: ShieldCheck,   section: "deals", authOnly: true },
+  { to: ROUTES.ads, labelKey: "nav.catalog", icon: Megaphone, section: "ads" },
+  { to: ROUTES.adCreate, labelKey: "nav.adCreate", icon: Plus, section: "ad-create" },
+  {
+    to: ROUTES.myAds,
+    labelKey: "nav.myAds",
+    icon: ClipboardList,
+    section: "my-ads",
+    authOnly: true,
+  },
+  { to: ROUTES.deals, labelKey: "nav.deals", icon: ShieldCheck, section: "deals", authOnly: true },
 ];
 
 const TAIL_ITEMS: Item[] = [
-  { to: ROUTES.favorites, labelKey: "nav.favorites", icon: Heart,    section: "favorites", authOnly: true },
-  { to: ROUTES.settings,  labelKey: "nav.settings",  icon: Settings, section: "settings", authOnly: true },
-  { to: ROUTES.wallet,    labelKey: "nav.wallet",    icon: Wallet,   section: "wallet", authOnly: true },
+  {
+    to: ROUTES.favorites,
+    labelKey: "nav.favorites",
+    icon: Heart,
+    section: "favorites",
+    authOnly: true,
+  },
+  {
+    to: ROUTES.settings,
+    labelKey: "nav.settings",
+    icon: Settings,
+    section: "settings",
+    authOnly: true,
+  },
+  { to: ROUTES.wallet, labelKey: "nav.wallet", icon: Wallet, section: "wallet", authOnly: true },
 ];
 
 const NAV_GROUPS: NavGroup[] = [
@@ -54,11 +101,7 @@ const NAV_GROUPS: NavGroup[] = [
   { titleKey: undefined, items: TAIL_ITEMS },
 ];
 
-function filterItems(
-  items: Item[],
-  communitiesEnabled: boolean,
-  reviewsEnabled: boolean,
-): Item[] {
+function filterItems(items: Item[], communitiesEnabled: boolean, reviewsEnabled: boolean): Item[] {
   return items.filter(
     (i) =>
       (i.to !== ROUTES.communities || communitiesEnabled) &&
@@ -75,9 +118,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const marketEnabled = useFeatureFlag("marketEnabled");
   const { sub } = useMySubscription();
   const { isGuest } = useGuestAccess();
-  const unreadMessages = useStore((s) =>
-    Object.values(s.dialogs).reduce((n, d) => n + (d.unread ?? 0), 0),
-  );
+  const unreadMessages = useUnreadMessagesTotal();
 
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
@@ -86,7 +127,14 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 
   const flatItems = groups.flatMap((group) => group.items);
 
-  const renderNavLink = (to: Item["to"], labelKey: string, section: string, active: boolean, compact = false, badge = 0) => {
+  const renderNavLink = (
+    to: Item["to"],
+    labelKey: string,
+    section: string,
+    active: boolean,
+    compact = false,
+    badge = 0,
+  ) => {
     const actionKey = NAV_ROUTE_TO_ACTION[to] ?? "";
     const className = compact
       ? "grid h-10 w-10 place-items-center rounded-lg transition-colors hover:bg-muted"
@@ -94,34 +142,48 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     const style = active
       ? compact
         ? { background: "var(--accent-soft)", color: "var(--accent)" }
-        : { borderLeft: "3px solid var(--accent)", paddingLeft: 9, background: "var(--accent-soft)", color: "var(--accent)" }
+        : {
+            borderLeft: "3px solid var(--accent)",
+            paddingLeft: 9,
+            background: "var(--accent-soft)",
+            color: "var(--accent)",
+          }
       : compact
         ? { color: "var(--foreground-70)" }
         : undefined;
 
-    const badgeEl = badge > 0 ? (
-      <span
-        className={
-          compact
-            ? "absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
-            : "ml-auto grid min-h-[18px] min-w-[18px] place-items-center rounded-full px-[5px] tabular-nums"
-        }
-        style={{
-          height: compact ? 15 : undefined,
-          fontSize: compact ? 9 : 11,
-          fontWeight: 700,
-          color: "var(--accent-foreground)",
-          background: "var(--accent)",
-          boxShadow: compact ? "0 0 0 2px var(--background)" : undefined,
-        }}
-      >
-        {badge > 9 ? "9+" : badge}
-      </span>
-    ) : null;
+    const badgeEl =
+      badge > 0 ? (
+        <span
+          className={
+            compact
+              ? "absolute -right-[7px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
+              : "ml-auto grid min-h-[18px] min-w-[18px] place-items-center rounded-full px-[5px] tabular-nums"
+          }
+          style={{
+            height: compact ? 15 : undefined,
+            fontSize: compact ? 9 : 11,
+            fontWeight: 700,
+            color: "var(--accent-foreground)",
+            background: "var(--accent)",
+            boxShadow: compact ? "0 0 0 2px var(--background)" : undefined,
+          }}
+        >
+          {badge > 9 ? "9+" : badge}
+        </span>
+      ) : null;
 
     if (actionKey) {
       return (
-        <GuestGuardLink key={to} actionKey={actionKey} to={to} className={className} style={style} title={compact ? t(labelKey) : undefined} aria-label={t(labelKey)}>
+        <GuestGuardLink
+          key={to}
+          actionKey={actionKey}
+          to={to}
+          className={className}
+          style={style}
+          title={compact ? t(labelKey) : undefined}
+          aria-label={t(labelKey)}
+        >
           {compact ? (
             <span className="relative inline-flex">
               <SlotIcon slot={navSlotKey(section)} inheritColor className="h-5 w-5" />
@@ -139,7 +201,14 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     }
 
     return (
-      <Link key={to} to={to} className={className} style={style} title={compact ? t(labelKey) : undefined} aria-label={compact ? t(labelKey) : undefined}>
+      <Link
+        key={to}
+        to={to}
+        className={className}
+        style={style}
+        title={compact ? t(labelKey) : undefined}
+        aria-label={compact ? t(labelKey) : undefined}
+      >
         {compact ? (
           <span className="relative inline-flex">
             <SlotIcon slot={navSlotKey(section)} inheritColor className="h-5 w-5" />
@@ -221,17 +290,30 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         className="mt-4 flex items-center gap-[10px] rounded-xl px-3 py-[10px] text-xs transition-colors hover:bg-muted"
         style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
       >
-        <SlotIcon slot="nav.subscription" size={16} className="shrink-0" style={{ color: "var(--foreground-50)" }} />
+        <SlotIcon
+          slot="nav.subscription"
+          size={16}
+          className="shrink-0"
+          style={{ color: "var(--foreground-50)" }}
+        />
         <span className="min-w-0">
           {!isGuest && sub?.is_active ? (
             <>
-              <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("common.subscriptionActive")}</span>
-              <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>до {formatSubscriptionEndDate(sub)}</span>
+              <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>
+                {t("common.subscriptionActive")}
+              </span>
+              <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                до {formatSubscriptionEndDate(sub)}
+              </span>
             </>
           ) : (
             <>
-              <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>{t("nav.subscription", "Подписка")}</span>
-              <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>{t("common.subscriptionCta", "Оформить")}</span>
+              <span className="block font-medium" style={{ color: "var(--foreground-70)" }}>
+                {t("nav.subscription", "Подписка")}
+              </span>
+              <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>
+                {t("common.subscriptionCta", "Оформить")}
+              </span>
             </>
           )}
         </span>
@@ -239,6 +321,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 
       <div className="mt-2 space-y-0.5">
         {!isGuest && <InviteFriendNavLink />}
+        <InstallAppNavRow />
         <FeedbackDialog />
       </div>
     </div>

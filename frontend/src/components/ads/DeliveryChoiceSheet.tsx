@@ -17,7 +17,15 @@ interface DeliveryChoiceSheetProps {
   onConfirm: (choice: string | null) => void;
 }
 
-function Body({ methods, selected, onSelect }: { methods: string[]; selected: string | null; onSelect: (v: string) => void }) {
+function Body({
+  methods,
+  selected,
+  onSelect,
+}: {
+  methods: string[];
+  selected: string | null;
+  onSelect: (v: string) => void;
+}) {
   const rows = [...methods, SELF_PICKUP_LABEL];
   return (
     <div className="flex flex-col gap-[10px]">
@@ -28,7 +36,11 @@ function Body({ methods, selected, onSelect }: { methods: string[]; selected: st
           onClick={() => onSelect(label)}
           icon={label === SELF_PICKUP_LABEL ? MapPin : Truck}
           title={label}
-          description={label === SELF_PICKUP_LABEL ? "Договоритесь о месте и времени в чате" : "Продавец отправит через выбранную службу"}
+          description={
+            label === SELF_PICKUP_LABEL
+              ? "Договоритесь о месте и времени в чате"
+              : "Продавец отправит через выбранную службу"
+          }
         />
       ))}
     </div>
@@ -57,11 +69,18 @@ export function DeliveryChoiceSheet({ open, methods, onConfirm }: DeliveryChoice
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={(o) => { if (!o) skip(); }}>
+      <Drawer
+        open={open}
+        onOpenChange={(o) => {
+          if (!o) skip();
+        }}
+      >
         <DrawerContent className="pb-[calc(var(--safe-bottom)+16px)]">
           <div className="px-4 pt-2">
             <DrawerTitle className="text-base">Способ получения</DrawerTitle>
-            <DrawerDescription className="sr-only">Выберите способ доставки или самовывоз</DrawerDescription>
+            <DrawerDescription className="sr-only">
+              Выберите способ доставки или самовывоз
+            </DrawerDescription>
           </div>
           <div className="px-4 pb-4 pt-3">
             {body}
@@ -73,10 +92,17 @@ export function DeliveryChoiceSheet({ open, methods, onConfirm }: DeliveryChoice
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) skip(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) skip();
+      }}
+    >
       <DialogContent className="max-w-[440px]">
         <DialogTitle>Способ получения</DialogTitle>
-        <DialogDescription className="sr-only">Выберите способ доставки или самовывоз</DialogDescription>
+        <DialogDescription className="sr-only">
+          Выберите способ доставки или самовывоз
+        </DialogDescription>
         {body}
         {confirmButton}
       </DialogContent>

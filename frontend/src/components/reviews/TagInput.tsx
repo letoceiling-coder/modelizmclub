@@ -20,14 +20,17 @@ export function TagInput({ tags, onChange, suggestions = [], disabled }: Props) 
   const { t } = useTranslation();
   const [draft, setDraft] = useState("");
 
-  const addTag = useCallback((raw: string) => {
-    const tag = normalizeTag(raw);
-    if (!tag || tags.length >= MAX_TAGS) return;
-    const key = tag.toLowerCase();
-    if (tags.some((x) => x.toLowerCase() === key)) return;
-    onChange([...tags, tag]);
-    setDraft("");
-  }, [tags, onChange]);
+  const addTag = useCallback(
+    (raw: string) => {
+      const tag = normalizeTag(raw);
+      if (!tag || tags.length >= MAX_TAGS) return;
+      const key = tag.toLowerCase();
+      if (tags.some((x) => x.toLowerCase() === key)) return;
+      onChange([...tags, tag]);
+      setDraft("");
+    },
+    [tags, onChange],
+  );
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
@@ -56,7 +59,11 @@ export function TagInput({ tags, onChange, suggestions = [], disabled }: Props) 
           <span
             key={tag}
             className="inline-flex items-center gap-[4px] rounded-full px-[10px] py-[4px] text-[12px] font-medium"
-            style={{ background: "var(--background-surface)", color: "var(--foreground-70)", border: "1px solid var(--border)" }}
+            style={{
+              background: "var(--background-surface)",
+              color: "var(--foreground-70)",
+              border: "1px solid var(--border)",
+            }}
           >
             #{tag}
             {!disabled && (
@@ -76,7 +83,9 @@ export function TagInput({ tags, onChange, suggestions = [], disabled }: Props) 
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
-            onBlur={() => { if (draft.trim()) addTag(draft); }}
+            onBlur={() => {
+              if (draft.trim()) addTag(draft);
+            }}
             placeholder={tags.length === 0 ? t("components.tagInput.placeholder") : ""}
             className="min-w-[120px] flex-1 bg-transparent text-[14px] outline-none"
             style={{ color: "var(--foreground)" }}

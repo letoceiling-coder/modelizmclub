@@ -22,7 +22,12 @@ export const Route = createFileRoute("/settings/requisites")({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-[6px] block font-mono text-[12px] uppercase tracking-[0.05em]" style={{ color: "var(--foreground-50)" }}>{label}</span>
+      <span
+        className="mb-[6px] block font-mono text-[12px] uppercase tracking-[0.05em]"
+        style={{ color: "var(--foreground-50)" }}
+      >
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -37,7 +42,12 @@ interface RequisitesForm {
 
 function RequisitesSection() {
   const { t } = useTranslation();
-  const [form, setForm] = useState<RequisitesForm>({ fullName: "", inn: "", phone: "", address: "" });
+  const [form, setForm] = useState<RequisitesForm>({
+    fullName: "",
+    inn: "",
+    phone: "",
+    address: "",
+  });
   const [accountPhone, setAccountPhone] = useState("");
   const [loading, setLoading] = useState(!isDemoMode());
 
@@ -60,8 +70,12 @@ function RequisitesSection() {
         });
       })
       .catch(() => {})
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const save = async (e: React.FormEvent) => {
@@ -85,37 +99,66 @@ function RequisitesSection() {
     <SettingsSectionShell title={t("pages.settings.requisitesTitle")}>
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
         {t("pages.settings.requisitesDesc")}{" "}
-        <Link to="/settings/account" className="font-medium underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
+        <Link
+          to="/settings/account"
+          className="font-medium underline-offset-2 hover:underline"
+          style={{ color: "var(--accent)" }}
+        >
           {t("pages.settings.requisitesProfileLink")}
         </Link>
         .
       </p>
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+      <Card
+        className="p-[20px]"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
         {loading ? (
-          <div className="flex items-center gap-[8px] py-[8px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+          <div
+            className="flex items-center gap-[8px] py-[8px] text-[13px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
             <Loader2 size={14} className="animate-spin" /> {t("pages.settings.loading")}
           </div>
         ) : (
           <form onSubmit={save} className="space-y-[12px]">
             <Field label={t("pages.settings.fullName")}>
-              <Input value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} placeholder={t("pages.settings.fullNamePlaceholder")} />
+              <Input
+                value={form.fullName}
+                onChange={(e) => set({ fullName: e.target.value })}
+                placeholder={t("pages.settings.fullNamePlaceholder")}
+              />
             </Field>
             <Field label={t("pages.settings.innOptional")}>
-              <InnInput value={form.inn} onChange={(e) => set({ inn: e.target.value })} placeholder="000000000000" />
+              <InnInput
+                value={form.inn}
+                onChange={(e) => set({ inn: e.target.value })}
+                placeholder="000000000000"
+              />
             </Field>
             <Field label={t("pages.settings.phone")}>
-              <PhoneInput value={form.phone} onValueChange={(formatted) => set({ phone: formatted })} />
+              <PhoneInput
+                value={form.phone}
+                onValueChange={(formatted) => set({ phone: formatted })}
+              />
             </Field>
             {accountPhone && form.phone.replace(/\D/g, "") !== accountPhone.replace(/\D/g, "") && (
               <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
                 {t("pages.settings.phoneMismatch", { phone: accountPhone })}{" "}
-                <Link to="/settings/account" className="underline-offset-2 hover:underline" style={{ color: "var(--accent)" }}>
+                <Link
+                  to="/settings/account"
+                  className="underline-offset-2 hover:underline"
+                  style={{ color: "var(--accent)" }}
+                >
                   {t("pages.settings.changeInProfile")}
                 </Link>
               </p>
             )}
             <Field label={t("pages.settings.address")}>
-              <Input value={form.address} onChange={(e) => set({ address: e.target.value })} placeholder={t("pages.settings.addressPlaceholder")} />
+              <Input
+                value={form.address}
+                onChange={(e) => set({ address: e.target.value })}
+                placeholder={t("pages.settings.addressPlaceholder")}
+              />
             </Field>
             <Button type="submit">{t("pages.settings.save")}</Button>
           </form>
@@ -137,16 +180,30 @@ function PayoutCard() {
   useEffect(() => {
     let alive = true;
     fetchPayoutRequisites()
-      .then((r) => { if (alive) setLast4(r.last4); })
-      .catch(() => { if (alive) setLast4(null); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .then((r) => {
+        if (alive) setLast4(r.last4);
+      })
+      .catch(() => {
+        if (alive) setLast4(null);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cardNumber.length < 16) { toast.error(t("pages.settings.payoutCardInvalid")); return; }
-    if (isDemoMode()) { toast(t("pages.settings.payoutDemo")); return; }
+    if (cardNumber.length < 16) {
+      toast.error(t("pages.settings.payoutCardInvalid"));
+      return;
+    }
+    if (isDemoMode()) {
+      toast(t("pages.settings.payoutDemo"));
+      return;
+    }
 
     setSaving(true);
     try {
@@ -162,14 +219,22 @@ function PayoutCard() {
   };
 
   return (
-    <Card className="mt-[16px] p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
-      <h3 className="mb-[4px] text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.payoutCardTitle")}</h3>
+    <Card
+      className="mt-[16px] p-[20px]"
+      style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+    >
+      <h3 className="mb-[4px] text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+        {t("pages.settings.payoutCardTitle")}
+      </h3>
       <p className="mb-[16px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
         {t("pages.settings.payoutCardDesc")}
       </p>
 
       {loading ? (
-        <div className="flex items-center gap-[8px] py-[8px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="flex items-center gap-[8px] py-[8px] text-[13px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           <Loader2 size={14} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
       ) : (
@@ -180,10 +245,16 @@ function PayoutCard() {
             </p>
           )}
           <form onSubmit={save} className="space-y-[12px]">
-            <Field label={last4 ? t("pages.settings.payoutCardNew") : t("pages.settings.payoutCardNumber")}>
+            <Field
+              label={
+                last4 ? t("pages.settings.payoutCardNew") : t("pages.settings.payoutCardNumber")
+              }
+            >
               <CardNumberInput value={cardNumber} onValueChange={setCardNumber} />
             </Field>
-            <Button type="submit" disabled={saving}>{saving ? t("pages.settings.saving") : t("pages.settings.save")}</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? t("pages.settings.saving") : t("pages.settings.save")}
+            </Button>
           </form>
         </>
       )}

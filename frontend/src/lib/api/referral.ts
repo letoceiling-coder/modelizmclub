@@ -36,7 +36,12 @@ export interface ReferralData {
 interface ApiReferral {
   code?: string;
   invited?: Array<{
-    user?: { uuid?: string; display_name?: string | null; slug?: string | null; avatar?: string | null };
+    user?: {
+      uuid?: string;
+      display_name?: string | null;
+      slug?: string | null;
+      avatar?: string | null;
+    };
     joined_at?: string;
     status?: string;
     listing_credits?: number;

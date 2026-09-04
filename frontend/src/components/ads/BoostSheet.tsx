@@ -43,7 +43,9 @@ export function BoostSheet({
         setSelected(mapped[1]?.id ?? mapped[0].id);
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [open]);
 
   if (!open) return null;
@@ -71,7 +73,11 @@ export function BoostSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onClose}
+    >
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[440px] rounded-t-[20px] p-[20px] sm:rounded-[16px]"
@@ -79,17 +85,34 @@ export function BoostSheet({
       >
         <div className="mb-[14px] flex items-start justify-between gap-[12px]">
           <div className="flex items-center gap-[10px]">
-            <span className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+            <span
+              className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+            >
               <Zap size={18} />
             </span>
             <div>
-              <div className="text-[16px] font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
+              <div
+                className="text-[16px] font-semibold"
+                style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
+              >
                 Продвинуть объявление
               </div>
-              <div className="mt-[1px] line-clamp-1 text-[12.5px]" style={{ color: "var(--foreground-50)" }}>{listingTitle}</div>
+              <div
+                className="mt-[1px] line-clamp-1 text-[12.5px]"
+                style={{ color: "var(--foreground-50)" }}
+              >
+                {listingTitle}
+              </div>
             </div>
           </div>
-          <button type="button" onClick={onClose} aria-label="Закрыть" className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full" style={{ color: "var(--foreground-50)" }}>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full"
+            style={{ color: "var(--foreground-50)" }}
+          >
             <X size={18} />
           </button>
         </div>
@@ -110,10 +133,19 @@ export function BoostSheet({
                   background: active ? "var(--accent-soft)" : "var(--background-surface)",
                 }}
               >
-                <span className="text-[14px] font-medium" style={{ color: active ? "var(--accent)" : "var(--foreground)" }}>
+                <span
+                  className="text-[14px] font-medium"
+                  style={{ color: active ? "var(--accent)" : "var(--foreground)" }}
+                >
                   Продвижение на {p.label}
                 </span>
-                <span className="text-[15px] font-bold" style={{ fontFamily: "var(--font-display)", color: active ? "var(--accent)" : "var(--foreground)" }}>
+                <span
+                  className="text-[15px] font-bold"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    color: active ? "var(--accent)" : "var(--foreground)",
+                  }}
+                >
                   {p.price} ₽
                 </span>
               </button>

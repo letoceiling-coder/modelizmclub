@@ -18,7 +18,10 @@ class StorePostRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:'.PostFormRules::TITLE_MAX_LENGTH],
             'body' => ['required', 'string', 'max:'.PostFormRules::BODY_MAX_LENGTH],
-            'category_id' => ['required', 'integer', 'exists:post_categories,id'],
+            // Направление — необязательное (как во ВКонтакте): пост можно
+            // опубликовать без категории. Колонка posts.category_id уже
+            // nullable, так что миграция не нужна.
+            'category_id' => ['nullable', 'integer', 'exists:post_categories,id'],
             'community_id' => ['nullable', 'integer', 'exists:communities,id'],
             'subcategory_id' => ['nullable', 'integer', 'exists:community_subcategories,id'],
             'media_ids' => ['array', 'max:10'],

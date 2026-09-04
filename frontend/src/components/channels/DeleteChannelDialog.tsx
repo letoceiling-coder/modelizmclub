@@ -15,7 +15,15 @@ interface Props {
   hideTrigger?: boolean;
 }
 
-export function DeleteChannelDialog({ slug, name, onDeleted, compact, open: controlledOpen, onOpenChange, hideTrigger }: Props) {
+export function DeleteChannelDialog({
+  slug,
+  name,
+  onDeleted,
+  compact,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger,
+}: Props) {
   const { t } = useTranslation();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -49,11 +57,17 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact, open: cont
         variant={compact ? "ghost" : "outline"}
         size={compact ? "sm" : "default"}
         className={compact ? "gap-1.5 text-[13px]" : "gap-2 rounded-[12px]"}
-        style={compact ? { color: "var(--danger, #dc2626)" } : { borderColor: "rgba(239,68,68,0.35)", color: "rgb(185,28,28)" }}
+        style={
+          compact
+            ? { color: "var(--danger, #dc2626)" }
+            : { borderColor: "rgba(239,68,68,0.35)", color: "rgb(185,28,28)" }
+        }
         onClick={() => setOpen(true)}
       >
         <Trash2 size={compact ? 14 : 16} />
-        {compact ? t("components.channelManage.deleteCompact") : t("components.channelManage.deleteChannel")}
+        {compact
+          ? t("components.channelManage.deleteCompact")
+          : t("components.channelManage.deleteChannel")}
       </Button>
     );
   }
@@ -69,19 +83,29 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact, open: cont
         style={{ background: "var(--background-elevated)", border: "1px solid var(--border)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-display text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="font-display text-[18px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           {t("components.channelManage.deleteTitle")}
         </h3>
         <p className="mt-2 text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
           {t("components.channelManage.deleteDesc")}{" "}
-          <span className="font-semibold" style={{ color: "var(--foreground)" }}>{name}</span>.
+          <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+            {name}
+          </span>
+          .
         </p>
         <input
           value={confirmName}
           onChange={(e) => setConfirmName(e.target.value)}
           placeholder={name}
           className="mt-4 h-11 w-full rounded-[10px] border px-3 text-[14px] outline-none"
-          style={{ borderColor: "var(--border)", background: "var(--background-surface)", color: "var(--foreground)" }}
+          style={{
+            borderColor: "var(--border)",
+            background: "var(--background-surface)",
+            color: "var(--foreground)",
+          }}
           autoFocus
         />
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -94,7 +118,9 @@ export function DeleteChannelDialog({ slug, name, onDeleted, compact, open: cont
             onClick={() => void submit()}
             style={{ background: "rgb(220,38,38)", color: "#fff" }}
           >
-            {busy ? t("components.channelManage.deleting") : t("components.channelManage.deleteForever")}
+            {busy
+              ? t("components.channelManage.deleting")
+              : t("components.channelManage.deleteForever")}
           </Button>
         </div>
       </div>

@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Paperclip, Image as ImageIcon, Video, File as FileIcon } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { chatAttachmentLimitLabel, chatAttachmentTooLargeMessage, chatPhotoHintLabel, type ChatAttachmentKind } from "@/lib/chat-attachments";
+import {
+  chatAttachmentLimitLabel,
+  chatAttachmentTooLargeMessage,
+  chatPhotoHintLabel,
+  type ChatAttachmentKind,
+} from "@/lib/chat-attachments";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
 
 export type AttachmentKind = ChatAttachmentKind;
 
@@ -67,7 +73,7 @@ export function AttachmentMenu({ onPick }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px]"
+        className={`grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px] ${TAP_TARGET_44}`}
         style={{ color: "var(--foreground-50)" }}
         aria-label={`Прикрепить файл (${limitLabel})`}
         aria-expanded={open}
@@ -90,9 +96,24 @@ export function AttachmentMenu({ onPick }: Props) {
               boxShadow: "var(--shadow-float)",
             }}
           >
-            <MenuItem icon={ImageIcon} label="Фото" hint={chatPhotoHintLabel()} onClick={() => openPicker("image")} />
-            <MenuItem icon={Video} label="Видео" hint={limitLabel} onClick={() => openPicker("video")} />
-            <MenuItem icon={FileIcon} label="Файл" hint={limitLabel} onClick={() => openPicker("file")} />
+            <MenuItem
+              icon={ImageIcon}
+              label="Фото"
+              hint={chatPhotoHintLabel()}
+              onClick={() => openPicker("image")}
+            />
+            <MenuItem
+              icon={Video}
+              label="Видео"
+              hint={limitLabel}
+              onClick={() => openPicker("video")}
+            />
+            <MenuItem
+              icon={FileIcon}
+              label="Файл"
+              hint={limitLabel}
+              onClick={() => openPicker("file")}
+            />
             <div
               className="border-t px-[14px] py-[8px] text-[11px] leading-snug"
               style={{ borderColor: "var(--border)", color: "var(--foreground-50)" }}
@@ -141,7 +162,9 @@ function MenuItem({
       <Icon className="h-[16px] w-[16px] shrink-0" style={{ color: "var(--foreground-70)" }} />
       <span className="min-w-0 flex-1">
         <span className="block text-[13px]">{label}</span>
-        <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>{hint}</span>
+        <span className="block text-[11px]" style={{ color: "var(--foreground-50)" }}>
+          {hint}
+        </span>
       </span>
     </button>
   );

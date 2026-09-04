@@ -47,12 +47,18 @@ export function isPublicGuestRoute(pathname: string): boolean {
   return false;
 }
 
+/** Admin panel and diagnostics — the one place a guest still meets /login. */
+export function isAdminRoute(pathname: string): boolean {
+  return pathname === ROUTES.admin || pathname.startsWith("/admin/") || pathname === "/diag";
+}
+
 /**
  * Sections that greet a guest with an in-page "войдите в аккаунт" stub and the
- * shared auth dialog, instead of bouncing them to /login.
+ * shared auth window, instead of leaving the page. Messenger is deliberately
+ * NOT here: it is a full private section, so a guest gets the login window
+ * over the feed instead of an empty chat shell.
  */
 export function isGuestStubRoute(pathname: string): boolean {
-  if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return true;
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return true;
   if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return true;
   if (pathname.startsWith("/user/")) return true;
@@ -78,14 +84,21 @@ export function pathnameToRouteAction(pathname: string): string | null {
   if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return "route.deals";
   if (pathname === ROUTES.favorites || pathname.startsWith("/favorites")) return "route.favorites";
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return "route.reviews";
-  if (pathname === ROUTES.channels || pathname.startsWith("/channels") || pathname.startsWith("/channel/")) {
+  if (
+    pathname === ROUTES.channels ||
+    pathname.startsWith("/channels") ||
+    pathname.startsWith("/channel/")
+  ) {
     return "route.channels";
   }
   if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return "route.messenger";
   if (pathname === ROUTES.friends || pathname.startsWith("/friends")) return "route.friends";
-  if (pathname === ROUTES.communities || pathname.startsWith("/communities")) return "route.communities";
-  if (pathname === ROUTES.categories || pathname.startsWith("/categories")) return "route.categories";
-  if (pathname === ROUTES.notifications || pathname.startsWith("/notifications")) return "route.notifications";
+  if (pathname === ROUTES.communities || pathname.startsWith("/communities"))
+    return "route.communities";
+  if (pathname === ROUTES.categories || pathname.startsWith("/categories"))
+    return "route.categories";
+  if (pathname === ROUTES.notifications || pathname.startsWith("/notifications"))
+    return "route.notifications";
   if (pathname === ROUTES.settings || pathname.startsWith("/settings")) return "route.settings";
   if (pathname === ROUTES.profile || pathname.startsWith("/profile")) return "route.profile";
   if (pathname.startsWith("/user/")) return "route.user";

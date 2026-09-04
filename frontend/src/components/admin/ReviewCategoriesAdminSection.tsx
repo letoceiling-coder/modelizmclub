@@ -79,9 +79,13 @@ function CategoryRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>{item.name}</span>
+          <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>
+            {item.name}
+          </span>
           {!item.isActive && (
-            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{t("pages.adminReviewCategories.hidden")}</span>
+            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+              {t("pages.adminReviewCategories.hidden")}
+            </span>
           )}
         </div>
         <p style={{ marginTop: "2px", fontSize: "12px", color: "var(--foreground-50)" }}>
@@ -89,7 +93,10 @@ function CategoryRow({
         </p>
       </div>
 
-      <label className="flex shrink-0 items-center gap-[6px] cursor-pointer" title={t("pages.adminReviewCategories.visibilityToggle")}>
+      <label
+        className="flex shrink-0 items-center gap-[6px] cursor-pointer"
+        title={t("pages.adminReviewCategories.visibilityToggle")}
+      >
         <input
           type="checkbox"
           checked={item.isActive}
@@ -97,13 +104,29 @@ function CategoryRow({
           onChange={(e) => onToggleActive(e.target.checked)}
           style={{ width: 16, height: 16, accentColor: "var(--accent)" }}
         />
-        <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminReviewCategories.visible")}</span>
+        <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+          {t("pages.adminReviewCategories.visible")}
+        </span>
       </label>
 
-      <button type="button" onClick={onEdit} disabled={saving} className="grid h-8 w-8 place-items-center rounded-[8px] hover:bg-[var(--background-surface)]" style={{ color: "var(--foreground-70)" }} aria-label={t("pages.adminReviewCategories.edit")}>
+      <button
+        type="button"
+        onClick={onEdit}
+        disabled={saving}
+        className="grid h-8 w-8 place-items-center rounded-[8px] hover:bg-[var(--background-surface)]"
+        style={{ color: "var(--foreground-70)" }}
+        aria-label={t("pages.adminReviewCategories.edit")}
+      >
         <Pencil size={14} />
       </button>
-      <button type="button" onClick={onDelete} disabled={saving} className="grid h-8 w-8 place-items-center rounded-[8px] hover:bg-[var(--background-surface)]" style={{ color: "var(--error)" }} aria-label={t("pages.adminReviewCategories.delete")}>
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={saving}
+        className="grid h-8 w-8 place-items-center rounded-[8px] hover:bg-[var(--background-surface)]"
+        style={{ color: "var(--error)" }}
+        aria-label={t("pages.adminReviewCategories.delete")}
+      >
         <Trash2 size={14} />
       </button>
     </Reorder.Item>
@@ -135,7 +158,12 @@ export function ReviewCategoriesAdminSection() {
     if (!slug) return;
     setSaving(true);
     try {
-      const created = await createAdminCategory("video", { name, slug, sortOrder: (items.length + 1) * 10, isActive: true });
+      const created = await createAdminCategory("video", {
+        name,
+        slug,
+        sortOrder: (items.length + 1) * 10,
+        isActive: true,
+      });
       setItems((prev) => [...prev, created].sort((a, b) => a.sortOrder - b.sortOrder));
       toast.success(t("pages.adminReviewCategories.added"));
     } catch {
@@ -192,7 +220,11 @@ export function ReviewCategoriesAdminSection() {
         isActive: active,
       });
       setItems((prev) => prev.map((x) => (x.id === c.id ? updated : x)));
-      toast.success(active ? t("pages.adminReviewCategories.enabled") : t("pages.adminReviewCategories.disabled"));
+      toast.success(
+        active
+          ? t("pages.adminReviewCategories.enabled")
+          : t("pages.adminReviewCategories.disabled"),
+      );
     } catch {
       setItems((prev) => prev.map((x) => (x.id === c.id ? { ...x, isActive: !active } : x)));
       toast.error(t("pages.adminReviewCategories.updateFailed"));
@@ -218,31 +250,62 @@ export function ReviewCategoriesAdminSection() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-3" style={{ marginBottom: "16px" }}>
+      <div
+        className="flex flex-wrap items-start justify-between gap-3"
+        style={{ marginBottom: "16px" }}
+      >
         <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 700, color: "var(--foreground)" }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "22px",
+              fontWeight: 700,
+              color: "var(--foreground)",
+            }}
+          >
             {t("pages.adminReviewCategories.title")}
           </h1>
-          <p style={{ marginTop: "6px", fontSize: "13px", color: "var(--foreground-50)", maxWidth: "560px" }}>
+          <p
+            style={{
+              marginTop: "6px",
+              fontSize: "13px",
+              color: "var(--foreground-50)",
+              maxWidth: "560px",
+            }}
+          >
             {t("pages.adminReviewCategories.subtitle")}
           </p>
         </div>
-        <button type="button" style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", gap: "6px" }} onClick={() => void add()} disabled={saving}>
+        <button
+          type="button"
+          style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", gap: "6px" }}
+          onClick={() => void add()}
+          disabled={saving}
+        >
           <Plus size={14} /> {t("pages.adminReviewCategories.add")}
         </button>
       </div>
 
       <div style={{ ...card, padding: "16px" }}>
         {loading ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+            {t("pages.adminCommon.loading")}
+          </p>
         ) : items.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminReviewCategories.empty")}</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+            {t("pages.adminReviewCategories.empty")}
+          </p>
         ) : (
           <>
             <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginBottom: "12px" }}>
               {t("pages.adminReviewCategories.dragHint")}
             </p>
-            <Reorder.Group axis="y" values={items.map((c) => c.id)} onReorder={(ids) => void onReorder(ids as number[])} className="grid gap-[8px]">
+            <Reorder.Group
+              axis="y"
+              values={items.map((c) => c.id)}
+              onReorder={(ids) => void onReorder(ids as number[])}
+              className="grid gap-[8px]"
+            >
               {items.map((c) => (
                 <CategoryRow
                   key={c.id}

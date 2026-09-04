@@ -23,7 +23,9 @@ export function FirstHundredBanner() {
       .catch(() => {
         if (active) setReady(true);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (!ready) return null;
@@ -107,13 +109,15 @@ export function FirstHundredBanner() {
             Первые {total} участников получают год бесплатно
           </h2>
           <p style={{ fontSize: "15px", maxWidth: "640px", opacity: 0.85, lineHeight: 1.5 }}>
-            Без подписки, без оплаты. Регистрируйся сейчас, чтобы попасть в основатели клуба и получить
-            бейдж «Первые {total}» в профиле навсегда.
+            Без подписки, без оплаты. Регистрируйся сейчас, чтобы попасть в основатели клуба и
+            получить бейдж «Первые {total}» в профиле навсегда.
           </p>
 
           <div className="grid" style={{ gap: "10px", maxWidth: "520px" }}>
             <div className="flex items-end justify-between" style={{ gap: "12px" }}>
-              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "28px" }}>
+              <span
+                style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "28px" }}
+              >
                 Занято {taken} из {total}
               </span>
               <span style={{ fontSize: "13px", fontWeight: 600, opacity: 0.8 }}>

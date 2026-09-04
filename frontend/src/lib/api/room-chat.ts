@@ -1,12 +1,7 @@
 import type { Message } from "@/lib/mock";
 import type { User } from "@/lib/mock";
 import { api } from "./client";
-import {
-  fetchMessages,
-  mapMessage,
-  uploadChatAttachment,
-  type ApiMessage,
-} from "./chat";
+import { fetchMessages, mapMessage, uploadChatAttachment, type ApiMessage } from "./chat";
 import { mapCompactUser, type ApiCompactUser } from "./social";
 import { isDemoMode } from "@/lib/demo-mode";
 
@@ -86,9 +81,17 @@ export interface RoomMember {
   role?: string;
 }
 
+/** unread/lastMessageAt приходят только участнику комнаты — иначе null. */
+export interface CategoryRoomStatsEntry {
+  members: number;
+  online: number;
+  unread: number | null;
+  lastMessageAt: string | null;
+}
+
 export interface CategoryRoomStats {
-  bySubcategory: Record<string, { members: number; online: number }>;
-  byParent: Record<string, { members: number; online: number }>;
+  bySubcategory: Record<string, CategoryRoomStatsEntry>;
+  byParent: Record<string, CategoryRoomStatsEntry>;
 }
 
 export async function fetchRoomMembers(
@@ -120,19 +123,31 @@ export async function fetchCategoryRoomStats(parentId?: string): Promise<Categor
   const path = parentId
     ? `/categories/posts/${parentId}/rooms/stats`
     : "/categories/posts/rooms/stats";
+  type ApiRoomStats = {
+    members?: number;
+    online?: number;
+    unread_count?: number | null;
+    last_message_at?: string | null;
+  };
   const res = await api<{
     data: {
-      by_subcategory?: Record<string, { members: number; online: number }>;
-      by_parent?: Record<string, { members: number; online: number }>;
+      by_subcategory?: Record<string, ApiRoomStats>;
+      by_parent?: Record<string, ApiRoomStats>;
     };
   }>(path);
+  const toEntry = (stats: ApiRoomStats): CategoryRoomStatsEntry => ({
+    members: stats.members ?? 0,
+    online: stats.online ?? 0,
+    unread: stats.unread_count ?? null,
+    lastMessageAt: stats.last_message_at ?? null,
+  });
   const bySubcategory: CategoryRoomStats["bySubcategory"] = {};
   const byParent: CategoryRoomStats["byParent"] = {};
   for (const [id, stats] of Object.entries(res.data.by_subcategory ?? {})) {
-    bySubcategory[id] = { members: stats.members ?? 0, online: stats.online ?? 0 };
+    bySubcategory[id] = toEntry(stats);
   }
   for (const [id, stats] of Object.entries(res.data.by_parent ?? {})) {
-    byParent[id] = { members: stats.members ?? 0, online: stats.online ?? 0 };
+    byParent[id] = toEntry(stats);
   }
   return { bySubcategory, byParent };
 }

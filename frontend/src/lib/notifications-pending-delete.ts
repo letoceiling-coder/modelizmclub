@@ -41,9 +41,7 @@ export function clearAllPendingDeletes(): void {
 }
 
 /** Flush queued deletes — used after refresh/navigation when undo is no longer available. */
-export async function flushPendingDeletes(
-  deleteFn: (id: string) => Promise<void>,
-): Promise<void> {
+export async function flushPendingDeletes(deleteFn: (id: string) => Promise<void>): Promise<void> {
   const pending = readAll();
   if (pending.length === 0) return;
   writeAll([]);

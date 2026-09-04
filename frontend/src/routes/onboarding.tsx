@@ -51,16 +51,28 @@ function OnboardingPage() {
   };
 
   return (
-    <div style={{ background: "var(--background)", color: "var(--foreground)", minHeight: "100vh" }}>
+    <div
+      style={{ background: "var(--background)", color: "var(--foreground)", minHeight: "100vh" }}
+    >
       <header
         className="sticky top-0 z-30 flex items-center justify-between backdrop-blur"
-        style={{ padding: "16px var(--container-pad)", borderBottom: "1px solid var(--border)", background: "color-mix(in oklab, var(--background) 88%, transparent)" }}
+        style={{
+          padding: "16px var(--container-pad)",
+          borderBottom: "1px solid var(--border)",
+          background: "color-mix(in oklab, var(--background) 88%, transparent)",
+        }}
       >
         <Logo />
         <div className="flex items-center gap-[12px]">
           <button
             onClick={() => nav({ to: "/feed" })}
-            style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", background: "transparent", border: "none", cursor: "pointer" }}
+            style={{
+              color: "var(--foreground-70)",
+              fontSize: "var(--fs-sm)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
           >
             {t("pages.onboarding.skip")}
           </button>
@@ -68,7 +80,10 @@ function OnboardingPage() {
         </div>
       </header>
 
-      <main className="mx-auto" style={{ maxWidth: 920, padding: "64px var(--container-pad) 120px" }}>
+      <main
+        className="mx-auto"
+        style={{ maxWidth: 920, padding: "64px var(--container-pad) 120px" }}
+      >
         <div
           style={{
             fontFamily: "var(--font-mono)",
@@ -80,10 +95,25 @@ function OnboardingPage() {
         >
           {t("pages.onboarding.step")}
         </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", marginTop: 12 }}>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(28px, 4vw, 44px)",
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            marginTop: 12,
+          }}
+        >
           {t("pages.onboarding.title")}
         </h1>
-        <p style={{ color: "var(--foreground-70)", fontSize: "var(--fs-body-lg)", marginTop: 12, maxWidth: 600 }}>
+        <p
+          style={{
+            color: "var(--foreground-70)",
+            fontSize: "var(--fs-body-lg)",
+            marginTop: 12,
+            maxWidth: 600,
+          }}
+        >
           {t("pages.onboarding.subtitle")}
         </p>
 
@@ -105,21 +135,38 @@ function OnboardingPage() {
                   padding: "20px",
                   cursor: "pointer",
                   position: "relative",
-                  transition: "background 200ms var(--ease-out-expo), border-color 200ms var(--ease-out-expo)",
+                  transition:
+                    "background 200ms var(--ease-out-expo), border-color 200ms var(--ease-out-expo)",
                 }}
               >
                 {active && (
                   <div
                     className="absolute right-[16px] top-[16px] inline-flex items-center justify-center"
-                    style={{ width: 24, height: 24, borderRadius: "var(--r-pill)", background: "var(--accent)", color: "#fff" }}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "var(--r-pill)",
+                      background: "var(--accent)",
+                      color: "#fff",
+                    }}
                   >
                     <Check size={14} />
                   </div>
                 )}
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--fs-h4)" }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 700,
+                    fontSize: "var(--fs-h4)",
+                  }}
+                >
                   {t(`pages.onboarding.${keys.title}`)}
                 </div>
-                <div style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}>{t(`pages.onboarding.${keys.desc}`)}</div>
+                <div
+                  style={{ color: "var(--foreground-70)", fontSize: "var(--fs-sm)", marginTop: 6 }}
+                >
+                  {t(`pages.onboarding.${keys.desc}`)}
+                </div>
               </motion.button>
             );
           })}

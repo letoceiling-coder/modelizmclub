@@ -4,8 +4,10 @@
 const DEFAULT_BASE_URL = "https://api.modelizmclub.ru/api/v1";
 
 export const API_BASE_URL: string =
-  (import.meta as { env?: Record<string, string | undefined> }).env
-    ?.VITE_API_BASE_URL?.replace(/\/$/, "") || DEFAULT_BASE_URL;
+  (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_API_BASE_URL?.replace(
+    /\/$/,
+    "",
+  ) || DEFAULT_BASE_URL;
 
 const TOKEN_KEY = "mc_token";
 const LANG_KEY = "mc_lang";
@@ -62,7 +64,12 @@ export class ApiError extends Error {
   errors?: Record<string, string[]>;
   payload?: unknown;
 
-  constructor(status: number, message: string, errors?: Record<string, string[]>, payload?: unknown) {
+  constructor(
+    status: number,
+    message: string,
+    errors?: Record<string, string[]>,
+    payload?: unknown,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -130,7 +137,11 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   }
 
   if (!res.ok) {
-    const obj = (data ?? {}) as { message?: string; errors?: Record<string, string[]>; code?: string };
+    const obj = (data ?? {}) as {
+      message?: string;
+      errors?: Record<string, string[]>;
+      code?: string;
+    };
     const code = obj.code;
     if (
       typeof window !== "undefined" &&

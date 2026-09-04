@@ -14,7 +14,16 @@ interface Props {
 }
 
 /** Internal navigation link guarded for guest access. */
-export function GuestGuardLink({ actionKey, to, children, className, style, title, "aria-label": ariaLabel, onAttempt }: Props) {
+export function GuestGuardLink({
+  actionKey,
+  to,
+  children,
+  className,
+  style,
+  title,
+  "aria-label": ariaLabel,
+  onAttempt,
+}: Props) {
   const { guardAction } = useGuestAccess();
   const navigate = useNavigate();
 
@@ -28,9 +37,13 @@ export function GuestGuardLink({ actionKey, to, children, className, style, titl
       onClick={(e) => {
         e.preventDefault();
         onAttempt?.();
-        guardAction(actionKey, () => {
-          void navigate({ to: to as "/feed" });
-        }, to);
+        guardAction(
+          actionKey,
+          () => {
+            void navigate({ to: to as "/feed" });
+          },
+          to,
+        );
       }}
     >
       {children}
@@ -49,7 +62,16 @@ interface ButtonProps {
   "aria-label"?: string;
 }
 
-export function GuestGuardButton({ actionKey, onAllowed, children, className, style, type = "button", disabled, "aria-label": ariaLabel }: ButtonProps) {
+export function GuestGuardButton({
+  actionKey,
+  onAllowed,
+  children,
+  className,
+  style,
+  type = "button",
+  disabled,
+  "aria-label": ariaLabel,
+}: ButtonProps) {
   const { guardAction } = useGuestAccess();
 
   return (

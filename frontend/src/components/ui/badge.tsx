@@ -23,7 +23,8 @@ const badgeVariants = cva(
         // Warning / commercial — orange soft
         warning: "border-transparent bg-[var(--warning-soft)] text-[var(--warning)]",
         // На модерации
-        moderation: "border-transparent bg-[var(--accent-commercial-soft)] text-[var(--accent-commercial)]",
+        moderation:
+          "border-transparent bg-[var(--accent-commercial-soft)] text-[var(--accent-commercial)]",
         // Опубликовано
         published: "border-transparent bg-[var(--success-soft)] text-[var(--success)]",
         // Черновик
@@ -41,7 +42,9 @@ const badgeVariants = cva(
   },
 );
 
-const badgeIcons: Partial<Record<NonNullable<VariantProps<typeof badgeVariants>["variant"]>, LucideIcon>> = {
+const badgeIcons: Partial<
+  Record<NonNullable<VariantProps<typeof badgeVariants>["variant"]>, LucideIcon>
+> = {
   top: Flame,
   "top-outline": Flame,
   active: Check,

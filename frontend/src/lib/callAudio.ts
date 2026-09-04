@@ -61,11 +61,7 @@ export function stopRingLoop(): void {
   }
 }
 
-function playDualTone(
-  freqs: [number, number],
-  durationMs: number,
-  gain = 0.12,
-): void {
+function playDualTone(freqs: [number, number], durationMs: number, gain = 0.12): void {
   const audio = ensureCtx();
   if (!audio) return;
   if (audio.state === "suspended") void audio.resume();

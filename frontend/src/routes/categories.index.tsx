@@ -20,20 +20,27 @@ function CategoriesPage() {
       <div className="space-y-5">
         <header>
           <h1 className="font-display text-2xl font-bold">{t("pages.categories.title")}</h1>
-          <p className="mt-[2px] font-display text-[15px] font-semibold" style={{ color: "var(--accent)" }}>
+          <p
+            className="mt-[2px] font-display text-[15px] font-semibold"
+            style={{ color: "var(--accent)" }}
+          >
             {t("pages.categories.accent")}
           </p>
           <p className="mt-[4px] text-sm text-muted-foreground">{t("pages.categories.subtitle")}</p>
         </header>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((c) => <CategoryCard key={c.id} c={c} />)}
+          {categories.map((c) => (
+            <CategoryCard key={c.id} c={c} />
+          ))}
         </div>
 
         {/* 3D showcase strip */}
         <section className="space-y-3 pt-2">
           <div className="flex items-end justify-between">
-            <h2 className="font-display text-lg font-bold">{t("pages.categories.popularModels")}</h2>
+            <h2 className="font-display text-lg font-bold">
+              {t("pages.categories.popularModels")}
+            </h2>
             <span className="text-xs" style={{ color: "var(--foreground-50)" }}>
               {t("pages.categories.modelsCount", { count: showcaseImages.length })}
             </span>
@@ -46,7 +53,8 @@ function CategoriesPage() {
                 style={{
                   width: 152,
                   aspectRatio: "1 / 1",
-                  background: "linear-gradient(135deg, var(--background-surface) 0%, var(--background) 100%)",
+                  background:
+                    "linear-gradient(135deg, var(--background-surface) 0%, var(--background) 100%)",
                   border: "1px solid var(--border)",
                   borderRadius: "var(--r-card)",
                 }}

@@ -65,11 +65,20 @@ function TypeRow({
   };
 
   return (
-    <div className="grid gap-3 border-b py-3 lg:grid-cols-[1fr_auto]" style={{ borderColor: "var(--border)" }}>
+    <div
+      className="grid gap-3 border-b py-3 lg:grid-cols-[1fr_auto]"
+      style={{ borderColor: "var(--border)" }}
+    >
       <div className="min-w-0">
-        <div className="text-[13.5px] font-semibold" style={{ color: "var(--foreground)" }}>{item.label}</div>
-        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{item.hint}</div>
-        <code className="mt-1 block text-[11px]" style={{ color: "var(--foreground-30)" }}>{item.key}</code>
+        <div className="text-[13.5px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {item.label}
+        </div>
+        <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          {item.hint}
+        </div>
+        <code className="mt-1 block text-[11px]" style={{ color: "var(--foreground-30)" }}>
+          {item.key}
+        </code>
         {!item.show_in_cabinet && (
           <div className="mt-1 text-[11px]" style={{ color: "var(--foreground-50)" }}>
             {t("pages.adminNotificationPolicy.staffOnly")}
@@ -78,7 +87,11 @@ function TypeRow({
       </div>
       <div className="flex flex-col gap-2 lg:min-w-[280px]">
         <label className="flex items-center gap-2 text-[13px]">
-          <input type="checkbox" checked={current.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} />
+          <input
+            type="checkbox"
+            checked={current.enabled}
+            onChange={(e) => onChange({ enabled: e.target.checked })}
+          />
           {t("pages.adminNotificationPolicy.enabled")}
         </label>
         <select
@@ -163,13 +176,17 @@ export function NotificationPolicyAdminCard() {
     setConfig((prev) => {
       if (!prev) return prev;
       const item = registry.find((row) => row.key === key);
-      const current = prev.types[key] ?? (item ? fallbackConfig(item) : {
-        enabled: true,
-        min_tier: "registered" as const,
-        user_can_toggle: true,
-        default_enabled: true,
-        channels: ["in_app", "max"] as NotificationPolicyChannel[],
-      });
+      const current =
+        prev.types[key] ??
+        (item
+          ? fallbackConfig(item)
+          : {
+              enabled: true,
+              min_tier: "registered" as const,
+              user_can_toggle: true,
+              default_enabled: true,
+              channels: ["in_app", "max"] as NotificationPolicyChannel[],
+            });
       return {
         ...prev,
         types: {
@@ -195,7 +212,11 @@ export function NotificationPolicyAdminCard() {
   };
 
   if (loading || !config) {
-    return <p className="text-sm" style={{ color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>;
+    return (
+      <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
+        {t("pages.adminCommon.loading")}
+      </p>
+    );
   }
 
   return (
@@ -210,7 +231,11 @@ export function NotificationPolicyAdminCard() {
       </div>
 
       {[...grouped.entries()].map(([group, items]) => (
-        <div key={group} className="rounded-[var(--r-card)] border p-4" style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}>
+        <div
+          key={group}
+          className="rounded-[var(--r-card)] border p-4"
+          style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+        >
           <h3 className="mb-2 text-sm font-semibold">{groupLabels[group] ?? group}</h3>
           {items.map((item) => (
             <TypeRow
@@ -224,7 +249,9 @@ export function NotificationPolicyAdminCard() {
       ))}
 
       <button type="button" style={primaryBtn} disabled={saving} onClick={() => void save()}>
-        {saving ? t("pages.adminNotificationPolicy.saving") : t("pages.adminNotificationPolicy.saveButton")}
+        {saving
+          ? t("pages.adminNotificationPolicy.saving")
+          : t("pages.adminNotificationPolicy.saveButton")}
       </button>
     </div>
   );

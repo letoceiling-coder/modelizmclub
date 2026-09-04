@@ -56,7 +56,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
     {
         $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
 
-        $this->actingAs($admin, 'sanctum')
+        $poolUuid = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/admin/promo-pools', [
                 'name' => 'Первые 300 пользователей — бесплатно до 31.12.2026',
                 'max_activations' => 300,
@@ -66,7 +66,8 @@ class PromoPoolAndReferralRewardTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.max_activations', 300)
             ->assertJsonPath('data.current_activations', 0)
-            ->assertJsonPath('data.is_granting', true);
+            ->assertJsonPath('data.is_granting', true)
+            ->json('data.uuid');
 
         $first = $this->verifyNewUser();
         $this->assertTrue($first->is_first_hundred);
@@ -75,7 +76,9 @@ class PromoPoolAndReferralRewardTest extends TestCase
         $ends = UserSubscription::query()->where('user_id', $first->id)->value('ends_at');
         $this->assertSame('2026-12-31', \Illuminate\Support\Carbon::parse($ends)->timezone(config('app.timezone'))->format('Y-m-d'));
 
-        $this->assertSame(1, (int) PromoPool::query()->value('current_activations'));
+        // The install migration backfills a legacy (disabled) "Первые N" pool, so the
+        // counter must be read from the pool this test created, not from the first row.
+        $this->assertSame(1, (int) PromoPool::query()->where('uuid', $poolUuid)->value('current_activations'));
 
         $this->getJson('/api/v1/public/stats')
             ->assertOk()
@@ -86,7 +89,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
 
     public function test_pool_stops_granting_after_limit(): void
     {
-        $this->actingAs(
+        $poolUuid = $this->actingAs(
             User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]),
             'sanctum',
         )->postJson('/api/v1/admin/promo-pools', [
@@ -94,14 +97,14 @@ class PromoPoolAndReferralRewardTest extends TestCase
             'max_activations' => 1,
             'expires_at' => now()->addYear()->toIso8601String(),
             'auto_assign_on_register' => true,
-        ])->assertCreated();
+        ])->assertCreated()->json('data.uuid');
 
         $first = $this->verifyNewUser();
         $second = $this->verifyNewUser();
 
         $this->assertTrue($first->is_first_hundred);
         $this->assertFalse($second->is_first_hundred);
-        $this->assertSame(1, (int) PromoPool::query()->value('current_activations'));
+        $this->assertSame(1, (int) PromoPool::query()->where('uuid', $poolUuid)->value('current_activations'));
     }
 
     public function test_pause_stops_new_grants_and_keeps_existing_seat(): void
@@ -235,7 +238,10 @@ class PromoPoolAndReferralRewardTest extends TestCase
         $this->assertSame(1, (int) $referrer->fresh()->referral_click_count);
 
         $email = 'cookie-'.uniqid().'@example.com';
-        $this->withUnencryptedCookie('mdlzm_ref', $referrer->referral_code)
+        // JSON test requests drop cookies unless credentials are enabled (see
+        // MakesHttpRequests::prepareCookiesForJsonRequest), mirroring an XHR with credentials.
+        $this->withCredentials()
+            ->withUnencryptedCookie('mdlzm_ref', $referrer->referral_code)
             ->postJson('/api/v1/auth/register', [
                 'display_name' => 'Cookie User',
                 'email' => $email,

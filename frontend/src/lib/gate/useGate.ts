@@ -15,7 +15,11 @@ export interface RequireOptions {
  * action when the viewer already meets `need`; otherwise remembers it and
  * opens exactly one window — the first missing rung.
  */
-export async function gateRequire(need: Level, action: GateAction, options: RequireOptions = {}): Promise<boolean> {
+export async function gateRequire(
+  need: Level,
+  action: GateAction,
+  options: RequireOptions = {},
+): Promise<boolean> {
   const have = levelOf(getSession());
   if (meets(have, need)) {
     await action();
@@ -45,7 +49,8 @@ export function useGate() {
   const level = levelOf(session.data);
 
   const require = useCallback(
-    (need: Level, action: GateAction, options?: RequireOptions) => gateRequire(need, action, options),
+    (need: Level, action: GateAction, options?: RequireOptions) =>
+      gateRequire(need, action, options),
     [],
   );
 

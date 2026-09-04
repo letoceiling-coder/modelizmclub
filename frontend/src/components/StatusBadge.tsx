@@ -27,9 +27,23 @@ const styles: Record<Variant, string> = {
   info: "bg-info/15 text-info border-info/30",
 };
 
-export function StatusBadge({ children, variant = "default", className }: { children: React.ReactNode; variant?: Variant; className?: string }) {
+export function StatusBadge({
+  children,
+  variant = "default",
+  className,
+}: {
+  children: React.ReactNode;
+  variant?: Variant;
+  className?: string;
+}) {
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium", styles[variant], className)}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        styles[variant],
+        className,
+      )}
+    >
       {children}
     </span>
   );

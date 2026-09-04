@@ -15,27 +15,41 @@ export function usePostCategoriesState(): { categories: Category[]; loading: boo
     if (getCachedPostCategories()) return;
     let active = true;
     fetchPostCategories()
-      .then((c) => { if (active) setCategories(c); })
+      .then((c) => {
+        if (active) setCategories(c);
+      })
       .catch(() => {})
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return { categories, loading };
 }
 
 export function useListingCategoriesState(): { categories: Category[]; loading: boolean } {
-  const [categories, setCategories] = useState<Category[]>(() => getCachedListingCategories() ?? []);
+  const [categories, setCategories] = useState<Category[]>(
+    () => getCachedListingCategories() ?? [],
+  );
   const [loading, setLoading] = useState(() => !getCachedListingCategories());
 
   useEffect(() => {
     if (getCachedListingCategories()) return;
     let active = true;
     fetchListingCategories()
-      .then((c) => { if (active) setCategories(c); })
+      .then((c) => {
+        if (active) setCategories(c);
+      })
       .catch(() => {})
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return { categories, loading };

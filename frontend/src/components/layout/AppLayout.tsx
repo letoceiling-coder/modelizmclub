@@ -26,7 +26,15 @@ interface Props {
   hideBottomNav?: boolean;
 }
 
-export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar, hideMobileHeader, hideBottomNav }: Props) {
+export function AppLayout({
+  children,
+  rightColumn,
+  navCollapsed,
+  footer,
+  sidebar,
+  hideMobileHeader,
+  hideBottomNav,
+}: Props) {
   return (
     // 100dvh keeps the shell stable on mobile Safari/Chrome (no 100vh jump).
     // overflow-x-clip is a belt-and-braces guard against horizontal scroll.
@@ -54,18 +62,19 @@ export function AppLayout({ children, rightColumn, navCollapsed, footer, sidebar
           "lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0",
         )}
       >
-        {sidebar === false ? null : sidebar ?? <Sidebar collapsed={navCollapsed} />}
+        {sidebar === false ? null : (sidebar ?? <Sidebar collapsed={navCollapsed} />)}
         {/* Center column: the only scroll zone on desktop. */}
         <main
           className={cn(
             "min-w-0 flex-1 lg:overflow-y-auto",
-            rightColumn === false && "lg:mr-[calc(-1*var(--container-pad))] lg:pr-[var(--container-pad)]",
+            rightColumn === false &&
+              "lg:mr-[calc(-1*var(--container-pad))] lg:pr-[var(--container-pad)]",
           )}
         >
           {children}
           {footer && <AppFooter />}
         </main>
-        {rightColumn === false ? null : rightColumn ?? <DirectionsRightRail />}
+        {rightColumn === false ? null : (rightColumn ?? <DirectionsRightRail />)}
       </div>
       {hideBottomNav ? null : <BottomNav />}
     </div>

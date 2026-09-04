@@ -54,13 +54,7 @@ function readStoredMaxAuth(): StoredMaxAuth | null {
   }
 }
 
-export function OAuthButtons({
-  className,
-  redirect,
-}: {
-  className?: string;
-  redirect?: string;
-}) {
+export function OAuthButtons({ className, redirect }: { className?: string; redirect?: string }) {
   const nav = useNavigate();
   const [maxWaiting, setMaxWaiting] = useState(false);
   const [botUrl, setBotUrl] = useState<string | null>(null);
@@ -149,7 +143,11 @@ export function OAuthButtons({
       setBotUrl(started.bot_url);
       sessionStorage.setItem(
         MAX_AUTH_STORAGE_KEY,
-        JSON.stringify({ session: started.session, bot_url: started.bot_url, expires_at: expiresAt } satisfies StoredMaxAuth),
+        JSON.stringify({
+          session: started.session,
+          bot_url: started.bot_url,
+          expires_at: expiresAt,
+        } satisfies StoredMaxAuth),
       );
       if (popup && !popup.closed) {
         popup.location.replace(started.bot_url);
@@ -201,13 +199,23 @@ export function OAuthButtons({
           <p style={{ margin: "8px 0 0", color: "var(--foreground-70)" }}>
             1. В MAX нажмите «Поделиться номером и войти» или «Войти без номера».
             <br />
-            2. Вернитесь сюда — вход завершится сам. Если MAX открылся в этой вкладке, нажмите «Вернуться на сайт» в боте.
+            2. Вернитесь сюда — вход завершится сам. Если MAX открылся в этой вкладке, нажмите
+            «Вернуться на сайт» в боте.
           </p>
           <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <a href={botUrl} target="_blank" rel="noreferrer" style={{ ...oauthLinkStyle, width: "auto", padding: "8px 12px" }}>
+            <a
+              href={botUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ ...oauthLinkStyle, width: "auto", padding: "8px 12px" }}
+            >
               Открыть MAX снова
             </a>
-            <button type="button" onClick={clearMaxAuth} style={{ ...oauthLinkStyle, width: "auto", padding: "8px 12px" }}>
+            <button
+              type="button"
+              onClick={clearMaxAuth}
+              style={{ ...oauthLinkStyle, width: "auto", padding: "8px 12px" }}
+            >
               Отменить
             </button>
           </div>
@@ -219,7 +227,10 @@ export function OAuthButtons({
 
 export function OAuthDivider({ children }: { children?: ReactNode }) {
   return (
-    <div className="mt-[24px] flex items-center gap-[12px]" style={{ color: "var(--foreground-50)", fontSize: "var(--fs-xs)" }}>
+    <div
+      className="mt-[24px] flex items-center gap-[12px]"
+      style={{ color: "var(--foreground-50)", fontSize: "var(--fs-xs)" }}
+    >
       <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
       {children ?? "ИЛИ"}
       <span style={{ flex: 1, height: 1, background: "var(--border)" }} />

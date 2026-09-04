@@ -18,22 +18,16 @@ export type ListingStatus =
   | "unpublished"
   | "deleted";
 
-type StatusVariant =
-  | "published"
-  | "draft"
-  | "moderation"
-  | "warning"
-  | "outline"
-  | "destructive";
+type StatusVariant = "published" | "draft" | "moderation" | "warning" | "outline" | "destructive";
 
 const STATUS_CONFIG: Record<ListingStatus, { variant: StatusVariant; label: string }> = {
-  active:      { variant: "published",   label: "Активно" },
-  archived:    { variant: "draft",       label: "В архиве" },
-  moderation:  { variant: "moderation",  label: "На модерации" },
-  rejected:    { variant: "warning",     label: "С ошибками" },
-  draft:       { variant: "draft",       label: "Черновик" },
-  unpublished: { variant: "outline",     label: "Не опубликовано" },
-  deleted:     { variant: "destructive", label: "Удалено" },
+  active: { variant: "published", label: "Активно" },
+  archived: { variant: "draft", label: "В архиве" },
+  moderation: { variant: "moderation", label: "На модерации" },
+  rejected: { variant: "warning", label: "С ошибками" },
+  draft: { variant: "draft", label: "Черновик" },
+  unpublished: { variant: "outline", label: "Не опубликовано" },
+  deleted: { variant: "destructive", label: "Удалено" },
 };
 
 interface ListingCardProps {
@@ -48,7 +42,14 @@ interface ListingCardProps {
   className?: string;
 }
 
-export function ListingCard({ ad, status, selected, onSelect, actions, className }: ListingCardProps) {
+export function ListingCard({
+  ad,
+  status,
+  selected,
+  onSelect,
+  actions,
+  className,
+}: ListingCardProps) {
   const [imgErr, setImgErr] = useState(false);
   const hero = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
   const statusCfg = status ? STATUS_CONFIG[status] : undefined;
@@ -59,7 +60,8 @@ export function ListingCard({ ad, status, selected, onSelect, actions, className
         "relative grid items-stretch gap-[10px] p-[10px]",
         "grid-cols-[80px_minmax(0,1fr)_auto] sm:grid-cols-[96px_minmax(0,1fr)_auto] sm:gap-[12px] sm:p-[12px]",
         "rounded-[var(--r-card)] border-[var(--border)] shadow-[var(--shadow-card)]",
-        selected && "border-[var(--accent)] shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent)_15%,transparent)]",
+        selected &&
+          "border-[var(--accent)] shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent)_15%,transparent)]",
         className,
       )}
       style={{ transition: "border-color 180ms, box-shadow 180ms" }}
@@ -80,6 +82,8 @@ export function ListingCard({ ad, status, selected, onSelect, actions, className
             alt={ad.title}
             variants={["thumb", "card"]}
             sizes="96px"
+            width={96}
+            height={96}
             className="h-full w-full object-cover"
             onError={() => setImgErr(true)}
           />
@@ -137,7 +141,11 @@ export function ListingCard({ ad, status, selected, onSelect, actions, className
 
           <div
             className="mt-[4px] text-[15.5px] font-bold leading-none sm:text-[17px]"
-            style={{ fontFamily: "var(--font-display)", color: "var(--foreground)", letterSpacing: "-0.01em" }}
+            style={{
+              fontFamily: "var(--font-display)",
+              color: "var(--foreground)",
+              letterSpacing: "-0.01em",
+            }}
           >
             {ad.price.toLocaleString("ru")} ₽
           </div>
@@ -149,16 +157,21 @@ export function ListingCard({ ad, status, selected, onSelect, actions, className
           )}
         </div>
 
-        <div className="flex items-center gap-[10px] text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
+        <div
+          className="flex items-center gap-[10px] text-[11.5px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
           <span className="inline-flex min-w-0 items-center gap-[4px]">
             <MapPin size={12} className="shrink-0" />
             <span className="truncate">{ad.city}</span>
           </span>
           <span className="inline-flex shrink-0 items-center gap-[4px]">
-            <Eye size={12} />{ad.views ?? 0}
+            <Eye size={12} />
+            {ad.views ?? 0}
           </span>
           <span className="inline-flex shrink-0 items-center gap-[4px]">
-            <Heart size={12} />{ad.likes ?? 0}
+            <Heart size={12} />
+            {ad.likes ?? 0}
           </span>
         </div>
       </div>

@@ -4,8 +4,9 @@ import { api, API_BASE_URL } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { demoConversations, demoMessages } from "@/lib/demo-data";
-import { getState, openOrCreateDialogWith, restoreDialog, wasChatWithPartnerDeleted } from "@/lib/store";
+import { wasChatWithPartnerDeleted } from "@/lib/store";
 import type { MediaVariantSet } from "@/lib/media/variants";
+import { messengerCache } from "@/lib/messenger";
 
 function seedFromId(id: string): number {
   let h = 0;
@@ -49,17 +50,19 @@ export interface ApiMessage {
   author?: ApiCompactUser | null;
   reply_to?: { uuid: string } | null;
   forwarded_from?: { uuid: string; body?: string | null; author?: ApiCompactUser | null } | null;
-  attachments?: Array<{ media?: {
-    uuid?: string | null;
-    url?: string | null;
-    mime_type?: string | null;
-    duration?: number | null;
-    filename?: string | null;
-    size_bytes?: number | null;
-    width?: number | null;
-    height?: number | null;
-    variants?: MediaVariantSet;
-  } | null }>;
+  attachments?: Array<{
+    media?: {
+      uuid?: string | null;
+      url?: string | null;
+      mime_type?: string | null;
+      duration?: number | null;
+      filename?: string | null;
+      size_bytes?: number | null;
+      width?: number | null;
+      height?: number | null;
+      variants?: MediaVariantSet;
+    } | null;
+  }>;
   created_at: string;
 }
 
@@ -75,8 +78,12 @@ interface ApiConversation {
   participants?: Array<{ user?: ApiCompactUser | null; role?: string; pinned_at?: string | null }>;
   last_message?: ApiMessage | null;
   unread_count?: number;
+  /** Курсор прочитанного: id — серверный, uuid — то, чем оперирует клиент. */
+  last_read_message_id?: number | null;
+  last_read_message_uuid?: string | null;
   community?: { slug?: string; name?: string; avatar?: string | null } | null;
   room?: { category_id?: number | null; root_id?: number | null } | null;
+  deal?: { uuid: string; status?: string | null; status_label?: string | null } | null;
 }
 
 interface Paginated<T> {
@@ -129,7 +136,10 @@ function mapMessageStatus(raw?: string | null): Message["status"] {
   return "sent";
 }
 
-function resolveMediaUrl(media?: { url?: string | null; uuid?: string | null; variants?: MediaVariantSet } | null, variant: "card" | "large" | "thumb" = "card"): string | undefined {
+function resolveMediaUrl(
+  media?: { url?: string | null; uuid?: string | null; variants?: MediaVariantSet } | null,
+  variant: "card" | "large" | "thumb" = "card",
+): string | undefined {
   if (!media) return undefined;
   const slot = media.variants?.[variant] ?? media.variants?.card ?? media.variants?.thumb;
   if (slot?.webp) return slot.webp;
@@ -173,7 +183,8 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
   const nonAudio = media.filter((x) => x !== audio);
 
   if (msgType === "image") {
-    const imageMedia = nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/")) ?? nonAudio[0];
+    const imageMedia =
+      nonAudio.find((x) => (x.mime_type ?? "").startsWith("image/")) ?? nonAudio[0];
     const imageUrl = resolveMediaUrl(imageMedia);
     if (imageUrl) {
       base.image = imageUrl;
@@ -227,15 +238,13 @@ export function mapMessage(m: ApiMessage, pinnedUuid?: string | null): Message {
 }
 
 export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
-  const other = (c.participants ?? [])
-    .map((p) => p.user)
-    .find((u) => u && u.uuid !== meUuid);
+  const other = (c.participants ?? []).map((p) => p.user).find((u) => u && u.uuid !== meUuid);
   const partner = registerCompact(other);
   const isCommunity = c.type === "community";
   const isRoom = c.type === "room";
   const dialog: Dialog = {
     id: c.uuid,
-    userId: isCommunity || isRoom ? "" : partner?.id ?? "",
+    userId: isCommunity || isRoom ? "" : (partner?.id ?? ""),
     lastMessage: c.last_message?.body ?? "",
     time: c.last_message_at ?? c.last_message?.created_at ?? "",
     unread: Math.max(0, c.unread_count ?? 0),
@@ -243,22 +252,42 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
     pinned: Boolean(c.is_pinned),
     listing: c.listing ? mapListingCompact(c.listing) : undefined,
     type: (c.type as Dialog["type"]) ?? "direct",
-    title: isCommunity ? (c.community?.name ?? c.title ?? "Сообщество") : isRoom ? (c.title ?? "Чат направления") : undefined,
+    title: isCommunity
+      ? (c.community?.name ?? c.title ?? "Сообщество")
+      : isRoom
+        ? (c.title ?? "Чат направления")
+        : undefined,
     avatar: isCommunity ? (c.community?.avatar ?? undefined) : undefined,
     communitySlug: c.community?.slug,
-    room: isRoom && c.room?.category_id
-      ? { categoryId: String(c.room.category_id), rootId: c.room.root_id ? String(c.room.root_id) : null }
+    room:
+      isRoom && c.room?.category_id
+        ? {
+            categoryId: String(c.room.category_id),
+            rootId: c.room.root_id ? String(c.room.root_id) : null,
+          }
+        : undefined,
+    lastReadMessageId: c.last_read_message_uuid ?? undefined,
+    deal: c.deal
+      ? {
+          id: c.deal.uuid,
+          status: c.deal.status ?? "",
+          statusLabel: c.deal.status_label ?? undefined,
+        }
       : undefined,
   };
   return dialog;
 }
 
-/** Keep one dialog per partner — API list is deduped, this is a client-side safety net. */
+/**
+ * Keep one dialog per partner — API list is deduped, this is a client-side
+ * safety net. Чат сделки живёт отдельно от личного: с одним и тем же
+ * человеком их может быть два, и схлопывать их нельзя.
+ */
 export function dedupeDialogsByPartner(dialogs: Dialog[]): Dialog[] {
   const seen = new Set<string>();
   const result: Dialog[] = [];
   for (const d of dialogs) {
-    if (!d.userId) {
+    if (!d.userId || d.type === "deal") {
       result.push(d);
       continue;
     }
@@ -278,12 +307,12 @@ export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
   if (isDemoMode()) return demoConversations();
   const [chats, communities, rooms] = await Promise.all([
     api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50 } }),
-    api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50, space: "communities" } }).catch(
-      () => ({ data: [] as ApiConversation[] }),
-    ),
-    api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50, space: "rooms" } }).catch(
-      () => ({ data: [] as ApiConversation[] }),
-    ),
+    api<Paginated<ApiConversation>>("/conversations", {
+      query: { per_page: 50, space: "communities" },
+    }).catch(() => ({ data: [] as ApiConversation[] })),
+    api<Paginated<ApiConversation>>("/conversations", {
+      query: { per_page: 50, space: "rooms" },
+    }).catch(() => ({ data: [] as ApiConversation[] })),
   ]);
   const merged = [...(chats.data ?? []), ...(communities.data ?? []), ...(rooms.data ?? [])];
   return dedupeDialogsByPartner(merged.map((c) => mapConversation(c, meUuid)));
@@ -443,7 +472,7 @@ export async function openConversation(
   if (reopening && !isDemoMode()) {
     await clearConversationHistory(dialog.id).catch(() => {});
   }
-  restoreDialog(dialog);
+  messengerCache.restoreDialog(dialog);
   return dialog;
 }
 
@@ -455,22 +484,39 @@ export async function navigateToPartnerChat(
   partner: User,
   meUuid: string,
 ): Promise<void> {
-  const existing = Object.values(getState().dialogs).find((d) => d.userId === partner.id);
+  const existing = messengerCache.findByPartner(partner.id);
   if (existing) {
     navigate({ to: "/messenger", search: { chat: existing.id } });
     return;
   }
 
   if (isDemoMode()) {
-    navigate({ to: "/messenger", search: { chat: openOrCreateDialogWith(partner.id) } });
+    const demo = messengerCache.findByPartner(partner.id) ?? {
+      id: `d_${partner.id}`,
+      userId: partner.id,
+      lastMessage: "",
+      time: new Date().toISOString(),
+      unread: 0,
+      messages: [],
+    };
+    messengerCache.restoreDialog(demo);
+    navigate({ to: "/messenger", search: { chat: demo.id } });
     return;
   }
 
-  if (!partner.numericId) {
+  // Call records, share sheets and similar carry only the partner's uuid.
+  // The public profile endpoint accepts a uuid as well as a slug, so resolve
+  // the numeric id from there instead of failing.
+  let numericId = partner.numericId;
+  if (!numericId) {
+    const { fetchPublicProfile } = await import("@/lib/api/social");
+    numericId = (await fetchPublicProfile(partner.slug ?? partner.id)).user.numericId;
+  }
+  if (!numericId) {
     throw new Error("Partner numeric id is missing");
   }
 
-  const dialog = await openConversation(partner.numericId, meUuid, partner.id);
+  const dialog = await openConversation(numericId, meUuid, partner.id);
   navigate({ to: "/messenger", search: { chat: dialog.id } });
 }
 
@@ -503,14 +549,22 @@ export async function sendAttachmentMessage(
   return mapMessage(res.data);
 }
 
-export async function hideMessageForMe(conversationUuid: string, messageUuid: string): Promise<void> {
+export async function hideMessageForMe(
+  conversationUuid: string,
+  messageUuid: string,
+): Promise<void> {
   if (isDemoMode()) return;
   await api(`/conversations/${conversationUuid}/messages/${messageUuid}`, { method: "DELETE" });
 }
 
-export async function deleteMessageForEveryone(conversationUuid: string, messageUuid: string): Promise<void> {
+export async function deleteMessageForEveryone(
+  conversationUuid: string,
+  messageUuid: string,
+): Promise<void> {
   if (isDemoMode()) return;
-  await api(`/conversations/${conversationUuid}/messages/${messageUuid}/everyone`, { method: "DELETE" });
+  await api(`/conversations/${conversationUuid}/messages/${messageUuid}/everyone`, {
+    method: "DELETE",
+  });
 }
 
 export async function clearConversationHistory(conversationUuid: string): Promise<void> {

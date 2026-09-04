@@ -40,13 +40,16 @@ export function FindYourPeopleSheet() {
 
   return (
     <div className="xl:hidden">
-      <Sheet open={open} onOpenChange={(next) => {
-        if (next) {
-          guardAction("feed.find_people.open", () => setOpen(true));
-          return;
-        }
-        setOpen(false);
-      }}>
+      <Sheet
+        open={open}
+        onOpenChange={(next) => {
+          if (next) {
+            guardAction("feed.find_people.open", () => setOpen(true));
+            return;
+          }
+          setOpen(false);
+        }}
+      >
         <SheetTrigger asChild>
           <button
             type="button"
@@ -88,9 +91,15 @@ export function FindYourPeopleSheet() {
         >
           {/* Grabber — signals the sheet is swipe-dismissable (native feel). */}
           <div className="flex shrink-0 justify-center pt-[8px] pb-[2px]">
-            <span className="h-[4px] w-[36px] rounded-full" style={{ background: "var(--border)" }} />
+            <span
+              className="h-[4px] w-[36px] rounded-full"
+              style={{ background: "var(--border)" }}
+            />
           </div>
-          <SheetHeader className="shrink-0 border-b px-[16px] pb-[14px] pt-[8px] text-left" style={{ borderColor: "var(--border)" }}>
+          <SheetHeader
+            className="shrink-0 border-b px-[16px] pb-[14px] pt-[8px] text-left"
+            style={{ borderColor: "var(--border)" }}
+          >
             <SheetTitle className="flex items-center gap-[8px] text-[15px]">
               <MessageCircle className="h-[16px] w-[16px]" style={{ color: "var(--accent)" }} />
               {t("components.findYourPeopleSheet.title")}
@@ -114,7 +123,12 @@ export function FindYourPeopleSheet() {
                         className="group flex flex-1 items-center gap-[12px] rounded-l-[12px] px-[12px] py-[10px] transition-colors hover:bg-[var(--background-surface)]"
                       >
                         <IconBox size="md" variant="surface">
-                          <CategoryIcon categoryId={c.id} name={c.icon} iconImageUrl={c.iconImageUrl} fill />
+                          <CategoryIcon
+                            categoryId={c.id}
+                            name={c.icon}
+                            iconImageUrl={c.iconImageUrl}
+                            fill
+                          />
                         </IconBox>
                         <span className="min-w-0 flex-1">
                           <span
@@ -140,7 +154,11 @@ export function FindYourPeopleSheet() {
                       <button
                         type="button"
                         onClick={() => setOpenId(expanded ? null : c.id)}
-                        aria-label={expanded ? t("components.findYourPeopleSheet.collapseSubcategories") : t("components.findYourPeopleSheet.expandSubcategories")}
+                        aria-label={
+                          expanded
+                            ? t("components.findYourPeopleSheet.collapseSubcategories")
+                            : t("components.findYourPeopleSheet.expandSubcategories")
+                        }
                         aria-expanded={expanded}
                         className="grid w-[36px] place-items-center rounded-r-[12px] transition-colors hover:bg-[var(--background-surface)]"
                       >

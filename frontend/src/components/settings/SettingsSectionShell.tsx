@@ -4,7 +4,13 @@ import { useTranslation } from "react-i18next";
 
 /** Wrapper for a settings sub-section. On mobile it shows a back link to the
  *  section list; on desktop the persistent rail already provides navigation. */
-export function SettingsSectionShell({ title, children }: { title: string; children: React.ReactNode }) {
+export function SettingsSectionShell({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   const { t } = useTranslation();
   return (
     <section className="space-y-[16px]">
@@ -15,7 +21,10 @@ export function SettingsSectionShell({ title, children }: { title: string; child
       >
         <ChevronLeft size={16} /> {t("pages.settings.navBack")}
       </Link>
-      <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+      <h1
+        className="font-display text-[22px] font-bold"
+        style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+      >
         {title}
       </h1>
       {children}

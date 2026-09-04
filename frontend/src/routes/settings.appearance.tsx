@@ -10,9 +10,24 @@ export const Route = createFileRoute("/settings/appearance")({
 });
 
 const OPTIONS: { value: ThemePreference; icon: typeof Sun; titleKey: string; descKey: string }[] = [
-  { value: "light", icon: Sun, titleKey: "pages.settings.themeLight", descKey: "pages.settings.themeLightDesc" },
-  { value: "dark", icon: Moon, titleKey: "pages.settings.themeDark", descKey: "pages.settings.themeDarkDesc" },
-  { value: "system", icon: Monitor, titleKey: "pages.settings.themeSystem", descKey: "pages.settings.themeSystemDesc" },
+  {
+    value: "light",
+    icon: Sun,
+    titleKey: "pages.settings.themeLight",
+    descKey: "pages.settings.themeLightDesc",
+  },
+  {
+    value: "dark",
+    icon: Moon,
+    titleKey: "pages.settings.themeDark",
+    descKey: "pages.settings.themeDarkDesc",
+  },
+  {
+    value: "system",
+    icon: Monitor,
+    titleKey: "pages.settings.themeSystem",
+    descKey: "pages.settings.themeSystemDesc",
+  },
 ];
 
 function AppearanceSection() {
@@ -22,11 +37,17 @@ function AppearanceSection() {
   return (
     <SettingsSectionShell title={t("pages.settings.appearanceTitle")}>
       <div>
-        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.themeTitle")}</h2>
+        <h2 className="mb-[4px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {t("pages.settings.themeTitle")}
+        </h2>
         <p className="mb-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
           {t("pages.settings.themeDesc")}
         </p>
-        <div className="flex flex-col gap-[10px]" role="radiogroup" aria-label={t("pages.settings.themeAria")}>
+        <div
+          className="flex flex-col gap-[10px]"
+          role="radiogroup"
+          aria-label={t("pages.settings.themeAria")}
+        >
           {OPTIONS.map((opt) => (
             <RadioCard
               key={opt.value}

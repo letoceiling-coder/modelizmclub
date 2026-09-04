@@ -1,7 +1,8 @@
 import type { AppNotification } from "@/lib/api/notifications";
 import { mapMessage, type ApiMessage } from "@/lib/api/chat";
 import { getToken } from "@/lib/api/client";
-import { GUEST_USER, ingestIncomingMessage, markOwnMessagesRead } from "@/lib/store";
+import { GUEST_USER } from "@/lib/store";
+import { messengerCache } from "@/lib/messenger";
 import { ingestCallSignal } from "@/lib/calls";
 import { subscribeUser } from "@/lib/realtime/echo";
 import { playMessagePing } from "@/lib/callAudio";
@@ -66,7 +67,7 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
     if (!p.conversation_uuid || !p.message) return;
     const message = mapMessage(p.message);
     const notViewing = watchingDialogId !== p.conversation_uuid;
-    ingestIncomingMessage(p.conversation_uuid, message, notViewing);
+    messengerCache.ingestIncoming(p.conversation_uuid, message, notViewing);
     if (notViewing) {
       try {
         playMessagePing();
@@ -80,19 +81,19 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
   if (type === "conversation.read") {
     const p = data as { conversation_uuid?: string };
     if (!p.conversation_uuid) return;
-    markOwnMessagesRead(p.conversation_uuid);
+    messengerCache.markOwnStatus(p.conversation_uuid, "read");
     return;
   }
 
-    if (type === "notification") {
+  if (type === "notification") {
     const p = data as { notification?: ApiNotificationPayload };
     if (!p.notification) return;
     const notifType = p.notification.type ?? "";
     const link = p.notification.link ?? "";
     if (
-      (notifType === "message" || notifType === "messages")
-      && watchingDialogId
-      && link.includes(watchingDialogId)
+      (notifType === "message" || notifType === "messages") &&
+      watchingDialogId &&
+      link.includes(watchingDialogId)
     ) {
       return;
     }

@@ -17,7 +17,12 @@ interface DropdownPos {
   maxHeight: number;
 }
 
-export function CitySelect({ value, cityId, onChange, placeholder = "Любой город" }: CitySelectProps) {
+export function CitySelect({
+  value,
+  cityId,
+  onChange,
+  placeholder = "Любой город",
+}: CitySelectProps) {
   const [query, setQuery] = useState(value);
   const [results, setResults] = useState<City[]>([]);
   const [loading, setLoading] = useState(false);
@@ -160,71 +165,94 @@ export function CitySelect({ value, cityId, onChange, placeholder = "Любой 
           style={{ color: "var(--foreground)" }}
           onFocus={openDropdown}
         />
-        {loading && <Loader2 size={14} className="animate-spin shrink-0" style={{ color: "var(--foreground-50)" }} />}
+        {loading && (
+          <Loader2
+            size={14}
+            className="animate-spin shrink-0"
+            style={{ color: "var(--foreground-50)" }}
+          />
+        )}
         {query && !loading && (
-          <button type="button" onClick={clear} aria-label="Сбросить город"
+          <button
+            type="button"
+            onClick={clear}
+            aria-label="Сбросить город"
             className="grid shrink-0 place-items-center"
-            style={{ color: "var(--foreground-50)" }}>
+            style={{ color: "var(--foreground-50)" }}
+          >
             <X size={14} />
           </button>
         )}
       </div>
 
-      {open && pos && createPortal(
-        <div
-          ref={dropdownRef}
-          className="fixed z-[1000] overflow-y-auto overscroll-contain py-[4px]"
-          style={{
-            left: pos.left,
-            top: pos.top,
-            width: pos.width,
-            maxHeight: pos.maxHeight,
-            background: "var(--background-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-card)",
-            boxShadow: "var(--shadow-modal)",
-            scrollbarWidth: "thin",
-          }}
-        >
-          {loading && results.length === 0 && (
-            <div className="flex items-center gap-[8px] px-[12px] py-[10px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              <Loader2 size={13} className="animate-spin" /> Загрузка…
-            </div>
-          )}
-          {!loading && results.length === 0 && (
-            <div className="px-[12px] py-[10px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              {query.trim().length < 2 ? "Введите минимум 2 символа" : "Ничего не найдено"}
-            </div>
-          )}
-          {grouped.map(([region, cities]) => (
-            <div key={region}>
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[1000] overflow-y-auto overscroll-contain py-[4px]"
+            style={{
+              left: pos.left,
+              top: pos.top,
+              width: pos.width,
+              maxHeight: pos.maxHeight,
+              background: "var(--background-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-card)",
+              boxShadow: "var(--shadow-modal)",
+              scrollbarWidth: "thin",
+            }}
+          >
+            {loading && results.length === 0 && (
               <div
-                className="sticky top-0 px-[12px] py-[5px] text-[10px] font-semibold uppercase tracking-wider"
-                style={{ color: "var(--foreground-50)", background: "var(--background-elevated)" }}
+                className="flex items-center gap-[8px] px-[12px] py-[10px] text-[12px]"
+                style={{ color: "var(--foreground-50)" }}
               >
-                {region}
+                <Loader2 size={13} className="animate-spin" /> Загрузка…
               </div>
-              {cities.map((city) => {
-                const selected = cityId != null ? city.id === cityId : city.name === value;
-                return (
-                  <button
-                    key={city.id}
-                    type="button"
-                    onClick={() => pick(city)}
-                    className="flex w-full items-center gap-[8px] px-[12px] py-[9px] text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover)]"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    <MapPin size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />
-                    <span className="flex-1">{city.name}</span>
-                    {selected && <Check size={13} style={{ color: "var(--accent)", flexShrink: 0 }} />}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>,
-        document.body,
-      )}
+            )}
+            {!loading && results.length === 0 && (
+              <div
+                className="px-[12px] py-[10px] text-[12px]"
+                style={{ color: "var(--foreground-50)" }}
+              >
+                {query.trim().length < 2 ? "Введите минимум 2 символа" : "Ничего не найдено"}
+              </div>
+            )}
+            {grouped.map(([region, cities]) => (
+              <div key={region}>
+                <div
+                  className="sticky top-0 px-[12px] py-[5px] text-[10px] font-semibold uppercase tracking-wider"
+                  style={{
+                    color: "var(--foreground-50)",
+                    background: "var(--background-elevated)",
+                  }}
+                >
+                  {region}
+                </div>
+                {cities.map((city) => {
+                  const selected = cityId != null ? city.id === cityId : city.name === value;
+                  return (
+                    <button
+                      key={city.id}
+                      type="button"
+                      onClick={() => pick(city)}
+                      className="flex w-full items-center gap-[8px] px-[12px] py-[9px] text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover)]"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      <MapPin size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />
+                      <span className="flex-1">{city.name}</span>
+                      {selected && (
+                        <Check size={13} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

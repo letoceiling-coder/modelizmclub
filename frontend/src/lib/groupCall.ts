@@ -52,7 +52,8 @@ function setState(patch: Partial<GroupCallState>): void {
 
 function randomRoom(): string {
   try {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) return `g_${crypto.randomUUID().slice(0, 18).replace(/-/g, "")}`;
+    if (typeof crypto !== "undefined" && crypto.randomUUID)
+      return `g_${crypto.randomUUID().slice(0, 18).replace(/-/g, "")}`;
   } catch {
     /* ignore */
   }
@@ -63,7 +64,10 @@ async function connect(room: string, media: GroupMedia, title?: string): Promise
   setState({ connecting: true });
   try {
     const join = await fetchLiveKitToken(room);
-    setState({ active: { room, url: join.url, token: join.token, media, title }, connecting: false });
+    setState({
+      active: { room, url: join.url, token: join.token, media, title },
+      connecting: false,
+    });
     logEvent("info", "group", "joined room", { room, media });
     return true;
   } catch (err) {
@@ -76,7 +80,11 @@ async function connect(room: string, media: GroupMedia, title?: string): Promise
 
 export const groupCalls = {
   /** Start a new group call and (optionally) ring a list of users. */
-  async start(inviteUuids: string[] = [], media: GroupMedia = "video", title?: string): Promise<void> {
+  async start(
+    inviteUuids: string[] = [],
+    media: GroupMedia = "video",
+    title?: string,
+  ): Promise<void> {
     if (state.active) return;
     const room = randomRoom();
     const ok = await connect(room, media, title);
@@ -99,7 +107,12 @@ export const groupCalls = {
   async inviteMore(uuids: string[], media?: GroupMedia, title?: string): Promise<void> {
     if (!state.active || uuids.length === 0) return;
     try {
-      const n = await inviteToGroup(state.active.room, uuids, media ?? state.active.media, title ?? state.active.title);
+      const n = await inviteToGroup(
+        state.active.room,
+        uuids,
+        media ?? state.active.media,
+        title ?? state.active.title,
+      );
       toast.success(n === 1 ? "Приглашение отправлено" : `Приглашено: ${n}`);
     } catch {
       toast.error("Не удалось пригласить участников");
@@ -121,7 +134,12 @@ export const groupCalls = {
 };
 
 /** Called by the call signaling layer when a group_invite arrives. */
-export function handleGroupInvite(payload: { room?: string; media?: string; title?: string; from?: { name?: string } }): void {
+export function handleGroupInvite(payload: {
+  room?: string;
+  media?: string;
+  title?: string;
+  from?: { name?: string };
+}): void {
   if (!payload.room || state.active) return;
   const media: GroupMedia = payload.media === "audio" ? "audio" : "video";
   const who = payload.from?.name ?? "Пользователь";
@@ -130,7 +148,11 @@ export function handleGroupInvite(payload: { room?: string; media?: string; titl
   stopInviteRing();
   startRingtone();
   if (typeof navigator !== "undefined" && navigator.vibrate) {
-    try { navigator.vibrate([200, 100, 200]); } catch { /* ignore */ }
+    try {
+      navigator.vibrate([200, 100, 200]);
+    } catch {
+      /* ignore */
+    }
   }
   inviteRingTimer = setTimeout(stopInviteRing, 20000);
 

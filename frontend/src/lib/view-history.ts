@@ -29,7 +29,9 @@ export function recordView(item: Omit<ViewHistoryItem, "viewedAt">): void {
   const rest = getViewHistory().filter((x) => !(x.kind === entry.kind && x.id === entry.id));
   const next = [entry, ...rest].slice(0, CAP);
   window.localStorage.setItem(KEY, JSON.stringify(next));
-  void import("@/lib/api/view-history-api").then(({ recordViewHistory }) => recordViewHistory(item));
+  void import("@/lib/api/view-history-api").then(({ recordViewHistory }) =>
+    recordViewHistory(item),
+  );
 }
 
 export function clearViewHistory(): void {

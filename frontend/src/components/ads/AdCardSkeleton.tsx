@@ -12,7 +12,10 @@ export function AdCardSkeleton() {
       }}
     >
       {/* Thumbnail — square, matches ListingCard */}
-      <Skeleton className="w-[80px] h-[80px] sm:w-[96px] sm:h-[96px] shrink-0" style={{ borderRadius: "var(--r-card-sm)" }} />
+      <Skeleton
+        className="w-[80px] h-[80px] sm:w-[96px] sm:h-[96px] shrink-0"
+        style={{ borderRadius: "var(--r-card-sm)" }}
+      />
 
       {/* Body */}
       <div className="flex flex-col justify-between gap-[8px] py-[2px]">

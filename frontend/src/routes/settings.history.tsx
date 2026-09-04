@@ -32,9 +32,13 @@ function HistorySection() {
   useEffect(() => {
     let alive = true;
     fetchViewHistory()
-      .then((rows) => { if (alive) setItems(rows); })
+      .then((rows) => {
+        if (alive) setItems(rows);
+      })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const clear = async () => {
@@ -58,7 +62,9 @@ function HistorySection() {
       ) : (
         <>
           <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={clear} className="rounded-[8px]">{t("pages.settings.historyClear")}</Button>
+            <Button variant="outline" size="sm" onClick={clear} className="rounded-[8px]">
+              {t("pages.settings.historyClear")}
+            </Button>
           </div>
           <div className="flex flex-col gap-[8px]">
             {items.map((item) => {
@@ -71,10 +77,27 @@ function HistorySection() {
                   className="flex items-center gap-[12px] rounded-[12px] border px-[14px] py-[12px] transition-colors hover:bg-[var(--background-surface)]"
                   style={{ borderColor: "var(--border)" }}
                 >
-                  {item.thumb && <img src={item.thumb} width={44} height={44} loading="lazy" decoding="async" alt="" className="h-[44px] w-[44px] shrink-0 rounded-[8px] object-cover" />}
+                  {item.thumb && (
+                    <img
+                      src={item.thumb}
+                      width={44}
+                      height={44}
+                      loading="lazy"
+                      decoding="async"
+                      alt=""
+                      className="h-[44px] w-[44px] shrink-0 rounded-[8px] object-cover"
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{item.title}</div>
-                    <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>{KIND_LABEL[item.kind]}</div>
+                    <div
+                      className="truncate text-[14px] font-medium"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      {item.title}
+                    </div>
+                    <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                      {KIND_LABEL[item.kind]}
+                    </div>
                   </div>
                 </Link>
               );

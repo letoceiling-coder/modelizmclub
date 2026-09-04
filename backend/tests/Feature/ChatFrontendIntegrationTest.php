@@ -19,16 +19,21 @@ use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Feature\Policies\PolicyFixtures;
 use Tests\TestCase;
 
 class ChatFrontendIntegrationTest extends TestCase
 {
+    use PolicyFixtures;
+
     use RefreshDatabase;
 
     private function usersWithProfiles(): array
     {
         $a = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($a);
         $b = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($b);
 
         UserProfile::create(['user_id' => $a->id, 'display_name' => 'Alice', 'slug' => 'alice']);
         UserProfile::create(['user_id' => $b->id, 'display_name' => 'Bob', 'slug' => 'bob']);
@@ -559,6 +564,7 @@ class ChatFrontendIntegrationTest extends TestCase
     {
         [$a, $b] = $this->usersWithProfiles();
         $c = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($c);
         UserProfile::create(['user_id' => $c->id, 'display_name' => 'Carol', 'slug' => 'carol']);
 
         $convAb = $this->directConversation($a, $b);
@@ -635,6 +641,8 @@ class ChatFrontendIntegrationTest extends TestCase
         config(['filesystems.default' => 's3']);
 
         $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $this->grantSubscription($user);
         UserProfile::create(['user_id' => $user->id, 'display_name' => 'User', 'slug' => 'user']);
 
         $media = Media::create([
@@ -895,5 +903,126 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonPath('data.total', 2)
             ->assertJsonPath('data.online_count', 1)
             ->assertJsonCount(2, 'data.members');
+    }
+
+    public function test_conversation_exposes_last_read_cursor_for_current_user(): void
+    {
+        [$sender, $recipient] = $this->usersWithProfiles();
+        $conv = $this->directConversation($sender, $recipient);
+
+        $first = Message::create([
+            'conversation_id' => $conv->id,
+            'user_id' => $sender->id,
+            'body' => 'Первое',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+        Message::create([
+            'conversation_id' => $conv->id,
+            'user_id' => $sender->id,
+            'body' => 'Второе',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+
+        // Пока ничего не прочитано — курсора нет, диалог откроется снизу.
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonPath('data.0.last_read_message_id', null)
+            ->assertJsonPath('data.0.last_read_message_uuid', null);
+
+        ConversationParticipant::query()
+            ->where('conversation_id', $conv->id)
+            ->where('user_id', $recipient->id)
+            ->update(['last_read_message_id' => $first->id]);
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson('/api/v1/conversations')
+            ->assertOk()
+            ->assertJsonPath('data.0.last_read_message_id', $first->id)
+            ->assertJsonPath('data.0.last_read_message_uuid', $first->uuid)
+            ->assertJsonPath('data.0.unread_count', 1);
+
+        $this->actingAs($recipient, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.last_read_message_id', $first->id)
+            ->assertJsonPath('data.last_read_message_uuid', $first->uuid);
+
+        // Курсор собеседника наружу не течёт: у отправителя он свой.
+        $this->actingAs($sender, 'sanctum')
+            ->getJson("/api/v1/conversations/{$conv->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.last_read_message_id', null);
+    }
+
+    public function test_category_room_stats_include_unread_only_for_members(): void
+    {
+        [$member, $outsider] = $this->usersWithProfiles();
+
+        $parent = PostCategory::create([
+            'name' => 'Ships',
+            'slug' => 'ships',
+            'sort_order' => 10,
+            'depth' => 0,
+            'path' => 'ships',
+            'is_active' => true,
+        ]);
+
+        $sub = PostCategory::create([
+            'parent_id' => $parent->id,
+            'name' => 'Submarines',
+            'slug' => 'submarines',
+            'sort_order' => 10,
+            'depth' => 1,
+            'path' => 'ships/submarines',
+            'is_active' => true,
+        ]);
+
+        $room = Conversation::create([
+            'type' => ConversationType::Room,
+            'post_category_id' => $sub->id,
+            'title' => $sub->name,
+            'last_message_at' => now(),
+        ]);
+
+        foreach ([$member, $outsider] as $user) {
+            ConversationParticipant::create([
+                'conversation_id' => $room->id,
+                'user_id' => $user->id,
+                'role' => 'member',
+                'joined_at' => now(),
+            ]);
+        }
+
+        ConversationParticipant::query()
+            ->where('conversation_id', $room->id)
+            ->where('user_id', $outsider->id)
+            ->update(['left_at' => now()]);
+
+        Message::create([
+            'conversation_id' => $room->id,
+            'user_id' => $outsider->id,
+            'body' => 'Новое в комнате',
+            'type' => 'text',
+            'status' => 'sent',
+        ]);
+
+        $memberStats = $this->actingAs($member, 'sanctum')
+            ->getJson("/api/v1/categories/posts/{$parent->id}/rooms/stats")
+            ->assertOk()
+            ->assertJsonPath("data.by_subcategory.{$sub->id}.unread_count", 1)
+            ->assertJsonPath("data.by_parent.{$parent->id}.unread_count", 1)
+            ->json("data.by_subcategory.{$sub->id}");
+
+        $this->assertNotNull($memberStats['last_message_at']);
+
+        $this->actingAs($outsider, 'sanctum')
+            ->getJson("/api/v1/categories/posts/{$parent->id}/rooms/stats")
+            ->assertOk()
+            ->assertJsonPath("data.by_subcategory.{$sub->id}.unread_count", null)
+            ->assertJsonPath("data.by_subcategory.{$sub->id}.last_message_at", null)
+            ->assertJsonPath("data.by_parent.{$parent->id}.unread_count", null);
     }
 }

@@ -74,8 +74,10 @@ function walletStatusMeta(status: WalletTransaction["status"]): {
   labelKey: string;
   variant: "published" | "moderation" | "error";
 } {
-  if (status === "pending") return { labelKey: "pages.settings.walletStatusPending", variant: "moderation" };
-  if (status === "failed") return { labelKey: "pages.settings.walletStatusFailed", variant: "error" };
+  if (status === "pending")
+    return { labelKey: "pages.settings.walletStatusPending", variant: "moderation" };
+  if (status === "failed")
+    return { labelKey: "pages.settings.walletStatusFailed", variant: "error" };
   return { labelKey: "pages.settings.walletStatusCompleted", variant: "published" };
 }
 
@@ -86,7 +88,9 @@ function WalletSection() {
   const { payment, uuid, reason } = Route.useSearch();
   const [balanceKopecks, setBalanceKopecks] = useState(demo ? mockWalletBalance * 100 : 0);
   const [heldKopecks, setHeldKopecks] = useState(0);
-  const [operations, setOperations] = useState<WalletTransaction[]>(demo ? mockWalletOperations : []);
+  const [operations, setOperations] = useState<WalletTransaction[]>(
+    demo ? mockWalletOperations : [],
+  );
   const [topupOpen, setTopupOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 
@@ -134,14 +138,18 @@ function WalletSection() {
             : t("pages.settings.walletTopupFailed"),
       );
       finish();
-      return () => { alive = false; };
+      return () => {
+        alive = false;
+      };
     }
     if (!uuid) {
       toast.success(t("pages.settings.walletTopupSuccess"));
       notifyBillingChanged();
       load();
       finish();
-      return () => { alive = false; };
+      return () => {
+        alive = false;
+      };
     }
     void syncPayment(uuid)
       .then((res) => {
@@ -158,15 +166,29 @@ function WalletSection() {
         if (alive) toast.error(t("pages.settings.walletError"));
       })
       .finally(finish);
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo, payment, uuid, reason]);
 
   return (
     <SettingsSectionShell title={t("pages.settings.walletTitle")}>
-      <Card className="p-[20px]" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)", background: "var(--background-surface)" }}>
-        <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>{demo ? t("pages.settings.walletDemoBalance") : t("pages.settings.walletBalance")}</div>
-        <div className="mt-[4px] font-display text-[32px] font-bold" style={{ color: "var(--foreground)" }}>
+      <Card
+        className="p-[20px]"
+        style={{
+          borderColor: "var(--border)",
+          borderRadius: "var(--r-card)",
+          background: "var(--background-surface)",
+        }}
+      >
+        <div className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
+          {demo ? t("pages.settings.walletDemoBalance") : t("pages.settings.walletBalance")}
+        </div>
+        <div
+          className="mt-[4px] font-display text-[32px] font-bold"
+          style={{ color: "var(--foreground)" }}
+        >
           {formatRub(balanceKopecks)} ₽
         </div>
         {heldKopecks > 0 && (
@@ -179,7 +201,12 @@ function WalletSection() {
           <Button onClick={() => setTopupOpen(true)} disabled={demo} className="gap-[8px]">
             <Plus size={16} /> {t("pages.settings.walletTopup")}
           </Button>
-          <Button onClick={() => setWithdrawOpen(true)} disabled={demo} variant="outline" className="gap-[8px]">
+          <Button
+            onClick={() => setWithdrawOpen(true)}
+            disabled={demo}
+            variant="outline"
+            className="gap-[8px]"
+          >
             <ArrowUpRight size={16} /> {t("pages.settings.walletWithdraw")}
           </Button>
         </div>
@@ -190,35 +217,70 @@ function WalletSection() {
         )}
       </Card>
 
-      <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>{t("pages.settings.walletHistory")}</h2>
-      <Card className="divide-y p-0" style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}>
+      <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
+        {t("pages.settings.walletHistory")}
+      </h2>
+      <Card
+        className="divide-y p-0"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
         {operations.length === 0 && (
-          <div className="px-[16px] py-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>{t("pages.settings.walletEmpty")}</div>
+          <div
+            className="px-[16px] py-[14px] text-[13px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
+            {t("pages.settings.walletEmpty")}
+          </div>
         )}
         {operations.map((op) => {
           const status = walletStatusMeta(op.status);
           const service = walletKindLabel(t, op.kind, op.service || op.title);
           return (
-            <div key={op.id} className="flex items-start gap-[12px] px-[16px] py-[14px]" style={{ borderColor: "var(--border)" }}>
-              <span className="grid h-[36px] w-[36px] place-items-center rounded-full" style={{ background: "var(--background-surface)", color: op.type === "in" ? "var(--success)" : "var(--foreground-50)" }}>
+            <div
+              key={op.id}
+              className="flex items-start gap-[12px] px-[16px] py-[14px]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <span
+                className="grid h-[36px] w-[36px] place-items-center rounded-full"
+                style={{
+                  background: "var(--background-surface)",
+                  color: op.type === "in" ? "var(--success)" : "var(--foreground-50)",
+                }}
+              >
                 {op.type === "in" ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{op.title}</div>
+                <div
+                  className="truncate text-[14px] font-medium"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {op.title}
+                </div>
                 <div className="mt-[4px] flex flex-wrap items-center gap-[6px]">
                   <Badge variant={op.type === "in" ? "published" : "draft"} withIcon={false}>
-                    {op.type === "in" ? t("pages.settings.walletDirectionIn") : t("pages.settings.walletDirectionOut")}
+                    {op.type === "in"
+                      ? t("pages.settings.walletDirectionIn")
+                      : t("pages.settings.walletDirectionOut")}
                   </Badge>
-                  <Badge variant="info" withIcon={false}>{service}</Badge>
-                  <Badge variant={status.variant} withIcon={false}>{t(status.labelKey)}</Badge>
+                  <Badge variant="info" withIcon={false}>
+                    {service}
+                  </Badge>
+                  <Badge variant={status.variant} withIcon={false}>
+                    {t(status.labelKey)}
+                  </Badge>
                 </div>
                 <div className="mt-[4px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
                   {formatDate(op.date, "absolute")}
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-[14px] font-semibold" style={{ color: op.type === "in" ? "var(--success)" : "var(--foreground)" }}>
-                  {op.type === "in" ? "+" : "−"}{op.amount.toLocaleString("ru-RU")} ₽
+                <div
+                  className="text-[14px] font-semibold"
+                  style={{ color: op.type === "in" ? "var(--success)" : "var(--foreground)" }}
+                >
+                  {op.type === "in" ? "+" : "−"}
+                  {op.amount.toLocaleString("ru-RU")} ₽
                 </div>
               </div>
             </div>
@@ -232,7 +294,13 @@ function WalletSection() {
   );
 }
 
-function TopupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+function TopupDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   const { t } = useTranslation();
   const [amount, setAmount] = useState("500");
   const [busy, setBusy] = useState(false);
@@ -260,14 +328,19 @@ function TopupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[400px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+      <DialogContent
+        className="max-w-[400px]"
+        style={{ background: "var(--background)", borderColor: "var(--border)" }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-[8px]">
             <WalletIcon size={18} /> {t("pages.settings.walletTopupTitle")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-[6px]">
-          <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.settings.walletAmount")}</label>
+          <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            {t("pages.settings.walletAmount")}
+          </label>
           <Input
             type="number"
             min={100}
@@ -281,9 +354,12 @@ function TopupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: 
           </p>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>{t("pages.settings.walletCancel")}</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+            {t("pages.settings.walletCancel")}
+          </Button>
           <Button onClick={submit} disabled={busy} className="gap-[8px]">
-            {busy && <Loader2 size={16} className="animate-spin" />} {t("pages.settings.walletTopupSubmit")}
+            {busy && <Loader2 size={16} className="animate-spin" />}{" "}
+            {t("pages.settings.walletTopupSubmit")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -291,7 +367,15 @@ function TopupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: 
   );
 }
 
-function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChange: (v: boolean) => void; onDone: () => void }) {
+function WithdrawDialog({
+  open,
+  onOpenChange,
+  onDone,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onDone: () => void;
+}) {
   const { t } = useTranslation();
   const [amount, setAmount] = useState("500");
   const [method, setMethod] = useState<WithdrawMethod>("card");
@@ -316,7 +400,11 @@ function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenC
       setDestination("");
       onDone();
     } catch (err) {
-      toast.error(isInsufficientFunds(err) ? t("pages.settings.walletInsufficient") : t("pages.settings.walletError"));
+      toast.error(
+        isInsufficientFunds(err)
+          ? t("pages.settings.walletInsufficient")
+          : t("pages.settings.walletError"),
+      );
     } finally {
       setBusy(false);
     }
@@ -324,7 +412,10 @@ function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[400px]" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
+      <DialogContent
+        className="max-w-[400px]"
+        style={{ background: "var(--background)", borderColor: "var(--border)" }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-[8px]">
             <ArrowUpRight size={18} /> {t("pages.settings.walletWithdrawTitle")}
@@ -332,11 +423,22 @@ function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenC
         </DialogHeader>
         <div className="space-y-[14px]">
           <div className="space-y-[6px]">
-            <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.settings.walletAmount")}</label>
-            <Input type="number" min={100} step={100} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" />
+            <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("pages.settings.walletAmount")}
+            </label>
+            <Input
+              type="number"
+              min={100}
+              step={100}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="numeric"
+            />
           </div>
           <div className="space-y-[6px]">
-            <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.settings.walletMethod")}</label>
+            <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("pages.settings.walletMethod")}
+            </label>
             <NativeSelect
               value={method}
               onChange={(v) => setMethod(v as WithdrawMethod)}
@@ -348,14 +450,23 @@ function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenC
             />
           </div>
           <div className="space-y-[6px]">
-            <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>{t("pages.settings.walletDestination")}</label>
-            <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder={t("pages.settings.walletDestinationPlaceholder")} />
+            <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
+              {t("pages.settings.walletDestination")}
+            </label>
+            <Input
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              placeholder={t("pages.settings.walletDestinationPlaceholder")}
+            />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>{t("pages.settings.walletCancel")}</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+            {t("pages.settings.walletCancel")}
+          </Button>
           <Button onClick={submit} disabled={busy} className="gap-[8px]">
-            {busy && <Loader2 size={16} className="animate-spin" />} {t("pages.settings.walletWithdrawSubmit")}
+            {busy && <Loader2 size={16} className="animate-spin" />}{" "}
+            {t("pages.settings.walletWithdrawSubmit")}
           </Button>
         </DialogFooter>
       </DialogContent>

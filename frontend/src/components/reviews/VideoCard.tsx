@@ -28,7 +28,11 @@ export function VideoCard({ video, className }: { video: Video; className?: stri
     <GuardedReviewLink id={video.id} className={cn("group flex flex-col", className)}>
       <div
         className="relative overflow-hidden"
-        style={{ aspectRatio: "16 / 9", background: "var(--background-surface)", borderRadius: "var(--r-card)" }}
+        style={{
+          aspectRatio: "16 / 9",
+          background: "var(--background-surface)",
+          borderRadius: "var(--r-card)",
+        }}
       >
         <img
           src={src}
@@ -45,7 +49,10 @@ export function VideoCard({ video, className }: { video: Video; className?: stri
         />
         {/* play overlay */}
         <div className="absolute inset-0 grid place-items-center opacity-0 transition-opacity group-hover:opacity-100">
-          <span className="grid h-[44px] w-[44px] place-items-center rounded-full" style={{ background: "rgba(0,0,0,0.6)" }}>
+          <span
+            className="grid h-[44px] w-[44px] place-items-center rounded-full"
+            style={{ background: "rgba(0,0,0,0.6)" }}
+          >
             <Play size={20} fill="#fff" color="#fff" />
           </span>
         </div>
@@ -58,7 +65,10 @@ export function VideoCard({ video, className }: { video: Video; className?: stri
         </span>
       </div>
       <div className="mt-[8px] flex flex-col gap-[4px]">
-        <h3 className="line-clamp-2 text-[13.5px] font-medium leading-[1.35]" style={{ color: "var(--foreground)" }}>
+        <h3
+          className="line-clamp-2 text-[13.5px] font-medium leading-[1.35]"
+          style={{ color: "var(--foreground)" }}
+        >
           {video.title}
         </h3>
         {author?.name && (
@@ -66,8 +76,13 @@ export function VideoCard({ video, className }: { video: Video; className?: stri
             {author.name}
           </div>
         )}
-        <div className="flex items-center gap-[8px] text-[11.5px]" style={{ color: "var(--foreground-50)" }}>
-          <span className="inline-flex items-center gap-[4px]"><Eye size={12} /> {shortViews(video.views)}</span>
+        <div
+          className="flex items-center gap-[8px] text-[11.5px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
+          <span className="inline-flex items-center gap-[4px]">
+            <Eye size={12} /> {shortViews(video.views)}
+          </span>
           {video.publishedAt && <span>· {shortDate(video.publishedAt)}</span>}
         </div>
       </div>

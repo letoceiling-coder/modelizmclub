@@ -87,6 +87,100 @@ class MediaVariantsTest extends TestCase
         $this->assertStringContainsString('/card.', $urls['card']['jpeg'] ?? $urls['card']['webp']);
     }
 
+    public function test_processor_writes_avif_variant_when_gd_supports_it(): void
+    {
+        if (! function_exists('imageavif')) {
+            $this->markTestSkipped('GD without AVIF support');
+        }
+
+        $user = User::factory()->create();
+        $path = 'media/listing/2026/09/'.Str::uuid().'.jpg';
+        Storage::disk('s3')->put($path, $this->jpegBytes(400, 300));
+
+        $media = Media::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'disk' => 's3',
+            'path' => $path,
+            'filename' => 'lot.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 12_000,
+            'width' => 400,
+            'height' => 300,
+            'uploaded_by' => $user->id,
+            'status' => MediaStatus::Ready,
+        ]);
+
+        app(MediaVariantProcessor::class)->process($media->fresh());
+        $media->refresh();
+
+        $this->assertArrayHasKey('avif', $media->variants['card']);
+        Storage::disk('s3')->assertExists($media->variants['card']['avif']['path']);
+        $this->assertStringEndsWith('/card.avif', $media->variants['card']['avif']['path']);
+    }
+
+    public function test_avif_can_be_disabled_by_config(): void
+    {
+        if (! function_exists('imageavif')) {
+            $this->markTestSkipped('GD without AVIF support');
+        }
+
+        config(['media.variants.avif.enabled' => false]);
+
+        $user = User::factory()->create();
+        $path = 'media/listing/2026/09/'.Str::uuid().'.jpg';
+        Storage::disk('s3')->put($path, $this->jpegBytes(200, 150));
+
+        $media = Media::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'disk' => 's3',
+            'path' => $path,
+            'filename' => 'lot.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 8_000,
+            'uploaded_by' => $user->id,
+            'status' => MediaStatus::Ready,
+        ]);
+
+        app(MediaVariantProcessor::class)->process($media->fresh());
+        $media->refresh();
+
+        $this->assertArrayNotHasKey('avif', $media->variants['card']);
+    }
+
+    public function test_variant_proxy_serves_avif(): void
+    {
+        $original = $this->jpegBytes(40, 30);
+        $variant = 'avif-bytes';
+        $uuid = (string) Str::uuid();
+        $origPath = 'media/listing/'.$uuid.'.jpg';
+        $varPath = 'media/listing/'.$uuid.'/card.avif';
+        Storage::disk('s3')->put($origPath, $original);
+        Storage::disk('s3')->put($varPath, $variant);
+
+        $owner = User::factory()->create();
+        $media = Media::query()->create([
+            'uuid' => $uuid,
+            'disk' => 's3',
+            'path' => $origPath,
+            'filename' => 'lot.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => strlen($original),
+            'uploaded_by' => $owner->id,
+            'status' => MediaStatus::Ready,
+            'variants' => [
+                'card' => [
+                    'avif' => ['path' => $varPath, 'bytes' => strlen($variant), 'quality' => 58],
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/api/v1/media/'.$media->uuid.'/card.avif');
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'image/avif');
+        $this->assertSame($variant, $response->streamedContent());
+        $this->assertNotEmpty($media->publicVariantUrls()['card']['avif'] ?? null);
+    }
+
     public function test_variant_proxy_falls_back_to_original_until_ready(): void
     {
         $payload = $this->jpegBytes(80, 60);

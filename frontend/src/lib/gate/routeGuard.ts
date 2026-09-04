@@ -1,9 +1,7 @@
 import { redirect } from "@tanstack/react-router";
 import { ensureSession } from "@/lib/auth/session";
-import { getSession } from "@/lib/session";
-import { firstFailingStep, levelOf, meets, type Level } from "./levels";
-import { saveIntent } from "./intent";
-import { openGate, setPendingAction } from "./gateStore";
+import { type Level } from "./levels";
+import { gateFallbackPath, openRouteGate } from "./routeGate";
 
 export interface RouteGuardResult {
   /** SSR: render the page skeleton, decide after hydration. */
@@ -25,23 +23,12 @@ export async function routeGuard(
   if (typeof window === "undefined") return { ssrSkeleton: true, allowed: false };
 
   await ensureSession();
-  const have = levelOf(getSession());
-  if (meets(have, level)) return { ssrSkeleton: false, allowed: true };
 
   const pathname = location?.pathname ?? window.location.pathname;
   const search = typeof location?.search === "string" ? location.search : window.location.search;
-  const to = pathname + search;
-  const intent = { key: "navigate", params: { to }, returnTo: to, level, createdAt: Date.now() };
-  saveIntent(intent);
-  setPendingAction({
-    level,
-    intent,
-    run: () => {
-      window.location.assign(to);
-    },
-  });
-  const step = firstFailingStep(have, level);
-  if (step) openGate(step, to);
+  if (!openRouteGate(level, pathname + search)) return { ssrSkeleton: false, allowed: true };
 
-  throw redirect({ to: "/feed" });
+  const fallback = gateFallbackPath(pathname);
+  if (fallback) throw redirect({ to: fallback as "/feed", replace: true });
+  return { ssrSkeleton: false, allowed: false };
 }

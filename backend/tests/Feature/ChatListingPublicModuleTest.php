@@ -11,16 +11,21 @@ use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Policies\PolicyFixtures;
 use Tests\TestCase;
 
 class ChatListingPublicModuleTest extends TestCase
 {
+    use PolicyFixtures;
+
     use RefreshDatabase;
 
     public function test_user_can_list_conversations_and_send_message(): void
     {
         $a = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($a);
         $b = User::factory()->create(['status' => UserStatus::Active]);
+        $this->grantSubscription($b);
 
         $conv = Conversation::create(['type' => ConversationType::Direct, 'last_message_at' => now()]);
         foreach ([$a, $b] as $user) {
@@ -54,6 +59,8 @@ class ChatListingPublicModuleTest extends TestCase
         ]);
 
         $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $this->grantSubscription($user);
 
         Listing::create([
             'user_id' => $user->id,

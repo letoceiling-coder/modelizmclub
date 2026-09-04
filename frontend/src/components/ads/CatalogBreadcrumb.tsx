@@ -7,7 +7,12 @@ interface Props {
   onResetToCategory: () => void;
 }
 
-export function CatalogBreadcrumb({ category, subcategory, onResetToRoot, onResetToCategory }: Props) {
+export function CatalogBreadcrumb({
+  category,
+  subcategory,
+  onResetToRoot,
+  onResetToCategory,
+}: Props) {
   const hasCategory = category !== "Все";
   const hasSubcategory = hasCategory && subcategory !== "Все";
 
@@ -16,7 +21,10 @@ export function CatalogBreadcrumb({ category, subcategory, onResetToRoot, onRese
   );
 
   return (
-    <nav className="flex min-h-[20px] items-center gap-[6px] text-[12px]" aria-label="Хлебные крошки">
+    <nav
+      className="flex min-h-[20px] items-center gap-[6px] text-[12px]"
+      aria-label="Хлебные крошки"
+    >
       {/* root */}
       {hasCategory ? (
         <button
@@ -45,7 +53,9 @@ export function CatalogBreadcrumb({ category, subcategory, onResetToRoot, onRese
               {category}
             </button>
           ) : (
-            <span className="font-medium" style={{ color: "var(--foreground-70)" }}>{category}</span>
+            <span className="font-medium" style={{ color: "var(--foreground-70)" }}>
+              {category}
+            </span>
           )}
         </>
       )}
@@ -54,7 +64,9 @@ export function CatalogBreadcrumb({ category, subcategory, onResetToRoot, onRese
       {hasSubcategory && (
         <>
           {sep}
-          <span className="font-medium" style={{ color: "var(--foreground-70)" }}>{subcategory}</span>
+          <span className="font-medium" style={{ color: "var(--foreground-70)" }}>
+            {subcategory}
+          </span>
         </>
       )}
     </nav>

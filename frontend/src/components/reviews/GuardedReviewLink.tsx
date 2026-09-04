@@ -22,9 +22,13 @@ export function GuardedReviewLink({ id, children, className, style }: Props) {
       style={style}
       onClick={(e) => {
         e.preventDefault();
-        guardAction("route.reviews", () => {
-          void navigate({ to: "/reviews/$id", params: { id } });
-        }, href);
+        guardAction(
+          "route.reviews",
+          () => {
+            void navigate({ to: "/reviews/$id", params: { id } });
+          },
+          href,
+        );
       }}
     >
       {children}

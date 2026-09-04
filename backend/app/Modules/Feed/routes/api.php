@@ -18,11 +18,12 @@ use Modules\Feed\Http\Controllers\Api\V1\StorePostController;
 use Modules\Feed\Http\Controllers\Api\V1\UnrepostPostController;
 use Modules\Feed\Http\Controllers\Api\V1\UpdatePostController;
 
-Route::get('feed', IndexFeedController::class);
-
-Route::get('posts/{uuid}', ShowPostController::class);
-Route::get('posts/{uuid}/comments', [PostCommentsController::class, 'index']);
-Route::get('comments/{uuid}/thread', CommentThreadController::class);
+Route::middleware('optionalAuth')->group(function (): void {
+    Route::get('feed', IndexFeedController::class);
+    Route::get('posts/{uuid}', ShowPostController::class);
+    Route::get('posts/{uuid}/comments', [PostCommentsController::class, 'index']);
+    Route::get('comments/{uuid}/thread', CommentThreadController::class);
+});
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('posts', StorePostController::class);

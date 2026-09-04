@@ -31,7 +31,11 @@ export function ChatAvatar({ src, name, size = 48, online, className }: Props) {
         {hasSrc && <AvatarImage src={src} alt="" />}
         <AvatarFallback
           className="font-display font-semibold"
-          style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: Math.round(size * 0.36) }}
+          style={{
+            background: "var(--accent-soft)",
+            color: "var(--accent)",
+            fontSize: Math.round(size * 0.36),
+          }}
         >
           {initials(name)}
         </AvatarFallback>
@@ -39,7 +43,12 @@ export function ChatAvatar({ src, name, size = 48, online, className }: Props) {
       {online && (
         <span
           className="absolute bottom-0 right-0 rounded-full"
-          style={{ width: dot, height: dot, background: "var(--success)", border: "2px solid var(--background-elevated)" }}
+          style={{
+            width: dot,
+            height: dot,
+            background: "var(--success)",
+            border: "2px solid var(--background-elevated)",
+          }}
         />
       )}
     </span>

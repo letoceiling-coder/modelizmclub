@@ -39,7 +39,9 @@ export interface AdminFeedGuestAccessPayload {
 import { buildDefaultFeedGuestAccessConfig } from "@/lib/feed-guest-access/registry";
 
 export async function fetchFeedGuestAccess(): Promise<FeedGuestAccessConfig> {
-  const res = await api<{ data: FeedGuestAccessConfig }>("/public/feed-guest-access", { auth: false });
+  const res = await api<{ data: FeedGuestAccessConfig }>("/public/feed-guest-access", {
+    auth: false,
+  });
   return res.data ?? buildDefaultFeedGuestAccessConfig();
 }
 
@@ -48,7 +50,12 @@ export async function fetchAdminFeedGuestAccess(): Promise<AdminFeedGuestAccessP
   return res.data;
 }
 
-export async function updateAdminFeedGuestAccess(config: FeedGuestAccessConfig): Promise<AdminFeedGuestAccessPayload> {
-  const res = await api<{ data: AdminFeedGuestAccessPayload }>("/admin/feed/guest-access", { method: "PUT", json: config });
+export async function updateAdminFeedGuestAccess(
+  config: FeedGuestAccessConfig,
+): Promise<AdminFeedGuestAccessPayload> {
+  const res = await api<{ data: AdminFeedGuestAccessPayload }>("/admin/feed/guest-access", {
+    method: "PUT",
+    json: config,
+  });
   return res.data;
 }

@@ -63,9 +63,13 @@ export async function fetchAdminDiagnostics(): Promise<AdminDiagnostics> {
 }
 
 /** Moderator-safe dashboard counters (no admin-only /admin/dashboard). */
-export async function fetchModeratorDashboardStats(): Promise<Pick<AdminDashboard, "moderationPending" | "reportsPending">> {
+export async function fetchModeratorDashboardStats(): Promise<
+  Pick<AdminDashboard, "moderationPending" | "reportsPending">
+> {
   const [modRes, repRes] = await Promise.all([
-    api<Paginated<unknown>>("/admin/moderation/queue", { query: { status: "pending", per_page: 1 } }),
+    api<Paginated<unknown>>("/admin/moderation/queue", {
+      query: { status: "pending", per_page: 1 },
+    }),
     api<Paginated<unknown>>("/admin/reports", { query: { status: "pending", per_page: 1 } }),
   ]);
   return {
@@ -100,7 +104,7 @@ export async function fetchAuditLogs(): Promise<AuditEntry[]> {
     id: String(r.id ?? Math.random()),
     user: r.user?.name ?? r.user?.email ?? "—",
     action: r.action ?? "",
-    target: r.auditable_type ? r.auditable_type.split("\\").pop() ?? "" : "",
+    target: r.auditable_type ? (r.auditable_type.split("\\").pop() ?? "") : "",
     time: r.created_at ?? "",
   }));
 }
@@ -132,17 +136,21 @@ interface RawLaravelPaginator<T> {
 export async function fetchAuditLogPage(
   page: number,
 ): Promise<{ entries: AuditLogDetailEntry[]; currentPage: number; lastPage: number }> {
-  const res = await api<{ data: RawLaravelPaginator<ApiAuditLog & { old_values?: Record<string, unknown> | null; new_values?: Record<string, unknown> | null }> }>(
-    "/admin/audit-logs",
-    { query: { per_page: 20, page } },
-  );
+  const res = await api<{
+    data: RawLaravelPaginator<
+      ApiAuditLog & {
+        old_values?: Record<string, unknown> | null;
+        new_values?: Record<string, unknown> | null;
+      }
+    >;
+  }>("/admin/audit-logs", { query: { per_page: 20, page } });
   const rows = res.data?.data ?? [];
   return {
     entries: rows.map((r) => ({
       id: String(r.id ?? Math.random()),
       user: r.user?.name ?? r.user?.email ?? "—",
       action: r.action ?? "",
-      target: r.auditable_type ? r.auditable_type.split("\\").pop() ?? "" : "",
+      target: r.auditable_type ? (r.auditable_type.split("\\").pop() ?? "") : "",
       time: r.created_at ?? "",
       oldValues: r.old_values ?? null,
       newValues: r.new_values ?? null,
@@ -216,7 +224,9 @@ function mapAdminUser(u: ApiAdminUser): AdminUserRow {
   };
 }
 
-export async function fetchAdminUsers(opts: { role?: string; status?: string } = {}): Promise<AdminUserRow[]> {
+export async function fetchAdminUsers(
+  opts: { role?: string; status?: string } = {},
+): Promise<AdminUserRow[]> {
   const res = await api<Paginated<ApiAdminUser>>("/admin/users", {
     query: {
       role: opts.role && opts.role !== "all" ? opts.role : undefined,
@@ -315,7 +325,7 @@ export async function fetchModerationQueue(status = "pending"): Promise<Moderati
         targetId: mod?.uuid ?? "",
         title: mod?.title ?? mod?.name ?? "Без названия",
         author: mod?.author?.display_name ?? "",
-        category: mod?.category?.name ?? mod?.channel?.name ?? (m.queue ?? ""),
+        category: mod?.category?.name ?? mod?.channel?.name ?? m.queue ?? "",
         body: mod?.body ?? mod?.text ?? mod?.description ?? "",
         submittedAt: mod?.submitted_at ?? null,
         media: mod?.media ?? [],
@@ -523,7 +533,9 @@ function mapAdminBanner(b: ApiBanner): AdminBannerRow {
     title: b.title,
     text: b.text ?? "",
     ctaText: b.cta_text?.trim() || "Подробнее",
-    kind: (b.kind === "event" || b.kind === "news" || b.kind === "promo" ? b.kind : "") as AdminBannerRow["kind"],
+    kind: (b.kind === "event" || b.kind === "news" || b.kind === "promo"
+      ? b.kind
+      : "") as AdminBannerRow["kind"],
     untilLabel: b.until_label ?? "",
     linkUrl: b.link_url ?? "",
     imageUrl: b.image_url ?? null,
@@ -540,8 +552,14 @@ function mapAdminBanner(b: ApiBanner): AdminBannerRow {
   };
 }
 
-export async function fetchAdminBanners(): Promise<{ banners: AdminBannerRow[]; carousel: BannerCarouselSettings }> {
-  const res = await api<{ data: Paginated<ApiBanner>; meta?: { carousel?: BannerCarouselSettings } }>("/admin/banners");
+export async function fetchAdminBanners(): Promise<{
+  banners: AdminBannerRow[];
+  carousel: BannerCarouselSettings;
+}> {
+  const res = await api<{
+    data: Paginated<ApiBanner>;
+    meta?: { carousel?: BannerCarouselSettings };
+  }>("/admin/banners");
   const rows = res.data?.data ?? [];
   return {
     banners: rows.map(mapAdminBanner),
@@ -613,7 +631,10 @@ export async function updateAdminBanner(
     sort_order?: number;
   },
 ): Promise<AdminBannerRow> {
-  const res = await api<{ data: ApiBanner }>(`/admin/banners/${id}`, { method: "PATCH", json: patch });
+  const res = await api<{ data: ApiBanner }>(`/admin/banners/${id}`, {
+    method: "PATCH",
+    json: patch,
+  });
   return mapAdminBanner(res.data);
 }
 
@@ -689,7 +710,10 @@ function mapAdminPostMedia(p: ApiAdminPost): { images: string[]; video?: string 
   return { images, video };
 }
 
-export async function fetchAdminPosts(params?: { status?: string; q?: string }): Promise<AdminPostRow[]> {
+export async function fetchAdminPosts(params?: {
+  status?: string;
+  q?: string;
+}): Promise<AdminPostRow[]> {
   const res = await api<Paginated<ApiAdminPost>>("/admin/posts", {
     query: {
       per_page: 50,
@@ -743,7 +767,10 @@ interface ApiAdminListing {
   created_at?: string;
 }
 
-export async function fetchAdminListings(params?: { status?: string; q?: string }): Promise<AdminListingRow[]> {
+export async function fetchAdminListings(params?: {
+  status?: string;
+  q?: string;
+}): Promise<AdminListingRow[]> {
   const res = await api<Paginated<ApiAdminListing>>("/admin/listings", {
     query: {
       per_page: 50,
@@ -770,14 +797,18 @@ export async function bulkUpdateAdminListingStatus(
   uuids: string[],
   status: string,
 ): Promise<{ ok: number; failed: number }> {
-  const results = await Promise.allSettled(uuids.map((uuid) => updateAdminListingStatus(uuid, status)));
+  const results = await Promise.allSettled(
+    uuids.map((uuid) => updateAdminListingStatus(uuid, status)),
+  );
   return {
     ok: results.filter((r) => r.status === "fulfilled").length,
     failed: results.filter((r) => r.status === "rejected").length,
   };
 }
 
-export async function bulkDeleteAdminListings(uuids: string[]): Promise<{ ok: number; failed: number }> {
+export async function bulkDeleteAdminListings(
+  uuids: string[],
+): Promise<{ ok: number; failed: number }> {
   const results = await Promise.allSettled(uuids.map((uuid) => deleteAdminListing(uuid)));
   return {
     ok: results.filter((r) => r.status === "fulfilled").length,
@@ -856,7 +887,10 @@ export interface AdminListingUpdatePayload {
   rejection_reason?: string | null;
 }
 
-export async function updateAdminListing(uuid: string, payload: AdminListingUpdatePayload): Promise<AdminListingDetail> {
+export async function updateAdminListing(
+  uuid: string,
+  payload: AdminListingUpdatePayload,
+): Promise<AdminListingDetail> {
   const res = await api<{ data: ApiListingDetail }>(`/admin/listings/${uuid}`, {
     method: "PATCH",
     json: payload,
@@ -1056,7 +1090,10 @@ export async function fetchAdminVideo(uuid: string): Promise<AdminVideoDetail> {
   return mapAdminVideoDetail(res.data);
 }
 
-export async function fetchAdminVideos(params?: { status?: string; q?: string }): Promise<AdminVideoRow[]> {
+export async function fetchAdminVideos(params?: {
+  status?: string;
+  q?: string;
+}): Promise<AdminVideoRow[]> {
   const res = await api<{ data: Paginated<ApiAdminVideo> | ApiAdminVideo[] }>("/admin/videos", {
     query: { status: params?.status || undefined, q: params?.q || undefined, per_page: 100 },
   });
@@ -1109,7 +1146,9 @@ export async function bulkUpdateAdminVideoStatus(
   };
 }
 
-export async function bulkDeleteAdminVideos(uuids: string[]): Promise<{ ok: number; failed: number }> {
+export async function bulkDeleteAdminVideos(
+  uuids: string[],
+): Promise<{ ok: number; failed: number }> {
   const results = await Promise.allSettled(uuids.map((uuid) => deleteAdminVideo(uuid)));
   return {
     ok: results.filter((r) => r.status === "fulfilled").length,
@@ -1117,7 +1156,9 @@ export async function bulkDeleteAdminVideos(uuids: string[]): Promise<{ ok: numb
   };
 }
 
-export async function bulkApproveAdminVideos(uuids: string[]): Promise<{ ok: number; failed: number }> {
+export async function bulkApproveAdminVideos(
+  uuids: string[],
+): Promise<{ ok: number; failed: number }> {
   const results = await Promise.allSettled(uuids.map((uuid) => approveModeration("videos", uuid)));
   return {
     ok: results.filter((r) => r.status === "fulfilled").length,
@@ -1153,7 +1194,12 @@ export async function updateAdminSettings(settings: AdminSetting[]): Promise<Adm
 
 export interface AdminReferralRow {
   invitee: { uuid: string; display_name: string; slug: string | null; email: string | null };
-  inviter: { uuid: string; display_name: string; slug: string | null; referral_code: string | null } | null;
+  inviter: {
+    uuid: string;
+    display_name: string;
+    slug: string | null;
+    referral_code: string | null;
+  } | null;
   joined_at: string | null;
   phone_verified?: boolean;
   status?: string;
@@ -1215,22 +1261,31 @@ export async function createAdminPromoPool(payload: {
   expires_at: string;
   auto_assign_on_register: boolean;
 }): Promise<AdminPromoPool> {
-  const res = await api<{ data: AdminPromoPool }>("/admin/promo-pools", { method: "POST", json: payload });
+  const res = await api<{ data: AdminPromoPool }>("/admin/promo-pools", {
+    method: "POST",
+    json: payload,
+  });
   return res.data;
 }
 
 export async function pauseAdminPromoPool(uuid: string): Promise<AdminPromoPool> {
-  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/pause`, { method: "POST" });
+  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/pause`, {
+    method: "POST",
+  });
   return res.data;
 }
 
 export async function resumeAdminPromoPool(uuid: string): Promise<AdminPromoPool> {
-  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/resume`, { method: "POST" });
+  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/resume`, {
+    method: "POST",
+  });
   return res.data;
 }
 
 export async function completeAdminPromoPool(uuid: string): Promise<AdminPromoPool> {
-  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/complete`, { method: "POST" });
+  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}/complete`, {
+    method: "POST",
+  });
   return res.data;
 }
 
@@ -1319,7 +1374,9 @@ export async function fetchAdminPayments(query: AdminPaymentsQuery = {}): Promis
   };
 }
 
-export async function downloadAdminPaymentsExport(query: Omit<AdminPaymentsQuery, "page" | "per_page"> = {}): Promise<void> {
+export async function downloadAdminPaymentsExport(
+  query: Omit<AdminPaymentsQuery, "page" | "per_page"> = {},
+): Promise<void> {
   await downloadCsv("/admin/payments/export", query, "payments");
 }
 
@@ -1356,7 +1413,7 @@ async function downloadCsv(
   }
   const blob = await res.blob();
   const disposition = res.headers.get("content-disposition") ?? "";
-  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  const match = disposition.match(/filename="?([^";]+)"?/i);
   const filename = match?.[1] ?? `${fallbackPrefix}-${new Date().toISOString().slice(0, 10)}.csv`;
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -1373,11 +1430,19 @@ export async function approveModeration(type: ModerationType, id: string): Promi
   await api(`/admin/moderation/${type}/${id}/approve`, { method: "POST" });
 }
 
-export async function rejectModeration(type: ModerationType, id: string, reason: string): Promise<void> {
+export async function rejectModeration(
+  type: ModerationType,
+  id: string,
+  reason: string,
+): Promise<void> {
   await api(`/admin/moderation/${type}/${id}/reject`, { method: "POST", json: { reason } });
 }
 
-export async function reviseModeration(type: ModerationType, id: string, comment: string): Promise<void> {
+export async function reviseModeration(
+  type: ModerationType,
+  id: string,
+  comment: string,
+): Promise<void> {
   await api(`/admin/moderation/${type}/${id}/revision`, { method: "POST", json: { comment } });
 }
 
@@ -1450,7 +1515,10 @@ interface ApiAdminReport {
   resolved_at?: string | null;
 }
 
-export async function fetchAdminReports(status?: ReportStatus, targetTypes?: string[]): Promise<AdminReportRow[]> {
+export async function fetchAdminReports(
+  status?: ReportStatus,
+  targetTypes?: string[],
+): Promise<AdminReportRow[]> {
   const res = await api<Paginated<ApiAdminReport>>("/admin/reports", {
     query: {
       per_page: 50,
@@ -1549,11 +1617,13 @@ function mapAdminShipment(s: ApiAdminShipment): AdminShipmentRow {
   };
 }
 
-export async function fetchAdminShipments(opts: {
-  status?: string;
-  provider?: string;
-  perPage?: number;
-} = {}): Promise<AdminShipmentRow[]> {
+export async function fetchAdminShipments(
+  opts: {
+    status?: string;
+    provider?: string;
+    perPage?: number;
+  } = {},
+): Promise<AdminShipmentRow[]> {
   const res = await api<Paginated<ApiAdminShipment>>("/admin/delivery/shipments", {
     query: {
       per_page: opts.perPage ?? 50,
@@ -1603,13 +1673,17 @@ export async function fetchAdminLandingBlocks(): Promise<{
   sections: AdminLandingSection[];
   cards: AdminLandingCard[];
 }> {
-  const res = await api<{ data: { sections: AdminLandingSection[]; cards: AdminLandingCard[] } }>("/admin/landing/blocks");
+  const res = await api<{ data: { sections: AdminLandingSection[]; cards: AdminLandingCard[] } }>(
+    "/admin/landing/blocks",
+  );
   return res.data ?? { sections: [], cards: [] };
 }
 
 export async function updateAdminLandingSection(
   slug: string,
-  patch: Partial<Pick<AdminLandingSection, "eyebrow" | "title" | "subtitle" | "media_url" | "is_enabled">>,
+  patch: Partial<
+    Pick<AdminLandingSection, "eyebrow" | "title" | "subtitle" | "media_url" | "is_enabled">
+  >,
 ): Promise<void> {
   await api(`/admin/landing/sections/${slug}`, { method: "PATCH", json: patch });
 }
@@ -1624,7 +1698,10 @@ export async function createAdminLandingCard(input: {
   post_category_id?: number | null;
   is_active?: boolean;
 }): Promise<AdminLandingCard> {
-  const res = await api<{ data: AdminLandingCard }>("/admin/landing/cards", { method: "POST", json: input });
+  const res = await api<{ data: AdminLandingCard }>("/admin/landing/cards", {
+    method: "POST",
+    json: input,
+  });
   return res.data;
 }
 
@@ -1632,7 +1709,10 @@ export async function updateAdminLandingCard(
   id: number,
   patch: Partial<Omit<AdminLandingCard, "id">>,
 ): Promise<AdminLandingCard> {
-  const res = await api<{ data: AdminLandingCard }>(`/admin/landing/cards/${id}`, { method: "PATCH", json: patch });
+  const res = await api<{ data: AdminLandingCard }>(`/admin/landing/cards/${id}`, {
+    method: "PATCH",
+    json: patch,
+  });
   return res.data;
 }
 
@@ -1641,7 +1721,10 @@ export async function deleteAdminLandingCard(id: number): Promise<void> {
 }
 
 export async function reorderAdminLandingCards(sectionSlug: string, ids: number[]): Promise<void> {
-  await api("/admin/landing/cards/reorder", { method: "PATCH", json: { section_slug: sectionSlug, ids } });
+  await api("/admin/landing/cards/reorder", {
+    method: "PATCH",
+    json: { section_slug: sectionSlug, ids },
+  });
 }
 
 export interface AdminDeliveryMethodRow {
@@ -1662,7 +1745,10 @@ export async function updateAdminDeliveryMethod(
   id: number,
   patch: Partial<Pick<AdminDeliveryMethodRow, "name" | "sort_order" | "is_active">>,
 ): Promise<AdminDeliveryMethodRow> {
-  const res = await api<{ data: AdminDeliveryMethodRow }>(`/admin/delivery/methods/${id}`, { method: "PATCH", json: patch });
+  const res = await api<{ data: AdminDeliveryMethodRow }>(`/admin/delivery/methods/${id}`, {
+    method: "PATCH",
+    json: patch,
+  });
   return res.data;
 }
 
@@ -1680,7 +1766,9 @@ export interface AdminWalletRow {
   held_kopecks: number;
 }
 
-export async function fetchAdminWallets(query: { search?: string; page?: number } = {}): Promise<{ data: AdminWalletRow[]; meta: AdminMeta }> {
+export async function fetchAdminWallets(
+  query: { search?: string; page?: number } = {},
+): Promise<{ data: AdminWalletRow[]; meta: AdminMeta }> {
   const res = await api<{ data: AdminWalletRow[]; meta: AdminMeta }>("/admin/wallets", { query });
   return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
 }
@@ -1695,13 +1783,24 @@ export interface AdminWithdrawalRow {
   created_at: string | null;
 }
 
-export async function fetchAdminWithdrawals(query: { status?: string; page?: number } = {}): Promise<{ data: AdminWithdrawalRow[]; meta: AdminMeta }> {
-  const res = await api<{ data: AdminWithdrawalRow[]; meta: AdminMeta }>("/admin/withdrawals", { query });
+export async function fetchAdminWithdrawals(
+  query: { status?: string; page?: number } = {},
+): Promise<{ data: AdminWithdrawalRow[]; meta: AdminMeta }> {
+  const res = await api<{ data: AdminWithdrawalRow[]; meta: AdminMeta }>("/admin/withdrawals", {
+    query,
+  });
   return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
 }
 
-export async function updateAdminWithdrawal(uuid: string, status: "processing" | "paid" | "rejected", adminComment?: string): Promise<void> {
-  await api(`/admin/withdrawals/${uuid}`, { method: "PATCH", json: { status, admin_comment: adminComment } });
+export async function updateAdminWithdrawal(
+  uuid: string,
+  status: "processing" | "paid" | "rejected",
+  adminComment?: string,
+): Promise<void> {
+  await api(`/admin/withdrawals/${uuid}`, {
+    method: "PATCH",
+    json: { status, admin_comment: adminComment },
+  });
 }
 
 export interface AdminSafeDealRow {
@@ -1722,12 +1821,18 @@ export interface AdminSafeDealsQuery {
   page?: number;
 }
 
-export async function fetchAdminSafeDeals(query: AdminSafeDealsQuery = {}): Promise<{ data: AdminSafeDealRow[]; meta: AdminMeta }> {
-  const res = await api<{ data: AdminSafeDealRow[]; meta: AdminMeta }>("/admin/safe-deals", { query });
+export async function fetchAdminSafeDeals(
+  query: AdminSafeDealsQuery = {},
+): Promise<{ data: AdminSafeDealRow[]; meta: AdminMeta }> {
+  const res = await api<{ data: AdminSafeDealRow[]; meta: AdminMeta }>("/admin/safe-deals", {
+    query,
+  });
   return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
 }
 
-export async function downloadAdminSafeDealsExport(query: Omit<AdminSafeDealsQuery, "page"> = {}): Promise<void> {
+export async function downloadAdminSafeDealsExport(
+  query: Omit<AdminSafeDealsQuery, "page"> = {},
+): Promise<void> {
   await downloadCsv("/admin/safe-deals/export", query, "safe-deals");
 }
 
@@ -1750,7 +1855,9 @@ export interface AdminDisputeRow {
   created_at: string | null;
 }
 
-export async function fetchAdminDisputes(query: { status?: string; page?: number } = {}): Promise<{ data: AdminDisputeRow[]; meta: AdminMeta }> {
+export async function fetchAdminDisputes(
+  query: { status?: string; page?: number } = {},
+): Promise<{ data: AdminDisputeRow[]; meta: AdminMeta }> {
   const res = await api<{ data: AdminDisputeRow[]; meta: AdminMeta }>("/admin/disputes", { query });
   return { data: res.data ?? [], meta: res.meta ?? { current_page: 1, last_page: 1, total: 0 } };
 }
@@ -1769,4 +1876,3 @@ export async function resolveAdminDispute(
     },
   });
 }
-

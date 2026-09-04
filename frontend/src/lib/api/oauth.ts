@@ -29,7 +29,15 @@ export type MaxAuthStart = {
 };
 
 export type MaxAuthStatus = {
-  status: "pending" | "awaiting_confirm" | "ready" | "consumed" | "denied" | "expired" | "conflict" | string;
+  status:
+    | "pending"
+    | "awaiting_confirm"
+    | "ready"
+    | "consumed"
+    | "denied"
+    | "expired"
+    | "conflict"
+    | string;
   token?: string;
   message?: string;
 };

@@ -217,7 +217,7 @@ function reducer(s: AppState, a: Action): AppState {
               ? a.message.file.name
               : "";
       const shouldUnread = Boolean(a.incrementUnread) && a.message.authorId !== getSessionUserId();
-      const unread = shouldUnread ? (d.unread ?? 0) + 1 : d.unread ?? 0;
+      const unread = shouldUnread ? (d.unread ?? 0) + 1 : (d.unread ?? 0);
       const nextDialog: Dialog = {
         ...d,
         messages: [...d.messages, a.message],
@@ -234,10 +234,10 @@ function reducer(s: AppState, a: Action): AppState {
       if (messages.length === d.messages.length) return s;
       const last = messages[messages.length - 1];
       const lastMessage = last
-        ? (last.text
-          || (last.voice ? "🎤 Голосовое сообщение" : "")
-          || (last.image ? "📷 Изображение" : "")
-          || (last.file ? last.file.name : ""))
+        ? last.text ||
+          (last.voice ? "🎤 Голосовое сообщение" : "") ||
+          (last.image ? "📷 Изображение" : "") ||
+          (last.file ? last.file.name : "")
         : "";
       return {
         ...s,
@@ -285,7 +285,9 @@ function reducer(s: AppState, a: Action): AppState {
       return {
         ...s,
         friendRequests: s.friendRequests.filter((r) => r.id !== a.requestId),
-        friendships: s.friendships.some((x) => x.id === fs.id) ? s.friendships : [...s.friendships, fs],
+        friendships: s.friendships.some((x) => x.id === fs.id)
+          ? s.friendships
+          : [...s.friendships, fs],
       };
     }
     case "DECLINE_FRIEND_REQUEST":
@@ -310,7 +312,10 @@ function reducer(s: AppState, a: Action): AppState {
       const c = s.communities[a.communityId];
       return {
         ...s,
-        communityMemberships: { ...s.communityMemberships, [a.userId]: [...current, a.communityId] },
+        communityMemberships: {
+          ...s.communityMemberships,
+          [a.userId]: [...current, a.communityId],
+        },
         communities: c
           ? { ...s.communities, [a.communityId]: { ...c, members: c.members + 1, joined: true } }
           : s.communities,
@@ -394,7 +399,8 @@ function reducer(s: AppState, a: Action): AppState {
       const dialogs: Record<ID, Dialog> = {};
       for (const d of a.dialogs) {
         const prev = s.dialogs[d.id];
-        const keepMessages = prev && prev.messages.length > 0 && !s.dialogMeta[d.id]?.deletedLocally;
+        const keepMessages =
+          prev && prev.messages.length > 0 && !s.dialogMeta[d.id]?.deletedLocally;
         dialogs[d.id] = keepMessages ? { ...d, messages: prev.messages } : d;
       }
       // A poll page can omit a currently open chat (or a freshly restored one).
@@ -554,10 +560,11 @@ export function useStore<T>(selector: (s: AppState) => T): T {
   return useMemo(() => selector(snap), [snap, selector]);
 }
 
-
 export const actions = {
-  addMessage: (dialogId: ID, message: Message) => dispatch({ type: "ADD_MESSAGE", dialogId, message }),
-  removeMessage: (dialogId: ID, messageId: ID) => dispatch({ type: "REMOVE_MESSAGE", dialogId, messageId }),
+  addMessage: (dialogId: ID, message: Message) =>
+    dispatch({ type: "ADD_MESSAGE", dialogId, message }),
+  removeMessage: (dialogId: ID, messageId: ID) =>
+    dispatch({ type: "REMOVE_MESSAGE", dialogId, messageId }),
   markRead: (dialogId: ID) => {
     dispatch({ type: "MARK_READ", dialogId });
     if (typeof window !== "undefined") {
@@ -567,13 +574,17 @@ export const actions = {
     }
   },
   markUnread: (dialogId: ID) => dispatch({ type: "MARK_UNREAD", dialogId }),
-  updateProfile: (userId: ID, data: Partial<User>) => dispatch({ type: "UPDATE_PROFILE", userId, data }),
-  sendFriendRequest: (fromId: ID, toId: ID) => dispatch({ type: "SEND_FRIEND_REQUEST", fromId, toId }),
+  updateProfile: (userId: ID, data: Partial<User>) =>
+    dispatch({ type: "UPDATE_PROFILE", userId, data }),
+  sendFriendRequest: (fromId: ID, toId: ID) =>
+    dispatch({ type: "SEND_FRIEND_REQUEST", fromId, toId }),
   acceptFriendRequest: (requestId: ID) => dispatch({ type: "ACCEPT_FRIEND_REQUEST", requestId }),
   declineFriendRequest: (requestId: ID) => dispatch({ type: "DECLINE_FRIEND_REQUEST", requestId }),
   removeFriend: (a: ID, b: ID) => dispatch({ type: "REMOVE_FRIEND", userId1: a, userId2: b }),
-  joinCommunity: (userId: ID, communityId: ID) => dispatch({ type: "JOIN_COMMUNITY", userId, communityId }),
-  leaveCommunity: (userId: ID, communityId: ID) => dispatch({ type: "LEAVE_COMMUNITY", userId, communityId }),
+  joinCommunity: (userId: ID, communityId: ID) =>
+    dispatch({ type: "JOIN_COMMUNITY", userId, communityId }),
+  leaveCommunity: (userId: ID, communityId: ID) =>
+    dispatch({ type: "LEAVE_COMMUNITY", userId, communityId }),
   setAdStatus: (adId: ID, status: AdStatusKey) => dispatch({ type: "SET_AD_STATUS", adId, status }),
   archiveAd: (adId: ID) => dispatch({ type: "SET_AD_STATUS", adId, status: "archived" }),
   deleteAd: (adId: ID) => dispatch({ type: "SET_AD_STATUS", adId, status: "deleted" }),
@@ -582,9 +593,12 @@ export const actions = {
   likePost: (postId: ID, like: boolean) => dispatch({ type: "LIKE_POST", postId, like }),
   savePost: (postId: ID, save: boolean) => dispatch({ type: "SAVE_POST", postId, save }),
   addComment: (postId: ID, comment: Comment) => dispatch({ type: "ADD_COMMENT", postId, comment }),
-  setDialogMeta: (dialogId: ID, patch: Partial<DialogMeta>) => dispatch({ type: "SET_DIALOG_META", dialogId, patch }),
-  pinMessage: (dialogId: ID, messageId: ID) => dispatch({ type: "PIN_MESSAGE", dialogId, messageId }),
-  deleteMessageForMe: (dialogId: ID, messageId: ID) => dispatch({ type: "DELETE_MESSAGE_FOR_ME", dialogId, messageId }),
+  setDialogMeta: (dialogId: ID, patch: Partial<DialogMeta>) =>
+    dispatch({ type: "SET_DIALOG_META", dialogId, patch }),
+  pinMessage: (dialogId: ID, messageId: ID) =>
+    dispatch({ type: "PIN_MESSAGE", dialogId, messageId }),
+  deleteMessageForMe: (dialogId: ID, messageId: ID) =>
+    dispatch({ type: "DELETE_MESSAGE_FOR_ME", dialogId, messageId }),
   pinDialog: (dialogId: ID, pinned: boolean) => dispatch({ type: "PIN_DIALOG", dialogId, pinned }),
   clearHistory: (dialogId: ID) => dispatch({ type: "CLEAR_HISTORY", dialogId }),
   blockUser: (userId: ID) => dispatch({ type: "BLOCK_USER", userId }),
@@ -592,10 +606,13 @@ export const actions = {
   hideUser: (userId: ID) => dispatch({ type: "HIDE_USER", userId }),
   toggleFavoriteAd: (adId: ID) => dispatch({ type: "TOGGLE_FAVORITE_AD", adId }),
   setFavoriteAdIds: (ids: ID[]) => dispatch({ type: "SET_FAVORITE_AD_IDS", ids }),
-  setDialogAd: (dialogId: ID, ref: DialogAdRef) => dispatch({ type: "SET_DIALOG_AD", dialogId, ref }),
-  queuePendingMessage: (dialogId: ID, text: string) => dispatch({ type: "QUEUE_PENDING_MESSAGE", dialogId, text }),
+  setDialogAd: (dialogId: ID, ref: DialogAdRef) =>
+    dispatch({ type: "SET_DIALOG_AD", dialogId, ref }),
+  queuePendingMessage: (dialogId: ID, text: string) =>
+    dispatch({ type: "QUEUE_PENDING_MESSAGE", dialogId, text }),
   clearPendingMessage: (dialogId: ID) => dispatch({ type: "CLEAR_PENDING_MESSAGE", dialogId }),
-  setRevealedPhone: (adId: ID, phone: string) => dispatch({ type: "SET_REVEALED_PHONE", adId, phone }),
+  setRevealedPhone: (adId: ID, phone: string) =>
+    dispatch({ type: "SET_REVEALED_PHONE", adId, phone }),
 };
 
 /**
@@ -722,11 +739,7 @@ const pendingDialogHydrations = new Map<
   }
 >();
 
-function hydrateDialogForIncoming(
-  dialogId: ID,
-  message: Message,
-  incrementUnread: boolean,
-): void {
+function hydrateDialogForIncoming(dialogId: ID, message: Message, incrementUnread: boolean): void {
   const meId = getSessionUserId();
   if (!meId || meId === GUEST_USER.id) return;
 
@@ -830,29 +843,48 @@ export function openOrCreateDialogWith(userId: ID): ID {
   return id;
 }
 
-
 export const selectors = {
   dialogsList: (s: AppState): Dialog[] => Object.values(s.dialogs),
-  friendsOf: (userId: ID) => (s: AppState): ID[] =>
-    s.friendships
-      .filter((f) => f.userId1 === userId || f.userId2 === userId)
-      .map((f) => (f.userId1 === userId ? f.userId2 : f.userId1)),
-  pendingRequests: (userId: ID) => (s: AppState): FriendRequest[] =>
-    s.friendRequests.filter((r) => r.toId === userId && r.status === "pending"),
-  userCommunities: (userId: ID) => (s: AppState): Community[] =>
-    (s.communityMemberships[userId] ?? [])
-      .map((id) => s.communities[id])
-      .filter((c): c is Community => Boolean(c)),
-  myAds: (userId: ID) => (s: AppState): Ad[] =>
-    Object.values(s.ads).filter((a) => a.authorId === userId),
-  isCommunityMember: (userId: ID, communityId: ID) => (s: AppState): boolean =>
-    (s.communityMemberships[userId] ?? []).includes(communityId),
-  recommendedCommunities: (userId: ID) => (s: AppState): Community[] => {
-    const mine = new Set(s.communityMemberships[userId] ?? []);
-    return Object.values(s.communities).filter((c) => !mine.has(c.id));
-  },
-  dialogMeta: (dialogId: ID) => (s: AppState): DialogMeta =>
-    s.dialogMeta[dialogId] ?? { archived: false, muted: false, blocked: false },
-  isBlocked: (userId: ID) => (s: AppState): boolean => s.blockedUserIds.includes(userId),
-  isAdFavorite: (adId: ID) => (s: AppState): boolean => s.favoriteAdIds.includes(adId),
+  friendsOf:
+    (userId: ID) =>
+    (s: AppState): ID[] =>
+      s.friendships
+        .filter((f) => f.userId1 === userId || f.userId2 === userId)
+        .map((f) => (f.userId1 === userId ? f.userId2 : f.userId1)),
+  pendingRequests:
+    (userId: ID) =>
+    (s: AppState): FriendRequest[] =>
+      s.friendRequests.filter((r) => r.toId === userId && r.status === "pending"),
+  userCommunities:
+    (userId: ID) =>
+    (s: AppState): Community[] =>
+      (s.communityMemberships[userId] ?? [])
+        .map((id) => s.communities[id])
+        .filter((c): c is Community => Boolean(c)),
+  myAds:
+    (userId: ID) =>
+    (s: AppState): Ad[] =>
+      Object.values(s.ads).filter((a) => a.authorId === userId),
+  isCommunityMember:
+    (userId: ID, communityId: ID) =>
+    (s: AppState): boolean =>
+      (s.communityMemberships[userId] ?? []).includes(communityId),
+  recommendedCommunities:
+    (userId: ID) =>
+    (s: AppState): Community[] => {
+      const mine = new Set(s.communityMemberships[userId] ?? []);
+      return Object.values(s.communities).filter((c) => !mine.has(c.id));
+    },
+  dialogMeta:
+    (dialogId: ID) =>
+    (s: AppState): DialogMeta =>
+      s.dialogMeta[dialogId] ?? { archived: false, muted: false, blocked: false },
+  isBlocked:
+    (userId: ID) =>
+    (s: AppState): boolean =>
+      s.blockedUserIds.includes(userId),
+  isAdFavorite:
+    (adId: ID) =>
+    (s: AppState): boolean =>
+      s.favoriteAdIds.includes(adId),
 };

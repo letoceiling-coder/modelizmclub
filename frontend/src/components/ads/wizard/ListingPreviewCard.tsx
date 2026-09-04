@@ -14,8 +14,8 @@ interface Props {
 }
 
 const STATUS_VARIANT: Record<Props["status"], NonNullable<BadgeProps["variant"]>> = {
-  "Продаю": "info",
-  "Куплю": "info",
+  Продаю: "info",
+  Куплю: "info",
 };
 
 /** One image tile with an independent broken-photo fallback, so a single
@@ -25,12 +25,26 @@ function PreviewImg({ src, className }: { src: string; className?: string }) {
   const ok = Boolean(src && src.trim()) && !broken;
   if (!ok) {
     return (
-      <div className={`grid place-items-center ${className ?? ""}`} style={{ color: "var(--foreground-30)", background: "var(--background-surface)" }}>
+      <div
+        className={`grid place-items-center ${className ?? ""}`}
+        style={{ color: "var(--foreground-30)", background: "var(--background-surface)" }}
+      >
         <ImageOff size={20} />
       </div>
     );
   }
-  return <img src={src} width={800} height={600} loading="lazy" decoding="async" alt="" className={`object-cover ${className ?? ""}`} onError={() => setBroken(true)} />;
+  return (
+    <img
+      src={src}
+      width={800}
+      height={600}
+      loading="lazy"
+      decoding="async"
+      alt=""
+      className={`object-cover ${className ?? ""}`}
+      onError={() => setBroken(true)}
+    />
+  );
 }
 
 /** Compact listing preview used in the wizard's final step — mirrors how the
@@ -52,11 +66,17 @@ export function ListingPreviewCard({ title, price, images, status, category, sub
         boxShadow: "var(--shadow-card)",
       }}
     >
-      <div className="relative" style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}>
+      <div
+        className="relative"
+        style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}
+      >
         {cover ? (
           <PreviewImg src={cover} className="h-full w-full" />
         ) : (
-          <div className="grid h-full w-full place-items-center" style={{ color: "var(--foreground-30)" }}>
+          <div
+            className="grid h-full w-full place-items-center"
+            style={{ color: "var(--foreground-30)" }}
+          >
             <ImageOff size={28} />
           </div>
         )}
@@ -90,10 +110,16 @@ export function ListingPreviewCard({ title, price, images, status, category, sub
       )}
 
       <div className="space-y-[8px] p-[14px]">
-        <div className="line-clamp-2 text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <div
+          className="line-clamp-2 text-[14px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           {title || "Название объявления"}
         </div>
-        <div className="font-display text-[20px] font-bold" style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}>
+        <div
+          className="font-display text-[20px] font-bold"
+          style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}
+        >
           {Number(price || 0).toLocaleString("ru")} ₽
         </div>
         {meta && (

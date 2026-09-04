@@ -1,4 +1,9 @@
-import { fetchFeedGuestAccess, type AccessTier, type FeedGuestAccessConfig, type GuestAccessActionConfig } from "@/lib/api/feed-guest-access";
+import {
+  fetchFeedGuestAccess,
+  type AccessTier,
+  type FeedGuestAccessConfig,
+  type GuestAccessActionConfig,
+} from "@/lib/api/feed-guest-access";
 import {
   buildDefaultFeedGuestAccessConfig,
   GUEST_ACCESS_DEFAULT_TIERS,
@@ -75,7 +80,8 @@ function hydrateConfig(config: FeedGuestAccessConfig): FeedGuestAccessConfig {
 
 function resolveAction(config: FeedGuestAccessConfig, actionKey: string): GuestAccessActionConfig {
   const fromConfig = config.actions[actionKey];
-  if (fromConfig) return normalizeActionConfig(fromConfig, GUEST_ACCESS_DEFAULT_TIERS[actionKey] ?? "auth");
+  if (fromConfig)
+    return normalizeActionConfig(fromConfig, GUEST_ACCESS_DEFAULT_TIERS[actionKey] ?? "auth");
   const fallback = GUEST_ACCESS_DEFAULT_TIERS[actionKey] ?? "auth";
   return normalizeActionConfig(undefined, fallback);
 }
@@ -84,11 +90,17 @@ function effectiveConfig(config?: FeedGuestAccessConfig | null): FeedGuestAccess
   return config ?? cached ?? buildDefaultFeedGuestAccessConfig();
 }
 
-export function resolveMinTier(actionKey: string, config?: FeedGuestAccessConfig | null): AccessTier {
+export function resolveMinTier(
+  actionKey: string,
+  config?: FeedGuestAccessConfig | null,
+): AccessTier {
   return resolveAction(effectiveConfig(config), actionKey).min_tier;
 }
 
-export function isGuestActionAllowed(actionKey: string, config?: FeedGuestAccessConfig | null): boolean {
+export function isGuestActionAllowed(
+  actionKey: string,
+  config?: FeedGuestAccessConfig | null,
+): boolean {
   return resolveMinTier(actionKey, config) === "guest";
 }
 
@@ -100,7 +112,10 @@ export function isActionAllowedForTier(
   return isTierAtLeast(userTier, resolveMinTier(actionKey, config));
 }
 
-export function resolveDenyMode(actionKey: string, config?: FeedGuestAccessConfig | null): "popup" | "redirect" {
+export function resolveDenyMode(
+  actionKey: string,
+  config?: FeedGuestAccessConfig | null,
+): "popup" | "redirect" {
   const cfg = effectiveConfig(config);
   const action = resolveAction(cfg, actionKey);
   if (action.deny_mode === "popup" || action.deny_mode === "redirect") return action.deny_mode;

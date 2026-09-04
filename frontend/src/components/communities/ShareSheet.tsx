@@ -49,7 +49,14 @@ export function ShareSheet({
 
   const items: Array<{ key: string; label: string; icon: typeof Share2; onClick: () => void }> = [
     ...(showSendToFriend
-      ? [{ key: "friend", label: "Отправить другу на платформе", icon: Users, onClick: openFriendPicker }]
+      ? [
+          {
+            key: "friend",
+            label: "Отправить другу на платформе",
+            icon: Users,
+            onClick: openFriendPicker,
+          },
+        ]
       : []),
     ...SHARE_TARGETS.map((target) => ({
       key: target.id,
@@ -60,12 +67,22 @@ export function ShareSheet({
         onOpenChange(false);
       },
     })),
-    { key: "copy", label: "Скопировать ссылку", icon: Link2, onClick: () => { void copyLink(); } },
+    {
+      key: "copy",
+      label: "Скопировать ссылку",
+      icon: Link2,
+      onClick: () => {
+        void copyLink();
+      },
+    },
   ];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl p-0 sm:max-w-md sm:left-1/2 sm:-translate-x-1/2">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl p-0 sm:max-w-md sm:left-1/2 sm:-translate-x-1/2"
+      >
         <SheetHeader className="px-5 pt-5">
           <SheetTitle>{heading}</SheetTitle>
         </SheetHeader>
@@ -77,10 +94,15 @@ export function ShareSheet({
               onClick={it.onClick}
               className="flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-[var(--background-surface)]"
             >
-              <span className="grid h-10 w-10 place-items-center rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+              <span
+                className="grid h-10 w-10 place-items-center rounded-full"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+              >
                 <it.icon size={18} />
               </span>
-              <span className="text-[14px] font-medium" style={{ color: "var(--foreground)" }}>{it.label}</span>
+              <span className="text-[14px] font-medium" style={{ color: "var(--foreground)" }}>
+                {it.label}
+              </span>
             </button>
           ))}
         </div>

@@ -1,6 +1,10 @@
 import { useSyncExternalStore } from "react";
 import { api } from "@/lib/api/client";
-import { mapBootstrapFeatureFlags, startPublicBootstrap, type BootstrapFeatureFlags } from "@/lib/api/bootstrap";
+import {
+  mapBootstrapFeatureFlags,
+  startPublicBootstrap,
+  type BootstrapFeatureFlags,
+} from "@/lib/api/bootstrap";
 import { isDemoMode } from "@/lib/demo-mode";
 
 /**
@@ -152,6 +156,6 @@ export function useFeatureFlag<K extends keyof FeatureFlags>(key: K): FeatureFla
   return useSyncExternalStore(
     subscribe,
     () => readFromStorage()[key],
-    () => (DEFAULTS[key]),
+    () => DEFAULTS[key],
   );
 }

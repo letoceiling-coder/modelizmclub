@@ -39,10 +39,39 @@ const card: CSSProperties = {
 const QUEUE_TAB_IDS = ["posts", "channel_posts", "communities", "listings", "videos"] as const;
 type QueueTabId = (typeof QUEUE_TAB_IDS)[number];
 
-const REPORT_FILTER_IDS = ["all", "pending", "reviewing", "resolved", "rejected", "dismissed"] as const;
-const REPORT_STATUS_IDS: ReportStatus[] = ["pending", "reviewing", "resolved", "rejected", "dismissed"];
-const REPORT_TARGET_IDS = ["user", "message", "conversation", "post", "listing", "comment", "video", "community"] as const;
-const REPORT_ENTITY_TAB_IDS = ["all", "posts", "listings", "videos", "communities", "users"] as const;
+const REPORT_FILTER_IDS = [
+  "all",
+  "pending",
+  "reviewing",
+  "resolved",
+  "rejected",
+  "dismissed",
+] as const;
+const REPORT_STATUS_IDS: ReportStatus[] = [
+  "pending",
+  "reviewing",
+  "resolved",
+  "rejected",
+  "dismissed",
+];
+const REPORT_TARGET_IDS = [
+  "user",
+  "message",
+  "conversation",
+  "post",
+  "listing",
+  "comment",
+  "video",
+  "community",
+] as const;
+const REPORT_ENTITY_TAB_IDS = [
+  "all",
+  "posts",
+  "listings",
+  "videos",
+  "communities",
+  "users",
+] as const;
 type ReportEntityTabId = (typeof REPORT_ENTITY_TAB_IDS)[number];
 
 const REPORT_ENTITY_TYPES: Record<ReportEntityTabId, string[] | null> = {
@@ -87,7 +116,15 @@ function feedbackBtn(bg: string, color: string): CSSProperties {
 
 function EmptyQueue({ label }: { label: string }) {
   return (
-    <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
+    <div
+      style={{
+        ...card,
+        padding: "32px 16px",
+        textAlign: "center",
+        color: "var(--foreground-50)",
+        fontSize: "13px",
+      }}
+    >
       <ShieldCheck size={32} style={{ color: "var(--foreground-15)", margin: "0 auto 12px" }} />
       {label}
     </div>
@@ -122,16 +159,42 @@ function ModerationDetailCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="flex flex-wrap items-center gap-2">
-            <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--r-tag)", background: "var(--accent-soft)", color: "var(--accent)" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "var(--r-tag)",
+                background: "var(--accent-soft)",
+                color: "var(--accent)",
+              }}
+            >
               {typeLabel}
             </span>
             {item.category && (
-              <span style={{ fontSize: "11px", fontWeight: 500, padding: "2px 8px", borderRadius: "var(--r-tag)", background: "var(--background-subtle)", color: "var(--foreground-70)" }}>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  padding: "2px 8px",
+                  borderRadius: "var(--r-tag)",
+                  background: "var(--background-subtle)",
+                  color: "var(--foreground-70)",
+                }}
+              >
                 {item.category}
               </span>
             )}
           </div>
-          <h5 style={{ marginTop: "10px", fontWeight: 700, fontSize: "16px", color: "var(--foreground)", lineHeight: 1.35 }}>
+          <h5
+            style={{
+              marginTop: "10px",
+              fontWeight: 700,
+              fontSize: "16px",
+              color: "var(--foreground)",
+              lineHeight: 1.35,
+            }}
+          >
             {item.title}
           </h5>
           <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--foreground-50)" }}>
@@ -167,7 +230,21 @@ function ModerationDetailCard({
           {item.media.map((m) =>
             m.mime_type?.startsWith("image/") ? (
               <a key={m.url} href={m.url} target="_blank" rel="noreferrer">
-                <img src={m.url} width={88} height={88} loading="lazy" decoding="async" alt="" style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
+                <img
+                  src={m.url}
+                  width={88}
+                  height={88}
+                  loading="lazy"
+                  decoding="async"
+                  alt=""
+                  style={{
+                    width: 88,
+                    height: 88,
+                    objectFit: "cover",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                  }}
+                />
               </a>
             ) : null,
           )}
@@ -178,14 +255,28 @@ function ModerationDetailCard({
         <button type="button" onClick={onApprove} style={feedbackBtn("var(--success)", "#fff")}>
           {t("pages.adminModeration.cardApprove")}
         </button>
-        <button type="button" onClick={onRevision} style={feedbackBtn("var(--warning-soft)", "var(--warning)")}>
+        <button
+          type="button"
+          onClick={onRevision}
+          style={feedbackBtn("var(--warning-soft)", "var(--warning)")}
+        >
           {t("pages.adminModeration.cardRevision")}
         </button>
         <button type="button" onClick={onReject} style={feedbackBtn("var(--error)", "#fff")}>
           {t("pages.adminModeration.cardReject")}
         </button>
         {openPath ? (
-          <Link to={openPath} target="_blank" style={{ ...feedbackBtn("transparent", "var(--foreground-70)"), display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
+          <Link
+            to={openPath}
+            target="_blank"
+            style={{
+              ...feedbackBtn("transparent", "var(--foreground-70)"),
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              textDecoration: "none",
+            }}
+          >
             {t("pages.adminModeration.cardOpen")} <ExternalLink size={14} />
           </Link>
         ) : null}
@@ -201,7 +292,11 @@ function ReportsPanel() {
     [t],
   );
   const entityTabs = useMemo(
-    () => REPORT_ENTITY_TAB_IDS.map((id) => ({ id, label: t(`pages.adminModeration.entityTabs.${id}`) })),
+    () =>
+      REPORT_ENTITY_TAB_IDS.map((id) => ({
+        id,
+        label: t(`pages.adminModeration.entityTabs.${id}`),
+      })),
     [t],
   );
   const reportStatusMeta = useMemo(
@@ -238,14 +333,18 @@ function ReportsPanel() {
   );
   const reportTargetLabels = useMemo(
     () =>
-      Object.fromEntries(REPORT_TARGET_IDS.map((id) => [id, t(`pages.adminModeration.reportTargets.${id}`)])) as Record<string, string>,
+      Object.fromEntries(
+        REPORT_TARGET_IDS.map((id) => [id, t(`pages.adminModeration.reportTargets.${id}`)]),
+      ) as Record<string, string>,
     [t],
   );
 
   const [filter, setFilter] = useState<ReportStatus | "all">("pending");
   const [entityTab, setEntityTab] = useState<ReportEntityTabId>("all");
   const [items, setItems] = useState<AdminReportRow[]>([]);
-  const [pendingCounts, setPendingCounts] = useState<Partial<Record<ReportEntityTabId, number>>>({});
+  const [pendingCounts, setPendingCounts] = useState<Partial<Record<ReportEntityTabId, number>>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -262,7 +361,9 @@ function ReportsPanel() {
         setPendingCounts(counts);
       })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -273,7 +374,9 @@ function ReportsPanel() {
       .then((rows) => active && setItems(rows))
       .catch(() => active && toast.error(t("pages.adminModeration.reportsLoadFailed")))
       .finally(() => active && setLoading(false));
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [filter, entityTab, t]);
 
   const setStatus = async (row: AdminReportRow, status: ReportStatus) => {
@@ -290,30 +393,68 @@ function ReportsPanel() {
 
   return (
     <div>
-      <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "14px" }}>{t("pages.adminModeration.reportsHint")}</p>
-      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-50)", marginBottom: "8px" }}>{t("pages.adminModeration.reportsEntityLabel")}</div>
+      <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "14px" }}>
+        {t("pages.adminModeration.reportsHint")}
+      </p>
+      <div
+        style={{
+          fontSize: "12px",
+          fontWeight: 600,
+          color: "var(--foreground-50)",
+          marginBottom: "8px",
+        }}
+      >
+        {t("pages.adminModeration.reportsEntityLabel")}
+      </div>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "12px" }}>
         {entityTabs.map((tab) => {
           const pending = pendingCounts[tab.id] ?? 0;
           return (
-            <button key={tab.id} type="button" onClick={() => setEntityTab(tab.id)} style={tabBtn(entityTab === tab.id)}>
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setEntityTab(tab.id)}
+              style={tabBtn(entityTab === tab.id)}
+            >
               {tab.label}
               {pending > 0 && <span style={countPill}>{pending}</span>}
             </button>
           );
         })}
       </div>
-      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground-50)", marginBottom: "8px" }}>{t("pages.adminModeration.reportsStatusLabel")}</div>
+      <div
+        style={{
+          fontSize: "12px",
+          fontWeight: 600,
+          color: "var(--foreground-50)",
+          marginBottom: "8px",
+        }}
+      >
+        {t("pages.adminModeration.reportsStatusLabel")}
+      </div>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "16px" }}>
         {reportFilters.map((f) => (
-          <button key={f.id} type="button" onClick={() => setFilter(f.id)} style={filterBtn(filter === f.id)}>
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => setFilter(f.id)}
+            style={filterBtn(filter === f.id)}
+          >
             {f.label}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
+        <div
+          style={{
+            ...card,
+            padding: "32px 16px",
+            textAlign: "center",
+            color: "var(--foreground-50)",
+            fontSize: "13px",
+          }}
+        >
           {t("pages.adminCommon.loading")}
         </div>
       ) : items.length === 0 ? (
@@ -331,28 +472,97 @@ function ReportsPanel() {
                     <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--foreground)" }}>
                       {targetLabel}
                       {row.targetUuid && row.targetType === "user" ? (
-                        <> · <Link to="/user/$id" params={{ id: row.targetUuid }} style={{ color: "var(--accent)" }}>{t("pages.adminModeration.openProfile")}</Link></>
+                        <>
+                          {" "}
+                          ·{" "}
+                          <Link
+                            to="/user/$id"
+                            params={{ id: row.targetUuid }}
+                            style={{ color: "var(--accent)" }}
+                          >
+                            {t("pages.adminModeration.openProfile")}
+                          </Link>
+                        </>
                       ) : null}
                     </span>
-                    <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "var(--r-tag)", background: meta.bg, color: meta.color }}>{meta.label}</span>
-                    <span style={{ fontSize: "11px", fontWeight: 500, padding: "2px 8px", borderRadius: "var(--r-tag)", background: "var(--background-subtle)", color: "var(--foreground-70)" }}>{reasonLabel}</span>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        padding: "2px 8px",
+                        borderRadius: "var(--r-tag)",
+                        background: meta.bg,
+                        color: meta.color,
+                      }}
+                    >
+                      {meta.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        padding: "2px 8px",
+                        borderRadius: "var(--r-tag)",
+                        background: "var(--background-subtle)",
+                        color: "var(--foreground-70)",
+                      }}
+                    >
+                      {reasonLabel}
+                    </span>
                   </div>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>{row.createdAt ? formatDate(row.createdAt, "absolute") : ""}</span>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                    {row.createdAt ? formatDate(row.createdAt, "absolute") : ""}
+                  </span>
                 </div>
-                {row.description && <p style={{ marginTop: "8px", fontSize: "13px", color: "var(--foreground-80)", whiteSpace: "pre-wrap" }}>{row.description}</p>}
-                <div className="flex items-center justify-between flex-wrap gap-[8px]" style={{ marginTop: "10px" }}>
+                {row.description && (
+                  <p
+                    style={{
+                      marginTop: "8px",
+                      fontSize: "13px",
+                      color: "var(--foreground-80)",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {row.description}
+                  </p>
+                )}
+                <div
+                  className="flex items-center justify-between flex-wrap gap-[8px]"
+                  style={{ marginTop: "10px" }}
+                >
                   <span style={{ fontSize: "12px", color: "var(--foreground-50)" }}>
-                    {t("pages.adminModeration.reportFrom", { name: row.reporterName, email: row.reporterEmail ? ` (${row.reporterEmail})` : "" })}
+                    {t("pages.adminModeration.reportFrom", {
+                      name: row.reporterName,
+                      email: row.reporterEmail ? ` (${row.reporterEmail})` : "",
+                    })}
                   </span>
                   <div className="flex flex-wrap gap-[8px]">
                     {row.status === "pending" && (
-                      <button type="button" onClick={() => void setStatus(row, "reviewing")} style={feedbackBtn("var(--warning-soft)", "var(--warning)")}>{t("pages.adminModeration.takeReview")}</button>
+                      <button
+                        type="button"
+                        onClick={() => void setStatus(row, "reviewing")}
+                        style={feedbackBtn("var(--warning-soft)", "var(--warning)")}
+                      >
+                        {t("pages.adminModeration.takeReview")}
+                      </button>
                     )}
                     {row.status !== "resolved" && (
-                      <button type="button" onClick={() => void setStatus(row, "resolved")} style={feedbackBtn("var(--success)", "#fff")}>{t("pages.adminModeration.markResolved")}</button>
+                      <button
+                        type="button"
+                        onClick={() => void setStatus(row, "resolved")}
+                        style={feedbackBtn("var(--success)", "#fff")}
+                      >
+                        {t("pages.adminModeration.markResolved")}
+                      </button>
                     )}
                     {row.status !== "dismissed" && (
-                      <button type="button" onClick={() => void setStatus(row, "dismissed")} style={feedbackBtn("transparent", "var(--foreground-70)")}>{t("pages.adminModeration.markDismissed")}</button>
+                      <button
+                        type="button"
+                        onClick={() => void setStatus(row, "dismissed")}
+                        style={feedbackBtn("transparent", "var(--foreground-70)")}
+                      >
+                        {t("pages.adminModeration.markDismissed")}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -411,7 +621,10 @@ export function ModerationAdminSection() {
   const [queueTab, setQueueTab] = useState<QueueTabId>("posts");
   const [queue, setQueue] = useState<ModerationItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialog, setDialog] = useState<{ item: ModerationItem; mode: "reject" | "revision" } | null>(null);
+  const [dialog, setDialog] = useState<{
+    item: ModerationItem;
+    mode: "reject" | "revision";
+  } | null>(null);
   const [reasonText, setReasonText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -483,25 +696,53 @@ export function ModerationAdminSection() {
 
   return (
     <div>
-      <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", color: "var(--foreground)" }}>{t("pages.adminModeration.title")}</h2>
-      <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "8px", maxWidth: 720 }}>{t("pages.adminModeration.subtitle")}</p>
+      <h2
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
+          fontSize: "22px",
+          color: "var(--foreground)",
+        }}
+      >
+        {t("pages.adminModeration.title")}
+      </h2>
+      <p
+        style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "8px", maxWidth: 720 }}
+      >
+        {t("pages.adminModeration.subtitle")}
+      </p>
 
       <div className="flex flex-wrap gap-2" style={{ marginTop: "20px" }}>
-        <button type="button" onClick={() => setMainTab("queue")} style={filterBtn(mainTab === "queue")}>
+        <button
+          type="button"
+          onClick={() => setMainTab("queue")}
+          style={filterBtn(mainTab === "queue")}
+        >
           {t("pages.adminModeration.mainTabQueue")}
           {totalPending > 0 && <span style={{ ...countPill, marginLeft: 6 }}>{totalPending}</span>}
         </button>
-        <button type="button" onClick={() => setMainTab("reports")} style={filterBtn(mainTab === "reports")}>
+        <button
+          type="button"
+          onClick={() => setMainTab("reports")}
+          style={filterBtn(mainTab === "reports")}
+        >
           {t("pages.adminModeration.mainTabReports")}
         </button>
       </div>
 
       {mainTab === "queue" ? (
         <div style={{ marginTop: "20px" }}>
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "12px" }}>{t("pages.adminModeration.queueHint")}</p>
+          <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginBottom: "12px" }}>
+            {t("pages.adminModeration.queueHint")}
+          </p>
           <div className="flex flex-wrap gap-2" style={{ marginBottom: "16px" }}>
             {queueTabs.map((tab) => (
-              <button key={tab.id} type="button" onClick={() => setQueueTab(tab.id)} style={tabBtn(queueTab === tab.id)}>
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setQueueTab(tab.id)}
+                style={tabBtn(queueTab === tab.id)}
+              >
                 {tab.label}
                 {tab.count > 0 && <span style={countPill}>{tab.count}</span>}
               </button>
@@ -509,7 +750,15 @@ export function ModerationAdminSection() {
           </div>
 
           {loading ? (
-            <div style={{ ...card, padding: "32px 16px", textAlign: "center", color: "var(--foreground-50)", fontSize: "13px" }}>
+            <div
+              style={{
+                ...card,
+                padding: "32px 16px",
+                textAlign: "center",
+                color: "var(--foreground-50)",
+                fontSize: "13px",
+              }}
+            >
               {t("pages.adminCommon.loading")}
             </div>
           ) : visibleItems.length === 0 ? (
@@ -523,8 +772,14 @@ export function ModerationAdminSection() {
                     item={item}
                     typeLabel={typeLabel(item.type)}
                     onApprove={() => void handleApprove(item)}
-                    onReject={() => { setDialog({ item, mode: "reject" }); setReasonText(""); }}
-                    onRevision={() => { setDialog({ item, mode: "revision" }); setReasonText(""); }}
+                    onReject={() => {
+                      setDialog({ item, mode: "reject" });
+                      setReasonText("");
+                    }}
+                    onRevision={() => {
+                      setDialog({ item, mode: "revision" });
+                      setReasonText("");
+                    }}
                   />
                 ))}
               </AnimatePresence>
@@ -541,10 +796,14 @@ export function ModerationAdminSection() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {dialog?.mode === "reject" ? t("pages.adminModeration.rejectDialogTitle") : t("pages.adminModeration.revisionDialogTitle")}
+              {dialog?.mode === "reject"
+                ? t("pages.adminModeration.rejectDialogTitle")
+                : t("pages.adminModeration.revisionDialogTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {dialog?.mode === "reject" ? t("pages.adminModeration.rejectDialogDesc") : t("pages.adminModeration.revisionDialogDesc")}
+              {dialog?.mode === "reject"
+                ? t("pages.adminModeration.rejectDialogDesc")
+                : t("pages.adminModeration.revisionDialogDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <textarea
@@ -564,9 +823,21 @@ export function ModerationAdminSection() {
             }}
           />
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submitting}>{t("pages.adminCommon.cancel")}</AlertDialogCancel>
-            <AlertDialogAction disabled={submitting} onClick={(e) => { e.preventDefault(); void submitDecision(); }}>
-              {submitting ? "…" : dialog?.mode === "reject" ? t("pages.adminModeration.confirmReject") : t("pages.adminModeration.confirmRevision")}
+            <AlertDialogCancel disabled={submitting}>
+              {t("pages.adminCommon.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={submitting}
+              onClick={(e) => {
+                e.preventDefault();
+                void submitDecision();
+              }}
+            >
+              {submitting
+                ? "…"
+                : dialog?.mode === "reject"
+                  ? t("pages.adminModeration.confirmReject")
+                  : t("pages.adminModeration.confirmRevision")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

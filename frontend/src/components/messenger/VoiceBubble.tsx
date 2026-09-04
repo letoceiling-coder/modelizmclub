@@ -17,8 +17,14 @@ function fmt(s: number): string {
 function TranscriptSkeleton({ subtle }: { subtle: string }) {
   return (
     <div className="flex flex-col gap-[6px] py-[2px]" aria-hidden="true">
-      <span className="h-[10px] w-[92%] animate-pulse rounded-[4px]" style={{ background: subtle, opacity: 0.35 }} />
-      <span className="h-[10px] w-[68%] animate-pulse rounded-[4px]" style={{ background: subtle, opacity: 0.25 }} />
+      <span
+        className="h-[10px] w-[92%] animate-pulse rounded-[4px]"
+        style={{ background: subtle, opacity: 0.35 }}
+      />
+      <span
+        className="h-[10px] w-[68%] animate-pulse rounded-[4px]"
+        style={{ background: subtle, opacity: 0.25 }}
+      />
     </div>
   );
 }
@@ -114,11 +120,12 @@ export function VoiceBubble({
   const unavailableText = t("components.voiceBubble.transcriptUnavailable");
   const demoText = t("components.voiceBubble.demoTranscript");
   const showSkeleton = expanded && loadingTranscript;
-  const transcriptBody = transcript
-    || (transcriptStatus === "empty" ? t("components.voiceBubble.speechNotRecognized") : "")
-    || (transcriptStatus === "unavailable" ? unavailableText : "")
-    || (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "")
-    || (expanded && isDemoMode() ? demoText : "");
+  const transcriptBody =
+    transcript ||
+    (transcriptStatus === "empty" ? t("components.voiceBubble.speechNotRecognized") : "") ||
+    (transcriptStatus === "unavailable" ? unavailableText : "") ||
+    (expanded && !voice.mediaUuid && !isDemoMode() ? unavailableText : "") ||
+    (expanded && isDemoMode() ? demoText : "");
 
   const toggleTranscript = () => {
     setExpanded((open) => {
@@ -175,7 +182,10 @@ export function VoiceBubble({
         audio.pause();
         setPlaying(false);
       } else {
-        void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+        void audio
+          .play()
+          .then(() => setPlaying(true))
+          .catch(() => setPlaying(false));
       }
       return;
     }
@@ -218,16 +228,15 @@ export function VoiceBubble({
   const buttonBg = isMe ? "rgba(255,255,255,0.18)" : "var(--accent-soft)";
 
   return (
-    <div
-      className="shrink-0"
-      style={{ width: BUBBLE_WIDTH, maxWidth: "100%" }}
-    >
+    <div className="shrink-0" style={{ width: BUBBLE_WIDTH, maxWidth: "100%" }}>
       <div className="flex items-center gap-[10px]">
         <button
           onClick={toggle}
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full transition-transform active:scale-95"
           style={{ background: buttonBg, color: fg }}
-          aria-label={playing ? t("components.voiceBubble.pause") : t("components.voiceBubble.play")}
+          aria-label={
+            playing ? t("components.voiceBubble.pause") : t("components.voiceBubble.play")
+          }
         >
           {playing ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: 2 }} />}
         </button>
@@ -247,7 +256,10 @@ export function VoiceBubble({
               );
             })}
           </div>
-          <div className="flex items-center justify-between font-mono text-[10px]" style={{ color: subtle }}>
+          <div
+            className="flex items-center justify-between font-mono text-[10px]"
+            style={{ color: subtle }}
+          >
             <span>{fmt(playing || progress > 0 ? voice.duration * progress : voice.duration)}</span>
             <span>{t("components.voiceBubble.voiceLabel")}</span>
           </div>
@@ -258,14 +270,20 @@ export function VoiceBubble({
         onClick={toggleTranscript}
         className="mt-[8px] flex w-full items-center gap-[6px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors"
         style={{
-          background: isMe ? "rgba(255,255,255,0.12)" : "color-mix(in oklab, var(--accent) 8%, transparent)",
+          background: isMe
+            ? "rgba(255,255,255,0.12)"
+            : "color-mix(in oklab, var(--accent) 8%, transparent)",
           color: fg,
         }}
         aria-expanded={expanded}
       >
         <FileText size={12} style={{ color: subtle, flexShrink: 0 }} />
-        <span className="flex-1 text-[12px] font-medium">{expanded ? t("components.voiceBubble.hideText") : t("components.voiceBubble.showText")}</span>
-        {showSkeleton && <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />}
+        <span className="flex-1 text-[12px] font-medium">
+          {expanded ? t("components.voiceBubble.hideText") : t("components.voiceBubble.showText")}
+        </span>
+        {showSkeleton && (
+          <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />
+        )}
         <ChevronDown
           size={12}
           style={{
@@ -281,7 +299,9 @@ export function VoiceBubble({
         className="overflow-hidden"
         style={{
           height: panelHeight,
-          transition: panelAnimating ? `height ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)` : undefined,
+          transition: panelAnimating
+            ? `height ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`
+            : undefined,
         }}
         onTransitionEnd={(e) => {
           if (e.propertyName !== "height") return;
@@ -297,7 +317,9 @@ export function VoiceBubble({
           ref={transcriptRef}
           className="mt-[6px] rounded-[10px] px-[8px] py-[8px] text-[12px] leading-[1.45]"
           style={{
-            background: isMe ? "rgba(255,255,255,0.10)" : "color-mix(in oklab, var(--accent) 6%, transparent)",
+            background: isMe
+              ? "rgba(255,255,255,0.10)"
+              : "color-mix(in oklab, var(--accent) 6%, transparent)",
             color: transcriptBody && !showSkeleton ? fg : subtle,
             minHeight: showSkeleton ? 52 : undefined,
           }}

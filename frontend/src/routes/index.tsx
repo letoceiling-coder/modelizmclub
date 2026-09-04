@@ -3,9 +3,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowRight, ChevronDown, Plus,
-  Heart, MoreVertical,
-  MapPin, Search, ImageOff,
+  ArrowRight,
+  ChevronDown,
+  Plus,
+  Heart,
+  MoreVertical,
+  MapPin,
+  Search,
+  ImageOff,
 } from "lucide-react";
 import { Icon as SlotIcon, IconBox } from "@/components/ui/Icon";
 import { Logo } from "@/components/Logo";
@@ -16,10 +21,20 @@ import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
 import { useCurrentUser, useSessionResolved } from "@/lib/session";
-import { fetchPopularListings, addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
+import {
+  fetchPopularListings,
+  addFavoriteListing,
+  removeFavoriteListing,
+} from "@/lib/api/listings";
 import { toast } from "@/lib/toast";
 import { fetchLandingStats, formatLandingStat, getCachedLandingStats } from "@/lib/api/landing";
-import { fetchLandingBlocks, getCachedLandingBlocks, sectionBySlug, type LandingCardPublic, type LandingSectionPublic } from "@/lib/api/landing-blocks";
+import {
+  fetchLandingBlocks,
+  getCachedLandingBlocks,
+  sectionBySlug,
+  type LandingCardPublic,
+  type LandingSectionPublic,
+} from "@/lib/api/landing-blocks";
 import { fetchLandingFaq, getCachedLandingFaq, type FaqArticle } from "@/lib/api/content";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
@@ -31,7 +46,12 @@ import cover from "@/assets/cover-modelizm.jpg";
 import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
 import { FirstHundredBanner } from "@/components/FirstHundredBanner";
 import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
-import { footerLinkLabel, groupTitle, resolveFooterHref, useFooterLinksApi } from "@/lib/hooks/useFooterLinks";
+import {
+  footerLinkLabel,
+  groupTitle,
+  resolveFooterHref,
+  useFooterLinksApi,
+} from "@/lib/hooks/useFooterLinks";
 import { blueprintGridOnDark, blueprintGridOnLight, blueprintGridSize } from "@/lib/brand-pattern";
 import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
 import { usePostCategoriesState } from "@/lib/hooks/useCategories";
@@ -71,7 +91,13 @@ function useEnter() {
 
 function LandingPage() {
   return (
-    <div style={{ background: "var(--background)", color: "var(--foreground)", fontFamily: "var(--font-sans)" }}>
+    <div
+      style={{
+        background: "var(--background)",
+        color: "var(--foreground)",
+        fontFamily: "var(--font-sans)",
+      }}
+    >
       <TopNav />
       <Hero />
       <FirstHundredBanner />
@@ -103,10 +129,18 @@ function TopNav() {
       (
         [
           { kind: "route" as const, to: "/ads" as const, label: t("landing.nav.ads") },
-          { kind: "route" as const, to: "/communities" as const, label: t("landing.nav.communities") },
+          {
+            kind: "route" as const,
+            to: "/communities" as const,
+            label: t("landing.nav.communities"),
+          },
           { kind: "route" as const, to: "/channels" as const, label: t("landing.nav.channels") },
           { kind: "hash" as const, href: "#how", label: t("landing.nav.how") },
-          { kind: "route" as const, to: "/subscription" as const, label: t("landing.nav.subscription") },
+          {
+            kind: "route" as const,
+            to: "/subscription" as const,
+            label: t("landing.nav.subscription"),
+          },
         ] as const
       ).filter((l) => l.kind !== "route" || l.to !== "/communities" || communitiesEnabled),
     [t, communitiesEnabled],
@@ -129,15 +163,27 @@ function TopNav() {
         <nav className="landing-nav hidden items-center gap-5 lg:flex">
           {navLinks.map((l) =>
             l.kind === "hash" ? (
-              <a key={l.label} href={l.href} className="landing-nav-link text-sm font-medium transition-colors" style={navLinkStyle}
+              <a
+                key={l.label}
+                href={l.href}
+                className="landing-nav-link text-sm font-medium transition-colors"
+                style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{l.label}</a>
+              >
+                {l.label}
+              </a>
             ) : (
-              <Link key={l.label} to={l.to} className="landing-nav-link text-sm font-medium transition-colors" style={navLinkStyle}
+              <Link
+                key={l.label}
+                to={l.to}
+                className="landing-nav-link text-sm font-medium transition-colors"
+                style={navLinkStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >{l.label}</Link>
+              >
+                {l.label}
+              </Link>
             ),
           )}
         </nav>
@@ -151,7 +197,9 @@ function TopNav() {
                   to="/admin"
                   className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
                   style={{ color: "var(--foreground-70)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "var(--background-surface)")
+                  }
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
                   {t("nav.admin")}
@@ -168,12 +216,20 @@ function TopNav() {
             </>
           ) : (
             <>
-              <Link to={enter.login} className="landing-nav-cta-secondary hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
+              <Link
+                to={enter.login}
+                className="landing-nav-cta-secondary hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
                 style={{ color: "var(--foreground-70)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "var(--background-surface)")
+                }
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >{t("landing.nav.login")}</Link>
-              <Link to={enter.register} className="landing-nav-cta-primary inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:px-[18px] sm:text-sm"
+              >
+                {t("landing.nav.login")}
+              </Link>
+              <Link
+                to={enter.register}
+                className="landing-nav-cta-primary inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:px-[18px] sm:text-sm"
                 style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
               >
                 {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
@@ -190,9 +246,30 @@ function TopNav() {
             style={{ border: "1px solid var(--border)", background: "var(--background-surface)" }}
           >
             <span className="flex flex-col gap-[3px]">
-              <span style={{ width: 16, height: 2, background: "var(--foreground-70)", borderRadius: 2 }} />
-              <span style={{ width: 16, height: 2, background: "var(--foreground-70)", borderRadius: 2 }} />
-              <span style={{ width: 16, height: 2, background: "var(--foreground-70)", borderRadius: 2 }} />
+              <span
+                style={{
+                  width: 16,
+                  height: 2,
+                  background: "var(--foreground-70)",
+                  borderRadius: 2,
+                }}
+              />
+              <span
+                style={{
+                  width: 16,
+                  height: 2,
+                  background: "var(--foreground-70)",
+                  borderRadius: 2,
+                }}
+              />
+              <span
+                style={{
+                  width: 16,
+                  height: 2,
+                  background: "var(--foreground-70)",
+                  borderRadius: 2,
+                }}
+              />
             </span>
           </button>
         </div>
@@ -226,7 +303,9 @@ function TopNav() {
                       setMenuOpen(false);
                       const href = l.href;
                       setTimeout(() => {
-                        document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        document
+                          .querySelector(href)
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" });
                       }, 320);
                     }}
                     className="rounded-lg px-3 py-2.5 text-sm font-medium"
@@ -235,17 +314,34 @@ function TopNav() {
                     {l.label}
                   </a>
                 ) : (
-                  <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium" style={{ color: "var(--foreground)" }}>{l.label}</Link>
+                  <Link
+                    key={l.label}
+                    to={l.to}
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {l.label}
+                  </Link>
                 ),
               )}
               <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
-              <Link to={enter.login} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-semibold sm:hidden" style={{ color: "var(--foreground)" }}>{t("landing.nav.login")}</Link>
+              <Link
+                to={enter.login}
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-semibold sm:hidden"
+                style={{ color: "var(--foreground)" }}
+              >
+                {t("landing.nav.login")}
+              </Link>
               {/* theme — mobile-only entry point, since ThemeToggle itself is
                   hidden below lg everywhere except here (alwaysVisible) and
                   the footer; both read/write the same ThemeProvider state,
                   so toggling here or in the footer stays in sync. */}
               <div className="mt-1 flex items-center justify-between px-3 py-1.5 lg:hidden">
-                <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{t("landing.footer.theme")}</span>
+                <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                  {t("landing.footer.theme")}
+                </span>
                 <ThemeToggle size={32} alwaysVisible />
               </div>
             </div>
@@ -275,7 +371,9 @@ function Hero() {
   const [deferVideo, setDeferVideo] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduce = useReducedMotion();
-  const [stats, setStats] = useState(() => getCachedLandingStats() ?? { users: 0, communities: 0, listing_categories: 0 });
+  const [stats, setStats] = useState(
+    () => getCachedLandingStats() ?? { users: 0, communities: 0, listing_categories: 0 },
+  );
   const [statsReady, setStatsReady] = useState(() => getCachedLandingStats() != null);
   const [allowVideo, setAllowVideo] = useState(false);
   const videoSrc = section?.media_url?.trim() || "";
@@ -299,13 +397,19 @@ function Hero() {
           setStatsReady(true);
         }
       })
-      .catch(() => { if (alive) setStatsReady(true); });
-    return () => { alive = false; };
+      .catch(() => {
+        if (alive) setStatsReady(true);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    const conn = (
+      navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }
+    ).connection;
     const saveData = conn?.saveData === true;
     const slow = !!conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType);
     const bigScreen = window.matchMedia("(min-width: 768px)").matches;
@@ -338,9 +442,16 @@ function Hero() {
 
   const fadeUp = {
     hidden: { opacity: 0, y: 22 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+    },
   };
-  const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } } };
+  const stagger = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } },
+  };
 
   return (
     <section className="relative overflow-hidden" style={{ minHeight: "min(88vh, 760px)" }}>
@@ -362,7 +473,16 @@ function Hero() {
             <source src={sources.mp4} type="video/mp4" />
           </video>
         ) : (
-          <img src={cover} width={1920} height={1080} loading="eager" fetchPriority="high" decoding="async" alt={brand || t("landing.hero.videoAlt")} className="h-full w-full object-cover" />
+          <img
+            src={cover}
+            width={1920}
+            height={1080}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            alt={brand || t("landing.hero.videoAlt")}
+            className="h-full w-full object-cover"
+          />
         )}
         {/* dark overlay — fixed dark color at the bottom, independent of theme
             (var(--background) turned white in light theme and washed out the video).
@@ -372,17 +492,25 @@ function Hero() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)",
+            backgroundImage:
+              "linear-gradient(180deg, rgba(9,11,20,0.55) 0%, rgba(9,11,20,0.72) 55%, rgba(9,11,20,0.92) 100%)",
           }}
         />
       </div>
 
-
       {/* content */}
-      <div className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8" style={{ minHeight: "min(88vh, 760px)" }}>
+      <div
+        className="relative z-10 mx-auto flex max-w-[1240px] flex-col items-start justify-center px-4 md:px-8"
+        style={{ minHeight: "min(88vh, 760px)" }}
+      >
         <AnimatePresence>
           {ready && !heroLoading && (
-            <motion.div variants={stagger} initial={reduce ? "visible" : "hidden"} animate="visible" className="w-full max-w-[720px] py-20">
+            <motion.div
+              variants={stagger}
+              initial={reduce ? "visible" : "hidden"}
+              animate="visible"
+              className="w-full max-w-[720px] py-20"
+            >
               <motion.h1
                 variants={fadeUp}
                 style={{
@@ -399,53 +527,94 @@ function Hero() {
               </motion.h1>
 
               {tagline ? (
-              <motion.p
-                variants={fadeUp}
-                className="landing-hero-tagline mt-4"
-                style={{ fontFamily: "var(--font-display)", fontSize: "clamp(18px, 2.4vw, 26px)", fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}
-              >
-                {tagline}
-              </motion.p>
+                <motion.p
+                  variants={fadeUp}
+                  className="landing-hero-tagline mt-4"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "clamp(18px, 2.4vw, 26px)",
+                    fontWeight: 600,
+                    color: "#fff",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {tagline}
+                </motion.p>
               ) : null}
 
               {subtitle ? (
-              <motion.p
-                variants={fadeUp}
-                className="landing-hero-subtitle mt-4"
-                style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "rgba(235,238,248,0.86)", maxWidth: 560, lineHeight: 1.55 }}
-              >
-                {subtitle}
-              </motion.p>
+                <motion.p
+                  variants={fadeUp}
+                  className="landing-hero-subtitle mt-4"
+                  style={{
+                    fontSize: "clamp(15px, 1.6vw, 18px)",
+                    color: "rgba(235,238,248,0.86)",
+                    maxWidth: 560,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {subtitle}
+                </motion.p>
               ) : null}
 
               {(section?.cards.length ?? 0) > 0 && (
-              <motion.div variants={fadeUp} className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                {section!.cards.map((card, i) => (
-                  <LandingBlockLink
-                    key={card.id}
-                    card={card}
-                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
-                    style={i === 0 ? ctaPrimary : ctaText}
-                  >
-                    {i === 0 ? <Search size={18} /> : null} {card.title}
-                  </LandingBlockLink>
-                ))}
-              </motion.div>
+                <motion.div
+                  variants={fadeUp}
+                  className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+                >
+                  {section!.cards.map((card, i) => (
+                    <LandingBlockLink
+                      key={card.id}
+                      card={card}
+                      className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                      style={i === 0 ? ctaPrimary : ctaText}
+                    >
+                      {i === 0 ? <Search size={18} /> : null} {card.title}
+                    </LandingBlockLink>
+                  ))}
+                </motion.div>
               )}
 
               {statsReady ? (
-              <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
-                {[
-                  { n: formatLandingStat(stats.users), l: t("landing.hero.stats.modelers") },
-                  { n: formatLandingStat(stats.communities), l: t("landing.hero.stats.communities") },
-                  { n: String(stats.listing_categories || 0), l: t("landing.hero.stats.categories") },
-                ].map((s) => (
-                  <div key={s.l}>
-                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 32, color: "#fff", letterSpacing: "-0.025em" }}>{s.n}</div>
-                    <div style={{ fontSize: 12, color: "rgba(235,238,248,0.7)", marginTop: 2, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.l}</div>
-                  </div>
-                ))}
-              </motion.div>
+                <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
+                  {[
+                    { n: formatLandingStat(stats.users), l: t("landing.hero.stats.modelers") },
+                    {
+                      n: formatLandingStat(stats.communities),
+                      l: t("landing.hero.stats.communities"),
+                    },
+                    {
+                      n: String(stats.listing_categories || 0),
+                      l: t("landing.hero.stats.categories"),
+                    },
+                  ].map((s) => (
+                    <div key={s.l}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontWeight: 800,
+                          fontSize: 32,
+                          color: "#fff",
+                          letterSpacing: "-0.025em",
+                        }}
+                      >
+                        {s.n}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "rgba(235,238,248,0.7)",
+                          marginTop: 2,
+                          fontFamily: "var(--font-mono)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        {s.l}
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
               ) : null}
             </motion.div>
           )}
@@ -453,9 +622,24 @@ function Hero() {
       </div>
 
       {/* scroll hint */}
-      <div className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 sm:flex" style={{ color: "rgba(235,238,248,0.6)" }}>
-        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.12em" }}>{t("landing.hero.scroll")}</span>
-        <motion.div animate={{ y: [0, 7, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
+      <div
+        className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 sm:flex"
+        style={{ color: "rgba(235,238,248,0.6)" }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            fontFamily: "var(--font-mono)",
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+          }}
+        >
+          {t("landing.hero.scroll")}
+        </span>
+        <motion.div
+          animate={{ y: [0, 7, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
           <ChevronDown size={20} />
         </motion.div>
       </div>
@@ -463,29 +647,42 @@ function Hero() {
   );
 }
 
-
 const ctaPrimary: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
   borderRadius: "var(--r-pill)",
-  background: "var(--accent)", color: "var(--accent-foreground)", fontWeight: 700,
-  border: "none", cursor: "pointer", boxShadow: "var(--shadow-button)", transition: "background 180ms",
+  background: "var(--accent)",
+  color: "var(--accent-foreground)",
+  fontWeight: 700,
+  border: "none",
+  cursor: "pointer",
+  boxShadow: "var(--shadow-button)",
+  transition: "background 180ms",
 };
 const ctaText: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", justifyContent: "center",
-  height: 54, padding: "0 20px", borderRadius: "var(--r-pill)",
-  background: "transparent", color: "#fff", fontSize: 16, fontWeight: 600,
-  border: "none", cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  height: 54,
+  padding: "0 20px",
+  borderRadius: "var(--r-pill)",
+  background: "transparent",
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: 600,
+  border: "none",
+  cursor: "pointer",
 };
 
 /* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
 
 function useLandingSection(slug: string) {
-  const [section, setSection] = useState<LandingSectionPublic | null>(
-    () => {
-      const cached = getCachedLandingBlocks();
-      return cached ? sectionBySlug(cached, slug) ?? null : null;
-    },
-  );
+  const [section, setSection] = useState<LandingSectionPublic | null>(() => {
+    const cached = getCachedLandingBlocks();
+    return cached ? (sectionBySlug(cached, slug) ?? null) : null;
+  });
   const [loading, setLoading] = useState(() => !getCachedLandingBlocks());
 
   useEffect(() => {
@@ -497,10 +694,18 @@ function useLandingSection(slug: string) {
     }
     let alive = true;
     fetchLandingBlocks()
-      .then((data) => { if (alive) setSection(sectionBySlug(data, slug) ?? null); })
-      .catch(() => { if (alive) setSection(null); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .then((data) => {
+        if (alive) setSection(sectionBySlug(data, slug) ?? null);
+      })
+      .catch(() => {
+        if (alive) setSection(null);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [slug]);
 
   return { section, loading };
@@ -517,9 +722,10 @@ function LandingBlockLink({
   style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
-  const categoryMatch = card.post_category_id != null
-    ? { to: "/categories/$id" as const, params: { id: String(card.post_category_id) } }
-    : null;
+  const categoryMatch =
+    card.post_category_id != null
+      ? { to: "/categories/$id" as const, params: { id: String(card.post_category_id) } }
+      : null;
   const href = card.link_url ?? (categoryMatch ? undefined : "/");
 
   if (categoryMatch) {
@@ -539,7 +745,13 @@ function LandingBlockLink({
   }
 
   return (
-    <a href={href || "#"} className={className} style={style} target="_blank" rel="noopener noreferrer">
+    <a
+      href={href || "#"}
+      className={className}
+      style={style}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       {children}
     </a>
   );
@@ -568,32 +780,52 @@ function QuickSections() {
       <Eyebrow>{section?.eyebrow}</Eyebrow>
       <Title>{section?.title}</Title>
       {section?.subtitle ? (
-      <p className="landing-section-lead mt-3 max-w-[560px]" style={mutedP}>
-        {section.subtitle}
-      </p>
+        <p className="landing-section-lead mt-3 max-w-[560px]" style={mutedP}>
+          {section.subtitle}
+        </p>
       ) : null}
       {loading ? (
-        <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.categories.loading")}</p>
+        <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>
+          {t("landing.categories.loading")}
+        </p>
       ) : (
         <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
-              <LandingBlockLink
-                key={card.id}
-                card={card}
-                className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
-                style={cardStyle}
+            <LandingBlockLink
+              key={card.id}
+              card={card}
+              className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
+              style={cardStyle}
+            >
+              <IconBox size="xl" variant="accent-soft">
+                <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
+              </IconBox>
+              <h3
+                className="landing-quick-title mt-4"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 700,
+                  fontSize: 18,
+                  color: "var(--foreground)",
+                }}
               >
-                <IconBox size="xl" variant="accent-soft">
-                  <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
-                </IconBox>
-                <h3 className="landing-quick-title mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--foreground)" }}>{card.title}</h3>
-                {card.description && (
-                  <p className="landing-quick-desc mt-1.5 flex-1 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{card.description}</p>
-                )}
-                <span className="landing-tap-card-arrow mt-4 inline-flex items-center gap-1 text-sm font-semibold" style={{ color: "var(--accent)" }}>
-                  {t("landing.quick.open")} <ArrowRight size={14} />
-                </span>
-              </LandingBlockLink>
+                {card.title}
+              </h3>
+              {card.description && (
+                <p
+                  className="landing-quick-desc mt-1.5 flex-1 text-sm leading-relaxed"
+                  style={{ color: "var(--foreground-70)" }}
+                >
+                  {card.description}
+                </p>
+              )}
+              <span
+                className="landing-tap-card-arrow mt-4 inline-flex items-center gap-1 text-sm font-semibold"
+                style={{ color: "var(--accent)" }}
+              >
+                {t("landing.quick.open")} <ArrowRight size={14} />
+              </span>
+            </LandingBlockLink>
           ))}
         </div>
       )}
@@ -603,8 +835,7 @@ function QuickSections() {
 
 /* ===================== Popular listings (Avito-like) ===================== */
 
-const CONDITION_COLOR = (c?: string) =>
-  c === "Новое" ? "var(--success)" : "var(--foreground-50)";
+const CONDITION_COLOR = (c?: string) => (c === "Новое" ? "var(--success)" : "var(--foreground-50)");
 
 /* Landing "Популярные объявления" always shows exactly this many cards, so the
  * grid never renders a short/ragged final row. 12 divides evenly into the grid's
@@ -618,7 +849,9 @@ function PopularListings() {
   const { section, loading: sectionLoading } = useLandingSection("listings");
   const loaded = Route.useLoaderData();
   const [items, setItems] = useState<Ad[]>(() => loaded.popular.slice(0, POPULAR_SLOTS));
-  const [loading, setLoading] = useState(() => loaded.popular.length === 0 && typeof window !== "undefined");
+  const [loading, setLoading] = useState(
+    () => loaded.popular.length === 0 && typeof window !== "undefined",
+  );
 
   useEffect(() => {
     if (loaded.popular.length > 0) {
@@ -628,10 +861,18 @@ function PopularListings() {
     }
     let alive = true;
     fetchPopularListings(POPULAR_SLOTS)
-      .then((list) => { if (alive) setItems(list.slice(0, POPULAR_SLOTS)); })
-      .catch(() => { if (alive) setItems([]); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+      .then((list) => {
+        if (alive) setItems(list.slice(0, POPULAR_SLOTS));
+      })
+      .catch(() => {
+        if (alive) setItems([]);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [loaded.popular]);
 
   if (!sectionLoading && !section) return null;
@@ -645,31 +886,43 @@ function PopularListings() {
           <Eyebrow>{section?.eyebrow}</Eyebrow>
           <Title>{section?.title}</Title>
         </div>
-        <Link to="/ads" className="hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
+        <Link
+          to="/ads"
+          className="hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
           style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
-        >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
+        >
+          {t("landing.listings.all")} <ArrowRight size={15} />
+        </Link>
       </div>
 
-      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-6"
-      >
+      <div className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 2xl:grid-cols-6">
         {loading ? (
-          <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.listings.loading")}</p>
+          <p className="col-span-full text-sm" style={{ color: "var(--foreground-50)" }}>
+            {t("landing.listings.loading")}
+          </p>
         ) : (
           <>
             {items.map((ad) => (
               <LandingListingCard key={ad.id} ad={ad} priceLocale={priceLocale} />
             ))}
             {Array.from({ length: items.length === 0 && !loading ? 1 : 0 }).map((_, i) => (
-              <ListingCtaPlaceholder key={`listing-cta-${i}`} label={t("landing.listings.postCta")} />
+              <ListingCtaPlaceholder
+                key={`listing-cta-${i}`}
+                label={t("landing.listings.postCta")}
+              />
             ))}
           </>
         )}
       </div>
 
       <div className="mt-6 text-center sm:hidden">
-        <Link to="/ads" className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-5 py-2.5 text-sm font-semibold"
+        <Link
+          to="/ads"
+          className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-5 py-2.5 text-sm font-semibold"
           style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
-        >{t("landing.listings.all")} <ArrowRight size={15} /></Link>
+        >
+          {t("landing.listings.all")} <ArrowRight size={15} />
+        </Link>
       </div>
     </Section>
   );
@@ -687,10 +940,21 @@ function ListingCtaPlaceholder({ label }: { label: string }) {
       className="group landing-tap-card landing-tap-card--lift flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col items-center justify-center gap-2 overflow-hidden p-6 text-center sm:w-auto sm:max-w-none"
       style={{ ...cardStyle, borderStyle: "dashed" }}
     >
-      <div className="grid place-items-center" style={{ width: 46, height: 46, borderRadius: "var(--r-pill)", background: "var(--accent-soft)", color: "var(--accent)" }}>
+      <div
+        className="grid place-items-center"
+        style={{
+          width: 46,
+          height: 46,
+          borderRadius: "var(--r-pill)",
+          background: "var(--accent-soft)",
+          color: "var(--accent)",
+        }}
+      >
         <Plus size={22} />
       </div>
-      <span className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>{label}</span>
+      <span className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>
+        {label}
+      </span>
     </GuestGuardLink>
   );
 }
@@ -705,7 +969,9 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
   const navigate = useNavigate();
 
   // Build gallery: prefer ad.gallery when it has multiple entries, else use ad.image
-  const rawGallery = (ad.gallery && ad.gallery.length > 0 ? ad.gallery : [ad.image]).filter(Boolean) as string[];
+  const rawGallery = (ad.gallery && ad.gallery.length > 0 ? ad.gallery : [ad.image]).filter(
+    Boolean,
+  ) as string[];
   // Filter out already-errored images for dot indicators but still render them (fallback shown)
   const gallery = rawGallery.length > 0 ? rawGallery : [];
   const hasImages = gallery.length > 0;
@@ -715,7 +981,10 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
     <div
       className="relative flex w-[80vw] max-w-[300px] shrink-0 snap-start flex-col overflow-hidden sm:w-auto sm:max-w-none"
       style={cardStyle}
-      onMouseLeave={() => { setMenuOpen(false); setHovIdx(0); }}
+      onMouseLeave={() => {
+        setMenuOpen(false);
+        setHovIdx(0);
+      }}
     >
       {/* photo */}
       <button
@@ -741,15 +1010,29 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
             onError={() => setImgErrors((prev) => ({ ...prev, [hovIdx]: true }))}
           />
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2" style={{ color: "var(--foreground-30)" }}>
+          <div
+            className="flex h-full w-full flex-col items-center justify-center gap-2"
+            style={{ color: "var(--foreground-30)" }}
+          >
             <ImageOff size={28} />
-            <span style={{ fontSize: 11, color: "var(--foreground-30)" }}>{t("landing.listings.photoSoon")}</span>
+            <span style={{ fontSize: 11, color: "var(--foreground-30)" }}>
+              {t("landing.listings.photoSoon")}
+            </span>
           </div>
         )}
         {canHover && (
           <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
             {gallery.slice(0, 5).map((_, i) => (
-              <span key={i} style={{ width: 14, height: 3, borderRadius: 2, background: i === hovIdx ? "#fff" : "rgba(255,255,255,0.5)", transition: "background 120ms" }} />
+              <span
+                key={i}
+                style={{
+                  width: 14,
+                  height: 3,
+                  borderRadius: 2,
+                  background: i === hovIdx ? "#fff" : "rgba(255,255,255,0.5)",
+                  transition: "background 120ms",
+                }}
+              />
             ))}
           </div>
         )}
@@ -773,12 +1056,21 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
                   return;
                 }
               }
-              toast.success(next ? t("landing.card.favAdd") : t("landing.card.favRemove"), { id: "favorite-toggle" });
+              toast.success(next ? t("landing.card.favAdd") : t("landing.card.favRemove"), {
+                id: "favorite-toggle",
+              });
             })();
           });
         }}
         className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
-        style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: fav ? "#e53935" : "var(--foreground-50)" }}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "var(--r-pill)",
+          background: "var(--background-elevated)",
+          border: "1px solid var(--border)",
+          color: fav ? "#e53935" : "var(--foreground-50)",
+        }}
       >
         <Heart size={16} fill={fav ? "currentColor" : "none"} />
       </button>
@@ -789,39 +1081,83 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
           aria-label={t("landing.card.adMenu")}
           onClick={() => setMenuOpen((v) => !v)}
           className="grid place-items-center"
-          style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", background: "var(--background-elevated)", border: "1px solid var(--border)", color: "var(--foreground-50)" }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "var(--r-pill)",
+            background: "var(--background-elevated)",
+            border: "1px solid var(--border)",
+            color: "var(--foreground-50)",
+          }}
         >
           <MoreVertical size={16} />
         </button>
         {menuOpen && (
-          <div className="absolute left-0 top-[38px] z-20 min-w-[170px] overflow-hidden rounded-[12px] py-1"
-            style={{ background: "var(--background-elevated)", border: "1px solid var(--border)", boxShadow: "var(--shadow-modal)" }}
+          <div
+            className="absolute left-0 top-[38px] z-20 min-w-[170px] overflow-hidden rounded-[12px] py-1"
+            style={{
+              background: "var(--background-elevated)",
+              border: "1px solid var(--border)",
+              boxShadow: "var(--shadow-modal)",
+            }}
           >
-            {[t("landing.card.hide"), t("landing.card.notInterested"), t("landing.card.report")].map((label) => (
-              <button key={label} onClick={() => {
-                setMenuOpen(false);
-                requireAccount(() => {
-                  toast(t("pages.adDetail.featureSoon", { label }));
-                });
-              }}
+            {[
+              t("landing.card.hide"),
+              t("landing.card.notInterested"),
+              t("landing.card.report"),
+            ].map((label) => (
+              <button
+                key={label}
+                onClick={() => {
+                  setMenuOpen(false);
+                  requireAccount(() => {
+                    toast(t("pages.adDetail.featureSoon", { label }));
+                  });
+                }}
                 className="block w-full px-4 py-2.5 text-left text-[13px] transition-colors hover:bg-[color:var(--background-surface-hover,var(--background-surface))]"
                 style={{ color: "var(--foreground)" }}
-              >{label}</button>
+              >
+                {label}
+              </button>
             ))}
           </div>
         )}
       </div>
 
       {/* info */}
-      <button onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })} className="flex flex-1 flex-col p-3 text-left">
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--accent)", letterSpacing: "-0.01em" }}>
+      <button
+        onClick={() => navigate({ to: "/ads/$id", params: { id: ad.id } })}
+        className="flex flex-1 flex-col p-3 text-left"
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 800,
+            fontSize: 16,
+            color: "var(--accent)",
+            letterSpacing: "-0.01em",
+          }}
+        >
           {ad.price.toLocaleString(priceLocale)} ₽
         </div>
-        <div className="mt-1 line-clamp-2 text-[13px] font-medium leading-snug" style={{ color: "var(--foreground)" }}>{ad.title}</div>
-        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-[11px]" style={{ color: "var(--foreground-50)" }}>
-          <span className="inline-flex items-center gap-1"><MapPin size={11} />{ad.city}</span>
+        <div
+          className="mt-1 line-clamp-2 text-[13px] font-medium leading-snug"
+          style={{ color: "var(--foreground)" }}
+        >
+          {ad.title}
+        </div>
+        <div
+          className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-[11px]"
+          style={{ color: "var(--foreground-50)" }}
+        >
+          <span className="inline-flex items-center gap-1">
+            <MapPin size={11} />
+            {ad.city}
+          </span>
           {ad.condition && (
-            <span style={{ color: CONDITION_COLOR(ad.condition), fontWeight: 600 }}>{ad.condition}</span>
+            <span style={{ color: CONDITION_COLOR(ad.condition), fontWeight: 600 }}>
+              {ad.condition}
+            </span>
           )}
         </div>
       </button>
@@ -844,14 +1180,18 @@ function CategoriesSection() {
       <Eyebrow>{section?.eyebrow}</Eyebrow>
       <Title>{section?.title}</Title>
       {loading ? (
-        <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>{t("landing.categories.loading")}</p>
+        <p className="mt-10 text-sm" style={{ color: "var(--foreground-50)" }}>
+          {t("landing.categories.loading")}
+        </p>
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {cards.map((card) => {
             const count = card.listings_count ?? 0;
-            const subs = card.post_category_id != null
-              ? (postCategories.find((c) => c.id === String(card.post_category_id))?.subcategories ?? [])
-              : [];
+            const subs =
+              card.post_category_id != null
+                ? (postCategories.find((c) => c.id === String(card.post_category_id))
+                    ?.subcategories ?? [])
+                : [];
             return (
               <div key={card.id} className="flex flex-col">
                 <LandingBlockLink
@@ -864,17 +1204,28 @@ function CategoriesSection() {
                     variant="elevated"
                     className="h-[36px] w-[36px] shrink-0 transition-colors group-hover:bg-[var(--neutral-700)] group-hover:text-[var(--neutral-50)] sm:h-[42px] sm:w-[42px]"
                   >
-                    <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
+                    <LandingCardIcon
+                      cardId={card.id}
+                      icon={card.icon}
+                      iconUrl={card.icon_url}
+                      fill
+                    />
                   </IconBox>
                   <div className="min-w-0">
                     <div
                       className="text-[13px] font-semibold leading-tight sm:text-sm"
-                      style={{ color: "var(--foreground)", hyphens: "auto", overflowWrap: "break-word" }}
+                      style={{
+                        color: "var(--foreground)",
+                        hyphens: "auto",
+                        overflowWrap: "break-word",
+                      }}
                       lang="ru"
                     >
                       {card.title}
                     </div>
-                    <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>{count} {t("landing.categories.countSuffix")}</div>
+                    <div className="mt-[2px] text-xs" style={{ color: "var(--foreground-50)" }}>
+                      {count} {t("landing.categories.countSuffix")}
+                    </div>
                   </div>
                 </LandingBlockLink>
                 {subs.length > 0 && (
@@ -915,19 +1266,88 @@ function StepsTimeline() {
       <Eyebrow>{section?.eyebrow}</Eyebrow>
       <Title>{section?.title}</Title>
       <div className="relative mt-12">
-        <div aria-hidden className="absolute left-0 right-0 top-[26px] hidden md:block" style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent)" }} />
-        <motion.ol variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }} initial={reduce ? "visible" : "hidden"} whileInView="visible" viewport={{ once: true, margin: "-80px" }} className="grid gap-8 md:grid-cols-3 md:gap-6">
+        <div
+          aria-hidden
+          className="absolute left-0 right-0 top-[26px] hidden md:block"
+          style={{
+            height: 2,
+            background:
+              "linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent)",
+          }}
+        />
+        <motion.ol
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }}
+          initial={reduce ? "visible" : "hidden"}
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          className="grid gap-8 md:grid-cols-3 md:gap-6"
+        >
           {cards.map((card, i) => (
-              <motion.li key={card.id} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } } }} className="relative flex flex-col">
-                <div className="mb-5 flex items-center gap-3 md:flex-col md:items-start">
-                  <div className="relative grid place-items-center" style={{ width: 54, height: 54, borderRadius: "var(--r-pill)", background: "var(--accent)", color: "var(--accent-foreground)", boxShadow: "var(--shadow-button)", zIndex: 1 }}>
-                    <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} size={24} />
-                    <span className="absolute -right-1 -top-1 grid place-items-center rounded-full text-[11px] font-bold" style={{ width: 22, height: 22, background: "var(--background)", color: "var(--accent)", border: "2px solid var(--accent)" }}>{i + 1}</span>
-                  </div>
+            <motion.li
+              key={card.id}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                },
+              }}
+              className="relative flex flex-col"
+            >
+              <div className="mb-5 flex items-center gap-3 md:flex-col md:items-start">
+                <div
+                  className="relative grid place-items-center"
+                  style={{
+                    width: 54,
+                    height: 54,
+                    borderRadius: "var(--r-pill)",
+                    background: "var(--accent)",
+                    color: "var(--accent-foreground)",
+                    boxShadow: "var(--shadow-button)",
+                    zIndex: 1,
+                  }}
+                >
+                  <LandingCardIcon
+                    cardId={card.id}
+                    icon={card.icon}
+                    iconUrl={card.icon_url}
+                    size={24}
+                  />
+                  <span
+                    className="absolute -right-1 -top-1 grid place-items-center rounded-full text-[11px] font-bold"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      background: "var(--background)",
+                      color: "var(--accent)",
+                      border: "2px solid var(--accent)",
+                    }}
+                  >
+                    {i + 1}
+                  </span>
                 </div>
-                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: "var(--foreground)", letterSpacing: "-0.01em" }}>{card.title}</h3>
-                {card.description ? <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--foreground-70)", maxWidth: 320 }}>{card.description}</p> : null}
-              </motion.li>
+              </div>
+              <h3
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 700,
+                  fontSize: 19,
+                  color: "var(--foreground)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {card.title}
+              </h3>
+              {card.description ? (
+                <p
+                  className="mt-2 text-sm leading-relaxed"
+                  style={{ color: "var(--foreground-70)", maxWidth: 320 }}
+                >
+                  {card.description}
+                </p>
+              ) : null}
+            </motion.li>
           ))}
         </motion.ol>
       </div>
@@ -943,7 +1363,11 @@ function PricingSection() {
     <Section bg="var(--background-surface)">
       <Eyebrow>{section?.eyebrow}</Eyebrow>
       <Title>{section?.title}</Title>
-      {section?.subtitle ? <p className="mt-3 max-w-[540px]" style={mutedP}>{section.subtitle}</p> : null}
+      {section?.subtitle ? (
+        <p className="mt-3 max-w-[540px]" style={mutedP}>
+          {section.subtitle}
+        </p>
+      ) : null}
       {/* Mobile keeps the narrow single-card width (max-w-[420px]); desktop
           widens to fit PlanTermSelector's 3-column open-cards layout
           (~230px card x3 + 16px gaps x2). */}
@@ -985,19 +1409,34 @@ function WhyChoose() {
       <Title>{section?.title}</Title>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card, i) => (
-            <div
-              key={card.id}
-              className="flex flex-col p-6"
-              style={
-                i === 0 ? { ...cardStyle, transform: "rotate(-1.2deg)" } : cardStyle
-              }
+          <div
+            key={card.id}
+            className="flex flex-col p-6"
+            style={i === 0 ? { ...cardStyle, transform: "rotate(-1.2deg)" } : cardStyle}
+          >
+            <IconBox size="lg" variant="accent-soft">
+              <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
+            </IconBox>
+            <h3
+              className="mt-4"
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 700,
+                fontSize: 16,
+                color: "var(--foreground)",
+              }}
             >
-              <IconBox size="lg" variant="accent-soft">
-                <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
-              </IconBox>
-              <h3 className="mt-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, color: "var(--foreground)" }}>{card.title}</h3>
-              {card.description ? <p className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{card.description}</p> : null}
-            </div>
+              {card.title}
+            </h3>
+            {card.description ? (
+              <p
+                className="mt-1.5 text-sm leading-relaxed"
+                style={{ color: "var(--foreground-70)" }}
+              >
+                {card.description}
+              </p>
+            ) : null}
+          </div>
         ))}
       </div>
     </Section>
@@ -1030,7 +1469,9 @@ function FaqSection() {
       .finally(() => {
         if (active) setLoaded(true);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (loaded && items.length === 0) return null;
@@ -1044,18 +1485,42 @@ function FaqSection() {
           const isOpen = open === i;
           return (
             <div key={item.id} style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
-              <button onClick={() => setOpen(isOpen ? null : i)} aria-expanded={isOpen}
-                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left" style={{ color: "var(--foreground)" }}>
+              <button
+                onClick={() => setOpen(isOpen ? null : i)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                style={{ color: "var(--foreground)" }}
+              >
                 <span className="text-[15px] font-semibold">{item.question}</span>
-                <span className="grid shrink-0 place-items-center transition-transform"
-                  style={{ width: 28, height: 28, borderRadius: 8, background: "var(--background-surface)", border: "1px solid var(--border)", transform: isOpen ? "rotate(45deg)" : "none", color: "var(--foreground-70)" }}>
+                <span
+                  className="grid shrink-0 place-items-center transition-transform"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: "var(--background-surface)",
+                    border: "1px solid var(--border)",
+                    transform: isOpen ? "rotate(45deg)" : "none",
+                    color: "var(--foreground-70)",
+                  }}
+                >
                   <SlotIcon slot="ui.faq.expand" size={14} inheritColor />
                 </span>
               </button>
               <AnimatePresence initial={false}>
                 {isOpen && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
-                    <div className="px-5 pb-4 text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{item.answer}</div>
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22 }}
+                  >
+                    <div
+                      className="px-5 pb-4 text-sm leading-relaxed"
+                      style={{ color: "var(--foreground-70)" }}
+                    >
+                      {item.answer}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1082,51 +1547,67 @@ function Footer() {
 
   return (
     <footer style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
-      <div className="mx-auto grid gap-10 px-4 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr_1.2fr] md:px-8" style={{ maxWidth: 1240 }}>
+      <div
+        className="mx-auto grid gap-10 px-4 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr_1.2fr] md:px-8"
+        style={{ maxWidth: 1240 }}
+      >
         <div>
           <Logo variant="footer" />
-          {tagline ? <p className="mt-4 max-w-[260px] text-sm leading-relaxed" style={{ color: "var(--foreground-70)" }}>{tagline}</p> : null}
-          <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>© {new Date().getFullYear()} {siteName}</p>
+          {tagline ? (
+            <p
+              className="mt-4 max-w-[260px] text-sm leading-relaxed"
+              style={{ color: "var(--foreground-70)" }}
+            >
+              {tagline}
+            </p>
+          ) : null}
+          <p className="mt-4 text-xs" style={{ color: "var(--foreground-30)" }}>
+            © {new Date().getFullYear()} {siteName}
+          </p>
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs" style={{ color: "var(--foreground-50)" }}>{t("landing.footer.theme")}</span>
+            <span className="text-xs" style={{ color: "var(--foreground-50)" }}>
+              {t("landing.footer.theme")}
+            </span>
             <ThemeToggle size={32} alwaysVisible />
           </div>
         </div>
 
         {apiEntries.map(([group, links]) => (
-              <div key={group}>
-                <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{groupTitle(group, t)}</div>
-                <ul className="mt-4 flex flex-col gap-2.5">
-                  {links.map((l) => {
-                    const href = resolveFooterHref(l);
-                    const label = footerLinkLabel(l.label, t);
-                    return (
-                      <li key={`${group}-${l.id}`}>
-                        {l.target_type === "external" ? (
-                          <a
-                            href={href}
-                            className="text-sm transition-colors"
-                            style={{ color: "var(--foreground-50)" }}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {label}
-                          </a>
-                        ) : (
-                          <Link
-                            to={href}
-                            className="text-sm transition-colors"
-                            style={{ color: "var(--foreground-50)" }}
-                          >
-                            {label}
-                          </Link>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
+          <div key={group}>
+            <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+              {groupTitle(group, t)}
+            </div>
+            <ul className="mt-4 flex flex-col gap-2.5">
+              {links.map((l) => {
+                const href = resolveFooterHref(l);
+                const label = footerLinkLabel(l.label, t);
+                return (
+                  <li key={`${group}-${l.id}`}>
+                    {l.target_type === "external" ? (
+                      <a
+                        href={href}
+                        className="text-sm transition-colors"
+                        style={{ color: "var(--foreground-50)" }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={href}
+                        className="text-sm transition-colors"
+                        style={{ color: "var(--foreground-50)" }}
+                      >
+                        {label}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
 
         <FooterContactsBlock contacts={contacts} title={t("landing.footer.contacts")} />
       </div>
@@ -1164,17 +1645,38 @@ function Section({ children, bg, id }: { children: React.ReactNode; bg: string; 
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest" style={{ color: "var(--accent)" }}>{children}</div>
+    <div
+      className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest"
+      style={{ color: "var(--accent)" }}
+    >
+      {children}
+    </div>
   );
 }
 
 function Title({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mt-3" style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(26px, 3.6vw, 42px)", letterSpacing: "-0.03em", lineHeight: 1.1, color: "var(--foreground)" }}>{children}</h2>
+    <h2
+      className="mt-3"
+      style={{
+        fontFamily: "var(--font-display)",
+        fontWeight: 800,
+        fontSize: "clamp(26px, 3.6vw, 42px)",
+        letterSpacing: "-0.03em",
+        lineHeight: 1.1,
+        color: "var(--foreground)",
+      }}
+    >
+      {children}
+    </h2>
   );
 }
 
-const mutedP: React.CSSProperties = { fontSize: 15, color: "var(--foreground-70)", lineHeight: 1.6 };
+const mutedP: React.CSSProperties = {
+  fontSize: 15,
+  color: "var(--foreground-70)",
+  lineHeight: 1.6,
+};
 
 const cardStyle: React.CSSProperties = {
   background: "var(--background-elevated)",

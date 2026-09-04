@@ -24,10 +24,23 @@ return [
             'large' => 1600,
         ],
         'budgets' => [
-            'thumb' => ['webp' => 40 * 1024, 'jpeg' => 55 * 1024],
-            'card' => ['webp' => 80 * 1024, 'jpeg' => 110 * 1024],
-            'medium' => ['webp' => 180 * 1024, 'jpeg' => 250 * 1024],
-            'large' => ['webp' => 350 * 1024, 'jpeg' => 480 * 1024],
+            'thumb' => ['avif' => 28 * 1024, 'webp' => 40 * 1024, 'jpeg' => 55 * 1024],
+            'card' => ['avif' => 56 * 1024, 'webp' => 80 * 1024, 'jpeg' => 110 * 1024],
+            'medium' => ['avif' => 126 * 1024, 'webp' => 180 * 1024, 'jpeg' => 250 * 1024],
+            'large' => ['avif' => 245 * 1024, 'webp' => 350 * 1024, 'jpeg' => 480 * 1024],
+        ],
+
+        /*
+        | AVIF is encoded in a single pass (no quality ladder): GD's libavif
+        | encoder costs seconds per frame, so retrying it four times per size
+        | would dominate the queue worker. `speed` is libavif's effort knob —
+        | 0 is slowest/smallest, 10 fastest/largest, 6 is the GD default.
+        | Requires PHP built with AVIF support; silently skipped otherwise.
+        */
+        'avif' => [
+            'enabled' => (bool) env('MEDIA_VARIANTS_AVIF', true),
+            'quality' => (int) env('MEDIA_VARIANTS_AVIF_QUALITY', 58),
+            'speed' => (int) env('MEDIA_VARIANTS_AVIF_SPEED', 7),
         ],
         'skip_purposes' => ['icon', 'post_video', 'review_video', 'voice'],
     ],

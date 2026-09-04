@@ -144,10 +144,15 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* total space the fixed bottom nav occupies, incl. iOS home indicator */
   --bottom-nav-space: calc(var(--bottom-nav-h) + var(--safe-bottom));
+  /* Минимальная зона нажатия (WCAG 2.5.5 / iOS HIG). Визуал контрола может
+     быть меньше — зону добирает утилита .hit-target. */
+  --hit-target: 44px;
   /* z-index scale for the shell — header < bottom nav < sheets/toasts < call overlay */
   --z-mobile-header: 30;
   --z-bottom-nav: 40;
-  --z-toaster: 100;
+  /* Выше cookie-баннера (z-[200]): иначе тост «Доступна новая версия»
+     оказывался под ним и до кнопки «Обновить» было не дотянуться. */
+  --z-toaster: 300;
   --z-call-overlay: 10000;
 }
 
@@ -697,4 +702,32 @@ html, body {
 .legal-document strong {
   color: var(--foreground);
   font-weight: 650;
+}
+
+/* Зона нажатия ≥44×44 без изменения визуала (WCAG 2.5.5 / iOS HIG).
+   Псевдоэлемент растягивает только область попадания пальца: размеры,
+   отступы и поток вёрстки остаются прежними. Применяется к компактным
+   размерам кнопок (см. buttonVariants: size="sm" / "icon"). */
+.hit-target {
+  position: relative;
+}
+
+.hit-target::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  min-width: var(--hit-target);
+  min-height: var(--hit-target);
+  transform: translate(-50%, -50%);
+}
+
+/* У выключенного контрола расширенная зона только перехватывала бы нажатия
+   по соседям — гасим её вместе с самим контролом. */
+.hit-target:disabled::after,
+.hit-target[aria-disabled="true"]::after,
+.hit-target[data-disabled]::after {
+  content: none;
 }

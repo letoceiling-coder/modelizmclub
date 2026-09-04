@@ -69,7 +69,10 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
               >
                 Позвонить {peer.name}?
               </h3>
-              <p className="mt-[6px] text-[12px] leading-snug" style={{ color: "var(--foreground-50)" }}>
+              <p
+                className="mt-[6px] text-[12px] leading-snug"
+                style={{ color: "var(--foreground-50)" }}
+              >
                 Защищённое соединение внутри платформы
               </p>
 
@@ -87,7 +90,11 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                   type="button"
                   onClick={() => onConfirm("video")}
                   className="inline-flex h-[44px] flex-1 items-center justify-center gap-[6px] rounded-[10px] border text-[14px] font-semibold transition-transform active:scale-[0.98]"
-                  style={{ background: "var(--background)", color: "var(--foreground)", borderColor: "var(--border)" }}
+                  style={{
+                    background: "var(--background)",
+                    color: "var(--foreground)",
+                    borderColor: "var(--border)",
+                  }}
                 >
                   <Video size={16} />
                   Видео

@@ -1,7 +1,11 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
-import { fetchAdminDeliveryMethods, updateAdminDeliveryMethod, type AdminDeliveryMethodRow } from "@/lib/api/admin";
+import {
+  fetchAdminDeliveryMethods,
+  updateAdminDeliveryMethod,
+  type AdminDeliveryMethodRow,
+} from "@/lib/api/admin";
 import { invalidateDeliveryMethodsCache } from "@/lib/hooks/useDeliveryMethods";
 
 export function DeliveryMethodsAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
@@ -35,7 +39,14 @@ export function DeliveryMethodsAdminCard({ cardStyle }: { cardStyle: CSSProperti
 
   return (
     <div style={{ ...cardStyle, padding: "20px", marginBottom: 16 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: "16px",
+          color: "var(--foreground)",
+        }}
+      >
         {t("pages.adminDeliveryMethods.title")}
       </h4>
       <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: 6 }}>
@@ -43,7 +54,9 @@ export function DeliveryMethodsAdminCard({ cardStyle }: { cardStyle: CSSProperti
       </p>
 
       {loading ? (
-        <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 12 }}>{t("pages.adminCommon.loading")}</p>
+        <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 12 }}>
+          {t("pages.adminCommon.loading")}
+        </p>
       ) : (
         <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
           {rows.map((row) => (
@@ -59,10 +72,14 @@ export function DeliveryMethodsAdminCard({ cardStyle }: { cardStyle: CSSProperti
               }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{row.name}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
+                  {row.name}
+                </div>
                 <div style={{ fontSize: 12, color: "var(--foreground-50)", marginTop: 2 }}>
                   {row.code}
-                  {row.is_integrated ? ` · ${t("pages.adminDeliveryMethods.integrated")}` : ` · ${t("pages.adminDeliveryMethods.labelOnly")}`}
+                  {row.is_integrated
+                    ? ` · ${t("pages.adminDeliveryMethods.integrated")}`
+                    : ` · ${t("pages.adminDeliveryMethods.labelOnly")}`}
                 </div>
               </div>
               <button
@@ -76,7 +93,9 @@ export function DeliveryMethodsAdminCard({ cardStyle }: { cardStyle: CSSProperti
                   border: "1px solid var(--border)",
                 }}
               >
-                {row.is_active ? t("pages.adminDeliveryMethods.active") : t("pages.adminDeliveryMethods.inactive")}
+                {row.is_active
+                  ? t("pages.adminDeliveryMethods.active")
+                  : t("pages.adminDeliveryMethods.inactive")}
               </button>
             </div>
           ))}

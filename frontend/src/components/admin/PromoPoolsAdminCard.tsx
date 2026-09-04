@@ -98,15 +98,28 @@ export function PromoPoolsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
 
   return (
     <div style={{ ...cardStyle, padding: 20, marginBottom: 16 }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, color: "var(--foreground)" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: 16,
+          color: "var(--foreground)",
+        }}
+      >
         Промо-пулы и гранты
       </h4>
       <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 6 }}>
-        Акция вроде «Первые 300 до 31.12.2026». Пауза и завершение останавливают выдачу новым, уже выданные места не снимаются.
+        Акция вроде «Первые 300 до 31.12.2026». Пауза и завершение останавливают выдачу новым, уже
+        выданные места не снимаются.
       </p>
 
-      <div className="mt-4 grid gap-3" style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 14 }}>
-        <strong style={{ fontSize: 13, color: "var(--foreground)" }}>Создать промо-пул подписок</strong>
+      <div
+        className="mt-4 grid gap-3"
+        style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 14 }}
+      >
+        <strong style={{ fontSize: 13, color: "var(--foreground)" }}>
+          Создать промо-пул подписок
+        </strong>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Название</span>
           <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
@@ -129,39 +142,81 @@ export function PromoPoolsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
               {n} мест
             </button>
           ))}
-          <button type="button" onClick={() => setSeats("custom")} style={{
-            ...ghostBtn,
-            background: seats === "custom" ? "var(--accent-soft)" : "transparent",
-            color: seats === "custom" ? "var(--accent)" : "var(--foreground-70)",
-          }}>
+          <button
+            type="button"
+            onClick={() => setSeats("custom")}
+            style={{
+              ...ghostBtn,
+              background: seats === "custom" ? "var(--accent-soft)" : "transparent",
+              color: seats === "custom" ? "var(--accent)" : "var(--foreground-70)",
+            }}
+          >
             Произвольное
           </button>
           {seats === "custom" && (
-            <input type="number" min={1} value={customSeats} onChange={(e) => setCustomSeats(+e.target.value)} style={{ ...inputStyle, width: 100 }} />
+            <input
+              type="number"
+              min={1}
+              value={customSeats}
+              onChange={(e) => setCustomSeats(+e.target.value)}
+              style={{ ...inputStyle, width: 100 }}
+            />
           )}
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            <input type="radio" checked={term === "year_end"} onChange={() => setTerm("year_end")} />
+          <label
+            className="flex items-center gap-2 text-[13px]"
+            style={{ color: "var(--foreground-70)" }}
+          >
+            <input
+              type="radio"
+              checked={term === "year_end"}
+              onChange={() => setTerm("year_end")}
+            />
             До конца года (31.12.2026)
           </label>
-          <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            <input type="radio" checked={term === "months"} onChange={() => setTerm("months")} />
-            N месяцев
+          <label
+            className="flex items-center gap-2 text-[13px]"
+            style={{ color: "var(--foreground-70)" }}
+          >
+            <input type="radio" checked={term === "months"} onChange={() => setTerm("months")} />N
+            месяцев
           </label>
           {term === "months" && (
-            <input type="number" min={1} max={60} value={months} onChange={(e) => setMonths(+e.target.value)} style={{ ...inputStyle, width: 80 }} />
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={months}
+              onChange={(e) => setMonths(+e.target.value)}
+              style={{ ...inputStyle, width: 80 }}
+            />
           )}
-          <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
+          <label
+            className="flex items-center gap-2 text-[13px]"
+            style={{ color: "var(--foreground-70)" }}
+          >
             <input type="radio" checked={term === "date"} onChange={() => setTerm("date")} />
             Дата
           </label>
           {term === "date" && (
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={inputStyle}
+            />
           )}
         </div>
-        <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-70)" }}>
-          <input type="checkbox" checked={autoAssign} onChange={(e) => setAutoAssign(e.target.checked)} />
+        <label
+          className="flex items-center gap-2 text-[13px]"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          <input
+            type="checkbox"
+            checked={autoAssign}
+            onChange={(e) => setAutoAssign(e.target.checked)}
+          />
           Автоматически выдавать новым зарегистрированным
         </label>
         <button type="button" onClick={create} disabled={saving} style={primaryBtn}>
@@ -175,9 +230,14 @@ export function PromoPoolsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
         ) : pools.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Пул ещё не создан.</p>
         ) : (
-          <table className="w-full min-w-[640px] text-left text-[13px]" style={{ borderCollapse: "collapse" }}>
+          <table
+            className="w-full min-w-[640px] text-left text-[13px]"
+            style={{ borderCollapse: "collapse" }}
+          >
             <thead>
-              <tr style={{ color: "var(--foreground-50)", borderBottom: "1px solid var(--border)" }}>
+              <tr
+                style={{ color: "var(--foreground-50)", borderBottom: "1px solid var(--border)" }}
+              >
                 <th className="py-2 pr-3 font-medium">Название</th>
                 <th className="py-2 pr-3 font-medium">Прогресс</th>
                 <th className="py-2 pr-3 font-medium">До</th>
@@ -207,7 +267,11 @@ export function PromoPoolsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
                         <button
                           type="button"
                           style={ghostBtn}
-                          onClick={() => pauseAdminPromoPool(p.uuid).then(reload).catch(() => toast.error("Не удалось приостановить"))}
+                          onClick={() =>
+                            pauseAdminPromoPool(p.uuid)
+                              .then(reload)
+                              .catch(() => toast.error("Не удалось приостановить"))
+                          }
                         >
                           Приостановить
                         </button>
@@ -216,7 +280,11 @@ export function PromoPoolsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
                         <button
                           type="button"
                           style={ghostBtn}
-                          onClick={() => resumeAdminPromoPool(p.uuid).then(reload).catch(() => toast.error("Не удалось возобновить"))}
+                          onClick={() =>
+                            resumeAdminPromoPool(p.uuid)
+                              .then(reload)
+                              .catch(() => toast.error("Не удалось возобновить"))
+                          }
                         >
                           Возобновить
                         </button>
@@ -225,7 +293,11 @@ export function PromoPoolsAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
                         <button
                           type="button"
                           style={ghostBtn}
-                          onClick={() => completeAdminPromoPool(p.uuid).then(reload).catch(() => toast.error("Не удалось завершить"))}
+                          onClick={() =>
+                            completeAdminPromoPool(p.uuid)
+                              .then(reload)
+                              .catch(() => toast.error("Не удалось завершить"))
+                          }
                         >
                           Завершить
                         </button>

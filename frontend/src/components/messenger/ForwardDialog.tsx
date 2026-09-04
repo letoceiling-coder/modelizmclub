@@ -6,8 +6,9 @@ import { forwardMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { Message } from "@/lib/mock";
 import { userById } from "@/lib/mock";
-import { useStore, selectors, actions, upsertMessage } from "@/lib/store";
+import { actions } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
+import { useDialogs, messengerCache } from "@/lib/messenger";
 
 interface Props {
   message: Message | null;
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export function ForwardDialog({ message, onClose }: Props) {
-  const dialogs = useStore(selectors.dialogsList);
+  const { dialogs } = useDialogs();
   const meId = useCurrentUser().id;
   const ref = useRef<HTMLDivElement>(null);
   const open = Boolean(message);
@@ -50,7 +51,7 @@ export function ForwardDialog({ message, onClose }: Props) {
     }
     try {
       const saved = await forwardMessage(targetDialogId, message.id, message.text);
-      upsertMessage(targetDialogId, saved);
+      messengerCache.upsert(targetDialogId, saved);
       toast.success("Сообщение переслано");
       onClose();
     } catch {
@@ -88,8 +89,14 @@ export function ForwardDialog({ message, onClose }: Props) {
               boxShadow: "var(--shadow-float)",
             }}
           >
-            <div className="flex items-center gap-[8px] border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
-              <h3 className="flex-1 font-display text-[16px] font-bold" style={{ color: "var(--foreground)" }}>
+            <div
+              className="flex items-center gap-[8px] border-b px-[16px] py-[12px]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <h3
+                className="flex-1 font-display text-[16px] font-bold"
+                style={{ color: "var(--foreground)" }}
+              >
                 Переслать сообщение
               </h3>
               <button
@@ -103,7 +110,10 @@ export function ForwardDialog({ message, onClose }: Props) {
             </div>
             <ul className="max-h-[360px] overflow-y-auto py-[8px]">
               {dialogs.length === 0 ? (
-                <li className="px-[20px] py-[24px] text-center text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                <li
+                  className="px-[20px] py-[24px] text-center text-[13px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
                   Нет диалогов
                 </li>
               ) : (
@@ -115,8 +125,19 @@ export function ForwardDialog({ message, onClose }: Props) {
                         onClick={() => forwardTo(d.id)}
                         className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)]"
                       >
-                        <img src={u.avatar} width={36} height={36} loading="lazy" decoding="async" alt="" className="h-[36px] w-[36px] rounded-full object-cover" />
-                        <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+                        <img
+                          src={u.avatar}
+                          width={36}
+                          height={36}
+                          loading="lazy"
+                          decoding="async"
+                          alt=""
+                          className="h-[36px] w-[36px] rounded-full object-cover"
+                        />
+                        <span
+                          className="truncate text-[14px] font-semibold"
+                          style={{ color: "var(--foreground)" }}
+                        >
                           {u.name}
                         </span>
                       </button>

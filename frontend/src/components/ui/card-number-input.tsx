@@ -11,7 +11,10 @@ function formatCardNumber(raw: string): string {
  *  digits-only `value` and receive digits-only updates via `onValueChange`. */
 const CardNumberInput = React.forwardRef<
   HTMLInputElement,
-  Omit<InputProps, "type" | "value" | "onChange"> & { value: string; onValueChange: (digits: string) => void }
+  Omit<InputProps, "type" | "value" | "onChange"> & {
+    value: string;
+    onValueChange: (digits: string) => void;
+  }
 >(({ value, onValueChange, ...props }, ref) => (
   <Input
     {...props}

@@ -17,7 +17,9 @@ export function isUserOnline(
   return !Number.isNaN(t) && Date.now() - t <= PRESENCE_ONLINE_MS;
 }
 
-function pluralMinutesKey(n: number): "presence.minute_one" | "presence.minute_few" | "presence.minute_many" {
+function pluralMinutesKey(
+  n: number,
+): "presence.minute_one" | "presence.minute_few" | "presence.minute_many" {
   const mod10 = n % 10;
   const mod100 = n % 100;
   if (mod10 === 1 && mod100 !== 11) return "presence.minute_one";
@@ -25,7 +27,9 @@ function pluralMinutesKey(n: number): "presence.minute_one" | "presence.minute_f
   return "presence.minute_many";
 }
 
-function pluralDaysKey(n: number): "presence.compact.day_one" | "presence.compact.day_few" | "presence.compact.day_many" {
+function pluralDaysKey(
+  n: number,
+): "presence.compact.day_one" | "presence.compact.day_few" | "presence.compact.day_many" {
   const mod10 = n % 10;
   const mod100 = n % 100;
   if (mod10 === 1 && mod100 !== 11) return "presence.compact.day_one";
@@ -33,7 +37,9 @@ function pluralDaysKey(n: number): "presence.compact.day_one" | "presence.compac
   return "presence.compact.day_many";
 }
 
-function pluralWeeksKey(n: number): "presence.compact.week_one" | "presence.compact.week_few" | "presence.compact.week_many" {
+function pluralWeeksKey(
+  n: number,
+): "presence.compact.week_one" | "presence.compact.week_few" | "presence.compact.week_many" {
   const mod10 = n % 10;
   const mod100 = n % 100;
   if (mod10 === 1 && mod100 !== 11) return "presence.compact.week_one";
@@ -139,7 +145,11 @@ export function formatLastSeenCompact(
     return tr("presence.compact.dateAt", { date: shortDate, time });
   }
 
-  const fullDate = seen.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+  const fullDate = seen.toLocaleDateString(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
   return tr("presence.compact.dateFull", { date: fullDate });
 }
 

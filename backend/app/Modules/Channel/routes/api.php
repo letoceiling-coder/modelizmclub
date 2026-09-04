@@ -7,7 +7,7 @@ use Modules\Channel\Http\Controllers\Api\V1\DeleteChannelController;
 use Modules\Channel\Http\Controllers\Api\V1\DeleteChannelPostController;
 use Modules\Channel\Http\Controllers\Api\V1\UpdateChannelController;
 
-Route::prefix('channels')->group(function (): void {
+Route::prefix('channels')->middleware('optionalAuth')->group(function (): void {
     Route::get('/', [ChannelController::class, 'index']);
     Route::get('{slug}', [ChannelController::class, 'show']);
     Route::get('{slug}/posts', [ChannelController::class, 'posts']);

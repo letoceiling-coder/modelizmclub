@@ -58,7 +58,9 @@ export async function fetchPostCategories(): Promise<Category[]> {
     const categories = (res.data ?? []).map((n) => mapCategory(n));
     cache = { categories, byName: indexByName(res.data ?? []) };
     return categories;
-  })().finally(() => { inflight = null; });
+  })().finally(() => {
+    inflight = null;
+  });
   return inflight;
 }
 
@@ -164,6 +166,8 @@ export async function fetchListingCategories(): Promise<Category[]> {
     const res = await api<{ data: ApiCategoryNode[] }>("/categories/listings");
     seedListingCategoryTree(res.data ?? []);
     return listingCache ?? [];
-  })().finally(() => { listingInflight = null; });
+  })().finally(() => {
+    listingInflight = null;
+  });
   return listingInflight;
 }

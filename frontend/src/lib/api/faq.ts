@@ -29,7 +29,10 @@ export async function adminCreateFaqCategory(payload: {
   sort_order?: number;
   is_active?: boolean;
 }): Promise<AdminFaqCategory> {
-  const res = await api<{ data: AdminFaqCategory }>("/admin/faq/categories", { method: "POST", json: payload });
+  const res = await api<{ data: AdminFaqCategory }>("/admin/faq/categories", {
+    method: "POST",
+    json: payload,
+  });
   return res.data;
 }
 
@@ -37,7 +40,10 @@ export async function adminUpdateFaqCategory(
   id: number,
   payload: Partial<{ name: string; slug: string; sort_order: number; is_active: boolean }>,
 ): Promise<AdminFaqCategory> {
-  const res = await api<{ data: AdminFaqCategory }>(`/admin/faq/categories/${id}`, { method: "PATCH", json: payload });
+  const res = await api<{ data: AdminFaqCategory }>(`/admin/faq/categories/${id}`, {
+    method: "PATCH",
+    json: payload,
+  });
   return res.data;
 }
 
@@ -52,7 +58,10 @@ export async function adminCreateFaqArticle(payload: {
   sort_order?: number;
   is_active?: boolean;
 }): Promise<AdminFaqArticle> {
-  const res = await api<{ data: AdminFaqArticle }>("/admin/faq/articles", { method: "POST", json: payload });
+  const res = await api<{ data: AdminFaqArticle }>("/admin/faq/articles", {
+    method: "POST",
+    json: payload,
+  });
   return res.data;
 }
 
@@ -66,7 +75,10 @@ export async function adminUpdateFaqArticle(
     is_active: boolean;
   }>,
 ): Promise<AdminFaqArticle> {
-  const res = await api<{ data: AdminFaqArticle }>(`/admin/faq/articles/${id}`, { method: "PATCH", json: payload });
+  const res = await api<{ data: AdminFaqArticle }>(`/admin/faq/articles/${id}`, {
+    method: "PATCH",
+    json: payload,
+  });
   return res.data;
 }
 
@@ -74,6 +86,8 @@ export async function adminDeleteFaqArticle(id: number): Promise<void> {
   await api(`/admin/faq/articles/${id}`, { method: "DELETE" });
 }
 
-export async function adminReorderFaqArticles(items: { id: number; sort_order: number }[]): Promise<void> {
+export async function adminReorderFaqArticles(
+  items: { id: number; sort_order: number }[],
+): Promise<void> {
   await api("/admin/faq/articles/reorder", { method: "POST", json: { items } });
 }

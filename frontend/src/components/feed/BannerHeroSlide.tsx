@@ -1,10 +1,10 @@
 import type { HTMLAttributes } from "react";
 import { CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Img } from "@/components/ui/Img";
 
 /** Fixed hero height — shared by feed slider and admin WYSIWYG preview (PDF QA Task 11). */
-export const BANNER_HERO_HEIGHT =
-  "h-[200px] overflow-hidden sm:h-[220px] md:h-[240px]";
+export const BANNER_HERO_HEIGHT = "h-[200px] overflow-hidden sm:h-[220px] md:h-[240px]";
 
 /** Shared shape covering both the public `Banner` model and the admin draft/row. */
 export interface BannerHeroSlideData {
@@ -27,10 +27,15 @@ export function BannerHeroSlide({
   onCtaClick,
   ctaDisabled = false,
   ctaPointerProps,
+  priority = false,
 }: {
   banner: BannerHeroSlideData;
   onCtaClick?: () => void;
   ctaDisabled?: boolean;
+  /** LCP candidate — the first hero slide above the fold on /feed. Later slides
+   *  and the admin WYSIWYG preview leave it off so they do not compete with the
+   *  real first paint for bandwidth. */
+  priority?: boolean;
   /** Extra pointer handlers (e.g. stopPropagation) for the CTA button — used to keep the
    *  feed slider's own swipe/drag detection from firing when the CTA is pressed. */
   ctaPointerProps?: HTMLAttributes<HTMLButtonElement>;
@@ -38,15 +43,27 @@ export function BannerHeroSlide({
   const { t } = useTranslation();
   const kindKey = banner.kind ?? "news";
   const KindIcon = kindKey === "event" ? CalendarDays : kindKey === "promo" ? Sparkles : Newspaper;
-  const kindLabel = t(`components.eventsHero.kind${kindKey === "event" ? "Event" : kindKey === "promo" ? "Promo" : "News"}`);
+  const kindLabel = t(
+    `components.eventsHero.kind${kindKey === "event" ? "Event" : kindKey === "promo" ? "Promo" : "News"}`,
+  );
 
   return (
     <>
       <div className="absolute inset-0">
         {banner.image ? (
-          <img src={banner.image} width={1600} height={900} loading="eager" fetchPriority="high" decoding="async" alt="" className="h-full w-full object-cover" />
+          <Img
+            src={banner.image}
+            width={1600}
+            height={900}
+            sizes="(max-width: 768px) 100vw, 720px"
+            priority={priority}
+            alt=""
+            className="h-full w-full object-cover"
+          />
         ) : (
-          <div className={`h-full w-full bg-gradient-to-br ${banner.color ?? "from-slate-600 to-slate-800"}`} />
+          <div
+            className={`h-full w-full bg-gradient-to-br ${banner.color ?? "from-slate-600 to-slate-800"}`}
+          />
         )}
         <div
           className="absolute inset-0"

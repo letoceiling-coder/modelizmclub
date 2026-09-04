@@ -86,7 +86,10 @@ function CardRow({
       dragListener={false}
       dragControls={dragControls}
       className="rounded-[12px] border p-[14px]"
-      style={{ borderColor: "var(--border)", background: card.is_active ? "var(--background-elevated)" : "var(--background-surface)" }}
+      style={{
+        borderColor: "var(--border)",
+        background: card.is_active ? "var(--background-elevated)" : "var(--background-surface)",
+      }}
     >
       <div className="flex items-start gap-[10px]">
         <button
@@ -101,39 +104,75 @@ function CardRow({
           <LandingCardIcon cardId={card.id} icon={card.icon} iconUrl={card.icon_url} fill />
         </IconBox>
         <div className="min-w-0 flex-1 grid gap-[8px]">
-          <input value={card.title} onChange={(e) => onChange({ title: e.target.value })} placeholder={t("pages.adminLandingBlocks.titlePlaceholder")} style={inputStyle} />
+          <input
+            value={card.title}
+            onChange={(e) => onChange({ title: e.target.value })}
+            placeholder={t("pages.adminLandingBlocks.titlePlaceholder")}
+            style={inputStyle}
+          />
           <LandingCardIconField
             icon={card.icon}
             iconUrl={card.icon_url}
-            onChange={(patch) => onChange({
-              ...(patch.icon !== undefined ? { icon: patch.icon } : {}),
-              ...(patch.icon_url !== undefined ? { icon_url: patch.icon_url } : {}),
-            })}
+            onChange={(patch) =>
+              onChange({
+                ...(patch.icon !== undefined ? { icon: patch.icon } : {}),
+                ...(patch.icon_url !== undefined ? { icon_url: patch.icon_url } : {}),
+              })
+            }
           />
           {showDescription && (
-            <textarea value={card.description ?? ""} onChange={(e) => onChange({ description: e.target.value })} placeholder={t("pages.adminLandingBlocks.descriptionPlaceholder")} style={textareaStyle} />
+            <textarea
+              value={card.description ?? ""}
+              onChange={(e) => onChange({ description: e.target.value })}
+              placeholder={t("pages.adminLandingBlocks.descriptionPlaceholder")}
+              style={textareaStyle}
+            />
           )}
-          <input value={card.link_url ?? ""} onChange={(e) => onChange({ link_url: e.target.value })} placeholder={t("pages.adminLandingBlocks.linkPlaceholder")} style={inputStyle} />
+          <input
+            value={card.link_url ?? ""}
+            onChange={(e) => onChange({ link_url: e.target.value })}
+            placeholder={t("pages.adminLandingBlocks.linkPlaceholder")}
+            style={inputStyle}
+          />
           {categories.length > 0 && (
             <select
               value={card.post_category_id ?? ""}
-              onChange={(e) => onChange({ post_category_id: e.target.value ? +e.target.value : null })}
+              onChange={(e) =>
+                onChange({ post_category_id: e.target.value ? +e.target.value : null })
+              }
               style={inputStyle}
             >
               <option value="">{t("pages.adminLandingBlocks.noCategoryBinding")}</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
             </select>
           )}
-          <label className="flex items-center gap-[8px] text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            <input type="checkbox" checked={card.is_active} onChange={(e) => onChange({ is_active: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
+          <label
+            className="flex items-center gap-[8px] text-[13px]"
+            style={{ color: "var(--foreground-70)" }}
+          >
+            <input
+              type="checkbox"
+              checked={card.is_active}
+              onChange={(e) => onChange({ is_active: e.target.checked })}
+              style={{ accentColor: "var(--accent)" }}
+            />
             {t("pages.adminLandingBlocks.showOnHomepage")}
           </label>
         </div>
         <div className="flex flex-col gap-[6px]">
-          <button type="button" onClick={onSave} disabled={saving} style={primaryBtn}>{saving ? "…" : t("pages.adminCommon.save")}</button>
-          <button type="button" onClick={onDelete} style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }} aria-label={t("pages.adminLandingBlocks.deleteAria")}>
+          <button type="button" onClick={onSave} disabled={saving} style={primaryBtn}>
+            {saving ? "…" : t("pages.adminCommon.save")}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }}
+            aria-label={t("pages.adminLandingBlocks.deleteAria")}
+          >
             <Trash2 size={14} />
           </button>
         </div>
@@ -160,11 +199,14 @@ function SectionBlock({
   const { t } = useTranslation();
   const [savingId, setSavingId] = useState<number | null>(null);
   const [savingSection, setSavingSection] = useState(false);
-  const showDescription = section.slug === "ecosystem" || section.slug === "steps" || section.slug === "why";
+  const showDescription =
+    section.slug === "ecosystem" || section.slug === "steps" || section.slug === "why";
   const showMedia = section.slug === "hero";
   const orderedIds = useMemo(() => cards.map((c) => c.id), [cards]);
 
-  const sectionLabel = t(`pages.adminLandingBlocks.sectionLabels.${section.slug}`, { defaultValue: section.slug });
+  const sectionLabel = t(`pages.adminLandingBlocks.sectionLabels.${section.slug}`, {
+    defaultValue: section.slug,
+  });
 
   const patchCard = (id: number, patch: Partial<AdminLandingCard>) => {
     onCardsChange(cards.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -233,31 +275,68 @@ function SectionBlock({
 
   return (
     <div style={{ display: "grid", gap: "14px" }}>
-      <h4 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--foreground)" }}>
+      <h4
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 600,
+          fontSize: "16px",
+          color: "var(--foreground)",
+        }}
+      >
         {sectionLabel}
       </h4>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
         <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.eyebrowLabel")}</span>
-          <input value={section.eyebrow ?? ""} onChange={(e) => onSectionChange({ eyebrow: e.target.value })} style={inputStyle} />
+          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+            {t("pages.adminLandingBlocks.eyebrowLabel")}
+          </span>
+          <input
+            value={section.eyebrow ?? ""}
+            onChange={(e) => onSectionChange({ eyebrow: e.target.value })}
+            style={inputStyle}
+          />
         </label>
         <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.blockTitleLabel")}</span>
-          <input value={section.title} onChange={(e) => onSectionChange({ title: e.target.value })} style={inputStyle} />
+          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+            {t("pages.adminLandingBlocks.blockTitleLabel")}
+          </span>
+          <input
+            value={section.title}
+            onChange={(e) => onSectionChange({ title: e.target.value })}
+            style={inputStyle}
+          />
         </label>
         <label className="md:col-span-2" style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.subtitleLabel")}</span>
-          <textarea value={section.subtitle ?? ""} onChange={(e) => onSectionChange({ subtitle: e.target.value })} style={textareaStyle} />
+          <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+            {t("pages.adminLandingBlocks.subtitleLabel")}
+          </span>
+          <textarea
+            value={section.subtitle ?? ""}
+            onChange={(e) => onSectionChange({ subtitle: e.target.value })}
+            style={textareaStyle}
+          />
         </label>
         {showMedia && (
           <label className="md:col-span-2" style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>{t("pages.adminLandingBlocks.mediaUrlLabel")}</span>
-            <input value={section.media_url ?? ""} onChange={(e) => onSectionChange({ media_url: e.target.value })} placeholder="/videos/herovideo.mp4" style={inputStyle} />
+            <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
+              {t("pages.adminLandingBlocks.mediaUrlLabel")}
+            </span>
+            <input
+              value={section.media_url ?? ""}
+              onChange={(e) => onSectionChange({ media_url: e.target.value })}
+              placeholder="/videos/herovideo.mp4"
+              style={inputStyle}
+            />
           </label>
         )}
         <label className="flex items-center gap-[8px]" style={{ height: 40 }}>
-          <input type="checkbox" checked={section.is_enabled} onChange={(e) => onSectionChange({ is_enabled: e.target.checked })} style={{ accentColor: "var(--accent)" }} />
+          <input
+            type="checkbox"
+            checked={section.is_enabled}
+            onChange={(e) => onSectionChange({ is_enabled: e.target.checked })}
+            style={{ accentColor: "var(--accent)" }}
+          />
           <span style={{ fontSize: "13px" }}>{t("pages.adminLandingBlocks.blockEnabled")}</span>
         </label>
       </div>
@@ -278,15 +357,26 @@ function SectionBlock({
         }}
         style={{ ...primaryBtn, width: "fit-content" }}
       >
-        {savingSection ? t("pages.adminLandingBlocks.saving") : t("pages.adminLandingBlocks.saveSectionHeaders")}
+        {savingSection
+          ? t("pages.adminLandingBlocks.saving")
+          : t("pages.adminLandingBlocks.saveSectionHeaders")}
       </button>
 
       <div className="flex items-center justify-between gap-[8px]">
-        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminLandingBlocks.dragHint")}</p>
-        <button type="button" onClick={addCard} style={ghostBtn}><Plus size={14} className="inline mr-1" /> {t("pages.adminCommon.add")}</button>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+          {t("pages.adminLandingBlocks.dragHint")}
+        </p>
+        <button type="button" onClick={addCard} style={ghostBtn}>
+          <Plus size={14} className="inline mr-1" /> {t("pages.adminCommon.add")}
+        </button>
       </div>
 
-      <Reorder.Group axis="y" values={orderedIds} onReorder={onReorder} className="flex flex-col gap-[10px]">
+      <Reorder.Group
+        axis="y"
+        values={orderedIds}
+        onReorder={onReorder}
+        className="flex flex-col gap-[10px]"
+      >
         {cards.map((card) => (
           <CardRow
             key={card.id}
@@ -330,7 +420,9 @@ export function LandingBlocksAdminCard({ cardStyle }: { cardStyle: CSSProperties
   if (loading) {
     return (
       <div style={{ ...cardStyle, padding: "24px" }}>
-        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>{t("pages.adminCommon.loading")}</p>
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
+          {t("pages.adminCommon.loading")}
+        </p>
       </div>
     );
   }
@@ -342,7 +434,11 @@ export function LandingBlocksAdminCard({ cardStyle }: { cardStyle: CSSProperties
           <SectionBlock
             section={section}
             cards={cardsFor(section.slug)}
-            onSectionChange={(patch) => setSections((prev) => prev.map((s) => (s.slug === section.slug ? { ...s, ...patch } : s)))}
+            onSectionChange={(patch) =>
+              setSections((prev) =>
+                prev.map((s) => (s.slug === section.slug ? { ...s, ...patch } : s)),
+              )
+            }
             onSaveSection={() =>
               updateAdminLandingSection(section.slug, {
                 eyebrow: section.eyebrow,

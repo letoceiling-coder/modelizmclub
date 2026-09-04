@@ -17,6 +17,19 @@ import { GUEST_USER } from "./store";
 import { subscribeCalls, onEchoConnection } from "./realtime/echo";
 import { initLogger, logEvent, setLogCall } from "./logger";
 import { handleGroupInvite } from "./groupCall";
+
+/** One RTCStatsReport row — the spec types it as a bag of optional fields. */
+type StatsEntry = {
+  type?: string;
+  id?: string;
+  selected?: boolean;
+  nominated?: boolean;
+  state?: string;
+  localCandidateId?: string;
+  remoteCandidateId?: string;
+  bytesReceived?: number;
+  [k: string]: unknown;
+};
 import {
   bindCallAudioUnlock,
   unlockCallAudio,
@@ -250,18 +263,15 @@ async function logSelectedPair(reason: string): Promise<void> {
   if (!pc) return;
   try {
     const stats = await pc.getStats();
-    let local: any = null;
-    let remote: any = null;
-    let pair: any = null;
-    stats.forEach((r: any) => {
-      if (r.type === "candidate-pair" && (r.selected || r.nominated) && r.state === "succeeded") pair = r;
-    });
-    if (pair) {
-      stats.forEach((r: any) => {
-        if (r.id === pair.localCandidateId) local = r;
-        if (r.id === pair.remoteCandidateId) remote = r;
-      });
-    }
+    const rows: StatsEntry[] = [];
+    stats.forEach((r: StatsEntry) => rows.push(r));
+    const pair =
+      rows.find(
+        (r) =>
+          r.type === "candidate-pair" && (r.selected || r.nominated) && r.state === "succeeded",
+      ) ?? null;
+    const local = pair ? (rows.find((r) => r.id === pair.localCandidateId) ?? null) : null;
+    const remote = pair ? (rows.find((r) => r.id === pair.remoteCandidateId) ?? null) : null;
     logEvent("info", "calls", `ice pair (${reason})`, {
       ice: pc.iceConnectionState,
       conn: pc.connectionState,
@@ -460,7 +470,7 @@ async function checkMediaAlive(): Promise<void> {
   try {
     const stats = await pc.getStats();
     let inbound = 0;
-    stats.forEach((r: any) => {
+    stats.forEach((r: StatsEntry) => {
       if (r.type === "inbound-rtp") inbound += r.bytesReceived ?? 0;
     });
     if (inbound > lastInboundBytes) {
@@ -479,7 +489,7 @@ async function checkMediaAlive(): Promise<void> {
 
 /** Try opening the camera with progressively looser constraints. */
 async function tryAcquireVideoTrack(): Promise<MediaStreamTrack | null> {
-  const attempts: MediaTrackConstraints[] = [
+  const attempts: Array<MediaTrackConstraints | boolean> = [
     { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
     { facingMode: { ideal: "user" }, width: { ideal: 1280 }, height: { ideal: 720 } },
     { facingMode: "user" },
@@ -542,10 +552,17 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: wantVideo ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
+      video: wantVideo
+        ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+        : false,
     });
     currentFacing = "user";
-    setState({ localStream: stream, muted: false, cameraOff: false, canSwitchSpeaker: speakerRoutingSupported() });
+    setState({
+      localStream: stream,
+      muted: false,
+      cameraOff: false,
+      canSwitchSpeaker: speakerRoutingSupported(),
+    });
     if (wantVideo) void detectMultipleCameras();
     return stream;
   } catch (err) {
@@ -580,7 +597,12 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
         if (nameAudio === "NotFoundError" || name === "NotFoundError") {
           clog("getMedia: no input devices — receive-only mode");
           toast.info("Нет микрофона/камеры — режим только приёма");
-          setState({ localStream: null, muted: true, cameraOff: true, canSwitchSpeaker: speakerRoutingSupported() });
+          setState({
+            localStream: null,
+            muted: true,
+            cameraOff: true,
+            canSwitchSpeaker: speakerRoutingSupported(),
+          });
           return null;
         }
         throw errAudio;
@@ -588,14 +610,24 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      setState({ localStream: stream, muted: false, cameraOff: true, canSwitchSpeaker: speakerRoutingSupported() });
+      setState({
+        localStream: stream,
+        muted: false,
+        cameraOff: true,
+        canSwitchSpeaker: speakerRoutingSupported(),
+      });
       return stream;
     } catch (err2) {
       const name2 = (err2 as { name?: string })?.name ?? "";
       if (name2 === "NotFoundError" || name === "NotFoundError") {
         clog("getMedia: no input devices — receive-only mode");
         toast.info("Нет микрофона/камеры — режим только приёма");
-        setState({ localStream: null, muted: true, cameraOff: true, canSwitchSpeaker: speakerRoutingSupported() });
+        setState({
+          localStream: null,
+          muted: true,
+          cameraOff: true,
+          canSwitchSpeaker: speakerRoutingSupported(),
+        });
         return null;
       }
       throw err2;
@@ -609,7 +641,9 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
  * makes Chrome reject the last `a=ssrc:` line with "Invalid SDP line".
  * We rebuild canonical `\r\n` endings and guarantee a trailing CRLF.
  */
-function normalizeSdp(desc: RTCSessionDescriptionInit | undefined | null): RTCSessionDescriptionInit | null {
+function normalizeSdp(
+  desc: RTCSessionDescriptionInit | undefined | null,
+): RTCSessionDescriptionInit | null {
   if (!desc || typeof desc.sdp !== "string") return (desc as RTCSessionDescriptionInit) ?? null;
   const lines = desc.sdp
     .replace(/\r\n/g, "\n")
@@ -624,7 +658,16 @@ function normalizeSdp(desc: RTCSessionDescriptionInit | undefined | null): RTCSe
 async function setRemote(desc: RTCSessionDescriptionInit): Promise<void> {
   if (!pc) return;
   const raw = desc?.sdp ?? "";
-  clog("setRemote", desc?.type, "len=", raw.length, "endsCRLF=", raw.endsWith("\r\n"), "hasCR=", raw.includes("\r"));
+  clog(
+    "setRemote",
+    desc?.type,
+    "len=",
+    raw.length,
+    "endsCRLF=",
+    raw.endsWith("\r\n"),
+    "hasCR=",
+    raw.includes("\r"),
+  );
   const fixed = normalizeSdp(desc);
   if (!fixed) throw new Error("Empty SDP");
   await pc.setRemoteDescription(fixed);
@@ -696,7 +739,16 @@ function flushPendingLocalIce(callId: string): void {
 /** Close the call locally, emit a history record and auto-dismiss the screen. */
 function finish(result: CallResult): void {
   const active = state.active;
-  clog("finish()", result, "status=", active?.status, "ice=", pc?.iceConnectionState, "conn=", pc?.connectionState);
+  clog(
+    "finish()",
+    result,
+    "status=",
+    active?.status,
+    "ice=",
+    pc?.iceConnectionState,
+    "conn=",
+    pc?.connectionState,
+  );
   if (!active || active.status === "ended") {
     stopCallSounds();
     teardownMedia();
@@ -741,12 +793,24 @@ function finish(result: CallResult): void {
   dismissTimer = setTimeout(() => setState({ active: null }), AUTO_DISMISS_MS);
 }
 
+// The signal payload is shaped by the server per `type`; each branch below narrows it.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleSignal(payload: { type: string; [k: string]: any }): Promise<void> {
   const type = payload.type;
-  clog("signal IN", type, "call=", payload.call_uuid, "myActive=", state.active?.id, state.active?.status);
+  clog(
+    "signal IN",
+    type,
+    "call=",
+    payload.call_uuid,
+    "myActive=",
+    state.active?.id,
+    state.active?.status,
+  );
 
   if (type === "group_invite") {
-    handleGroupInvite(payload as { room?: string; media?: string; title?: string; from?: { name?: string } });
+    handleGroupInvite(
+      payload as { room?: string; media?: string; title?: string; from?: { name?: string } },
+    );
     return;
   }
 
@@ -842,7 +906,9 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
     patchActive({ status: "reconnecting" });
     try {
       if (pc.signalingState !== "stable") {
-        await pc.setLocalDescription({ type: "rollback" } as RTCLocalSessionDescriptionInit).catch(() => {});
+        await pc
+          .setLocalDescription({ type: "rollback" } as RTCLocalSessionDescriptionInit)
+          .catch(() => {});
       }
       await setRemote(payload.sdp as RTCSessionDescriptionInit);
       remoteDescSet = true;
@@ -886,6 +952,7 @@ function dismissSilently(): void {
 }
 
 export function ingestCallSignal(payload: { type: string; [k: string]: unknown }): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   void handleSignal(payload as { type: string; [k: string]: any });
 }
 
@@ -941,7 +1008,10 @@ export const calls = {
       const stream = await getMedia(media);
       pc = await buildPc();
       attachLocalMedia(stream, media);
-      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: media === "video" });
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: media === "video",
+      });
       await pc.setLocalDescription(offer);
       const callUuid = await initiateCall({ to: peerUuid, media, sdp: offer });
       // Callee may have declined while HTTP was in flight — reject already handled via WS.
@@ -950,7 +1020,7 @@ export const calls = {
         return;
       }
       patchActive({ id: callUuid });
-      if (!state.active || state.active.status === "ended") return;
+      if (!state.active) return;
       flushPendingLocalIce(callUuid);
       startRingback();
       ringTimer = setTimeout(() => finish("missed"), RING_TIMEOUT_MS);

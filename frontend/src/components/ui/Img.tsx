@@ -2,7 +2,10 @@ import * as React from "react";
 
 type NativeImgProps = React.ImgHTMLAttributes<HTMLImageElement>;
 
-export interface ImgProps extends Omit<NativeImgProps, "width" | "height" | "loading" | "decoding"> {
+export interface ImgProps extends Omit<
+  NativeImgProps,
+  "width" | "height" | "loading" | "decoding"
+> {
   /**
    * Intrinsic size — required. The browser reserves the box from these before
    * the bytes arrive, which is what keeps CLS at zero; CSS (object-cover,

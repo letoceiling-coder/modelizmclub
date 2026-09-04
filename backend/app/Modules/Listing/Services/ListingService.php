@@ -399,6 +399,16 @@ class ListingService
                 $this->syncMedia($listing, $user, $data['media_ids'] ?? []);
             }
 
+            // Any edit of a live (or previously rejected) listing must be reviewed again
+            // before it is visible in the catalog. See docs/qa/modelizm-43-fixes.md #10.
+            if (in_array($listing->status, [ListingStatus::Published, ListingStatus::Revision], true)) {
+                $listing->update([
+                    'status' => ListingStatus::PendingModeration,
+                    'published_at' => null,
+                ]);
+                $this->enqueueModeration($listing);
+            }
+
             return $listing->fresh($this->relations());
         });
     }

@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { useStore, selectors, actions } from "@/lib/store";
+import { actions } from "@/lib/store";
 import { userById } from "@/lib/mock";
 import { sendPostShareMessage } from "@/lib/api/chat";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
+import { useDialogs } from "@/lib/messenger";
 
 interface Props {
   postId: string;
@@ -27,7 +28,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const dialogs = useStore(selectors.dialogsList);
+  const { dialogs } = useDialogs();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -113,7 +114,9 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
       <button
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors disabled:pointer-events-none disabled:opacity-45"
+        // min-h/min-w bring the 36×28 icon button up to a 44px tap target;
+        // the icon and its counter keep the size and spacing they had.
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors disabled:pointer-events-none disabled:opacity-45"
         style={{
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",
@@ -142,10 +145,27 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
           >
             {view === "main" && (
               <>
-                <Item onClick={repostToFeed} icon={Repeat2} label={reposted ? t("components.repostMenu.undoRepost") : t("components.repostMenu.repostToFeed")} accent />
-                <Item onClick={openChats} icon={MessageSquare} label={t("components.repostMenu.sendToMessages")} />
+                <Item
+                  onClick={repostToFeed}
+                  icon={Repeat2}
+                  label={
+                    reposted
+                      ? t("components.repostMenu.undoRepost")
+                      : t("components.repostMenu.repostToFeed")
+                  }
+                  accent
+                />
+                <Item
+                  onClick={openChats}
+                  icon={MessageSquare}
+                  label={t("components.repostMenu.sendToMessages")}
+                />
                 <div className="border-t" style={{ borderColor: "var(--border)" }} />
-                <Item onClick={() => setView("share")} icon={Share2} label={t("components.repostMenu.share")} />
+                <Item
+                  onClick={() => setView("share")}
+                  icon={Share2}
+                  label={t("components.repostMenu.share")}
+                />
               </>
             )}
             {view === "share" && (
@@ -169,7 +189,9 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
                 <Item
                   onClick={copyLink}
                   icon={copied ? Check : Link2}
-                  label={copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")}
+                  label={
+                    copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")
+                  }
                   accent={copied}
                 />
               </div>
@@ -182,11 +204,15 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
                   className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
                   style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
                 >
-                  <ArrowLeft className="h-[14px] w-[14px]" /> {t("components.repostMenu.whereToSend")}
+                  <ArrowLeft className="h-[14px] w-[14px]" />{" "}
+                  {t("components.repostMenu.whereToSend")}
                 </button>
                 <div className="max-h-[280px] overflow-y-auto">
                   {dialogs.length === 0 ? (
-                    <div className="px-[14px] py-[16px] text-center text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                    <div
+                      className="px-[14px] py-[16px] text-center text-[12px]"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
                       {t("components.repostMenu.noDialogs")}
                     </div>
                   ) : (
@@ -199,8 +225,18 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
                           onClick={() => sendToChat(d.id, u.name)}
                           className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                         >
-                          <img src={u.avatar} width={28} height={28} loading="lazy" decoding="async" alt="" className="h-[28px] w-[28px] rounded-full object-cover" />
-                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>{u.name}</span>
+                          <img
+                            src={u.avatar}
+                            width={28}
+                            height={28}
+                            loading="lazy"
+                            decoding="async"
+                            alt=""
+                            className="h-[28px] w-[28px] rounded-full object-cover"
+                          />
+                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>
+                            {u.name}
+                          </span>
                         </button>
                       );
                     })
@@ -233,7 +269,10 @@ function Item({
       className="flex w-full items-center gap-[10px] px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: "var(--foreground)" }}
     >
-      <Icon className="h-[16px] w-[16px]" style={{ color: accent ? "var(--accent)" : "var(--foreground-70)" }} />
+      <Icon
+        className="h-[16px] w-[16px]"
+        style={{ color: accent ? "var(--accent)" : "var(--foreground-70)" }}
+      />
       {label}
     </button>
   );

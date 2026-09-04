@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "@/lib/toast";
-import {
-  getReferralLink,
-  REFERRAL_MAX_BONUS,
-  REFERRAL_BONUS_PER_INVITE,
-} from "@/lib/referral";
+import { getReferralLink, REFERRAL_MAX_BONUS, REFERRAL_BONUS_PER_INVITE } from "@/lib/referral";
 import { useReferral } from "@/lib/api/referral";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -43,7 +39,8 @@ function InviteHeader({ perInvite, maxBonus }: { perInvite: number; maxBonus: nu
           Пригласи друга
         </h3>
         <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-          +{perInvite} бесплатное объявление за каждого друга с подтверждённым телефоном. Максимум — {maxBonus} объявлений.
+          +{perInvite} бесплатное объявление за каждого друга с подтверждённым телефоном. Максимум —{" "}
+          {maxBonus} объявлений.
         </p>
       </div>
     </div>
@@ -82,10 +79,18 @@ function InviteGuestCta() {
   if (!ready || !cfg.enabled) return null;
 
   return (
-    <section id={ROUTES.subscriptionInviteHash} className="mt-[40px] scroll-mt-[24px]" style={sectionStyle}>
+    <section
+      id={ROUTES.subscriptionInviteHash}
+      className="mt-[40px] scroll-mt-[24px]"
+      style={sectionStyle}
+    >
       <InviteHeader perInvite={cfg.perInvite} maxBonus={cfg.maxBonus} />
-      <p className="mt-[16px] text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-        Войдите или создайте аккаунт, чтобы получить персональную реферальную ссылку и бонусы за приглашённых друзей.
+      <p
+        className="mt-[16px] text-[14px] leading-relaxed"
+        style={{ color: "var(--foreground-70)" }}
+      >
+        Войдите или создайте аккаунт, чтобы получить персональную реферальную ссылку и бонусы за
+        приглашённых друзей.
       </p>
       <div className="mt-[16px] flex flex-wrap gap-[10px]">
         <Link
@@ -143,7 +148,10 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
   };
 
   const share = async () => {
-    if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (d: ShareData) => Promise<void> }).share) {
+    if (
+      typeof navigator !== "undefined" &&
+      (navigator as Navigator & { share?: (d: ShareData) => Promise<void> }).share
+    ) {
       try {
         await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({
           title: "МоДелизМ Клуб",
@@ -159,7 +167,11 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
   };
 
   return (
-    <section id={ROUTES.subscriptionInviteHash} className="mt-[40px] scroll-mt-[24px]" style={sectionStyle}>
+    <section
+      id={ROUTES.subscriptionInviteHash}
+      className="mt-[40px] scroll-mt-[24px]"
+      style={sectionStyle}
+    >
       <InviteHeader perInvite={perInvite} maxBonus={maxBonus} />
 
       <div

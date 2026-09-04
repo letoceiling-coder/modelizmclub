@@ -59,6 +59,9 @@ export async function fetchLandingBlocks(): Promise<LandingBlocksPublic> {
   return inflight;
 }
 
-export function sectionBySlug(data: LandingBlocksPublic, slug: string): LandingSectionPublic | undefined {
+export function sectionBySlug(
+  data: LandingBlocksPublic,
+  slug: string,
+): LandingSectionPublic | undefined {
   return data.sections.find((s) => s.slug === slug);
 }

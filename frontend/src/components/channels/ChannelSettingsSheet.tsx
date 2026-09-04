@@ -25,9 +25,7 @@ export function ChannelSettingsSheet({ open, onOpenChange, channel, onUpdated, o
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>{t("components.channelManage.settingsTitle")}</SheetTitle>
-          <SheetDescription>
-            {t("components.channelManage.settingsDesc")}
-          </SheetDescription>
+          <SheetDescription>{t("components.channelManage.settingsDesc")}</SheetDescription>
         </SheetHeader>
         <div className="mt-6 pb-8">
           <ChannelManagePanel

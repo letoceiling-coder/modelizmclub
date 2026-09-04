@@ -36,10 +36,23 @@ export const Route = createFileRoute("/notifications")({
 });
 
 function iconFor(type: string) {
-  if (type === "friend_request" || type === "friend_accept" || type === "friend_requests" || type === "followers") return UserPlus;
+  if (
+    type === "friend_request" ||
+    type === "friend_accept" ||
+    type === "friend_requests" ||
+    type === "followers"
+  )
+    return UserPlus;
   if (type === "message" || type === "messages" || type === "comments") return MessageSquare;
   if (type === "call" || type === "calls") return Phone;
-  if (type === "system" || type === "moderation" || type === "promo" || type === "listings" || type === "deals") return Megaphone;
+  if (
+    type === "system" ||
+    type === "moderation" ||
+    type === "promo" ||
+    type === "listings" ||
+    type === "deals"
+  )
+    return Megaphone;
   return Bell;
 }
 
@@ -81,7 +94,10 @@ function NotificationItem({
           {n.title}
         </div>
         {n.body && (
-          <div className="mt-[2px] line-clamp-2" style={{ fontSize: "13px", color: "var(--foreground-70)" }}>
+          <div
+            className="mt-[2px] line-clamp-2"
+            style={{ fontSize: "13px", color: "var(--foreground-70)" }}
+          >
             {n.body}
           </div>
         )}
@@ -266,13 +282,24 @@ function NotificationsPage() {
       <div className="mx-auto w-full max-w-[640px] px-[8px] py-[16px]">
         <div className="mb-[16px] flex flex-col gap-[10px] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-[10px]">
-            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "22px", color: "var(--foreground)" }}>
+            <h1
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 700,
+                fontSize: "22px",
+                color: "var(--foreground)",
+              }}
+            >
               {t("pages.notifications.title")}
             </h1>
             {unread > 0 && (
               <span
                 className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[6px] text-[11px] font-bold"
-                style={{ background: "var(--accent)", color: "white", borderRadius: "var(--r-pill)" }}
+                style={{
+                  background: "var(--accent)",
+                  color: "white",
+                  borderRadius: "var(--r-pill)",
+                }}
               >
                 {unread}
               </span>
@@ -290,7 +317,9 @@ function NotificationsPage() {
                   aria-label={t("pages.notifications.markAllRead")}
                 >
                   <CheckCheck size={15} />
-                  <span className="hidden min-[360px]:inline">{t("pages.notifications.markAllRead")}</span>
+                  <span className="hidden min-[360px]:inline">
+                    {t("pages.notifications.markAllRead")}
+                  </span>
                 </Button>
               )}
               <Button
@@ -302,7 +331,9 @@ function NotificationsPage() {
                 aria-label={t("pages.notifications.clearAll")}
               >
                 <Trash2 size={15} />
-                <span className="hidden min-[360px]:inline">{t("pages.notifications.clearAll")}</span>
+                <span className="hidden min-[360px]:inline">
+                  {t("pages.notifications.clearAll")}
+                </span>
               </Button>
             </div>
           )}
@@ -322,8 +353,8 @@ function NotificationsPage() {
               >
                 <Skeleton className="h-[36px] w-[36px] shrink-0 rounded-full" />
                 <div className="flex-1 space-y-[8px]">
-                  <Skeleton className="h-[12px]" style={{ width: `${45 + (i * 13) % 35}%` }} />
-                  <Skeleton className="h-[11px]" style={{ width: `${55 + (i * 9) % 30}%` }} />
+                  <Skeleton className="h-[12px]" style={{ width: `${45 + ((i * 13) % 35)}%` }} />
+                  <Skeleton className="h-[11px]" style={{ width: `${55 + ((i * 9) % 30)}%` }} />
                 </div>
               </Card>
             ))}
@@ -344,11 +375,7 @@ function NotificationsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.3) }}
               >
-                <NotificationItem
-                  n={n}
-                  onOpen={() => open(n)}
-                  onDelete={() => removeOne(n.id)}
-                />
+                <NotificationItem n={n} onOpen={() => open(n)} onDelete={() => removeOne(n.id)} />
               </motion.div>
             ))}
           </div>

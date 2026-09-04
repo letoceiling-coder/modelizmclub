@@ -56,11 +56,9 @@ export async function prepareProfileImageFile(
       const result = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
       const blob = Array.isArray(result) ? result[0] : result;
       if (!(blob instanceof Blob)) throw new Error("convert failed");
-      prepared = new File(
-        [blob],
-        file.name.replace(/\.(heic|heif)$/i, ".jpg"),
-        { type: "image/jpeg" },
-      );
+      prepared = new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), {
+        type: "image/jpeg",
+      });
     } catch (err) {
       if (err instanceof Error && err.message.startsWith("Формат")) throw err;
       throw new Error(HEIC_UNSUPPORTED_MESSAGE);

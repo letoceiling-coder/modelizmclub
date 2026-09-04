@@ -14,7 +14,11 @@ export function HighlightedText({
     <>
       {parts.map((part, i) =>
         part.match ? (
-          <mark key={i} className={matchClassName} style={{ background: "var(--accent-soft)", color: "inherit" }}>
+          <mark
+            key={i}
+            className={matchClassName}
+            style={{ background: "var(--accent-soft)", color: "inherit" }}
+          >
             {part.text}
           </mark>
         ) : (

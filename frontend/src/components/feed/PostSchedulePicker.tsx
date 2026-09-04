@@ -47,7 +47,9 @@ export function PostSchedulePicker({
               style={{
                 background: active ? "var(--accent-soft)" : "var(--background-surface)",
                 color: active ? "var(--accent)" : "var(--foreground-70)",
-                borderColor: active ? "color-mix(in oklab, var(--accent) 40%, var(--border))" : "var(--border)",
+                borderColor: active
+                  ? "color-mix(in oklab, var(--accent) 40%, var(--border))"
+                  : "var(--border)",
               }}
             >
               {id === "now"
@@ -64,7 +66,10 @@ export function PostSchedulePicker({
           style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
         >
           <label className="block sm:col-span-1">
-            <span className="mb-[6px] block text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span
+              className="mb-[6px] block text-[12px] font-medium"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {t("components.postSchedule.date")}
             </span>
             <input
@@ -74,11 +79,18 @@ export function PostSchedulePicker({
               disabled={disabled}
               onChange={(e) => onDateChange(e.target.value)}
               className="h-[44px] w-full rounded-[var(--r-input)] border px-[12px] text-[14px]"
-              style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }}
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--background)",
+                color: "var(--foreground)",
+              }}
             />
           </label>
           <label className="block sm:col-span-1">
-            <span className="mb-[6px] block text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span
+              className="mb-[6px] block text-[12px] font-medium"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {t("components.postSchedule.time")}
             </span>
             <input
@@ -87,11 +99,18 @@ export function PostSchedulePicker({
               disabled={disabled}
               onChange={(e) => onTimeChange(e.target.value)}
               className="h-[44px] w-full rounded-[var(--r-input)] border px-[12px] text-[14px]"
-              style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }}
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--background)",
+                color: "var(--foreground)",
+              }}
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className="mb-[6px] block text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+            <span
+              className="mb-[6px] block text-[12px] font-medium"
+              style={{ color: "var(--foreground-70)" }}
+            >
               {t("components.postSchedule.timezone")}
             </span>
             <select
@@ -99,10 +118,16 @@ export function PostSchedulePicker({
               disabled={disabled}
               onChange={(e) => onTimezoneChange(e.target.value)}
               className="h-[44px] w-full cursor-pointer appearance-none rounded-[var(--r-input)] border px-[12px] text-[14px]"
-              style={{ borderColor: "var(--border)", background: "var(--background)", color: "var(--foreground)" }}
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--background)",
+                color: "var(--foreground)",
+              }}
             >
               {SCHEDULE_TIMEZONES.map((z) => (
-                <option key={z.id} value={z.id}>{z.label}</option>
+                <option key={z.id} value={z.id}>
+                  {z.label}
+                </option>
               ))}
             </select>
           </label>

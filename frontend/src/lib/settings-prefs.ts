@@ -4,7 +4,13 @@
 export type NotifKey = "friend_requests" | "comments" | "likes" | "messages" | "subscription_posts";
 export type NotificationPrefs = Record<NotifKey, boolean>;
 
-export const NOTIF_KEYS: NotifKey[] = ["friend_requests", "comments", "likes", "messages", "subscription_posts"];
+export const NOTIF_KEYS: NotifKey[] = [
+  "friend_requests",
+  "comments",
+  "likes",
+  "messages",
+  "subscription_posts",
+];
 
 const NOTIF_KEY = "modelizm_notif_prefs";
 export const NOTIF_DEFAULTS: NotificationPrefs = {

@@ -36,7 +36,10 @@ export function toggleWatchLater(item: Omit<WatchLaterItem, "addedAt">): boolean
     window.dispatchEvent(new Event("watch-later-changed"));
     return false;
   }
-  const next: WatchLaterItem[] = [{ ...item, addedAt: new Date().toISOString() }, ...list].slice(0, CAP);
+  const next: WatchLaterItem[] = [{ ...item, addedAt: new Date().toISOString() }, ...list].slice(
+    0,
+    CAP,
+  );
   window.localStorage.setItem(KEY, JSON.stringify(next));
   window.dispatchEvent(new Event("watch-later-changed"));
   return true;

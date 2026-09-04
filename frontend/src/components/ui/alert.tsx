@@ -16,7 +16,8 @@ const alertVariants = cva(
         error: "border-[var(--danger-soft)] text-[var(--foreground)] before:bg-[var(--danger)]",
         warning: "border-[var(--warning-soft)] text-[var(--foreground)] before:bg-[var(--warning)]",
         default: "border-[var(--border)] text-[var(--foreground)] before:bg-[var(--neutral-400)]",
-        destructive: "border-[var(--danger-soft)] text-[var(--foreground)] before:bg-[var(--danger)]",
+        destructive:
+          "border-[var(--danger-soft)] text-[var(--foreground)] before:bg-[var(--danger)]",
       },
     },
     defaultVariants: {
@@ -25,7 +26,10 @@ const alertVariants = cva(
   },
 );
 
-const alertIcons: Record<NonNullable<VariantProps<typeof alertVariants>["variant"]>, LucideIcon | null> = {
+const alertIcons: Record<
+  NonNullable<VariantProps<typeof alertVariants>["variant"]>,
+  LucideIcon | null
+> = {
   success: CheckCircle2,
   info: Info,
   error: XCircle,

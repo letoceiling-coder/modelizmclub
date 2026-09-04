@@ -54,9 +54,15 @@ function SectionBlock({ section }: { section: RuleSection }) {
 
   if (section.type === "requisites") {
     return (
-      <section className="mt-10 rounded-[var(--r-card)] border p-5" style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}>
+      <section
+        className="mt-10 rounded-[var(--r-card)] border p-5"
+        style={{ borderColor: "var(--border)", background: "var(--background-surface)" }}
+      >
         {section.title && (
-          <h2 className="mb-3 font-display text-[18px] font-bold" style={{ color: "var(--foreground)" }}>
+          <h2
+            className="mb-3 font-display text-[18px] font-bold"
+            style={{ color: "var(--foreground)" }}
+          >
             {section.title}
           </h2>
         )}
@@ -82,7 +88,10 @@ function SectionBlock({ section }: { section: RuleSection }) {
   return (
     <section className="mt-8">
       {section.title && (
-        <h2 className="mb-3 font-display text-[20px] font-bold" style={{ color: "var(--foreground)" }}>
+        <h2
+          className="mb-3 font-display text-[20px] font-bold"
+          style={{ color: "var(--foreground)" }}
+        >
           {section.title}
         </h2>
       )}
@@ -111,7 +120,11 @@ export function RulesDocumentNav({
         <select
           id="rules-nav"
           className="w-full rounded-[var(--r-control)] border px-3 py-2 text-[14px]"
-          style={{ borderColor: "var(--border)", background: "var(--background-elevated)", color: "var(--foreground)" }}
+          style={{
+            borderColor: "var(--border)",
+            background: "var(--background-elevated)",
+            color: "var(--foreground)",
+          }}
           value={currentSlug ?? ""}
           onChange={(e) => {
             const slug = e.target.value;
@@ -161,13 +174,7 @@ export function RulesDocumentNav({
   );
 }
 
-export function RulesDocumentView({
-  page,
-  hub,
-}: {
-  page: RulePageData;
-  hub: RulesHubData;
-}) {
+export function RulesDocumentView({ page, hub }: { page: RulePageData; hub: RulesHubData }) {
   const revision = formatRevisionDate(page.published_at);
 
   return (
