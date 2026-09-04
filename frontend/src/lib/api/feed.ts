@@ -101,14 +101,17 @@ export function mapPostMedia(p: ApiPost): { images: string[]; video?: string; me
       const width = m.media?.width ?? undefined;
       const height = m.media?.height ?? undefined;
       if (url && width && height) rememberMediaAspect(url, width / height);
-      return {
-        type: isVideoMedia(m) ? ("video" as const) : ("image" as const),
+      // Annotated, not inferred: an inferred literal makes every key required,
+      // which the `item is PostMediaItem` predicate below then rejects.
+      const item: PostMediaItem = {
+        type: isVideoMedia(m) ? "video" : "image",
         url,
         status,
         width,
         height,
         variants: m.media?.variants,
       };
+      return item;
     })
     .filter((item): item is PostMediaItem => item !== null);
 
@@ -172,7 +175,7 @@ export function mapPost(p: ApiPost): Post {
     isLiked: p.viewer?.reacted ?? false,
     isSaved: p.viewer?.bookmarked ?? false,
     isReposted: p.viewer?.reposted ?? false,
-    repostOf: isShare ? mapEmbeddedOriginal(p.repost_of) : undefined,
+    repostOf: isShare && p.repost_of ? mapEmbeddedOriginal(p.repost_of) : undefined,
     canDelete: p.permissions?.can_delete ?? false,
     canEdit: p.permissions?.can_edit ?? false,
     canPublish: p.permissions?.can_publish ?? false,
@@ -202,6 +205,8 @@ export interface FeedQuery {
    *  in-app link from a page that already warmed the cache). Real backend
    *  filtering still uses categoryId below; this is ignored on that path. */
   categoryName?: string;
+  /** Bare hashtag name (no "#"); FeedService matches it against tag name/slug. */
+  hashtag?: string;
   page?: number;
   perPage?: number;
 }
@@ -223,6 +228,7 @@ export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
       filter: opts.filter ?? "all",
       category_id: opts.categoryId,
       author_id: opts.authorId,
+      hashtag: opts.hashtag,
       page: opts.page,
       per_page: opts.perPage ?? 20,
     },
@@ -362,6 +368,11 @@ export async function createComment(
 export interface CreatePostInput {
   title: string;
   body: string;
+  /** Post taxonomy node — pass the deepest one the author picked ("Масштаб"
+   *  when set, otherwise "Направление"): post categories are a single tree,
+   *  and the feed's category filter already matches descendants, so storing
+   *  the leaf keeps the direction filter working while preserving the scale.
+   *  Optional — like VK, a post may carry no category at all. */
   categoryId?: number;
   communityId?: number;
   /** Media UUIDs from uploadMedia() — the backend's StorePostRequest
@@ -486,7 +497,6 @@ export async function updatePost(uuid: string, data: { title?: string; body?: st
     return {
       id: uuid,
       authorId: "",
-      author: "Вы",
       date: "",
       category: "",
       title: data.title ?? "",
