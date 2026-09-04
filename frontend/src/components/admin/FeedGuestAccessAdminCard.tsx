@@ -217,41 +217,14 @@ export function FeedGuestAccessAdminCard() {
             {t("pages.adminFeedGuestAccess.redirectSubscription")}
           </label>
         </div>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <label className="block text-[12px]" style={{ color: "var(--foreground-70)" }}>
-            {t("pages.adminFeedGuestAccess.popupTitleLabel")}
-            <input
-              style={{ ...inputStyle, marginTop: 6 }}
-              value={config.popup.title}
-              onChange={(e) =>
-                setConfig({ ...config, popup: { ...config.popup, title: e.target.value } })
-              }
-            />
-          </label>
-          <label className="block text-[12px]" style={{ color: "var(--foreground-70)" }}>
-            {t("pages.adminFeedGuestAccess.primaryCtaLabel")}
-            <input
-              style={{ ...inputStyle, marginTop: 6 }}
-              value={config.popup.primary_cta}
-              onChange={(e) =>
-                setConfig({ ...config, popup: { ...config.popup, primary_cta: e.target.value } })
-              }
-            />
-          </label>
-          <label
-            className="block text-[12px] lg:col-span-2"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            {t("pages.adminFeedGuestAccess.popupTextLabel")}
-            <textarea
-              style={{ ...textareaStyle, marginTop: 6 }}
-              value={config.popup.description}
-              onChange={(e) =>
-                setConfig({ ...config, popup: { ...config.popup, description: e.target.value } })
-              }
-            />
-          </label>
-        </div>
+        {/* Полей заголовка, кнопки и текста окна здесь больше нет. Карта их
+            хранила, а окно рисует GateDialogShell со своими строками — ни один
+            гейт эти тексты не читал. На проде они были переписаны на
+            подписочные («Нужна подписка», «Оформить подписку»), и
+            администратор, глядя в админку, был вправе считать, что гость видит
+            именно их. Настройка, которая ни на что не влияет, вводит в
+            заблуждение сильнее, чем её отсутствие. Тексты окна живут в
+            переводах, рядом с самим окном. */}
       </div>
 
       {[...grouped.entries()].map(([group, items]) => (
