@@ -63,7 +63,7 @@ class ChatService
                 SELECT COUNT(*)
                 FROM messages
                 WHERE messages.conversation_id = conversations.id
-                AND messages.user_id != ?
+                AND (messages.user_id IS NULL OR messages.user_id != ?)
                 AND messages.deleted_at IS NULL
                 AND NOT EXISTS (
                     SELECT 1 FROM message_user_hides
@@ -749,7 +749,8 @@ class ChatService
 
         $query = Message::query()
             ->where('conversation_id', $conversation->id)
-            ->where('user_id', '!=', $user->id)
+            // System messages (deal status notices) have no author and count as unread too.
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', '!=', $user->id))
             ->whereNotExists(function ($q) use ($user): void {
                 $q->select(DB::raw(1))
                     ->from('message_user_hides')
