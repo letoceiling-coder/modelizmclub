@@ -41,14 +41,25 @@ export const STALE = {
   channel: 2 * 60_000,
 } as const;
 
+/**
+ * On the server each request builds its own client and drops it after
+ * dehydration, but every query still arms a gc timer for its gcTime, and an
+ * armed timer keeps the Node event loop open. A 30-minute gcTime therefore kept
+ * the process alive for half an hour after SIGTERM until systemd killed it in
+ * the middle of a deploy. Long retention only pays off in the browser, so the
+ * server caps it at a few seconds.
+ */
+const SSR = typeof window === "undefined";
+const gc = (ms: number): number => (SSR ? Math.min(ms, 1_000) : ms);
+
 /** How long an unused cache entry survives. Feed/post live long enough that
  *  opening a post and pressing Back restores the feed (counters and scroll). */
 export const GC = {
-  short: 5 * 60_000,
-  medium: 10 * 60_000,
-  long: 15 * 60_000,
-  forever: Infinity,
-  feed: 30 * 60_000,
-  post: 30 * 60_000,
-  comments: 10 * 60_000,
+  short: gc(5 * 60_000),
+  medium: gc(10 * 60_000),
+  long: gc(15 * 60_000),
+  forever: gc(Infinity),
+  feed: gc(30 * 60_000),
+  post: gc(30 * 60_000),
+  comments: gc(10 * 60_000),
 } as const;
