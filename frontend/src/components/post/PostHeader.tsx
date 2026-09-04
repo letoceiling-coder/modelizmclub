@@ -1,3 +1,4 @@
+import { variantUrl } from "@/lib/media/variants";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { Post, User } from "@/lib/mock";
@@ -10,6 +11,10 @@ import { Img } from "@/components/ui/Img";
 /** Avatar with initials fallback when the image fails to load or src is empty */
 function AuthorAvatar({ src, name }: { src: string; name: string }) {
   const [err, setErr] = useState(false);
+  // A 40px avatar was pulling the original upload — 412 KB of PNG for a
+  // 40x40 box on production. thumb is 320px wide and about twenty times
+  // lighter; media without variants still answers with the original.
+  const avatarSrc = variantUrl(src, "thumb");
   const initials =
     name
       .split(" ")
@@ -30,7 +35,7 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
   }
   return (
     <Img
-      src={src}
+      src={avatarSrc}
       width={40}
       height={40}
       alt={name}
