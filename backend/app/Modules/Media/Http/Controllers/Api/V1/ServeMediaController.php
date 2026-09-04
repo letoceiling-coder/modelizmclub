@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * unguessable-UUID posture as voice notes so <img>/<audio> can load them
  * without an Authorization header.
  *
- * Variant URLs (/media/{uuid}/card.webp) fall back to the original with a
+ * Variant URLs (/media/{uuid}/card.avif) fall back to the original with a
  * short cache if the job has not finished — never 404 a visible image.
  */
 class ServeMediaController extends Controller
@@ -102,7 +102,7 @@ class ServeMediaController extends Controller
             return null;
         }
 
-        if (! preg_match('/^(thumb|card|medium|large)\.(webp|jpg)$/', $variant, $matches)) {
+        if (! preg_match('/^(thumb|card|medium|large)\.(avif|webp|jpg)$/', $variant, $matches)) {
             abort(404);
         }
 
@@ -111,8 +111,15 @@ class ServeMediaController extends Controller
         return [
             'name' => $matches[1],
             'ext' => $ext,
-            'format' => $ext === 'webp' ? 'webp' : 'jpeg',
-            'mime' => $ext === 'webp' ? 'image/webp' : 'image/jpeg',
+            'format' => match ($ext) {
+                'jpg' => 'jpeg',
+                default => $ext,
+            },
+            'mime' => match ($ext) {
+                'avif' => 'image/avif',
+                'webp' => 'image/webp',
+                default => 'image/jpeg',
+            },
         ];
     }
 
