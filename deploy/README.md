@@ -405,3 +405,24 @@ sudo -u postgres dropdb modelizmclub_check
 > `/var/www/modelizmclub` и **одну базу** `modelizmclub`. «Проверить на dev» не
 > означает «безопасно» — для любых экспериментов заводите отдельную базу, как
 > показано выше.
+
+## Конфигурация сервера вне репозитория
+
+Эти файлы правились прямо на проде и до 04.09 существовали в единственном
+экземпляре — при пересборке машины восстанавливать их было бы неоткуда.
+Здесь лежат копии; путь установки указан рядом.
+
+| В репозитории | Куда ставится | Зачем |
+| --- | --- | --- |
+| `php-fpm/pool.d/www.conf` | `/etc/php/8.3/fpm/pool.d/www.conf` | Пул на 30 воркеров вместо пяти, `pm.status_path`, медленный лог с порогом 5 с |
+| `nginx/fpm-status.conf` | `/etc/nginx/conf.d/fpm-status.conf` | Счётчики пула на `127.0.0.1:8081`, наружу не смотрят |
+| `scripts/fpm-watch.sh` | `/usr/local/bin/fpm-watch.sh` | Раз в пять минут пишет счётчики в лог и поднимает тревогу при `max children reached` |
+| `cron/fpm-watch` | `/etc/cron.d/fpm-watch` | Запуск предыдущего |
+| `nginx/img.modelizmclub.ru.conf`, `nginx/livekit.modelizmclub.ru.conf`, `nginx/dev-cloude.modelizmclub.ru.conf` | `/etc/nginx/sites-available/` | Три вхоста, которых в репозитории не было |
+
+Копии, а не источник истины: правка здесь сама на сервер не приедет.
+Сверить расхождение:
+
+```bash
+ssh root@31.207.75.124 'cat /etc/php/8.3/fpm/pool.d/www.conf' | diff - deploy/php-fpm/pool.d/www.conf
+```
