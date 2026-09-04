@@ -116,9 +116,12 @@ function NavTab({
           </span>
         )}
       </span>
+      {/* Шесть вкладок на 375px: длинные названия («Сообщества», «Объявления»)
+          не влезают в колонку в 62px и налезали на соседей. Кегль тянется по
+          ширине экрана, truncate остаётся страховкой для узких устройств. */}
       <span
-        className="font-medium"
-        style={{ fontSize: 10.5, letterSpacing: "0.01em", lineHeight: 1 }}
+        className="w-full truncate text-center font-medium"
+        style={{ fontSize: "clamp(9px, 2.6vw, 10.5px)", letterSpacing: "0", lineHeight: 1.15 }}
       >
         {label}
       </span>
@@ -126,12 +129,12 @@ function NavTab({
   );
 
   return (
-    <li className="flex" onClickCapture={onReTap}>
+    <li className="flex min-w-0" onClickCapture={onReTap}>
       {actionKey ? (
         <GuestGuardLink
           actionKey={actionKey}
           to={item.to}
-          className="flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
+          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
           style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
         >
           {content}
@@ -139,7 +142,7 @@ function NavTab({
       ) : (
         <Link
           to={item.to}
-          className="flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
+          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
           style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
         >
           {content}
