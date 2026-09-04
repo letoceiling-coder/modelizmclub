@@ -13,6 +13,47 @@ interface PlanTermSelectorProps {
   className?: string;
 }
 
+/**
+ * Reserves exactly what the loaded selector occupies, so the plans arriving
+ * move nothing below them: 65px switcher + 20px gap + 156px price block =
+ * 241px on a phone, 238px of card on desktop (measured on production,
+ * 04.09). The old placeholder was a single line of text at 101px and every
+ * visitor got the difference as a jump.
+ */
+function PlanTermSkeleton({ className }: { className?: string }) {
+  const bar = { background: "var(--background-surface)" } as const;
+  return (
+    <div className={className} aria-hidden="true">
+      <div className="animate-pulse md:hidden">
+        <div
+          className="flex flex-wrap justify-center gap-[4px] rounded-[var(--r-pill)] p-[4px] pt-[15px]"
+          style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
+        >
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-[44px] flex-1 rounded-[var(--r-pill)]" style={bar} />
+          ))}
+        </div>
+        <div className="mt-[20px]">
+          <div className="mx-auto h-[60px] w-[180px] rounded-[12px]" style={bar} />
+          <div className="mt-[8px] h-[24px]" />
+          <div className="mt-[16px] h-[48px] rounded-[var(--r-pill)]" style={bar} />
+        </div>
+      </div>
+      <div className="hidden animate-pulse md:block">
+        <div className="grid grid-cols-1 gap-[16px] md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-[238px] rounded-[var(--r-card)] border"
+              style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function defaultTermId(plans: PricingPlan[]): PricingPlan["id"] {
   return plans.find((p) => p.best)?.id ?? plans[0]?.id ?? "month";
 }
@@ -38,13 +79,7 @@ export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTe
     setTermId((prev) => (plans.some((p) => p.id === prev) ? prev : defaultTermId(plans)));
   }, [plans]);
 
-  if (loading) {
-    return (
-      <p className="py-[40px] text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>
-        Загрузка тарифов…
-      </p>
-    );
-  }
+  if (loading) return <PlanTermSkeleton className={className} />;
 
   if (plans.length === 0) return emptyFallback ?? null;
 

@@ -12,7 +12,11 @@ import { ROUTES } from "@/lib/routes";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useMySubscription, formatSubscriptionEndDate } from "@/lib/subscription";
 import { notifyBillingChanged } from "@/lib/billing-events";
-import { usePublicPlacementPricing } from "@/lib/api/placement-pricing";
+import {
+  usePublicPlacementPricing,
+  fetchPublicPlacementPricing,
+  type PublicPlacementPricing,
+} from "@/lib/api/placement-pricing";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
@@ -34,6 +38,29 @@ export const Route = createFileRoute("/subscription")({
     returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") ? s.returnTo : undefined,
   }),
   head: () => ({ meta: [{ title: i18n.t("pages.subscription.metaTitle") }] }),
+  // One request, and only because nothing else can answer it before the first
+  // paint. Whether paid placement is on decides whether a block 204px tall
+  // exists; learned after mount, it inserts itself into a page the visitor is
+  // already reading. That insertion, plus the tariff selector growing into its
+  // final height, was this page's whole 0.142 CLS on a phone (measured 04.09).
+  // The bootstrap feature flag carries the same setting but is applied after
+  // hydration, so gating on it shifts just as much — also measured. The plans
+  // are deliberately not fetched here: the selector reserves its own height,
+  // so waiting on them would delay the paint and buy nothing.
+  loader: async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Capped so a slow API cannot hold the page hostage: past the deadline the
+    // page renders as it did before, without the block, and the hook fills it in.
+    const deadline = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), 1500);
+    });
+    const placement = await Promise.race([
+      fetchPublicPlacementPricing().catch(() => null),
+      deadline,
+    ]).finally(() => clearTimeout(timer));
+    return { placement: placement as PublicPlacementPricing | null };
+  },
+  staleTime: 60_000,
   component: SubscriptionPage,
 });
 
@@ -109,7 +136,8 @@ function SubscriptionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sub } = useMySubscription();
-  const { registeredRub: placementPrice, paymentEnabled } = usePublicPlacementPricing();
+  const { placement } = Route.useLoaderData();
+  const { registeredRub: placementPrice, paymentEnabled } = usePublicPlacementPricing(placement);
   const [pending, setPending] = useState<PendingCheckout | null>(null);
 
   const openSubscribe = async (plan: { id: string; name: string; priceRub: number }) => {
