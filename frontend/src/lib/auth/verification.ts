@@ -1,6 +1,5 @@
 import { redirect } from "@tanstack/react-router";
 import type { User } from "@/lib/mock";
-import { requireAuth } from "@/lib/auth/requireAuth";
 import { fetchMe } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -85,7 +84,11 @@ export function verificationMessage(user: User | null | undefined): string {
   return "";
 }
 
-/** Block an action unless email and phone are verified on the server. */
+/**
+ * Block an action unless email and phone are verified on the server.
+ * A signed-out visitor gets the login window over the current page — the
+ * action is not replayed automatically here, but the page is never lost.
+ */
 export async function requireVerifiedForAction(
   navigate: (opts: { to: string; search?: Record<string, string> }) => void,
 ): Promise<boolean> {
@@ -94,18 +97,17 @@ export async function requireVerifiedForAction(
     typeof window !== "undefined"
       ? `${window.location.pathname}${window.location.search}`
       : "/feed";
-  if (!isAuthenticated()) {
-    navigate({ to: "/login", search: { redirect: from } });
+  const openGuestGate = async (): Promise<false> => {
+    const { openRouteGate } = await import("@/lib/gate/routeGate");
+    openRouteGate("verified", from);
     return false;
-  }
+  };
+  if (!isAuthenticated()) return openGuestGate();
 
   const user = await fetchMe();
   if (user) setCurrentUser(user);
 
-  if (isAnonymousUser(user) || !isAuthenticated()) {
-    navigate({ to: "/login", search: { redirect: from } });
-    return false;
-  }
+  if (isAnonymousUser(user) || !isAuthenticated()) return openGuestGate();
 
   if (isPhoneVerificationRequired(user) && !isPhoneVerified(user)) {
     requestPhoneVerificationModal();
@@ -128,8 +130,10 @@ export function requestPhoneVerificationModal(): void {
 }
 
 /**
- * Route guard: login + SMS. Missing phone shows the standard modal and
- * returns to the feed — never a silent jump to settings.
+ * Route guard: login + SMS, both as a window over the feed. A guest used to
+ * slip through this guard entirely (an early return for anonymous visitors);
+ * now the single gate decides, so a guest gets the login window and the route
+ * opens by itself afterwards.
  */
 export async function requireVerified(location?: {
   pathname: string;
@@ -137,24 +141,15 @@ export async function requireVerified(location?: {
 }): Promise<void> {
   if (typeof window === "undefined") return;
   if (isDemoMode()) return;
-  if (!isAuthenticated()) return;
 
-  await requireAuth(location);
+  // Lazy: lib/gate reads this module for the ladder — a static import here
+  // would close the cycle.
+  const { routeGuard } = await import("@/lib/gate/routeGuard");
+  const { allowed } = await routeGuard("verified", location);
+  if (!allowed) return;
 
-  let user = await fetchMe();
+  const user = await fetchMe();
   if (user) setCurrentUser(user);
-
-  if (isAnonymousUser(user)) {
-    throw redirect({
-      to: "/login",
-      search: { redirect: location?.pathname ?? "/feed" },
-    });
-  }
-
-  if (isPhoneVerificationRequired(user) && !isPhoneVerified(user)) {
-    requestPhoneVerificationModal();
-    throw redirect({ to: "/feed", replace: true });
-  }
 
   if (!isFullyVerified(user)) {
     const pathname =

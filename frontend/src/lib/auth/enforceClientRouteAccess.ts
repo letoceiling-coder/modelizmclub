@@ -2,19 +2,17 @@ import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/auth";
+import { isPhoneVerified, isPhoneVerificationRequired, isStaffUser } from "@/lib/auth/verification";
 import {
-  isPhoneVerified,
-  isPhoneVerificationRequired,
-  isStaffUser,
-  requestPhoneVerificationModal,
-} from "@/lib/auth/verification";
-import {
+  isAdminRoute,
   isAlwaysPublicRoute,
   isGuestStubRoute,
   isVerifiedRequiredRoute,
   pathnameToRouteAction,
 } from "@/lib/feed-guest-access/routes";
 import { loadFeedGuestAccess, resolveMinTier } from "@/lib/feed-guest-access/store";
+import { levelFromAccessTier, type Level } from "@/lib/gate/levels";
+import { gateFallbackPath, openRouteGate } from "@/lib/gate/routeGate";
 import { getMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
@@ -27,9 +25,16 @@ export type ClientRouteRedirect = {
   replace?: boolean;
 };
 
-/** Routes that always require a logged-in account (not guest-access configurable). */
-function isAdminRoute(pathname: string): boolean {
-  return pathname === ROUTES.admin || pathname.startsWith("/admin/") || pathname === "/diag";
+/**
+ * A route the viewer may not open: raise the one gate window over the feed
+ * and remember where they were going. Never /login — the destination resumes
+ * by itself once the missing step succeeds.
+ */
+function gateRoute(need: Level, pathname: string): ClientRouteRedirect | null {
+  const search = typeof window === "undefined" ? "" : window.location.search;
+  openRouteGate(need, pathname + search);
+  const fallback = gateFallbackPath(pathname);
+  return fallback ? { to: fallback, replace: true } : null;
 }
 
 /**
@@ -56,6 +61,8 @@ export async function enforceClientRouteAccess(
     }
   }
 
+  // The admin panel is the single exception: it is a separate product with its
+  // own sign-in page, not a window over the public site.
   if (isAdminRoute(pathname)) {
     if (!getToken()) {
       return { to: "/login", search: { redirect: pathname }, replace: true };
@@ -72,15 +79,13 @@ export async function enforceClientRouteAccess(
   if (!getToken()) {
     if (minTier === "guest") return null;
     if (isGuestStubRoute(pathname)) return null;
-    const from = pathname + window.location.search;
-    return { to: "/login", search: { redirect: from }, replace: true };
+    return gateRoute(levelFromAccessTier(minTier), pathname);
   }
 
   if (isVerifiedRequiredRoute(pathname)) {
     const ok = await ensureSession();
-    if (!ok) {
-      return { to: "/login", search: { redirect: pathname }, replace: true };
-    }
+    if (!ok) return gateRoute("verified", pathname);
+
     let user = getSessionUser();
     if (user.id === "guest") {
       const me = await fetchMe();
@@ -89,13 +94,10 @@ export async function enforceClientRouteAccess(
         user = me;
       }
     }
-    if (user.id === "guest") {
-      return { to: "/login", search: { redirect: pathname }, replace: true };
-    }
+    if (user.id === "guest") return gateRoute("verified", pathname);
+
     if (isPhoneVerificationRequired(user) && !isPhoneVerified(user)) {
-      requestPhoneVerificationModal();
-      if (pathname === ROUTES.feed || pathname.startsWith("/feed/")) return null;
-      return { to: ROUTES.feed, replace: true };
+      return gateRoute("verified", pathname);
     }
   }
 
@@ -104,7 +106,7 @@ export async function enforceClientRouteAccess(
     if (isStaffUser(user)) return null;
     const sub = await getMySubscription();
     if (sub?.is_active === true) return null;
-    return { to: ROUTES.subscription, replace: true };
+    return gateRoute("subscriber", pathname);
   }
 
   return null;

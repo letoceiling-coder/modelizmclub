@@ -47,12 +47,18 @@ export function isPublicGuestRoute(pathname: string): boolean {
   return false;
 }
 
+/** Admin panel and diagnostics — the one place a guest still meets /login. */
+export function isAdminRoute(pathname: string): boolean {
+  return pathname === ROUTES.admin || pathname.startsWith("/admin/") || pathname === "/diag";
+}
+
 /**
  * Sections that greet a guest with an in-page "войдите в аккаунт" stub and the
- * shared auth dialog, instead of bouncing them to /login.
+ * shared auth window, instead of leaving the page. Messenger is deliberately
+ * NOT here: it is a full private section, so a guest gets the login window
+ * over the feed instead of an empty chat shell.
  */
 export function isGuestStubRoute(pathname: string): boolean {
-  if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return true;
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return true;
   if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return true;
   if (pathname.startsWith("/user/")) return true;

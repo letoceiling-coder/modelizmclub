@@ -4,14 +4,13 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { getToken } from "@/lib/api/client";
-import { useCurrentUser, useSessionResolved } from "@/lib/session";
+import { getSession, useCurrentUser, useSessionResolved } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
+import { ensureSession } from "@/lib/auth/session";
 import {
   isAnonymousUser,
   isPhoneVerified,
@@ -19,20 +18,23 @@ import {
   isStaffUser,
 } from "@/lib/auth/verification";
 import { useMySubscription } from "@/lib/subscription";
-import { ROUTES } from "@/lib/routes";
 import {
   getFeedGuestAccessSync,
   isActionAllowedForTier,
   loadFeedGuestAccess,
-  resolveDenyMode,
   resolveMinTier,
   subscribeFeedGuestAccess,
-  type FeedGuestAccessConfig,
 } from "@/lib/feed-guest-access/store";
-import type { AccessTier } from "@/lib/api/feed-guest-access";
-import { GuestAuthDialog, guestReturnPath } from "@/components/access/GuestAuthDialog";
-import { PhoneVerifyDialog } from "@/components/access/PhoneVerifyDialog";
-import { SubscriptionPaywallDialog } from "@/components/access/SubscriptionPaywallDialog";
+import type { AccessTier, FeedGuestAccessConfig } from "@/lib/api/feed-guest-access";
+import {
+  currentPath,
+  firstFailingStep,
+  gateRequire,
+  levelFromAccessTier,
+  levelOf,
+  openGate,
+  type Level,
+} from "@/lib/gate";
 
 export const ACCESS_GATE_EVENT = "modelizm:access-gate";
 
@@ -46,18 +48,23 @@ interface GuestAccessContextValue {
   needsSubscription: boolean;
   isAllowed: (actionKey: string) => boolean;
   guardAction: (actionKey: string, onAllowed: () => void, returnTo?: string) => void;
-  /** Guest → login. Logged-in without SMS → phone dialog. Subscription is not required. */
+  /** Guest → login window. Logged-in without SMS → verify window. */
   requireAccount: (onAllowed: () => void, returnTo?: string) => void;
-  /** Guest → login. Does not require phone verification or a subscription. */
+  /** Guest → login window. Does not require phone verification or a subscription. */
   requireLogin: (onAllowed: () => void) => void;
-  /** Account gate, then subscription paywall for premium actions. */
+  /** Account gate, then the subscription window for premium actions. */
   requirePremium: (onAllowed: () => void, returnTo?: string) => void;
 }
 
 const GuestAccessContext = createContext<GuestAccessContextValue | null>(null);
 
+/**
+ * Adapter over `lib/gate`. The old call sites (~50 files) keep this API, but
+ * every refusal now goes through the single gate: one window over the current
+ * page, the blocked action stored as the pending intent and replayed the
+ * moment the missing rung is reached. No call site navigates to /login.
+ */
 export function GuestAccessProvider({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
   const me = useCurrentUser();
   const sessionReady = useSessionResolved();
   const { sub, loading: subLoading } = useMySubscription();
@@ -75,12 +82,6 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     getFeedGuestAccessSync(),
   );
   const [loading, setLoading] = useState(() => !getFeedGuestAccessSync());
-  const [authOpen, setAuthOpen] = useState(false);
-  const [phoneOpen, setPhoneOpen] = useState(false);
-  const [phoneReturnTo, setPhoneReturnTo] = useState("/feed");
-  const [paywallOpen, setPaywallOpen] = useState(false);
-  const pendingAfterSub = useRef<{ onAllowed: () => void; actionKey?: string } | null>(null);
-  const pendingPaywallEvent = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -105,27 +106,26 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Legacy escape hatch: modules that only know how to shout ("phone not
+  // verified", "subscription required") still open the same single window.
   useEffect(() => {
     const onGate = (event: Event) => {
       const code = (event as CustomEvent<{ code?: string }>).detail?.code;
+      if (isDemoMode() || !getToken()) return;
       if (code === "phone_not_verified") {
-        if (!isGuest && getToken()) {
-          setPhoneReturnTo(guestReturnPath());
-          setPhoneOpen(true);
-        }
+        openGate("verify", currentPath());
         return;
       }
-      if (code !== "subscription_required" || needsPhone || isGuest || !getToken()) return;
-      if (isDemoMode() || isStaffUser(me) || sub?.is_active === true) return;
-      if (subLoading) {
-        pendingPaywallEvent.current = true;
-        return;
+      if (code === "subscription_required") {
+        // Still one window at a time: an account that has not passed SMS yet
+        // sees verification first, a verified one sees the subscription.
+        const step = firstFailingStep(levelOf(getSession()), "subscriber");
+        if (step) openGate(step, currentPath());
       }
-      setPaywallOpen(true);
     };
     window.addEventListener(ACCESS_GATE_EVENT, onGate);
     return () => window.removeEventListener(ACCESS_GATE_EVENT, onGate);
-  }, [isGuest, needsPhone, subLoading, sub?.is_active, me]);
+  }, []);
 
   const isAllowed = useCallback(
     (actionKey: string) => {
@@ -138,92 +138,42 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     [isGuest, subLoading, sub?.is_active, config, me],
   );
 
-  const userTier = useCallback((): AccessTier => {
-    if (isDemoMode() || isStaffUser(me)) return "subscription";
-    if (isGuest) return "guest";
-    if (sub?.is_active === true) return "subscription";
-    return "auth";
-  }, [isGuest, sub?.is_active, me]);
-
-  const openPhoneGate = useCallback((returnTo?: string) => {
-    const path = returnTo?.startsWith("/") ? returnTo : guestReturnPath();
-    setPhoneReturnTo(path);
-    setPhoneOpen(true);
-  }, []);
-
-  const openPaywall = useCallback(() => {
-    setPaywallOpen(true);
-  }, []);
-
-  const denyGuest = useCallback(
-    (actionKey: string) => {
-      if (resolveDenyMode(actionKey, config) === "redirect") {
-        navigate({ to: "/login", search: { redirect: guestReturnPath() } });
+  /**
+   * The one refusal path. `gateRequire` runs the action immediately when the
+   * viewer already meets the level, otherwise it stores it and opens exactly
+   * one window; `resumeIntent` replays it after the window succeeds.
+   */
+  const runGate = useCallback(
+    async (need: Level, onAllowed: () => void, intent?: { key: string; returnTo?: string }) => {
+      if (isDemoMode()) {
+        onAllowed();
         return;
       }
-      setAuthOpen(true);
+      // A click can land before the session probe resolves; without this the
+      // gate would read "guest" and show the login window to a signed-in user.
+      if (getToken() && !getSession()) await ensureSession();
+      await gateRequire(need, onAllowed, {
+        intent: intent ? { key: intent.key, returnTo: intent.returnTo } : undefined,
+      });
     },
-    [config, navigate],
-  );
-
-  const denySubscription = useCallback(
-    (actionKey: string) => {
-      if (resolveDenyMode(actionKey, config) === "redirect") {
-        navigate({ to: ROUTES.subscription });
-        return;
-      }
-      openPaywall();
-    },
-    [config, navigate, openPaywall],
+    [],
   );
 
   const requireLogin = useCallback(
-    (onAllowed: () => void) => {
-      if (isGuest) {
-        setAuthOpen(true);
-        return;
-      }
-      onAllowed();
-    },
-    [isGuest],
+    (onAllowed: () => void) => void runGate("registered", onAllowed),
+    [runGate],
   );
 
   const requireAccount = useCallback(
-    (onAllowed: () => void, returnTo?: string) => {
-      if (isGuest) {
-        setAuthOpen(true);
-        return;
-      }
-      if (needsPhone) {
-        openPhoneGate(returnTo);
-        return;
-      }
-      onAllowed();
-    },
-    [isGuest, needsPhone, openPhoneGate],
+    (onAllowed: () => void, returnTo?: string) =>
+      void runGate("verified", onAllowed, { key: "action", returnTo }),
+    [runGate],
   );
 
   const requirePremium = useCallback(
-    (onAllowed: () => void, returnTo?: string) => {
-      if (isGuest) {
-        setAuthOpen(true);
-        return;
-      }
-      if (needsPhone) {
-        openPhoneGate(returnTo);
-        return;
-      }
-      if (subLoading) {
-        pendingAfterSub.current = { onAllowed };
-        return;
-      }
-      if (needsSubscription) {
-        openPaywall();
-        return;
-      }
-      onAllowed();
-    },
-    [isGuest, needsPhone, needsSubscription, subLoading, openPhoneGate, openPaywall],
+    (onAllowed: () => void, returnTo?: string) =>
+      void runGate("subscriber", onAllowed, { key: "action", returnTo }),
+    [runGate],
   );
 
   const guardAction = useCallback(
@@ -232,74 +182,12 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
         onAllowed();
         return;
       }
-      if (isGuest) {
-        denyGuest(actionKey);
-        return;
-      }
-      if (subLoading) {
-        pendingAfterSub.current = { onAllowed, actionKey };
-        return;
-      }
-      const required = resolveMinTier(actionKey, config);
-      if (required === "subscription" && userTier() !== "subscription") {
-        denySubscription(actionKey);
-        return;
-      }
-      if (needsPhone) {
-        openPhoneGate(returnTo);
-        return;
-      }
-      denySubscription(actionKey);
+      // Admin-configured minimum for this action → the rung the gate asks for.
+      const need = levelFromAccessTier(resolveMinTier(actionKey, config));
+      void runGate(need, onAllowed, { key: actionKey, returnTo });
     },
-    [
-      isAllowed,
-      isGuest,
-      needsPhone,
-      subLoading,
-      config,
-      openPhoneGate,
-      userTier,
-      denyGuest,
-      denySubscription,
-    ],
+    [isAllowed, config, runGate],
   );
-
-  useEffect(() => {
-    if (subLoading) return;
-    const pending = pendingAfterSub.current;
-    pendingAfterSub.current = null;
-    if (pending) {
-      if (pending.actionKey && isAllowed(pending.actionKey)) {
-        pending.onAllowed();
-      } else if (isGuest) {
-        denyGuest(pending.actionKey ?? "");
-      } else if (
-        pending.actionKey &&
-        resolveMinTier(pending.actionKey, config) === "subscription"
-      ) {
-        denySubscription(pending.actionKey);
-      } else if (needsPhone) {
-        openPhoneGate();
-      } else {
-        denySubscription(pending.actionKey ?? "");
-      }
-    }
-    if (pendingPaywallEvent.current) {
-      pendingPaywallEvent.current = false;
-      if (needsSubscription) openPaywall();
-    }
-  }, [
-    subLoading,
-    needsPhone,
-    needsSubscription,
-    openPaywall,
-    openPhoneGate,
-    isAllowed,
-    isGuest,
-    config,
-    denyGuest,
-    denySubscription,
-  ]);
 
   const ready =
     !loading && (isGuest || isDemoMode() || isStaffUser(me) || !getToken() || sessionReady);
@@ -333,45 +221,9 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return (
-    <GuestAccessContext.Provider value={value}>
-      {children}
-      <GuestAuthDialog
-        open={authOpen}
-        onOpenChange={setAuthOpen}
-        onLogin={() => {
-          setAuthOpen(false);
-          navigate({ to: "/login", search: { redirect: guestReturnPath() } });
-        }}
-        onRegister={() => {
-          setAuthOpen(false);
-          navigate({ to: "/register" });
-        }}
-      />
-      <PhoneVerifyDialog
-        open={phoneOpen}
-        onOpenChange={setPhoneOpen}
-        onConfirm={() => {
-          setPhoneOpen(false);
-          navigate({
-            to: "/settings/account",
-            search: { redirect: phoneReturnTo },
-          });
-        }}
-      />
-      <SubscriptionPaywallDialog
-        open={paywallOpen}
-        onOpenChange={setPaywallOpen}
-        title={config?.popup.title}
-        description={config?.popup.description}
-        primaryCta={config?.popup.primary_cta}
-        onPrimary={() => {
-          setPaywallOpen(false);
-          navigate({ to: ROUTES.subscription });
-        }}
-      />
-    </GuestAccessContext.Provider>
-  );
+  // The windows themselves live in <GateHost /> (mounted once in the root):
+  // one auth dialog, one verify dialog, one paywall for the whole app.
+  return <GuestAccessContext.Provider value={value}>{children}</GuestAccessContext.Provider>;
 }
 
 export function useGuestAccess(): GuestAccessContextValue {
