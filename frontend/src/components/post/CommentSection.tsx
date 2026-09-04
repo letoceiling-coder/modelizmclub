@@ -650,7 +650,6 @@ export function CommentSection({
   onDeleted,
   can,
 }: Props) {
-  const readOnly = readOnlyProp || can?.comment === false;
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
   const me = useCurrentUser();
@@ -684,6 +683,13 @@ export function CommentSection({
   };
 
   const commentBlocked = guest ? !guest.isAllowed("feed.post.comment") : false;
+
+  // Сервер честно отвечает can.comment=false и авторизованному без права
+  // писать, и гостю — но для гостя это «войдите», а не «нельзя». Раньше оба
+  // случая сворачивались в режим чтения, и гость не видел ни поля, ни кнопки
+  // ответа: точки входа в окно не существовало, хотя карта доступа обещает
+  // popup. Теперь только первый случай прячет композер.
+  const readOnly = readOnlyProp || (can?.comment === false && !commentBlocked);
 
   const promptComposerAuth = (e: { preventDefault: () => void }) => {
     if (!commentBlocked) return;
