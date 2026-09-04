@@ -34,18 +34,19 @@ use Illuminate\Support\Facades\DB;
 
 $reference = Registry::defaultConfig();
 
-$raw = DB::table('system_settings')->where('key', Registry::SETTING_KEY)->value('value');
-if ($raw === null) {
-    // Nothing saved yet means the app is running on the defaults — no drift.
-    fwrite(STDOUT, 'TOTAL|'.count($reference['actions'])."\n");
-    exit(0);
-}
+// The effective map, not the raw row. FeedGuestAccessService::mergedConfig()
+// walks the registry on every read and fills anything the saved snapshot does
+// not carry, so a key added to the registry after the last save is already
+// served with its default. Comparing the raw row instead reports those as
+// «missing» — which is what this script did on its first run, and it was
+// wrong: production serves all 56 actions while the row holds 51.
+$stored = app(Modules\PublicContent\Services\FeedGuestAccessService::class)->publicPayload();
 
-$stored = json_decode((string) $raw, true);
-if (! is_array($stored)) {
-    fwrite(STDERR, "access-map: the stored value is not valid JSON\n");
-    exit(2);
-}
+// The stale row is worth one line, but as a note: it changes nothing until
+// someone opens /admin, and then it fixes itself.
+$raw = DB::table('system_settings')->where('key', Registry::SETTING_KEY)->value('value');
+$rawActions = is_string($raw) ? (json_decode($raw, true)['actions'] ?? []) : [];
+$notSaved = array_diff(array_keys($reference['actions']), array_keys($rawActions));
 
 $labels = [];
 foreach (Registry::actions() as $row) {
@@ -58,12 +59,7 @@ $curActions = $stored['actions'] ?? [];
 $out = [];
 
 foreach ($refActions as $key => $want) {
-    if (! array_key_exists($key, $curActions)) {
-        $out[] = sprintf('MISSING|%s|%s', $key, $want['min_tier']);
-
-        continue;
-    }
-    $have = $curActions[$key];
+    $have = $curActions[$key] ?? $want;
     $wantTier = $want['min_tier'];
     $haveTier = $have['min_tier'] ?? $wantTier;
     $wantDeny = $want['deny_mode'];
@@ -86,6 +82,10 @@ foreach ($curActions as $key => $have) {
     if (! array_key_exists($key, $refActions)) {
         $out[] = sprintf('EXTRA|%s|%s', $key, $have['min_tier'] ?? '?');
     }
+}
+
+foreach ($notSaved as $key) {
+    $out[] = sprintf('NOTSAVED|%s|%s', $key, $refActions[$key]['min_tier'] ?? '?');
 }
 
 foreach (['version', 'default_deny_mode'] as $field) {
