@@ -21,7 +21,8 @@ import {
   type ComposerSelection,
 } from "@/components/feed/CreatePostMenu";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
-import { EventsHero } from "@/components/feed/EventsHero";
+import { EventsHero, sortBanners } from "@/components/feed/EventsHero";
+import { variantUrl } from "@/lib/media/variants";
 import { FindYourPeopleSheet } from "@/components/feed/FindYourPeopleSheet";
 import { PostCard } from "@/components/post/PostCard";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
@@ -36,7 +37,7 @@ import {
   getCachedPostCategories,
 } from "@/lib/api/categories";
 import { parseTaxonomyId } from "@/lib/taxonomy";
-import { fetchBanners } from "@/lib/api/banners";
+import { fetchBannersWithSettings, type BannerPack } from "@/lib/api/banners";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { getHiddenPostIds, hidePostId } from "@/lib/hidden-posts";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
@@ -80,12 +81,24 @@ const EMPTY_FEED: FeedResult = { posts: [], page: 1, lastPage: 1, total: 0 };
 const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/feed")({
-  head: () => ({
-    meta: [
-      { title: i18n.t("pages.feed.metaTitle") },
-      { name: "description", content: i18n.t("pages.feed.metaDescription") },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    // Первый баннер — LCP-элемент страницы. Preload в head поднимает его
+    // загрузку к самому началу документа: браузер начинает тянуть картинку
+    // одновременно с HTML, не дожидаясь разбора и выполнения бандла.
+    const first = loaderData?.hero
+      ? sortBanners(loaderData.hero.banners.filter((b) => b.active !== false))[0]
+      : undefined;
+    const preloadHref = first?.image ? variantUrl(first.image, "medium") : undefined;
+    return {
+      meta: [
+        { title: i18n.t("pages.feed.metaTitle") },
+        { name: "description", content: i18n.t("pages.feed.metaDescription") },
+      ],
+      links: preloadHref
+        ? [{ rel: "preload", as: "image", href: preloadHref, fetchPriority: "high" }]
+        : [],
+    };
+  },
   // `category` — set by landing's "Направления" cards (routes/index.tsx
   // CategoriesSection) so a direction click opens /feed pre-filtered to
   // that direction instead of the unfiltered feed. Value is a category
@@ -115,13 +128,22 @@ export const Route = createFileRoute("/feed")({
   }),
   loader: async () => {
     await ensurePublicBootstrap();
-    const [feed, banners, categories] = await Promise.all([
+    const [feed, inline, categories, hero] = await Promise.all([
       fetchFeed({ filter: "all", perPage: PAGE_SIZE }).catch(() => EMPTY_FEED),
-      fetchBanners("feed").catch(() => [] as Banner[]),
+      fetchBannersWithSettings("feed").catch(() => null),
       fetchPostCategories().catch(() => getCachedPostCategories() ?? []),
+      // Пак героя — отдельное размещение («events»), и до 04.09 его тянул сам
+      // компонент из useEffect. Из-за этого <img> героя не попадал в исходный
+      // HTML, и браузер узнавал о LCP-картинке только после гидрации.
+      fetchBannersWithSettings("events").catch(() => null),
     ]);
     void prefetchCategoryRoomStats();
-    return { feed, banners, categories };
+    return {
+      feed,
+      banners: (inline?.banners ?? []) as Banner[],
+      categories,
+      hero: hero as BannerPack | null,
+    };
   },
   staleTime: 30_000,
   pendingComponent: FeedPageSkeleton,
@@ -195,9 +217,9 @@ function FeedPage() {
         .catch(() => {});
     if (loaded.banners.length) setBanners(loaded.banners);
     else
-      fetchBanners("feed")
-        .catch(() => [])
-        .then(setBanners);
+      fetchBannersWithSettings("feed")
+        .then((pack) => setBanners(pack.banners))
+        .catch(() => {});
   }, [loaded.banners, loaded.categories]);
 
   useEffect(() => {
@@ -372,7 +394,7 @@ function FeedPage() {
     <AppLayout footer rightColumn={<FeedRightRail />}>
       <div className="space-y-[16px]">
         <VerificationBanner />
-        <EventsHero />
+        <EventsHero initial={loaded.hero} />
 
         <CreatePostMenu
           me={me}

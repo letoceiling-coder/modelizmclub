@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion, type Transition } from "framer-motion";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 interface Props {
   /** Remount key — swaps children when this changes (tab id, step number, etc). */
@@ -8,6 +8,15 @@ interface Props {
   className?: string;
   transition?: Transition;
   initial?: Record<string, number>;
+  /**
+   * Проигрывать ли появление для того ребёнка, который отрисован сразу.
+   * На /feed это стоило 3,3 секунды LCP: баннер приезжал с сервера готовым и
+   * был на экране к 3,4 с, но на гидрации framer-motion применял к нему
+   * opacity 0 и заново проявлял — браузер записывал новую отрисовку LCP уже
+   * после разбора бандла, на 6,7 с. Для переключения вкладок и шагов
+   * появление нужно, для первого кадра — нет.
+   */
+  animateOnMount?: boolean;
   animate?: Record<string, number>;
   exit?: Record<string, number>;
 }
@@ -28,12 +37,23 @@ export function ReducedMotionSwitch({
   switchKey,
   children,
   className,
+  animateOnMount = true,
   initial = { opacity: 0, y: 8 },
   animate = { opacity: 1, y: 0 },
   exit = { opacity: 0, y: -8 },
   transition = { duration: 0.2 },
 }: Props) {
   const reduce = useReducedMotion();
+  // Первый отрисованный ребёнок не получает начального состояния вовсе.
+  // framer-motion пишет `initial` инлайн-стилем в серверный HTML, и баннер
+  // ленты приезжал с opacity:0: картинка была загружена к 3,1 с, а видимой
+  // становилась только после гидрации, на 6,7 с. LCP считался по второму
+  // моменту. Переключения слайдов и вкладок анимируются как прежде.
+  const firstRender = useRef(true);
+  const isFirst = firstRender.current;
+  useEffect(() => {
+    firstRender.current = false;
+  }, []);
   if (reduce) {
     return (
       <div key={switchKey} className={className}>
@@ -46,7 +66,7 @@ export function ReducedMotionSwitch({
       <motion.div
         key={switchKey}
         className={className}
-        initial={initial}
+        initial={!animateOnMount && isFirst ? false : initial}
         animate={animate}
         exit={exit}
         transition={transition}

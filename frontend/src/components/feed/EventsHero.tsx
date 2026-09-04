@@ -8,23 +8,29 @@ import {
   fetchBannersWithSettings,
   getCachedBannersWithSettings,
   recordBannerEvent,
+  type BannerPack,
 } from "@/lib/api/banners";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
 
-function sortBanners(list: Banner[]): Banner[] {
+export function sortBanners(list: Banner[]): Banner[] {
   return [...list].sort((a, b) => {
     if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
     return (b.priority ?? 0) - (a.priority ?? 0);
   });
 }
 
-export function EventsHero() {
+/**
+ * @param initial баннеры, уже полученные лоадером маршрута. Без них компонент
+ *   узнаёт о картинке только после гидрации, и на /feed это давало LCP 7,7 с
+ *   при FCP 1,0 с: пять секунд браузер просто не знал, что грузить.
+ */
+export function EventsHero({ initial }: { initial?: BannerPack | null }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { guardAction } = useGuestAccess();
-  const cached = getCachedBannersWithSettings();
+  const cached = initial ?? getCachedBannersWithSettings();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [allBanners, setAllBanners] = useState<Banner[]>(() => cached?.banners ?? []);
@@ -158,6 +164,7 @@ export function EventsHero() {
         >
           <ReducedMotionSwitch
             switchKey={current.id}
+            animateOnMount={false}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
