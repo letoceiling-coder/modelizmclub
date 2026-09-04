@@ -150,7 +150,9 @@
   /* z-index scale for the shell — header < bottom nav < sheets/toasts < call overlay */
   --z-mobile-header: 30;
   --z-bottom-nav: 40;
-  --z-toaster: 100;
+  /* Выше cookie-баннера (z-[200]): иначе тост «Доступна новая версия»
+     оказывался под ним и до кнопки «Обновить» было не дотянуться. */
+  --z-toaster: 300;
   --z-call-overlay: 10000;
 }
 
