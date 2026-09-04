@@ -54,6 +54,12 @@ class Conversation extends Model
         return $this->belongsTo(Message::class, 'pinned_message_id');
     }
 
+    /** Set only on ConversationType::Deal chats — the deal this chat belongs to. */
+    public function safeDeal(): HasOne
+    {
+        return $this->hasOne(SafeDeal::class, 'conversation_id');
+    }
+
     public function participants(): HasMany
     {
         return $this->hasMany(ConversationParticipant::class);

@@ -25,7 +25,8 @@ class MessageResource extends JsonResource
             'body' => $this->body,
             'type' => $this->type,
             'status' => $this->resolveStatus($request),
-            'author' => new UserCompactResource($this->whenLoaded('author')),
+            // System notices have no author, so the relation can be loaded and null.
+            'author' => $this->whenLoaded('author', fn () => new UserCompactResource($this->author)),
             'reply_to' => $this->whenLoaded('replyTo', fn () => $this->replyTo ? [
                 'uuid' => $this->replyTo->uuid,
                 'body' => $this->replyTo->body,
