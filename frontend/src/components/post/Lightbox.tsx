@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -21,6 +21,36 @@ const CONTROL_BG = { background: "rgba(255,255,255,0.14)" } as const;
 export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: images.length > 1, startIndex });
   const [selected, setSelected] = useState(startIndex);
+  // Vertical drag-to-dismiss. Embla owns the horizontal axis (swiping between
+  // photos), so this only reacts once the gesture is clearly vertical, and it
+  // follows the finger so the dismiss is visible before it commits.
+  const drag = useRef<{ x: number; y: number; id: number } | null>(null);
+  const [dragY, setDragY] = useState(0);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") return;
+    drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const start = drag.current;
+    if (!start || start.id !== e.pointerId) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dy) < Math.abs(dx)) return;
+    setDragY(dy);
+  };
+
+  const endDrag = () => {
+    if (!drag.current) return;
+    drag.current = null;
+    if (Math.abs(dragY) > 90) {
+      setDragY(0);
+      onClose();
+      return;
+    }
+    setDragY(0);
+  };
 
   const onSelect = useCallback(() => {
     if (embla) setSelected(embla.selectedScrollSnap());
@@ -80,7 +110,24 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
         </div>
       )}
 
-      <div className="h-full w-full overflow-hidden" ref={viewportRef} onClick={(e) => e.stopPropagation()}>
+      {/* The strip fills the screen, so a click only counts as "outside" when
+          it lands on the padding around a photo rather than on the photo. */}
+      <div
+        className="h-full w-full touch-pan-x overflow-hidden"
+        ref={viewportRef}
+        onClick={(e) => {
+          if (e.target instanceof HTMLImageElement) e.stopPropagation();
+        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        style={{
+          transform: dragY ? `translateY(${dragY}px)` : undefined,
+          opacity: dragY ? Math.max(0.35, 1 - Math.abs(dragY) / 400) : 1,
+          transition: dragY ? "none" : "transform 0.18s ease, opacity 0.18s ease",
+        }}
+      >
         <div className="flex h-full">
           {images.map((src, i) => (
             <div key={`${src}-${i}`} className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]">

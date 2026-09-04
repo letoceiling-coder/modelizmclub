@@ -58,7 +58,13 @@ export function PostHeader({ author, authorHref, authorActionKey, post, isSchedu
   const { t } = useTranslation();
   return (
     <header className="flex items-center gap-[12px] px-[16px] pt-[16px]">
-      <GuestGuardLink actionKey={authorActionKey} to={authorHref} className="shrink-0">
+      {/* The ::after box lifts the 40px avatar to a 44px tap target without
+          moving it or the name beside it. */}
+      <GuestGuardLink
+        actionKey={authorActionKey}
+        to={authorHref}
+        className='relative shrink-0 after:absolute after:-inset-[2px] after:rounded-full after:content-[""]'
+      >
         <AuthorAvatar src={author.avatar} name={author.name} />
       </GuestGuardLink>
       <div className="min-w-0 flex-1">
