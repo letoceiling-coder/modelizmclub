@@ -12,6 +12,7 @@ import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import { variantUrl } from "@/lib/media/variants";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
@@ -134,7 +135,11 @@ function CommentAvatar({
     </div>
   ) : (
     <img
-      src={src}
+      // Six of these render on the first screen of the feed, and they were
+      // pulling the original uploads — 412 KB of 480x480 PNG, and one 900x675
+      // — into a 32px circle. They were the two heaviest transfers on the
+      // page; the post header beside them already asks for a thumb.
+      src={variantUrl(src, "thumb")}
       width={32}
       height={32}
       loading="lazy"
