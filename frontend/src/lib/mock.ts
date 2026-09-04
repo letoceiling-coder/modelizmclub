@@ -56,6 +56,7 @@ export interface FriendRequest {
 export interface Comment {
   id: ID;
   authorId: ID;
+  author?: User;
   time: string;
   text: string;
   likes?: number;
@@ -111,6 +112,8 @@ export type PostMediaItem = {
 export interface Post {
   id: ID;
   authorId: ID;
+  /** Serialized with the post so SSR and the client render the same header. */
+  author?: User;
   date: string;
   category: string;
   title: string;

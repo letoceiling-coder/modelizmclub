@@ -109,7 +109,7 @@ export function PostCard({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const me = useCurrentUser();
-  const author = userById(post.authorId);
+  const author = post.author ?? userById(post.authorId);
   const isShare = variant !== "embedded" && Boolean(post.repostOf);
   const isStaff = me.role === "admin" || me.role === "moderator" || !!me.isAdmin;
   const canDelete =

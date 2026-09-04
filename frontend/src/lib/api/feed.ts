@@ -139,6 +139,7 @@ export function mapEmbeddedOriginal(r: NonNullable<ApiPost["repost_of"]>): Post 
   return {
     id: r.uuid,
     authorId: author?.id ?? "",
+    author: author ?? undefined,
     date: r.published_at ?? "",
     category: r.category ?? "",
     title: r.title ?? "",
@@ -168,6 +169,7 @@ export function mapPost(p: ApiPost): Post {
   return {
     id: p.uuid,
     authorId: author?.id ?? "",
+    author: author ?? undefined,
     date: p.published_at ?? p.scheduled_at ?? p.created_at ?? "",
     category: p.category?.name ?? "",
     title: isShare ? "" : p.title || "",
@@ -300,6 +302,7 @@ export function mapComment(c: ApiComment): Comment {
   return {
     id: c.uuid,
     authorId: author?.id ?? "",
+    author: author ?? undefined,
     time: c.created_at ?? "",
     can: c.can,
     text: c.body ?? "",
