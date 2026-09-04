@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Mic, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
 
 const MAX_SECONDS = 180;
 const CANCEL_THRESHOLD = 72;
@@ -386,7 +387,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
         type="button"
         onPointerDown={onPointerDown}
         onContextMenu={(e) => e.preventDefault()}
-        className="relative z-30 grid h-[44px] w-[44px] shrink-0 touch-none place-items-center rounded-full select-none sm:h-[42px] sm:w-[42px]"
+        className={`relative z-30 grid h-[44px] w-[44px] shrink-0 touch-none place-items-center rounded-full select-none sm:h-[42px] sm:w-[42px] ${TAP_TARGET_44}`}
         style={{
           background: recording
             ? cancelReady

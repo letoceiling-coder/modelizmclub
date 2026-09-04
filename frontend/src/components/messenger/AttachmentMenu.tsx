@@ -9,6 +9,7 @@ import {
   type ChatAttachmentKind,
 } from "@/lib/chat-attachments";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
 
 export type AttachmentKind = ChatAttachmentKind;
 
@@ -72,7 +73,7 @@ export function AttachmentMenu({ onPick }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px]"
+        className={`grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px] ${TAP_TARGET_44}`}
         style={{ color: "var(--foreground-50)" }}
         aria-label={`Прикрепить файл (${limitLabel})`}
         aria-expanded={open}

@@ -78,8 +78,12 @@ interface ApiConversation {
   participants?: Array<{ user?: ApiCompactUser | null; role?: string; pinned_at?: string | null }>;
   last_message?: ApiMessage | null;
   unread_count?: number;
+  /** Курсор прочитанного: id — серверный, uuid — то, чем оперирует клиент. */
+  last_read_message_id?: number | null;
+  last_read_message_uuid?: string | null;
   community?: { slug?: string; name?: string; avatar?: string | null } | null;
   room?: { category_id?: number | null; root_id?: number | null } | null;
+  deal?: { uuid: string; status?: string | null; status_label?: string | null } | null;
 }
 
 interface Paginated<T> {
@@ -262,16 +266,28 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
             rootId: c.room.root_id ? String(c.room.root_id) : null,
           }
         : undefined,
+    lastReadMessageId: c.last_read_message_uuid ?? undefined,
+    deal: c.deal
+      ? {
+          id: c.deal.uuid,
+          status: c.deal.status ?? "",
+          statusLabel: c.deal.status_label ?? undefined,
+        }
+      : undefined,
   };
   return dialog;
 }
 
-/** Keep one dialog per partner — API list is deduped, this is a client-side safety net. */
+/**
+ * Keep one dialog per partner — API list is deduped, this is a client-side
+ * safety net. Чат сделки живёт отдельно от личного: с одним и тем же
+ * человеком их может быть два, и схлопывать их нельзя.
+ */
 export function dedupeDialogsByPartner(dialogs: Dialog[]): Dialog[] {
   const seen = new Set<string>();
   const result: Dialog[] = [];
   for (const d of dialogs) {
-    if (!d.userId) {
+    if (!d.userId || d.type === "deal") {
       result.push(d);
       continue;
     }

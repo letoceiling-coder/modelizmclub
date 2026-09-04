@@ -95,7 +95,8 @@ function dedupeByPartner(dialogs: Dialog[]): Dialog[] {
   const seen = new Set<string>();
   const out: Dialog[] = [];
   for (const d of dialogs) {
-    if (!d.userId) {
+    // Чат сделки — отдельная сущность, а не дубль личного с тем же человеком.
+    if (!d.userId || d.type === "deal") {
       out.push(d);
       continue;
     }

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -20,12 +20,23 @@ import {
   Radio,
   BadgeCheck,
   ImageOff,
+  AlertCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { userById, makeMockWaveform } from "@/lib/mock";
 import type { Dialog, Message } from "@/lib/mock";
 import { useStore, actions, GUEST_USER, getState, markDialogDeleted } from "@/lib/store";
-import { useDialogs, useDialogMessages, messengerCache } from "@/lib/messenger";
+import {
+  useDialogs,
+  useDialogMessages,
+  messengerCache,
+  useVisualViewportInset,
+  rememberDialogScroll,
+  recallDialogScroll,
+  findFirstUnreadMessageId,
+  TAP_TARGET_44,
+  TAP_TARGET_ROW_44,
+} from "@/lib/messenger";
 import { useCurrentUser } from "@/lib/session";
 import {
   fetchConversation,
@@ -110,7 +121,9 @@ export const Route = createFileRoute("/messenger")({
   },
   validateSearch: (search: Record<string, unknown>): { chat?: string; share?: boolean } => ({
     chat: typeof search.chat === "string" ? search.chat : undefined,
-    share: search.share === true || search.share === "1" || search.share === 1,
+    // undefined, а не false: иначе роутер дописывает в адрес ?share=false и
+    // пользователь копирует ссылку с мусорным параметром.
+    share: search.share === true || search.share === "1" || search.share === 1 ? true : undefined,
   }),
   component: MessengerRoute,
   pendingComponent: MessengerPageSkeleton,
@@ -127,7 +140,9 @@ type ChatScope = "all" | "direct" | "rooms" | "deals";
 /** Chats split into the three sections of the left panel. */
 function dialogScope(d: Dialog): Exclude<ChatScope, "all"> {
   if (d.type === "room") return "rooms";
-  if (d.listing) return "deals";
+  // Чат сделки — это отдельный тип; личный чат про объявление тоже живёт
+  // во вкладке «Сделок», пока у него нет своей сделки.
+  if (d.type === "deal" || d.listing) return "deals";
   return "direct";
 }
 
@@ -620,7 +635,12 @@ function MessageBubble({
 function MessengerPage() {
   const { t } = useTranslation();
   const { guardAction } = useGuestAccess();
-  const { dialogs: dlgs, isPending: loading } = useDialogs();
+  const {
+    dialogs: dlgs,
+    isPending: loading,
+    error: dialogsError,
+    refetch: refetchDialogs,
+  } = useDialogs();
   const meId = useCurrentUser().id;
   const dialogMetaMap = useStore((s) => s.dialogMeta);
   const blockedUserIds = useStore((s) => s.blockedUserIds);
@@ -651,6 +671,13 @@ function MessengerPage() {
   const stickToBottomRef = useRef(true);
   const sendingRef = useRef(false);
   const openingChatRef = useRef<string | null>(null);
+  // Первое непрочитанное сообщение открытого диалога — под ним рисуется
+  // разделитель, и именно к нему уезжает скролл при открытии.
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  const openAnchorResolvedRef = useRef<string | null>(null);
+  const pendingScrollRestoreRef = useRef<number | null>(null);
+  const scrollMemoryArmedRef = useRef(false);
+  const keyboardInset = useVisualViewportInset();
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;
@@ -803,7 +830,12 @@ function MessengerPage() {
     });
   }, [meId]);
 
-  const { messages, isPending: chatLoading } = useDialogMessages(activeId);
+  const {
+    messages,
+    isPending: chatLoading,
+    error: chatError,
+    refetch: refetchMessages,
+  } = useDialogMessages(activeId);
 
   // A message queued from another page ("Написать продавцу" with text) goes
   // out as soon as the thread is on screen.
@@ -888,6 +920,12 @@ function MessengerPage() {
     setChatSearchOpen(false);
     setSearchHighlightId(null);
     setSearchHighlightQuery("");
+    // Сохранённую позицию забираем сразу при переключении: дальше по списку
+    // поедут события скролла нового диалога и перезапишут её.
+    setFirstUnreadId(null);
+    openAnchorResolvedRef.current = null;
+    scrollMemoryArmedRef.current = false;
+    pendingScrollRestoreRef.current = activeId ? (recallDialogScroll(activeId) ?? null) : null;
   }, [activeId]);
 
   const filtered = useMemo(() => {
@@ -932,6 +970,9 @@ function MessengerPage() {
     if (!el) return;
     const onScroll = () => {
       stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+      // Пока диалог не отрисован целиком, scrollTop ничего не значит —
+      // запоминаем позицию только после того, как чат встал на своё место.
+      if (activeId && scrollMemoryArmedRef.current) rememberDialogScroll(activeId, el.scrollTop);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
@@ -952,6 +993,53 @@ function MessengerPage() {
     ro.observe(target);
     return () => ro.disconnect();
   }, [activeId, messages.length, scrollToBottom]);
+
+  // Где открыть диалог: на первом непрочитанном, иначе на сохранённой позиции,
+  // иначе внизу. Решаем один раз за открытие — список продолжает опрашиваться,
+  // и без заморозки разделитель исчезал бы прямо под курсором.
+  useEffect(() => {
+    if (!activeId || chatLoading) return;
+    if (openAnchorResolvedRef.current === activeId) return;
+    const dialog = dlgs.find((d) => d.id === activeId);
+    if (!dialog) return;
+    openAnchorResolvedRef.current = activeId;
+
+    const visible = messages.filter((m) => !m.deletedForMe);
+    const firstUnread = findFirstUnreadMessageId(visible, dialog.lastReadMessageId, meId);
+
+    if (firstUnread) {
+      stickToBottomRef.current = false;
+      setFirstUnreadId(firstUnread);
+      scrollMemoryArmedRef.current = true;
+      return;
+    }
+
+    const restored = pendingScrollRestoreRef.current;
+    pendingScrollRestoreRef.current = null;
+    const el = scrollRef.current;
+    if (restored !== null && el) {
+      stickToBottomRef.current = false;
+      el.scrollTop = restored;
+      stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+    } else {
+      stickToBottomRef.current = true;
+      scrollToBottom("auto");
+    }
+    scrollMemoryArmedRef.current = true;
+  }, [activeId, chatLoading, messages, dlgs, meId, scrollToBottom]);
+
+  // Разделитель появляется только после ре-рендера — скроллим к нему отдельно.
+  useEffect(() => {
+    if (!firstUnreadId) return;
+    const divider = scrollRef.current?.querySelector<HTMLElement>("[data-unread-divider]");
+    divider?.scrollIntoView({ block: "start" });
+  }, [firstUnreadId]);
+
+  // Клавиатура открылась — последнее сообщение должно остаться на виду.
+  useEffect(() => {
+    if (!keyboardInset || !stickToBottomRef.current) return;
+    scrollToBottom("auto");
+  }, [keyboardInset, scrollToBottom]);
 
   const handleSelect = (id: string) => {
     setActiveId(id);
@@ -1331,7 +1419,7 @@ function MessengerPage() {
                         setShowArchived(tabItem.key === "chats-archive");
                       }
                     }}
-                    className="min-w-0 px-[2px] text-center text-[12px] transition-colors sm:text-[13px]"
+                    className={`min-w-0 px-[2px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
                     title={tabItem.label}
                     style={{
                       height: 32,
@@ -1346,7 +1434,11 @@ function MessengerPage() {
               })}
             </div>
             {listTab === "chats" && (
-              <div className="flex gap-[6px] overflow-x-auto px-[12px] py-[8px]">
+              <div
+                // py-3, а не py-2: прокрутка по X обрезает всё, что вылезает за
+                // высоту ряда, а 44-пиксельной хит-зоне чипов нужен запас.
+                className="flex gap-[6px] overflow-x-auto px-[12px] py-3"
+              >
                 {[
                   { key: "all" as const, label: t("pages.messenger.scopeAll") },
                   { key: "direct" as const, label: t("pages.messenger.scopeDirect") },
@@ -1359,7 +1451,7 @@ function MessengerPage() {
                       key={scope.key}
                       type="button"
                       onClick={() => setChatScope(scope.key)}
-                      className="shrink-0 rounded-full px-[10px] py-[4px] text-[11.5px] font-medium transition-colors"
+                      className={`shrink-0 rounded-full px-[10px] py-[4px] text-[11.5px] font-medium transition-colors ${TAP_TARGET_ROW_44}`}
                       style={{
                         background: on ? "var(--accent-soft)" : "transparent",
                         color: on ? "var(--accent)" : "var(--foreground-50)",
@@ -1394,6 +1486,14 @@ function MessengerPage() {
               />
             ) : loading ? (
               <DialogListSkeleton />
+            ) : dialogsError && dlgs.length === 0 ? (
+              <EmptyState
+                icon={AlertCircle}
+                title={t("pages.messenger.dialogsErrorTitle")}
+                description={t("pages.messenger.dialogsErrorDesc")}
+                variant="bare"
+                action={{ label: t("pages.shared.retry"), onClick: () => void refetchDialogs() }}
+              />
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
             ) : (
@@ -1521,7 +1621,7 @@ function MessengerPage() {
                             const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                             setDialogCtxMenu({ dialogId: d.id, point: { x: r.left, y: r.bottom } });
                           }}
-                          className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                          className={`grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${TAP_TARGET_44}`}
                           style={{ color: "var(--foreground-50)" }}
                         >
                           <MoreHorizontal size={16} />
@@ -1538,7 +1638,9 @@ function MessengerPage() {
         {/* Chat Panel */}
         <section
           className={`flex min-h-0 min-w-0 flex-col md:flex ${mobileView === "chat" ? "flex" : "hidden"}`}
-          style={{ background: "var(--background)" }}
+          // Клавиатура не уменьшает 100dvh — отдаём ей нижние пиксели сами,
+          // тогда композер остаётся над ней, а не под.
+          style={{ background: "var(--background)", paddingBottom: keyboardInset || undefined }}
         >
           {!active ? (
             <EmptyChat />
@@ -1593,6 +1695,15 @@ function MessengerPage() {
                         {activeIdentity?.name ?? partner?.name}
                       </div>
                       <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
+                        {active.deal && (
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                            title={t("pages.messenger.dealStatus")}
+                          >
+                            {active.deal.statusLabel || active.deal.status}
+                          </span>
+                        )}
                         {active.type === "community" || active.type === "room" ? (
                           <span style={{ color: "var(--foreground-50)" }}>
                             {t("pages.communityDetail.tabChat")}
@@ -1663,7 +1774,7 @@ function MessengerPage() {
                       e.stopPropagation();
                       actions.pinMessage(active!.id, pinnedMessage.id);
                     }}
-                    className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full"
+                    className={`grid h-[24px] w-[24px] shrink-0 place-items-center rounded-full ${TAP_TARGET_44}`}
                     style={{ color: "var(--foreground-50)" }}
                     aria-label={t("pages.messenger.unpinMessage")}
                   >
@@ -1680,27 +1791,40 @@ function MessengerPage() {
               >
                 {chatLoading ? (
                   <MessageSkeleton />
+                ) : chatError && messages.length === 0 ? (
+                  <EmptyState
+                    icon={AlertCircle}
+                    title={t("pages.messenger.chatErrorTitle")}
+                    description={t("pages.messenger.chatErrorDesc")}
+                    variant="bare"
+                    action={{
+                      label: t("pages.shared.retry"),
+                      onClick: () => void refetchMessages(),
+                    }}
+                  />
                 ) : (
                   <div ref={messagesContentRef}>
                     {messages
                       .filter((m) => !m.deletedForMe)
                       .map((m, i, arr) => (
-                        <MessageBubble
-                          key={m.clientKey ?? m.id}
-                          msg={m}
-                          prev={arr[i - 1]}
-                          allMessages={messages}
-                          onReply={setReplyTo}
-                          onCopy={handleCopy}
-                          onForward={setForwardMsg}
-                          onPin={handlePinMessage}
-                          onDelete={handleDeleteMessage}
-                          onDeleteForEveryone={handleDeleteForEveryone}
-                          onReport={handleReportMessage}
-                          onMediaResize={handleMediaResize}
-                          searchHighlightId={searchHighlightId}
-                          searchQuery={searchHighlightQuery}
-                        />
+                        <Fragment key={m.clientKey ?? m.id}>
+                          {m.id === firstUnreadId && <NewMessagesDivider />}
+                          <MessageBubble
+                            msg={m}
+                            prev={arr[i - 1]}
+                            allMessages={messages}
+                            onReply={setReplyTo}
+                            onCopy={handleCopy}
+                            onForward={setForwardMsg}
+                            onPin={handlePinMessage}
+                            onDelete={handleDeleteMessage}
+                            onDeleteForEveryone={handleDeleteForEveryone}
+                            onReport={handleReportMessage}
+                            onMediaResize={handleMediaResize}
+                            searchHighlightId={searchHighlightId}
+                            searchQuery={searchHighlightQuery}
+                          />
+                        </Fragment>
                       ))}
                   </div>
                 )}
@@ -1743,7 +1867,7 @@ function MessengerPage() {
                         </div>
                         <button
                           onClick={() => setReplyTo(null)}
-                          className="grid h-[20px] w-[20px] place-items-center rounded-full"
+                          className={`grid h-[20px] w-[20px] place-items-center rounded-full ${TAP_TARGET_44}`}
                           style={{ color: "var(--foreground-50)" }}
                           aria-label={t("pages.messenger.cancelReply")}
                         >
@@ -1797,7 +1921,7 @@ function MessengerPage() {
                     <Button
                       size="icon"
                       onClick={send}
-                      className="h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[40px] sm:w-[40px]"
+                      className={`h-[44px] w-[44px] shrink-0 rounded-full transition-transform active:scale-95 sm:h-[40px] sm:w-[40px] ${TAP_TARGET_44}`}
                       aria-label={t("pages.messenger.send")}
                     >
                       <Send size={18} />
@@ -1942,6 +2066,27 @@ function MessengerPage() {
         }}
       />
     </AppLayout>
+  );
+}
+
+/** «Новые сообщения» — граница, с которой продолжается чтение. */
+function NewMessagesDivider() {
+  const { t } = useTranslation();
+  return (
+    <div
+      data-unread-divider="1"
+      className="my-4 flex items-center gap-3"
+      aria-label={t("pages.messenger.newMessages")}
+    >
+      <span className="h-px flex-1" style={{ background: "var(--border-accent)" }} />
+      <span
+        className="shrink-0 rounded-full px-3 py-0.5 text-[11px] font-semibold"
+        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      >
+        {t("pages.messenger.newMessages")}
+      </span>
+      <span className="h-px flex-1" style={{ background: "var(--border-accent)" }} />
+    </div>
   );
 }
 

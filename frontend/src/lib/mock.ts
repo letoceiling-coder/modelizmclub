@@ -382,12 +382,25 @@ export interface Dialog {
   messages: Message[];
   pinned?: boolean;
   listing?: DialogAdRef;
-  type?: "direct" | "group" | "community" | "room";
+  type?: "direct" | "group" | "community" | "room" | "deal";
   title?: string;
   avatar?: string;
   communitySlug?: string;
   /** Category chat: taxonomy ids needed to build the /categories/{root}/{id} link. */
   room?: { categoryId: string; rootId: string | null };
+  /**
+   * uuid последнего прочитанного сообщения. Точка, с которой открывается чат:
+   * всё, что пришло после неё, читатель ещё не видел.
+   */
+  lastReadMessageId?: string;
+  /** Чат безопасной сделки — статус показываем прямо в шапке диалога. */
+  deal?: DialogDealRef;
+}
+
+export interface DialogDealRef {
+  id: ID;
+  status: string;
+  statusLabel?: string;
 }
 
 export interface DialogAdRef {
