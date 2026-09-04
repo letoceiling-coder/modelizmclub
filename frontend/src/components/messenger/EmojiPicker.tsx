@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Smile } from "lucide-react";
 import { MESSENGER_EMOJI_GROUPS } from "@/lib/messenger-emojis";
+import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
 
 interface Props {
   onPick: (emoji: string) => void;
@@ -114,9 +115,11 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
     setOpen(false);
   };
 
+  // Визуал у компактного варианта 36px, у обычного — 40px на десктопе;
+  // палец в обоих случаях попадает в 44.
   const triggerClass = compact
-    ? "grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
-    : "grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px]";
+    ? `grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)] ${TAP_TARGET_44}`
+    : `grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px] ${TAP_TARGET_44}`;
 
   const panel =
     mounted && open && panelStyle ? (

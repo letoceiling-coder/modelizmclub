@@ -18,6 +18,7 @@ import {
   Flag,
   MoreHorizontal,
 } from "lucide-react";
+import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
 
 export interface MessageActionsMenuHandle {
   open: () => void;
@@ -151,7 +152,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(
             ref={triggerRef}
             type="button"
             onClick={() => (open ? setOpen(false) : openMenu())}
-            className={`grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100 sm:h-[28px] sm:w-[28px] ${open ? "!opacity-100" : ""}`}
+            className={`grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100 sm:h-[28px] sm:w-[28px] ${TAP_TARGET_44} ${open ? "!opacity-100" : ""}`}
             style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
             aria-label="Действия с сообщением"
             aria-expanded={open}
@@ -309,7 +310,7 @@ function Item({
       role="menuitem"
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-[10px] px-[14px] py-[12px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+      className="flex min-h-11 w-full items-center gap-[10px] px-[14px] py-[12px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: danger ? "var(--error)" : "var(--foreground)" }}
     >
       <Icon className="h-[16px] w-[16px]" />

@@ -20,6 +20,7 @@ import {
   Flag,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
 import { userById } from "@/lib/mock";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import {
@@ -261,7 +262,7 @@ export function ChatHeaderActions({
       <button
         type="button"
         onClick={onSearch}
-        className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+        className={`grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] ${TAP_TARGET_44}`}
         style={{ color: "var(--foreground-50)" }}
         aria-label={t("components.chatHeader.searchAria")}
       >
@@ -284,7 +285,7 @@ export function ChatHeaderActions({
           requirePremium(() => setConfirmOpen(true));
         }}
         disabled={callBusy}
-        className="grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] disabled:opacity-50"
+        className={`grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] disabled:opacity-50 ${TAP_TARGET_44}`}
         style={{ color: "var(--accent)" }}
         aria-label={t("components.chatHeader.callAria", { name: partnerName })}
       >
@@ -307,7 +308,7 @@ export function ChatHeaderActions({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
+          className={`grid h-[36px] w-[36px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] ${TAP_TARGET_44}`}
           style={{ color: "var(--foreground-50)" }}
           aria-label={t("components.chatHeader.menuAria")}
           aria-expanded={open}
@@ -449,7 +450,7 @@ function Item({
       role="menuitem"
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-[10px] px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+      className="flex min-h-11 w-full items-center gap-[10px] px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: danger ? "var(--error)" : "var(--foreground)" }}
     >
       <Icon className="h-[16px] w-[16px]" />

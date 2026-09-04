@@ -198,7 +198,7 @@ function Item({
       role="menuitem"
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-[10px] px-[14px] py-[12px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+      className="flex min-h-11 w-full items-center gap-[10px] px-[14px] py-[12px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: danger ? "var(--error)" : "var(--foreground)" }}
     >
       <Icon className="h-[16px] w-[16px]" />
