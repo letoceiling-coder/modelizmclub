@@ -1,7 +1,6 @@
-import { redirect } from "@tanstack/react-router";
 import { ensureSession } from "@/lib/auth/session";
 import { type Level } from "./levels";
-import { gateFallbackPath, openRouteGate } from "./routeGate";
+import { openRouteGate } from "./routeGate";
 
 export interface RouteGuardResult {
   /** SSR: render the page skeleton, decide after hydration. */
@@ -28,7 +27,7 @@ export async function routeGuard(
   const search = typeof location?.search === "string" ? location.search : window.location.search;
   if (!openRouteGate(level, pathname + search)) return { ssrSkeleton: false, allowed: true };
 
-  const fallback = gateFallbackPath(pathname);
-  if (fallback) throw redirect({ to: fallback as "/feed", replace: true });
+  // Адрес не меняем: окно открывается поверх запрошенной страницы, а она
+  // отрисовывает свой скелетон под затемнением. См. gateRoute().
   return { ssrSkeleton: false, allowed: false };
 }
