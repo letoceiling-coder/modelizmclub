@@ -5,9 +5,12 @@
  */
 export const qk = {
   session: ["session"] as const,
-  feed: (filter: string, category: string | null) => ["feed", filter, category] as const,
+  /** Feed list. `category` is a taxonomy id or a category name, `tag` a hashtag. */
+  feed: (filter: string, category?: string | null, tag?: string | null) =>
+    ["feed", filter, category ?? null, tag ?? null] as const,
   post: (uuid: string) => ["post", uuid] as const,
-  comments: (postUuid: string, sort: string) => ["comments", postUuid, sort] as const,
+  comments: (postUuid: string, sort?: string | null) =>
+    ["comments", postUuid, sort ?? null] as const,
   listings: (params: Record<string, unknown>) => ["listings", params] as const,
   listing: (uuid: string) => ["listing", uuid] as const,
   favorites: ["favorites"] as const,
@@ -19,11 +22,14 @@ export const qk = {
   channel: (slug: string) => ["channel", slug] as const,
 };
 
+export type FeedQueryKey = ReturnType<typeof qk.feed>;
+
+/** How long a cached list stays fresh before a background refetch. */
 export const STALE = {
   session: 5 * 60_000,
   feed: 30_000,
   post: 60_000,
-  comments: 30_000,
+  comments: 15_000,
   listings: 60_000,
   listing: 2 * 60_000,
   favorites: 5 * 60_000,
@@ -35,9 +41,14 @@ export const STALE = {
   channel: 2 * 60_000,
 } as const;
 
+/** How long an unused cache entry survives. Feed/post live long enough that
+ *  opening a post and pressing Back restores the feed (counters and scroll). */
 export const GC = {
   short: 5 * 60_000,
   medium: 10 * 60_000,
   long: 15 * 60_000,
   forever: Infinity,
+  feed: 30 * 60_000,
+  post: 30 * 60_000,
+  comments: 10 * 60_000,
 } as const;

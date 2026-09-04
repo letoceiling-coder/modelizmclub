@@ -26,7 +26,6 @@ import {
   removeFromCommentThread,
 } from "@/lib/comment-thread";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CommentSection } from "@/components/post/CommentSection";
 import { PostMedia } from "@/components/post/PostMedia";
@@ -79,7 +78,10 @@ interface Props {
   onEdited?: (post: Post) => void;
   onTogglePost?: (id: string, patch: Partial<Post>) => void;
   isSavedExternal?: boolean;
-  onToggleSave?: (id: string) => void;
+  /** Optimistic write into the owning list's query cache. Called with the
+   *  target state, and again with the previous one when the request fails —
+   *  the cache updaters are idempotent, so that restores the exact counter. */
+  onOptimistic?: (id: string, kind: "like" | "save" | "repost", next: boolean) => void;
   onDelete?: (id: string) => void;
   onHide?: (id: string) => void;
   /** Fired after a successful share/undo so a wrapper card can leave the list. */
@@ -97,7 +99,7 @@ export function PostCard({
   overrides,
   onEdited,
   isSavedExternal,
-  onToggleSave,
+  onOptimistic,
   onDelete,
   onHide,
   onTogglePost,
@@ -236,19 +238,22 @@ export function PostCard({
     if (input instanceof HTMLInputElement) input.focus();
   };
 
+  // Reading comments is a gated action of its own: when the admin config puts
+  // `feed.post.comment` above the guest rung, tapping «Комментарии» opens the
+  // same single gate window save/repost use, instead of quietly doing nothing.
   const toggleComments = () => {
-    if (showAllComments) {
-      commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      return;
-    }
-    if (commentsCount > 3) {
-      setShowAllComments(true);
-      loadComments(commentSort, true);
-      return;
-    }
-    if (!canInteract && commentsCount === 0) return;
-    // Viewing comments is open; SMS/login gate fires when focusing the composer.
-    focusComments();
+    void gate.require(levelFor("feed.post.comment"), () => {
+      if (showAllComments) {
+        commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        return;
+      }
+      if (commentsCount > 3) {
+        setShowAllComments(true);
+        loadComments(commentSort, true);
+        return;
+      }
+      focusComments();
+    });
   };
 
   // Bodies run only once the gate lets them through (see the <Gated> wrappers
@@ -257,21 +262,24 @@ export function PostCard({
     if (!canInteract) return;
     const next = !liked;
     setLiked(next);
-    setLikes((n) => n + (next ? 1 : -1));
+    setLikes((n) => Math.max(0, n + (next ? 1 : -1)));
+    onOptimistic?.(post.id, "like", next);
     (overrides?.toggleLike ? overrides.toggleLike(next) : reactToPost(post.id, next)).catch(() => {
       setLiked(!next);
-      setLikes((n) => n + (next ? -1 : 1));
+      setLikes((n) => Math.max(0, n + (next ? -1 : 1)));
+      onOptimistic?.(post.id, "like", !next);
     });
   };
   const doSave = () => {
     if (!canInteract) return;
     const next = !saved;
-    if (onToggleSave) onToggleSave(post.id);
-    else setSavedInner((v) => !v);
-    setSaves((n) => n + (next ? 1 : -1));
+    setSavedInner(next);
+    setSaves((n) => Math.max(0, n + (next ? 1 : -1)));
+    onOptimistic?.(post.id, "save", next);
     bookmarkPost(post.id, next).catch(() => {
-      if (!onToggleSave) setSavedInner((v) => !v);
-      setSaves((n) => n + (next ? -1 : 1));
+      setSavedInner(!next);
+      setSaves((n) => Math.max(0, n + (next ? -1 : 1)));
+      onOptimistic?.(post.id, "save", !next);
     });
   };
   // Gated form of doSave for children that take a plain callback (embedded card).
@@ -285,12 +293,14 @@ export function PostCard({
         const next = false;
         setReposted(next);
         setReposts((n) => Math.max(0, n - 1));
+        onOptimistic?.(post.id, "repost", false);
         toast.success(t("components.repostMenu.repostUndone"));
         repostPost(post.id, false)
           .then(() => onRepostedChange?.(false))
           .catch(() => {
             setReposted(true);
             setReposts((n) => n + 1);
+            onOptimistic?.(post.id, "repost", true);
             toast.error(t("components.repostMenu.repostFailed"));
           });
         return;
@@ -302,12 +312,14 @@ export function PostCard({
   const confirmRepost = (body: string) => {
     setReposted(true);
     setReposts((n) => n + 1);
+    onOptimistic?.(post.id, "repost", true);
     toast.success(t("components.repostMenu.repostAdded"));
     repostPost(post.id, true, body)
       .then(() => onRepostedChange?.(true))
       .catch(() => {
         setReposted(false);
         setReposts((n) => Math.max(0, n - 1));
+        onOptimistic?.(post.id, "repost", false);
         toast.error(t("components.repostMenu.repostFailed"));
       });
   };
@@ -352,11 +364,16 @@ export function PostCard({
         if (!parentId) return [...list, newC];
         return appendToCommentThread(list, parentId, newC);
       });
+      onTogglePost?.(post.id, { comments: (post.comments ?? 0) + 1 });
       createComment(post.id, text, parentId, photos?.mediaIds)
         .then((saved) => {
           setCommentList((list) => replaceInCommentThread(list, parentId, tempId, saved));
         })
-        .catch(() => {});
+        .catch(() => {
+          setCommentList((list) => removeFromCommentThread(list, tempId));
+          onTogglePost?.(post.id, { comments: post.comments ?? 0 });
+          toast.error(t("components.commentSection.sendFailed"));
+        });
     });
   };
 
@@ -591,15 +608,19 @@ export function PostCard({
 
             {post.tags && post.tags.length > 0 && (
               <div className="mt-[8px] flex flex-wrap gap-[6px]">
-                {post.tags.map((t) => (
-                  <Badge
-                    key={t}
-                    variant="secondary"
-                    withIcon={false}
-                    className="rounded-[6px] border-transparent bg-[var(--accent-soft)] px-[8px] py-[3px] font-mono text-[11px] text-[var(--accent)]"
+                {post.tags.map((tag) => (
+                  // The feed filters by hashtag server-side, so a chip is a real
+                  // link to /feed?tag=… . The ::after box lifts the 32px chip to
+                  // a 44px tap target without moving anything visually.
+                  <Link
+                    key={tag}
+                    to="/feed"
+                    search={{ tag }}
+                    onClick={(e) => e.stopPropagation()}
+                    className='relative inline-flex min-h-[32px] items-center rounded-[6px] bg-[var(--accent-soft)] px-2 font-mono text-[11px] text-[var(--accent)] transition-opacity hover:opacity-80 after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[""]'
                   >
-                    #{t}
-                  </Badge>
+                    #{tag}
+                  </Link>
                 ))}
               </div>
             )}
@@ -674,7 +695,10 @@ export function PostCard({
                 }}
                 onHide={() => setShowAllComments(false)}
                 totalCount={commentsCount}
-                onDeleted={(id) => setCommentList((prev) => removeFromCommentThread(prev, id))}
+                onDeleted={(id) => {
+                  setCommentList((prev) => removeFromCommentThread(prev, id));
+                  onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
+                }}
                 onSortChange={(next) => {
                   setCommentSort(next);
                   loadComments(next, showAllComments);

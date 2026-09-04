@@ -57,6 +57,150 @@ class FeedModuleTest extends TestCase
             ->assertJsonPath('data.0.uuid', $uuid);
     }
 
+    public function test_post_can_be_created_and_published_without_a_category(): void
+    {
+        config(['feed.auto_publish' => true]);
+
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', [
+                'title' => 'Без направления',
+                'body' => 'Направление и масштаб не выбраны.',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', ContentStatus::Draft->value)
+            ->json('data.uuid');
+
+        $this->assertDatabaseHas('posts', ['uuid' => $uuid, 'category_id' => null]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/publish")
+            ->assertOk()
+            ->assertJsonPath('data.status', ContentStatus::Published->value);
+
+        $this->getJson('/api/v1/feed')
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $uuid);
+    }
+
+    public function test_deepest_category_pick_is_stored_and_still_matches_its_parent_filter(): void
+    {
+        config(['feed.auto_publish' => true]);
+
+        $direction = PostCategory::create([
+            'name' => 'Авиация',
+            'slug' => 'aviation-tree',
+            'sort_order' => 1,
+            'depth' => 0,
+            'is_active' => true,
+        ]);
+        $direction->update(['path' => (string) $direction->id]);
+
+        $scale = PostCategory::create([
+            'name' => '1:48',
+            'slug' => 'aviation-tree-148',
+            'parent_id' => $direction->id,
+            'sort_order' => 1,
+            'depth' => 1,
+            'is_active' => true,
+        ]);
+        $scale->update(['path' => $direction->id.'/'.$scale->id]);
+
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', [
+                'title' => 'P-51 в 1:48',
+                'body' => 'Сборка идёт.',
+                'category_id' => $scale->id,
+            ])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/publish")
+            ->assertOk();
+
+        $this->assertDatabaseHas('posts', ['uuid' => $uuid, 'category_id' => $scale->id]);
+
+        // Фильтр по направлению обязан находить пост, сохранённый в листе.
+        $this->getJson('/api/v1/feed?category_id='.$direction->id)
+            ->assertOk()
+            ->assertJsonPath('data.0.uuid', $uuid);
+    }
+
+    public function test_feed_filters_by_hashtag(): void
+    {
+        config(['feed.auto_publish' => true]);
+
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $tagged = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', [
+                'title' => 'P-51',
+                'body' => 'Сборка.',
+                'hashtags' => ['p51'],
+            ])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        $other = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', [
+                'title' => 'Bismarck',
+                'body' => 'Сборка.',
+                'hashtags' => ['ships'],
+            ])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        foreach ([$tagged, $other] as $uuid) {
+            $this->actingAs($user, 'sanctum')->postJson("/api/v1/posts/{$uuid}/publish")->assertOk();
+        }
+
+        $this->getJson('/api/v1/feed?hashtag=p51')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.uuid', $tagged);
+    }
+
+    public function test_comment_depth_defaults_to_two_levels(): void
+    {
+        config(['feed.auto_publish' => true]);
+        // Никаких config() поверх — проверяем именно значение по умолчанию.
+
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $uuid = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/posts', ['title' => 'Тема', 'body' => 'Обсуждение.'])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/v1/posts/{$uuid}/publish")->assertOk();
+
+        $root = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/comments", ['body' => 'Корень'])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        $reply = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/comments", ['body' => 'Ответ', 'parent_uuid' => $root])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        // Третий уровень запрещён — клиент отвечает в корень с «@имя».
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/comments", ['body' => 'Глубже', 'parent_uuid' => $reply])
+            ->assertStatus(422);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/posts/{$uuid}/comments", ['body' => '@Кто-то, ответ', 'parent_uuid' => $root])
+            ->assertCreated();
+
+        $list = $this->getJson("/api/v1/posts/{$uuid}/comments")->assertOk();
+        $this->assertCount(2, $list->json('data.0.replies'));
+    }
+
     public function test_publish_without_auto_publish_goes_to_moderation_queue(): void
     {
         config(['feed.auto_publish' => false]);

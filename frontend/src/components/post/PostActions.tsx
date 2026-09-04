@@ -5,9 +5,10 @@ import type { Post } from "@/lib/mock";
 import { Gated, type Level } from "@/lib/gate";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 
-/** Shared class for footer action buttons — ghost-style, accent hover, 44px tap target */
+/** Shared class for footer action buttons — ghost-style, accent hover, 44×44
+ *  tap target even when the button holds nothing but a 16px icon. */
 const actionCls =
-  "inline-flex min-h-[44px] items-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45";
 
 interface Props {
   post: Post;

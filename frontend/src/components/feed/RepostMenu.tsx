@@ -114,7 +114,9 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
       <button
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        className="flex items-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors disabled:pointer-events-none disabled:opacity-45"
+        // min-h/min-w bring the 36×28 icon button up to a 44px tap target;
+        // the icon and its counter keep the size and spacing they had.
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors disabled:pointer-events-none disabled:opacity-45"
         style={{
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",

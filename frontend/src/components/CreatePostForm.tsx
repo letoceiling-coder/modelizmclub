@@ -140,12 +140,8 @@ export function CreatePostForm({
   const photoDraftCache = useRef<Map<File, DraftPhoto>>(new Map());
   const draftEnabled = sel.source === "profile";
 
-  useEffect(() => {
-    if (!catId && categories.length > 0) {
-      setCatId(categories[0].id);
-      setSubId(categories[0].subcategories[0]?.id ?? "");
-    }
-  }, [categories, catId]);
+  // Direction and scale are optional (VK-style): nothing is preselected, and
+  // an empty pick publishes a post with no category at all.
 
   // On open, offer to restore a persisted draft (unless an in-session draft
   // was passed in from the inline composer).
@@ -291,10 +287,6 @@ export function CreatePostForm({
       toast.error(t("components.createPostForm.textRequired"));
       return;
     }
-    if (sel.source === "profile" && !cat) {
-      toast.error(t("components.createPostForm.categoryRequired"));
-      return;
-    }
     if (sel.kind === "video" && !videoFile) {
       toast.error(t("components.createPostForm.videoRequired"));
       return;
@@ -331,10 +323,14 @@ export function CreatePostForm({
       }
 
       if (sel.source === "profile") {
+        // «Масштаб» is a child node of «Направление» in the same post-category
+        // tree, so the deepest pick is what gets stored — the feed's direction
+        // filter still matches it through the taxonomy's descendants.
+        const taxonomyId = subId || catId;
         let post = await createPost({
           title: title.trim(),
           body: text.trim(),
-          categoryId: Number(cat!.id),
+          categoryId: taxonomyId ? Number(taxonomyId) : undefined,
           communityId,
           mediaIds,
         });
@@ -535,7 +531,7 @@ export function CreatePostForm({
               className="text-[12px] font-semibold uppercase tracking-wide"
               style={{ color: "var(--foreground-50)" }}
             >
-              {t("components.createPostForm.directionAndScale")}
+              {t("components.createPostForm.directionAndScaleOptional")}
             </span>
             <div className="flex items-center gap-[8px]">
               <ChipSelect
@@ -543,17 +539,22 @@ export function CreatePostForm({
                 value={catId}
                 onChange={(v) => {
                   setCatId(v);
-                  const c = categories.find((cc) => cc.id === v)!;
-                  setSubId(c.subcategories[0]?.id ?? "");
+                  setSubId("");
                 }}
-                options={categories.map((c) => ({ label: c.name, value: c.id }))}
+                options={[
+                  { label: t("components.createPostForm.directionAny"), value: "" },
+                  ...categories.map((c) => ({ label: c.name, value: c.id })),
+                ]}
               />
               <ChipSelect
                 ariaLabel={t("components.createPostForm.subcategoryLabel")}
                 value={subId}
                 onChange={setSubId}
                 disabled={!cat || cat.subcategories.length === 0}
-                options={(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id }))}
+                options={[
+                  { label: t("components.createPostForm.scaleAny"), value: "" },
+                  ...(cat?.subcategories ?? []).map((s) => ({ label: s.name, value: s.id })),
+                ]}
               />
             </div>
           </div>

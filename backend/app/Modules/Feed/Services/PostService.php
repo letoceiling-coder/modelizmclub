@@ -62,7 +62,7 @@ class PostService
                 'user_id' => $user->id,
                 'community_id' => $data['community_id'] ?? null,
                 'subcategory_id' => $data['subcategory_id'] ?? null,
-                'category_id' => $data['category_id'],
+                'category_id' => $data['category_id'] ?? null,
                 'title' => $data['title'],
                 'body' => $data['body'],
                 'status' => ContentStatus::Draft,
@@ -529,12 +529,11 @@ class PostService
         }
     }
 
+    /** Категория необязательна; проверяем только то, что реально выбрали. */
     private function assertCategoryExists(?int $categoryId): void
     {
         if ($categoryId === null) {
-            throw ValidationException::withMessages([
-                'category_id' => ['Категория обязательна.'],
-            ]);
+            return;
         }
 
         if (! PostCategory::query()->whereKey($categoryId)->where('is_active', true)->exists()) {
