@@ -1,0 +1,2163 @@
+COLUMN|admin_two_factor.created_at|timestamp without time zone|YES
+COLUMN|admin_two_factor.enabled_at|timestamp without time zone|YES
+COLUMN|admin_two_factor.recovery_codes|json|YES
+COLUMN|admin_two_factor.secret|text|NO
+COLUMN|admin_two_factor.updated_at|timestamp without time zone|YES
+COLUMN|admin_two_factor.user_id|bigint|NO
+COLUMN|audit_logs.action|character varying|NO
+COLUMN|audit_logs.auditable_id|bigint|YES
+COLUMN|audit_logs.auditable_type|character varying|YES
+COLUMN|audit_logs.created_at|timestamp without time zone|NO
+COLUMN|audit_logs.id|bigint|NO
+COLUMN|audit_logs.ip_address|character varying|YES
+COLUMN|audit_logs.new_values|json|YES
+COLUMN|audit_logs.old_values|json|YES
+COLUMN|audit_logs.user_agent|text|YES
+COLUMN|audit_logs.user_id|bigint|YES
+COLUMN|banner_events.banner_id|bigint|NO
+COLUMN|banner_events.created_at|timestamp without time zone|NO
+COLUMN|banner_events.event|character varying|NO
+COLUMN|banner_events.id|bigint|NO
+COLUMN|banner_events.ip_address|character varying|YES
+COLUMN|banner_events.user_id|bigint|YES
+COLUMN|banners.clicks_count|bigint|NO
+COLUMN|banners.created_at|timestamp without time zone|YES
+COLUMN|banners.cta_text|character varying|NO
+COLUMN|banners.ends_at|timestamp without time zone|YES
+COLUMN|banners.force_visible|boolean|NO
+COLUMN|banners.id|bigint|NO
+COLUMN|banners.image_media_id|bigint|YES
+COLUMN|banners.impressions_count|bigint|NO
+COLUMN|banners.is_active|boolean|NO
+COLUMN|banners.is_pinned|boolean|NO
+COLUMN|banners.kind|character varying|YES
+COLUMN|banners.link_url|character varying|YES
+COLUMN|banners.placement|character varying|NO
+COLUMN|banners.priority|smallint|NO
+COLUMN|banners.sort_order|integer|NO
+COLUMN|banners.starts_at|timestamp without time zone|YES
+COLUMN|banners.text|text|YES
+COLUMN|banners.title|character varying|NO
+COLUMN|banners.until_label|character varying|YES
+COLUMN|banners.updated_at|timestamp without time zone|YES
+COLUMN|bonus_accounts.balance|integer|NO
+COLUMN|bonus_accounts.created_at|timestamp without time zone|YES
+COLUMN|bonus_accounts.updated_at|timestamp without time zone|YES
+COLUMN|bonus_accounts.user_id|bigint|NO
+COLUMN|bonus_transactions.account_user_id|bigint|NO
+COLUMN|bonus_transactions.amount|integer|NO
+COLUMN|bonus_transactions.created_at|timestamp without time zone|NO
+COLUMN|bonus_transactions.description|character varying|YES
+COLUMN|bonus_transactions.expires_at|timestamp without time zone|YES
+COLUMN|bonus_transactions.id|bigint|NO
+COLUMN|bonus_transactions.source_id|bigint|YES
+COLUMN|bonus_transactions.source_type|character varying|YES
+COLUMN|bonus_transactions.type|character varying|NO
+COLUMN|cache.expiration|integer|NO
+COLUMN|cache.key|character varying|NO
+COLUMN|cache.value|text|NO
+COLUMN|cache_locks.expiration|integer|NO
+COLUMN|cache_locks.key|character varying|NO
+COLUMN|cache_locks.owner|character varying|NO
+COLUMN|call_logs.answered_at|timestamp without time zone|YES
+COLUMN|call_logs.callee_id|bigint|NO
+COLUMN|call_logs.caller_id|bigint|NO
+COLUMN|call_logs.caller_sdp|json|YES
+COLUMN|call_logs.created_at|timestamp without time zone|YES
+COLUMN|call_logs.duration_seconds|integer|NO
+COLUMN|call_logs.ended_at|timestamp without time zone|YES
+COLUMN|call_logs.id|bigint|NO
+COLUMN|call_logs.media|character varying|NO
+COLUMN|call_logs.started_at|timestamp without time zone|YES
+COLUMN|call_logs.status|character varying|NO
+COLUMN|call_logs.updated_at|timestamp without time zone|YES
+COLUMN|call_logs.uuid|uuid|NO
+COLUMN|channel_admins.channel_id|bigint|NO
+COLUMN|channel_admins.created_at|timestamp without time zone|YES
+COLUMN|channel_admins.id|bigint|NO
+COLUMN|channel_admins.updated_at|timestamp without time zone|YES
+COLUMN|channel_admins.user_id|bigint|NO
+COLUMN|channel_applications.avatar_media_id|bigint|YES
+COLUMN|channel_applications.banner_media_id|bigint|YES
+COLUMN|channel_applications.category|character varying|YES
+COLUMN|channel_applications.comments_enabled|boolean|NO
+COLUMN|channel_applications.created_at|timestamp without time zone|YES
+COLUMN|channel_applications.description|text|YES
+COLUMN|channel_applications.id|bigint|NO
+COLUMN|channel_applications.moderator_comment|text|YES
+COLUMN|channel_applications.proposed_kind|character varying|YES
+COLUMN|channel_applications.proposed_name|character varying|NO
+COLUMN|channel_applications.proposed_slug|character varying|YES
+COLUMN|channel_applications.reviewed_at|timestamp without time zone|YES
+COLUMN|channel_applications.reviewed_by|bigint|YES
+COLUMN|channel_applications.status|character varying|NO
+COLUMN|channel_applications.updated_at|timestamp without time zone|YES
+COLUMN|channel_applications.user_id|bigint|NO
+COLUMN|channel_post_likes.channel_post_id|bigint|NO
+COLUMN|channel_post_likes.created_at|timestamp without time zone|YES
+COLUMN|channel_post_likes.id|bigint|NO
+COLUMN|channel_post_likes.updated_at|timestamp without time zone|YES
+COLUMN|channel_post_likes.user_id|bigint|NO
+COLUMN|channel_post_media.channel_post_id|bigint|NO
+COLUMN|channel_post_media.created_at|timestamp without time zone|YES
+COLUMN|channel_post_media.duration_seconds|integer|YES
+COLUMN|channel_post_media.id|bigint|NO
+COLUMN|channel_post_media.media_id|bigint|NO
+COLUMN|channel_post_media.sort_order|smallint|NO
+COLUMN|channel_post_media.type|character varying|NO
+COLUMN|channel_post_media.updated_at|timestamp without time zone|YES
+COLUMN|channel_post_views.channel_post_id|bigint|NO
+COLUMN|channel_post_views.created_at|timestamp without time zone|YES
+COLUMN|channel_post_views.id|bigint|NO
+COLUMN|channel_post_views.updated_at|timestamp without time zone|YES
+COLUMN|channel_post_views.viewer_key|character varying|NO
+COLUMN|channel_posts.author_id|bigint|YES
+COLUMN|channel_posts.channel_id|bigint|NO
+COLUMN|channel_posts.created_at|timestamp without time zone|YES
+COLUMN|channel_posts.deleted_at|timestamp without time zone|YES
+COLUMN|channel_posts.feed_post_id|bigint|YES
+COLUMN|channel_posts.id|bigint|NO
+COLUMN|channel_posts.kind|character varying|NO
+COLUMN|channel_posts.likes_count|integer|NO
+COLUMN|channel_posts.pinned_at|timestamp without time zone|YES
+COLUMN|channel_posts.published_at|timestamp without time zone|YES
+COLUMN|channel_posts.rejection_reason|text|YES
+COLUMN|channel_posts.status|character varying|NO
+COLUMN|channel_posts.text|text|NO
+COLUMN|channel_posts.updated_at|timestamp without time zone|YES
+COLUMN|channel_posts.uuid|uuid|NO
+COLUMN|channel_posts.views_count|integer|NO
+COLUMN|channel_subscriptions.channel_id|bigint|NO
+COLUMN|channel_subscriptions.created_at|timestamp without time zone|YES
+COLUMN|channel_subscriptions.id|bigint|NO
+COLUMN|channel_subscriptions.updated_at|timestamp without time zone|YES
+COLUMN|channel_subscriptions.user_id|bigint|NO
+COLUMN|channels.avatar_color|character varying|NO
+COLUMN|channels.avatar_media_id|bigint|YES
+COLUMN|channels.banner_color|character varying|YES
+COLUMN|channels.banner_media_id|bigint|YES
+COLUMN|channels.category|character varying|YES
+COLUMN|channels.comments_enabled|boolean|NO
+COLUMN|channels.contacts|text|YES
+COLUMN|channels.created_at|timestamp without time zone|YES
+COLUMN|channels.deleted_at|timestamp without time zone|YES
+COLUMN|channels.description|text|YES
+COLUMN|channels.id|bigint|NO
+COLUMN|channels.is_active|boolean|NO
+COLUMN|channels.kind|character varying|NO
+COLUMN|channels.name|character varying|NO
+COLUMN|channels.owner_id|bigint|YES
+COLUMN|channels.rules|text|YES
+COLUMN|channels.slug|character varying|NO
+COLUMN|channels.subscribers_count|integer|NO
+COLUMN|channels.updated_at|timestamp without time zone|YES
+COLUMN|channels.uuid|uuid|NO
+COLUMN|cities.created_at|timestamp without time zone|YES
+COLUMN|cities.id|bigint|NO
+COLUMN|cities.is_active|boolean|NO
+COLUMN|cities.name|character varying|NO
+COLUMN|cities.region|character varying|YES
+COLUMN|cities.slug|character varying|NO
+COLUMN|cities.sort_order|integer|NO
+COLUMN|cities.updated_at|timestamp without time zone|YES
+COLUMN|client_logs.browser|character varying|YES
+COLUMN|client_logs.call_uuid|character varying|YES
+COLUMN|client_logs.client_id|character varying|YES
+COLUMN|client_logs.client_time|timestamp without time zone|YES
+COLUMN|client_logs.context|json|YES
+COLUMN|client_logs.created_at|timestamp without time zone|YES
+COLUMN|client_logs.device|character varying|YES
+COLUMN|client_logs.id|bigint|NO
+COLUMN|client_logs.level|character varying|NO
+COLUMN|client_logs.message|text|YES
+COLUMN|client_logs.network|character varying|YES
+COLUMN|client_logs.os|character varying|YES
+COLUMN|client_logs.platform|character varying|YES
+COLUMN|client_logs.session_id|character varying|YES
+COLUMN|client_logs.tag|character varying|NO
+COLUMN|client_logs.user_agent|text|YES
+COLUMN|client_logs.user_id|bigint|YES
+COLUMN|comment_media.comment_id|bigint|NO
+COLUMN|comment_media.created_at|timestamp without time zone|YES
+COLUMN|comment_media.id|bigint|NO
+COLUMN|comment_media.media_id|bigint|NO
+COLUMN|comment_media.sort_order|smallint|NO
+COLUMN|comment_media.updated_at|timestamp without time zone|YES
+COLUMN|comment_reactions.comment_id|bigint|NO
+COLUMN|comment_reactions.created_at|timestamp without time zone|YES
+COLUMN|comment_reactions.id|bigint|NO
+COLUMN|comment_reactions.type|character varying|NO
+COLUMN|comment_reactions.updated_at|timestamp without time zone|YES
+COLUMN|comment_reactions.user_id|bigint|NO
+COLUMN|comments.body|text|NO
+COLUMN|comments.commentable_id|bigint|NO
+COLUMN|comments.commentable_type|character varying|NO
+COLUMN|comments.created_at|timestamp without time zone|YES
+COLUMN|comments.deleted_at|timestamp without time zone|YES
+COLUMN|comments.depth|smallint|NO
+COLUMN|comments.id|bigint|NO
+COLUMN|comments.moderated_at|timestamp without time zone|YES
+COLUMN|comments.parent_id|bigint|YES
+COLUMN|comments.reactions_count|integer|NO
+COLUMN|comments.root_id|bigint|YES
+COLUMN|comments.status|character varying|NO
+COLUMN|comments.updated_at|timestamp without time zone|YES
+COLUMN|comments.user_id|bigint|NO
+COLUMN|comments.uuid|uuid|NO
+COLUMN|communities.access_type|character varying|NO
+COLUMN|communities.approved_at|timestamp without time zone|YES
+COLUMN|communities.avatar_media_id|bigint|YES
+COLUMN|communities.category_id|bigint|NO
+COLUMN|communities.city_id|bigint|YES
+COLUMN|communities.contacts|json|YES
+COLUMN|communities.cover_media_id|bigint|YES
+COLUMN|communities.created_at|timestamp without time zone|YES
+COLUMN|communities.created_by|bigint|YES
+COLUMN|communities.custom_category|character varying|YES
+COLUMN|communities.deleted_at|timestamp without time zone|YES
+COLUMN|communities.description|text|YES
+COLUMN|communities.id|bigint|NO
+COLUMN|communities.is_official|boolean|NO
+COLUMN|communities.members_count|integer|NO
+COLUMN|communities.name|character varying|NO
+COLUMN|communities.posts_count|integer|NO
+COLUMN|communities.rules|text|YES
+COLUMN|communities.settings|json|YES
+COLUMN|communities.slug|character varying|NO
+COLUMN|communities.status|character varying|NO
+COLUMN|communities.updated_at|timestamp without time zone|YES
+COLUMN|communities.uuid|uuid|NO
+COLUMN|community_applications.category_id|bigint|NO
+COLUMN|community_applications.created_at|timestamp without time zone|YES
+COLUMN|community_applications.description|text|YES
+COLUMN|community_applications.id|bigint|NO
+COLUMN|community_applications.moderator_comment|text|YES
+COLUMN|community_applications.payload|json|YES
+COLUMN|community_applications.proposed_name|character varying|NO
+COLUMN|community_applications.reviewed_at|timestamp without time zone|YES
+COLUMN|community_applications.reviewed_by|bigint|YES
+COLUMN|community_applications.status|character varying|NO
+COLUMN|community_applications.updated_at|timestamp without time zone|YES
+COLUMN|community_applications.user_id|bigint|NO
+COLUMN|community_categories.created_at|timestamp without time zone|YES
+COLUMN|community_categories.depth|smallint|NO
+COLUMN|community_categories.icon|character varying|YES
+COLUMN|community_categories.id|bigint|NO
+COLUMN|community_categories.is_active|boolean|NO
+COLUMN|community_categories.name|character varying|NO
+COLUMN|community_categories.parent_id|bigint|YES
+COLUMN|community_categories.path|character varying|YES
+COLUMN|community_categories.slug|character varying|NO
+COLUMN|community_categories.sort_order|integer|NO
+COLUMN|community_categories.updated_at|timestamp without time zone|YES
+COLUMN|community_event_attendees.created_at|timestamp without time zone|NO
+COLUMN|community_event_attendees.event_id|bigint|NO
+COLUMN|community_event_attendees.user_id|bigint|NO
+COLUMN|community_events.community_id|bigint|NO
+COLUMN|community_events.cover_media_id|bigint|YES
+COLUMN|community_events.created_at|timestamp without time zone|YES
+COLUMN|community_events.created_by|bigint|YES
+COLUMN|community_events.description|text|YES
+COLUMN|community_events.id|bigint|NO
+COLUMN|community_events.latitude|numeric|YES
+COLUMN|community_events.location_name|character varying|YES
+COLUMN|community_events.longitude|numeric|YES
+COLUMN|community_events.starts_at|timestamp without time zone|NO
+COLUMN|community_events.title|character varying|NO
+COLUMN|community_events.updated_at|timestamp without time zone|YES
+COLUMN|community_events.uuid|uuid|NO
+COLUMN|community_join_requests.community_id|bigint|NO
+COLUMN|community_join_requests.created_at|timestamp without time zone|YES
+COLUMN|community_join_requests.id|bigint|NO
+COLUMN|community_join_requests.message|text|YES
+COLUMN|community_join_requests.reviewed_at|timestamp without time zone|YES
+COLUMN|community_join_requests.reviewed_by|bigint|YES
+COLUMN|community_join_requests.status|character varying|NO
+COLUMN|community_join_requests.updated_at|timestamp without time zone|YES
+COLUMN|community_join_requests.user_id|bigint|NO
+COLUMN|community_members.community_id|bigint|NO
+COLUMN|community_members.joined_at|timestamp without time zone|NO
+COLUMN|community_members.last_read_post_id|bigint|YES
+COLUMN|community_members.role|character varying|NO
+COLUMN|community_members.user_id|bigint|NO
+COLUMN|community_pinned_posts.community_id|bigint|NO
+COLUMN|community_pinned_posts.pinned_at|timestamp without time zone|NO
+COLUMN|community_pinned_posts.post_id|bigint|NO
+COLUMN|community_pinned_posts.sort_order|smallint|NO
+COLUMN|community_subcategories.community_id|bigint|NO
+COLUMN|community_subcategories.created_at|timestamp without time zone|YES
+COLUMN|community_subcategories.id|bigint|NO
+COLUMN|community_subcategories.name|character varying|NO
+COLUMN|community_subcategories.slug|character varying|NO
+COLUMN|community_subcategories.sort_order|integer|NO
+COLUMN|community_subcategories.updated_at|timestamp without time zone|YES
+COLUMN|community_topic_categories.community_id|bigint|NO
+COLUMN|community_topic_categories.created_at|timestamp without time zone|YES
+COLUMN|community_topic_categories.id|bigint|NO
+COLUMN|community_topic_categories.post_category_id|bigint|NO
+COLUMN|community_topic_categories.updated_at|timestamp without time zone|YES
+COLUMN|consent_logs.consent_type|character varying|NO
+COLUMN|consent_logs.created_at|timestamp without time zone|NO
+COLUMN|consent_logs.doc_version|character varying|NO
+COLUMN|consent_logs.id|bigint|NO
+COLUMN|consent_logs.ip|character varying|YES
+COLUMN|consent_logs.status|character varying|NO
+COLUMN|consent_logs.user_agent|text|YES
+COLUMN|consent_logs.user_id|bigint|YES
+COLUMN|conversation_participants.conversation_id|bigint|NO
+COLUMN|conversation_participants.created_at|timestamp without time zone|YES
+COLUMN|conversation_participants.id|bigint|NO
+COLUMN|conversation_participants.joined_at|timestamp without time zone|NO
+COLUMN|conversation_participants.last_read_message_id|bigint|YES
+COLUMN|conversation_participants.left_at|timestamp without time zone|YES
+COLUMN|conversation_participants.muted_until|timestamp without time zone|YES
+COLUMN|conversation_participants.pinned_at|timestamp without time zone|YES
+COLUMN|conversation_participants.role|character varying|NO
+COLUMN|conversation_participants.updated_at|timestamp without time zone|YES
+COLUMN|conversation_participants.user_id|bigint|NO
+COLUMN|conversations.community_id|bigint|YES
+COLUMN|conversations.created_at|timestamp without time zone|YES
+COLUMN|conversations.id|bigint|NO
+COLUMN|conversations.last_message_at|timestamp without time zone|YES
+COLUMN|conversations.listing_id|bigint|YES
+COLUMN|conversations.pinned_message_id|bigint|YES
+COLUMN|conversations.post_category_id|bigint|YES
+COLUMN|conversations.settings|json|YES
+COLUMN|conversations.title|character varying|YES
+COLUMN|conversations.type|character varying|NO
+COLUMN|conversations.updated_at|timestamp without time zone|YES
+COLUMN|conversations.uuid|uuid|NO
+COLUMN|cookie_preferences.ads|boolean|NO
+COLUMN|cookie_preferences.analytics|boolean|NO
+COLUMN|cookie_preferences.anonymous_key|character varying|YES
+COLUMN|cookie_preferences.id|bigint|NO
+COLUMN|cookie_preferences.necessary|boolean|NO
+COLUMN|cookie_preferences.updated_at|timestamp without time zone|NO
+COLUMN|cookie_preferences.user_id|bigint|YES
+COLUMN|delivery_methods.code|character varying|YES
+COLUMN|delivery_methods.created_at|timestamp without time zone|YES
+COLUMN|delivery_methods.id|bigint|NO
+COLUMN|delivery_methods.is_active|boolean|NO
+COLUMN|delivery_methods.is_integrated|boolean|NO
+COLUMN|delivery_methods.name|character varying|NO
+COLUMN|delivery_methods.sort_order|integer|NO
+COLUMN|delivery_methods.updated_at|timestamp without time zone|YES
+COLUMN|delivery_quotes.created_at|timestamp without time zone|YES
+COLUMN|delivery_quotes.currency|character varying|NO
+COLUMN|delivery_quotes.destination_point|json|NO
+COLUMN|delivery_quotes.expires_at|timestamp without time zone|NO
+COLUMN|delivery_quotes.id|bigint|NO
+COLUMN|delivery_quotes.parcels|json|NO
+COLUMN|delivery_quotes.price_cents|integer|NO
+COLUMN|delivery_quotes.provider|character varying|NO
+COLUMN|delivery_quotes.raw_payload|json|YES
+COLUMN|delivery_quotes.shipment_id|bigint|YES
+COLUMN|delivery_quotes.source_point|json|NO
+COLUMN|delivery_quotes.tariff_code|character varying|YES
+COLUMN|delivery_quotes.updated_at|timestamp without time zone|YES
+COLUMN|delivery_quotes.uuid|uuid|NO
+COLUMN|disputes.created_at|timestamp without time zone|YES
+COLUMN|disputes.description|text|YES
+COLUMN|disputes.evidence|json|YES
+COLUMN|disputes.id|bigint|NO
+COLUMN|disputes.opened_by|bigint|NO
+COLUMN|disputes.reason|character varying|NO
+COLUMN|disputes.resolution|text|YES
+COLUMN|disputes.resolved_at|timestamp without time zone|YES
+COLUMN|disputes.resolved_by|bigint|YES
+COLUMN|disputes.safe_deal_id|bigint|NO
+COLUMN|disputes.status|character varying|NO
+COLUMN|disputes.updated_at|timestamp without time zone|YES
+COLUMN|disputes.uuid|uuid|NO
+COLUMN|email_templates.body_html|text|NO
+COLUMN|email_templates.created_at|timestamp without time zone|YES
+COLUMN|email_templates.id|bigint|NO
+COLUMN|email_templates.slug|character varying|NO
+COLUMN|email_templates.subject|character varying|NO
+COLUMN|email_templates.updated_at|timestamp without time zone|YES
+COLUMN|email_templates.variables|json|YES
+COLUMN|email_verification_codes.code|character varying|NO
+COLUMN|email_verification_codes.created_at|timestamp without time zone|YES
+COLUMN|email_verification_codes.expires_at|timestamp without time zone|NO
+COLUMN|email_verification_codes.id|bigint|NO
+COLUMN|email_verification_codes.updated_at|timestamp without time zone|YES
+COLUMN|email_verification_codes.used_at|timestamp without time zone|YES
+COLUMN|email_verification_codes.user_id|bigint|NO
+COLUMN|escrow_deals.amount_cents|integer|NO
+COLUMN|escrow_deals.buyer_id|bigint|NO
+COLUMN|escrow_deals.completed_at|timestamp without time zone|YES
+COLUMN|escrow_deals.created_at|timestamp without time zone|YES
+COLUMN|escrow_deals.currency|character varying|NO
+COLUMN|escrow_deals.id|bigint|NO
+COLUMN|escrow_deals.listing_id|bigint|NO
+COLUMN|escrow_deals.metadata|json|YES
+COLUMN|escrow_deals.paid_at|timestamp without time zone|YES
+COLUMN|escrow_deals.payment_id|bigint|YES
+COLUMN|escrow_deals.platform_fee_cents|integer|NO
+COLUMN|escrow_deals.seller_id|bigint|NO
+COLUMN|escrow_deals.seller_payout_cents|integer|NO
+COLUMN|escrow_deals.status|character varying|NO
+COLUMN|escrow_deals.updated_at|timestamp without time zone|YES
+COLUMN|escrow_deals.uuid|uuid|NO
+COLUMN|escrow_deals.yookassa_deal_id|character varying|YES
+COLUMN|escrow_deals.yookassa_payment_id|character varying|YES
+COLUMN|escrow_deals.yookassa_payout_id|character varying|YES
+COLUMN|escrow_transactions.actor_id|bigint|YES
+COLUMN|escrow_transactions.amount_kopecks|bigint|YES
+COLUMN|escrow_transactions.created_at|timestamp without time zone|YES
+COLUMN|escrow_transactions.id|bigint|NO
+COLUMN|escrow_transactions.note|text|YES
+COLUMN|escrow_transactions.safe_deal_id|bigint|NO
+COLUMN|escrow_transactions.type|character varying|NO
+COLUMN|escrow_transactions.wallet_transaction_id|bigint|YES
+COLUMN|failed_jobs.connection|text|NO
+COLUMN|failed_jobs.exception|text|NO
+COLUMN|failed_jobs.failed_at|timestamp without time zone|NO
+COLUMN|failed_jobs.id|bigint|NO
+COLUMN|failed_jobs.payload|text|NO
+COLUMN|failed_jobs.queue|text|NO
+COLUMN|failed_jobs.uuid|character varying|NO
+COLUMN|faq_articles.answer|text|NO
+COLUMN|faq_articles.category_id|bigint|NO
+COLUMN|faq_articles.created_at|timestamp without time zone|YES
+COLUMN|faq_articles.id|bigint|NO
+COLUMN|faq_articles.is_active|boolean|NO
+COLUMN|faq_articles.question|character varying|NO
+COLUMN|faq_articles.sort_order|integer|NO
+COLUMN|faq_articles.updated_at|timestamp without time zone|YES
+COLUMN|faq_categories.created_at|timestamp without time zone|YES
+COLUMN|faq_categories.id|bigint|NO
+COLUMN|faq_categories.is_active|boolean|NO
+COLUMN|faq_categories.name|character varying|NO
+COLUMN|faq_categories.slug|character varying|NO
+COLUMN|faq_categories.sort_order|integer|NO
+COLUMN|faq_categories.updated_at|timestamp without time zone|YES
+COLUMN|feedback.created_at|timestamp without time zone|YES
+COLUMN|feedback.id|bigint|NO
+COLUMN|feedback.message|text|NO
+COLUMN|feedback.page|character varying|YES
+COLUMN|feedback.status|character varying|NO
+COLUMN|feedback.subject|character varying|YES
+COLUMN|feedback.updated_at|timestamp without time zone|YES
+COLUMN|feedback.user_id|bigint|YES
+COLUMN|footer_links.created_at|timestamp without time zone|YES
+COLUMN|footer_links.group|character varying|NO
+COLUMN|footer_links.id|bigint|NO
+COLUMN|footer_links.is_visible|boolean|NO
+COLUMN|footer_links.label|character varying|NO
+COLUMN|footer_links.sort|integer|NO
+COLUMN|footer_links.target_type|character varying|NO
+COLUMN|footer_links.target_value|character varying|NO
+COLUMN|footer_links.updated_at|timestamp without time zone|YES
+COLUMN|friend_requests.created_at|timestamp without time zone|YES
+COLUMN|friend_requests.from_user_id|bigint|NO
+COLUMN|friend_requests.id|bigint|NO
+COLUMN|friend_requests.responded_at|timestamp without time zone|YES
+COLUMN|friend_requests.status|character varying|NO
+COLUMN|friend_requests.to_user_id|bigint|NO
+COLUMN|friend_requests.updated_at|timestamp without time zone|YES
+COLUMN|icon_assets.created_at|timestamp without time zone|YES
+COLUMN|icon_assets.deleted_at|timestamp without time zone|YES
+COLUMN|icon_assets.format|character varying|NO
+COLUMN|icon_assets.id|bigint|NO
+COLUMN|icon_assets.media_id|bigint|YES
+COLUMN|icon_assets.name|character varying|NO
+COLUMN|icon_assets.source|character varying|NO
+COLUMN|icon_assets.svg|text|YES
+COLUMN|icon_assets.updated_at|timestamp without time zone|YES
+COLUMN|icon_assets.uploaded_by|bigint|YES
+COLUMN|job_batches.cancelled_at|integer|YES
+COLUMN|job_batches.created_at|integer|NO
+COLUMN|job_batches.failed_job_ids|text|NO
+COLUMN|job_batches.failed_jobs|integer|NO
+COLUMN|job_batches.finished_at|integer|YES
+COLUMN|job_batches.id|character varying|NO
+COLUMN|job_batches.name|character varying|NO
+COLUMN|job_batches.options|text|YES
+COLUMN|job_batches.pending_jobs|integer|NO
+COLUMN|job_batches.total_jobs|integer|NO
+COLUMN|jobs.attempts|smallint|NO
+COLUMN|jobs.available_at|integer|NO
+COLUMN|jobs.created_at|integer|NO
+COLUMN|jobs.id|bigint|NO
+COLUMN|jobs.payload|text|NO
+COLUMN|jobs.queue|character varying|NO
+COLUMN|jobs.reserved_at|integer|YES
+COLUMN|landing_cards.created_at|timestamp without time zone|YES
+COLUMN|landing_cards.description|text|YES
+COLUMN|landing_cards.icon_url|character varying|YES
+COLUMN|landing_cards.icon|character varying|NO
+COLUMN|landing_cards.id|bigint|NO
+COLUMN|landing_cards.is_active|boolean|NO
+COLUMN|landing_cards.link_url|character varying|YES
+COLUMN|landing_cards.post_category_id|bigint|YES
+COLUMN|landing_cards.section_slug|character varying|NO
+COLUMN|landing_cards.sort_order|integer|NO
+COLUMN|landing_cards.title|character varying|NO
+COLUMN|landing_cards.updated_at|timestamp without time zone|YES
+COLUMN|landing_sections.created_at|timestamp without time zone|YES
+COLUMN|landing_sections.eyebrow|character varying|YES
+COLUMN|landing_sections.id|bigint|NO
+COLUMN|landing_sections.is_enabled|boolean|NO
+COLUMN|landing_sections.media_url|character varying|YES
+COLUMN|landing_sections.slug|character varying|NO
+COLUMN|landing_sections.subtitle|text|YES
+COLUMN|landing_sections.title|character varying|NO
+COLUMN|landing_sections.updated_at|timestamp without time zone|YES
+COLUMN|legal_documents.body|text|NO
+COLUMN|legal_documents.created_at|timestamp without time zone|YES
+COLUMN|legal_documents.id|bigint|NO
+COLUMN|legal_documents.is_published|boolean|NO
+COLUMN|legal_documents.published_at|timestamp without time zone|YES
+COLUMN|legal_documents.slug|character varying|NO
+COLUMN|legal_documents.title|character varying|NO
+COLUMN|legal_documents.updated_at|timestamp without time zone|YES
+COLUMN|legal_documents.version|character varying|NO
+COLUMN|legal_page_revisions.content_html|text|NO
+COLUMN|legal_page_revisions.content_md|text|YES
+COLUMN|legal_page_revisions.created_at|timestamp without time zone|NO
+COLUMN|legal_page_revisions.id|bigint|NO
+COLUMN|legal_page_revisions.legal_page_id|bigint|NO
+COLUMN|legal_page_revisions.meta_description|character varying|YES
+COLUMN|legal_page_revisions.status|character varying|NO
+COLUMN|legal_page_revisions.title|character varying|NO
+COLUMN|legal_page_revisions.user_id|bigint|YES
+COLUMN|legal_page_revisions.version|integer|NO
+COLUMN|legal_pages.content_html|text|NO
+COLUMN|legal_pages.content_md|text|YES
+COLUMN|legal_pages.created_at|timestamp without time zone|YES
+COLUMN|legal_pages.id|bigint|NO
+COLUMN|legal_pages.meta_description|character varying|YES
+COLUMN|legal_pages.published_at|timestamp without time zone|YES
+COLUMN|legal_pages.slug|character varying|NO
+COLUMN|legal_pages.status|character varying|NO
+COLUMN|legal_pages.title|character varying|NO
+COLUMN|legal_pages.updated_at|timestamp without time zone|YES
+COLUMN|legal_pages.version|integer|NO
+COLUMN|listing_categories.created_at|timestamp without time zone|YES
+COLUMN|listing_categories.depth|smallint|NO
+COLUMN|listing_categories.icon|character varying|YES
+COLUMN|listing_categories.id|bigint|NO
+COLUMN|listing_categories.is_active|boolean|NO
+COLUMN|listing_categories.listing_price_cents|integer|YES
+COLUMN|listing_categories.name|character varying|NO
+COLUMN|listing_categories.parent_id|bigint|YES
+COLUMN|listing_categories.path|character varying|YES
+COLUMN|listing_categories.slug|character varying|NO
+COLUMN|listing_categories.sort_order|integer|NO
+COLUMN|listing_categories.subscriber_listing_price_cents|integer|YES
+COLUMN|listing_categories.updated_at|timestamp without time zone|YES
+COLUMN|listing_favorites.created_at|timestamp without time zone|NO
+COLUMN|listing_favorites.listing_id|bigint|NO
+COLUMN|listing_favorites.user_id|bigint|NO
+COLUMN|listing_media.created_at|timestamp without time zone|YES
+COLUMN|listing_media.id|bigint|NO
+COLUMN|listing_media.listing_id|bigint|NO
+COLUMN|listing_media.media_id|bigint|NO
+COLUMN|listing_media.sort_order|smallint|NO
+COLUMN|listing_media.updated_at|timestamp without time zone|YES
+COLUMN|listing_pricing_rules.base_price_cents|integer|NO
+COLUMN|listing_pricing_rules.category_id|bigint|YES
+COLUMN|listing_pricing_rules.created_at|timestamp without time zone|YES
+COLUMN|listing_pricing_rules.duration_days|smallint|NO
+COLUMN|listing_pricing_rules.id|bigint|NO
+COLUMN|listing_pricing_rules.max_active_listings_free|smallint|NO
+COLUMN|listing_pricing_rules.settings|json|YES
+COLUMN|listing_pricing_rules.updated_at|timestamp without time zone|YES
+COLUMN|listing_promotions.created_at|timestamp without time zone|YES
+COLUMN|listing_promotions.id|bigint|NO
+COLUMN|listing_promotions.listing_id|bigint|NO
+COLUMN|listing_promotions.paid_until|timestamp without time zone|NO
+COLUMN|listing_promotions.type|character varying|NO
+COLUMN|listing_promotions.updated_at|timestamp without time zone|YES
+COLUMN|listing_status_logs.actor_id|bigint|YES
+COLUMN|listing_status_logs.comment|text|YES
+COLUMN|listing_status_logs.created_at|timestamp without time zone|NO
+COLUMN|listing_status_logs.from_status|character varying|YES
+COLUMN|listing_status_logs.id|bigint|NO
+COLUMN|listing_status_logs.listing_id|bigint|NO
+COLUMN|listing_status_logs.to_status|character varying|NO
+COLUMN|listing_view_daily.created_at|timestamp without time zone|YES
+COLUMN|listing_view_daily.id|bigint|NO
+COLUMN|listing_view_daily.listing_id|bigint|NO
+COLUMN|listing_view_daily.updated_at|timestamp without time zone|YES
+COLUMN|listing_view_daily.view_date|date|NO
+COLUMN|listing_view_daily.views_count|integer|NO
+COLUMN|listings.ai_draft|json|YES
+COLUMN|listings.category_id|bigint|NO
+COLUMN|listings.city_id|bigint|YES
+COLUMN|listings.contact_via_messenger|boolean|NO
+COLUMN|listings.created_at|timestamp without time zone|YES
+COLUMN|listings.currency|character|NO
+COLUMN|listings.deleted_at|timestamp without time zone|YES
+COLUMN|listings.delivery_methods|json|YES
+COLUMN|listings.description|text|NO
+COLUMN|listings.dimensions_cm|json|YES
+COLUMN|listings.expires_at|timestamp without time zone|YES
+COLUMN|listings.favorites_count|integer|NO
+COLUMN|listings.id|bigint|NO
+COLUMN|listings.moderated_by|bigint|YES
+COLUMN|listings.package_size|character varying|YES
+COLUMN|listings.paid_until|timestamp without time zone|YES
+COLUMN|listings.pickup_address|character varying|YES
+COLUMN|listings.placement_amount_cents|integer|YES
+COLUMN|listings.placement_payment_id|bigint|YES
+COLUMN|listings.placement_promocode_id|bigint|YES
+COLUMN|listings.placement_was_free|boolean|NO
+COLUMN|listings.price_cents|bigint|NO
+COLUMN|listings.published_at|timestamp without time zone|YES
+COLUMN|listings.rejection_reason|text|YES
+COLUMN|listings.reserved_at|timestamp without time zone|YES
+COLUMN|listings.slug|character varying|NO
+COLUMN|listings.sold_at|timestamp without time zone|YES
+COLUMN|listings.status|character varying|NO
+COLUMN|listings.subcategory_id|bigint|YES
+COLUMN|listings.title|character varying|NO
+COLUMN|listings.updated_at|timestamp without time zone|YES
+COLUMN|listings.user_id|bigint|NO
+COLUMN|listings.uuid|uuid|NO
+COLUMN|listings.views_count|integer|NO
+COLUMN|listings.weight_kg|numeric|YES
+COLUMN|media.created_at|timestamp without time zone|YES
+COLUMN|media.disk|character varying|NO
+COLUMN|media.duration_seconds|integer|YES
+COLUMN|media.filename|character varying|NO
+COLUMN|media.hash|character varying|YES
+COLUMN|media.height|integer|YES
+COLUMN|media.id|bigint|NO
+COLUMN|media.metadata|json|YES
+COLUMN|media.mime_type|character varying|NO
+COLUMN|media.path|character varying|NO
+COLUMN|media.size_bytes|bigint|NO
+COLUMN|media.status|character varying|NO
+COLUMN|media.updated_at|timestamp without time zone|YES
+COLUMN|media.uploaded_by|bigint|YES
+COLUMN|media.uuid|uuid|NO
+COLUMN|media.variants|json|YES
+COLUMN|media.width|integer|YES
+COLUMN|media_attachments.attachable_id|bigint|NO
+COLUMN|media_attachments.attachable_type|character varying|NO
+COLUMN|media_attachments.collection|character varying|NO
+COLUMN|media_attachments.created_at|timestamp without time zone|YES
+COLUMN|media_attachments.id|bigint|NO
+COLUMN|media_attachments.media_id|bigint|NO
+COLUMN|media_attachments.sort_order|smallint|NO
+COLUMN|media_attachments.updated_at|timestamp without time zone|YES
+COLUMN|media_transcripts.created_at|timestamp without time zone|YES
+COLUMN|media_transcripts.lang|character varying|YES
+COLUMN|media_transcripts.media_id|bigint|NO
+COLUMN|media_transcripts.text|text|YES
+COLUMN|media_transcripts.updated_at|timestamp without time zone|YES
+COLUMN|message_attachments.created_at|timestamp without time zone|YES
+COLUMN|message_attachments.id|bigint|NO
+COLUMN|message_attachments.media_id|bigint|NO
+COLUMN|message_attachments.message_id|bigint|NO
+COLUMN|message_attachments.updated_at|timestamp without time zone|YES
+COLUMN|message_read_receipts.message_id|bigint|NO
+COLUMN|message_read_receipts.read_at|timestamp without time zone|NO
+COLUMN|message_read_receipts.user_id|bigint|NO
+COLUMN|message_user_hides.hidden_at|timestamp without time zone|NO
+COLUMN|message_user_hides.message_id|bigint|NO
+COLUMN|message_user_hides.user_id|bigint|NO
+COLUMN|messages.body|text|YES
+COLUMN|messages.conversation_id|bigint|NO
+COLUMN|messages.created_at|timestamp without time zone|YES
+COLUMN|messages.deleted_at|timestamp without time zone|YES
+COLUMN|messages.edited_at|timestamp without time zone|YES
+COLUMN|messages.forwarded_from_message_id|bigint|YES
+COLUMN|messages.id|bigint|NO
+COLUMN|messages.listing_id|bigint|YES
+COLUMN|messages.post_id|bigint|YES
+COLUMN|messages.reply_to_id|bigint|YES
+COLUMN|messages.status|character varying|NO
+COLUMN|messages.type|character varying|NO
+COLUMN|messages.updated_at|timestamp without time zone|YES
+COLUMN|messages.user_id|bigint|YES
+COLUMN|messages.uuid|uuid|NO
+COLUMN|migrations.batch|integer|NO
+COLUMN|migrations.id|integer|NO
+COLUMN|migrations.migration|character varying|NO
+COLUMN|model_has_permissions.model_id|bigint|NO
+COLUMN|model_has_permissions.model_type|character varying|NO
+COLUMN|model_has_permissions.permission_id|bigint|NO
+COLUMN|model_has_roles.model_id|bigint|NO
+COLUMN|model_has_roles.model_type|character varying|NO
+COLUMN|model_has_roles.role_id|bigint|NO
+COLUMN|moderation_actions.action|character varying|NO
+COLUMN|moderation_actions.actor_id|bigint|NO
+COLUMN|moderation_actions.created_at|timestamp without time zone|NO
+COLUMN|moderation_actions.id|bigint|NO
+COLUMN|moderation_actions.metadata|json|YES
+COLUMN|moderation_actions.moderatable_id|bigint|NO
+COLUMN|moderation_actions.moderatable_type|character varying|NO
+COLUMN|moderation_actions.reason|text|YES
+COLUMN|moderation_banned_patterns.created_at|timestamp without time zone|YES
+COLUMN|moderation_banned_patterns.id|bigint|NO
+COLUMN|moderation_banned_patterns.is_active|boolean|NO
+COLUMN|moderation_banned_patterns.pattern|character varying|NO
+COLUMN|moderation_banned_patterns.type|character varying|NO
+COLUMN|moderation_banned_patterns.updated_at|timestamp without time zone|YES
+COLUMN|moderation_queue.assigned_to|bigint|YES
+COLUMN|moderation_queue.created_at|timestamp without time zone|YES
+COLUMN|moderation_queue.id|bigint|NO
+COLUMN|moderation_queue.moderatable_id|bigint|NO
+COLUMN|moderation_queue.moderatable_type|character varying|NO
+COLUMN|moderation_queue.priority|smallint|NO
+COLUMN|moderation_queue.queue|character varying|NO
+COLUMN|moderation_queue.status|character varying|NO
+COLUMN|moderation_queue.updated_at|timestamp without time zone|YES
+COLUMN|moderation_stop_words.created_at|timestamp without time zone|YES
+COLUMN|moderation_stop_words.id|bigint|NO
+COLUMN|moderation_stop_words.is_active|boolean|NO
+COLUMN|moderation_stop_words.is_regex|boolean|NO
+COLUMN|moderation_stop_words.updated_at|timestamp without time zone|YES
+COLUMN|moderation_stop_words.word|character varying|NO
+COLUMN|notification_preferences.channel|character varying|NO
+COLUMN|notification_preferences.created_at|timestamp without time zone|YES
+COLUMN|notification_preferences.enabled|boolean|NO
+COLUMN|notification_preferences.id|bigint|NO
+COLUMN|notification_preferences.type|character varying|NO
+COLUMN|notification_preferences.updated_at|timestamp without time zone|YES
+COLUMN|notification_preferences.user_id|bigint|NO
+COLUMN|notifications.created_at|timestamp without time zone|YES
+COLUMN|notifications.data|jsonb|NO
+COLUMN|notifications.id|uuid|NO
+COLUMN|notifications.notifiable_id|bigint|NO
+COLUMN|notifications.notifiable_type|character varying|NO
+COLUMN|notifications.read_at|timestamp without time zone|YES
+COLUMN|notifications.type|character varying|NO
+COLUMN|notifications.updated_at|timestamp without time zone|YES
+COLUMN|password_reset_tokens.created_at|timestamp without time zone|YES
+COLUMN|password_reset_tokens.email|character varying|NO
+COLUMN|password_reset_tokens.token|character varying|NO
+COLUMN|payment_items.amount_cents|integer|NO
+COLUMN|payment_items.created_at|timestamp without time zone|YES
+COLUMN|payment_items.description|character varying|NO
+COLUMN|payment_items.id|bigint|NO
+COLUMN|payment_items.payable_id|bigint|NO
+COLUMN|payment_items.payable_type|character varying|NO
+COLUMN|payment_items.payment_id|bigint|NO
+COLUMN|payment_items.updated_at|timestamp without time zone|YES
+COLUMN|payments.amount_cents|integer|NO
+COLUMN|payments.created_at|timestamp without time zone|YES
+COLUMN|payments.currency|character|NO
+COLUMN|payments.idempotency_key|character varying|YES
+COLUMN|payments.id|bigint|NO
+COLUMN|payments.metadata|json|YES
+COLUMN|payments.paid_at|timestamp without time zone|YES
+COLUMN|payments.provider_payment_id|character varying|YES
+COLUMN|payments.provider|character varying|YES
+COLUMN|payments.status|character varying|NO
+COLUMN|payments.updated_at|timestamp without time zone|YES
+COLUMN|payments.user_id|bigint|NO
+COLUMN|payments.uuid|uuid|NO
+COLUMN|pending_email_changes.code_hash|character varying|NO
+COLUMN|pending_email_changes.created_at|timestamp without time zone|YES
+COLUMN|pending_email_changes.expires_at|timestamp without time zone|NO
+COLUMN|pending_email_changes.id|bigint|NO
+COLUMN|pending_email_changes.new_email|character varying|NO
+COLUMN|pending_email_changes.updated_at|timestamp without time zone|YES
+COLUMN|pending_email_changes.user_id|bigint|NO
+COLUMN|permissions.created_at|timestamp without time zone|YES
+COLUMN|permissions.guard_name|character varying|NO
+COLUMN|permissions.id|bigint|NO
+COLUMN|permissions.name|character varying|NO
+COLUMN|permissions.updated_at|timestamp without time zone|YES
+COLUMN|personal_access_tokens.abilities|text|YES
+COLUMN|personal_access_tokens.created_at|timestamp without time zone|YES
+COLUMN|personal_access_tokens.expires_at|timestamp without time zone|YES
+COLUMN|personal_access_tokens.id|bigint|NO
+COLUMN|personal_access_tokens.last_used_at|timestamp without time zone|YES
+COLUMN|personal_access_tokens.name|text|NO
+COLUMN|personal_access_tokens.tokenable_id|bigint|NO
+COLUMN|personal_access_tokens.tokenable_type|character varying|NO
+COLUMN|personal_access_tokens.token|character varying|NO
+COLUMN|personal_access_tokens.updated_at|timestamp without time zone|YES
+COLUMN|personal_data_consents.accepted_at|timestamp without time zone|NO
+COLUMN|personal_data_consents.created_at|timestamp without time zone|YES
+COLUMN|personal_data_consents.document_version|character varying|NO
+COLUMN|personal_data_consents.id|bigint|NO
+COLUMN|personal_data_consents.ip_address|character varying|YES
+COLUMN|personal_data_consents.updated_at|timestamp without time zone|YES
+COLUMN|personal_data_consents.user_agent|text|YES
+COLUMN|personal_data_consents.user_id|bigint|NO
+COLUMN|phone_verification_codes.attempts|smallint|NO
+COLUMN|phone_verification_codes.code|character varying|NO
+COLUMN|phone_verification_codes.created_at|timestamp without time zone|YES
+COLUMN|phone_verification_codes.expires_at|timestamp without time zone|NO
+COLUMN|phone_verification_codes.id|bigint|NO
+COLUMN|phone_verification_codes.phone|character varying|NO
+COLUMN|phone_verification_codes.updated_at|timestamp without time zone|YES
+COLUMN|phone_verification_codes.used_at|timestamp without time zone|YES
+COLUMN|phone_verification_codes.user_id|bigint|NO
+COLUMN|post_bookmarks.created_at|timestamp without time zone|NO
+COLUMN|post_bookmarks.post_id|bigint|NO
+COLUMN|post_bookmarks.user_id|bigint|NO
+COLUMN|post_categories.created_at|timestamp without time zone|YES
+COLUMN|post_categories.depth|smallint|NO
+COLUMN|post_categories.icon_image_url|character varying|YES
+COLUMN|post_categories.icon|character varying|YES
+COLUMN|post_categories.id|bigint|NO
+COLUMN|post_categories.is_active|boolean|NO
+COLUMN|post_categories.name|character varying|NO
+COLUMN|post_categories.parent_id|bigint|YES
+COLUMN|post_categories.path|character varying|YES
+COLUMN|post_categories.slug|character varying|NO
+COLUMN|post_categories.sort_order|integer|NO
+COLUMN|post_categories.updated_at|timestamp without time zone|YES
+COLUMN|post_hashtags.post_id|bigint|NO
+COLUMN|post_hashtags.tag_id|bigint|NO
+COLUMN|post_media.created_at|timestamp without time zone|YES
+COLUMN|post_media.duration_seconds|integer|YES
+COLUMN|post_media.id|bigint|NO
+COLUMN|post_media.media_id|bigint|NO
+COLUMN|post_media.post_id|bigint|NO
+COLUMN|post_media.sort_order|smallint|NO
+COLUMN|post_media.type|character varying|NO
+COLUMN|post_media.updated_at|timestamp without time zone|YES
+COLUMN|post_reactions.created_at|timestamp without time zone|YES
+COLUMN|post_reactions.id|bigint|NO
+COLUMN|post_reactions.post_id|bigint|NO
+COLUMN|post_reactions.type|character varying|NO
+COLUMN|post_reactions.updated_at|timestamp without time zone|YES
+COLUMN|post_reactions.user_id|bigint|NO
+COLUMN|post_reposts.created_at|timestamp without time zone|NO
+COLUMN|post_reposts.id|bigint|NO
+COLUMN|post_reposts.original_post_id|bigint|NO
+COLUMN|post_reposts.repost_post_id|bigint|YES
+COLUMN|post_reposts.user_id|bigint|NO
+COLUMN|posts.body|text|NO
+COLUMN|posts.category_id|bigint|YES
+COLUMN|posts.comments_count|integer|NO
+COLUMN|posts.community_id|bigint|YES
+COLUMN|posts.created_at|timestamp without time zone|YES
+COLUMN|posts.deleted_at|timestamp without time zone|YES
+COLUMN|posts.id|bigint|NO
+COLUMN|posts.moderated_at|timestamp without time zone|YES
+COLUMN|posts.moderated_by|bigint|YES
+COLUMN|posts.published_at|timestamp without time zone|YES
+COLUMN|posts.reactions_count|integer|NO
+COLUMN|posts.rejection_reason|text|YES
+COLUMN|posts.repost_of_id|bigint|YES
+COLUMN|posts.scheduled_at|timestamp without time zone|YES
+COLUMN|posts.status|character varying|NO
+COLUMN|posts.subcategory_id|bigint|YES
+COLUMN|posts.title|character varying|NO
+COLUMN|posts.updated_at|timestamp without time zone|YES
+COLUMN|posts.user_id|bigint|NO
+COLUMN|posts.uuid|uuid|NO
+COLUMN|posts.views_count|integer|NO
+COLUMN|promo_pools.auto_assign_on_register|boolean|NO
+COLUMN|promo_pools.bonus_kopecks|integer|NO
+COLUMN|promo_pools.completed_at|timestamp with time zone|YES
+COLUMN|promo_pools.created_at|timestamp without time zone|YES
+COLUMN|promo_pools.current_activations|integer|NO
+COLUMN|promo_pools.expires_at|timestamp with time zone|YES
+COLUMN|promo_pools.id|bigint|NO
+COLUMN|promo_pools.is_active|boolean|NO
+COLUMN|promo_pools.max_activations|integer|NO
+COLUMN|promo_pools.name|character varying|NO
+COLUMN|promo_pools.paused_at|timestamp with time zone|YES
+COLUMN|promo_pools.plan_slug|character varying|NO
+COLUMN|promo_pools.updated_at|timestamp without time zone|YES
+COLUMN|promo_pools.uuid|uuid|NO
+COLUMN|promocode_usages.id|bigint|NO
+COLUMN|promocode_usages.payment_id|bigint|YES
+COLUMN|promocode_usages.promocode_id|bigint|NO
+COLUMN|promocode_usages.used_at|timestamp without time zone|NO
+COLUMN|promocode_usages.user_id|bigint|NO
+COLUMN|promocodes.code|character varying|NO
+COLUMN|promocodes.created_at|timestamp without time zone|YES
+COLUMN|promocodes.id|bigint|NO
+COLUMN|promocodes.is_active|boolean|NO
+COLUMN|promocodes.listing_category_id|bigint|YES
+COLUMN|promocodes.max_usages_per_user|integer|NO
+COLUMN|promocodes.max_usages|integer|YES
+COLUMN|promocodes.scope|character varying|NO
+COLUMN|promocodes.type|character varying|NO
+COLUMN|promocodes.updated_at|timestamp without time zone|YES
+COLUMN|promocodes.user_id|bigint|YES
+COLUMN|promocodes.valid_from|timestamp without time zone|YES
+COLUMN|promocodes.valid_until|timestamp without time zone|YES
+COLUMN|promocodes.value|integer|NO
+COLUMN|referrals.completed_at|timestamp with time zone|YES
+COLUMN|referrals.created_at|timestamp without time zone|YES
+COLUMN|referrals.id|bigint|NO
+COLUMN|referrals.invitee_id|bigint|NO
+COLUMN|referrals.inviter_id|bigint|NO
+COLUMN|referrals.listing_credits|integer|NO
+COLUMN|referrals.status|character varying|NO
+COLUMN|referrals.subscription_days|integer|NO
+COLUMN|referrals.updated_at|timestamp without time zone|YES
+COLUMN|referrals.uuid|uuid|NO
+COLUMN|reports.created_at|timestamp without time zone|YES
+COLUMN|reports.description|text|YES
+COLUMN|reports.id|bigint|NO
+COLUMN|reports.reason|character varying|NO
+COLUMN|reports.reportable_id|bigint|NO
+COLUMN|reports.reportable_type|character varying|NO
+COLUMN|reports.reporter_id|bigint|NO
+COLUMN|reports.resolved_at|timestamp without time zone|YES
+COLUMN|reports.resolved_by|bigint|YES
+COLUMN|reports.status|character varying|NO
+COLUMN|reports.updated_at|timestamp without time zone|YES
+COLUMN|role_has_permissions.permission_id|bigint|NO
+COLUMN|role_has_permissions.role_id|bigint|NO
+COLUMN|roles.created_at|timestamp without time zone|YES
+COLUMN|roles.guard_name|character varying|NO
+COLUMN|roles.id|bigint|NO
+COLUMN|roles.name|character varying|NO
+COLUMN|roles.updated_at|timestamp without time zone|YES
+COLUMN|rule_page_revisions.content_snapshot|json|NO
+COLUMN|rule_page_revisions.created_at|timestamp without time zone|NO
+COLUMN|rule_page_revisions.id|bigint|NO
+COLUMN|rule_page_revisions.rule_page_id|bigint|NO
+COLUMN|rule_page_revisions.seo_description|character varying|YES
+COLUMN|rule_page_revisions.seo_title|character varying|YES
+COLUMN|rule_page_revisions.status|character varying|NO
+COLUMN|rule_page_revisions.summary|character varying|YES
+COLUMN|rule_page_revisions.title|character varying|NO
+COLUMN|rule_page_revisions.user_id|bigint|YES
+COLUMN|rule_page_revisions.version|integer|NO
+COLUMN|rule_page_sections.content|text|NO
+COLUMN|rule_page_sections.created_at|timestamp without time zone|YES
+COLUMN|rule_page_sections.id|bigint|NO
+COLUMN|rule_page_sections.is_visible|boolean|NO
+COLUMN|rule_page_sections.position|integer|NO
+COLUMN|rule_page_sections.rule_page_id|bigint|NO
+COLUMN|rule_page_sections.title|character varying|YES
+COLUMN|rule_page_sections.type|character varying|NO
+COLUMN|rule_page_sections.updated_at|timestamp without time zone|YES
+COLUMN|rule_pages.created_at|timestamp without time zone|YES
+COLUMN|rule_pages.id|bigint|NO
+COLUMN|rule_pages.published_at|timestamp without time zone|YES
+COLUMN|rule_pages.seo_description|character varying|YES
+COLUMN|rule_pages.seo_title|character varying|YES
+COLUMN|rule_pages.slug|character varying|NO
+COLUMN|rule_pages.sort|integer|NO
+COLUMN|rule_pages.status|character varying|NO
+COLUMN|rule_pages.summary|character varying|YES
+COLUMN|rule_pages.title|character varying|NO
+COLUMN|rule_pages.updated_at|timestamp without time zone|YES
+COLUMN|rule_pages.version|integer|NO
+COLUMN|safe_deal_gateway_events.contour|character varying|NO
+COLUMN|safe_deal_gateway_events.created_at|timestamp without time zone|YES
+COLUMN|safe_deal_gateway_events.event_type|character varying|NO
+COLUMN|safe_deal_gateway_events.idempotency_key|character varying|YES
+COLUMN|safe_deal_gateway_events.id|bigint|NO
+COLUMN|safe_deal_gateway_events.incoming_payment_id|bigint|YES
+COLUMN|safe_deal_gateway_events.payload|json|YES
+COLUMN|safe_deal_gateway_events.payout_id|bigint|YES
+COLUMN|safe_deal_gateway_events.processed_at|timestamp without time zone|YES
+COLUMN|safe_deal_gateway_events.safe_deal_id|bigint|YES
+COLUMN|safe_deal_gateway_events.updated_at|timestamp without time zone|YES
+COLUMN|safe_deal_gateway_events.uuid|uuid|NO
+COLUMN|safe_deal_incoming_payments.amount_kopecks|bigint|NO
+COLUMN|safe_deal_incoming_payments.authorized_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.buyer_id|bigint|NO
+COLUMN|safe_deal_incoming_payments.capture_mode|character varying|NO
+COLUMN|safe_deal_incoming_payments.captured_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.checkout_url|text|YES
+COLUMN|safe_deal_incoming_payments.created_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.currency|character|NO
+COLUMN|safe_deal_incoming_payments.fail_reason|character varying|YES
+COLUMN|safe_deal_incoming_payments.failed_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.id|bigint|NO
+COLUMN|safe_deal_incoming_payments.last_callback_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.metadata|json|YES
+COLUMN|safe_deal_incoming_payments.ofd_payload|json|YES
+COLUMN|safe_deal_incoming_payments.ofd_receipt_id|character varying|YES
+COLUMN|safe_deal_incoming_payments.ofd_status|character varying|YES
+COLUMN|safe_deal_incoming_payments.payment_id|bigint|YES
+COLUMN|safe_deal_incoming_payments.rbs_order_id|character varying|YES
+COLUMN|safe_deal_incoming_payments.rbs_order_number|character varying|YES
+COLUMN|safe_deal_incoming_payments.rbs_order_status|smallint|YES
+COLUMN|safe_deal_incoming_payments.refunded_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.reversed_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.safe_deal_id|bigint|NO
+COLUMN|safe_deal_incoming_payments.status|character varying|NO
+COLUMN|safe_deal_incoming_payments.updated_at|timestamp without time zone|YES
+COLUMN|safe_deal_incoming_payments.uuid|uuid|NO
+COLUMN|safe_deal_payouts.amount_kopecks|bigint|NO
+COLUMN|safe_deal_payouts.approved_at|timestamp without time zone|YES
+COLUMN|safe_deal_payouts.bank_status|character varying|YES
+COLUMN|safe_deal_payouts.card_last4|character varying|YES
+COLUMN|safe_deal_payouts.channel|character varying|NO
+COLUMN|safe_deal_payouts.commission_kopecks|bigint|NO
+COLUMN|safe_deal_payouts.confirmed_at|timestamp without time zone|YES
+COLUMN|safe_deal_payouts.created_at|timestamp without time zone|YES
+COLUMN|safe_deal_payouts.currency|character|NO
+COLUMN|safe_deal_payouts.decline_reason|character varying|YES
+COLUMN|safe_deal_payouts.declined_at|timestamp without time zone|YES
+COLUMN|safe_deal_payouts.id|bigint|NO
+COLUMN|safe_deal_payouts.last_callback_at|timestamp without time zone|YES
+COLUMN|safe_deal_payouts.metadata|json|YES
+COLUMN|safe_deal_payouts.nspk_response_code|character varying|YES
+COLUMN|safe_deal_payouts.nspk_response_message|character varying|YES
+COLUMN|safe_deal_payouts.operation_id|character varying|YES
+COLUMN|safe_deal_payouts.paid_at|timestamp without time zone|YES
+COLUMN|safe_deal_payouts.payment_purpose|character varying|YES
+COLUMN|safe_deal_payouts.provider_order_code|character varying|YES
+COLUMN|safe_deal_payouts.provider_order_id|character varying|YES
+COLUMN|safe_deal_payouts.request_id|character varying|NO
+COLUMN|safe_deal_payouts.safe_deal_id|bigint|NO
+COLUMN|safe_deal_payouts.sbp_bank_id|character varying|YES
+COLUMN|safe_deal_payouts.sbp_full_name|character varying|YES
+COLUMN|safe_deal_payouts.sbp_pam|text|YES
+COLUMN|safe_deal_payouts.sbp_phone|text|YES
+COLUMN|safe_deal_payouts.seller_id|bigint|NO
+COLUMN|safe_deal_payouts.status|character varying|NO
+COLUMN|safe_deal_payouts.updated_at|timestamp without time zone|YES
+COLUMN|safe_deal_payouts.uuid|uuid|NO
+COLUMN|safe_deals.amount_kopecks|bigint|NO
+COLUMN|safe_deals.auto_release_at|timestamp without time zone|YES
+COLUMN|safe_deals.buyer_id|bigint|NO
+COLUMN|safe_deals.cancelled_at|timestamp without time zone|YES
+COLUMN|safe_deals.completed_at|timestamp without time zone|YES
+COLUMN|safe_deals.conversation_id|bigint|YES
+COLUMN|safe_deals.created_at|timestamp without time zone|YES
+COLUMN|safe_deals.currency|character varying|NO
+COLUMN|safe_deals.delivered_at|timestamp without time zone|YES
+COLUMN|safe_deals.delivery_cost_kopecks|integer|NO
+COLUMN|safe_deals.delivery_method|character varying|YES
+COLUMN|safe_deals.delivery_status|character varying|YES
+COLUMN|safe_deals.destination_point|json|YES
+COLUMN|safe_deals.hold_expires_at|timestamp without time zone|YES
+COLUMN|safe_deals.hold_transaction_id|bigint|YES
+COLUMN|safe_deals.id|bigint|NO
+COLUMN|safe_deals.listing_id|bigint|YES
+COLUMN|safe_deals.metadata|json|YES
+COLUMN|safe_deals.paid_at|timestamp without time zone|YES
+COLUMN|safe_deals.payout_transaction_id|bigint|YES
+COLUMN|safe_deals.platform_fee_kopecks|bigint|NO
+COLUMN|safe_deals.refund_transaction_id|bigint|YES
+COLUMN|safe_deals.seller_id|bigint|NO
+COLUMN|safe_deals.seller_payout_kopecks|bigint|NO
+COLUMN|safe_deals.shipment_id|bigint|YES
+COLUMN|safe_deals.shipped_at|timestamp without time zone|YES
+COLUMN|safe_deals.status|character varying|NO
+COLUMN|safe_deals.tracking_number|character varying|YES
+COLUMN|safe_deals.updated_at|timestamp without time zone|YES
+COLUMN|safe_deals.uuid|uuid|NO
+COLUMN|saved_payment_methods.brand|character varying|NO
+COLUMN|saved_payment_methods.created_at|timestamp without time zone|YES
+COLUMN|saved_payment_methods.id|bigint|NO
+COLUMN|saved_payment_methods.is_default|boolean|NO
+COLUMN|saved_payment_methods.last4|character varying|NO
+COLUMN|saved_payment_methods.provider_token|character varying|NO
+COLUMN|saved_payment_methods.provider|character varying|NO
+COLUMN|saved_payment_methods.updated_at|timestamp without time zone|YES
+COLUMN|saved_payment_methods.user_id|bigint|NO
+COLUMN|saved_payment_methods.uuid|uuid|NO
+COLUMN|seller_delivery_profiles.address|json|YES
+COLUMN|seller_delivery_profiles.city_id|bigint|YES
+COLUMN|seller_delivery_profiles.created_at|timestamp without time zone|YES
+COLUMN|seller_delivery_profiles.external_point_id|character varying|NO
+COLUMN|seller_delivery_profiles.id|bigint|NO
+COLUMN|seller_delivery_profiles.is_active|boolean|NO
+COLUMN|seller_delivery_profiles.is_default|boolean|NO
+COLUMN|seller_delivery_profiles.label|character varying|YES
+COLUMN|seller_delivery_profiles.meta|json|YES
+COLUMN|seller_delivery_profiles.point_type|character varying|NO
+COLUMN|seller_delivery_profiles.provider|character varying|NO
+COLUMN|seller_delivery_profiles.updated_at|timestamp without time zone|YES
+COLUMN|seller_delivery_profiles.user_id|bigint|NO
+COLUMN|sessions.id|character varying|NO
+COLUMN|sessions.ip_address|character varying|YES
+COLUMN|sessions.last_activity|integer|NO
+COLUMN|sessions.payload|text|NO
+COLUMN|sessions.user_agent|text|YES
+COLUMN|sessions.user_id|bigint|YES
+COLUMN|shipment_events.created_at|timestamp without time zone|YES
+COLUMN|shipment_events.id|bigint|NO
+COLUMN|shipment_events.message|text|YES
+COLUMN|shipment_events.occurred_at|timestamp without time zone|NO
+COLUMN|shipment_events.payload|json|YES
+COLUMN|shipment_events.provider_status|character varying|YES
+COLUMN|shipment_events.shipment_id|bigint|NO
+COLUMN|shipment_events.status|character varying|NO
+COLUMN|shipment_events.updated_at|timestamp without time zone|YES
+COLUMN|shipments.admin_note|text|YES
+COLUMN|shipments.buyer_id|bigint|NO
+COLUMN|shipments.cancelled_at|timestamp without time zone|YES
+COLUMN|shipments.conversation_id|bigint|YES
+COLUMN|shipments.created_at_provider|timestamp without time zone|YES
+COLUMN|shipments.created_at|timestamp without time zone|YES
+COLUMN|shipments.currency|character varying|NO
+COLUMN|shipments.delivered_at|timestamp without time zone|YES
+COLUMN|shipments.delivery_cost_cents|integer|YES
+COLUMN|shipments.destination_point|json|NO
+COLUMN|shipments.dimensions_cm|json|YES
+COLUMN|shipments.error_message|text|YES
+COLUMN|shipments.external_id|character varying|YES
+COLUMN|shipments.external_status|character varying|YES
+COLUMN|shipments.id|bigint|NO
+COLUMN|shipments.listing_id|bigint|NO
+COLUMN|shipments.provider|character varying|NO
+COLUMN|shipments.quoted_at|timestamp without time zone|YES
+COLUMN|shipments.raw_payload|json|YES
+COLUMN|shipments.safe_deal_id|bigint|YES
+COLUMN|shipments.seller_id|bigint|NO
+COLUMN|shipments.seller_point_id|bigint|YES
+COLUMN|shipments.source_point|json|YES
+COLUMN|shipments.status|character varying|NO
+COLUMN|shipments.tracking_number|character varying|YES
+COLUMN|shipments.updated_at|timestamp without time zone|YES
+COLUMN|shipments.uuid|uuid|NO
+COLUMN|shipments.weight_kg|numeric|YES
+COLUMN|subscription_plans.badge_label|character varying|YES
+COLUMN|subscription_plans.created_at|timestamp without time zone|YES
+COLUMN|subscription_plans.description|text|YES
+COLUMN|subscription_plans.features|json|YES
+COLUMN|subscription_plans.free_listings_per_month|smallint|NO
+COLUMN|subscription_plans.id|bigint|NO
+COLUMN|subscription_plans.is_active|boolean|NO
+COLUMN|subscription_plans.listing_discount_percent|smallint|NO
+COLUMN|subscription_plans.max_photos_per_post|smallint|NO
+COLUMN|subscription_plans.name|character varying|NO
+COLUMN|subscription_plans.period_days|smallint|NO
+COLUMN|subscription_plans.price_cents|integer|NO
+COLUMN|subscription_plans.priority_boost|boolean|NO
+COLUMN|subscription_plans.slug|character varying|NO
+COLUMN|subscription_plans.sort_order|integer|NO
+COLUMN|subscription_plans.updated_at|timestamp without time zone|YES
+COLUMN|support_messages.body|text|NO
+COLUMN|support_messages.created_at|timestamp without time zone|YES
+COLUMN|support_messages.id|bigint|NO
+COLUMN|support_messages.is_staff|boolean|NO
+COLUMN|support_messages.ticket_id|bigint|NO
+COLUMN|support_messages.updated_at|timestamp without time zone|YES
+COLUMN|support_messages.user_id|bigint|NO
+COLUMN|support_tickets.assigned_to|bigint|YES
+COLUMN|support_tickets.created_at|timestamp without time zone|YES
+COLUMN|support_tickets.id|bigint|NO
+COLUMN|support_tickets.status|character varying|NO
+COLUMN|support_tickets.subject|character varying|NO
+COLUMN|support_tickets.updated_at|timestamp without time zone|YES
+COLUMN|support_tickets.user_id|bigint|NO
+COLUMN|support_tickets.uuid|uuid|NO
+COLUMN|system_settings.created_at|timestamp without time zone|YES
+COLUMN|system_settings.group|character varying|NO
+COLUMN|system_settings.id|bigint|NO
+COLUMN|system_settings.key|character varying|NO
+COLUMN|system_settings.updated_at|timestamp without time zone|YES
+COLUMN|system_settings.value|json|NO
+COLUMN|taggables.tag_id|bigint|NO
+COLUMN|taggables.taggable_id|bigint|NO
+COLUMN|taggables.taggable_type|character varying|NO
+COLUMN|tags.created_at|timestamp without time zone|YES
+COLUMN|tags.id|bigint|NO
+COLUMN|tags.name|character varying|NO
+COLUMN|tags.slug|character varying|NO
+COLUMN|tags.updated_at|timestamp without time zone|YES
+COLUMN|tags.usage_count|integer|NO
+COLUMN|upload_sessions.created_at|timestamp without time zone|YES
+COLUMN|upload_sessions.expires_at|timestamp without time zone|NO
+COLUMN|upload_sessions.id|bigint|NO
+COLUMN|upload_sessions.max_files|smallint|NO
+COLUMN|upload_sessions.max_size_bytes|integer|NO
+COLUMN|upload_sessions.purpose|character varying|NO
+COLUMN|upload_sessions.updated_at|timestamp without time zone|YES
+COLUMN|upload_sessions.user_id|bigint|NO
+COLUMN|upload_sessions.uuid|uuid|NO
+COLUMN|user_blocks.blocked_id|bigint|NO
+COLUMN|user_blocks.blocker_id|bigint|NO
+COLUMN|user_blocks.created_at|timestamp without time zone|YES
+COLUMN|user_blocks.id|bigint|NO
+COLUMN|user_blocks.reason|character varying|YES
+COLUMN|user_blocks.updated_at|timestamp without time zone|YES
+COLUMN|user_document_requisites.address|character varying|YES
+COLUMN|user_document_requisites.created_at|timestamp without time zone|YES
+COLUMN|user_document_requisites.full_name|character varying|YES
+COLUMN|user_document_requisites.inn|character varying|YES
+COLUMN|user_document_requisites.phone|character varying|YES
+COLUMN|user_document_requisites.updated_at|timestamp without time zone|YES
+COLUMN|user_document_requisites.user_id|bigint|NO
+COLUMN|user_follows.created_at|timestamp without time zone|NO
+COLUMN|user_follows.follower_id|bigint|NO
+COLUMN|user_follows.following_id|bigint|NO
+COLUMN|user_friendships.created_at|timestamp without time zone|NO
+COLUMN|user_friendships.friend_id|bigint|NO
+COLUMN|user_friendships.user_id|bigint|NO
+COLUMN|user_interests.category_id|bigint|NO
+COLUMN|user_interests.user_id|bigint|NO
+COLUMN|user_oauth_accounts.created_at|timestamp without time zone|YES
+COLUMN|user_oauth_accounts.id|bigint|NO
+COLUMN|user_oauth_accounts.provider_user_id|character varying|NO
+COLUMN|user_oauth_accounts.provider|character varying|NO
+COLUMN|user_oauth_accounts.token|json|YES
+COLUMN|user_oauth_accounts.updated_at|timestamp without time zone|YES
+COLUMN|user_oauth_accounts.user_id|bigint|NO
+COLUMN|user_payout_requisites.card_last4|character varying|YES
+COLUMN|user_payout_requisites.created_at|timestamp without time zone|YES
+COLUMN|user_payout_requisites.payout_card_number|text|YES
+COLUMN|user_payout_requisites.preferred_channel|character varying|NO
+COLUMN|user_payout_requisites.sbp_bank_id|character varying|YES
+COLUMN|user_payout_requisites.sbp_bank_name|character varying|YES
+COLUMN|user_payout_requisites.sbp_full_name|character varying|YES
+COLUMN|user_payout_requisites.sbp_phone|text|YES
+COLUMN|user_payout_requisites.updated_at|timestamp without time zone|YES
+COLUMN|user_payout_requisites.user_id|bigint|NO
+COLUMN|user_profiles.avatar_media_id|bigint|YES
+COLUMN|user_profiles.bio|text|YES
+COLUMN|user_profiles.city_id|bigint|YES
+COLUMN|user_profiles.cover_media_id|bigint|YES
+COLUMN|user_profiles.created_at|timestamp without time zone|YES
+COLUMN|user_profiles.deals_count|integer|NO
+COLUMN|user_profiles.display_name|character varying|NO
+COLUMN|user_profiles.followers_count|integer|NO
+COLUMN|user_profiles.following_count|integer|NO
+COLUMN|user_profiles.friends_count|integer|NO
+COLUMN|user_profiles.privacy_settings|json|YES
+COLUMN|user_profiles.publications_count|integer|NO
+COLUMN|user_profiles.rating_score|numeric|NO
+COLUMN|user_profiles.reviews_count|integer|NO
+COLUMN|user_profiles.slug|character varying|NO
+COLUMN|user_profiles.telegram_url|character varying|YES
+COLUMN|user_profiles.updated_at|timestamp without time zone|YES
+COLUMN|user_profiles.user_id|bigint|NO
+COLUMN|user_profiles.vk_url|character varying|YES
+COLUMN|user_profiles.website_url|character varying|YES
+COLUMN|user_reviews.author_id|bigint|NO
+COLUMN|user_reviews.created_at|timestamp without time zone|YES
+COLUMN|user_reviews.id|bigint|NO
+COLUMN|user_reviews.rating|smallint|NO
+COLUMN|user_reviews.replied_at|timestamp without time zone|YES
+COLUMN|user_reviews.reply|text|YES
+COLUMN|user_reviews.safe_deal_id|bigint|YES
+COLUMN|user_reviews.target_user_id|bigint|NO
+COLUMN|user_reviews.text|text|YES
+COLUMN|user_reviews.updated_at|timestamp without time zone|YES
+COLUMN|user_reviews.uuid|uuid|NO
+COLUMN|user_subscriptions.auto_renew|boolean|NO
+COLUMN|user_subscriptions.cancelled_at|timestamp without time zone|YES
+COLUMN|user_subscriptions.created_at|timestamp without time zone|YES
+COLUMN|user_subscriptions.ends_at|timestamp without time zone|YES
+COLUMN|user_subscriptions.id|bigint|NO
+COLUMN|user_subscriptions.plan_id|bigint|NO
+COLUMN|user_subscriptions.starts_at|timestamp without time zone|NO
+COLUMN|user_subscriptions.status|character varying|NO
+COLUMN|user_subscriptions.updated_at|timestamp without time zone|YES
+COLUMN|user_subscriptions.user_id|bigint|NO
+COLUMN|user_two_factor.confirmed_at|timestamp without time zone|YES
+COLUMN|user_two_factor.created_at|timestamp without time zone|YES
+COLUMN|user_two_factor.enabled|boolean|NO
+COLUMN|user_two_factor.secret|text|NO
+COLUMN|user_two_factor.updated_at|timestamp without time zone|YES
+COLUMN|user_two_factor.user_id|bigint|NO
+COLUMN|user_view_history.created_at|timestamp without time zone|YES
+COLUMN|user_view_history.id|bigint|NO
+COLUMN|user_view_history.kind|character varying|NO
+COLUMN|user_view_history.target_uuid|character varying|NO
+COLUMN|user_view_history.thumb|character varying|YES
+COLUMN|user_view_history.title|character varying|NO
+COLUMN|user_view_history.updated_at|timestamp without time zone|YES
+COLUMN|user_view_history.user_id|bigint|NO
+COLUMN|user_view_history.viewed_at|timestamp without time zone|NO
+COLUMN|users.created_at|timestamp without time zone|YES
+COLUMN|users.deleted_at|timestamp without time zone|YES
+COLUMN|users.email_verified_at|timestamp without time zone|YES
+COLUMN|users.email|character varying|YES
+COLUMN|users.first_hundred_granted_at|timestamp without time zone|YES
+COLUMN|users.id|bigint|NO
+COLUMN|users.is_first_hundred|boolean|NO
+COLUMN|users.last_seen_at|timestamp without time zone|YES
+COLUMN|users.listing_placement_credits|integer|NO
+COLUMN|users.locale|character varying|NO
+COLUMN|users.name|character varying|YES
+COLUMN|users.password|character varying|YES
+COLUMN|users.phone_verified_at|timestamp without time zone|YES
+COLUMN|users.phone|character varying|YES
+COLUMN|users.promo_pool_id|bigint|YES
+COLUMN|users.referral_click_count|integer|NO
+COLUMN|users.referral_code|character varying|YES
+COLUMN|users.referred_by|bigint|YES
+COLUMN|users.registration_track|character varying|YES
+COLUMN|users.remember_token|character varying|YES
+COLUMN|users.role|character varying|NO
+COLUMN|users.status|character varying|NO
+COLUMN|users.updated_at|timestamp without time zone|YES
+COLUMN|users.uuid|uuid|NO
+COLUMN|video_categories.created_at|timestamp without time zone|YES
+COLUMN|video_categories.id|bigint|NO
+COLUMN|video_categories.is_active|boolean|NO
+COLUMN|video_categories.slug|character varying|NO
+COLUMN|video_categories.sort_order|integer|NO
+COLUMN|video_categories.title|character varying|NO
+COLUMN|video_categories.updated_at|timestamp without time zone|YES
+COLUMN|video_categories.uuid|uuid|NO
+COLUMN|video_reactions.created_at|timestamp without time zone|YES
+COLUMN|video_reactions.id|bigint|NO
+COLUMN|video_reactions.type|character varying|NO
+COLUMN|video_reactions.updated_at|timestamp without time zone|YES
+COLUMN|video_reactions.user_id|bigint|NO
+COLUMN|video_reactions.video_id|bigint|NO
+COLUMN|video_views.created_at|timestamp without time zone|YES
+COLUMN|video_views.id|bigint|NO
+COLUMN|video_views.updated_at|timestamp without time zone|YES
+COLUMN|video_views.user_id|bigint|YES
+COLUMN|video_views.video_id|bigint|NO
+COLUMN|video_views.viewed_at|timestamp without time zone|NO
+COLUMN|video_views.viewer_key|character varying|NO
+COLUMN|videos.category_id|bigint|YES
+COLUMN|videos.comments_count|integer|NO
+COLUMN|videos.created_at|timestamp without time zone|YES
+COLUMN|videos.description|text|YES
+COLUMN|videos.dislikes_count|integer|NO
+COLUMN|videos.duration_seconds|integer|NO
+COLUMN|videos.id|bigint|NO
+COLUMN|videos.is_featured|boolean|NO
+COLUMN|videos.likes_count|integer|NO
+COLUMN|videos.poster_media_id|bigint|YES
+COLUMN|videos.published_at|timestamp without time zone|YES
+COLUMN|videos.scheduled_at|timestamp without time zone|YES
+COLUMN|videos.status|character varying|NO
+COLUMN|videos.tags|json|YES
+COLUMN|videos.title|character varying|NO
+COLUMN|videos.updated_at|timestamp without time zone|YES
+COLUMN|videos.uploader_id|bigint|NO
+COLUMN|videos.uuid|uuid|NO
+COLUMN|videos.video_media_id|bigint|YES
+COLUMN|videos.views_count|integer|NO
+COLUMN|wallet_transactions.amount_kopecks|bigint|NO
+COLUMN|wallet_transactions.balance_after|bigint|NO
+COLUMN|wallet_transactions.balance_before|bigint|NO
+COLUMN|wallet_transactions.created_at|timestamp without time zone|YES
+COLUMN|wallet_transactions.description|text|YES
+COLUMN|wallet_transactions.idempotency_key|character varying|YES
+COLUMN|wallet_transactions.id|bigint|NO
+COLUMN|wallet_transactions.ref_id|bigint|YES
+COLUMN|wallet_transactions.ref_type|character varying|YES
+COLUMN|wallet_transactions.type|character varying|NO
+COLUMN|wallet_transactions.user_id|bigint|NO
+COLUMN|wallet_transactions.wallet_id|bigint|NO
+COLUMN|wallets.balance_kopecks|bigint|NO
+COLUMN|wallets.created_at|timestamp without time zone|YES
+COLUMN|wallets.held_kopecks|bigint|NO
+COLUMN|wallets.id|bigint|NO
+COLUMN|wallets.updated_at|timestamp without time zone|YES
+COLUMN|wallets.user_id|bigint|NO
+COLUMN|wallets.version|integer|NO
+COLUMN|withdrawal_requests.admin_comment|text|YES
+COLUMN|withdrawal_requests.amount_kopecks|bigint|NO
+COLUMN|withdrawal_requests.created_at|timestamp without time zone|YES
+COLUMN|withdrawal_requests.destination|character varying|YES
+COLUMN|withdrawal_requests.id|bigint|NO
+COLUMN|withdrawal_requests.method|character varying|NO
+COLUMN|withdrawal_requests.processed_at|timestamp without time zone|YES
+COLUMN|withdrawal_requests.status|character varying|NO
+COLUMN|withdrawal_requests.updated_at|timestamp without time zone|YES
+COLUMN|withdrawal_requests.user_id|bigint|NO
+COLUMN|withdrawal_requests.uuid|uuid|NO
+COLUMN|withdrawal_requests.wallet_transaction_id|bigint|YES
+FK|admin_two_factor|admin_two_factor_user_id_foreign
+FK|audit_logs|audit_logs_user_id_foreign
+FK|banner_events|banner_events_banner_id_foreign
+FK|banner_events|banner_events_user_id_foreign
+FK|banners|banners_image_media_id_foreign
+FK|bonus_accounts|bonus_accounts_user_id_foreign
+FK|bonus_transactions|bonus_transactions_account_user_id_foreign
+FK|call_logs|call_logs_callee_id_foreign
+FK|call_logs|call_logs_caller_id_foreign
+FK|channel_admins|channel_admins_channel_id_foreign
+FK|channel_admins|channel_admins_user_id_foreign
+FK|channel_applications|channel_applications_avatar_media_id_foreign
+FK|channel_applications|channel_applications_banner_media_id_foreign
+FK|channel_applications|channel_applications_reviewed_by_foreign
+FK|channel_applications|channel_applications_user_id_foreign
+FK|channel_post_likes|channel_post_likes_channel_post_id_foreign
+FK|channel_post_likes|channel_post_likes_user_id_foreign
+FK|channel_post_media|channel_post_media_channel_post_id_foreign
+FK|channel_post_media|channel_post_media_media_id_foreign
+FK|channel_post_views|channel_post_views_channel_post_id_foreign
+FK|channel_posts|channel_posts_author_id_foreign
+FK|channel_posts|channel_posts_channel_id_foreign
+FK|channel_posts|channel_posts_feed_post_id_foreign
+FK|channel_subscriptions|channel_subscriptions_channel_id_foreign
+FK|channel_subscriptions|channel_subscriptions_user_id_foreign
+FK|channels|channels_avatar_media_id_foreign
+FK|channels|channels_banner_media_id_foreign
+FK|channels|channels_owner_id_foreign
+FK|client_logs|client_logs_user_id_foreign
+FK|comment_media|comment_media_comment_id_foreign
+FK|comment_media|comment_media_media_id_foreign
+FK|comment_reactions|comment_reactions_comment_id_foreign
+FK|comment_reactions|comment_reactions_user_id_foreign
+FK|comments|comments_parent_id_foreign
+FK|comments|comments_root_id_foreign
+FK|comments|comments_user_id_foreign
+FK|communities|communities_avatar_media_id_foreign
+FK|communities|communities_category_id_foreign
+FK|communities|communities_city_id_foreign
+FK|communities|communities_cover_media_id_foreign
+FK|communities|communities_created_by_foreign
+FK|community_applications|community_applications_category_id_foreign
+FK|community_applications|community_applications_reviewed_by_foreign
+FK|community_applications|community_applications_user_id_foreign
+FK|community_categories|community_categories_parent_id_foreign
+FK|community_event_attendees|community_event_attendees_event_id_foreign
+FK|community_event_attendees|community_event_attendees_user_id_foreign
+FK|community_events|community_events_community_id_foreign
+FK|community_events|community_events_cover_media_id_foreign
+FK|community_events|community_events_created_by_foreign
+FK|community_join_requests|community_join_requests_community_id_foreign
+FK|community_join_requests|community_join_requests_reviewed_by_foreign
+FK|community_join_requests|community_join_requests_user_id_foreign
+FK|community_members|community_members_community_id_foreign
+FK|community_members|community_members_user_id_foreign
+FK|community_pinned_posts|community_pinned_posts_community_id_foreign
+FK|community_pinned_posts|community_pinned_posts_post_id_foreign
+FK|community_subcategories|community_subcategories_community_id_foreign
+FK|community_topic_categories|community_topic_categories_community_id_foreign
+FK|community_topic_categories|community_topic_categories_post_category_id_foreign
+FK|consent_logs|consent_logs_user_id_foreign
+FK|conversation_participants|conversation_participants_conversation_id_foreign
+FK|conversation_participants|conversation_participants_user_id_foreign
+FK|conversations|conversations_community_id_foreign
+FK|conversations|conversations_listing_id_foreign
+FK|conversations|conversations_pinned_message_id_foreign
+FK|conversations|conversations_post_category_id_foreign
+FK|cookie_preferences|cookie_preferences_user_id_foreign
+FK|delivery_quotes|delivery_quotes_shipment_id_foreign
+FK|disputes|disputes_opened_by_foreign
+FK|disputes|disputes_resolved_by_foreign
+FK|disputes|disputes_safe_deal_id_foreign
+FK|email_verification_codes|email_verification_codes_user_id_foreign
+FK|escrow_deals|escrow_deals_buyer_id_foreign
+FK|escrow_deals|escrow_deals_listing_id_foreign
+FK|escrow_deals|escrow_deals_payment_id_foreign
+FK|escrow_deals|escrow_deals_seller_id_foreign
+FK|escrow_transactions|escrow_transactions_actor_id_foreign
+FK|escrow_transactions|escrow_transactions_safe_deal_id_foreign
+FK|escrow_transactions|escrow_transactions_wallet_transaction_id_foreign
+FK|faq_articles|faq_articles_category_id_foreign
+FK|feedback|feedback_user_id_foreign
+FK|friend_requests|friend_requests_from_user_id_foreign
+FK|friend_requests|friend_requests_to_user_id_foreign
+FK|icon_assets|icon_assets_media_id_foreign
+FK|icon_assets|icon_assets_uploaded_by_foreign
+FK|landing_cards|landing_cards_post_category_id_foreign
+FK|legal_page_revisions|legal_page_revisions_legal_page_id_foreign
+FK|legal_page_revisions|legal_page_revisions_user_id_foreign
+FK|listing_categories|listing_categories_parent_id_foreign
+FK|listing_favorites|listing_favorites_listing_id_foreign
+FK|listing_favorites|listing_favorites_user_id_foreign
+FK|listing_media|listing_media_listing_id_foreign
+FK|listing_media|listing_media_media_id_foreign
+FK|listing_pricing_rules|listing_pricing_rules_category_id_foreign
+FK|listing_promotions|listing_promotions_listing_id_foreign
+FK|listing_status_logs|listing_status_logs_actor_id_foreign
+FK|listing_status_logs|listing_status_logs_listing_id_foreign
+FK|listing_view_daily|listing_view_daily_listing_id_foreign
+FK|listings|listings_category_id_foreign
+FK|listings|listings_city_id_foreign
+FK|listings|listings_moderated_by_foreign
+FK|listings|listings_placement_payment_id_foreign
+FK|listings|listings_placement_promocode_id_foreign
+FK|listings|listings_subcategory_id_foreign
+FK|listings|listings_user_id_foreign
+FK|media_attachments|media_attachments_media_id_foreign
+FK|media_transcripts|media_transcripts_media_id_foreign
+FK|media|media_uploaded_by_foreign
+FK|message_attachments|message_attachments_media_id_foreign
+FK|message_attachments|message_attachments_message_id_foreign
+FK|message_read_receipts|message_read_receipts_message_id_foreign
+FK|message_read_receipts|message_read_receipts_user_id_foreign
+FK|message_user_hides|message_user_hides_message_id_foreign
+FK|message_user_hides|message_user_hides_user_id_foreign
+FK|messages|messages_conversation_id_foreign
+FK|messages|messages_forwarded_from_message_id_foreign
+FK|messages|messages_listing_id_foreign
+FK|messages|messages_post_id_foreign
+FK|messages|messages_reply_to_id_foreign
+FK|messages|messages_user_id_foreign
+FK|model_has_permissions|model_has_permissions_permission_id_foreign
+FK|model_has_roles|model_has_roles_role_id_foreign
+FK|moderation_actions|moderation_actions_actor_id_foreign
+FK|moderation_queue|moderation_queue_assigned_to_foreign
+FK|notification_preferences|notification_preferences_user_id_foreign
+FK|payment_items|payment_items_payment_id_foreign
+FK|payments|payments_user_id_foreign
+FK|pending_email_changes|pending_email_changes_user_id_foreign
+FK|personal_data_consents|personal_data_consents_user_id_foreign
+FK|phone_verification_codes|phone_verification_codes_user_id_foreign
+FK|post_bookmarks|post_bookmarks_post_id_foreign
+FK|post_bookmarks|post_bookmarks_user_id_foreign
+FK|post_categories|post_categories_parent_id_foreign
+FK|post_hashtags|post_hashtags_post_id_foreign
+FK|post_hashtags|post_hashtags_tag_id_foreign
+FK|post_media|post_media_media_id_foreign
+FK|post_media|post_media_post_id_foreign
+FK|post_reactions|post_reactions_post_id_foreign
+FK|post_reactions|post_reactions_user_id_foreign
+FK|post_reposts|post_reposts_original_post_id_foreign
+FK|post_reposts|post_reposts_repost_post_id_foreign
+FK|post_reposts|post_reposts_user_id_foreign
+FK|posts|posts_category_id_foreign
+FK|posts|posts_community_id_foreign
+FK|posts|posts_moderated_by_foreign
+FK|posts|posts_repost_of_id_foreign
+FK|posts|posts_subcategory_id_foreign
+FK|posts|posts_user_id_foreign
+FK|promocode_usages|promocode_usages_payment_id_foreign
+FK|promocode_usages|promocode_usages_promocode_id_foreign
+FK|promocode_usages|promocode_usages_user_id_foreign
+FK|promocodes|promocodes_listing_category_id_foreign
+FK|promocodes|promocodes_user_id_foreign
+FK|referrals|referrals_invitee_id_foreign
+FK|referrals|referrals_inviter_id_foreign
+FK|reports|reports_reporter_id_foreign
+FK|reports|reports_resolved_by_foreign
+FK|role_has_permissions|role_has_permissions_permission_id_foreign
+FK|role_has_permissions|role_has_permissions_role_id_foreign
+FK|rule_page_revisions|rule_page_revisions_rule_page_id_foreign
+FK|rule_page_revisions|rule_page_revisions_user_id_foreign
+FK|rule_page_sections|rule_page_sections_rule_page_id_foreign
+FK|safe_deal_gateway_events|safe_deal_gateway_events_incoming_payment_id_foreign
+FK|safe_deal_gateway_events|safe_deal_gateway_events_payout_id_foreign
+FK|safe_deal_gateway_events|safe_deal_gateway_events_safe_deal_id_foreign
+FK|safe_deal_incoming_payments|safe_deal_incoming_payments_buyer_id_foreign
+FK|safe_deal_incoming_payments|safe_deal_incoming_payments_payment_id_foreign
+FK|safe_deal_incoming_payments|safe_deal_incoming_payments_safe_deal_id_foreign
+FK|safe_deal_payouts|safe_deal_payouts_safe_deal_id_foreign
+FK|safe_deal_payouts|safe_deal_payouts_seller_id_foreign
+FK|safe_deals|safe_deals_buyer_id_foreign
+FK|safe_deals|safe_deals_conversation_id_foreign
+FK|safe_deals|safe_deals_hold_transaction_id_foreign
+FK|safe_deals|safe_deals_listing_id_foreign
+FK|safe_deals|safe_deals_payout_transaction_id_foreign
+FK|safe_deals|safe_deals_refund_transaction_id_foreign
+FK|safe_deals|safe_deals_seller_id_foreign
+FK|safe_deals|safe_deals_shipment_id_foreign
+FK|saved_payment_methods|saved_payment_methods_user_id_foreign
+FK|seller_delivery_profiles|seller_delivery_profiles_city_id_foreign
+FK|seller_delivery_profiles|seller_delivery_profiles_user_id_foreign
+FK|shipment_events|shipment_events_shipment_id_foreign
+FK|shipments|shipments_buyer_id_foreign
+FK|shipments|shipments_conversation_id_foreign
+FK|shipments|shipments_listing_id_foreign
+FK|shipments|shipments_safe_deal_id_foreign
+FK|shipments|shipments_seller_id_foreign
+FK|shipments|shipments_seller_point_id_foreign
+FK|support_messages|support_messages_ticket_id_foreign
+FK|support_messages|support_messages_user_id_foreign
+FK|support_tickets|support_tickets_assigned_to_foreign
+FK|support_tickets|support_tickets_user_id_foreign
+FK|taggables|taggables_tag_id_foreign
+FK|upload_sessions|upload_sessions_user_id_foreign
+FK|user_blocks|user_blocks_blocked_id_foreign
+FK|user_blocks|user_blocks_blocker_id_foreign
+FK|user_document_requisites|user_document_requisites_user_id_foreign
+FK|user_follows|user_follows_follower_id_foreign
+FK|user_follows|user_follows_following_id_foreign
+FK|user_friendships|user_friendships_friend_id_foreign
+FK|user_friendships|user_friendships_user_id_foreign
+FK|user_interests|user_interests_category_id_foreign
+FK|user_interests|user_interests_user_id_foreign
+FK|user_oauth_accounts|user_oauth_accounts_user_id_foreign
+FK|user_payout_requisites|user_payout_requisites_user_id_foreign
+FK|user_profiles|user_profiles_avatar_media_id_foreign
+FK|user_profiles|user_profiles_city_id_foreign
+FK|user_profiles|user_profiles_cover_media_id_foreign
+FK|user_profiles|user_profiles_user_id_foreign
+FK|user_reviews|user_reviews_author_id_foreign
+FK|user_reviews|user_reviews_safe_deal_id_foreign
+FK|user_reviews|user_reviews_target_user_id_foreign
+FK|user_subscriptions|user_subscriptions_plan_id_foreign
+FK|user_subscriptions|user_subscriptions_user_id_foreign
+FK|user_two_factor|user_two_factor_user_id_foreign
+FK|user_view_history|user_view_history_user_id_foreign
+FK|users|users_promo_pool_id_foreign
+FK|users|users_referred_by_foreign
+FK|video_reactions|video_reactions_user_id_foreign
+FK|video_reactions|video_reactions_video_id_foreign
+FK|video_views|video_views_user_id_foreign
+FK|video_views|video_views_video_id_foreign
+FK|videos|videos_category_id_foreign
+FK|videos|videos_poster_media_id_foreign
+FK|videos|videos_uploader_id_foreign
+FK|videos|videos_video_media_id_foreign
+FK|wallet_transactions|wallet_transactions_user_id_foreign
+FK|wallet_transactions|wallet_transactions_wallet_id_foreign
+FK|wallets|wallets_user_id_foreign
+FK|withdrawal_requests|withdrawal_requests_user_id_foreign
+FK|withdrawal_requests|withdrawal_requests_wallet_transaction_id_foreign
+INDEX|admin_two_factor|admin_two_factor_pkey
+INDEX|audit_logs|audit_logs_auditable_type_auditable_id_index
+INDEX|audit_logs|audit_logs_pkey
+INDEX|audit_logs|audit_logs_user_id_created_at_index
+INDEX|banner_events|banner_events_banner_id_event_created_at_index
+INDEX|banner_events|banner_events_pkey
+INDEX|banners|banners_pkey
+INDEX|banners|banners_placement_is_active_index
+INDEX|bonus_accounts|bonus_accounts_pkey
+INDEX|bonus_transactions|bonus_transactions_account_user_id_created_at_index
+INDEX|bonus_transactions|bonus_transactions_pkey
+INDEX|cache_locks|cache_locks_pkey
+INDEX|cache|cache_pkey
+INDEX|call_logs|call_logs_callee_id_created_at_index
+INDEX|call_logs|call_logs_caller_id_created_at_index
+INDEX|call_logs|call_logs_pkey
+INDEX|call_logs|call_logs_uuid_unique
+INDEX|channel_admins|channel_admins_channel_id_user_id_unique
+INDEX|channel_admins|channel_admins_pkey
+INDEX|channel_applications|channel_applications_pkey
+INDEX|channel_applications|channel_applications_user_id_status_index
+INDEX|channel_post_likes|channel_post_likes_channel_post_id_user_id_unique
+INDEX|channel_post_likes|channel_post_likes_pkey
+INDEX|channel_post_media|channel_post_media_pkey
+INDEX|channel_post_views|channel_post_views_channel_post_id_viewer_key_unique
+INDEX|channel_post_views|channel_post_views_pkey
+INDEX|channel_posts|channel_posts_channel_id_pinned_at_index
+INDEX|channel_posts|channel_posts_channel_id_status_index
+INDEX|channel_posts|channel_posts_pkey
+INDEX|channel_posts|channel_posts_uuid_unique
+INDEX|channel_subscriptions|channel_subscriptions_channel_id_user_id_unique
+INDEX|channel_subscriptions|channel_subscriptions_pkey
+INDEX|channels|channels_pkey
+INDEX|channels|channels_slug_unique
+INDEX|channels|channels_uuid_unique
+INDEX|cities|cities_pkey
+INDEX|cities|cities_slug_unique
+INDEX|client_logs|client_logs_call_uuid_index
+INDEX|client_logs|client_logs_client_id_unique
+INDEX|client_logs|client_logs_level_created_at_index
+INDEX|client_logs|client_logs_pkey
+INDEX|client_logs|client_logs_session_id_index
+INDEX|client_logs|client_logs_user_id_created_at_index
+INDEX|comment_media|comment_media_comment_id_media_id_unique
+INDEX|comment_media|comment_media_pkey
+INDEX|comment_reactions|comment_reactions_comment_id_user_id_unique
+INDEX|comment_reactions|comment_reactions_pkey
+INDEX|comments|comments_commentable_type_commentable_id_index
+INDEX|comments|comments_pkey
+INDEX|comments|comments_root_id_created_at_index
+INDEX|comments|comments_user_id_index
+INDEX|comments|comments_uuid_unique
+INDEX|communities|communities_pkey
+INDEX|communities|communities_slug_unique
+INDEX|communities|communities_status_category_id_index
+INDEX|communities|communities_uuid_unique
+INDEX|community_applications|community_applications_pkey
+INDEX|community_categories|community_categories_is_active_sort_order_index
+INDEX|community_categories|community_categories_parent_id_slug_unique
+INDEX|community_categories|community_categories_pkey
+INDEX|community_event_attendees|community_event_attendees_pkey
+INDEX|community_events|community_events_community_id_starts_at_index
+INDEX|community_events|community_events_pkey
+INDEX|community_events|community_events_uuid_unique
+INDEX|community_join_requests|community_join_requests_community_id_user_id_unique
+INDEX|community_join_requests|community_join_requests_pkey
+INDEX|community_members|community_members_pkey
+INDEX|community_pinned_posts|community_pinned_posts_pkey
+INDEX|community_subcategories|community_subcategories_community_id_slug_unique
+INDEX|community_subcategories|community_subcategories_pkey
+INDEX|community_topic_categories|community_topic_categories_community_id_post_category_id_unique
+INDEX|community_topic_categories|community_topic_categories_pkey
+INDEX|consent_logs|consent_logs_pkey
+INDEX|conversation_participants|conversation_participants_conversation_id_user_id_unique
+INDEX|conversation_participants|conversation_participants_pkey
+INDEX|conversations|conversations_pkey
+INDEX|conversations|conversations_type_last_message_at_index
+INDEX|conversations|conversations_type_post_category_id_unique
+INDEX|conversations|conversations_uuid_unique
+INDEX|cookie_preferences|cookie_preferences_anonymous_key_unique
+INDEX|cookie_preferences|cookie_preferences_pkey
+INDEX|delivery_methods|delivery_methods_code_unique
+INDEX|delivery_methods|delivery_methods_pkey
+INDEX|delivery_quotes|delivery_quotes_pkey
+INDEX|delivery_quotes|delivery_quotes_uuid_unique
+INDEX|disputes|disputes_pkey
+INDEX|disputes|disputes_safe_deal_id_status_index
+INDEX|disputes|disputes_uuid_unique
+INDEX|email_templates|email_templates_pkey
+INDEX|email_templates|email_templates_slug_unique
+INDEX|email_verification_codes|email_verification_codes_pkey
+INDEX|email_verification_codes|email_verification_codes_user_id_code_index
+INDEX|escrow_deals|escrow_deals_buyer_id_status_index
+INDEX|escrow_deals|escrow_deals_pkey
+INDEX|escrow_deals|escrow_deals_seller_id_status_index
+INDEX|escrow_deals|escrow_deals_uuid_unique
+INDEX|escrow_deals|escrow_deals_yookassa_deal_id_index
+INDEX|escrow_transactions|escrow_transactions_pkey
+INDEX|escrow_transactions|escrow_transactions_safe_deal_id_type_index
+INDEX|failed_jobs|failed_jobs_pkey
+INDEX|failed_jobs|failed_jobs_uuid_unique
+INDEX|faq_articles|faq_articles_pkey
+INDEX|faq_categories|faq_categories_pkey
+INDEX|faq_categories|faq_categories_slug_unique
+INDEX|feedback|feedback_pkey
+INDEX|feedback|feedback_status_created_at_index
+INDEX|feedback|feedback_user_id_created_at_index
+INDEX|footer_links|footer_links_pkey
+INDEX|friend_requests|friend_requests_from_user_id_status_index
+INDEX|friend_requests|friend_requests_pkey
+INDEX|friend_requests|friend_requests_to_user_id_status_index
+INDEX|icon_assets|icon_assets_media_id_unique
+INDEX|icon_assets|icon_assets_pkey
+INDEX|job_batches|job_batches_pkey
+INDEX|jobs|jobs_pkey
+INDEX|jobs|jobs_queue_index
+INDEX|landing_cards|landing_cards_pkey
+INDEX|landing_cards|landing_cards_section_slug_is_active_sort_order_index
+INDEX|landing_sections|landing_sections_pkey
+INDEX|landing_sections|landing_sections_slug_unique
+INDEX|legal_documents|legal_documents_pkey
+INDEX|legal_documents|legal_documents_slug_unique
+INDEX|legal_page_revisions|legal_page_revisions_legal_page_id_version_index
+INDEX|legal_page_revisions|legal_page_revisions_pkey
+INDEX|legal_pages|legal_pages_pkey
+INDEX|legal_pages|legal_pages_slug_unique
+INDEX|listing_categories|listing_categories_is_active_sort_order_index
+INDEX|listing_categories|listing_categories_parent_id_slug_unique
+INDEX|listing_categories|listing_categories_pkey
+INDEX|listing_favorites|listing_favorites_pkey
+INDEX|listing_media|listing_media_pkey
+INDEX|listing_pricing_rules|listing_pricing_rules_pkey
+INDEX|listing_promotions|listing_promotions_pkey
+INDEX|listing_status_logs|listing_status_logs_pkey
+INDEX|listing_view_daily|listing_view_daily_listing_id_view_date_unique
+INDEX|listing_view_daily|listing_view_daily_pkey
+INDEX|listings|listings_category_id_city_id_status_index
+INDEX|listings|listings_pkey
+INDEX|listings|listings_status_published_at_index
+INDEX|listings|listings_user_id_slug_unique
+INDEX|listings|listings_uuid_unique
+INDEX|media_attachments|media_attachments_attachable_type_attachable_id_index
+INDEX|media_attachments|media_attachments_pkey
+INDEX|media_attachments|media_attachments_unique
+INDEX|media_transcripts|media_transcripts_pkey
+INDEX|media|media_pkey
+INDEX|media|media_uploaded_by_status_index
+INDEX|media|media_uuid_unique
+INDEX|message_attachments|message_attachments_pkey
+INDEX|message_read_receipts|message_read_receipts_pkey
+INDEX|message_user_hides|message_user_hides_pkey
+INDEX|messages|messages_conversation_id_created_at_index
+INDEX|messages|messages_pkey
+INDEX|messages|messages_user_id_index
+INDEX|messages|messages_uuid_unique
+INDEX|migrations|migrations_pkey
+INDEX|model_has_permissions|model_has_permissions_model_id_model_type_index
+INDEX|model_has_permissions|model_has_permissions_pkey
+INDEX|model_has_roles|model_has_roles_model_id_model_type_index
+INDEX|model_has_roles|model_has_roles_pkey
+INDEX|moderation_actions|moderation_actions_moderatable_type_moderatable_id_index
+INDEX|moderation_actions|moderation_actions_pkey
+INDEX|moderation_banned_patterns|moderation_banned_patterns_pkey
+INDEX|moderation_queue|moderation_queue_moderatable_type_moderatable_id_index
+INDEX|moderation_queue|moderation_queue_pkey
+INDEX|moderation_queue|moderation_queue_queue_status_priority_index
+INDEX|moderation_stop_words|moderation_stop_words_pkey
+INDEX|notification_preferences|notification_preferences_pkey
+INDEX|notification_preferences|notification_preferences_user_id_channel_type_unique
+INDEX|notifications|notifications_notifiable_type_notifiable_id_index
+INDEX|notifications|notifications_pkey
+INDEX|password_reset_tokens|password_reset_tokens_pkey
+INDEX|payment_items|payment_items_payable_type_payable_id_index
+INDEX|payment_items|payment_items_pkey
+INDEX|payments|payments_idempotency_key_unique
+INDEX|payments|payments_pkey
+INDEX|payments|payments_user_id_status_index
+INDEX|payments|payments_uuid_unique
+INDEX|pending_email_changes|pending_email_changes_pkey
+INDEX|permissions|permissions_name_guard_name_unique
+INDEX|permissions|permissions_pkey
+INDEX|personal_access_tokens|personal_access_tokens_expires_at_index
+INDEX|personal_access_tokens|personal_access_tokens_pkey
+INDEX|personal_access_tokens|personal_access_tokens_token_unique
+INDEX|personal_access_tokens|personal_access_tokens_tokenable_type_tokenable_id_index
+INDEX|personal_data_consents|personal_data_consents_pkey
+INDEX|phone_verification_codes|phone_verification_codes_phone_created_at_index
+INDEX|phone_verification_codes|phone_verification_codes_pkey
+INDEX|phone_verification_codes|phone_verification_codes_user_id_used_at_index
+INDEX|post_bookmarks|post_bookmarks_pkey
+INDEX|post_categories|post_categories_is_active_sort_order_index
+INDEX|post_categories|post_categories_parent_id_slug_unique
+INDEX|post_categories|post_categories_pkey
+INDEX|post_hashtags|post_hashtags_pkey
+INDEX|post_media|post_media_pkey
+INDEX|post_reactions|post_reactions_pkey
+INDEX|post_reactions|post_reactions_post_id_user_id_unique
+INDEX|post_reposts|post_reposts_pkey
+INDEX|posts|posts_category_id_index
+INDEX|posts|posts_community_id_status_index
+INDEX|posts|posts_pkey
+INDEX|posts|posts_status_published_at_index
+INDEX|posts|posts_status_scheduled_at_index
+INDEX|posts|posts_user_id_status_index
+INDEX|posts|posts_uuid_unique
+INDEX|promo_pools|promo_pools_pkey
+INDEX|promo_pools|promo_pools_uuid_unique
+INDEX|promocode_usages|promocode_usages_pkey
+INDEX|promocodes|promocodes_code_unique
+INDEX|promocodes|promocodes_pkey
+INDEX|referrals|referrals_invitee_id_unique
+INDEX|referrals|referrals_inviter_id_status_index
+INDEX|referrals|referrals_pkey
+INDEX|referrals|referrals_uuid_unique
+INDEX|reports|reports_pkey
+INDEX|reports|reports_reportable_type_reportable_id_index
+INDEX|reports|reports_status_created_at_index
+INDEX|role_has_permissions|role_has_permissions_pkey
+INDEX|roles|roles_name_guard_name_unique
+INDEX|roles|roles_pkey
+INDEX|rule_page_revisions|rule_page_revisions_pkey
+INDEX|rule_page_revisions|rule_page_revisions_rule_page_id_version_index
+INDEX|rule_page_sections|rule_page_sections_pkey
+INDEX|rule_page_sections|rule_page_sections_rule_page_id_position_index
+INDEX|rule_pages|rule_pages_pkey
+INDEX|rule_pages|rule_pages_slug_unique
+INDEX|rule_pages|rule_pages_status_sort_index
+INDEX|safe_deal_gateway_events|safe_deal_gateway_events_contour_event_type_idempotency_key_uni
+INDEX|safe_deal_gateway_events|safe_deal_gateway_events_contour_event_type_index
+INDEX|safe_deal_gateway_events|safe_deal_gateway_events_pkey
+INDEX|safe_deal_gateway_events|safe_deal_gateway_events_uuid_unique
+INDEX|safe_deal_incoming_payments|safe_deal_incoming_payments_pkey
+INDEX|safe_deal_incoming_payments|safe_deal_incoming_payments_rbs_order_id_unique
+INDEX|safe_deal_incoming_payments|safe_deal_incoming_payments_safe_deal_id_status_index
+INDEX|safe_deal_incoming_payments|safe_deal_incoming_payments_uuid_unique
+INDEX|safe_deal_payouts|safe_deal_payouts_pkey
+INDEX|safe_deal_payouts|safe_deal_payouts_request_id_unique
+INDEX|safe_deal_payouts|safe_deal_payouts_safe_deal_id_status_index
+INDEX|safe_deal_payouts|safe_deal_payouts_seller_id_channel_index
+INDEX|safe_deal_payouts|safe_deal_payouts_uuid_unique
+INDEX|safe_deals|safe_deals_buyer_id_status_index
+INDEX|safe_deals|safe_deals_pkey
+INDEX|safe_deals|safe_deals_seller_id_status_index
+INDEX|safe_deals|safe_deals_uuid_unique
+INDEX|saved_payment_methods|saved_payment_methods_pkey
+INDEX|saved_payment_methods|saved_payment_methods_user_id_is_default_index
+INDEX|saved_payment_methods|saved_payment_methods_uuid_unique
+INDEX|seller_delivery_profiles|seller_delivery_profiles_pkey
+INDEX|seller_delivery_profiles|seller_delivery_profiles_user_id_provider_external_point_id_uni
+INDEX|seller_delivery_profiles|seller_delivery_profiles_user_id_provider_is_active_index
+INDEX|sessions|sessions_last_activity_index
+INDEX|sessions|sessions_pkey
+INDEX|sessions|sessions_user_id_index
+INDEX|shipment_events|shipment_events_pkey
+INDEX|shipment_events|shipment_events_shipment_id_occurred_at_index
+INDEX|shipments|shipments_buyer_id_status_index
+INDEX|shipments|shipments_pkey
+INDEX|shipments|shipments_provider_status_index
+INDEX|shipments|shipments_seller_id_status_index
+INDEX|shipments|shipments_tracking_number_index
+INDEX|shipments|shipments_uuid_unique
+INDEX|subscription_plans|subscription_plans_pkey
+INDEX|subscription_plans|subscription_plans_slug_unique
+INDEX|support_messages|support_messages_pkey
+INDEX|support_tickets|support_tickets_pkey
+INDEX|support_tickets|support_tickets_uuid_unique
+INDEX|system_settings|system_settings_key_unique
+INDEX|system_settings|system_settings_pkey
+INDEX|taggables|taggables_pkey
+INDEX|taggables|taggables_taggable_type_taggable_id_index
+INDEX|tags|tags_pkey
+INDEX|tags|tags_slug_unique
+INDEX|upload_sessions|upload_sessions_pkey
+INDEX|upload_sessions|upload_sessions_uuid_unique
+INDEX|user_blocks|user_blocks_blocker_id_blocked_id_unique
+INDEX|user_blocks|user_blocks_pkey
+INDEX|user_document_requisites|user_document_requisites_pkey
+INDEX|user_follows|user_follows_pkey
+INDEX|user_friendships|user_friendships_pkey
+INDEX|user_interests|user_interests_pkey
+INDEX|user_oauth_accounts|user_oauth_accounts_pkey
+INDEX|user_oauth_accounts|user_oauth_accounts_provider_provider_user_id_unique
+INDEX|user_payout_requisites|user_payout_requisites_pkey
+INDEX|user_profiles|user_profiles_pkey
+INDEX|user_profiles|user_profiles_slug_unique
+INDEX|user_reviews|user_reviews_pkey
+INDEX|user_reviews|user_reviews_safe_deal_id_author_id_unique
+INDEX|user_reviews|user_reviews_target_user_id_created_at_index
+INDEX|user_reviews|user_reviews_uuid_unique
+INDEX|user_subscriptions|user_subscriptions_pkey
+INDEX|user_subscriptions|user_subscriptions_user_id_status_index
+INDEX|user_two_factor|user_two_factor_pkey
+INDEX|user_view_history|user_view_history_pkey
+INDEX|user_view_history|user_view_history_user_id_kind_target_uuid_unique
+INDEX|user_view_history|user_view_history_user_id_viewed_at_index
+INDEX|users|users_email_unique
+INDEX|users|users_phone_unique
+INDEX|users|users_pkey
+INDEX|users|users_referral_code_unique
+INDEX|users|users_role_status_index
+INDEX|users|users_uuid_unique
+INDEX|video_categories|video_categories_pkey
+INDEX|video_categories|video_categories_slug_unique
+INDEX|video_categories|video_categories_uuid_unique
+INDEX|video_reactions|video_reactions_pkey
+INDEX|video_reactions|video_reactions_video_id_user_id_unique
+INDEX|video_views|video_views_pkey
+INDEX|video_views|video_views_video_id_viewer_key_viewed_at_index
+INDEX|videos|videos_pkey
+INDEX|videos|videos_status_published_at_index
+INDEX|videos|videos_status_scheduled_at_index
+INDEX|videos|videos_uuid_unique
+INDEX|wallet_transactions|wallet_transactions_idempotency_key_unique
+INDEX|wallet_transactions|wallet_transactions_pkey
+INDEX|wallet_transactions|wallet_transactions_ref_type_ref_id_index
+INDEX|wallet_transactions|wallet_transactions_user_id_type_index
+INDEX|wallet_transactions|wallet_transactions_wallet_id_created_at_index
+INDEX|wallets|wallets_pkey
+INDEX|wallets|wallets_user_id_unique
+INDEX|withdrawal_requests|withdrawal_requests_pkey
+INDEX|withdrawal_requests|withdrawal_requests_user_id_status_index
+INDEX|withdrawal_requests|withdrawal_requests_uuid_unique
+SEQ|audit_logs_id_seq
+SEQ|banner_events_id_seq
+SEQ|banners_id_seq
+SEQ|bonus_transactions_id_seq
+SEQ|call_logs_id_seq
+SEQ|channel_admins_id_seq
+SEQ|channel_applications_id_seq
+SEQ|channel_post_likes_id_seq
+SEQ|channel_post_media_id_seq
+SEQ|channel_post_views_id_seq
+SEQ|channel_posts_id_seq
+SEQ|channel_subscriptions_id_seq
+SEQ|channels_id_seq
+SEQ|cities_id_seq
+SEQ|client_logs_id_seq
+SEQ|comment_media_id_seq
+SEQ|comment_reactions_id_seq
+SEQ|comments_id_seq
+SEQ|communities_id_seq
+SEQ|community_applications_id_seq
+SEQ|community_categories_id_seq
+SEQ|community_events_id_seq
+SEQ|community_join_requests_id_seq
+SEQ|community_subcategories_id_seq
+SEQ|community_topic_categories_id_seq
+SEQ|consent_logs_id_seq
+SEQ|conversation_participants_id_seq
+SEQ|conversations_id_seq
+SEQ|cookie_preferences_id_seq
+SEQ|delivery_methods_id_seq
+SEQ|delivery_quotes_id_seq
+SEQ|disputes_id_seq
+SEQ|email_templates_id_seq
+SEQ|email_verification_codes_id_seq
+SEQ|escrow_deals_id_seq
+SEQ|escrow_transactions_id_seq
+SEQ|failed_jobs_id_seq
+SEQ|faq_articles_id_seq
+SEQ|faq_categories_id_seq
+SEQ|feedback_id_seq
+SEQ|footer_links_id_seq
+SEQ|friend_requests_id_seq
+SEQ|icon_assets_id_seq
+SEQ|jobs_id_seq
+SEQ|landing_cards_id_seq
+SEQ|landing_sections_id_seq
+SEQ|legal_documents_id_seq
+SEQ|legal_page_revisions_id_seq
+SEQ|legal_pages_id_seq
+SEQ|listing_categories_id_seq
+SEQ|listing_media_id_seq
+SEQ|listing_pricing_rules_id_seq
+SEQ|listing_promotions_id_seq
+SEQ|listing_status_logs_id_seq
+SEQ|listing_view_daily_id_seq
+SEQ|listings_id_seq
+SEQ|media_attachments_id_seq
+SEQ|media_id_seq
+SEQ|message_attachments_id_seq
+SEQ|messages_id_seq
+SEQ|migrations_id_seq
+SEQ|moderation_actions_id_seq
+SEQ|moderation_banned_patterns_id_seq
+SEQ|moderation_queue_id_seq
+SEQ|moderation_stop_words_id_seq
+SEQ|notification_preferences_id_seq
+SEQ|payment_items_id_seq
+SEQ|payments_id_seq
+SEQ|pending_email_changes_id_seq
+SEQ|permissions_id_seq
+SEQ|personal_access_tokens_id_seq
+SEQ|personal_data_consents_id_seq
+SEQ|phone_verification_codes_id_seq
+SEQ|post_categories_id_seq
+SEQ|post_media_id_seq
+SEQ|post_reactions_id_seq
+SEQ|post_reposts_id_seq
+SEQ|posts_id_seq
+SEQ|promo_pools_id_seq
+SEQ|promocode_usages_id_seq
+SEQ|promocodes_id_seq
+SEQ|referrals_id_seq
+SEQ|reports_id_seq
+SEQ|roles_id_seq
+SEQ|rule_page_revisions_id_seq
+SEQ|rule_page_sections_id_seq
+SEQ|rule_pages_id_seq
+SEQ|safe_deal_gateway_events_id_seq
+SEQ|safe_deal_incoming_payments_id_seq
+SEQ|safe_deal_payouts_id_seq
+SEQ|safe_deals_id_seq
+SEQ|saved_payment_methods_id_seq
+SEQ|seller_delivery_profiles_id_seq
+SEQ|shipment_events_id_seq
+SEQ|shipments_id_seq
+SEQ|subscription_plans_id_seq
+SEQ|support_messages_id_seq
+SEQ|support_tickets_id_seq
+SEQ|system_settings_id_seq
+SEQ|tags_id_seq
+SEQ|upload_sessions_id_seq
+SEQ|user_blocks_id_seq
+SEQ|user_oauth_accounts_id_seq
+SEQ|user_reviews_id_seq
+SEQ|user_subscriptions_id_seq
+SEQ|user_view_history_id_seq
+SEQ|users_id_seq
+SEQ|video_categories_id_seq
+SEQ|video_reactions_id_seq
+SEQ|video_views_id_seq
+SEQ|videos_id_seq
+SEQ|wallet_transactions_id_seq
+SEQ|wallets_id_seq
+SEQ|withdrawal_requests_id_seq
+TABLE|admin_two_factor
+TABLE|audit_logs
+TABLE|banner_events
+TABLE|banners
+TABLE|bonus_accounts
+TABLE|bonus_transactions
+TABLE|cache
+TABLE|cache_locks
+TABLE|call_logs
+TABLE|channel_admins
+TABLE|channel_applications
+TABLE|channel_post_likes
+TABLE|channel_post_media
+TABLE|channel_post_views
+TABLE|channel_posts
+TABLE|channel_subscriptions
+TABLE|channels
+TABLE|cities
+TABLE|client_logs
+TABLE|comment_media
+TABLE|comment_reactions
+TABLE|comments
+TABLE|communities
+TABLE|community_applications
+TABLE|community_categories
+TABLE|community_event_attendees
+TABLE|community_events
+TABLE|community_join_requests
+TABLE|community_members
+TABLE|community_pinned_posts
+TABLE|community_subcategories
+TABLE|community_topic_categories
+TABLE|consent_logs
+TABLE|conversation_participants
+TABLE|conversations
+TABLE|cookie_preferences
+TABLE|delivery_methods
+TABLE|delivery_quotes
+TABLE|disputes
+TABLE|email_templates
+TABLE|email_verification_codes
+TABLE|escrow_deals
+TABLE|escrow_transactions
+TABLE|failed_jobs
+TABLE|faq_articles
+TABLE|faq_categories
+TABLE|feedback
+TABLE|footer_links
+TABLE|friend_requests
+TABLE|icon_assets
+TABLE|job_batches
+TABLE|jobs
+TABLE|landing_cards
+TABLE|landing_sections
+TABLE|legal_documents
+TABLE|legal_page_revisions
+TABLE|legal_pages
+TABLE|listing_categories
+TABLE|listing_favorites
+TABLE|listing_media
+TABLE|listing_pricing_rules
+TABLE|listing_promotions
+TABLE|listing_status_logs
+TABLE|listing_view_daily
+TABLE|listings
+TABLE|media
+TABLE|media_attachments
+TABLE|media_transcripts
+TABLE|message_attachments
+TABLE|message_read_receipts
+TABLE|message_user_hides
+TABLE|messages
+TABLE|migrations
+TABLE|model_has_permissions
+TABLE|model_has_roles
+TABLE|moderation_actions
+TABLE|moderation_banned_patterns
+TABLE|moderation_queue
+TABLE|moderation_stop_words
+TABLE|notification_preferences
+TABLE|notifications
+TABLE|password_reset_tokens
+TABLE|payment_items
+TABLE|payments
+TABLE|pending_email_changes
+TABLE|permissions
+TABLE|personal_access_tokens
+TABLE|personal_data_consents
+TABLE|phone_verification_codes
+TABLE|post_bookmarks
+TABLE|post_categories
+TABLE|post_hashtags
+TABLE|post_media
+TABLE|post_reactions
+TABLE|post_reposts
+TABLE|posts
+TABLE|promo_pools
+TABLE|promocode_usages
+TABLE|promocodes
+TABLE|referrals
+TABLE|reports
+TABLE|role_has_permissions
+TABLE|roles
+TABLE|rule_page_revisions
+TABLE|rule_page_sections
+TABLE|rule_pages
+TABLE|safe_deal_gateway_events
+TABLE|safe_deal_incoming_payments
+TABLE|safe_deal_payouts
+TABLE|safe_deals
+TABLE|saved_payment_methods
+TABLE|seller_delivery_profiles
+TABLE|sessions
+TABLE|shipment_events
+TABLE|shipments
+TABLE|subscription_plans
+TABLE|support_messages
+TABLE|support_tickets
+TABLE|system_settings
+TABLE|taggables
+TABLE|tags
+TABLE|upload_sessions
+TABLE|user_blocks
+TABLE|user_document_requisites
+TABLE|user_follows
+TABLE|user_friendships
+TABLE|user_interests
+TABLE|user_oauth_accounts
+TABLE|user_payout_requisites
+TABLE|user_profiles
+TABLE|user_reviews
+TABLE|user_subscriptions
+TABLE|user_two_factor
+TABLE|user_view_history
+TABLE|users
+TABLE|video_categories
+TABLE|video_reactions
+TABLE|video_views
+TABLE|videos
+TABLE|wallet_transactions
+TABLE|wallets
+TABLE|withdrawal_requests
+Формат вывода: unaligned.
