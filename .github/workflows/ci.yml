@@ -155,7 +155,6 @@ jobs:
       # matches what the migrations produce, so the file production is compared
       # against after every deploy never goes stale.
       - name: Schema baseline is current
-        continue-on-error: true
         run: |
           # This job runs inside backend/, hence the ../ on the script path.
           cp .env.testing .env  # the drift script reads backend/.env
@@ -176,6 +175,7 @@ jobs:
               head -60 /tmp/schema.diff
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
+            exit 1"
           fi
 
   audit:

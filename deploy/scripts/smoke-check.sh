@@ -68,16 +68,16 @@ if [[ "${DO_BACK}" == "1" ]]; then
   fi
 fi
 
-# Schema drift. Not a gate: production still carries the August escrow
-# leftovers, and a deploy must not be blocked by a divergence it did not create.
-# It is here so the divergence is visible on every deploy instead of surfacing
-# months later as a migration that cannot run. Skipped where there is no
-# database to look at — the frontend-only call site, or a machine without psql.
+# Schema drift, now a gate. It stopped being advisory on 04.09, when
+# chore/cleanup-escrow-schema removed the last known divergence and production
+# matched the migrations object for object, 2132 on both sides. From here any
+# difference is new and worth stopping a deploy for — that is the whole point of
+# having measured it. Set SMOKE_SCHEMA_STRICT=0 to fall back to reporting.
 if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_SCHEMA:-0}" != "1" ]]; then
   DRIFT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/schema-drift.sh"
   if [[ -x "${DRIFT}" ]] && command -v psql >/dev/null 2>&1; then
     echo ""
-    if ! "${DRIFT}" ${SMOKE_SCHEMA_STRICT:+--strict}; then
+    if ! "${DRIFT}" $([[ "${SMOKE_SCHEMA_STRICT:-1}" == "1" ]] && echo --strict); then
       echo "  FAIL  schema drift"
       FAILED=1
     fi
