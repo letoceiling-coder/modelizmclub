@@ -55,7 +55,7 @@ function OnboardingPage() {
       style={{ background: "var(--background)", color: "var(--foreground)", minHeight: "100vh" }}
     >
       <header
-        className="sticky top-0 z-30 flex items-center justify-between backdrop-blur"
+        className="sticky top-0 z-[var(--z-sticky)] flex items-center justify-between backdrop-blur"
         style={{
           padding: "16px var(--container-pad)",
           borderBottom: "1px solid var(--border)",

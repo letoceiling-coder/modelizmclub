@@ -38,7 +38,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-[var(--z-sticky)]"
       style={{
         background: "color-mix(in oklab, var(--background) 94%, transparent)",
         backdropFilter: "saturate(180%) blur(14px)",

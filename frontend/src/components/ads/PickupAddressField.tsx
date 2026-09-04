@@ -226,7 +226,7 @@ export function PickupAddressField({ value, onChange, city, error, placeholder }
           <div
             ref={listRef}
             role="listbox"
-            className="fixed z-[1000] overflow-y-auto overscroll-contain"
+            className="fixed z-[var(--z-dropdown)] overflow-y-auto overscroll-contain"
             style={{
               left: pos.left,
               top: pos.top,

@@ -21,7 +21,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
-            className="fixed inset-0 z-[90]"
+            className="fixed inset-0 z-[var(--z-overlay)]"
             style={{ background: "rgba(0,0,0,0.45)" }}
             onClick={onCancel}
           />
@@ -34,7 +34,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-call-title"
-            className="fixed bottom-0 left-1/2 z-[91] w-[min(340px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-t-[16px] border px-[20px] pt-[18px] pb-[max(16px,env(safe-area-inset-bottom))] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-[16px]"
+            className="fixed bottom-0 left-1/2 z-[var(--z-call)] w-[min(340px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-t-[16px] border px-[20px] pt-[18px] pb-[max(16px,env(safe-area-inset-bottom))] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-[16px]"
             style={{
               background: "var(--background-elevated)",
               borderColor: "var(--border)",

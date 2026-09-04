@@ -787,12 +787,12 @@ function MyAdsPage() {
         </ReducedMotionSwitch>
       </div>
 
-      {/* Mobile FAB — positioned above BottomNav (z-40) */}
+      {/* Mobile FAB — positioned above BottomNav (z-[calc(var(--z-sticky)+1)]) */}
       <button
         type="button"
         onClick={handleCreate}
         aria-label={t("pages.myAds.postListing")}
-        className="fixed right-[20px] z-50 grid h-[56px] w-[56px] place-items-center md:hidden"
+        className="fixed right-[20px] z-[var(--z-modal)] grid h-[56px] w-[56px] place-items-center md:hidden"
         style={{
           bottom: "calc(var(--bottom-nav-space) + 16px)",
           background: "var(--accent)",

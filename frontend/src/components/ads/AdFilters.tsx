@@ -190,7 +190,7 @@ export function AdFiltersSheet({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-50"
+            className="fixed inset-0 z-[var(--z-modal)]"
             style={{ background: "rgba(0,0,0,0.5)" }}
           />
           <motion.div
@@ -204,7 +204,7 @@ export function AdFiltersSheet({
               if (info.offset.y > 100) onClose();
             }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden"
+            className="fixed inset-x-0 bottom-0 z-[var(--z-modal)] max-h-[88vh] overflow-hidden"
             style={{
               background: "var(--background-elevated)",
               borderRadius: "var(--r-modal) var(--r-modal) 0 0",

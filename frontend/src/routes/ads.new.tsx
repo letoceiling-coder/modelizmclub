@@ -937,7 +937,7 @@ function NewAdPage() {
 
       {/* Sticky footer — lifted above the mobile BottomNav so the submit CTA is never covered */}
       <div
-        className="fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-40 border-t backdrop-blur lg:bottom-0"
+        className="fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-[calc(var(--z-sticky)+1)] border-t backdrop-blur lg:bottom-0"
         style={{
           background: "color-mix(in srgb, var(--background) 88%, transparent)",
           borderColor: "var(--border)",

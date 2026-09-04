@@ -107,7 +107,7 @@ export function DialogContextMenu({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed z-[100] overflow-hidden rounded-[12px] border"
+          className="fixed z-[var(--z-popover)] overflow-hidden rounded-[12px] border"
           style={{
             ...style,
             background: "var(--background-elevated)",

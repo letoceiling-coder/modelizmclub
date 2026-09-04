@@ -68,7 +68,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
-            className="fixed inset-0 z-[80]"
+            className="fixed inset-0 z-[var(--z-overlay)]"
             style={{ background: "rgba(0,0,0,0.4)" }}
             onClick={onClose}
           />
@@ -80,7 +80,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             role="dialog"
             aria-modal="true"
-            className="fixed left-1/2 top-1/2 z-[81] w-[min(440px,92vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[16px] border"
+            className="fixed left-1/2 top-1/2 z-[var(--z-modal)] w-[min(440px,92vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[16px] border"
             style={{
               background: "var(--background-elevated)",
               borderColor: "var(--border)",

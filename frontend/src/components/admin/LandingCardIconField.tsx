@@ -197,7 +197,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-[calc(100%+6px)] z-[80] overflow-hidden"
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-[var(--z-popover)] overflow-hidden"
             style={panelStyle}
           >
             <div

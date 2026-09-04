@@ -127,7 +127,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.16 }}
-              className="fixed inset-0 z-[80]"
+              className="fixed inset-0 z-[var(--z-overlay)]"
               style={{ background: "rgba(0,0,0,0.4)" }}
               onClick={onClose}
             />
@@ -141,7 +141,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
               role="dialog"
               aria-modal="true"
               aria-labelledby="share-link-title"
-              className="fixed left-1/2 top-1/2 z-[81] w-[min(400px,92vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[16px] border"
+              className="fixed left-1/2 top-1/2 z-[var(--z-modal)] w-[min(400px,92vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[16px] border"
               style={{
                 background: "var(--background-elevated)",
                 borderColor: "var(--border)",

@@ -1289,7 +1289,7 @@ function EditSheet({
 
   return createPortal(
     <motion.div
-      className="fixed inset-0 z-[100]"
+      className="fixed inset-0 z-[var(--z-popover)]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -1609,7 +1609,7 @@ function ProfileAvatar({
               align="center"
               side="bottom"
               sideOffset={8}
-              className="z-[200] w-[190px] overflow-hidden rounded-[12px] border p-0 shadow-[var(--shadow-float)]"
+              className="z-[var(--z-modal)] w-[190px] overflow-hidden rounded-[12px] border p-0 shadow-[var(--shadow-float)]"
               style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
             >
               <DropdownMenuItem

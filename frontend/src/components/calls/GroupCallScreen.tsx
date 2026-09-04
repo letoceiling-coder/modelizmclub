@@ -16,7 +16,7 @@ export function GroupCallScreen() {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9998] flex flex-col"
+      className="fixed inset-0 z-[var(--z-call)] flex flex-col"
       style={{ height: "100dvh", background: "#0b0b0f", color: "#fff" }}
       role="dialog"
       aria-modal="true"
@@ -32,7 +32,7 @@ export function GroupCallScreen() {
           <button
             type="button"
             onClick={() => groupCalls.openPicker("invite")}
-            className="absolute z-[10001] inline-flex items-center gap-[6px] rounded-full px-[14px] py-[8px] text-[13px] font-semibold transition-transform active:scale-95"
+            className="absolute z-[var(--z-call)] inline-flex items-center gap-[6px] rounded-full px-[14px] py-[8px] text-[13px] font-semibold transition-transform active:scale-95"
             style={{
               top: "max(12px, env(safe-area-inset-top))",
               right: 12,

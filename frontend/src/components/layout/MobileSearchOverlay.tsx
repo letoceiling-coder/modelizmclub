@@ -102,7 +102,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex flex-col lg:hidden"
+          className="fixed inset-0 z-[var(--z-modal)] flex flex-col lg:hidden"
           style={{ height: "100dvh", background: "var(--background)" }}
         >
           <div

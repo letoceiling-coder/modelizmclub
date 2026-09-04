@@ -681,7 +681,7 @@ function EventSignupModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4"
+          className="fixed inset-0 z-[var(--z-popover)] flex items-end justify-center p-0 sm:items-center sm:p-4"
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={onClose}
         >

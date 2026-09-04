@@ -42,7 +42,7 @@ export function CookieBanner() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[200] border-t px-4 py-4 shadow-lg max-lg:bottom-[var(--bottom-nav-space)]"
+      className="fixed inset-x-0 bottom-0 z-[var(--z-banner)] border-t px-4 py-4 shadow-lg max-lg:bottom-[var(--bottom-nav-space)]"
       style={{
         background: "var(--background-surface)",
         borderColor: "var(--border)",
@@ -51,6 +51,7 @@ export function CookieBanner() {
         transition: "opacity 280ms ease, transform 280ms ease",
         pointerEvents: hiding ? "none" : "auto",
       }}
+      data-cookie-banner=""
       role="dialog"
       aria-label="Настройки cookie"
     >

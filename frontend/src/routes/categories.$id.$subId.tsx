@@ -392,7 +392,7 @@ function SubcategoryRoomPage() {
 
       {/* Subcategory switcher sheet */}
       {subSheetOpen && (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[var(--z-modal)]" role="dialog" aria-modal="true">
           <button
             type="button"
             aria-label={t("pages.subcategoryDetail.closeAria")}

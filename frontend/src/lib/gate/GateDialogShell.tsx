@@ -46,7 +46,7 @@ export function GateDialogShell({ open, onOpenChange, title, description, icon, 
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className="rounded-t-[var(--r-modal)] px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-5"
+          className="z-[var(--z-gate)] rounded-t-[var(--r-modal)] px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-5"
         >
           <SheetHeader className="text-left">
             {header}
@@ -61,7 +61,10 @@ export function GateDialogShell({ open, onOpenChange, title, description, icon, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[420px]">
+      {/* Гейт живёт на собственном слое: он не информирует, а перекрывает
+          доступ, и ничто из плавающего не должно оказаться поверх его
+          кнопок. Ровно это и случилось 04.09 с cookie-баннером. */}
+      <DialogContent className="z-[var(--z-gate)] max-w-[420px]">
         <DialogHeader>
           {header}
           <DialogTitle>{title}</DialogTitle>

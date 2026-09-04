@@ -33,7 +33,7 @@ export function MobileHeader() {
   return (
     <>
       <header
-        className="lg:hidden sticky top-0 z-30"
+        className="lg:hidden sticky top-0 z-[var(--z-sticky)]"
         style={{
           paddingTop: "var(--safe-top)",
           background: "color-mix(in oklab, var(--background) 92%, transparent)",
