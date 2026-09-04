@@ -314,9 +314,17 @@ function PhotoDraftStrip({
   );
 }
 
+/**
+ * One comment. The thread is deliberately two levels deep and no more: at
+ * 375px a third indent leaves no readable text column, and the API already
+ * flattens every descendant under its root. So a reply to a reply is posted
+ * against the *root* (`rootId`) and rendered on the same second level, with
+ * a leading «@имя» naming who it answers.
+ */
 function CommentItem({
   comment,
   depth = 0,
+  rootId,
   onReply,
   readOnly = false,
   likeOverrides,
@@ -325,6 +333,8 @@ function CommentItem({
 }: {
   comment: Comment;
   depth?: number;
+  /** Set on second-level comments: the id of the root this thread hangs from. */
+  rootId?: string;
   onReply: (parentId: string, text: string, photos?: CommentPhotosPayload) => void;
   readOnly?: boolean;
   likeOverrides: Record<string, number>;
@@ -344,6 +354,9 @@ function CommentItem({
   // Server verdict wins when present (moderators); the author always may.
   const canDelete = isOwn || comment.can?.delete === true;
   const replyPhotos = useCommentPhotoDraft();
+  // Replies always attach to the root, never to another reply — that is what
+  // keeps the thread two levels deep on a 375px screen.
+  const replyParentId = rootId ?? comment.id;
 
   const submit = () => {
     if (!draft.trim() && replyPhotos.photos.length === 0) return;
@@ -351,7 +364,7 @@ function CommentItem({
       void (async () => {
         try {
           const photos = await replyPhotos.upload();
-          onReply(comment.id, draft.trim(), photos.mediaIds.length ? photos : undefined);
+          onReply(replyParentId, draft.trim(), photos.mediaIds.length ? photos : undefined);
           setDraft("");
           replyPhotos.clear();
           setReplying(false);
@@ -471,7 +484,9 @@ function CommentItem({
                     return;
                   }
                   setReplying(true);
-                  setDraft((d) => (d.trim() ? d : `${author.name}, `));
+                  // On the second level the indent no longer says who is being
+                  // answered, so the mention carries it instead.
+                  setDraft((d) => (d.trim() ? d : rootId ? `@${author.name}, ` : `${author.name}, `));
                 })}
                 className="flex items-center gap-[4px] hover:opacity-80"
               >
@@ -527,7 +542,8 @@ function CommentItem({
                 <CommentItem
                   key={r.id}
                   comment={r}
-                  depth={depth + 1}
+                  depth={1}
+                  rootId={rootId ?? comment.id}
                   onReply={onReply}
                   onDeleted={onDeleted}
                   readOnly={readOnly}
