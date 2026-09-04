@@ -74,7 +74,7 @@ export function DeleteChannelDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center sm:items-center"
       style={{ background: "rgba(0,0,0,0.55)" }}
       onClick={() => !busy && setOpen(false)}
     >

@@ -160,7 +160,7 @@ export function ChatMessageSearch({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[10000] flex items-center justify-center p-[16px]"
+          className="fixed inset-0 z-[var(--z-popover)] flex items-center justify-center p-[16px]"
           style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)" }}
           onClick={onClose}
         >

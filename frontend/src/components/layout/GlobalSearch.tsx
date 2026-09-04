@@ -89,7 +89,7 @@ export function GlobalSearch() {
 
       {open && q.length >= MIN_QUERY_LENGTH && (
         <div
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[70vh] overflow-y-auto"
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-[var(--z-popover)] max-h-[70vh] overflow-y-auto"
           style={{
             background: "var(--background-elevated)",
             border: "1px solid var(--border)",

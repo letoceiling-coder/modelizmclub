@@ -387,7 +387,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
         type="button"
         onPointerDown={onPointerDown}
         onContextMenu={(e) => e.preventDefault()}
-        className={`relative z-30 grid h-[44px] w-[44px] shrink-0 touch-none place-items-center rounded-full select-none sm:h-[42px] sm:w-[42px] ${TAP_TARGET_44}`}
+        className={`relative z-[calc(var(--z-sticky)+1)] grid h-[44px] w-[44px] shrink-0 touch-none place-items-center rounded-full select-none sm:h-[42px] sm:w-[42px] ${TAP_TARGET_44}`}
         style={{
           background: recording
             ? cancelReady

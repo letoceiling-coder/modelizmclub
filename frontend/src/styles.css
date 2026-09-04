@@ -98,6 +98,22 @@
   --r-tag: 8px;
   --r-modal: 20px;
   --r-button: 12px;
+
+  /* Слои. До 04.09 значения ставились на глаз, и cookie-баннер с z-index 200
+     оказался над окном входа с z-index 50: на телефоне кнопки «Войти», VK,
+     «Яндекс» и MAX не нажимались вовсе — elementFromPoint в их центре
+     возвращал баннер. Шкала задаёт единственный источник правды; новые
+     плавающие элементы берут значение отсюда, а не придумывают своё. */
+  --z-base: 0; /* контент */
+  --z-sticky: 10; /* шапка, панели фильтров, нижняя навигация */
+  --z-dropdown: 20; /* выпадающие меню, подсказки, тултипы */
+  --z-banner: 30; /* cookie-баннер, плашки уведомлений */
+  --z-overlay: 40; /* затемнение под модалками */
+  --z-modal: 50; /* модалки, bottom sheet, лайтбокс */
+  --z-popover: 55; /* меню и тултипы, вынесенные в portal: должны быть над модалкой */
+  --z-toast: 60; /* тосты — всегда над модалками */
+  --z-gate: 70; /* окно гейта: перекрывает всё, включая тосты */
+  --z-call: 80; /* полноэкранный звонок — единственное, что выше гейта */
   --radius: 0.75rem;
 
   /* Icon boxes — единый масштаб иллюстраций внутри квадратных блоков */
@@ -107,8 +123,12 @@
   --icon-box-lg: 44px;
   --icon-box-xl: 46px;
 
-  --container-max: 1560px;                    /* cap: контент не растягивается бесконечно на ultrawide */
-  --container-pad: clamp(24px, calc(7vw - 60px), 60px);  /* fluid поля ≈30/41/52px на 1280/1440/1600, без прыжков */
+  --container-max: 1560px; /* cap: контент не растягивается бесконечно на ultrawide */
+  --container-pad: clamp(
+    24px,
+    calc(7vw - 60px),
+    60px
+  ); /* fluid поля ≈30/41/52px на 1280/1440/1600, без прыжков */
   --sidebar-w: 240px;
   --rightbar-w: 260px;
 
@@ -117,29 +137,29 @@
   --theme-transition: 250ms ease;
 
   /* ===== UI Kit 2.0 — neutral scale (raw, theme-agnostic) ===== */
-  --neutral-900: #0F1519;
-  --neutral-700: #5A6778;
-  --neutral-600: #5B6878;
-  --neutral-400: #8C99AD;
-  --neutral-300: #A8B2C2;
-  --neutral-200: #E0E5ED;
-  --neutral-100: #E9EDF2;
-  --neutral-50:  #F8F9FC;
+  --neutral-900: #0f1519;
+  --neutral-700: #5a6778;
+  --neutral-600: #5b6878;
+  --neutral-400: #8c99ad;
+  --neutral-300: #a8b2c2;
+  --neutral-200: #e0e5ed;
+  --neutral-100: #e9edf2;
+  --neutral-50: #f8f9fc;
 
   /* Secondary / commercial accent — ex-primary orange, now used for promo
      blocks, paid placements, marketplace highlights and commercial CTAs. */
-  --accent-commercial: #F26C05;
-  --accent-commercial-hover: #FA4F02;
+  --accent-commercial: #f26c05;
+  --accent-commercial-hover: #fa4f02;
   --accent-commercial-soft: rgba(242, 108, 5, 0.12);
   --accent-commercial-glow: rgba(242, 108, 5, 0.25);
 
   /* "Airy" card shadow (UI Kit 2.0 — light, diffused) */
-  --shadow-card-airy: 0 5px 100px rgba(45, 63, 91, 0.10);
+  --shadow-card-airy: 0 5px 100px rgba(45, 63, 91, 0.1);
 
   /* ===== Mobile App Shell ===== */
-  --mobile-header-h: 52px;       /* header content row (excl. safe-area) */
-  --desktop-topbar-h: 60px;      /* desktop top bar height (lg+, excl. mobile) */
-  --bottom-nav-h: 60px;          /* bottom nav row (excl. safe-area) */
+  --mobile-header-h: 52px; /* header content row (excl. safe-area) */
+  --desktop-topbar-h: 60px; /* desktop top bar height (lg+, excl. mobile) */
+  --bottom-nav-h: 60px; /* bottom nav row (excl. safe-area) */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* total space the fixed bottom nav occupies, incl. iOS home indicator */
@@ -147,18 +167,15 @@
   /* Минимальная зона нажатия (WCAG 2.5.5 / iOS HIG). Визуал контрола может
      быть меньше — зону добирает утилита .hit-target. */
   --hit-target: 44px;
-  /* z-index scale for the shell — header < bottom nav < sheets/toasts < call overlay */
-  --z-mobile-header: 30;
-  --z-bottom-nav: 40;
-  /* Выше cookie-баннера (z-[200]): иначе тост «Доступна новая версия»
-     оказывался под ним и до кнопки «Обновить» было не дотянуться. */
-  --z-toaster: 300;
-  --z-call-overlay: 10000;
+  --z-mobile-header: var(--z-sticky);
+  --z-bottom-nav: var(--z-sticky);
+  --z-toaster: var(--z-toast);
+  --z-call-overlay: var(--z-call);
 }
 
 /* ===== DARK THEME (DEFAULT) ===== */
 :root,
-[data-theme='dark'],
+[data-theme="dark"],
 .dark {
   /* Core surfaces */
   --bg-primary: #1a1a1e;
@@ -185,24 +202,24 @@
   --text-inverse: #1a1a1e;
 
   --foreground: var(--text-primary);
-  --foreground-90: rgba(240, 240, 240, 0.90);
-  --foreground-70: rgba(240, 240, 240, 0.70);
-  --foreground-50: rgba(240, 240, 240, 0.50);
-  --foreground-30: rgba(240, 240, 240, 0.30);
+  --foreground-90: rgba(240, 240, 240, 0.9);
+  --foreground-70: rgba(240, 240, 240, 0.7);
+  --foreground-50: rgba(240, 240, 240, 0.5);
+  --foreground-30: rgba(240, 240, 240, 0.3);
   --foreground-15: rgba(240, 240, 240, 0.15);
 
   /* Accent — primary blue (UI Kit 2.0). These are the default "blue" preset
      tokens; the admin Design System switcher (theme-manager) overrides them at
      runtime for the "menthol" preset. --accent-foreground is the text/icon
      color that sits on an accent fill (white for blue, dark ink for menthol). */
-  --accent: #627FFF;
-  --accent-hover: #4F66E8;
-  --accent-active: #3F4FBF;
+  --accent: #627fff;
+  --accent-hover: #4f66e8;
+  --accent-active: #3f4fbf;
   --accent-soft: rgba(98, 127, 255, 0.14);
   --accent-glow: rgba(98, 127, 255, 0.28);
-  --accent-muted: #3F4FBF;
-  --accent-foreground: #FFFFFF;
-  --border-accent: rgba(98, 127, 255, 0.40);
+  --accent-muted: #3f4fbf;
+  --accent-foreground: #ffffff;
+  --border-accent: rgba(98, 127, 255, 0.4);
   --focus-ring: var(--accent);
 
   /* Borders */
@@ -217,7 +234,7 @@
   --success-soft: rgba(76, 175, 80, 0.15);
   --warning: #ff9800;
   --warning-soft: rgba(255, 152, 0, 0.15);
-  --danger: #EF4444;
+  --danger: #ef4444;
   --danger-soft: rgba(239, 68, 68, 0.15);
   --error: var(--danger);
   --error-soft: var(--danger-soft);
@@ -238,11 +255,10 @@
   --shadow-button: 0 2px 8px rgba(98, 127, 255, 0.35);
   --shadow-glow-commercial: 0 0 24px rgba(242, 108, 5, 0.28);
   --shadow-button-commercial: 0 2px 8px rgba(242, 108, 5, 0.35);
-
 }
 
 /* ===== LIGHT THEME (OPTIONAL) ===== */
-[data-theme='light'] {
+[data-theme="light"] {
   --bg-primary: #ffffff;
   --bg-secondary: #fafafa;
   --bg-tertiary: #f5f5f5;
@@ -266,19 +282,19 @@
   --text-inverse: #ffffff;
 
   --foreground: var(--text-primary);
-  --foreground-90: rgba(26, 26, 30, 0.90);
-  --foreground-70: rgba(26, 26, 30, 0.70);
-  --foreground-50: rgba(26, 26, 30, 0.50);
-  --foreground-30: rgba(26, 26, 30, 0.30);
-  --foreground-15: rgba(26, 26, 30, 0.10);
+  --foreground-90: rgba(26, 26, 30, 0.9);
+  --foreground-70: rgba(26, 26, 30, 0.7);
+  --foreground-50: rgba(26, 26, 30, 0.5);
+  --foreground-30: rgba(26, 26, 30, 0.3);
+  --foreground-15: rgba(26, 26, 30, 0.1);
 
-  --accent: #627FFF;
-  --accent-hover: #4F66E8;
-  --accent-active: #3F4FBF;
-  --accent-soft: rgba(98, 127, 255, 0.10);
+  --accent: #627fff;
+  --accent-hover: #4f66e8;
+  --accent-active: #3f4fbf;
+  --accent-soft: rgba(98, 127, 255, 0.1);
   --accent-glow: rgba(98, 127, 255, 0.18);
-  --accent-muted: #3F4FBF;
-  --accent-foreground: #FFFFFF;
+  --accent-muted: #3f4fbf;
+  --accent-foreground: #ffffff;
   --border-accent: rgba(98, 127, 255, 0.35);
   --focus-ring: var(--accent);
 
@@ -289,33 +305,33 @@
   --divider: #e8e8e8;
 
   --success: #2e7d32;
-  --success-soft: rgba(46, 125, 50, 0.10);
+  --success-soft: rgba(46, 125, 50, 0.1);
   --warning: #ef6c00;
-  --warning-soft: rgba(239, 108, 0, 0.10);
-  --danger: #DC2626;
-  --danger-soft: rgba(220, 38, 38, 0.10);
+  --warning-soft: rgba(239, 108, 0, 0.1);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.1);
   --error: var(--danger);
   --error-soft: var(--danger-soft);
   --info: #1976d2;
-  --info-soft: rgba(25, 118, 210, 0.10);
+  --info-soft: rgba(25, 118, 210, 0.1);
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
-  --shadow-modal: 0 16px 64px rgba(0, 0, 0, 0.20);
-  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.10);
-  --shadow-glow-accent: 0 0 24px rgba(98, 127, 255, 0.20);
+  --shadow-modal: 0 16px 64px rgba(0, 0, 0, 0.2);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-glow-accent: 0 0 24px rgba(98, 127, 255, 0.2);
   --shadow-button: 0 2px 8px rgba(98, 127, 255, 0.28);
-  --shadow-glow-commercial: 0 0 24px rgba(242, 108, 5, 0.20);
+  --shadow-glow-commercial: 0 0 24px rgba(242, 108, 5, 0.2);
   --shadow-button-commercial: 0 2px 8px rgba(242, 108, 5, 0.28);
-
 }
 
-html, body {
+html,
+body {
   scrollbar-gutter: stable;
   transition:
     background-color var(--theme-transition),
@@ -337,7 +353,8 @@ html, body {
        picker sheet opens. Custom active: states below replace it. */
     -webkit-tap-highlight-color: transparent;
   }
-  html, body {
+  html,
+  body {
     overflow-x: hidden;
     background-color: var(--background);
     color: var(--foreground);
@@ -345,7 +362,10 @@ html, body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
@@ -356,17 +376,21 @@ html, body {
    visible track/thumb across Firefox, WebKit and legacy Edge. Scroll gestures,
    wheel, keyboard and touch panning are unaffected. */
 * {
-  scrollbar-width: none;            /* Firefox */
-  -ms-overflow-style: none;         /* legacy Edge/IE */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge/IE */
 }
 
-::-webkit-scrollbar {               /* Chrome/Safari */
+::-webkit-scrollbar {
+  /* Chrome/Safari */
   width: 0;
   height: 0;
   display: none;
 }
 
-::selection { background: var(--accent-soft); color: var(--accent); }
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 
 /* Hide the scroll indicator on intentionally-scrollable rows/rails
    (horizontal chip / category / filter rows, friend strips, etc.) while
@@ -374,13 +398,13 @@ html, body {
    ad-hoc inline [scrollbar-width:none] / [&::-webkit-scrollbar]:hidden patches
    that were scattered across components. */
 .no-scrollbar {
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* legacy Edge/IE */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge/IE */
 }
 .no-scrollbar::-webkit-scrollbar {
   width: 0;
   height: 0;
-  display: none;                  /* Chrome/Safari */
+  display: none; /* Chrome/Safari */
 }
 
 /* Horizontal scroll strips — grab cursor on mouse, native swipe on touch. */
@@ -552,10 +576,25 @@ html, body {
   z-index: var(--z-toaster) !important;
 }
 
+/* Пока открыта модалка, cookie-баннер уходит совсем: слой ниже её уже не
+   даёт ему перекрывать кнопки, но баннер поверх затемнения всё равно тянет
+   на себя внимание и остаётся кликабельной мишенью рядом с формой входа.
+   Radix держит на body атрибут data-scroll-locked всё время показа модалки. */
+body[data-scroll-locked] [data-cookie-banner] {
+  /* !important не по привычке: компонент задаёт opacity и pointer-events
+     инлайн-стилем для анимации ухода, а инлайн сильнее таблицы стилей. */
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Shimmer — Framer Motion driven skeleton loading */
 @keyframes shimmer-move {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .skeleton-shimmer {
@@ -576,14 +615,18 @@ html, body {
   padding: 0;
   border-radius: 10px;
   background: transparent;
-  transition: background 200ms ease, box-shadow 200ms ease, padding 200ms ease;
+  transition:
+    background 200ms ease,
+    box-shadow 200ms ease,
+    padding 200ms ease;
 }
 .dark .logo-plate {
   padding: 4px 10px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(240,240,240,0.92));
-  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset,
-              0 4px 14px -6px rgba(0,0,0,0.6),
-              0 0 0 1px rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 240, 240, 0.92));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 4px 14px -6px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* ===== Icon box — квадратные контейнеры для иллюстраций/иконок ===== */
@@ -597,10 +640,19 @@ html, body {
   border-radius: var(--r-card-sm);
 }
 
-.icon-box--sm { --icon-box-size: var(--icon-box-sm); border-radius: var(--r-tag); }
-.icon-box--md { --icon-box-size: var(--icon-box-md); }
-.icon-box--lg { --icon-box-size: var(--icon-box-lg); }
-.icon-box--xl { --icon-box-size: var(--icon-box-xl); }
+.icon-box--sm {
+  --icon-box-size: var(--icon-box-sm);
+  border-radius: var(--r-tag);
+}
+.icon-box--md {
+  --icon-box-size: var(--icon-box-md);
+}
+.icon-box--lg {
+  --icon-box-size: var(--icon-box-lg);
+}
+.icon-box--xl {
+  --icon-box-size: var(--icon-box-xl);
+}
 
 .icon-box--accent-soft {
   background: var(--accent-soft);

@@ -136,7 +136,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute bottom-full left-0 z-[60] mb-[8px] w-[260px] overflow-hidden rounded-[12px] border"
+            className="absolute bottom-full left-0 z-[var(--z-popover)] mb-[8px] w-[260px] overflow-hidden rounded-[12px] border"
             style={{
               background: "var(--background-elevated)",
               borderColor: "var(--border)",

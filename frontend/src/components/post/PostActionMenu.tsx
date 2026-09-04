@@ -216,7 +216,7 @@ export function PostActionMenu({
         <DropdownMenuContent
           align="end"
           sideOffset={6}
-          className="z-[200] w-[240px] overflow-hidden rounded-[12px] border p-0"
+          className="z-[var(--z-popover)] w-[240px] overflow-hidden rounded-[12px] border p-0"
           style={{
             background: "var(--background-elevated)",
             borderColor: "var(--border)",
@@ -306,7 +306,7 @@ export function PostActionMenu({
                   {t("components.postActionMenu.share")}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent
-                  className="z-[210] w-[200px] overflow-hidden rounded-[12px] border p-0"
+                  className="z-[calc(var(--z-popover)+1)] w-[200px] overflow-hidden rounded-[12px] border p-0"
                   style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
                 >
                   {SHARE_TARGETS.map((target) => (

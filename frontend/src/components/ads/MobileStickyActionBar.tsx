@@ -15,7 +15,7 @@ interface Props {
 export function MobileStickyActionBar({ ad, onWrite }: Props) {
   return (
     <div
-      className="fixed inset-x-0 z-30 flex items-center gap-[8px] px-[12px] py-[10px] lg:hidden"
+      className="fixed inset-x-0 z-[calc(var(--z-sticky)+1)] flex items-center gap-[8px] px-[12px] py-[10px] lg:hidden"
       style={{
         bottom: "var(--bottom-nav-space)",
         background: "var(--background-elevated)",

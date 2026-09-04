@@ -115,7 +115,7 @@ export function CallScreen() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[10000] flex flex-col overflow-hidden"
+          className="fixed inset-0 z-[var(--z-call)] flex flex-col overflow-hidden"
           style={{
             height: "100dvh",
             background:

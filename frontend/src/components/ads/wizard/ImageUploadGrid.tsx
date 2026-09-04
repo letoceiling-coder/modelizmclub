@@ -326,7 +326,7 @@ function DragOverlay({
 }) {
   return (
     <div
-      className="pointer-events-none fixed z-[100] overflow-hidden"
+      className="pointer-events-none fixed z-[var(--z-modal)] overflow-hidden"
       style={{
         left: x,
         top: y,

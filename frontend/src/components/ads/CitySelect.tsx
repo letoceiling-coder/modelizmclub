@@ -190,7 +190,7 @@ export function CitySelect({
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[1000] overflow-y-auto overscroll-contain py-[4px]"
+            className="fixed z-[var(--z-dropdown)] overflow-y-auto overscroll-contain py-[4px]"
             style={{
               left: pos.left,
               top: pos.top,

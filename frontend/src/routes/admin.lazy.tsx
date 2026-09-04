@@ -433,7 +433,7 @@ function AdminPage() {
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       {/* Header */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between backdrop-blur"
+        className="sticky top-0 z-[var(--z-sticky)] flex items-center justify-between backdrop-blur"
         style={{
           height: "48px",
           background: "color-mix(in oklab, var(--background) 85%, transparent)",
