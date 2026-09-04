@@ -79,3 +79,31 @@ export function pictureSrcSet(
     src,
   };
 }
+
+/**
+ * The media proxy answers `/api/v1/media/<uuid>/<name>.webp` with the variant
+ * when it exists and with the original when it does not — verified on
+ * production against a file that has no variants, which came back 200 with the
+ * original bytes. So a derived variant URL is always safe, and callers that
+ * only ever received a bare URL (avatars, banners) can ask for the size they
+ * actually display without the payload having to carry a variant map.
+ */
+const MEDIA_PROXY = /\/api\/v1\/media\/[0-9a-f-]{36}$/i;
+
+export function variantUrl(
+  url: string | null | undefined,
+  name: keyof MediaVariantSet,
+  format: "webp" | "jpg" = "webp",
+): string {
+  if (!url) return "";
+  return MEDIA_PROXY.test(url) ? `${url}/${name}.${format}` : url;
+}
+
+/** Width-descriptor srcset over derived variant URLs, for the same callers. */
+export function derivedSrcSet(
+  url: string | null | undefined,
+  names: Array<keyof MediaVariantSet>,
+): string | undefined {
+  if (!url || !MEDIA_PROXY.test(url)) return undefined;
+  return names.map((name) => `${variantUrl(url, name)} ${WIDTH[name]}w`).join(", ");
+}

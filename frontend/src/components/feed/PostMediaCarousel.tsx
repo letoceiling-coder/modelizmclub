@@ -2,11 +2,15 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { Img } from "@/components/ui/Img";
+import { ResponsiveImage } from "@/components/media/ResponsiveImage";
+import { displaySrc, variantUrl, type MediaVariantSet } from "@/lib/media/variants";
 import { Lightbox } from "@/components/post/Lightbox";
 
 export type MediaCarouselItem = {
   type: "image" | "video";
   url: string;
+  /** Backend size ladder. Without it the slide falls back to the original. */
+  variants?: MediaVariantSet | null;
   /** Intrinsic size when the API knows it — reserves the box before the bytes arrive. */
   width?: number;
   height?: number;
@@ -65,13 +69,23 @@ function useNaturalAspectRatio(url: string | null | undefined): number | null {
 }
 
 function useSlideAspect(item: MediaCarouselItem): number {
-  const imageAspect = useNaturalAspectRatio(item.type === "image" ? item.url : null);
+  // Measuring the ratio by loading the picture used to download the original —
+  // 2.8 MB fetched purely to read naturalWidth, on top of the card variant the
+  // slide actually shows. The API usually sends width and height, and when it
+  // does not, thumb answers the same question for twenty kilobytes.
+  const needsProbe = item.type === "image" && !(item.width && item.height);
+  const probeAspect = useNaturalAspectRatio(needsProbe ? variantUrl(item.url, "thumb") : null);
+  const imageAspect =
+    item.type === "image" && item.width && item.height
+      ? clampAspect(item.width / item.height)
+      : probeAspect;
   if (item.type === "video") return VIDEO_ASPECT;
   return imageAspect ?? DEFAULT_IMAGE_ASPECT;
 }
 
 function GalleryImage({
   src,
+  variants,
   alt,
   onClick,
   contain = true,
@@ -80,6 +94,7 @@ function GalleryImage({
   priority = false,
 }: {
   src: string;
+  variants?: MediaVariantSet | null;
   alt: string;
   onClick?: () => void;
   contain?: boolean;
@@ -101,12 +116,15 @@ function GalleryImage({
     );
   }
   return (
-    <Img
-      src={src}
+    <ResponsiveImage
+      media={{ url: src, variants }}
       alt={alt}
+      variants={["card", "medium"]}
+      sizes="(max-width: 768px) 100vw, 680px"
       width={width}
       height={height}
-      priority={priority}
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : undefined}
       onClick={onClick}
       className={`h-full w-full ${contain ? "object-contain" : "cursor-zoom-in object-cover"} ${onClick ? "cursor-zoom-in" : ""}`}
       onError={() => setErr(true)}
@@ -204,7 +222,9 @@ export function PostMediaCarousel({
   const [lightbox, setLightbox] = useState<number | null>(null);
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
 
-  const imageUrls = items.filter((item) => item.type === "image").map((item) => item.url);
+  const imageUrls = items
+    .filter((item) => item.type === "image")
+    .map((item) => displaySrc({ url: item.url, variants: item.variants ?? undefined }, "large"));
   let imageCounter = 0;
   const imageIndexBySlide = items.map((item) => (item.type === "image" ? imageCounter++ : -1));
 

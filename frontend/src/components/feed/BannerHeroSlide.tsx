@@ -1,3 +1,4 @@
+import { variantUrl } from "@/lib/media/variants";
 import type { HTMLAttributes } from "react";
 import { CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -52,7 +53,11 @@ export function BannerHeroSlide({
       <div className="absolute inset-0">
         {banner.image ? (
           <Img
-            src={banner.image}
+            // The hero is the LCP element on the feed and was loading the
+            // original: 277 KB for a 349x200 box on a phone. The media proxy
+            // answers with the original when a variant is missing, so this is
+            // safe for banners uploaded before variants existed.
+            src={variantUrl(banner.image, "medium")}
             width={1600}
             height={900}
             sizes="(max-width: 768px) 100vw, 720px"

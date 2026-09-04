@@ -3,7 +3,7 @@ import { ImageOff } from "lucide-react";
 import { getMediaAspect, rememberMediaAspect } from "@/lib/media/aspectCache";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { Lightbox } from "@/components/post/Lightbox";
-import { displaySrc, toDisplayMedia, type DisplayMedia } from "@/lib/media/variants";
+import { displaySrc, toDisplayMedia, variantUrl, type DisplayMedia } from "@/lib/media/variants";
 
 const MAX_HEIGHT_DESKTOP = 480;
 const MAX_HEIGHT_MOBILE = 420;
@@ -28,7 +28,10 @@ function useImageAspect(url: string): number | null {
       rememberMediaAspect(url, ratio);
       setAspect(ratio);
     };
-    img.src = url;
+    // thumb, not the original: this Image exists only to read naturalWidth,
+    // and the proxy returns the original when a variant is missing, so the
+    // measurement is identical either way.
+    img.src = variantUrl(url, "thumb");
     return () => {
       active = false;
     };
