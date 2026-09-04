@@ -21,6 +21,67 @@
 - Supervisor (очереди Laravel)
 - Node.js 22 + Bun (frontend на modelizmclub.ru)
 
+## systemd-юниты
+
+Каталог `deploy/systemd/` — источник правды для всех юнитов. Скрипты деплоя их
+**не раскладывают**: `deploy-frontend.sh` обновляет код и перезапускает службу,
+но файл юнита на сервере остаётся тем, что положили руками. Поэтому правка юнита
+в репозитории доезжает до сервера только отдельным шагом, и именно из-за его
+отсутствия таймер бэкапов простоял неустановленным с момента написания: команды
+лежали в разделе про бэкапы, их никто не выполнил, а проверить было нечем.
+
+| Юнит | Что делает |
+|---|---|
+| `modelizmclub-frontend.service` | Nitro на :3000, боевой фронтенд |
+| `modelizmclub-front.service` | Nitro на :3001, поддомен front |
+| `modelizmclub-reverb.service` | WebSocket-сервер Reverb |
+| `modelizmclub-worker.service` | Очередь Laravel |
+| `backup-db.timer` + `backup-db.service` | Ночной дамп базы в 04:00 с выгрузкой в S3 |
+| `backup-db-failure@.service` | Уведомление о неудачном дампе, вызывается через `OnFailure` |
+| `neeklo-*` | То же для dev-контура `neeklo.modelizmclub.ru` |
+
+### Установка на новом сервере или после правки юнита
+
+```bash
+cd /var/www/modelizmclub
+for u in modelizmclub-frontend modelizmclub-front modelizmclub-reverb modelizmclub-worker; do
+  install -m 644 "deploy/systemd/${u}.service" /etc/systemd/system/
+done
+install -m 644 deploy/systemd/backup-db.service          /etc/systemd/system/
+install -m 644 deploy/systemd/backup-db.timer            /etc/systemd/system/
+install -m 644 deploy/systemd/backup-db-failure@.service /etc/systemd/system/
+
+systemctl daemon-reload
+systemctl enable --now modelizmclub-frontend modelizmclub-reverb modelizmclub-worker
+systemctl enable --now backup-db.timer
+```
+
+`daemon-reload` обязателен: без него systemd продолжит использовать прежнюю
+версию юнита, и правка не даст эффекта, хотя файл на диске уже новый.
+
+### Проверить, что установлено всё
+
+```bash
+# юнит на сервере отличается от репозитория — значит правка не доехала
+for u in modelizmclub-frontend.service modelizmclub-reverb.service \
+         modelizmclub-worker.service backup-db.service backup-db.timer \
+         "backup-db-failure@.service"; do
+  diff -q "/var/www/modelizmclub/deploy/systemd/$u" "/etc/systemd/system/$u" >/dev/null 2>&1 \
+    && echo "ok         $u" || echo "РАСХОДИТСЯ $u"
+done
+
+# таймер живой и знает, когда сработает
+systemctl list-timers backup-db.timer --no-pager
+```
+
+Первая команда 04.09 сразу нашла расхождение: установленный
+`modelizmclub-frontend.service` был от 25.06 и не имел ни `ExecStartPost` с
+проверкой отклика, ни `TimeoutStartSec`, добавленных в репозиторий позже. Юнит
+жил своей жизнью три месяца, и заметить это было нечем.
+
+Пустой вывод `list-timers` означает, что таймера нет вовсе, а не что он просто
+ещё не срабатывал.
+
 ## Backend (dev.modelizmclub.ru)
 
 На сервере под root (один раз):
