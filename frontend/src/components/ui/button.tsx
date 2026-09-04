@@ -54,11 +54,13 @@ const buttonVariants = cva(
       // `default` (40) и `lg` (44) — legacy-имена для существующих вызовов;
       // новый код использует sm | md | icon (docs/design-system.md).
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-[var(--r-button)] px-3 text-xs",
+        // `hit-target` (styles.css) добирает зону нажатия до 44×44 через
+        // ::after — визуальная высота у sm/default остаётся прежней.
+        default: "h-10 px-4 py-2 hit-target",
+        sm: "h-9 rounded-[var(--r-button)] px-3 text-xs hit-target",
         md: "h-11 rounded-[var(--r-button)] px-5",
         lg: "h-11 rounded-[var(--r-button)] px-8",
-        icon: "h-11 w-11 p-0",
+        icon: "h-11 w-11 p-0 hit-target",
       },
     },
     defaultVariants: {

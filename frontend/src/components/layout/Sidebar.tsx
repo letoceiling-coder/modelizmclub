@@ -21,6 +21,7 @@ import { navSlotKey } from "@/lib/icon-slots";
 import { ROUTES, getActiveSection } from "@/lib/routes";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { InviteFriendNavLink } from "@/components/referral/InviteFriendNavLink";
+import { InstallAppNavRow } from "@/components/pwa/InstallAppNavRow";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useMySubscription, formatSubscriptionEndDate } from "@/lib/subscription";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -320,6 +321,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 
       <div className="mt-2 space-y-0.5">
         {!isGuest && <InviteFriendNavLink />}
+        <InstallAppNavRow />
         <FeedbackDialog />
       </div>
     </div>

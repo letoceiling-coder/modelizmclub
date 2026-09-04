@@ -369,6 +369,9 @@ export function PhotoEditorDialog({
       onOpenChange={(v) => {
         if (!v) handleCancel();
       }}
+      // The crop editor fills the screen and handles gestures itself — a
+      // draggable bottom sheet would fight the photo panning.
+      mobileSheet={false}
     >
       <DialogContent
         className="!flex h-[90vh] w-[90vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-[var(--r-card)]"

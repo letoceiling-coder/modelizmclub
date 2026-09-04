@@ -6,6 +6,7 @@ import { useGlobalSearch, MIN_QUERY_LENGTH } from "@/lib/hooks/useGlobalSearch";
 import { SearchGroup, ResultRow } from "@/components/layout/search/SearchResultRow";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 /** Header search — live dropdown split by content type (люди, сообщества,
  *  объявления, направления), VK-style. Replaces the old behavior of only
@@ -15,6 +16,10 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const { isAllowed, guardAction } = useGuestAccess();
+  // Конфиг гостевого доступа на сервере ещё не загружен, поэтому SSR всегда
+  // отдаёт readOnly. Повторяем это в первом клиентском рендере — иначе React
+  // ловит рассинхрон атрибутов при гидрации и перерисовывает поддерево.
+  const hydrated = useHydrated();
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,7 +66,7 @@ export function GlobalSearch() {
           setValue(e.target.value);
           setOpen(true);
         }}
-        readOnly={!isAllowed("layout.header.search")}
+        readOnly={!hydrated || !isAllowed("layout.header.search")}
         onPointerDown={promptSearchAuth}
         onFocus={(e) => {
           promptSearchAuth(e);

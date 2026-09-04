@@ -14,6 +14,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { ROUTES } from "@/lib/routes";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { MOBILE_MENU_SECTIONS, assertMobileNavCoverage } from "@/lib/nav";
+import { InstallAppNavRow } from "@/components/pwa/InstallAppNavRow";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer";
@@ -218,6 +219,7 @@ function MoreMenu() {
               />
             </div>
           )}
+          <InstallAppNavRow className={rowClass} onNavigate={() => setOpen(false)} />
           <div onClick={() => setOpen(false)}>
             <FeedbackMenuRow />
           </div>

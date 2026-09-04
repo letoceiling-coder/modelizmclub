@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
 import { getActiveSection, ROUTES } from "@/lib/routes";
-import { selectors } from "@/lib/store";
+import { scrollSectionToTop } from "@/lib/scroll-top";
+import { useUnreadMessagesTotal } from "@/lib/messenger";
+import { useStore, selectors } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
-import { useUnreadMessagesTotal } from "@/lib/messenger";
 
 type Item = {
   to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
@@ -79,6 +80,16 @@ function NavTab({
   badge: number;
 }) {
   const actionKey = NAV_ROUTE_TO_ACTION[item.to];
+  // VK/Авито-поведение: повторный тап по активному разделу не навигирует, а
+  // прокручивает наверх и просит секцию обновиться. Ловим в фазе захвата, до
+  // обработчика самой ссылки, поэтому Link/GuestGuardLink менять не нужно.
+  const onReTap = active
+    ? (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        scrollSectionToTop(item.section);
+      }
+    : undefined;
   const content = (
     <>
       <span className="relative inline-flex">
@@ -104,9 +115,12 @@ function NavTab({
           </span>
         )}
       </span>
+      {/* Шесть вкладок на 375px: длинные названия («Сообщества», «Объявления»)
+          не влезают в колонку в 62px и налезали на соседей. Кегль тянется по
+          ширине экрана, truncate остаётся страховкой для узких устройств. */}
       <span
-        className="font-medium"
-        style={{ fontSize: 10.5, letterSpacing: "0.01em", lineHeight: 1 }}
+        className="w-full truncate text-center font-medium"
+        style={{ fontSize: "clamp(9px, 2.6vw, 10.5px)", letterSpacing: "0", lineHeight: 1.15 }}
       >
         {label}
       </span>
@@ -114,12 +128,12 @@ function NavTab({
   );
 
   return (
-    <li className="flex">
+    <li className="flex min-w-0" onClickCapture={onReTap}>
       {actionKey ? (
         <GuestGuardLink
           actionKey={actionKey}
           to={item.to}
-          className="flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
+          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
           style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
         >
           {content}
@@ -127,7 +141,7 @@ function NavTab({
       ) : (
         <Link
           to={item.to}
-          className="flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
+          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-150"
           style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}
         >
           {content}

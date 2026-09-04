@@ -16,6 +16,7 @@ import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
 import { GateHost } from "@/lib/gate";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
 import { CookieBanner } from "@/components/legal/CookieBanner";
+import { PwaUpdatePrompt } from "@/components/pwa/PwaUpdatePrompt";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { restoreSession } from "@/lib/auth/session";
 import { captureReferralFromLocation } from "@/lib/referral-cookie";
@@ -130,8 +131,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
+      { name: "theme-color", content: "#1a1a1e" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "МоДелизМ" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      // PWA: манифест генерирует vite-plugin-pwa (см. vite.config.ts). У
+      // TanStack Start нет index.html, поэтому ссылки прописаны здесь руками.
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/pwa/apple-touch-icon.png" },
+    ],
     scripts: [{ children: THEME_INIT_SCRIPT }],
   }),
   shellComponent: RootShell,
@@ -232,6 +243,7 @@ function RootComponent() {
           <GroupCallScreen />
           <GroupCallInviteDialog />
           <CookieBanner />
+          <PwaUpdatePrompt />
           <Toaster
             position="bottom-right"
             closeButton
