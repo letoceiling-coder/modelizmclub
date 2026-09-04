@@ -53,6 +53,8 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
             alt={ad.title}
             variants={["thumb", "card"]}
             sizes="(max-width: 640px) 50vw, 280px"
+            width={640}
+            height={480}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             onError={() => setBroken(true)}
           />

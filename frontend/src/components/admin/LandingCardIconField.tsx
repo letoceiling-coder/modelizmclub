@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ImagePlus, Loader2, Search, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { uploadAdminMedia } from "@/lib/api/admin-media";
-import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { resolveLucideIcon, useLucideTail } from "@/lib/lucide-icon";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { IconBox } from "@/components/ui/Icon";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
@@ -58,6 +58,7 @@ const panelStyle: CSSProperties = {
 
 export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
   const { t } = useTranslation();
+  useLucideTail();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [uploading, setUploading] = useState(false);

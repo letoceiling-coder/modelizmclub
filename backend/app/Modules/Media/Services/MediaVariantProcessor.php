@@ -107,7 +107,7 @@ class MediaVariantProcessor
     }
 
     /**
-     * @return array<string, array{webp?: string, jpeg?: string}>
+     * @return array<string, array{avif?: string, webp?: string, jpeg?: string}>
      */
     public static function publicUrls(Media $media): array
     {
@@ -127,9 +127,19 @@ class MediaVariantProcessor
             }
 
             $urls = [];
+            $avifBytes = (int) ($slot['avif']['bytes'] ?? 0);
             $webpBytes = (int) ($slot['webp']['bytes'] ?? 0);
             $jpegBytes = (int) ($slot['jpeg']['bytes'] ?? 0);
+            $candidates = array_values(array_filter([$webpBytes, $jpegBytes], static fn (int $b): bool => $b > 0));
+            $smallestLossy = $candidates === [] ? PHP_INT_MAX : min($candidates);
+            // Only advertise a modern format when it actually saves bytes —
+            // an AVIF heavier than the WebP it replaces is a net loss.
+            $includeAvif = ! empty($slot['avif']['path']) && $avifBytes > 0 && $avifBytes <= $smallestLossy;
             $includeWebp = ! empty($slot['webp']['path']) && ($jpegBytes === 0 || $webpBytes <= $jpegBytes);
+
+            if ($includeAvif) {
+                $urls['avif'] = $media->variantPublicUrl((string) $name, 'avif');
+            }
 
             if ($includeWebp) {
                 $urls['webp'] = $media->variantPublicUrl((string) $name, 'webp');
@@ -149,7 +159,12 @@ class MediaVariantProcessor
 
     public function variantStoragePath(Media $media, string $name, string $ext): ?string
     {
-        $stored = $media->variants[$name][$ext === 'jpg' ? 'jpeg' : $ext]['path'] ?? null;
+        $format = match ($ext) {
+            'jpg' => 'jpeg',
+            default => $ext,
+        };
+
+        $stored = $media->variants[$name][$format]['path'] ?? null;
 
         return is_string($stored) && $stored !== '' ? $stored : null;
     }
@@ -258,6 +273,14 @@ class MediaVariantProcessor
             }
         }
 
+        if ($this->avifSupported()) {
+            $avif = $this->encodeFormat($media, $dir, $name, 'avif', $frame);
+
+            if ($avif !== null) {
+                $slot['avif'] = $avif;
+            }
+        }
+
         return $slot;
     }
 
@@ -266,11 +289,18 @@ class MediaVariantProcessor
      */
     private function encodeFormat(Media $media, string $dir, string $name, string $format, GdImage $frame): ?array
     {
-        $qStart = (int) config('media.variants.q_start', 84);
-        $qMin = (int) config('media.variants.q_min', 76);
+        $singlePass = $format === 'avif';
+        $qStart = $singlePass
+            ? (int) config('media.variants.avif.quality', 58)
+            : (int) config('media.variants.q_start', 84);
+        $qMin = $singlePass ? $qStart : (int) config('media.variants.q_min', 76);
         $qStep = (int) config('media.variants.q_step', 4);
         $budget = (int) (config("media.variants.budgets.{$name}.{$format}") ?? 0);
-        $ext = $format === 'webp' ? 'webp' : 'jpg';
+        $ext = match ($format) {
+            'webp' => 'webp',
+            'avif' => 'avif',
+            default => 'jpg',
+        };
         $path = $dir.'/'.$name.'.'.$ext;
 
         $quality = $qStart;
@@ -322,6 +352,8 @@ class MediaVariantProcessor
 
         if ($format === 'webp') {
             $ok = imagewebp($frame, null, $quality);
+        } elseif ($format === 'avif') {
+            $ok = imageavif($frame, null, $quality, (int) config('media.variants.avif.speed', 7));
         } else {
             $jpeg = $this->flattenForJpeg($frame);
             $ok = imagejpeg($jpeg, null, $quality);
@@ -337,6 +369,11 @@ class MediaVariantProcessor
         }
 
         return $body;
+    }
+
+    private function avifSupported(): bool
+    {
+        return (bool) config('media.variants.avif.enabled', true) && function_exists('imageavif');
     }
 
     private function flattenForJpeg(GdImage $frame): GdImage

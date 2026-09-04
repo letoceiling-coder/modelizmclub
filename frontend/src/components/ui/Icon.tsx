@@ -1,5 +1,5 @@
 // frontend/src/components/ui/Icon.tsx
-import { resolveLucideIcon } from "@/lib/lucide-icon";
+import { resolveLucideIcon, useLucideTail } from "@/lib/lucide-icon";
 import { isSafeSvgMarkup } from "@/lib/safe-svg";
 import { useIconOverride } from "@/lib/icon-overrides";
 import {
@@ -97,6 +97,7 @@ function LucideFallback({
   strokeWidth?: number;
   fill?: boolean;
 }) {
+  useLucideTail();
   const LucideIcon = resolveLucideIcon(lucideName);
   if (fill) {
     return (
@@ -194,6 +195,7 @@ export function CategoryIcon({
   fill?: boolean;
 }) {
   const override = useIconOverride(categorySlotKey(categoryId));
+  useLucideTail();
   if (override) {
     const rendered = renderOverride(override, { className, size, fill });
     if (rendered) return rendered;
@@ -228,6 +230,7 @@ export function LandingCardIconSlot({
 }) {
   const slotKey = cardId != null ? landingCardSlotKey(cardId) : "__landing_none__";
   const override = useIconOverride(slotKey);
+  useLucideTail();
 
   if (cardId != null && override) {
     const rendered = renderOverride(override, { className: imgClassName ?? className, size, fill });

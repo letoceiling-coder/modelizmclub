@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from "react";
 import { CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Img } from "@/components/ui/Img";
 
 /** Fixed hero height — shared by feed slider and admin WYSIWYG preview (PDF QA Task 11). */
 export const BANNER_HERO_HEIGHT = "h-[200px] overflow-hidden sm:h-[220px] md:h-[240px]";
@@ -26,10 +27,15 @@ export function BannerHeroSlide({
   onCtaClick,
   ctaDisabled = false,
   ctaPointerProps,
+  priority = false,
 }: {
   banner: BannerHeroSlideData;
   onCtaClick?: () => void;
   ctaDisabled?: boolean;
+  /** LCP candidate — the first hero slide above the fold on /feed. Later slides
+   *  and the admin WYSIWYG preview leave it off so they do not compete with the
+   *  real first paint for bandwidth. */
+  priority?: boolean;
   /** Extra pointer handlers (e.g. stopPropagation) for the CTA button — used to keep the
    *  feed slider's own swipe/drag detection from firing when the CTA is pressed. */
   ctaPointerProps?: HTMLAttributes<HTMLButtonElement>;
@@ -45,13 +51,12 @@ export function BannerHeroSlide({
     <>
       <div className="absolute inset-0">
         {banner.image ? (
-          <img
+          <Img
             src={banner.image}
             width={1600}
             height={900}
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
+            sizes="(max-width: 768px) 100vw, 720px"
+            priority={priority}
             alt=""
             className="h-full w-full object-cover"
           />

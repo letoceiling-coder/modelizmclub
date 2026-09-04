@@ -99,6 +99,8 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
               alt={ad.title}
               variants={["thumb", "card"]}
               sizes="(max-width: 640px) 50vw, 320px"
+              width={640}
+              height={480}
               className="h-full w-full object-cover transition-[filter] duration-300 group-hover:brightness-105"
             />
           ) : (

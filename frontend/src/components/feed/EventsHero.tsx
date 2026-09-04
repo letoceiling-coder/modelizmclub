@@ -164,6 +164,7 @@ export function EventsHero() {
           >
             <BannerHeroSlide
               banner={current}
+              priority={index === 0}
               onCtaClick={() => openCta(current)}
               ctaPointerProps={stopPointerPropagation}
             />
