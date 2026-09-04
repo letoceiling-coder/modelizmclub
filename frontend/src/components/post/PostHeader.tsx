@@ -4,7 +4,7 @@ import type { Post, User } from "@/lib/mock";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { formatScheduledAt, defaultScheduleTimezone } from "@/lib/post-schedule";
-import { formatDate } from "@/lib/format/date";
+import { TimeAgo } from "@/components/TimeAgo";
 import { Img } from "@/components/ui/Img";
 
 /** Avatar with initials fallback when the image fails to load or src is empty */
@@ -96,9 +96,11 @@ export function PostHeader({
           {badges}
         </div>
         <div className="mt-[1px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          {isScheduled && post.scheduledAt
-            ? formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())
-            : formatDate(post.date, "relative")}
+          {isScheduled && post.scheduledAt ? (
+            formatScheduledAt(post.scheduledAt, defaultScheduleTimezone())
+          ) : (
+            <TimeAgo iso={post.date} />
+          )}
           {showContext && post.category ? (
             <>
               {" · "}
