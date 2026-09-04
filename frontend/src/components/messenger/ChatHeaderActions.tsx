@@ -324,7 +324,7 @@ export function ChatHeaderActions({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.96 }}
               transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute right-0 top-full z-[60] mt-[6px] w-[260px] overflow-hidden rounded-[12px] border"
+              className="absolute right-0 top-full z-[var(--z-popover)] mt-[6px] w-[260px] overflow-hidden rounded-[12px] border"
               style={{
                 background: "var(--background-elevated)",
                 borderColor: "var(--border)",

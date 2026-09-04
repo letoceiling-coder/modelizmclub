@@ -155,7 +155,7 @@ export function GroupCallInviteDialog() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[10000] flex items-end justify-center sm:items-center"
+          className="fixed inset-0 z-[var(--z-call)] flex items-end justify-center sm:items-center"
           style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
           onClick={() => groupCalls.closePicker()}
         >

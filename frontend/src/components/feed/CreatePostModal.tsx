@@ -63,7 +63,7 @@ export function CreatePostModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center transition-opacity sm:items-center"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center transition-opacity sm:items-center"
       style={{
         background: "rgba(0,0,0,0.55)",
         transitionDuration: `${EXIT_MS}ms`,

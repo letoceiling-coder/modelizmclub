@@ -812,7 +812,7 @@ export function CommentSection({
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="z-[80] min-w-[220px] overflow-hidden rounded-[12px] border p-0"
+                className="z-[var(--z-modal)] min-w-[220px] overflow-hidden rounded-[12px] border p-0"
                 style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
               >
                 {(

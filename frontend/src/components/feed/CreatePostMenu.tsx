@@ -333,7 +333,7 @@ function ComposerActions({
           myChannel={myChannel}
           onSelect={select}
           onAddFile={openFilePicker}
-          className="absolute right-0 top-[calc(100%+8px)] z-50 min-w-[10rem] overflow-visible rounded-[var(--r-card-sm)] border p-1 shadow-md"
+          className="absolute right-0 top-[calc(100%+8px)] z-[var(--z-modal)] min-w-[10rem] overflow-visible rounded-[var(--r-card-sm)] border p-1 shadow-md"
           style={{
             background: "var(--background-elevated)",
             borderColor: "var(--border)",
@@ -444,7 +444,7 @@ function CreatePostTrigger({
       {menuOpen && (
         <div
           role="menu"
-          className="absolute left-1/2 top-[calc(100%+8px)] z-50 w-[min(100%,300px)] -translate-x-1/2 overflow-hidden rounded-[var(--r-card)] border py-[6px]"
+          className="absolute left-1/2 top-[calc(100%+8px)] z-[var(--z-modal)] w-[min(100%,300px)] -translate-x-1/2 overflow-hidden rounded-[var(--r-card)] border py-[6px]"
           style={{
             background: "var(--background-elevated)",
             borderColor: "var(--border)",

@@ -148,7 +148,7 @@ function TopNav() {
 
   return (
     <header
-      className="sticky top-0 z-40 backdrop-blur-md"
+      className="sticky top-0 z-[var(--z-sticky)] backdrop-blur-md"
       style={{
         background: "color-mix(in oklab, var(--background) 86%, transparent)",
         borderBottom: "1px solid var(--border)",

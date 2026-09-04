@@ -132,7 +132,7 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.12, ease: "easeOut" }}
-        className="fixed z-[10000] overflow-hidden rounded-[12px] border"
+        className="fixed z-[var(--z-popover)] overflow-hidden rounded-[12px] border"
         style={{
           top: panelStyle.top,
           left: panelStyle.left,

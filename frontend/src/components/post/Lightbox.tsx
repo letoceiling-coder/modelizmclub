@@ -84,7 +84,7 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.92)" }}
       onClick={onClose}
       role="dialog"
