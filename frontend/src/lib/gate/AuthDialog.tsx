@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { LogIn } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface Props {
 
 /** Sign in without leaving the page — the action resumes right after. */
 export function AuthDialog({ open, returnTo, onOpenChange, onSuccess }: Props) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +53,8 @@ export function AuthDialog({ open, returnTo, onOpenChange, onSuccess }: Props) {
     <GateDialogShell
       open={open}
       onOpenChange={onOpenChange}
-      title="Войдите или зарегистрируйтесь"
-      description="Это действие доступно только участникам клуба."
+      title={t("gate.auth.title")}
+      description={t("gate.auth.description")}
       icon={<LogIn size={22} />}
     >
       <form onSubmit={submit} className="space-y-3">
@@ -90,13 +92,13 @@ export function AuthDialog({ open, returnTo, onOpenChange, onSuccess }: Props) {
           </p>
         )}
         <Button type="submit" size="lg" className="w-full" loading={busy}>
-          Войти
+          {t("gate.auth.submit")}
         </Button>
       </form>
       <OAuthDivider />
       <OAuthButtons redirect={returnTo} />
       <p className="mt-4 text-center text-[13px]" style={{ color: "var(--foreground-70)" }}>
-        Нет аккаунта?{" "}
+        {t("gate.auth.noAccount")}{" "}
         <Link
           to="/register"
           search={{ returnTo }}
@@ -104,7 +106,7 @@ export function AuthDialog({ open, returnTo, onOpenChange, onSuccess }: Props) {
           style={{ color: "var(--accent)" }}
           onClick={() => onOpenChange(false)}
         >
-          Зарегистрироваться
+          {t("gate.auth.register")}
         </Link>
       </p>
     </GateDialogShell>

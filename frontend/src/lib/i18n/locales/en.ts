@@ -400,6 +400,26 @@ export const en: TranslationSchema = {
     and: "and",
     privacyLink: "privacy policy",
   },
+  gate: {
+    auth: {
+      title: "Sign in or register",
+      description: "This action is for club members only.",
+      submit: "Sign in",
+      noAccount: "No account?",
+      register: "Register",
+    },
+    verify: {
+      title: "Confirm your phone number",
+      description: "Confirm your phone number to use this feature",
+      submit: "Confirm number",
+    },
+    paywall: {
+      title: "A subscription is required",
+      description: "Subscribe to use this feature",
+      submit: "Subscribe",
+      later: "Later",
+    },
+  },
   components: {
     rightCategories: {
       title: "Найди своих",

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ type Step = "intro" | "phone" | "code";
 
 /** SMS verification inside the window: number → code → done. */
 export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("intro");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
@@ -67,13 +69,13 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
         if (!next) reset();
         onOpenChange(next);
       }}
-      title="Подтвердите номер телефона"
-      description="Подтвердите номер телефона, чтобы получить доступ к этой функции"
+      title={t("gate.verify.title")}
+      description={t("gate.verify.description")}
       icon={<Smartphone size={22} />}
     >
       {step === "intro" && (
         <Button type="button" size="lg" className="w-full" onClick={() => setStep("phone")}>
-          Подтвердить номер
+          {t("gate.verify.submit")}
         </Button>
       )}
       {step === "phone" && (

@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ru } from "@/lib/i18n/locales/ru";
+import { en } from "@/lib/i18n/locales/en";
+import { zh } from "@/lib/i18n/locales/zh";
+import type { GateWindow } from "./levels";
 import type { Session } from "@/lib/session";
 import type { User } from "@/lib/mock";
 
@@ -162,5 +166,53 @@ describe("gateRequire", () => {
 
     expect(action).toHaveBeenCalledTimes(1);
     expect(getGateState().open).toBeNull();
+  });
+});
+
+describe("окно каждого уровня говорит свою причину", () => {
+  // Правило матрицы: одно действие — одна проверка — одна причина, и
+  // пользователь никогда не видит причину, которую уже выполнил. До 04.09
+  // подписочные тексты жили в карте доступа, которую гейт не читает, поэтому
+  // проверяем связь уровня с текстом, а не только с именем окна.
+  const TEXT: Record<GateWindow, { title: string; submit: string }> = {
+    auth: { title: ru.gate.auth.title, submit: ru.gate.auth.submit },
+    verify: { title: ru.gate.verify.title, submit: ru.gate.verify.submit },
+    paywall: { title: ru.gate.paywall.title, submit: ru.gate.paywall.submit },
+  };
+
+  it("гостю — вход, не верификация и не подписка", () => {
+    const step = firstFailingStep("guest", "subscriber");
+    expect(step).toBe("auth");
+    expect(TEXT[step!].title).toBe("Войдите или зарегистрируйтесь");
+    expect(TEXT[step!].submit).toBe("Войти");
+  });
+
+  it("вошедшему без SMS — верификация, не подписка", () => {
+    const step = firstFailingStep("registered", "subscriber");
+    expect(step).toBe("verify");
+    expect(TEXT[step!].title).toBe("Подтвердите номер телефона");
+    expect(TEXT[step!].submit).toBe("Подтвердить номер");
+  });
+
+  it("подтвердившему номер без подписки — подписка, не верификация", () => {
+    const step = firstFailingStep("verified", "subscriber");
+    expect(step).toBe("paywall");
+    expect(TEXT[step!].title).toBe("Нужна подписка");
+    expect(TEXT[step!].submit).toBe("Оформить подписку");
+  });
+
+  it("три уровня — три разных заголовка, ни одного повтора", () => {
+    const titles = Object.values(TEXT).map((x) => x.title);
+    expect(new Set(titles).size).toBe(3);
+  });
+
+  it("en и zh несут те же ключи", () => {
+    for (const loc of [en, zh]) {
+      for (const level of ["auth", "verify", "paywall"] as const) {
+        expect(loc.gate[level].title).toBeTruthy();
+        expect(loc.gate[level].description).toBeTruthy();
+        expect(loc.gate[level].submit).toBeTruthy();
+      }
+    }
   });
 });
