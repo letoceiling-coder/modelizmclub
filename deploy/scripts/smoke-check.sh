@@ -84,6 +84,22 @@ if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_SCHEMA:-0}" != "1" ]]; then
   fi
 fi
 
+# Access map drift — reporting only, never a gate. The map is edited from
+# /admin on purpose, so a difference from the registry defaults is news rather
+# than a fault; what must not happen is a difference nobody knows about. On
+# 04.09 route.user sat overridden to `auth` while the registry said `guest` and
+# the router treated profiles as public, and it surfaced only by accident.
+# Printing the list after every deploy is what makes the next one visible.
+if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_ACCESS_MAP:-0}" != "1" ]]; then
+  ACCESS_MAP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/access-map-drift.sh"
+  if [[ -x "${ACCESS_MAP}" ]]; then
+    echo ""
+    # Its exit code is deliberately ignored for the deploy verdict: only a
+    # broken comparison (exit 2) is worth a line, and it says so itself.
+    "${ACCESS_MAP}" || true
+  fi
+fi
+
 if [[ "${FAILED}" != "0" ]]; then
   echo "smoke check FAILED" >&2
   exit 1
