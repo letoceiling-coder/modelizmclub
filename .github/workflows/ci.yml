@@ -148,6 +148,36 @@ jobs:
       - name: phpunit
         run: php artisan test --env=testing
 
+      # The test database is built from the migrations, so nothing here can see
+      # an object that exists only on production — that is how the August escrow
+      # leftovers stayed invisible until a migration tripped over them in
+      # September. What CI can check is that the committed baseline still
+      # matches what the migrations produce, so the file production is compared
+      # against after every deploy never goes stale.
+      - name: Schema baseline is current
+        run: |
+          # This job runs inside backend/, hence the ../ on the script path.
+          cp .env.testing .env  # the drift script reads backend/.env
+          SCHEMA_BASELINE=/tmp/objects.generated.txt ../deploy/scripts/schema-drift.sh --update-baseline
+          if diff -u database/schema/objects.txt /tmp/objects.generated.txt > /tmp/schema.diff; then
+            echo "## Schema baseline" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Matches the migrations — $(grep -c . database/schema/objects.txt) objects." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Schema baseline is stale"
+              echo ""
+              echo "The migrations no longer produce the committed baseline."
+              echo "Run \`deploy/scripts/schema-drift.sh --update-baseline\` and commit the result,"
+              echo "otherwise the post-deploy drift check compares production against an outdated file."
+              echo ""
+              echo '```diff'
+              head -60 /tmp/schema.diff
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1"
+          fi
+
   audit:
     name: backend · composer audit
     runs-on: ubuntu-latest
