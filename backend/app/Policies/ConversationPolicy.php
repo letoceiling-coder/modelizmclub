@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ConversationType;
 use App\Models\Conversation;
 use App\Models\User;
 
@@ -26,7 +27,17 @@ class ConversationPolicy
 
     public function send(User $user, Conversation $conversation): bool
     {
-        return $this->isParticipant($user, $conversation) && $this->isSubscriber($user);
+        if (! $this->isParticipant($user, $conversation)) {
+            return false;
+        }
+
+        // A deal chat belongs to the two parties of the deal — buying or selling
+        // is not a social feature, so no subscription is required there.
+        if ($conversation->type === ConversationType::Deal) {
+            return true;
+        }
+
+        return $this->isSubscriber($user);
     }
 
     public function delete(User $user, Conversation $conversation): bool
