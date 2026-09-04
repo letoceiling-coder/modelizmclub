@@ -28,3 +28,6 @@ Thumbs.db
 .playwright-mcp/
 icons:*/
 *.png
+
+# Локальный каталог агента: настройки машины и рабочие копии worktree.
+.claude/
