@@ -278,12 +278,16 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
   return dialog;
 }
 
-/** Keep one dialog per partner — API list is deduped, this is a client-side safety net. */
+/**
+ * Keep one dialog per partner — API list is deduped, this is a client-side
+ * safety net. Чат сделки живёт отдельно от личного: с одним и тем же
+ * человеком их может быть два, и схлопывать их нельзя.
+ */
 export function dedupeDialogsByPartner(dialogs: Dialog[]): Dialog[] {
   const seen = new Set<string>();
   const result: Dialog[] = [];
   for (const d of dialogs) {
-    if (!d.userId) {
+    if (!d.userId || d.type === "deal") {
       result.push(d);
       continue;
     }
