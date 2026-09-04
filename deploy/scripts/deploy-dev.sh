@@ -98,7 +98,14 @@ echo "==> pre-deploy dump: ${PRE_DEPLOY_DUMP:-<not found>}"
 # What is about to change, recorded before it changes.
 echo "==> migration plan -> ${MIGRATION_LOG}"
 php artisan migrate --pretend >"${MIGRATION_LOG}" 2>&1 || true
-grep -cE '^\s*\w+:' "${MIGRATION_LOG}" 2>/dev/null | xargs -I{} echo "    {} statement(s) planned"
+# grep -c exits 1 when it counts nothing, and under `set -e` with pipefail
+# that ended the deploy right here — silently, with a plausible last line.
+# Every release without migrations stopped before `artisan down`, so the
+# route cache, the role seeder, the FPM reload and the reverb/worker restart
+# never ran, while the site stayed up and the code was already checked out.
+# Two releases went out this way on 04.09 before anyone read the exit code.
+PLANNED="$(grep -cE '^\s*\w+:' "${MIGRATION_LOG}" 2>/dev/null || true)"
+echo "    ${PLANNED:-0} statement(s) planned"
 
 # --- maintenance window: writes stop while the schema moves.
 #     --secret lets an operator keep browsing the site to verify the deploy.
