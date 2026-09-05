@@ -69,7 +69,7 @@ import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { GuestSectionStub } from "@/components/access/GuestSectionStub";
+import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import { ChatMessageSearch } from "@/components/messenger/ChatMessageSearch";
 import { HighlightedText } from "@/components/messenger/HighlightedText";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
@@ -130,8 +130,25 @@ export const Route = createFileRoute("/messenger")({
 });
 
 function MessengerRoute() {
-  // Guests never reach this component: routeGuard in beforeLoad opens the
-  // sign-in window and parks them on /feed with the navigation as intent.
+  // Гость сюда доходит: с 04.09 гейт не уводит с адреса, окно открывается
+  // поверх запрошенной страницы. Показывать ему панель вкладок «Активные /
+  // Архив / Звонки» бессмысленно — она пуста не потому, что переписки нет,
+  // а потому, что нет аккаунта. Раздел описывается словами, как на /deals.
+  const guestBlocked = useGuestRouteBlocked("route.messenger");
+  const { t } = useTranslation();
+  if (guestBlocked) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
+          <GuestSectionStub
+            icon={MessageSquare}
+            title={t("common.guestAuth.messengerTitle")}
+            description={t("common.guestAuth.messengerDescription")}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
   return <MessengerPage />;
 }
 
