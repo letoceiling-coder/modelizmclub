@@ -6,9 +6,9 @@ use App\Enums\CommunityApplicationStatus;
 use App\Enums\CommunityMemberRole;
 use App\Enums\CommunityStatus;
 use App\Models\Community;
-use App\Models\ModerationQueue;
 use App\Models\CommunityApplication;
 use App\Models\CommunityCategory;
+use App\Models\ModerationQueue;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
@@ -26,7 +26,7 @@ class CommunityService
         $query = Community::query()
             ->active()
             ->withCount(['members as live_members_count'])
-            ->with(['category', 'avatar', 'cover', 'city', 'topicCategories'])
+            ->with(['category', 'avatar', 'cover', 'city', 'topicCategories', 'creator.profile.avatar'])
             ->when(! empty($filters['taxonomy_id']), function ($q) use ($filters): void {
                 $ids = app(CategoryTaxonomyService::class)->communityIdsForPostCategory((int) $filters['taxonomy_id']);
                 if ($ids === []) {
@@ -71,13 +71,36 @@ class CommunityService
                 ->whereIn('community_id', $ids)
                 ->pluck('role', 'community_id')
                 ->all();
-            $paginator->getCollection()->each(function (Community $c) use ($roles, $viewer): void {
+            // Избранное и уведомления — теми же двумя запросами на страницу,
+            // что и роли. Ресурс их только читает: спроси он сам, вышло бы по
+            // три запроса на карточку.
+            $favorites = DB::table('community_favorites')
+                ->where('user_id', $viewer->id)
+                ->whereIn('community_id', $ids)
+                ->pluck('community_id')
+                ->flip()
+                ->all();
+            $notifications = DB::table('community_members')
+                ->where('user_id', $viewer->id)
+                ->whereIn('community_id', $ids)
+                ->pluck('notifications_enabled', 'community_id')
+                ->all();
+
+            $paginator->getCollection()->each(function (Community $c) use ($roles, $viewer, $favorites, $notifications): void {
                 $role = $roles[$c->id] ?? null;
                 if ((int) $c->created_by === (int) $viewer->id) {
                     $role = CommunityMemberRole::Owner->value;
                 }
                 $c->setAttribute('is_member', $role !== null);
                 $c->setAttribute('viewer_role', $role);
+                // Кому посчитано: без этого политика не имеет права верить
+                // атрибуту, а ресурс может отрисоваться и для другого.
+                $c->setAttribute('viewer_id', $viewer->id);
+                $c->setAttribute('is_favorite', isset($favorites[$c->id]));
+                $c->setAttribute(
+                    'notifications_enabled',
+                    array_key_exists($c->id, $notifications) ? (bool) $notifications[$c->id] : null,
+                );
             });
             app(CommunityHubService::class)->attachActivity($paginator->getCollection(), $viewer);
         }
@@ -89,7 +112,7 @@ class CommunityService
     {
         $community = Community::query()
             ->withCount(['members as live_members_count'])
-            ->with(['category', 'avatar', 'cover', 'subcategories', 'city', 'topicCategories'])
+            ->with(['category', 'avatar', 'cover', 'subcategories', 'city', 'topicCategories', 'creator.profile.avatar'])
             ->where('slug', $slug)
             ->first();
 
@@ -105,6 +128,14 @@ class CommunityService
             }
             $community->setAttribute('is_member', $member !== null || $role !== null);
             $community->setAttribute('viewer_role', $role);
+            $community->setAttribute('viewer_id', $viewer->id);
+            $community->setAttribute('is_favorite', app(CommunityEngagementService::class)->isFavorite($viewer, $community));
+            $community->setAttribute(
+                'notifications_enabled',
+                $member?->pivot?->notifications_enabled === null
+                    ? null
+                    : (bool) $member->pivot->notifications_enabled,
+            );
             app(CommunityHubService::class)->attachActivity(collect([$community]), $viewer);
         }
 

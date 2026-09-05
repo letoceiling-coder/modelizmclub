@@ -483,6 +483,7 @@ Accept: application/json
 | GET | `/communities/{slug}/members` | Публичный | Участники |
 | GET | `/communities/{slug}/posts` | Публичный | Посты сообщества |
 | GET | `/communities/{slug}/events` | Публичный | События |
+| GET | `/communities/{slug}/similar` | Публичный | Похожие: совпадение категории или тем, до 5 |
 | POST | `/communities/apply` | Verified | Заявка на создание |
 | POST | `/communities/{slug}/join` | Verified | Вступить (или заявка, если закрытое) |
 | DELETE | `/communities/{slug}/leave` | Verified | Выйти |
@@ -496,6 +497,32 @@ Accept: application/json
 | PATCH | `/communities/{slug}/branding` | Verified | `avatar_media_uuid`, `cover_media_uuid` |
 | PATCH | `/communities/{slug}` | Verified | Название, правила, `access_type`=`open\|request`, контакты |
 | DELETE | `/communities/{slug}` | Verified | Удалить: body `confirm_name` |
+| PUT | `/communities/{slug}/notifications` | Verified | Участник: body `enabled` |
+| POST | `/communities/{slug}/favorite` | Verified | В избранное (повторный вызов не ошибка) |
+| DELETE | `/communities/{slug}/favorite` | Verified | Из избранного |
+| GET | `/communities/{slug}/invitable-friends` | Verified | Участник: друзья вне сообщества |
+| POST | `/communities/{slug}/invite` | Verified | Участник: body `user_uuids[]`, до 20 |
+
+Права на каждый из этих адресов считает `App\Policies\CommunityPolicy` —
+та же, чьи ответы приходят в поле `can` карточки. Единственный без политики —
+`similar`: он отдаёт то же, что публичный `GET /communities`, и правило там
+одно — сообщество должно быть живым.
+
+**Карточка сообщества** сверх прежних полей отдаёт:
+
+```json
+{
+  "created_at": "2026-09-06T12:00:00+03:00",
+  "owner": { "uuid": "…", "name": "…", "slug": "…", "avatar": "…" },
+  "can": { "join": false, "leave": true, "manage": false, "post": true, "invite": true },
+  "is_favorite": false,
+  "notifications_enabled": true
+}
+```
+
+`can` приходит всегда (гостю — все `false`). `is_favorite` и
+`notifications_enabled` — только когда запрос авторизован; второе равно `null`
+и потому отсутствует у того, кто в сообществе не состоит.
 
 **`POST /communities/apply`:** `proposed_name`, `description?`, `category_id?`, `city_id?`, `post_category_ids[]`, `custom_category?`, `rules?`, `access_type?`, `contacts.{telegram,website,phone}?`, `avatar_media_uuid?`, `cover_media_uuid?`.
 
