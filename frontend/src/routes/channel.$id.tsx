@@ -22,6 +22,10 @@ import {
   Pin,
   Pencil,
   MessageCircle,
+  Share2,
+  Link2,
+  Flag,
+  LogOut,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -57,6 +61,9 @@ import { uploadMedia, uploadMediaDeduped } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
+import { EntityHeader } from "@/components/entity/EntityHeader";
+import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
+import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
@@ -140,13 +147,14 @@ function ChannelPage() {
   const { tab: tabSearch, section: sectionSearch, settings: settingsSearch } = Route.useSearch();
   const navigate = useNavigate();
   const me = useCurrentUser();
-  const { requirePremium } = useGuestAccess();
+  const { requirePremium, requireAccount } = useGuestAccess();
   const { requireAction } = useActionGate();
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
   const { posts, reload: reloadPosts } = useChannelPosts(id);
   const [tab, setTab] = useState<ChannelTab>(tabSearch === "about" ? "about" : "posts");
   const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [messaging, setMessaging] = useState(false);
 
@@ -199,6 +207,71 @@ function ChannelPage() {
   const visiblePublic = posts.filter((p: ChannelPost) => p.status === "published");
   const list = canManage && showOwnerView ? posts : visiblePublic;
 
+  const channelUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  /**
+   * Пункты «Ещё» канала. Уведомления и избранное появятся вместе со своими
+   * эндпоинтами: в API канала их сейчас нет, а пункт меню, который ничего не
+   * делает, хуже отсутствующего.
+   */
+  const moreMenuItems: MoreMenuItem[] = (() => {
+    const list: MoreMenuItem[] = [
+      {
+        id: "share",
+        icon: Share2,
+        label: t("pages.communityDetail.share"),
+        onSelect: () => {
+          void (async () => {
+            try {
+              if (typeof navigator !== "undefined" && navigator.share) {
+                await navigator.share({ title: channel.name, url: channelUrl });
+                return;
+              }
+              await navigator.clipboard.writeText(channelUrl);
+              toast.success(t("components.postActionMenu.linkCopied"));
+            } catch (err) {
+              if (err instanceof Error && err.name === "AbortError") return;
+              toast.error(t("components.postCard.shareFailed"));
+            }
+          })();
+        },
+      },
+      {
+        id: "copy",
+        icon: Link2,
+        label: t("components.postActionMenu.copyLink"),
+        onSelect: () => {
+          void navigator.clipboard
+            .writeText(channelUrl)
+            .then(() => toast.success(t("components.postActionMenu.linkCopied")))
+            .catch(() => toast.error(t("components.postActionMenu.copyFailed")));
+        },
+      },
+    ];
+    if (!isOwner) {
+      // Жалобы на канал в интерфейсе не было вовсе — это из списка дефектов.
+      list.push({
+        id: "report",
+        icon: Flag,
+        label: t("components.postActionMenu.report"),
+        onSelect: () => requireAccount(() => setReportOpen(true)),
+      });
+      if (subscribed) {
+        list.push({
+          id: "unsubscribe",
+          icon: LogOut,
+          danger: true,
+          label: t("pages.channelDetail.unsubscribe"),
+          onSelect: () => {
+            if (!window.confirm(t("pages.channelDetail.unsubscribeConfirm"))) return;
+            onToggle();
+          },
+        });
+      }
+    }
+    return list;
+  })();
+
   const onToggle = () => {
     if (isOwner) return;
     requirePremium(() => {
@@ -234,7 +307,7 @@ function ChannelPage() {
   };
 
   return (
-    <AppLayout rightColumn={false} footer>
+    <AppLayout narrowCenter rightColumn={false} footer>
       <div className="space-y-4 pb-8">
         {/* back */}
         <Link
@@ -254,187 +327,124 @@ function ChannelPage() {
             borderRadius: 16,
           }}
         >
-          <ChannelBrandingHeader
-            channel={channel}
-            editable={isOwner}
-            onUpdated={() => reloadChannel()}
-          />
-
-          <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0">
-            <div className="mt-3 flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <h1
-                    className="font-display text-[20px] sm:text-[24px] font-bold"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {channel.name}
-                  </h1>
-                  {channel.kind === "official" && (
-                    <BadgeCheck size={18} style={{ color: "var(--accent)" }} />
-                  )}
-                </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <span
-                    className="text-[11px] font-medium"
-                    style={{
-                      background: "var(--accent-soft)",
-                      color: "var(--accent)",
-                      padding: "3px 8px",
-                      borderRadius: 6,
-                    }}
-                  >
-                    {channelKindLabel(channel.kind, t)}
-                  </span>
-                  <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                    {channel.category}
-                  </span>
-                </div>
-              </div>
-              {isOwner && (
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-[10px] gap-1.5"
-                    onClick={() => setSettingsOpen(true)}
-                  >
-                    <Pencil size={14} /> {t("pages.channelDetail.editChannel")}
-                  </Button>
-                  <EntitySettingsButton
-                    onClick={() => setSettingsOpen(true)}
-                    title={t("pages.channelDetail.settingsTitle")}
-                  />
-                </div>
-              )}
-            </div>
-            <p className="mt-3 text-[14px]" style={{ color: "var(--foreground-70)" }}>
-              {channel.description}
-            </p>
-
-            <div
-              className="mt-3 flex flex-wrap items-center gap-3 text-[13px]"
-              style={{ color: "var(--foreground-50)" }}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Users size={13} />{" "}
+          <EntityHeader
+            coverUrl={channel.bannerImage}
+            avatarUrl={channel.avatarImage}
+            name={channel.name}
+            badges={
+              <>
+                {channel.kind === "official" && (
+                  <BadgeCheck size={18} className="shrink-0" style={{ color: "var(--accent)" }} />
+                )}
+                <span
+                  className="shrink-0 rounded-[var(--r-pill)] px-[6px] py-[1px] text-[11px] font-semibold"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  {channelKindLabel(channel.kind, t)}
+                </span>
+              </>
+            }
+            meta={
+              <>
                 {t("pages.channelDetail.subscribersCount", {
                   count: formatCount(channel.subscribers),
                 })}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck size={13} /> {t("pages.channelDetail.ownerOnlyPublish")}
-              </span>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              {!isOwner && (
-                <Button
-                  variant={subscribed ? "outline" : "default"}
-                  onClick={onToggle}
-                  className="flex-1 rounded-[12px] gap-2"
-                  size="lg"
-                >
-                  {subscribed ? (
-                    <>
-                      <Check size={16} /> {t("pages.shared.youSubscribed")}
-                    </>
-                  ) : (
-                    t("pages.shared.subscribe")
-                  )}
-                </Button>
-              )}
-              {!isOwner && channel.ownerNumericId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={messageOwner}
-                  disabled={messaging}
-                  className="flex-1 rounded-[12px] gap-2"
-                  size="lg"
-                >
-                  <MessageCircle size={16} /> {t("pages.channelDetail.messageOwner")}
-                </Button>
-              )}
-              {isOwner && (
-                <div
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-5 text-[13px] font-semibold sm:w-auto"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)", flex: 1 }}
-                >
-                  {t("pages.channelDetail.youAreOwner")}
-                </div>
-              )}
-            </div>
-
-            {!isOwner && (
-              <button
-                type="button"
-                onClick={() => requirePremium(() => setRequestOpen(true))}
-                className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-[12px] border text-[14px] font-semibold transition-colors hover:bg-[var(--background-surface)]"
-                style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
-              >
-                {t("pages.channelDetail.wantOwnChannel")}
-              </button>
-            )}
-
-            {/* explanation strip */}
-            <div
-              className="mt-3 flex items-start gap-2 p-3 text-[12px]"
-              style={{
-                background: "var(--background-surface)",
-                borderRadius: 10,
-                color: "var(--foreground-70)",
-              }}
-            >
-              <Radio size={14} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }} />
-              <span>{t("pages.channelDetail.publicChannelNote")}</span>
-            </div>
-          </div>
+                {channel.category ? ` \u00b7 ${channel.category}` : ""}
+                {` \u00b7 ${t("pages.channelDetail.ownerOnlyPublish")}`}
+              </>
+            }
+            description={channel.description}
+            actions={
+              <>
+                {!isOwner && (
+                  <Button
+                    variant={subscribed ? "outline" : "default"}
+                    onClick={onToggle}
+                    size="sm"
+                    className="gap-[6px]"
+                  >
+                    {subscribed ? (
+                      <>
+                        <Check size={15} /> {t("pages.shared.youSubscribed")}
+                      </>
+                    ) : (
+                      t("pages.shared.subscribe")
+                    )}
+                  </Button>
+                )}
+                {isOwner && (
+                  <Button onClick={() => setSettingsOpen(true)} size="sm" className="gap-[6px]">
+                    <Pencil size={15} /> {t("pages.channelDetail.editChannel")}
+                  </Button>
+                )}
+                {!isOwner && channel.ownerNumericId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={messageOwner}
+                    disabled={messaging}
+                    size="sm"
+                    className="gap-[6px]"
+                  >
+                    <MessageCircle size={15} /> {t("pages.channelDetail.messageOwner")}
+                  </Button>
+                )}
+              </>
+            }
+            menu={
+              <EntityMoreMenu
+                ariaLabel={t("pages.communityDetail.moreAria")}
+                title={t("pages.communityDetail.moreTitle")}
+                items={moreMenuItems}
+              />
+            }
+          />
         </Card>
 
-        {/* tabs */}
-        <div
-          className="sticky top-[48px] z-10 -mx-3 flex items-center gap-1 px-3 py-2 lg:static lg:top-auto lg:mx-0 lg:px-0"
-          style={{
-            background: "color-mix(in oklab, var(--background) 92%, transparent)",
-            backdropFilter: "saturate(180%) blur(8px)",
-          }}
+        <nav
+          role="tablist"
+          className="flex items-center gap-[2px] overflow-x-auto no-scrollbar"
+          style={{ borderBottom: "1px solid var(--border)" }}
         >
-          <div
-            className="flex w-full items-center gap-1"
-            style={{ background: "var(--background-surface)", borderRadius: 12, padding: 4 }}
-          >
-            {(
-              [
-                [
-                  "posts",
-                  `${t("pages.channelDetail.tabPosts")}${visiblePublic.length ? ` · ${visiblePublic.length}` : ""}`,
-                ],
-                ["about", t("pages.channelDetail.tabAbout")],
-              ] as const
-            ).map(([k, l]) => {
-              const active = tab === k;
-              return (
-                <button
-                  key={k}
-                  onClick={() => setTab(k)}
-                  className="flex-1 text-[13px] font-medium transition"
-                  style={{
-                    padding: "9px 14px",
-                    borderRadius: 9,
-                    background: active ? "var(--background)" : "transparent",
-                    color: active ? "var(--foreground)" : "var(--foreground-50)",
-                    fontWeight: active ? 600 : 500,
-                    boxShadow: active ? "var(--shadow-card)" : "none",
-                  }}
-                >
-                  {l}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          {(
+            [
+              ["posts", t("pages.channelDetail.tabPosts"), visiblePublic.length],
+              ["about", t("pages.channelDetail.tabAbout"), 0],
+            ] as const
+          ).map(([k, label, count]) => {
+            const active = tab === k;
+            return (
+              <button
+                key={k}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(k)}
+                className="relative inline-flex h-[44px] shrink-0 items-center gap-[6px] px-[14px] text-[14px] font-semibold transition-colors"
+                style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
+              >
+                {label}
+                {count > 0 && (
+                  <span
+                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[5px] text-[11px] font-bold"
+                    style={{
+                      background: active ? "var(--accent-soft)" : "var(--background-surface)",
+                      color: active ? "var(--accent)" : "var(--foreground-50)",
+                      borderRadius: "var(--r-pill)",
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+                {active && (
+                  <span
+                    className="absolute bottom-[-1px] left-[8px] right-[8px]"
+                    style={{ height: 2, background: "var(--accent)", borderRadius: 2 }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
         {tab === "posts" ? (
           <>
@@ -514,6 +524,21 @@ function ChannelPage() {
           onDeleted={() => navigate({ to: "/channels" })}
         />
       )}
+      {reportOpen && (
+        <ComplaintDialog
+          target={{
+            id: channel.ownerId ?? channel.slug,
+            name: channel.ownerName || channel.name,
+            avatar: channel.ownerAvatar ?? "",
+            city: "",
+            interests: "",
+          }}
+          report={{ type: "channel", targetId: channel.id }}
+          page={`/channel/${channel.slug}`}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
+
       {requestOpen && (
         <EntityRequestForm
           kind="channel"

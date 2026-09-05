@@ -556,6 +556,7 @@ export const zh: TranslationSchema = {
       cancel: "取消",
     },
     postCard: {
+      likeFailed: "无法点赞",
       reposted: "分享了记录",
       sharedPost: "分享了记录",
       repostFromCategory: "转发自「{{category}}」",
@@ -1162,6 +1163,7 @@ export const zh: TranslationSchema = {
       editPostFailed: "无法保存帖子",
     },
     channels: {
+      noSubscribersYet: "新频道",
       metaTitle: "Channels — MoDelizM",
       metaDescription:
         "Subscribe to brand, shop, author and expert channels: news, reviews and offers.",
@@ -1197,6 +1199,8 @@ export const zh: TranslationSchema = {
       postKindPromo: "Special offer",
     },
     channelDetail: {
+      unsubscribe: "取消订阅",
+      unsubscribeConfirm: "确定取消订阅该频道？",
       metaTitle: "Channel — MoDelizM",
       notFoundTitle: "Channel not found",
       notFoundDesc: "It may have been removed or the link is incorrect",

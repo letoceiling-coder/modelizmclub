@@ -556,6 +556,7 @@ export const ru = {
       cancel: "Отмена",
     },
     postCard: {
+      likeFailed: "Не удалось поставить реакцию",
       reposted: "поделился записью",
       sharedPost: "поделился записью",
       repostFromCategory: "Репост из «{{category}}»",
@@ -1242,6 +1243,7 @@ export const ru = {
       editPostFailed: "Не удалось сохранить пост",
     },
     channels: {
+      noSubscribersYet: "Новый канал",
       metaTitle: "Каналы — МоДелизМ",
       metaDescription:
         "Подпишитесь на каналы брендов, магазинов, авторов и экспертов: новости, обзоры и спецпредложения.",
@@ -1278,6 +1280,8 @@ export const ru = {
       postKindPromo: "Спецпредложение",
     },
     channelDetail: {
+      unsubscribe: "Отписаться от канала",
+      unsubscribeConfirm: "Отписаться от канала?",
       metaTitle: "Канал — МоДелизМ",
       notFoundTitle: "Канал не найден",
       notFoundDesc: "Возможно, он был удалён или ссылка некорректна",

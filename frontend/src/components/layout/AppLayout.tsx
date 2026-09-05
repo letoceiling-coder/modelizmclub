@@ -70,8 +70,9 @@ export function AppLayout({
           "lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0",
           // 240 + 680 + 320 и промежутки — уже 1288 при контейнере 1560:
           // без выравнивания по центру колонки прижались бы влево, оставив
-          // справа пустую полосу.
-          narrowCenter && "xl:justify-center",
+          // справа пустую полосу. Когда правой колонки нет, центрировать
+          // нечего: две колонки уезжали бы вправо от левого края экрана.
+          narrowCenter && rightColumn !== false && "xl:justify-center",
         )}
       >
         {sidebar === false ? null : (sidebar ?? <Sidebar collapsed={navCollapsed} />)}

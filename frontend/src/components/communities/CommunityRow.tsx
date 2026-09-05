@@ -4,8 +4,8 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import type { Community } from "@/lib/mock";
 import { joinCommunity } from "@/lib/api/communities";
-import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { EntityRow, EntityRowBadge } from "@/components/entity/EntityRow";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
@@ -79,87 +79,39 @@ export function CommunityRow({ c, onChanged }: { c: Community; onChanged?: () =>
           : null;
 
   return (
-    <div
-      className="group relative flex h-[64px] items-center gap-[12px] rounded-[12px] px-[12px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
-      style={{ background: "var(--background-elevated)" }}
-    >
-      <UserAvatar src={c.avatarImage} name={c.name} size={48} />
-
-      <Link
-        to="/communities/$id"
-        params={{ id: c.id }}
-        className='min-w-0 flex-1 after:absolute after:inset-0 after:rounded-[12px] after:content-[""] focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-[var(--accent)]'
-      >
-        <span className="flex min-w-0 items-center gap-[8px]">
-          <span
-            className="truncate text-[15px] font-semibold"
-            style={{ color: "var(--foreground)" }}
-          >
-            {c.name}
-          </span>
-          {badge && (
-            <span
-              className="shrink-0 rounded-[var(--r-pill)] px-[6px] py-[1px] text-[11px] font-semibold"
-              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-            >
-              {badge}
-            </span>
+    <EntityRow
+      to="/communities/$id"
+      params={{ id: c.id }}
+      avatarUrl={c.avatarImage}
+      name={c.name}
+      badges={badge ? <EntityRowBadge>{badge}</EntityRowBadge> : undefined}
+      meta={meta}
+      action={
+        <>
+          {role === "owner" && onChanged && (
+            <DeleteCommunityDialog slug={c.id} name={c.name} onDeleted={onChanged} compact />
           )}
-        </span>
-        <span
-          className="mt-[2px] block truncate text-[13px]"
-          style={{ color: "var(--foreground-50)" }}
-        >
-          {meta}
-        </span>
-      </Link>
-
-      {/* Действие лежит после ссылки в потоке: своё нажатие оно забирает себе,
-          отдельного слоя для этого не нужно. */}
-      <div className="relative flex shrink-0 items-center gap-[4px]">
-        {role === "owner" && onChanged && (
-          <DeleteCommunityDialog slug={c.id} name={c.name} onDeleted={onChanged} compact />
-        )}
-        {role === "owner" || role === "moderator" ? (
-          <Button asChild size="sm" variant="outline">
-            <Link to="/communities/$id" params={{ id: c.id }}>
-              {t("pages.communities.rowManage")}
-            </Link>
-          </Button>
-        ) : joined ? (
-          <Button asChild size="sm" variant="outline">
-            <Link to="/communities/$id" params={{ id: c.id }}>
-              {t("pages.shared.goTo")}
-            </Link>
-          </Button>
-        ) : (
-          <Button size="sm" onClick={join} disabled={busy}>
-            {t("pages.communities.rowJoin")}
-          </Button>
-        )}
-      </div>
-    </div>
+          {role === "owner" || role === "moderator" ? (
+            <Button asChild size="sm" variant="outline">
+              <Link to="/communities/$id" params={{ id: c.id }}>
+                {t("pages.communities.rowManage")}
+              </Link>
+            </Button>
+          ) : joined ? (
+            <Button asChild size="sm" variant="outline">
+              <Link to="/communities/$id" params={{ id: c.id }}>
+                {t("pages.shared.goTo")}
+              </Link>
+            </Button>
+          ) : (
+            <Button size="sm" onClick={join} disabled={busy}>
+              {t("pages.communities.rowJoin")}
+            </Button>
+          )}
+        </>
+      }
+    />
   );
 }
 
-/** Скелетон той же высоты, что и строка: список не дёргается при загрузке. */
-export function CommunityRowSkeleton() {
-  return (
-    <div className="flex h-[64px] items-center gap-[12px] rounded-[12px] px-[12px] py-[8px]">
-      <span
-        className="h-[48px] w-[48px] shrink-0 animate-pulse rounded-full"
-        style={{ background: "var(--background-surface)" }}
-      />
-      <span className="min-w-0 flex-1">
-        <span
-          className="block h-[15px] w-[40%] animate-pulse rounded-[4px]"
-          style={{ background: "var(--background-surface)" }}
-        />
-        <span
-          className="mt-[6px] block h-[13px] w-[60%] animate-pulse rounded-[4px]"
-          style={{ background: "var(--background-surface)" }}
-        />
-      </span>
-    </div>
-  );
-}
+export { EntityRowSkeleton as CommunityRowSkeleton } from "@/components/entity/EntityRow";

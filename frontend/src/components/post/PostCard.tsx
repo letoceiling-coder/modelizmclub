@@ -238,8 +238,13 @@ export function PostCard({
 
   useEffect(() => {
     if (isShare) return;
+    // Комментарии выключены — их незачем и не у кого спрашивать. На странице
+    // канала это давало по два 404 на пост: у записи канала свой uuid, а
+    // ветка комментариев живёт у зеркальной записи ленты, которой может не
+    // быть вовсе.
+    if (!commentsEnabled) return;
     if (hasCommentsHint || canInteract) startCommentsFetch();
-  }, [hasCommentsHint, canInteract, startCommentsFetch, isShare]);
+  }, [hasCommentsHint, canInteract, startCommentsFetch, isShare, commentsEnabled]);
 
   const text = post.text ?? "";
   // Текст обрезается строками, а не символами: четыре строки на широком
@@ -286,11 +291,17 @@ export function PostCard({
     setLiked(next);
     setLikes((n) => Math.max(0, n + (next ? 1 : -1)));
     onOptimistic?.(post.id, "like", next);
-    (overrides?.toggleLike ? overrides.toggleLike(next) : reactToPost(post.id, next)).catch(() => {
-      setLiked(!next);
-      setLikes((n) => Math.max(0, n + (next ? -1 : 1)));
-      onOptimistic?.(post.id, "like", !next);
-    });
+    // Отказ сервера теперь виден. Раньше счётчик просто откатывался, и со
+    // стороны это выглядело как «лайки не работают»: ни сообщения, ни следа —
+    // именно так этот дефект и попал в отчёт о тестировании каналов.
+    (overrides?.toggleLike ? overrides.toggleLike(next) : reactToPost(post.id, next)).catch(
+      (err: unknown) => {
+        setLiked(!next);
+        setLikes((n) => Math.max(0, n + (next ? -1 : 1)));
+        onOptimistic?.(post.id, "like", !next);
+        toast.error(formatApiErrorMessage(err, t("components.postCard.likeFailed")));
+      },
+    );
   };
   const doSave = () => {
     if (!canInteract) return;
