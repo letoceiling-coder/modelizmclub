@@ -257,13 +257,14 @@ export function PostCard({
   // `feed.post.comment` above the guest rung, tapping «Комментарии» opens the
   // same single gate window save/repost use, instead of quietly doing nothing.
   const toggleComments = () => {
-    void gate.require(levelFor("feed.post.comment"), () => {
-      // Раньше это разворачивало ветку прямо в ленте. Теперь открывает слой:
-      // список всегда полный, предпросмотр в карточке больше не нужен.
-      setShowAllComments(true);
-      loadComments(commentSort, true);
-      setCommentsOpen(true);
-    });
+    // Чтение ветки не гейтим: матрица требует read-only просмотра карточек, а
+    // feed.post.comment закрывает запись. Пока ветка жила в ленте, гость видел
+    // предпросмотр и поле readOnly — точку входа; после переезда в слой она
+    // должна остаться, иначе счётчик ведёт в стену, а не в разговор. Композер
+    // внутри слоя гейтится сам и открывает окно на первом нажатии.
+    setShowAllComments(true);
+    loadComments(commentSort, true);
+    setCommentsOpen(true);
   };
 
   // Bodies run only once the gate lets them through (see the <Gated> wrappers
