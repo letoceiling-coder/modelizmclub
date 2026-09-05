@@ -59,6 +59,8 @@ export const ru = {
     verifyEmail: "Подтверждение email",
   },
   guestAuth: {
+    profileTitle: "Войдите, чтобы открыть профиль",
+    profileDescription: "Свой профиль, объявления и сообщества видны после входа в аккаунт.",
     communitiesTitle: "Войдите, чтобы вести свои сообщества",
     communitiesDesc: "Свои клубы и подписки на них видны после входа в аккаунт.",
     title: "Войдите в аккаунт",
@@ -1280,6 +1282,8 @@ export const ru = {
       postKindPromo: "Спецпредложение",
     },
     channelDetail: {
+      postsFailedTitle: "Не удалось загрузить записи",
+      postsFailedDesc: "Проверьте соединение и попробуйте ещё раз",
       unsubscribe: "Отписаться от канала",
       unsubscribeConfirm: "Отписаться от канала?",
       metaTitle: "Канал — МоДелизМ",
