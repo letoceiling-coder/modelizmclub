@@ -472,6 +472,12 @@ export const ru = {
       reportDescription: "Жалоба на публикацию{{title}} — выберите причину и опишите ситуацию.",
       reportSuffix: " (публикация)",
     },
+    commentsSheet: {
+      title: "Комментарии",
+      liked: "Оценили {{count}} чел.",
+      empty: "Пока нет комментариев",
+      emptyHint: "Напишите первым",
+    },
     commentSection: {
       reply: "Ответить",
       replyTo: "Ответить {{name}}…",

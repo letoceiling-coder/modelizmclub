@@ -472,6 +472,12 @@ export const zh: TranslationSchema = {
       reportDescription: "Жалоба на публикацию{{title}} — выберите причину и опишите ситуацию.",
       reportSuffix: " (публикация)",
     },
+    commentsSheet: {
+      title: "评论",
+      liked: "{{count}} 人点赞",
+      empty: "还没有评论",
+      emptyHint: "来写第一条",
+    },
     commentSection: {
       reply: "Ответить",
       replyTo: "Ответить {{name}}…",
