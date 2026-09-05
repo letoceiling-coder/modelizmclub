@@ -61,6 +61,8 @@ export const zh: TranslationSchema = {
     verifyEmail: "Email verification",
   },
   guestAuth: {
+    communitiesTitle: "登录后管理你的社区",
+    communitiesDesc: "登录后即可看到你的俱乐部和订阅。",
     title: "Sign in",
     description: "Sign in or create an account to use this feature.",
     dealsTitle: "请登录以查看交易",
@@ -1089,6 +1091,11 @@ export const zh: TranslationSchema = {
       sectionRecommendedSubNone: "Подобрали клубы, школы и магазины моделизма",
       sectionRecommendedSub: "Подобрано по вашим интересам",
       createCommunity: "创建社区",
+      rowJoin: "加入",
+      rowManage: "管理",
+      badgeOfficial: "官方",
+      loadFailedTitle: "无法加载社区",
+      loadFailedDesc: "请检查网络后重试",
     },
     communityDetail: {
       metaTitle: "Community — MoDelizM",

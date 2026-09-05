@@ -269,6 +269,8 @@ export interface Community {
   allowSubmitPost?: boolean;
   isOwner?: boolean;
   canManage?: boolean;
+  /** Официальное сообщество площадки — бейдж в списке. */
+  isOfficial?: boolean;
   /** Viewer's role in this community, from the backend `viewer_role`. */
   role?: "owner" | "moderator" | "member";
   accessType?: "open" | "request";

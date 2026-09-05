@@ -61,6 +61,8 @@ export const en: TranslationSchema = {
     verifyEmail: "Email verification",
   },
   guestAuth: {
+    communitiesTitle: "Sign in to manage your communities",
+    communitiesDesc: "Your clubs and subscriptions show up after you sign in.",
     title: "Sign in",
     description: "Sign in or create an account to use this feature.",
     dealsTitle: "Sign in to view deals",
@@ -1099,6 +1101,11 @@ export const en: TranslationSchema = {
       sectionRecommendedSubNone: "Подобрали клубы, школы и магазины моделизма",
       sectionRecommendedSub: "Подобрано по вашим интересам",
       createCommunity: "Create community",
+      rowJoin: "Join",
+      rowManage: "Manage",
+      badgeOfficial: "Official",
+      loadFailedTitle: "Could not load communities",
+      loadFailedDesc: "Check the connection and try again",
     },
     communityDetail: {
       metaTitle: "Community — MoDelizM",
