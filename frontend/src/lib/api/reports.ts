@@ -8,7 +8,8 @@ export type ReportType =
   | "video"
   | "conversation"
   | "message"
-  | "community";
+  | "community"
+  | "channel";
 
 export type ReportReason =
   | "spam"

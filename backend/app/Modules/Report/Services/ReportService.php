@@ -4,6 +4,7 @@ namespace Modules\Report\Services;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Channel;
 use App\Models\Comment;
 use App\Models\Community;
 use App\Models\Conversation;
@@ -37,6 +38,7 @@ class ReportService
         'conversation' => Conversation::class,
         'message' => Message::class,
         'community' => Community::class,
+        'channel' => Channel::class,
     ];
 
     /** @return array<string, class-string<Model>> */
@@ -102,6 +104,7 @@ class ReportService
             'comment' => 'комментарий',
             'video' => 'обзор',
             'community' => 'сообщество',
+            'channel' => 'канал',
             default => 'контент',
         };
 

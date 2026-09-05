@@ -83,6 +83,66 @@ class ReportAndCommentReactionTest extends TestCase
         ]);
     }
 
+    /**
+     * Жалоба на сообщество и канал.
+     *
+     * ReportService знал про сообщества с самого начала, но в правиле
+     * валидации типа их не было: запрос падал на 422, не дойдя до сервиса, —
+     * кнопка «Пожаловаться» на странице сообщества не работала ни разу. У
+     * каналов не было ни типа, ни кнопки.
+     */
+    public function test_user_can_report_community_and_channel(): void
+    {
+        $reporter = User::factory()->create(['status' => UserStatus::Active]);
+        $owner = User::factory()->create(['status' => UserStatus::Active]);
+
+        $category = \App\Models\CommunityCategory::create([
+            'name' => 'Клубы',
+            'slug' => 'clubs-report',
+            'sort_order' => 1,
+        ]);
+
+        $community = \App\Models\Community::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'category_id' => $category->id,
+            'name' => 'Клуб моделистов',
+            'slug' => 'club-report',
+            'description' => 'Описание',
+            'status' => 'active',
+        ]);
+
+        $channel = \App\Models\Channel::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'owner_id' => $owner->id,
+            'name' => 'Канал обзоров',
+            'slug' => 'reviews-report',
+            'description' => 'Описание',
+            'category' => 'Обзоры',
+            'kind' => 'author',
+            'avatar_color' => '#333333',
+            'banner_color' => '#111111',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($reporter, 'sanctum')
+            ->postJson('/api/v1/reports', [
+                'type' => 'community',
+                'target_id' => $community->uuid,
+                'reason' => 'spam',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'pending');
+
+        $this->actingAs($reporter, 'sanctum')
+            ->postJson('/api/v1/reports', [
+                'type' => 'channel',
+                'target_id' => $channel->uuid,
+                'reason' => 'offensive',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'pending');
+    }
+
     public function test_cannot_report_own_content(): void
     {
         $author = User::factory()->create(['status' => UserStatus::Active]);

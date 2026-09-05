@@ -16,6 +16,7 @@ import {
   BarChart2,
   MoreVertical,
   Trash2,
+  Plus,
 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -43,7 +44,9 @@ import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 
 import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
-import { ChannelsPageSkeleton } from "@/components/channels/ChannelCardSkeleton";
+import { ChannelRow } from "@/components/channels/ChannelRow";
+import { EntityRowSkeleton } from "@/components/entity/EntityRow";
+import { useGate } from "@/lib/gate";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,34 +81,7 @@ export const Route = createFileRoute("/channels/")({
   component: ChannelsPage,
 });
 
-const KIND_ICON: Record<ChannelKind, typeof BadgeCheck> = {
-  official: BadgeCheck,
-
-  brand: Briefcase,
-
-  shop: Store,
-
-  author: Sparkles,
-
-  expert: Sparkles,
-};
-
 const SECTION_LIMIT = 6;
-
-function channelKindLabel(kind: ChannelKind, tr: (key: string) => string): string {
-  const map: Record<ChannelKind, string> = {
-    official: "pages.channels.kindOfficial",
-    brand: "pages.channels.kindBrand",
-    shop: "pages.channels.kindShop",
-    author: "pages.channels.kindAuthor",
-    expert: "pages.channels.kindExpert",
-  };
-  return tr(map[kind] ?? "pages.channels.kindDefault");
-}
-
-function channelOwnerRoleLabel(kind: ChannelKind, tr: (key: string) => string): string {
-  return kind === "author" ? tr("pages.shared.author") : tr("pages.shared.owner");
-}
 
 function ChannelSection({
   title,
@@ -114,8 +90,6 @@ function ChannelSection({
 
   items,
 
-  mine,
-
   onChanged,
 }: {
   title: string;
@@ -123,8 +97,6 @@ function ChannelSection({
   subtitle?: string;
 
   items: Channel[];
-
-  mine?: boolean;
 
   onChanged: () => void;
 }) {
@@ -139,17 +111,17 @@ function ChannelSection({
   const canExpand = items.length > SECTION_LIMIT;
 
   return (
-    <section className="space-y-[14px]">
+    <section className="space-y-[12px]">
       <div className="flex items-end justify-between gap-[12px]">
         <div className="min-w-0">
           <h2
-            className="flex items-center gap-[8px] font-display text-[18px] font-bold sm:text-[20px]"
+            className="flex items-center gap-[8px] font-display text-[20px] font-bold"
             style={{ color: "var(--foreground)" }}
           >
             {title}
 
             <span
-              className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[7px] text-[12px] font-bold"
+              className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[6px] text-[11px] font-bold"
               style={{
                 background: "var(--accent-soft)",
                 color: "var(--accent)",
@@ -179,25 +151,14 @@ function ChannelSection({
         )}
       </div>
 
-      <ul
-        className={
-          expanded
-            ? "grid list-none gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-            : "grid list-none gap-3 sm:grid-cols-2"
-        }
-      >
-        {visible.map((c) =>
-          mine ? (
-            <MyChannelCard key={c.id} channel={c} onChanged={onChanged} />
-          ) : (
-            <ChannelCard
-              key={c.id}
-              channel={c}
-              subscribed={Boolean(c.isSubscribed)}
-              onChanged={onChanged}
-            />
-          ),
-        )}
+      {/* Одна колонка: центральная колонка держит 680, и две строки по 330 не
+          оставили бы места ни названию, ни кнопке. */}
+      <ul className="flex list-none flex-col gap-[8px]">
+        {visible.map((c) => (
+          <li key={c.id}>
+            <ChannelRow channel={c} onChanged={onChanged} />
+          </li>
+        ))}
       </ul>
     </section>
   );
@@ -205,6 +166,8 @@ function ChannelSection({
 
 function ChannelsPage() {
   const { t } = useTranslation();
+
+  const gate = useGate();
 
   const { taxonomy_id: taxonomyId } = Route.useSearch();
 
@@ -268,42 +231,33 @@ function ChannelsPage() {
   const hasQuery = q.trim().length > 0;
 
   return (
-    <AppLayout rightColumn={<DirectionsRightRail variant="channels" />} footer>
+    <AppLayout narrowCenter rightColumn={<DirectionsRightRail variant="channels" />} footer>
       <div className="space-y-[24px]">
-        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <header className="flex items-start justify-between gap-[12px]">
           <div className="min-w-0">
             <h1
-              className="font-display text-[26px] sm:text-[28px] font-bold truncate"
+              className="truncate font-display text-[28px] font-bold leading-tight"
               style={{ color: "var(--foreground)" }}
             >
               {t("pages.channels.title")}
             </h1>
 
-            <p
-              className="mt-1 text-[13px] sm:text-[14px]"
-              style={{ color: "var(--foreground-50)" }}
-            >
+            <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
               {t("pages.channels.subtitle")}
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {!loading && !hasOwnChannel && (
-              <Button
-                type="button"
-                className="rounded-[12px]"
-                onClick={() => navigate({ to: "/channels/new" })}
-              >
-                {t("pages.channels.createChannel")}
-              </Button>
-            )}
-            <div
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl"
-              style={{ background: "var(--accent-soft)" }}
-            >
-              <Radio size={20} style={{ color: "var(--accent)" }} />
-            </div>
-          </div>
+          {/* Кнопка стоит всегда, как «Создать сообщество» в соседнем разделе.
+              Без подтверждённого телефона она открывает окно верификации, а не
+              уводит на страницу мастера, где раньше встречала заглушка. */}
+          <Button
+            type="button"
+            size="sm"
+            className="shrink-0 gap-[6px]"
+            onClick={() => void gate.require("verified", () => navigate({ to: "/channels/new" }))}
+          >
+            <Plus size={16} /> {t("pages.channels.createChannel")}
+          </Button>
         </header>
 
         <SearchInput
@@ -314,7 +268,11 @@ function ChannelsPage() {
         />
 
         {loading ? (
-          <ChannelsPageSkeleton />
+          <div className="flex flex-col gap-[8px]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <EntityRowSkeleton key={i} />
+            ))}
+          </div>
         ) : nothing ? (
           <EmptyState
             icon={Radio}
@@ -333,12 +291,11 @@ function ChannelsPage() {
             variant="compact"
           />
         ) : (
-          <div className="space-y-[28px]">
+          <div className="space-y-[24px]">
             <ChannelSection
               title={t("pages.channels.sectionMine")}
               subtitle={t("pages.channels.sectionMineSub")}
               items={mine}
-              mine
               onChanged={reload}
             />
 
@@ -366,293 +323,5 @@ function ChannelsPage() {
         )}
       </div>
     </AppLayout>
-  );
-}
-
-function MyChannelCard({ channel: c, onChanged }: { channel: Channel; onChanged: () => void }) {
-  const { t } = useTranslation();
-
-  const KindIcon = KIND_ICON[c.kind];
-
-  const [deleteOpen, setDeleteOpen] = useState(false);
-
-  return (
-    <li>
-      <div
-        className="flex h-full flex-col gap-3 p-4"
-        style={{
-          background: "var(--background)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-card)",
-          display: "flex",
-        }}
-      >
-        <div className="flex items-start gap-2">
-          <Link
-            to="/channel/$id"
-            params={{ id: c.id }}
-            className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 transition-colors hover:opacity-90"
-          >
-            <div
-              className="grid h-12 w-12 shrink-0 place-items-center font-display text-[18px] font-bold text-white"
-              style={{ background: c.avatarColor, borderRadius: 12 }}
-            >
-              {c.name.slice(0, 1)}
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="truncate font-display text-[15px] font-semibold"
-                  style={{ color: "var(--foreground)" }}
-                >
-                  {c.name}
-                </span>
-
-                {c.kind === "official" && (
-                  <BadgeCheck size={14} style={{ color: "var(--accent)" }} />
-                )}
-              </div>
-
-              <p
-                className="mt-1 text-[13px]"
-                style={{
-                  color: "var(--foreground-70)",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {c.description}
-              </p>
-
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] font-medium"
-                  style={{
-                    background: "var(--accent-soft)",
-                    color: "var(--accent)",
-                    padding: "3px 7px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {channelOwnerRoleLabel(c.kind, t)}
-                </span>
-
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] font-medium"
-                  style={{
-                    background: "var(--background-surface)",
-                    color: "var(--foreground-70)",
-                    padding: "3px 7px",
-                    borderRadius: 6,
-                  }}
-                >
-                  <KindIcon size={11} /> {channelKindLabel(c.kind, t)}
-                </span>
-
-                <span
-                  className="inline-flex items-center gap-1 text-[12px]"
-                  style={{ color: "var(--foreground-50)" }}
-                >
-                  <Users size={12} /> {formatCount(c.subscribers)}
-                </span>
-              </div>
-            </div>
-          </Link>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label={t("pages.channels.ownerMenuAria")}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] transition-colors hover:bg-[var(--background-surface)]"
-                style={{ color: "var(--foreground-70)" }}
-              >
-                <MoreVertical size={16} />
-              </button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end" className="min-w-[180px]">
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/channel/$id"
-                  params={{ id: c.id }}
-                  search={{ settings: true }}
-                  className="gap-2"
-                >
-                  <Settings2 size={14} /> {t("pages.shared.settings")}
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/channel/$id"
-                  params={{ id: c.id }}
-                  search={{ tab: "about", section: "stats" }}
-                  className="gap-2"
-                >
-                  <BarChart2 size={14} /> {t("pages.shared.statistics")}
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                className="gap-2 text-[rgb(185,28,28)] focus:text-[rgb(185,28,28)]"
-                onSelect={() => setDeleteOpen(true)}
-              >
-                <Trash2 size={14} /> {t("components.channelManage.deleteChannel")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <DeleteChannelDialog
-          slug={c.slug}
-          name={c.name}
-          onDeleted={onChanged}
-          open={deleteOpen}
-          onOpenChange={setDeleteOpen}
-          hideTrigger
-        />
-      </div>
-    </li>
-  );
-}
-
-function ChannelCard({
-  channel: c,
-  subscribed,
-  onChanged,
-}: {
-  channel: Channel;
-  subscribed: boolean;
-  onChanged: () => void;
-}) {
-  const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
-
-  const KindIcon = KIND_ICON[c.kind];
-
-  const onToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-
-    e.stopPropagation();
-
-    requirePremium(() => {
-      void (async () => {
-        try {
-          await setChannelSubscription(c.slug, !subscribed);
-          onChanged();
-        } catch {
-          toast.error(t("pages.channels.subscribeFailed"));
-        }
-      })();
-    });
-  };
-
-  return (
-    <li>
-      <div
-        className="flex h-full flex-col gap-3 p-4"
-        style={{
-          background: "var(--background)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-card)",
-          display: "flex",
-        }}
-      >
-        <Link
-          to="/channel/$id"
-          params={{ id: c.id }}
-          className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 transition-colors hover:opacity-90"
-        >
-          <div
-            className="grid h-12 w-12 shrink-0 place-items-center font-display text-[18px] font-bold text-white"
-            style={{ background: c.avatarColor, borderRadius: 12 }}
-          >
-            {c.name.slice(0, 1)}
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span
-                className="truncate font-display text-[15px] font-semibold"
-                style={{ color: "var(--foreground)" }}
-              >
-                {c.name}
-              </span>
-
-              {c.kind === "official" && <BadgeCheck size={14} style={{ color: "var(--accent)" }} />}
-            </div>
-
-            <p
-              className="mt-1 text-[13px]"
-              style={{
-                color: "var(--foreground-70)",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
-              {c.description}
-            </p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {subscribed && (
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] font-medium"
-                  style={{
-                    background: "var(--accent-soft)",
-                    color: "var(--accent)",
-                    padding: "3px 7px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {t("pages.shared.subscribed")}
-                </span>
-              )}
-
-              <span
-                className="inline-flex items-center gap-1 text-[11px] font-medium"
-                style={{
-                  background: "var(--background-surface)",
-                  color: "var(--foreground-70)",
-                  padding: "3px 7px",
-                  borderRadius: 6,
-                }}
-              >
-                <KindIcon size={11} /> {channelKindLabel(c.kind, t)}
-              </span>
-
-              <span
-                className="inline-flex items-center gap-1 text-[12px]"
-                style={{ color: "var(--foreground-50)" }}
-              >
-                <Users size={12} /> {formatCount(c.subscribers)}
-              </span>
-            </div>
-          </div>
-        </Link>
-
-        <div className="mt-auto flex items-center gap-2">
-          <Button
-            variant={subscribed ? "outline" : "default"}
-            onClick={onToggle}
-            className="w-full rounded-[10px]"
-            size="sm"
-          >
-            {subscribed ? (
-              <>
-                <Check size={14} /> {t("pages.shared.youSubscribed")}
-              </>
-            ) : (
-              t("pages.shared.subscribe")
-            )}
-          </Button>
-        </div>
-      </div>
-    </li>
   );
 }

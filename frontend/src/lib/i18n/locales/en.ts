@@ -566,6 +566,7 @@ export const en: TranslationSchema = {
       cancel: "Cancel",
     },
     postCard: {
+      likeFailed: "Could not react",
       reposted: "shared a post",
       sharedPost: "shared a post",
       repostFromCategory: 'Repost from "{{category}}"',
@@ -1172,6 +1173,7 @@ export const en: TranslationSchema = {
       editPostFailed: "Could not save post",
     },
     channels: {
+      noSubscribersYet: "New channel",
       metaTitle: "Channels — MoDelizM",
       metaDescription:
         "Subscribe to brand, shop, author and expert channels: news, reviews and offers.",
@@ -1208,6 +1210,8 @@ export const en: TranslationSchema = {
       postKindPromo: "Special offer",
     },
     channelDetail: {
+      unsubscribe: "Unsubscribe",
+      unsubscribeConfirm: "Unsubscribe from this channel?",
       metaTitle: "Channel — MoDelizM",
       notFoundTitle: "Channel not found",
       notFoundDesc: "It may have been removed or the link is incorrect",
