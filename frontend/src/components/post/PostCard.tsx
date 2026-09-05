@@ -27,6 +27,7 @@ import {
 } from "@/lib/comment-thread";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Appear } from "@/components/ui/Appear";
 import { CommentSection } from "@/components/post/CommentSection";
 import { PostMedia } from "@/components/post/PostMedia";
 import { PostHeader } from "@/components/post/PostHeader";
@@ -723,15 +724,9 @@ export function PostCard({
       {variant === "embedded" ? (
         shell
       ) : (
-        <motion.div
-          id={`feed-post-${post.id}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="feed-virtual-item"
-        >
+        <Appear id={`feed-post-${post.id}`} className="feed-virtual-item">
           {shell}
-        </motion.div>
+        </Appear>
       )}
       {onEdited && (
         <EditPostDialog
