@@ -15,6 +15,22 @@ permissions:
   contents: read
 
 jobs:
+  # Посторонние файлы в исходниках. 04.09 в frontend/src/components нашлись
+  # десять файлов вне git — доредакторные PostCard.tsx, CommentSection.tsx и
+  # финдеровские дубли. Никто их не импортировал, но tsc компилирует всё под
+  # src/ и насчитывал по ним 20 ошибок, сбивая порог перед мержем.
+  #
+  # На свежем чекауте неотслеживаемых файлов не бывает, поэтому здесь реально
+  # срабатывает только проверка закоммиченных дублей — «vitest.config 2.ts»
+  # пролежал в репозитории с июля. Остальные две проверки того же скрипта
+  # смысл имеют локально, до коммита: запускайте deploy/scripts/check-workspace.sh.
+  workspace:
+    name: hygiene · нет посторонних файлов
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: deploy/scripts/check-workspace.sh
+
   frontend:
     name: frontend · tsc + eslint
     runs-on: ubuntu-latest
