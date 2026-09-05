@@ -37,7 +37,7 @@ export function ReducedMotionSwitch({
   switchKey,
   children,
   className,
-  animateOnMount = true,
+  animateOnMount = false,
   initial = { opacity: 0, y: 8 },
   animate = { opacity: 1, y: 0 },
   exit = { opacity: 0, y: -8 },
