@@ -61,6 +61,8 @@ export const zh: TranslationSchema = {
     verifyEmail: "Email verification",
   },
   guestAuth: {
+    profileTitle: "登录后查看个人主页",
+    profileDescription: "登录后即可看到你的主页、广告和社区。",
     communitiesTitle: "登录后管理你的社区",
     communitiesDesc: "登录后即可看到你的俱乐部和订阅。",
     title: "Sign in",
@@ -1199,6 +1201,8 @@ export const zh: TranslationSchema = {
       postKindPromo: "Special offer",
     },
     channelDetail: {
+      postsFailedTitle: "无法加载帖子",
+      postsFailedDesc: "请检查网络后重试",
       unsubscribe: "取消订阅",
       unsubscribeConfirm: "确定取消订阅该频道？",
       metaTitle: "Channel — MoDelizM",

@@ -61,6 +61,8 @@ export const en: TranslationSchema = {
     verifyEmail: "Email verification",
   },
   guestAuth: {
+    profileTitle: "Sign in to open your profile",
+    profileDescription: "Your profile, listings and communities show up after you sign in.",
     communitiesTitle: "Sign in to manage your communities",
     communitiesDesc: "Your clubs and subscriptions show up after you sign in.",
     title: "Sign in",
@@ -1210,6 +1212,8 @@ export const en: TranslationSchema = {
       postKindPromo: "Special offer",
     },
     channelDetail: {
+      postsFailedTitle: "Could not load posts",
+      postsFailedDesc: "Check the connection and try again",
       unsubscribe: "Unsubscribe",
       unsubscribeConfirm: "Unsubscribe from this channel?",
       metaTitle: "Channel — MoDelizM",

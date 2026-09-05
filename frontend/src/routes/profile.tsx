@@ -37,6 +37,7 @@ import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import type { User, Post, Ad, Community, Category } from "@/lib/mock";
 import { useStore, actions, selectors, setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
+import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import type { AdStatusKey } from "@/lib/store";
 import { PostCard } from "@/components/post/PostCard";
 import { AdCard } from "@/components/AdCard";
@@ -123,6 +124,12 @@ function toAdStatus(k: AdStatusKey): AdStatus {
 function ProfilePage() {
   const { t } = useTranslation();
   const currentUser = useCurrentUser();
+  // Гостю здесь показывать нечего: своего профиля у него нет. До 05.09
+  // страница рисовала ему «Изменить обложку» и «Редактировать профиль» на
+  // пустой карточке «Гость» — обещание о данных, которых не существует, — и
+  // попутно отправляла три запроса к /users/me/*, каждый из которых
+  // отвечал 401.
+  const guestBlocked = useGuestRouteBlocked("route.profile");
   const [myAds, setMyAds] = useState<{ ad: Ad; status: AdStatus }[]>([]);
   const [myCommunities, setMyCommunities] = useState<Community[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);
@@ -143,7 +150,8 @@ function ProfilePage() {
 
   useEffect(() => {
     let active = true;
-    if (!currentUser?.id) return;
+    // Без токена все три запроса ниже уходят к /users/me/* и возвращают 401.
+    if (!currentUser?.id || !getToken()) return;
     setLoading(true);
     const settle = Promise.allSettled([
       fetchMyListings().then(
@@ -217,6 +225,20 @@ function ProfilePage() {
       interests,
     });
   };
+
+  if (guestBlocked) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
+          <GuestSectionStub
+            icon={UserIcon}
+            title={t("guestAuth.profileTitle")}
+            description={t("guestAuth.profileDescription")}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <ProfileView

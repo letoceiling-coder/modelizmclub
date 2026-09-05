@@ -523,21 +523,28 @@ export function useChannel(slug: string): {
 export function useChannelPosts(slug: string): {
   posts: ChannelPost[];
   loading: boolean;
+  /** Запрос не прошёл. Без этого флага неудача выглядела как «постов нет». */
+  failed: boolean;
   reload: () => void;
 } {
   const [posts, setPosts] = useState<ChannelPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   const reload = useCallback(() => {
     setLoading(true);
+    setFailed(false);
     fetchChannelPosts(slug)
-      .then(setPosts)
-      .catch(() => {})
+      .then((rows) => {
+        setPosts(rows);
+        setFailed(false);
+      })
+      .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   }, [slug]);
 
   useEffect(reload, [reload]);
-  return { posts, loading, reload };
+  return { posts, loading, failed, reload };
 }
 
 export function formatCount(n: number) {
