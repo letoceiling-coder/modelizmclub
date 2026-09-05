@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Check, Video, Phone, Users } from "lucide-react";
@@ -219,15 +220,7 @@ export function GroupCallInviteDialog() {
                   className="inline-flex items-center gap-[6px] rounded-full py-[4px] pl-[4px] pr-[10px] text-[12px]"
                   style={{ background: "var(--background-surface)", color: "var(--foreground)" }}
                 >
-                  <img
-                    src={u.avatar}
-                    width={20}
-                    height={20}
-                    loading="lazy"
-                    decoding="async"
-                    alt=""
-                    className="h-[20px] w-[20px] rounded-full object-cover"
-                  />
+                  <UserAvatar src={u.avatar} name={u.name} size={40} />
                   {u.name}
                   <X size={12} style={{ color: "var(--foreground-50)" }} />
                 </button>
@@ -307,15 +300,7 @@ export function GroupCallInviteDialog() {
                       className="flex w-full items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                     >
                       <span className="relative shrink-0">
-                        <img
-                          src={u.avatar}
-                          width={40}
-                          height={40}
-                          loading="lazy"
-                          decoding="async"
-                          alt=""
-                          className="h-[40px] w-[40px] rounded-full object-cover"
-                        />
+                        <UserAvatar src={u.avatar} name={u.name} size={40} />
                         {on && (
                           <span
                             className="absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full"

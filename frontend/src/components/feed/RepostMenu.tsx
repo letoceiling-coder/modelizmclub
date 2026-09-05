@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
@@ -225,15 +226,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
                           onClick={() => sendToChat(d.id, u.name)}
                           className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
                         >
-                          <img
-                            src={u.avatar}
-                            width={28}
-                            height={28}
-                            loading="lazy"
-                            decoding="async"
-                            alt=""
-                            className="h-[28px] w-[28px] rounded-full object-cover"
-                          />
+                          <UserAvatar src={u.avatar} name={u.name} size={36} />
                           <span className="text-[13px]" style={{ color: "var(--foreground)" }}>
                             {u.name}
                           </span>

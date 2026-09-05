@@ -41,14 +41,26 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "warn",
         {
+          // Аватар мимо общего компонента — это оригинал вместо варианта.
+          // 05.09 на первом экране ленты так грузились 412 КБ PNG 480×480 в
+          // кружок 32 пикселя. UserAvatar и ui/avatar запрашивают thumb;
+          // сырой <img src={x.avatar}> — нет.
+          selector:
+            'JSXElement > JSXOpeningElement[name.name=/^(img|Img)$/] > JSXAttribute[name.name="src"] > JSXExpressionContainer MemberExpression[property.name=/[Aa]vatar/]',
+          message:
+            'Аватар рисуйте через <UserAvatar> из @/components/ui/UserAvatar — он запрашивает вариант thumb. Если это не аватар пользователя, оберните src в variantUrl(x, "thumb").',
+        },
+        {
           selector:
             'JSXAttribute[name.name="className"] Literal[value=/(^|\\s)-?(p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|space-[xy])-\\[\\d+px\\]/]',
-          message: "Используйте шкалу отступов Tailwind вместо точных px (p-[12px] → p-3). См. docs/design-system.md",
+          message:
+            "Используйте шкалу отступов Tailwind вместо точных px (p-[12px] → p-3). См. docs/design-system.md",
         },
         {
           selector:
             'JSXAttribute[name.name="className"] TemplateElement[value.raw=/(^|\\s)-?(p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|space-[xy])-\\[\\d+px\\]/]',
-          message: "Используйте шкалу отступов Tailwind вместо точных px (p-[12px] → p-3). См. docs/design-system.md",
+          message:
+            "Используйте шкалу отступов Tailwind вместо точных px (p-[12px] → p-3). См. docs/design-system.md",
         },
       ],
     },

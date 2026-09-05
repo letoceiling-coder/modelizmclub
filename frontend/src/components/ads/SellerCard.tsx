@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { variantUrl } from "@/lib/media/variants";
 import { Star, ChevronRight, Calendar, ShieldCheck } from "lucide-react";
 import type { AdSeller } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
@@ -18,7 +19,7 @@ function SellerAvatar({ seller }: { seller: AdSeller }) {
   if (hasImg) {
     return (
       <img
-        src={seller.avatar}
+        src={variantUrl(seller.avatar, "thumb")}
         loading="lazy"
         decoding="async"
         alt={seller.name}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, X, Newspaper, Star, Megaphone, Tag, FileText } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -465,15 +466,7 @@ export function CreatePostForm({
         {sel.source === "profile" && (
           <div className="space-y-[4px]">
             <div className="flex items-start gap-[12px]">
-              <img
-                src={me.avatar}
-                width={40}
-                height={40}
-                loading="lazy"
-                decoding="async"
-                alt=""
-                className="mt-[2px] h-[40px] w-[40px] shrink-0 rounded-full"
-              />
+              <UserAvatar src={me.avatar} name={me.name} size={40} />
               <input
                 value={title}
                 maxLength={POST_TITLE_MAX_LENGTH}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
@@ -214,15 +215,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
                           onClick={() => void sendTo(d.userId)}
                           className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-left transition-colors hover:bg-[var(--background-surface)] disabled:opacity-60"
                         >
-                          <img
-                            src={u.avatar}
-                            width={36}
-                            height={36}
-                            loading="lazy"
-                            decoding="async"
-                            alt=""
-                            className="h-[36px] w-[36px] rounded-full object-cover"
-                          />
+                          <UserAvatar src={u.avatar} name={u.name} size={36} />
                           <span
                             className="truncate text-[14px] font-semibold"
                             style={{ color: "var(--foreground)" }}
