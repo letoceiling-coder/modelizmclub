@@ -74,6 +74,8 @@ foreach ($pairs as $key => $tier) {
 
 $row = SystemSetting::query()->where('key', Registry::SETTING_KEY)->first();
 $stored = is_array($row?->value) ? $row->value : [];
+$original = $stored;
+$before_values = [];
 
 // Строка могла не содержать ключа вовсе: он добавлен в реестр после
 // последнего сохранения из /admin и до сих пор действовал по умолчанию.
@@ -87,6 +89,7 @@ foreach ($pairs as $key => $tier) {
         printf("  %-34s уже %s\n", $key, $tier);
         continue;
     }
+    $before_values[$key] = ['from' => $before, 'to' => $tier, 'label' => $known[$key]];
     $current['min_tier'] = $tier;
     $stored['actions'][$key] = $current;
     $changed++;
@@ -102,6 +105,26 @@ if ($dryRun) {
     echo "access-map-set: --dry-run, строка не тронута ({$changed} изменени(е/я) готовы)\n";
     exit(0);
 }
+
+// Снимок прежней строки — до записи и всегда. Карта решает, кто что видит;
+// вернуть её к предыдущему состоянию нужно уметь, не восстанавливая дамп базы
+// целиком. Снимок — та же строка, что лежала в system_settings, плюс список
+// изменённых ключей со старыми значениями.
+$snapshotDir = getenv('ACCESS_MAP_SNAPSHOT_DIR') ?: (is_dir('/root/backups') ? '/root/backups/access-map' : sys_get_temp_dir());
+if (! is_dir($snapshotDir)) {
+    @mkdir($snapshotDir, 0700, true);
+}
+$snapshotPath = rtrim($snapshotDir, '/').'/access-map-'.date('Ymd\THis').'.json';
+$snapshot = [
+    'taken_at' => date('c'),
+    'changed' => $before_values,
+    'previous_row' => $original,
+];
+if (@file_put_contents($snapshotPath, json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false) {
+    fwrite(STDERR, "access-map-set: не удалось записать снимок в {$snapshotPath} — правка отменена\n");
+    exit(2);
+}
+echo "access-map-set: снимок прежних значений — {$snapshotPath}\n";
 
 SystemSetting::query()->updateOrCreate(
     ['key' => Registry::SETTING_KEY],
