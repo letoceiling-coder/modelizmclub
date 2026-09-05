@@ -465,8 +465,8 @@ function FriendsPage() {
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={Users}
-            title={t("common.guestAuth.friendsTitle")}
-            description={t("common.guestAuth.friendsDescription")}
+            title={t("guestAuth.friendsTitle")}
+            description={t("guestAuth.friendsDescription")}
           />
         </div>
       </AppLayout>

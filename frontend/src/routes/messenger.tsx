@@ -142,8 +142,8 @@ function MessengerRoute() {
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={MessageSquare}
-            title={t("common.guestAuth.messengerTitle")}
-            description={t("common.guestAuth.messengerDescription")}
+            title={t("guestAuth.messengerTitle")}
+            description={t("guestAuth.messengerDescription")}
           />
         </div>
       </AppLayout>
