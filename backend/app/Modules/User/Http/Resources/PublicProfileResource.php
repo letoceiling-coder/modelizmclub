@@ -17,7 +17,13 @@ class PublicProfileResource extends JsonResource
             $this->privacy_settings ?? [],
         );
 
-        $viewer = $request->user();
+        // Именно гвардия sanctum, а не гвардия по умолчанию. `/users/{slug}` —
+        // публичный маршрут без middleware `auth:sanctum`, а гвардия по
+        // умолчанию — `web`, и Bearer она не смотрит. Через `$request->user()`
+        // владелец собственного профиля выглядел здесь посторонним: `phone`
+        // не отдавался никогда, `can_view_email` держался на настройке
+        // приватности. Под `auth:sanctum` (OwnProfileResource) ответ тот же.
+        $viewer = $request->user('sanctum');
         $isOwner = $viewer && $viewer->id === $this->user_id;
 
         return [
@@ -63,6 +69,11 @@ class PublicProfileResource extends JsonResource
             ),
             'permissions' => [
                 'can_view_email' => $isOwner || ($privacy['show_email'] ?? false),
+                // Кто может править этот профиль, решает сервер, а не наличие
+                // сессии на клиенте. До 05.09 страница профиля показывала
+                // «Изменить обложку» и «Редактировать профиль» исходя из того,
+                // свой это маршрут или чужой, — а не из того, чей это профиль.
+                'can_edit' => $isOwner,
             ],
             'phone' => $this->when($isOwner, $this->user?->phone),
             'vk_url' => $this->vk_url,

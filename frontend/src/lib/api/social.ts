@@ -55,6 +55,10 @@ interface ApiPublicProfile {
   is_following?: boolean;
   is_friend?: boolean;
   friend_request_status?: "outgoing" | "incoming" | null;
+  permissions?: {
+    can_view_email?: boolean;
+    can_edit?: boolean;
+  };
 }
 
 export interface PublicProfile {
@@ -77,6 +81,11 @@ export interface PublicProfile {
   isFollowing: boolean;
   isFriend: boolean;
   friendRequestStatus?: "outgoing" | "incoming" | null;
+  /**
+   * Владелец ли смотрящий. Решает сервер по токену запроса: маршрут не знает,
+   * чей это профиль, а «свой маршрут» и «свой профиль» — разные вещи.
+   */
+  canEdit: boolean;
 }
 
 interface Paginated<T> {
@@ -332,5 +341,6 @@ export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
     isFollowing: Boolean(p.is_following),
     isFriend: Boolean(p.is_friend),
     friendRequestStatus: p.friend_request_status ?? null,
+    canEdit: Boolean(p.permissions?.can_edit),
   };
 }
