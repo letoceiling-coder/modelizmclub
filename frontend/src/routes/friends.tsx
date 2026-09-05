@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { MapPin, UserPlus, MessageSquare, Check, X, Clock, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { userById, type User } from "@/lib/mock";
 import { useStore, actions } from "@/lib/store";
@@ -180,6 +181,11 @@ function FriendCard({
 
 function FriendsPage() {
   const { t } = useTranslation();
+  // Гость доходит сюда с 04.09: гейт не уводит с адреса. Раньше он видел
+  // «Люди 0 · Онлайн 0 · Заявки 0» и «Список пуст» — три утверждения о его
+  // собственных данных, которых у него нет по определению аккаунта, а не
+  // потому что список действительно пуст.
+  const guestBlocked = useGuestRouteBlocked("route.friends");
   const { requireAction } = useActionGate();
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
@@ -452,6 +458,20 @@ function FriendsPage() {
       description: t("pages.friends.userBlockedDesc"),
     });
   };
+
+  if (guestBlocked) {
+    return (
+      <AppLayout rightColumn={false}>
+        <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
+          <GuestSectionStub
+            icon={Users}
+            title={t("common.guestAuth.friendsTitle")}
+            description={t("common.guestAuth.friendsDescription")}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
