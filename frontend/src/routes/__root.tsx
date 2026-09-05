@@ -26,6 +26,7 @@ import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
 import { markBooted } from "@/lib/boot/bootState";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import { isAlwaysPublicRoute, isPublicGuestRoute } from "@/lib/feed-guest-access/routes";
+import { API_ORIGIN } from "@/lib/api/client";
 
 // Preference is "light"/"dark"/"system" (settings) or unset (legacy: bare
 // "theme" key holds the resolved value from the old binary toggle). "system"
@@ -137,6 +138,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "МоДелизМ" },
     ],
     links: [
+      // Картинки — аватары, медиа записей и баннер, который на /feed и есть
+      // LCP-элемент — лежат на отдельном происхождении. Без preconnect
+      // браузер начинает с ним DNS, TCP и TLS только дойдя до preload'а
+      // картинки: на медленном канале это сотни миллисекунд перед первым
+      // байтом самой большой картинки страницы.
+      { rel: "preconnect", href: API_ORIGIN, crossOrigin: "anonymous" },
+      { rel: "dns-prefetch", href: API_ORIGIN },
       { rel: "stylesheet", href: appCss },
       // PWA: манифест генерирует vite-plugin-pwa (см. vite.config.ts). У
       // TanStack Start нет index.html, поэтому ссылки прописаны здесь руками.

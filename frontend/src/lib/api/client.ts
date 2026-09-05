@@ -9,6 +9,16 @@ export const API_BASE_URL: string =
     "",
   ) || DEFAULT_BASE_URL;
 
+/** Происхождение API — нужно шапке документа, чтобы заранее открыть к нему
+ *  соединение: LCP-картинка ленты лежит именно там. */
+export const API_ORIGIN: string = (() => {
+  try {
+    return new URL(API_BASE_URL, "https://modelizmclub.ru").origin;
+  } catch {
+    return "https://api.modelizmclub.ru";
+  }
+})();
+
 const TOKEN_KEY = "mc_token";
 const LANG_KEY = "mc_lang";
 
