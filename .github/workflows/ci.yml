@@ -174,7 +174,27 @@ jobs:
         run: |
           # This job runs inside backend/, hence the ../ on the script path.
           cp .env.testing .env  # the drift script reads backend/.env
+
+          # Диагностика в summary. Логи шага требуют токена, а summary виден
+          # на публичной странице прогона без него. Этот шаг падал с 04.09
+          # из-за лишней кавычки после `exit 1`: тело run не разбиралось
+          # shell-ом и завершалось до первой команды — проверка ни разу не
+          # выполнилась. Причину искали снаружи, потому что изнутри шаг
+          # ничего о себе не сообщал.
+          {
+            echo "## Schema baseline — окружение"
+            echo ""
+            echo '```'
+            echo "psql:        $(psql --version 2>&1 | head -1)"
+            echo "createdb:    $(command -v createdb || echo 'нет в PATH')"
+            echo "DB_DATABASE: $(grep -m1 '^DB_DATABASE=' .env | cut -d= -f2-)"
+            echo "DB_USERNAME: $(grep -m1 '^DB_USERNAME=' .env | cut -d= -f2-)"
+            echo "LC_ALL:      ${LC_ALL:-не задан}   LANG: ${LANG:-не задан}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
           SCHEMA_BASELINE=/tmp/objects.generated.txt ../deploy/scripts/schema-drift.sh --update-baseline
+          echo "schema-drift.sh exit: $?" >> "$GITHUB_STEP_SUMMARY"
           if diff -u database/schema/objects.txt /tmp/objects.generated.txt > /tmp/schema.diff; then
             echo "## Schema baseline" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -191,7 +211,7 @@ jobs:
               head -60 /tmp/schema.diff
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            exit 1"
+            exit 1
           fi
 
   audit:
