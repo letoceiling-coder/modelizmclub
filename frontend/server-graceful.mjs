@@ -35,3 +35,47 @@ function armDeadline(signal) {
 for (const signal of ["SIGTERM", "SIGINT"]) {
   process.on(signal, () => armDeadline(signal));
 }
+
+/**
+ * Приём слушающего сокета от systemd (socket activation).
+ *
+ * Плавная остановка убрала девяностосекундный простой, но не убрала разрыв:
+ * `systemctl restart` — это стоп и старт, и между «старый процесс закрыл
+ * сокет» и «новый забиндил порт» на 3000 не слушает никто. nginx получает
+ * ECONNREFUSED и отвечает 502 сразу, без повтора. Замерено на проде 05.09
+ * при двух переключениях релиза: окна 0,72 и 0,75 с, по четыре ответа 502.
+ *
+ * Когда сокет держит systemd, он переживает перезапуск сервиса: ядро
+ * складывает входящие соединения в очередь, и запрос ждёт лишнюю долю
+ * секунды вместо отказа. Nitro и srvx такой возможности не дают — srvx
+ * зовёт `server.listen({ port, host })`, — поэтому подменяем аргумент здесь,
+ * до загрузки сервера, и только когда systemd действительно передал дескриптор.
+ *
+ * LISTEN_PID проверяется потому, что переменные наследуются дочерними
+ * процессами: без проверки чужой процесс принял бы дескриптор за свой.
+ */
+import net from "node:net";
+
+const LISTEN_FD = 3;
+const fdsPassed = Number.parseInt(process.env.LISTEN_FDS ?? "", 10) || 0;
+const fdsForUs = Number.parseInt(process.env.LISTEN_PID ?? "", 10) === process.pid;
+
+if (fdsPassed > 0 && fdsForUs) {
+  const originalListen = net.Server.prototype.listen;
+  let adopted = false;
+
+  net.Server.prototype.listen = function listenWithInheritedFd(...args) {
+    const first = args[0];
+    const wantsPort =
+      !adopted && typeof first === "object" && first !== null && first.port !== undefined;
+
+    if (!wantsPort) return originalListen.apply(this, args);
+
+    adopted = true;
+    const { port, host, ...rest } = first;
+    process.stderr.write(
+      `[graceful] сокет от systemd: слушаем fd ${LISTEN_FD} вместо ${host ?? ""}:${port}\n`,
+    );
+    return originalListen.call(this, { ...rest, fd: LISTEN_FD }, ...args.slice(1));
+  };
+}
