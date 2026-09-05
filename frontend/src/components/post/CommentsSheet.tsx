@@ -2,8 +2,8 @@ import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 
 interface Props {
   open: boolean;
@@ -32,13 +32,20 @@ export function CommentsSheet({ open, onOpenChange, stats, preview, children }: 
   const { t } = useTranslation();
   const mobile = useIsMobile();
 
-  const header = (
+  // Заголовок — настоящий DrawerTitle/DialogTitle, а не просто крупный текст:
+  // Radix иначе отдаёт экранному диктору окно без имени и пишет об этом в
+  // консоль. Слой открывается по кнопке «Комментарии», и именно это должно
+  // прозвучать.
+  const header = (Title: typeof DialogTitle | typeof DrawerTitle) => (
     <div className="flex items-center gap-[8px] px-[16px] pb-[8px]">
       {preview}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[20px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <Title
+          className="truncate text-[20px] font-semibold"
+          style={{ color: "var(--foreground)" }}
+        >
           {t("components.commentsSheet.title")}
-        </div>
+        </Title>
         {stats && (
           <div className="truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>
             {stats}
@@ -64,7 +71,7 @@ export function CommentsSheet({ open, onOpenChange, stats, preview, children }: 
             подсказывает, что это слой поверх, а не новая страница. */}
         <DrawerContent className="h-[85dvh] rounded-t-[16px]">
           <div className="flex h-full min-h-0 flex-col pt-[8px]">
-            {header}
+            {header(DrawerTitle)}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
           </div>
         </DrawerContent>
@@ -75,7 +82,7 @@ export function CommentsSheet({ open, onOpenChange, stats, preview, children }: 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-[720px] max-w-[calc(100vw-32px)] flex-col gap-0 p-0 pt-[16px]">
-        {header}
+        {header(DialogTitle)}
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </DialogContent>
     </Dialog>

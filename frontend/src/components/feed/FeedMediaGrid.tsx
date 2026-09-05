@@ -110,7 +110,10 @@ function SingleImage({
 
   return (
     <div
-      className="overflow-hidden rounded-[var(--r-card)] bg-[var(--background-surface)] sm:max-h-[480px]"
+      // Медиа идёт от края до края карточки: своего скругления у него нет,
+      // углы обрезает сама карточка (overflow-hidden). Двойное скругление —
+      // рамка внутри рамки — было заметно на всех трёх ширинах.
+      className="overflow-hidden bg-[var(--background-surface)] sm:max-h-[480px]"
       style={style}
     >
       <GridImage
@@ -164,7 +167,7 @@ export function FeedMediaGrid({
     return (
       <>
         <div
-          className="grid grid-cols-2 overflow-hidden rounded-[var(--r-card)]"
+          className="grid grid-cols-2 overflow-hidden"
           style={{ gap: GRID_GAP, maxHeight: MAX_HEIGHT_DESKTOP }}
         >
           {items.map((item, i) => (
@@ -198,7 +201,7 @@ export function FeedMediaGrid({
     return (
       <>
         <div
-          className="grid overflow-hidden rounded-[var(--r-card)]"
+          className="grid overflow-hidden"
           style={{
             gap: GRID_GAP,
             gridTemplateColumns: "2fr 1fr",
@@ -254,7 +257,7 @@ export function FeedMediaGrid({
   return (
     <>
       <div
-        className="grid grid-cols-2 overflow-hidden rounded-[var(--r-card)]"
+        className="grid grid-cols-2 overflow-hidden"
         style={{ gap: GRID_GAP, maxHeight: MAX_HEIGHT_DESKTOP }}
       >
         {visible.map((item, i) => (

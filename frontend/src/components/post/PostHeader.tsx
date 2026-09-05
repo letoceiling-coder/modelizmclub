@@ -22,10 +22,12 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
       .map((w) => w[0] ?? "")
       .join("")
       .toUpperCase() || "?";
+  // 36 на телефоне, 40 на широком экране: шапка держит 48 px в обоих случаях,
+  // а на 375 лишние четыре пикселя аватара — это лишняя строка текста в ленте.
   if (!src || err) {
     return (
       <div
-        className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full text-[13px] font-bold text-white"
+        className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full text-[13px] font-bold text-white md:h-[40px] md:w-[40px]"
         style={{ background: "var(--accent)" }}
         aria-label={name}
       >
@@ -39,7 +41,7 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
       width={40}
       height={40}
       alt={name}
-      className="h-[40px] w-[40px] shrink-0 rounded-full object-cover"
+      className="h-[36px] w-[36px] shrink-0 rounded-full object-cover md:h-[40px] md:w-[40px]"
       onError={() => setErr(true)}
     />
   );
@@ -72,7 +74,9 @@ export function PostHeader({
 }: Props) {
   const { t } = useTranslation();
   return (
-    <header className="flex items-center gap-[12px] px-[16px] pt-[16px]">
+    // 48 px на строку автора: аватар 40 плюс 8 сверху. Раньше было 16 сверху
+    // при аватаре 40 — 56 px, и это повторялось у каждой карточки ленты.
+    <header className="flex min-h-[48px] items-center gap-[10px] px-[12px] pt-[8px] md:gap-[12px] md:px-[16px]">
       {/* The ::after box lifts the 40px avatar to a 44px tap target without
           moving it or the name beside it. */}
       <GuestGuardLink

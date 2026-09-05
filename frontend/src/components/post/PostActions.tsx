@@ -1,14 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Heart, MessageCircle, Bookmark, Eye, Share2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Eye } from "lucide-react";
 import type { Post } from "@/lib/mock";
 import { Gated, type Level } from "@/lib/gate";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 
-/** Shared class for footer action buttons — ghost-style, accent hover, 44×44
- *  tap target even when the button holds nothing but a 16px icon. */
+/** Shared class for footer action buttons — ghost-style, accent hover.
+ *  48 px на телефоне, 44 на широком экране: палец и курсор просят разного,
+ *  и панель действий — единственное место карточки, где это заметно. */
 const actionCls =
-  "inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex min-h-[48px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[12px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45 md:min-h-[44px]";
 
 interface Props {
   post: Post;
@@ -29,13 +30,16 @@ interface Props {
   onSave: () => void;
   onComments: () => void;
   onRepost: () => void;
-  onShare: () => void;
 }
 
 /**
- * Reaction · comments · repost · save · share · views. Every mutating
- * action goes through the gate; a `post.can` verdict of false hides the
- * control instead of opening a window.
+ * Reaction · comments · repost · save · views. Every mutating action goes
+ * through the gate; a `post.can` verdict of false hides the control instead
+ * of opening a window.
+ *
+ * «Поделиться» здесь больше нет: пятая кнопка в ряду ничего не сообщала о
+ * записи и отнимала место у счётчиков. Она переехала в меню ⋯ рядом с
+ * «Скопировать ссылку» — туда, где уже лежали способы поделиться.
  */
 export function PostActions({
   post,
@@ -54,12 +58,11 @@ export function PostActions({
   onSave,
   onComments,
   onRepost,
-  onShare,
 }: Props) {
   const { t } = useTranslation();
   return (
     <footer
-      className="flex items-center gap-[2px] px-[8px] pb-[8px] pt-[4px]"
+      className="flex min-h-[48px] items-center gap-[2px] px-[4px] md:min-h-[44px] md:px-[8px]"
       style={{ color: "var(--foreground-70)" }}
     >
       {reactionsEnabled && (
@@ -78,7 +81,7 @@ export function PostActions({
               animate={liked ? { scale: [1, 1.35, 1] } : { scale: 1 }}
               transition={{ type: "spring", stiffness: 480, damping: 14 }}
             >
-              <Heart className="h-[16px] w-[16px]" fill={liked ? "currentColor" : "none"} />
+              <Heart className="h-[20px] w-[20px]" fill={liked ? "currentColor" : "none"} />
             </motion.span>
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
@@ -106,7 +109,7 @@ export function PostActions({
           aria-label={t("components.postCard.commentsAria")}
           aria-disabled={!canInteract && commentsCount === 0}
         >
-          <MessageCircle className="h-[16px] w-[16px]" />
+          <MessageCircle className="h-[20px] w-[20px]" />
           <span className="tabular-nums">{commentsCount}</span>
         </button>
       )}
@@ -132,30 +135,25 @@ export function PostActions({
             whileTap={{ scale: 1.3 }}
             transition={{ type: "spring", stiffness: 500, damping: 14 }}
           >
-            <Bookmark className="h-[16px] w-[16px]" fill={saved ? "currentColor" : "none"} />
+            <Bookmark className="h-[20px] w-[20px]" fill={saved ? "currentColor" : "none"} />
           </motion.span>
           {saves > 0 && <span className="tabular-nums">{saves}</span>}
         </button>
       </Gated>
 
-      <button
-        type="button"
-        onClick={onShare}
-        className={actionCls}
-        style={{ color: "var(--foreground-70)" }}
-        aria-label="Поделиться"
-      >
-        <Share2 className="h-[16px] w-[16px]" />
-      </button>
-
-      {/* Views — desktop only */}
-      <div
-        className="ml-auto hidden items-center gap-[6px] pr-[8px] text-[12px] sm:flex"
-        style={{ color: "var(--foreground-50)" }}
-      >
-        <Eye className="h-[14px] w-[14px]" />
-        <span className="tabular-nums">{post.views?.toLocaleString("ru-RU") ?? 0}</span>
-      </div>
+      {/* Просмотры — только на широком экране и только когда они есть.
+          Счётчик просмотров на проде отдаёт 0 у всех записей: «0» под каждой
+          карточкой — это не факт о записи, а сообщение о том, что счётчик не
+          работает. Пока он не заработает, показывать нечего. */}
+      {(post.views ?? 0) > 0 && (
+        <div
+          className="ml-auto hidden items-center gap-[6px] pr-[8px] text-[12px] sm:flex"
+          style={{ color: "var(--foreground-50)" }}
+        >
+          <Eye className="h-[14px] w-[14px]" />
+          <span className="tabular-nums">{post.views?.toLocaleString("ru-RU")}</span>
+        </div>
+      )}
     </footer>
   );
 }
