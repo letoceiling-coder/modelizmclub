@@ -1,11 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { EntitySettingsSheet } from "@/components/entity/EntitySettingsSheet";
 import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
 import type { Community } from "@/lib/mock";
 
@@ -27,23 +21,18 @@ export function CommunitySettingsSheet({
   onDeleted,
 }: Props) {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>Настройки сообщества</SheetTitle>
-          <SheetDescription>
-            Название, описание, оформление и другие параметры сообщества.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="mt-6 pb-8">
-          <CommunityManagePanel
-            community={community}
-            Icon={Icon}
-            onUpdated={onUpdated}
-            onDeleted={onDeleted}
-          />
-        </div>
-      </SheetContent>
-    </Sheet>
+    <EntitySettingsSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Настройки сообщества"
+      description="Название, описание, оформление и другие параметры сообщества."
+    >
+      <CommunityManagePanel
+        community={community}
+        Icon={Icon}
+        onUpdated={onUpdated}
+        onDeleted={onDeleted}
+      />
+    </EntitySettingsSheet>
   );
 }
