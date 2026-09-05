@@ -482,6 +482,12 @@ export const en: TranslationSchema = {
       reportDescription: "Жалоба на публикацию{{title}} — выберите причину и опишите ситуацию.",
       reportSuffix: " (публикация)",
     },
+    commentsSheet: {
+      title: "Comments",
+      liked: "{{count}} liked",
+      empty: "No comments yet",
+      emptyHint: "Be the first to write",
+    },
     commentSection: {
       reply: "Reply",
       replyTo: "Reply to {{name}}…",
