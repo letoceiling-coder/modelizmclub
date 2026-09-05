@@ -55,6 +55,27 @@ curl -s https://modelizmclub.ru/feed | grep -c 'opacity:0'
 без JS. Разрыв между «пришло в DOM» и «стало видно» измеряется наблюдателем
 `largest-contentful-paint` и опросом `getComputedStyle(el).opacity`.
 
+## После мержа возвращайтесь на develop
+
+`git merge` оставляет вас на той ветке, в которую влили. Дальше рука сама
+делает `git commit` — и коммит уходит в `master`, минуя ветку.
+
+Так уже дважды случилось: 04.09 два коммита и 05.09 `67d02c9` (метаданные
+видео) и `7b26e9d` (preconnect). Ничего не потерялось — они запушены и
+выкачены, — но в `feat/feed-card-density` их нет, а `develop` отстал от
+`master` на три коммита и следующая ветка ушла бы от неполной базы.
+
+Мерж заканчивается возвратом, а не остаётся последним действием:
+
+```bash
+git checkout master && git merge --no-ff feat/… && git push origin master
+git checkout develop && git merge --ff-only master && git push origin develop
+```
+
+Если правка нашлась уже после мержа — новая ветка от `develop`, даже на
+одну строку. Проверка перед любым коммитом: `git rev-parse --abbrev-ref HEAD`
+не должен отвечать `master`.
+
 ## Прочее
 
 - Не создавайте второго, если есть первое: `PostCard`, `lib/gate`,

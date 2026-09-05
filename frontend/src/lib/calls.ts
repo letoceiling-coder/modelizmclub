@@ -251,7 +251,6 @@ function clearTimers(): void {
 
 /** Verbose call tracing — console + remote diagnostic logger. */
 function clog(...args: unknown[]): void {
-  // eslint-disable-next-line no-console
   console.log("%c[calls]", "color:#e85d2a;font-weight:bold", ...args);
   const [head, ...rest] = args;
   const msg = typeof head === "string" ? head : String(head);
@@ -303,7 +302,7 @@ function reportCallError(where: string, err: unknown): void {
       msg = "Микрофон/камера заняты другим приложением.";
       break;
   }
-  // eslint-disable-next-line no-console
+
   console.error(`[calls:${where}]`, e?.name ?? "", err);
   logEvent("error", "calls", `error @ ${where}`, { name: e?.name, message: e?.message });
   toast.error(`Звонок: ${msg}`);

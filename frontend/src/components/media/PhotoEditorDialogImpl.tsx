@@ -190,7 +190,6 @@ export function PhotoEditorDialog({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, resolvedSrc]);
 
   // Reset editor state whenever a new image is loaded.
