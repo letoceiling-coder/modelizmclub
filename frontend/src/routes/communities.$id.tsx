@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { variantUrl } from "@/lib/media/variants";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
@@ -619,7 +620,7 @@ function CommunityRightRail({
                     >
                       {c.avatarImage ? (
                         <img
-                          src={c.avatarImage}
+                          src={variantUrl(c.avatarImage, "thumb")}
                           width={36}
                           height={36}
                           loading="lazy"

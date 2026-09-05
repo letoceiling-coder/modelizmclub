@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Phone, Video, X } from "lucide-react";
 import { userById } from "@/lib/mock";
 
@@ -52,16 +53,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
             </button>
 
             <div className="flex flex-col items-center text-center">
-              <img
-                src={peer.avatar}
-                width={64}
-                height={64}
-                loading="lazy"
-                decoding="async"
-                alt=""
-                className="h-[64px] w-[64px] rounded-full object-cover"
-                style={{ border: "2px solid var(--border)" }}
-              />
+              <UserAvatar src={peer.avatar} name={peer.name} size={72} />
               <h3
                 id="confirm-call-title"
                 className="mt-[12px] font-display text-[17px] font-bold leading-tight"

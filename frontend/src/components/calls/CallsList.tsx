@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import {
   PhoneIncoming,
   PhoneOutgoing,
@@ -86,24 +87,7 @@ export function CallsList({ onOpenChat }: Props) {
             className="flex items-center gap-[12px] px-[16px] py-[12px]"
             style={{ borderBottom: "1px solid var(--border)" }}
           >
-            {rec.peer.avatar ? (
-              <img
-                src={rec.peer.avatar}
-                width={44}
-                height={44}
-                loading="lazy"
-                decoding="async"
-                alt=""
-                className="h-[44px] w-[44px] rounded-full object-cover"
-              />
-            ) : (
-              <div
-                className="grid h-[44px] w-[44px] place-items-center rounded-full font-display text-[16px] font-bold text-[var(--accent-foreground)]"
-                style={{ background: "var(--accent)" }}
-              >
-                {initial}
-              </div>
-            )}
+            <UserAvatar src={rec.peer.avatar} name={rec.peer.name} size={44} />
             <div className="min-w-0 flex-1">
               <div
                 className="truncate font-display text-[14px] font-semibold"

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
+import { variantUrl } from "@/lib/media/variants";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Clock, Check, Radio, Repeat2 } from "lucide-react";
@@ -489,7 +490,7 @@ export function PostCard({
           >
             {post.channel.avatar ? (
               <Img
-                src={post.channel.avatar}
+                src={variantUrl(post.channel.avatar, "thumb")}
                 width={32}
                 height={32}
                 alt=""
