@@ -92,11 +92,28 @@ if ! "${APP_DIR}/deploy/scripts/smoke-check.sh" --frontend "${HEALTH_URL}"; then
   exit 1
 fi
 
+# Куда откатываться — записываем явно, в момент переключения. До 05.09 это
+# решалось сортировкой имён в момент отката, и `frontend-baseline-2026-09-03`
+# оказывался «свежее» любого `frontend-2026090513…`: 'b' сортируется после '2'.
+if [[ -n "${PREVIOUS_OUTPUT}" ]]; then
+  echo "$(basename "$(dirname "$(dirname "${PREVIOUS_OUTPUT}")")")" > "${WORKTREES_DIR}/PREVIOUS"
+fi
+
 # Keep the worktree just deployed plus one prior release for rollback
 # headroom (the live .output symlink points into whichever worktree is
 # current, so pruning must never touch the last two).
+#
+# Базовый релиз в ротации не участвует: он лежит отдельно как пол, на который
+# можно встать руками. Раньше он занимал одно из двух мест «оставить» — и
+# предыдущая выкатка удалялась, оставляя откат без цели. Сортировка — по
+# времени изменения, а не по имени, по той же причине, что и в откате.
 cd "${APP_DIR}"
-mapfile -t OLD_WORKTREES < <(git worktree list --porcelain | awk '/^worktree /{print $2}' | grep "^${WORKTREES_DIR}/frontend-" | sort -r | tail -n +3)
+mapfile -t OLD_WORKTREES < <(
+  git worktree list --porcelain | awk '/^worktree /{print $2}' |
+    grep "^${WORKTREES_DIR}/frontend-" | grep -v '/frontend-baseline-' |
+    while IFS= read -r wt; do printf '%s %s\n' "$(stat -c %Y "${wt}" 2>/dev/null || echo 0)" "${wt}"; done |
+    sort -rn | cut -d' ' -f2- | tail -n +3
+)
 for wt in "${OLD_WORKTREES[@]}"; do
   [[ -n "${wt}" ]] || continue
   git worktree remove --force "${wt}" 2>/dev/null || rm -rf "${wt}"
