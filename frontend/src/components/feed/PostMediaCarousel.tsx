@@ -135,6 +135,8 @@ function GalleryImage({
 function CarouselVideo({ src }: { src: string }) {
   const ref = useRef<HTMLVideoElement>(null);
 
+  const videoPreload = useVideoPreload();
+
   useEffect(() => {
     return () => {
       ref.current?.pause();
@@ -146,11 +148,38 @@ function CarouselVideo({ src }: { src: string }) {
       ref={ref}
       src={src}
       controls
-      preload="metadata"
+      preload={videoPreload}
       playsInline
       className="h-full w-full object-contain"
     />
   );
+}
+
+/**
+ * Когда видео можно разрешить тянуть метаданные.
+ *
+ * `preload="metadata"` у видео ленты снимал с прода 148 КБ диапазонными
+ * запросами прямо во время первой загрузки — рядом с картинкой баннера,
+ * которая и есть LCP-элемент страницы. На медленном канале эти килобайты
+ * отодвигали LCP: замерено Lighthouse, картинка 49 КБ приходила на 1325 мс,
+ * видео 148 КБ — на 1406 мс, в одном и том же окне.
+ *
+ * Первый кадр всё равно нужен — без него на месте видео чёрный
+ * прямоугольник, — поэтому метаданные не отменяются, а откладываются до
+ * события load: к этому моменту LCP уже отрисован.
+ */
+function useVideoPreload(): "none" | "metadata" {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (document.readyState === "complete") {
+      setReady(true);
+      return;
+    }
+    const on = () => setReady(true);
+    window.addEventListener("load", on, { once: true });
+    return () => window.removeEventListener("load", on);
+  }, []);
+  return ready ? "metadata" : "none";
 }
 
 function MediaFrame({
@@ -221,6 +250,7 @@ export function PostMediaCarousel({
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
+  const videoPreload = useVideoPreload();
 
   const imageUrls = items
     .filter((item) => item.type === "image")
@@ -293,7 +323,7 @@ export function PostMediaCarousel({
                     }}
                     src={item.url}
                     controls
-                    preload="metadata"
+                    preload={videoPreload}
                     playsInline
                     className="h-full w-full object-contain"
                   />
