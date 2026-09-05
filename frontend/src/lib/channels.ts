@@ -1,6 +1,6 @@
 // API-backed module for the "Каналы" (Channels) section.
 // Channels are one-way publishing surfaces: only owners post, users subscribe.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
@@ -496,15 +496,24 @@ export function useChannels(
   return { channels, loading, reload };
 }
 
-export function useChannel(slug: string): {
+/**
+ * @param initial канал, уже полученный загрузчиком маршрута. С ним первый
+ *   кадр содержит настоящие данные, и подмены «скелетон → содержимое» не
+ *   происходит вовсе.
+ */
+export function useChannel(
+  slug: string,
+  initial?: Channel | null,
+): {
   channel: Channel | null;
   loading: boolean;
   notFound: boolean;
   reload: () => void;
 } {
-  const [channel, setChannel] = useState<Channel | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [channel, setChannel] = useState<Channel | null>(initial ?? null);
+  const [loading, setLoading] = useState(initial === undefined);
+  const [notFound, setNotFound] = useState(initial === null);
+  const primed = useRef(initial !== undefined);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -516,20 +525,33 @@ export function useChannel(slug: string): {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  useEffect(reload, [reload]);
+  useEffect(() => {
+    // Данные от загрузчика уже отрисованы — второй запрос за тем же самым
+    // только мигал бы содержимым.
+    if (primed.current) {
+      primed.current = false;
+      return;
+    }
+    reload();
+  }, [reload]);
+
   return { channel, loading, notFound, reload };
 }
 
-export function useChannelPosts(slug: string): {
+export function useChannelPosts(
+  slug: string,
+  initial?: ChannelPost[],
+): {
   posts: ChannelPost[];
   loading: boolean;
   /** Запрос не прошёл. Без этого флага неудача выглядела как «постов нет». */
   failed: boolean;
   reload: () => void;
 } {
-  const [posts, setPosts] = useState<ChannelPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<ChannelPost[]>(initial ?? []);
+  const [loading, setLoading] = useState(initial === undefined);
   const [failed, setFailed] = useState(false);
+  const primed = useRef(initial !== undefined);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -543,7 +565,14 @@ export function useChannelPosts(slug: string): {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  useEffect(reload, [reload]);
+  useEffect(() => {
+    if (primed.current) {
+      primed.current = false;
+      return;
+    }
+    reload();
+  }, [reload]);
+
   return { posts, loading, failed, reload };
 }
 

@@ -35,6 +35,8 @@ import {
   setChannelSubscription,
   createChannelPost,
   deleteChannelPost,
+  fetchChannel,
+  fetchChannelPosts,
   isChannelOwner,
   isChannelManager,
   formatCount,
@@ -54,6 +56,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
@@ -93,8 +96,34 @@ export const Route = createFileRoute("/channel/$id")({
         ? (search.tab as ChannelTab | "manage")
         : undefined,
     section: search.section === "stats" || search.section === "manage" ? search.section : undefined,
-    settings: search.settings === true || search.settings === "1" || search.settings === 1,
+    // `undefined`, а не `false`: значение, которого нет в адресе, не должно в
+    // нём появляться. Роутер, увидев в разобранном поиске ключ со значением
+    // false, дописывал его обратно и отвечал 307 на ?settings=false — лишний
+    // круг на каждый заход на страницу канала. Он же ломал снятие скриншотов:
+    // навигация прерывалась редиректом и падала с ERR_ABORTED.
+    settings:
+      search.settings === true || search.settings === "1" || search.settings === 1
+        ? true
+        : undefined,
   }),
+  /**
+   * Канал и его записи приходят с сервера, а не после гидрации.
+   *
+   * До 05.09 страница красила скелетон, а потом подменяла его содержимым —
+   * и подвал прыгал на 236 px: CLS 0,367 при пороге 0,1, худший показатель
+   * среди всех страниц. Скелетон нужной высоты эту разницу только уменьшает:
+   * пока высота карточки неизвестна заранее, подмена всё равно двигает
+   * страницу. Данные в первом кадре убирают саму подмену.
+   */
+  loader: async ({ params }) => {
+    await ensurePublicBootstrap();
+    const [channel, posts] = await Promise.all([
+      fetchChannel(params.id).catch(() => null),
+      fetchChannelPosts(params.id).catch(() => [] as ChannelPost[]),
+    ]);
+    return { channel, posts };
+  },
+  staleTime: 30_000,
   component: ChannelPage,
 });
 
@@ -151,13 +180,14 @@ function ChannelPage() {
   const me = useCurrentUser();
   const { requirePremium, requireAccount } = useGuestAccess();
   const { requireAction } = useActionGate();
-  const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
+  const loaded = Route.useLoaderData();
+  const { channel, loading, notFound, reload: reloadChannel } = useChannel(id, loaded.channel);
   const {
     posts,
     loading: postsLoading,
     failed: postsFailed,
     reload: reloadPosts,
-  } = useChannelPosts(id);
+  } = useChannelPosts(id, loaded.posts);
   const [tab, setTab] = useState<ChannelTab>(tabSearch === "about" ? "about" : "posts");
   const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
   const [requestOpen, setRequestOpen] = useState(false);

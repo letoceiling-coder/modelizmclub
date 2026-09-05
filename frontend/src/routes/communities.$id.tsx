@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { variantUrl } from "@/lib/media/variants";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -78,6 +78,7 @@ import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMor
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
 import { toast } from "@/lib/toast";
 
@@ -86,6 +87,19 @@ import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/communities/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.communityDetail.metaTitle") }] }),
+  /**
+   * Сообщество приходит с сервера, как и канал рядом.
+   *
+   * Без загрузчика страница красила пустую оболочку и добирала данные после
+   * гидрации: первая отрисовка на 3,8 с, LCP 6,6 с — худшая пара среди всех
+   * страниц, и содержимое доезжало кусками, двигая соседние блоки.
+   */
+  loader: async ({ params }) => {
+    await ensurePublicBootstrap();
+    const community = await fetchCommunity(params.id).catch(() => null);
+    return { community };
+  },
+  staleTime: 30_000,
   component: CommunityDetailPage,
 });
 
@@ -743,15 +757,17 @@ function CommunityDetailPage() {
   const { requirePremium, requireAccount } = useGuestAccess();
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const [community, setCommunity] = useState<Community | null>(null);
+  const loaded = Route.useLoaderData();
+  const primedRef = useRef(true);
+  const [community, setCommunity] = useState<Community | null>(loaded.community);
   const tabs = useMemo(() => communityTabs(t), [t]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(loaded.community === null);
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>("posts");
-  const [joined, setJoined] = useState(false);
-  const [joinPending, setJoinPending] = useState(false);
-  const [members, setMembers] = useState<number>(0);
+  const [joined, setJoined] = useState(Boolean(loaded.community?.joined));
+  const [joinPending, setJoinPending] = useState(Boolean(loaded.community?.joinRequestPending));
+  const [members, setMembers] = useState<number>(loaded.community?.members ?? 0);
   const [busy, setBusy] = useState(false);
   const [signupEvent, setSignupEvent] = useState<DemoCommunityEvent | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -772,6 +788,16 @@ function CommunityDetailPage() {
 
   useEffect(() => {
     let alive = true;
+    // Данные от загрузчика уже отрисованы: повторный запрос за тем же самым
+    // только мигнул бы содержимым.
+    if (primedRef.current) {
+      primedRef.current = false;
+      const c = loaded.community;
+      if (c) {
+        recordView({ id: c.id, kind: "community", title: c.name, thumb: c.avatarImage });
+      }
+      return;
+    }
     setLoading(true);
     setTab("posts");
     fetchCommunity(id)
@@ -788,7 +814,7 @@ function CommunityDetailPage() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, loaded.community]);
 
   // Demo content for tabs without backend wiring.
   const demo = isDemoMode();
