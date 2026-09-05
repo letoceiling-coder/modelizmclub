@@ -1,6 +1,10 @@
 [Unit]
 Description=ModelizmClub frontend (TanStack Start / Nitro)
 After=network.target
+# Слушающий сокет держит systemd — он переживает перезапуск сервиса, и на
+# время подмены релиза соединения ждут в очереди вместо 502.
+Requires=modelizmclub-frontend.socket
+After=modelizmclub-frontend.socket
 
 [Service]
 Type=simple
@@ -14,6 +18,8 @@ Environment=HOST=127.0.0.1
 # rest; server-graceful.mjs then guarantees the process actually exits.
 Environment=SERVER_SHUTDOWN_TIMEOUT=5
 Environment=SHUTDOWN_DEADLINE_MS=8000
+# Сокет достаётся процессу дескриптором 3; подмену listen() делает
+# server-graceful.mjs, и только когда LISTEN_PID совпадает с нашим.
 ExecStart=/usr/bin/node --import ./server-graceful.mjs .output/server/index.mjs
 # A started process is not a working site: block the unit from reporting
 # success until it actually answers, so `systemctl restart` fails loudly
