@@ -22,8 +22,13 @@ interface Props {
   hideMobileHeader?: boolean;
   /** Hides the mobile BottomNav — for full-screen immersive views (e.g. an
    *  open chat, Avito-style) where the section owns the whole viewport and
-   *  exits via its own back arrow. Desktop is unaffected (nav is lg:hidden). */
+   *  exits via its own back arrow. Desktop is unaffected (nav is md:hidden). */
   hideBottomNav?: boolean;
+  /** Держит центральную колонку в 680 px на широком экране — ширина строки,
+   *  за которой текст перестаёт читаться, и ровно та, на которой построена
+   *  лента. Остальные разделы (каталог, админка, мессенджер) занимают всё
+   *  доступное место, как занимали. */
+  narrowCenter?: boolean;
 }
 
 export function AppLayout({
@@ -34,6 +39,7 @@ export function AppLayout({
   sidebar,
   hideMobileHeader,
   hideBottomNav,
+  narrowCenter,
 }: Props) {
   return (
     // 100dvh keeps the shell stable on mobile Safari/Chrome (no 100vh jump).
@@ -59,7 +65,13 @@ export function AppLayout({
         className={cn(
           "mx-auto flex w-full max-w-[var(--container-max)] items-start gap-6 px-3 pt-4",
           hideBottomNav ? "pb-[var(--safe-bottom)]" : "pb-[calc(var(--bottom-nav-space)+8px)]",
+          // Нижняя панель исчезает с 768 — с неё же снимается и отступ под неё.
+          "md:pb-4",
           "lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0",
+          // 240 + 680 + 320 и промежутки — уже 1288 при контейнере 1560:
+          // без выравнивания по центру колонки прижались бы влево, оставив
+          // справа пустую полосу.
+          narrowCenter && "xl:justify-center",
         )}
       >
         {sidebar === false ? null : (sidebar ?? <Sidebar collapsed={navCollapsed} />)}
@@ -67,6 +79,7 @@ export function AppLayout({
         <main
           className={cn(
             "min-w-0 flex-1 lg:overflow-y-auto",
+            narrowCenter && "xl:max-w-[680px]",
             rightColumn === false &&
               "lg:mr-[calc(-1*var(--container-pad))] lg:pr-[var(--container-pad)]",
           )}

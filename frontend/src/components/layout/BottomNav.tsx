@@ -38,7 +38,8 @@ export function BottomNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-[var(--z-sticky)]"
+      // md:hidden, не lg: с 768 навигация живёт в боковой колонке значков.
+      className="fixed bottom-0 left-0 right-0 z-[var(--z-sticky)] md:hidden"
       style={{
         background: "color-mix(in oklab, var(--background) 94%, transparent)",
         backdropFilter: "saturate(180%) blur(14px)",

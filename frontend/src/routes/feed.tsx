@@ -78,6 +78,11 @@ const EMPTY_FEED: FeedResult = { posts: [], page: 1, lastPage: 1, total: 0 };
 
 /** One network page of the feed. The list grows by fetching the next page —
  *  there is no client-side ceiling on how many posts can be shown. */
+/** Чип направления: та же высота 32, что и у фильтров ленты, и та же
+ *  невидимая ::after-коробка, поднимающая зону нажатия до 44. */
+const CATEGORY_CHIP_CLASS =
+  'relative h-[32px] shrink-0 rounded-[var(--r-pill)] border px-[14px] text-[13px] leading-none transition-colors after:absolute after:inset-x-0 after:-inset-y-[6px] after:content-[""]';
+
 const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/feed")({
@@ -175,7 +180,6 @@ function FeedPage() {
   );
   const [composerDraft, setComposerDraft] = useState<ComposerDraft>({ text: "", files: [] });
   const [composerSession, setComposerSession] = useState(0);
-  const [draftClearToken, setDraftClearToken] = useState(0);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => getHiddenPostIds());
   const { guardAction, isAllowed, ready: guestAccessReady } = useGuestAccess();
 
@@ -360,7 +364,6 @@ function FeedPage() {
   const addPost = (post: Post) => {
     setComposerOpen(false);
     setComposerDraft({ text: "", files: [] });
-    setDraftClearToken((t) => t + 1);
     if (post.status === "scheduled") {
       if (filter === "scheduled") updateFeed((data) => prependFeedPost(data, post));
       return;
@@ -391,14 +394,13 @@ function FeedPage() {
   const clearTag = () => navigate({ to: "/feed", search: (prev) => ({ ...prev, tag: undefined }) });
 
   return (
-    <AppLayout footer rightColumn={<FeedRightRail />}>
+    <AppLayout footer narrowCenter rightColumn={<FeedRightRail />}>
       <div className="space-y-[16px]">
         <VerificationBanner />
         <EventsHero initial={loaded.hero} />
 
         <CreatePostMenu
           me={me}
-          draftClearToken={draftClearToken}
           onCompose={(sel, draft) => {
             guardAction("feed.compose.open", () => {
               setComposerSelection(sel);
@@ -437,7 +439,7 @@ function FeedPage() {
         )}
 
         {filter === "categories" && (
-          <div className="-mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] no-scrollbar lg:mx-0 lg:px-0">
+          <div className="no-scrollbar -mx-3 flex gap-[6px] overflow-x-auto px-[12px] pb-[4px] sm:mx-0 sm:px-0">
             {categories.map((c) => {
               const active = activeCategory === c.name;
               return (
@@ -448,7 +450,7 @@ function FeedPage() {
                       setActiveCategory(active ? null : c.name),
                     )
                   }
-                  className="min-h-[44px] shrink-0 rounded-[var(--r-pill)] border px-[14px] py-[6px] text-[13px] transition-colors"
+                  className={CATEGORY_CHIP_CLASS}
                   style={{
                     background: active ? "var(--accent)" : "var(--background-elevated)",
                     color: active ? "#fff" : "var(--foreground)",
@@ -463,7 +465,9 @@ function FeedPage() {
           </div>
         )}
 
-        <div className="-mx-3 space-y-[16px] sm:mx-0">
+        {/* На телефоне между постами полоса фона 8 px вместо 16: карточки идут
+            от края до края, и разделяет их фон, а не воздух внутри колонки. */}
+        <div className="-mx-3 space-y-[8px] sm:mx-0 sm:space-y-[16px]">
           {initialLoading && filtered.length === 0 ? (
             Array.from({ length: 3 }).map((_, i) => <PostCardSkeleton key={i} />)
           ) : loadFailed ? (

@@ -31,7 +31,10 @@ export function FeedFilterTabs({ value, onChange }: Props) {
 
   return (
     <div
-      className="sticky top-0 z-20 -mx-3 px-[8px] py-[8px] backdrop-blur-md sm:px-[12px] sm:py-[10px] lg:mx-0 lg:rounded-[var(--r-card)] lg:border lg:px-[14px] lg:py-[12px]"
+      // Слой берётся из шкалы в styles.css: числовых z-index у липких панелей
+      // в проекте нет — иначе следующая панель снова окажется выше или ниже
+      // случайно.
+      className="sticky top-0 z-[var(--z-sticky)] -mx-3 px-[8px] py-[6px] backdrop-blur-md sm:mx-0 sm:rounded-[var(--r-card)] sm:border sm:px-[12px] sm:py-[8px]"
       style={{
         background: "color-mix(in oklab, var(--background-elevated) 92%, transparent)",
         borderColor: "var(--border)",
@@ -55,7 +58,11 @@ export function FeedFilterTabs({ value, onChange }: Props) {
               aria-selected={active}
               onClick={() => guardAction(FEED_FILTER_ACTIONS[it.id], () => onChange(it.id))}
               className={cn(
-                "shrink-0 whitespace-nowrap rounded-[var(--r-pill)] border px-[12px] py-[8px] text-[13px] transition-all duration-200 active:scale-[0.98] sm:min-h-[40px] sm:px-[14px] sm:py-[9px] sm:text-[14px] lg:min-h-[42px] lg:px-[16px]",
+                // 32 px на чип на всех ширинах: строка фильтров липкая и висит
+                // над лентой, каждый лишний пиксель здесь платится содержимым.
+                // Палец при этом получает свои 44: невидимая ::after-коробка
+                // расширяет зону нажатия, ничего не двигая.
+                'relative h-[32px] shrink-0 whitespace-nowrap rounded-[var(--r-pill)] border px-[12px] text-[13px] leading-none transition-all duration-200 after:absolute after:inset-x-0 after:-inset-y-[6px] after:content-[""] active:scale-[0.98] sm:px-[14px]',
                 active
                   ? "font-semibold text-[var(--accent-foreground,#fff)]"
                   : "font-medium text-[var(--foreground-70)] hover:border-[color-mix(in_oklab,var(--border)_70%,var(--foreground)_30%)] hover:bg-[var(--background-surface-hover)]",
@@ -64,7 +71,6 @@ export function FeedFilterTabs({ value, onChange }: Props) {
                 background: active ? "var(--accent)" : "var(--background-surface)",
                 borderColor: active ? "var(--accent)" : "var(--border)",
                 boxShadow: active ? "var(--shadow-button)" : undefined,
-                minHeight: 36,
               }}
             >
               {it.label}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, X } from "lucide-react";
 import type { Banner } from "@/lib/mock";
 import {
   fetchBannersWithSettings,
@@ -13,6 +13,30 @@ import {
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
+
+/** Ключ, под которым лежат закрытые пользователем баннеры. */
+const DISMISSED_KEY = "mc_feed_hero_dismissed";
+
+function readDismissed(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_KEY);
+    const list: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberDismissed(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const next = Array.from(new Set([...readDismissed(), id])).slice(-50);
+    window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+  } catch {
+    /* приватный режим — закрытие живёт до перезагрузки */
+  }
+}
 
 export function sortBanners(list: Banner[]): Banner[] {
   return [...list].sort((a, b) => {
@@ -39,6 +63,16 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
   );
   const [enabled, setEnabled] = useState(() => cached?.carousel.enabled !== false);
   const [signup, setSignup] = useState<Banner | null>(null);
+  // Закрытые баннеры читаются после монтирования, а не при первом рендере:
+  // на сервере localStorage нет, и решение, принятое только в браузере,
+  // разошлось бы с серверной разметкой. Расплата — у того, кто уже закрыл
+  // баннер, блок исчезает первым же кадром после гидрации; у всех
+  // остальных первый экран не двигается.
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  useEffect(() => {
+    const stored = readDismissed();
+    if (stored.length > 0) setDismissed(stored);
+  }, []);
   // False only during the very first fetch. Until then the hero's box is
   // reserved (see below): rendering null and then inserting a 200px slider
   // above the feed was the single largest layout shift on /feed (CLS 0.25).
@@ -63,8 +97,8 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
   }, [cached]);
 
   const list = useMemo(
-    () => sortBanners(allBanners.filter((b) => b.active !== false)),
-    [allBanners],
+    () => sortBanners(allBanners.filter((b) => b.active !== false && !dismissed.includes(b.id))),
+    [allBanners, dismissed],
   );
 
   useEffect(() => {
@@ -105,6 +139,13 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
 
   const prev = () => setIndex((i) => (i - 1 + list.length) % list.length);
   const next = () => setIndex((i) => (i + 1) % list.length);
+  /** Закрыть текущий баннер: он уходит из ленты и не возвращается после
+   *  перезагрузки, пока администратор не поставит новый. */
+  const dismissCurrent = () => {
+    rememberDismissed(current.id);
+    setDismissed((prev) => [...prev, current.id]);
+    setIndex(0);
+  };
 
   const onSlidePointerDown = (e: React.PointerEvent) => {
     dragStart.current = { x: e.clientX, y: e.clientY };
@@ -178,6 +219,17 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
               ctaPointerProps={stopPointerPropagation}
             />
           </ReducedMotionSwitch>
+
+          <button
+            type="button"
+            onClick={dismissCurrent}
+            {...stopPointerPropagation}
+            aria-label={t("components.eventsHero.dismiss")}
+            className="absolute right-[8px] top-[8px] grid h-[28px] w-[28px] place-items-center rounded-full text-white"
+            style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
+          >
+            <X className="h-[15px] w-[15px]" />
+          </button>
 
           {list.length > 1 && (
             <>
