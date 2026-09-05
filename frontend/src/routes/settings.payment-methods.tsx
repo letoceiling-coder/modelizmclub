@@ -57,7 +57,6 @@ function PaymentMethodsSection() {
       window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
     }
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo, t]);
 
   const addCard = async () => {

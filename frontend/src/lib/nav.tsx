@@ -159,7 +159,6 @@ export function assertMobileNavCoverage(): void {
   ];
   const missing = required.filter((r) => !covered.has(r));
   if (missing.length) {
-    // eslint-disable-next-line no-console
     console.warn("[nav] sections unreachable on mobile — add to MOBILE_MENU_SECTIONS:", missing);
   }
 }
