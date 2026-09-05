@@ -19,6 +19,8 @@ Route::prefix('media')->middleware(['auth:sanctum', 'verified'])->group(function
 // Public media proxy (streams from the private bucket). Must stay outside auth.
 Route::get('media/{uuid}/{variant}', ServeMediaController::class)
     ->where('uuid', '[0-9a-fA-F-]{36}')
-    ->where('variant', '(thumb|card|medium|large)\.(avif|webp|jpg)');
+    // poster.webp и 720p.mp4 — слоты видео, лежат в той же колонке variants
+    // и отдаются тем же контроллером. См. Modules\Media\Services\VideoProcessor.
+    ->where('variant', '((thumb|card|medium|large)\.(avif|webp|jpg)|poster\.webp|720p\.mp4)');
 Route::get('media/{uuid}', ServeMediaController::class)
     ->where('uuid', '[0-9a-fA-F-]{36}');

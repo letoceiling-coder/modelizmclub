@@ -17,6 +17,20 @@ export type DisplayMedia = {
   variants?: MediaVariantSet | null;
 };
 
+/**
+ * Что бэкенд собрал для видео: кадр-постер и облегчённая копия.
+ *
+ * `status` относится к обработке, а не к воспроизведению: исходник играется
+ * с первой секунды после загрузки, а очередь тем временем снимает кадр и
+ * пережимает копию для ленты. `processing` — работа идёт, `failed` — очередь
+ * сдалась и второго кадра не будет.
+ */
+export type VideoDelivery = {
+  poster?: string;
+  sources?: Array<{ quality: string; url: string; bytes?: number }>;
+  status?: "processing" | "ready" | "failed";
+};
+
 const WIDTH: Record<keyof MediaVariantSet, number> = {
   thumb: 320,
   card: 640,

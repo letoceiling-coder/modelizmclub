@@ -681,6 +681,8 @@ function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Po
       url: m.url,
       width: m.width,
       height: m.height,
+      variants: m.variants,
+      video: m.video,
     })),
     views: post.views,
     likes: post.likes,

@@ -7,6 +7,7 @@ use App\Models\Media;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Modules\Media\Services\MediaVariantProcessor;
+use Modules\Media\Services\VideoProcessor;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -100,6 +101,28 @@ class ServeMediaController extends Controller
     {
         if ($variant === null || $variant === '') {
             return null;
+        }
+
+        // Постер и облегчённая копия видео живут в той же колонке variants,
+        // что и размеры картинок, и различаются только именем слота.
+        $rendition = (string) config('media.video.rendition.name', '720p');
+
+        if ($variant === $rendition.'.mp4') {
+            return [
+                'name' => $rendition,
+                'ext' => 'mp4',
+                'format' => 'mp4',
+                'mime' => 'video/mp4',
+            ];
+        }
+
+        if ($variant === VideoProcessor::POSTER.'.webp') {
+            return [
+                'name' => VideoProcessor::POSTER,
+                'ext' => 'webp',
+                'format' => 'webp',
+                'mime' => 'image/webp',
+            ];
         }
 
         if (! preg_match('/^(thumb|card|medium|large)\.(avif|webp|jpg)$/', $variant, $matches)) {

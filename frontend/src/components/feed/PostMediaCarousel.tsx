@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { Img } from "@/components/ui/Img";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
-import { displaySrc, variantUrl, type MediaVariantSet } from "@/lib/media/variants";
+import {
+  displaySrc,
+  variantUrl,
+  type MediaVariantSet,
+  type VideoDelivery,
+} from "@/lib/media/variants";
 import { Lightbox } from "@/components/post/Lightbox";
+import { FeedVideo } from "@/components/media/FeedVideo";
 
 export type MediaCarouselItem = {
   type: "image" | "video";
@@ -14,6 +20,8 @@ export type MediaCarouselItem = {
   /** Intrinsic size when the API knows it — reserves the box before the bytes arrive. */
   width?: number;
   height?: number;
+  /** Видео: постер и облегчённая копия. См. FeedVideo. */
+  video?: VideoDelivery;
 };
 
 /** Fallback intrinsic size for images whose dimensions the API did not send (4:3). */
@@ -132,56 +140,6 @@ function GalleryImage({
   );
 }
 
-function CarouselVideo({ src }: { src: string }) {
-  const ref = useRef<HTMLVideoElement>(null);
-
-  const videoPreload = useVideoPreload();
-
-  useEffect(() => {
-    return () => {
-      ref.current?.pause();
-    };
-  }, []);
-
-  return (
-    <video
-      ref={ref}
-      src={src}
-      controls
-      preload={videoPreload}
-      playsInline
-      className="h-full w-full object-contain"
-    />
-  );
-}
-
-/**
- * Когда видео можно разрешить тянуть метаданные.
- *
- * `preload="metadata"` у видео ленты снимал с прода 148 КБ диапазонными
- * запросами прямо во время первой загрузки — рядом с картинкой баннера,
- * которая и есть LCP-элемент страницы. На медленном канале эти килобайты
- * отодвигали LCP: замерено Lighthouse, картинка 49 КБ приходила на 1325 мс,
- * видео 148 КБ — на 1406 мс, в одном и том же окне.
- *
- * Первый кадр всё равно нужен — без него на месте видео чёрный
- * прямоугольник, — поэтому метаданные не отменяются, а откладываются до
- * события load: к этому моменту LCP уже отрисован.
- */
-function useVideoPreload(): "none" | "metadata" {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (document.readyState === "complete") {
-      setReady(true);
-      return;
-    }
-    const on = () => setReady(true);
-    window.addEventListener("load", on, { once: true });
-    return () => window.removeEventListener("load", on);
-  }, []);
-  return ready ? "metadata" : "none";
-}
-
 function MediaFrame({
   aspect,
   className = "",
@@ -217,7 +175,13 @@ function SingleMedia({
   if (item.type === "video") {
     return (
       <MediaFrame aspect={aspect} className="bg-black">
-        <CarouselVideo src={item.url} />
+        <FeedVideo
+          src={item.url}
+          video={item.video}
+          width={item.width}
+          height={item.height}
+          alt={alt}
+        />
       </MediaFrame>
     );
   }
@@ -249,8 +213,6 @@ export function PostMediaCarousel({
   const [viewportRef, embla] = useEmblaCarousel({ loop: items.length > 1 });
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
-  const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
-  const videoPreload = useVideoPreload();
 
   const imageUrls = items
     .filter((item) => item.type === "image")
@@ -260,13 +222,12 @@ export function PostMediaCarousel({
 
   const currentAspect = useSlideAspect(items[selected] ?? items[0]);
 
+  // Уехавший слайд гасит себя сам: FeedVideo снимает плеер по наблюдателю
+  // пересечений, а карусель обрезает соседей по overflow — значит,
+  // невидимый слайд для наблюдателя не пересекается с экраном.
   const onSelect = useCallback(() => {
     if (!embla) return;
-    const next = embla.selectedScrollSnap();
-    setSelected(next);
-    videoRefs.current.forEach((video, index) => {
-      if (index !== next) video.pause();
-    });
+    setSelected(embla.selectedScrollSnap());
   }, [embla]);
 
   useEffect(() => {
@@ -316,16 +277,12 @@ export function PostMediaCarousel({
             {items.map((item, i) => (
               <div key={`${item.type}-${item.url}-${i}`} className="h-full min-w-0 flex-[0_0_100%]">
                 {item.type === "video" ? (
-                  <video
-                    ref={(el) => {
-                      if (el) videoRefs.current.set(i, el);
-                      else videoRefs.current.delete(i);
-                    }}
+                  <FeedVideo
                     src={item.url}
-                    controls
-                    preload={videoPreload}
-                    playsInline
-                    className="h-full w-full object-contain"
+                    video={item.video}
+                    width={item.width}
+                    height={item.height}
+                    alt={`${alt} — видео`}
                   />
                 ) : (
                   <GalleryImage

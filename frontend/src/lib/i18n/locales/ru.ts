@@ -557,6 +557,11 @@ export const ru = {
       shareAction: "Поделиться",
       cancel: "Отмена",
     },
+    feedVideo: {
+      play: "Смотреть видео",
+      posterProcessing: "Готовим кадр",
+      posterFailed: "Кадр не получился",
+    },
     postCard: {
       likeFailed: "Не удалось поставить реакцию",
       reposted: "поделился записью",

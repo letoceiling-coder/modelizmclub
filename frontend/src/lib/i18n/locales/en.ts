@@ -567,6 +567,11 @@ export const en: TranslationSchema = {
       shareAction: "Share",
       cancel: "Cancel",
     },
+    feedVideo: {
+      play: "Play video",
+      posterProcessing: "Preparing the frame",
+      posterFailed: "No preview frame",
+    },
     postCard: {
       likeFailed: "Could not react",
       reposted: "shared a post",

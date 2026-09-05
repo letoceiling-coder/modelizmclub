@@ -5,7 +5,7 @@ import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { rememberMediaAspect } from "@/lib/media/aspectCache";
 import { demoFeed, demoPostComments } from "@/lib/demo-data";
-import type { MediaVariantSet } from "@/lib/media/variants";
+import type { MediaVariantSet, VideoDelivery } from "@/lib/media/variants";
 
 interface ApiPostAuthor {
   id?: number;
@@ -24,6 +24,7 @@ interface ApiPostMedia {
     height?: number | null;
     status?: string | null;
     variants?: MediaVariantSet;
+    video?: VideoDelivery;
   } | null;
 }
 
@@ -122,6 +123,7 @@ export function mapPostMedia(p: ApiPost): {
         width,
         height,
         variants: m.media?.variants,
+        video: m.media?.video,
       };
       return item;
     })

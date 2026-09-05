@@ -10,6 +10,7 @@ import {
   setDemoChannelSubscription,
 } from "@/lib/demo-data";
 import { formatDate } from "@/lib/format/date";
+import type { MediaVariantSet, VideoDelivery } from "@/lib/media/variants";
 
 export type ChannelKind = "official" | "brand" | "shop" | "author" | "expert";
 export type PostStatus = "published" | "moderation" | "rejected";
@@ -27,6 +28,10 @@ export interface ChannelPostMediaItem {
   url: string;
   width?: number;
   height?: number;
+  variants?: MediaVariantSet;
+  /** Видео: постер и облегчённая копия. Без них карточка канала показывала бы
+   *  «готовим кадр» и после того, как очередь всё сделала. */
+  video?: VideoDelivery;
 }
 
 export const CHANNEL_NAME_MAX = 60;
@@ -144,6 +149,8 @@ interface ApiChannelPostMedia {
     mime_type?: string | null;
     width?: number | null;
     height?: number | null;
+    variants?: MediaVariantSet;
+    video?: VideoDelivery;
   } | null;
 }
 
@@ -212,6 +219,8 @@ function mapPostMediaItem(m: ApiChannelPostMedia): ChannelPostMediaItem | null {
     url,
     width: m.media?.width ?? undefined,
     height: m.media?.height ?? undefined,
+    variants: m.media?.variants,
+    video: m.media?.video,
   };
 }
 

@@ -1,0 +1,29 @@
+[Unit]
+Description=Laravel Media Queue Worker (modelizmclub)
+# Отдельный воркер только под ffmpeg.
+#
+# Обычный modelizmclub-worker живёт с --timeout=120 и обслуживает почту,
+# уведомления и рассылку. Транскодирование туда не помещается: минутный ролик
+# 1080p занимает десятки секунд, а на длинном упрётся в таймаут и оставит в
+# хранилище обрезанный mp4. И наоборот — пока ffmpeg считает, письма ждут.
+#
+# --tries=1: повтор задаёт сама задача (ProcessVideoJob::$tries), и второй
+# счётчик здесь только запутал бы.
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/modelizmclub/backend
+# Один процесс: ffmpeg сам занимает все четыре ядра, второй воркер только
+# отнимал бы их у первого и у php-fpm.
+ExecStart=/usr/bin/php artisan queue:work redis --queue=media --sleep=5 --tries=1 --timeout=1800 --max-time=3600
+# Ниже обычного: перекодирование не должно мешать отвечать на запросы.
+Nice=10
+IOSchedulingClass=idle
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
