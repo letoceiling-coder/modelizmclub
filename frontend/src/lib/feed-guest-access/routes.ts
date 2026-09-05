@@ -44,6 +44,19 @@ export function isPublicGuestRoute(pathname: string): boolean {
     return true;
   }
   if (pathname.startsWith("/user/")) return true;
+  // Сообщества и каналы открыты гостю с 05.09. Без них в этом списке корень
+  // ждал на клиенте ответа /auth/me, превышал pendingMs=120 и подменял уже
+  // отрисованную сервером страницу заставкой загрузки — а следом рисовал её
+  // заново. Отсюда и брались сдвиги: содержимое появлялось «с нуля» через
+  // полторы секунды после того, как его уже показали.
+  //
+  // Мастера создания исключены: им нужно знать про сессию, чтобы решить,
+  // показывать форму или окно входа.
+  if (pathname === ROUTES.communities) return true;
+  if (pathname.startsWith("/communities/") && pathname !== "/communities/new") return true;
+  if (pathname === ROUTES.channels) return true;
+  if (pathname.startsWith("/channel/")) return true;
+  if (pathname.startsWith("/channels/") && pathname !== "/channels/new") return true;
   return false;
 }
 
@@ -62,6 +75,19 @@ export function isGuestStubRoute(pathname: string): boolean {
   if (pathname === ROUTES.reviews || pathname.startsWith("/reviews")) return true;
   if (pathname === ROUTES.deals || pathname.startsWith("/deals")) return true;
   if (pathname.startsWith("/user/")) return true;
+  // Сообщества и каналы открыты гостю с 05.09. Без них в этом списке корень
+  // ждал на клиенте ответа /auth/me, превышал pendingMs=120 и подменял уже
+  // отрисованную сервером страницу заставкой загрузки — а следом рисовал её
+  // заново. Отсюда и брались сдвиги: содержимое появлялось «с нуля» через
+  // полторы секунды после того, как его уже показали.
+  //
+  // Мастера создания исключены: им нужно знать про сессию, чтобы решить,
+  // показывать форму или окно входа.
+  if (pathname === ROUTES.communities) return true;
+  if (pathname.startsWith("/communities/") && pathname !== "/communities/new") return true;
+  if (pathname === ROUTES.channels) return true;
+  if (pathname.startsWith("/channel/")) return true;
+  if (pathname.startsWith("/channels/") && pathname !== "/channels/new") return true;
   return false;
 }
 

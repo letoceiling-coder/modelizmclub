@@ -97,7 +97,13 @@ export const Route = createFileRoute("/communities/$id")({
   loader: async ({ params }) => {
     await ensurePublicBootstrap();
     const community = await fetchCommunity(params.id).catch(() => null);
-    return { community };
+    // Стена — вместе с сообществом: иначе первый кадр показывает два
+    // скелетона по 120 px, а следом более короткое «постов нет», и всё, что
+    // ниже, прыгает на 86 px. Ровно это давало CLS 0,028 при пороге 0,01.
+    const posts = community
+      ? await fetchCommunityPosts(community.id).catch(() => [] as Post[])
+      : ([] as Post[]);
+    return { community, posts };
   },
   staleTime: 30_000,
   component: CommunityDetailPage,
@@ -775,8 +781,9 @@ function CommunityDetailPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [memberList, setMemberList] = useState<CommunityMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[]>(loaded.posts ?? []);
   const [postsLoading, setPostsLoading] = useState(false);
+  const postsPrimedRef = useRef(true);
   const [hubEvents, setHubEvents] = useState<CommunityEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
@@ -835,6 +842,11 @@ function CommunityDetailPage() {
     if (!community || tab !== "posts") return;
     if (demo) {
       setPosts(demoCommunityPosts(community.id));
+      return;
+    }
+    // Записи от загрузчика уже отрисованы.
+    if (postsPrimedRef.current) {
+      postsPrimedRef.current = false;
       return;
     }
     setPostsLoading(true);
