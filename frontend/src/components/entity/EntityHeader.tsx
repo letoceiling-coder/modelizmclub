@@ -79,6 +79,10 @@ export function EntityHeader({
             width={1400}
             height={400}
             alt=""
+            // Самая большая картинка первого экрана. Страница кладёт на неё
+            // preload в head (см. head() маршрута), и приоритет здесь должен
+            // совпадать: иначе браузер тянет её дважды по разным правилам.
+            priority
             className="h-full w-full object-cover"
           />
         )}

@@ -414,8 +414,16 @@ function CatalogPage() {
                       isFilterBusy && "pointer-events-none opacity-[0.72]",
                     )}
                   >
-                    {ads.map((ad) => (
-                      <CatalogCard key={ad.id} ad={ad} />
+                    {ads.map((ad, i) => (
+                      <CatalogCard
+                        key={ad.id}
+                        ad={ad}
+                        // Первый экран: на 375 в ряду две карточки, на широком
+                        // — четыре. Приоритет отдаём первой паре: LCP-элемент
+                        // на замерах — вторая карточка, а «высокий» на всём
+                        // ряду перестаёт быть приоритетом.
+                        priority={i < 2 ? "high" : i < 4 ? "eager" : undefined}
+                      />
                     ))}
                   </div>
                   {hasMore && loadState === "ok" && !isFilterBusy && (

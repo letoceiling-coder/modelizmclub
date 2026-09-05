@@ -19,7 +19,6 @@ import {
 import { toast } from "@/lib/toast";
 import { actions } from "@/lib/store";
 import { deletePost } from "@/lib/api/feed";
-import { approveModeration } from "@/lib/api/admin";
 import { isDemoMode } from "@/lib/demo-mode";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
@@ -171,6 +170,10 @@ export function PostActionMenu({
         close();
         return;
       }
+      // Модуль админского API — 17 КБ, и один этот импорт затягивал его в
+      // главный чанк: страницу с лентой открывают все, «одобрить» нажимает
+      // модератор. Забираем в момент нажатия.
+      const { approveModeration } = await import("@/lib/api/admin");
       await approveModeration("posts", postId);
       toast.success(t("components.postActionMenu.approved"));
       onApproved?.();

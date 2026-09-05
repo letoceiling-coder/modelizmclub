@@ -1,5 +1,8 @@
-import wordmark from "@/assets/logo-modelizm-wordmark.png";
+import wordmarkWebp from "@/assets/logo-modelizm-wordmark.webp";
 import { Skeleton } from "@/components/ui/skeleton";
+
+/** Запасной PNG — из public/, чтобы он не попал в preload. См. Logo.tsx. */
+const WORDMARK_PNG = "/brand/logo-wordmark.png";
 
 /**
  * Холодный старт до готовности bootstrap/сессии/лоадера маршрута.
@@ -30,15 +33,18 @@ export function AppBootPreload() {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <img
-          src={wordmark}
-          width={1600}
-          height={514}
-          decoding="async"
-          alt="МоДелизМ"
-          className="block object-contain"
-          style={{ height: 28, width: "auto", maxWidth: 180 }}
-        />
+        <picture>
+          <source srcSet={wordmarkWebp} type="image/webp" />
+          <img
+            src={WORDMARK_PNG}
+            width={1600}
+            height={514}
+            decoding="async"
+            alt="МоДелизМ"
+            className="block object-contain"
+            style={{ height: 28, width: "auto", maxWidth: 180 }}
+          />
+        </picture>
         <div className="flex shrink-0 items-center gap-2">
           <Skeleton className="h-9 w-9 rounded-full" />
           <Skeleton className="h-9 w-9 rounded-full" />
