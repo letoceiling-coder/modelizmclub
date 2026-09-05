@@ -30,6 +30,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Appear } from "@/components/ui/Appear";
 import { CommentSection } from "@/components/post/CommentSection";
+import { CommentsSheet } from "@/components/post/CommentsSheet";
 import { PostMedia } from "@/components/post/PostMedia";
 import { PostHeader } from "@/components/post/PostHeader";
 import { PostActions } from "@/components/post/PostActions";
@@ -123,9 +124,14 @@ export function PostCard({
   const [reposted, setReposted] = useState(!!post.isReposted);
   const [expanded, setExpanded] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const commentsRef = useRef<HTMLDivElement>(null);
 
   const [likes, setLikes] = useState(post.likes);
+  // Только достоверные числа: просмотры на проде нулевые у всех постов,
+  // поэтому в статистику ветки они не идут.
+  const commentsStats =
+    likes > 0 ? t("components.commentsSheet.liked", { count: likes }) : undefined;
   const [saves, setSaves] = useState(post.saves ?? 0);
   const [reposts, setReposts] = useState(post.reposts ?? 0);
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
@@ -252,16 +258,11 @@ export function PostCard({
   // same single gate window save/repost use, instead of quietly doing nothing.
   const toggleComments = () => {
     void gate.require(levelFor("feed.post.comment"), () => {
-      if (showAllComments) {
-        commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        return;
-      }
-      if (commentsCount > 3) {
-        setShowAllComments(true);
-        loadComments(commentSort, true);
-        return;
-      }
-      focusComments();
+      // Раньше это разворачивало ветку прямо в ленте. Теперь открывает слой:
+      // список всегда полный, предпросмотр в карточке больше не нужен.
+      setShowAllComments(true);
+      loadComments(commentSort, true);
+      setCommentsOpen(true);
     });
   };
 
@@ -687,38 +688,43 @@ export function PostCard({
             onRepost={toggleRepost}
             onShare={sharePost}
           />
-
-          {commentsEnabled && (
-            <div ref={commentsRef}>
-              <CommentSection
-                comments={commentList}
-                onAdd={addComment}
-                loading={commentsFetchStarted && !commentsFetched}
-                readOnly={!canInteract && !guestNeedsAuth}
-                can={post.can}
-                previewLimit={3}
-                showAll={showAllComments}
-                onShowAll={() => {
-                  setShowAllComments(true);
-                  loadComments(commentSort, true);
-                }}
-                onHide={() => setShowAllComments(false)}
-                totalCount={commentsCount}
-                onDeleted={(id) => {
-                  setCommentList((prev) => removeFromCommentThread(prev, id));
-                  onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
-                }}
-                onSortChange={(next) => {
-                  setCommentSort(next);
-                  loadComments(next, showAllComments);
-                }}
-              />
-            </div>
-          )}
         </>
       )}
     </Card>
   );
+
+  // Ветка живёт слоем поверх, а не в потоке ленты: тот же CommentSection,
+  // что стоял в карточке, только развёрнутый и без предпросмотра — в ленте
+  // от него остаётся счётчик.
+  const commentsLayer = commentsEnabled ? (
+    <CommentsSheet open={commentsOpen} onOpenChange={setCommentsOpen} stats={commentsStats}>
+      <div ref={commentsRef} className="px-[16px] pb-[16px]">
+        <CommentSection
+          comments={commentList}
+          onAdd={addComment}
+          loading={commentsFetchStarted && !commentsFetched}
+          readOnly={!canInteract && !guestNeedsAuth}
+          can={post.can}
+          previewLimit={3}
+          showAll={showAllComments}
+          onShowAll={() => {
+            setShowAllComments(true);
+            loadComments(commentSort, true);
+          }}
+          onHide={() => setShowAllComments(false)}
+          totalCount={commentsCount}
+          onDeleted={(id) => {
+            setCommentList((prev) => removeFromCommentThread(prev, id));
+            onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
+          }}
+          onSortChange={(next) => {
+            setCommentSort(next);
+            loadComments(next, showAllComments);
+          }}
+        />
+      </div>
+    </CommentsSheet>
+  ) : null;
 
   return (
     <>
@@ -729,6 +735,7 @@ export function PostCard({
           {shell}
         </Appear>
       )}
+      {commentsLayer}
       {onEdited && (
         <EditPostDialog
           post={post}
