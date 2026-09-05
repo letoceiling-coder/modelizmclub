@@ -8,7 +8,8 @@ function initials(name: string): string {
 }
 
 interface Props {
-  src?: string;
+  /** null допускается: у части моделей аватар приходит как null, а не отсутствует. */
+  src?: string | null;
   name: string;
   /** Square size in px. */
   size?: number;
@@ -17,18 +18,22 @@ interface Props {
 }
 
 /**
- * Messenger avatar built on the shared Radix Avatar. Falls back to accent-soft
+ * Единственный аватар в приложении. Построен на общем Radix Avatar, а тот
+ * запрашивает вариант `thumb`: до 05.09 два десятка мест рисовали сырой
+ * <img> с оригиналом — на первом экране ленты это давало 412 КБ PNG 480×480
+ * в кружок 32 пикселя. Жил в messenger/UserAvatar, хотя его уже импортировали
+ * лента и каналы; переехал сюда, чтобы не заводить второй. Falls back to accent-soft
  * initials when the image is missing or fails to load — never renders
  * `<img src="">` or a broken-image glyph. Optional online dot overlay.
  */
-export function ChatAvatar({ src, name, size = 48, online, className }: Props) {
+export function UserAvatar({ src, name, size = 48, online, className }: Props) {
   const hasSrc = Boolean(src && src.trim());
   const dot = Math.max(10, Math.round(size * 0.25));
 
   return (
     <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
       <Avatar className={cn("h-full w-full", className)}>
-        {hasSrc && <AvatarImage src={src} alt="" />}
+        {hasSrc && <AvatarImage src={src ?? undefined} alt="" />}
         <AvatarFallback
           className="font-display font-semibold"
           style={{

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { variantUrl } from "@/lib/media/variants";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -458,7 +459,7 @@ function PeerAvatar({ avatar, name, initial }: { avatar?: string; name: string; 
   if (showImage) {
     return (
       <img
-        src={avatar}
+        src={variantUrl(avatar, "thumb")}
         width={120}
         height={120}
         loading="lazy"

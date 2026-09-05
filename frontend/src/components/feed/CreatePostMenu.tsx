@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Plus, Send, FileText, Video } from "lucide-react";
 import { motion } from "framer-motion";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { ChatAvatar } from "@/components/messenger/ChatAvatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 import { useChannels, type Channel } from "@/lib/channels";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -499,7 +499,7 @@ function InlineComposerBar({
       className="flex w-full items-center gap-[12px] rounded-[var(--r-card)] border px-[14px] py-[10px]"
       style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
     >
-      <ChatAvatar src={me.avatar} name={me.name} size={40} />
+      <UserAvatar src={me.avatar} name={me.name} size={40} />
       <motion.div
         layout
         className="min-w-0 flex-1"

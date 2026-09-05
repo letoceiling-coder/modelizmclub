@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Link } from "@tanstack/react-router";
 
 export function SearchGroup({
@@ -49,15 +50,7 @@ export function ResultRow({
       className="flex items-center gap-[10px] px-[14px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
     >
       {avatar ? (
-        <img
-          src={avatar}
-          width={32}
-          height={32}
-          loading="lazy"
-          decoding="async"
-          alt=""
-          className="h-[32px] w-[32px] shrink-0 rounded-full object-cover"
-        />
+        <UserAvatar src={avatar} name={title} size={40} />
       ) : (
         <div
           className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full"

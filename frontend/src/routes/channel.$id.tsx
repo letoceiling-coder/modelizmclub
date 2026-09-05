@@ -55,7 +55,7 @@ import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { uploadMedia, uploadMediaDeduped } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
-import { ChatAvatar } from "@/components/messenger/ChatAvatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
@@ -1234,7 +1234,7 @@ function AboutPanel({
               params={{ id: ownerProfileId }}
               aria-label={t("pages.channelDetail.ownerProfileAria", { name: channel.ownerName })}
             >
-              <ChatAvatar
+              <UserAvatar
                 src={channel.ownerAvatar}
                 name={channel.ownerName}
                 size={44}
@@ -1242,7 +1242,7 @@ function AboutPanel({
               />
             </Link>
           ) : (
-            <ChatAvatar
+            <UserAvatar
               src={channel.ownerAvatar}
               name={channel.ownerName}
               size={44}

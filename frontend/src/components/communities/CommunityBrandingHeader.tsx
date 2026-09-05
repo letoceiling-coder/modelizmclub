@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type LucideIcon } from "react";
+import { variantUrl } from "@/lib/media/variants";
 import { Camera } from "lucide-react";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import {
@@ -212,7 +213,7 @@ export function CommunityBrandingHeader({ community, Icon, editable, onUpdated }
             >
               {showAvatar ? (
                 <Img
-                  src={avatarUrl}
+                  src={variantUrl(avatarUrl, "thumb")}
                   width={96}
                   height={96}
                   alt=""

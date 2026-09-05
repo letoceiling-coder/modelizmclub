@@ -102,7 +102,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
-import { ChatAvatar } from "@/components/messenger/ChatAvatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 import i18n from "@/lib/i18n";
 import { MessengerPageSkeleton } from "@/components/boot/PageSkeletons";
@@ -521,7 +521,7 @@ function MessageBubble({
     >
       {!isMe && (
         <div className="w-[28px] shrink-0">
-          {isFirstInGroup && <ChatAvatar src={author.avatar} name={author.name} size={28} />}
+          {isFirstInGroup && <UserAvatar src={author.avatar} name={author.name} size={28} />}
         </div>
       )}
       <div
@@ -1541,7 +1541,7 @@ function MessengerPage() {
                           if (!isActive) e.currentTarget.style.background = "transparent";
                         }}
                       >
-                        <ChatAvatar
+                        <UserAvatar
                           src={u.avatar}
                           name={u.name}
                           size={48}
@@ -1681,7 +1681,7 @@ function MessengerPage() {
                     }
                     className="flex min-w-0 items-center gap-[12px]"
                   >
-                    <ChatAvatar
+                    <UserAvatar
                       src={activeIdentity?.avatar ?? partner?.avatar}
                       name={activeIdentity?.name ?? partner?.name ?? ""}
                       size={40}
@@ -2172,7 +2172,7 @@ function ChannelsList({
               className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left"
               style={{ background: isActive ? "var(--accent-soft)" : "transparent" }}
             >
-              <ChatAvatar src={identity.avatar} name={identity.name} size={48} />
+              <UserAvatar src={identity.avatar} name={identity.name} size={48} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-[6px]">
                   <span

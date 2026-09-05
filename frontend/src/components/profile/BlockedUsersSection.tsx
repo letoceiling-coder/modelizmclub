@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Ban, ShieldOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { userById } from "@/lib/mock";
@@ -36,15 +37,7 @@ export function BlockedUsersSection() {
             className="flex items-center gap-[12px] rounded-[12px] border px-[14px] py-[10px]"
             style={{ borderColor: "var(--border)" }}
           >
-            <img
-              src={u.avatar}
-              width={40}
-              height={40}
-              loading="lazy"
-              decoding="async"
-              alt=""
-              className="h-[40px] w-[40px] shrink-0 rounded-full object-cover"
-            />
+            <UserAvatar src={u.avatar} name={u.name} size={40} />
             <div
               className="min-w-0 flex-1 truncate text-[14px] font-semibold"
               style={{ color: "var(--foreground)" }}

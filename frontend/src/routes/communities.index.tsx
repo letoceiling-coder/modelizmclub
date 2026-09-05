@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { variantUrl } from "@/lib/media/variants";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -145,7 +146,7 @@ function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void 
         >
           {showAvatar ? (
             <img
-              src={c.avatarImage}
+              src={variantUrl(c.avatarImage, "thumb")}
               width={96}
               height={96}
               alt=""

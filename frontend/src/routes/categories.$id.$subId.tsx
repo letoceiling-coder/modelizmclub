@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -992,15 +993,7 @@ function ChatTab({
                 }}
                 className={`flex gap-[10px] ${mine ? "flex-row-reverse" : ""}`}
               >
-                <img
-                  src={u.avatar}
-                  width={32}
-                  height={32}
-                  loading="lazy"
-                  decoding="async"
-                  alt={u.name}
-                  className="h-[32px] w-[32px] shrink-0 rounded-full"
-                />
+                <UserAvatar src={u.avatar} name={u.name} size={40} />
                 <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                   <div
                     className="mb-[2px] flex items-center gap-[6px] text-[11px]"
@@ -1388,15 +1381,7 @@ function MembersTab({
               className="flex items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
             >
               <div className="relative shrink-0">
-                <img
-                  src={u.avatar}
-                  width={40}
-                  height={40}
-                  loading="lazy"
-                  decoding="async"
-                  alt={u.name}
-                  className="h-[40px] w-[40px] rounded-full"
-                />
+                <UserAvatar src={u.avatar} name={u.name} size={40} />
                 <span
                   className="absolute -bottom-[1px] -right-[1px] h-[11px] w-[11px] rounded-full border-[2px]"
                   style={{
