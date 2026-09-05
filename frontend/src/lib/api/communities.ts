@@ -97,6 +97,7 @@ export function mapCommunity(c: ApiCommunity): Community {
     avatarImage: c.avatar?.url ?? undefined,
     isOwner: Boolean(c.is_owner),
     canManage: Boolean(c.can_manage),
+    isOfficial: Boolean(c.is_official),
     role: c.viewer_role ?? (c.is_owner ? "owner" : c.is_member ? "member" : undefined),
     accessType: c.access_type ?? "open",
     rules: c.rules ?? null,

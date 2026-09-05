@@ -59,6 +59,8 @@ export const ru = {
     verifyEmail: "Подтверждение email",
   },
   guestAuth: {
+    communitiesTitle: "Войдите, чтобы вести свои сообщества",
+    communitiesDesc: "Свои клубы и подписки на них видны после входа в аккаунт.",
     title: "Войдите в аккаунт",
     description: "Чтобы пользоваться этой функцией, войдите или зарегистрируйтесь.",
     dealsTitle: "Войдите, чтобы посмотреть сделки",
@@ -1093,6 +1095,11 @@ export const ru = {
       sectionRecommendedSubNone: "Подобрали клубы, школы и магазины моделизма",
       sectionRecommendedSub: "Подобрано по вашим интересам",
       createCommunity: "Создать сообщество",
+      rowJoin: "Вступить",
+      rowManage: "Управление",
+      badgeOfficial: "Официальное",
+      loadFailedTitle: "Не удалось загрузить сообщества",
+      loadFailedDesc: "Проверьте соединение и попробуйте ещё раз",
     },
     communityWizard: {
       metaTitle: "Новое сообщество — МоДелизМ",

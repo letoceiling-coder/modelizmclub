@@ -13,11 +13,18 @@ import {
   BatteryCharging,
   Users,
   Search,
-  ArrowRight,
   Plus,
+  RefreshCw,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
+import {
+  CommunityRow,
+  CommunityRowSkeleton,
+  viewerRole,
+} from "@/components/communities/CommunityRow";
+import { GuestSectionStub } from "@/components/access/GuestSectionStub";
+import { useCurrentUser } from "@/lib/session";
 import type { Community } from "@/lib/mock";
 import { fetchCommunities } from "@/lib/api/communities";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
@@ -51,225 +58,6 @@ export const Route = createFileRoute("/communities/")({
   component: CommunitiesPage,
 });
 
-const ICON_MAP: Record<string, typeof Car> = {
-  Car,
-  Plane,
-  Ship,
-  Send,
-  Code2,
-  Wrench,
-  Cpu,
-  BatteryCharging,
-};
-
-const ROLE_LABEL_KEY: Record<NonNullable<Community["role"]>, string> = {
-  owner: "pages.shared.owner",
-  moderator: "pages.shared.moderator",
-  member: "pages.shared.member",
-};
-
-function CommunityCard({ c, onDeleted }: { c: Community; onDeleted?: () => void }) {
-  const { t } = useTranslation();
-  const Icon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
-  const [brokenCover, setBrokenCover] = useState(false);
-  const [brokenAvatar, setBrokenAvatar] = useState(false);
-
-  const showCover = Boolean(c.coverImage) && !brokenCover;
-  const showAvatar = Boolean(c.avatarImage) && !brokenAvatar;
-
-  return (
-    <Card
-      className="overflow-hidden flex flex-col shadow-none"
-      style={{
-        background: "var(--background-elevated)",
-        borderColor: "var(--border)",
-        borderRadius: 16,
-      }}
-    >
-      {/* banner */}
-      <Link to="/communities/$id" params={{ id: c.id }} className="relative block">
-        {showCover ? (
-          <img
-            src={c.coverImage}
-            width={1200}
-            height={360}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="h-[120px] w-full object-cover"
-            onError={() => setBrokenCover(true)}
-          />
-        ) : (
-          <div
-            className="relative h-[120px] w-full overflow-hidden"
-            style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-muted))" }}
-          >
-            <div className="absolute inset-0 grid place-items-center opacity-25">
-              <Icon size={54} color="#fff" />
-            </div>
-          </div>
-        )}
-        {/* category chip */}
-        {c.category && (
-          <span
-            className="absolute right-[10px] top-[10px] rounded-full px-[10px] py-[3px] text-[11px] font-semibold text-white"
-            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }}
-          >
-            {c.category}
-          </span>
-        )}
-        {/* viewer role */}
-        {(() => {
-          const role = resolveRole(c);
-          if (!role) return null;
-          return (
-            <span
-              className="absolute left-[10px] top-[10px] rounded-full px-[10px] py-[3px] text-[11px] font-semibold"
-              style={{
-                background: role === "member" ? "rgba(0,0,0,0.5)" : "var(--accent)",
-                color: "#fff",
-                backdropFilter: "blur(6px)",
-              }}
-            >
-              {t(ROLE_LABEL_KEY[role])}
-            </span>
-          );
-        })()}
-        {/* avatar */}
-        <div
-          className="absolute -bottom-[24px] left-[16px] grid h-[56px] w-[56px] place-items-center overflow-hidden"
-          style={{
-            border: "3px solid var(--background)",
-            borderRadius: "var(--r-card)",
-            background: "transparent",
-          }}
-        >
-          {showAvatar ? (
-            <img
-              src={variantUrl(c.avatarImage, "thumb")}
-              width={96}
-              height={96}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-              onError={() => setBrokenAvatar(true)}
-            />
-          ) : (
-            <div
-              className="grid h-full w-full place-items-center"
-              style={{ background: "var(--accent-soft)" }}
-            >
-              <Icon size={26} style={{ color: "var(--accent)" }} />
-            </div>
-          )}
-        </div>
-        {c.unreadPosts || c.unreadMessages ? (
-          <div className="absolute bottom-[8px] right-[10px] flex gap-[4px]">
-            {c.unreadPosts ? (
-              <span
-                className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white"
-                style={{ background: "var(--accent)" }}
-              >
-                {c.unreadPosts}
-              </span>
-            ) : null}
-            {c.unreadMessages ? (
-              <span
-                className="rounded-full px-[7px] py-[2px] text-[10px] font-bold text-white"
-                style={{ background: "#2563eb" }}
-              >
-                {c.unreadMessages}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </Link>
-
-      <div className="flex flex-1 flex-col gap-[10px] px-[16px] pt-[32px] pb-[16px]">
-        <Link to="/communities/$id" params={{ id: c.id }} className="min-w-0">
-          <h3
-            className="truncate font-display text-[16px] font-semibold"
-            style={{ color: "var(--foreground)" }}
-          >
-            {c.name}
-          </h3>
-          <p
-            className="mt-[4px] text-[13px]"
-            style={{
-              color: "var(--foreground-70)",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {c.description}
-          </p>
-        </Link>
-        <div className="mt-auto flex items-center justify-between gap-[8px] pt-[4px]">
-          <div className="flex flex-col gap-[2px]">
-            <span
-              className="inline-flex items-center gap-[6px] text-[12px]"
-              style={{ color: "var(--foreground-50)" }}
-            >
-              <Users size={14} />{" "}
-              {c.members > 0
-                ? t("pages.shared.members", { count: c.members.toLocaleString("ru") })
-                : t("pages.shared.membersNew")}
-            </span>
-            <span
-              className="inline-flex items-center gap-[6px] text-[11px]"
-              style={{ color: "var(--foreground-50)" }}
-            >
-              {(c.onlineAvatars?.length ?? 0) > 0 ? (
-                <span className="flex -space-x-2">
-                  {c.onlineAvatars!.slice(0, 3).map((a) => (
-                    <img
-                      key={a.uuid}
-                      src={a.url ?? ""}
-                      width={18}
-                      height={18}
-                      loading="lazy"
-                      decoding="async"
-                      alt=""
-                      className="h-[18px] w-[18px] rounded-full object-cover"
-                      style={{ border: "2px solid var(--background)" }}
-                    />
-                  ))}
-                </span>
-              ) : (
-                <span
-                  className="inline-block h-[6px] w-[6px] rounded-full"
-                  style={{ background: "#22c55e" }}
-                />
-              )}
-              {t("pages.shared.activeToday")}
-            </span>
-          </div>
-          <div className="flex items-center gap-[6px]">
-            {c.isOwner && onDeleted && (
-              <DeleteCommunityDialog slug={c.id} name={c.name} onDeleted={onDeleted} compact />
-            )}
-            <Button asChild size="sm" className=" gap-[6px]">
-              <Link to="/communities/$id" params={{ id: c.id }}>
-                {t("pages.shared.goTo")} <ArrowRight size={14} />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function resolveRole(c: Community): Community["role"] | undefined {
-  if (c.role) return c.role;
-  if (c.isOwner) return "owner";
-  if (c.joined) return "member";
-  return undefined;
-}
-
 function EmptyMy({ onSwitch }: { onSwitch: () => void }) {
   const { t } = useTranslation();
   return (
@@ -295,26 +83,6 @@ function EmptySearch() {
   );
 }
 
-function CommunityCardSkeleton() {
-  return (
-    <Card
-      className="overflow-hidden"
-      style={{
-        borderColor: "var(--border)",
-        borderRadius: 16,
-        background: "var(--background-elevated)",
-      }}
-    >
-      <Skeleton className="h-[120px] w-full rounded-none" />
-      <div className="space-y-[10px] px-[16px] pb-[16px] pt-[32px]">
-        <Skeleton className="h-[16px] w-[55%]" />
-        <Skeleton className="h-[12px] w-full" />
-        <Skeleton className="h-[12px] w-[72%]" />
-      </div>
-    </Card>
-  );
-}
-
 const SECTION_LIMIT = 6;
 
 function CommunitySection({
@@ -335,16 +103,16 @@ function CommunitySection({
   const canExpand = items.length > SECTION_LIMIT;
 
   return (
-    <section className="space-y-[14px]">
+    <section className="space-y-[12px]">
       <div className="flex items-end justify-between gap-[12px]">
         <div className="min-w-0">
           <h2
-            className="flex items-center gap-[8px] font-display text-[18px] font-bold sm:text-[20px]"
+            className="flex items-center gap-[8px] font-display text-[20px] font-bold"
             style={{ color: "var(--foreground)" }}
           >
             {title}
             <span
-              className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[7px] text-[12px] font-bold"
+              className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[6px] text-[11px] font-bold"
               style={{
                 background: "var(--accent-soft)",
                 color: "var(--accent)",
@@ -371,9 +139,11 @@ function CommunitySection({
           </button>
         )}
       </div>
-      <div className="grid gap-[16px] grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Одна колонка на всех ширинах: центральная колонка держит 680 px, и
+          две строки по 330 не оставили бы места ни названию, ни кнопке. */}
+      <div className="flex flex-col gap-[8px]">
         {visible.map((c) => (
-          <CommunityCard key={c.id} c={c} onDeleted={onDeleted} />
+          <CommunityRow key={c.id} c={c} onChanged={onDeleted} />
         ))}
       </div>
     </section>
@@ -386,6 +156,11 @@ function CommunitiesPage() {
   const loaded = Route.useLoaderData();
   const [all, setAll] = useState<Community[]>(() => loaded.communities);
   const [loading, setLoading] = useState(() => loaded.communities.length === 0);
+  // Четыре состояния списка: скелетон, ошибка с «Повторить», пусто, данные.
+  // До 05.09 неудачная загрузка выглядела как «сообществ нет».
+  const [loadFailed, setLoadFailed] = useState(false);
+  const me = useCurrentUser();
+  const isGuest = !me.id || me.id === "guest";
   const hasRowsRef = useRef(loaded.communities.length > 0);
 
   const primed = useRef(loaded.communities.length > 0);
@@ -409,8 +184,11 @@ function CommunitiesPage() {
         if (!alive) return;
         hasRowsRef.current = rows.length > 0;
         setAll(rows);
+        setLoadFailed(false);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (alive) setLoadFailed(true);
+      })
       .finally(() => {
         if (alive) setLoading(false);
       });
@@ -420,9 +198,13 @@ function CommunitiesPage() {
   }, [taxonomyId]);
 
   const reloadCommunities = () => {
+    setLoadFailed(false);
     fetchCommunities(undefined, taxonomyId)
-      .then(setAll)
-      .catch(() => {});
+      .then((rows) => {
+        setAll(rows);
+        setLoadFailed(false);
+      })
+      .catch(() => setLoadFailed(true));
   };
 
   const [query, setQuery] = useState("");
@@ -441,35 +223,38 @@ function CommunitiesPage() {
 
   // Sequential blocks: Мои (владелец/модератор) → Подписки (участник) → Рекомендованные.
   const mine = useMemo(
-    () => filtered.filter((c) => resolveRole(c) === "owner" || resolveRole(c) === "moderator"),
+    () => filtered.filter((c) => viewerRole(c) === "owner" || viewerRole(c) === "moderator"),
     [filtered],
   );
   const subscriptions = useMemo(
-    () => filtered.filter((c) => resolveRole(c) === "member"),
+    () => filtered.filter((c) => viewerRole(c) === "member"),
     [filtered],
   );
-  const recommended = useMemo(() => filtered.filter((c) => !resolveRole(c)), [filtered]);
+  const recommended = useMemo(() => filtered.filter((c) => !viewerRole(c)), [filtered]);
 
   const hasQuery = debounced.trim().length > 0;
   const nothing = filtered.length === 0;
   const noneJoined = mine.length === 0 && subscriptions.length === 0;
 
   return (
-    <AppLayout rightColumn={<DirectionsRightRail variant="communities" />} footer>
+    <AppLayout narrowCenter rightColumn={<DirectionsRightRail variant="communities" />} footer>
       <div className="space-y-[24px]">
-        <header className="flex flex-col gap-[12px] sm:flex-row sm:items-end sm:justify-between">
-          <div>
+        {/* Заголовок и действие — одной строкой; пояснение уходит под
+            заголовок в caption, а не занимает отдельную строку крупным
+            текстом. Кнопка sm: 36 px, зона нажатия 44 через hit-target. */}
+        <header className="flex items-start justify-between gap-[12px]">
+          <div className="min-w-0">
             <h1
-              className="font-display text-[24px] font-bold sm:text-[28px]"
+              className="font-display text-[28px] font-bold leading-tight"
               style={{ color: "var(--foreground)" }}
             >
               {t("pages.communities.title")}
             </h1>
-            <p className="mt-[4px] text-[14px]" style={{ color: "var(--foreground-50)" }}>
+            <p className="mt-[4px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
               {t("pages.communities.subtitle")}
             </p>
           </div>
-          <Button asChild className="shrink-0 gap-[6px]">
+          <Button asChild size="sm" className="shrink-0 gap-[6px]">
             <Link to="/communities/new">
               <Plus size={16} /> {t("pages.communities.createCommunity")}
             </Link>
@@ -485,14 +270,30 @@ function CommunitiesPage() {
         />
 
         {loading && all.length === 0 ? (
-          <div className="grid gap-[16px] grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <CommunityCardSkeleton key={i} />
+          <div className="flex flex-col gap-[8px]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <CommunityRowSkeleton key={i} />
             ))}
           </div>
+        ) : loadFailed ? (
+          <EmptyState
+            icon={RefreshCw}
+            title={t("pages.communities.loadFailedTitle")}
+            description={t("pages.communities.loadFailedDesc")}
+            action={{ label: t("pages.shared.retry"), onClick: reloadCommunities }}
+            variant="compact"
+          />
         ) : nothing ? (
           hasQuery ? (
             <EmptySearch />
+          ) : isGuest ? (
+            // Гостю не сообщаем, что «у вас пока нет сообществ» — у него их и
+            // не может быть; предлагаем войти.
+            <GuestSectionStub
+              icon={Users}
+              title={t("guestAuth.communitiesTitle")}
+              description={t("guestAuth.communitiesDesc")}
+            />
           ) : (
             <EmptyMy
               onSwitch={() => {
@@ -501,7 +302,7 @@ function CommunitiesPage() {
             />
           )
         ) : (
-          <div className="space-y-[28px]">
+          <div className="space-y-[24px]">
             <CommunitySection
               title={t("pages.communities.sectionMine")}
               subtitle={t("pages.communities.sectionMineSub")}
