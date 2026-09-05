@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { ExternalLink, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { recordBannerEvent } from "@/lib/api/banners";
+import { Appear } from "@/components/ui/Appear";
 import type { Banner } from "@/lib/mock";
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
  * «Реклама» tag and a single CTA. No carousel, no banner strip.
  */
 export function SponsoredPostCard({ banner, onDismiss }: Props) {
+  const { t } = useTranslation();
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
 
@@ -25,7 +27,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
       window.open(href, "_blank", "noopener,noreferrer");
       return;
     }
-    toast(`«${banner.title}» — подробности будут доступны позже`);
+    toast(t("components.sponsoredPost.noLink", { title: banner.title }));
   };
 
   const handleDismiss = () => {
@@ -34,15 +36,15 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
   };
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="overflow-hidden"
+    // Appear, а не motion.article с initial: рекламная карточка стоит в той же
+    // ленте, что и посты, и по правилу из CLAUDE.md начальное состояние в
+    // серверной разметке прячет содержимое до конца гидрации.
+    <Appear
+      className="overflow-hidden border-y border-x-0 sm:rounded-[var(--r-card)] sm:border-x"
+      durationMs={250}
       style={{
         background: "var(--background-surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-card)",
+        borderColor: "var(--border)",
         boxShadow: "var(--shadow-card)",
       }}
     >
@@ -73,17 +75,18 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
                 letterSpacing: "0.08em",
               }}
             >
-              Реклама
+              {t("components.sponsoredPost.ad")}
             </span>
           </div>
           <div className="mt-[2px] text-[12px]" style={{ color: "var(--foreground-50)" }}>
-            Промо{banner.until ? ` · ${banner.until}` : ""}
+            {t("components.sponsoredPost.promo")}
+            {banner.until ? ` · ${banner.until}` : ""}
           </div>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
-          aria-label="Скрыть"
+          aria-label={t("components.sponsoredPost.dismiss")}
           className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full transition-colors"
           style={{ color: "var(--foreground-50)" }}
           onMouseEnter={(e) =>
@@ -157,7 +160,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
         style={{ borderTop: "1px solid var(--border)" }}
       >
         <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          Реклама
+          {t("components.sponsoredPost.ad")}
         </span>
         <button
           type="button"
@@ -177,7 +180,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
           <ExternalLink size={14} />
         </button>
       </div>
-    </motion.article>
+    </Appear>
   );
 }
 

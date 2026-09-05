@@ -242,8 +242,19 @@ export function PostCard({
   }, [hasCommentsHint, canInteract, startCommentsFetch, isShare]);
 
   const text = post.text ?? "";
-  const isLong = text.length > 220;
-  const shown = !isLong || expanded ? text : text.slice(0, 220) + "…";
+  // Текст обрезается строками, а не символами: четыре строки на широком
+  // экране, три на телефоне — ровно то, что видно, без «…» посреди слова.
+  //
+  // Показывать ли «Показать ещё», решается по длине текста, а не по
+  // измеренной высоте, и одинаково на сервере и в браузере. Измерение дало бы
+  // точный ответ, но только после первого кадра: кнопка появлялась бы уже
+  // после отрисовки и толкала медиа вниз — тот самый сдвиг, ради которого
+  // всё это и затевалось. Пороги — вместимость строк: ~50 символов в строке
+  // на 375 (три строки) и ~90 на 680 (четыре).
+  const CLAMP_MOBILE_CHARS = 150;
+  const CLAMP_DESKTOP_CHARS = 330;
+  const canExpandMobile = text.length > CLAMP_MOBILE_CHARS;
+  const canExpandDesktop = text.length > CLAMP_DESKTOP_CHARS;
   const commentsCount =
     commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
 
@@ -347,10 +358,10 @@ export function PostCard({
         return;
       }
       await navigator.clipboard.writeText(url);
-      toast.success("Ссылка скопирована");
+      toast.success(t("components.postActionMenu.linkCopied"));
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
-      toast.error("Не удалось поделиться");
+      toast.error(t("components.postCard.shareFailed"));
     }
   };
 
@@ -398,7 +409,13 @@ export function PostCard({
         "overflow-hidden border-[var(--border)]",
         variant === "embedded"
           ? "rounded-none border-0 shadow-none"
-          : "rounded-none shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)]",
+          : variant === "feed"
+            ? // В ленте карточка идёт от края до края телефона: боковых границ
+              // и скруглений нет, посты разделяет полоса фона. В профиле,
+              // сообществе и канале список лежит внутри блока с полями —
+              // там карточка остаётся карточкой.
+              "rounded-none border-x-0 shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)] sm:border-x"
+            : "rounded-none shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)]",
       )}
     >
       {isShare && (
@@ -452,6 +469,7 @@ export function PostCard({
             removeOverride={overrides?.remove}
             onApproved={() => onTogglePost?.(post.id, { status: "published" })}
             onToggleSave={toggleSave}
+            onShare={sharePost}
             onHide={() => onHide?.(post.id)}
             canPublishNow={isScheduled && (post.canPublish || post.authorId === me.id)}
             canReschedule={isScheduled && post.authorId === me.id}
@@ -595,7 +613,7 @@ export function PostCard({
         <>
           {/* Content */}
           <div
-            className="px-[16px] pb-[12px] pt-[12px]"
+            className="px-[12px] pb-[8px] pt-[8px] md:px-[16px]"
             onClick={
               variant === "embedded"
                 ? () => navigate({ to: "/feed", search: { post: post.id } })
@@ -606,7 +624,7 @@ export function PostCard({
           >
             {post.title ? (
               <h3
-                className="line-clamp-2 break-words text-[17px] font-semibold leading-tight"
+                className="line-clamp-2 break-words text-[16px] font-semibold leading-tight md:text-[17px]"
                 style={{
                   fontFamily: "var(--font-display)",
                   color: "var(--foreground)",
@@ -638,20 +656,28 @@ export function PostCard({
 
             {post.text ? (
               <p
-                className="mt-[10px] whitespace-pre-line text-[14px] leading-relaxed"
+                className={cn(
+                  "mt-[8px] whitespace-pre-line text-[14px] leading-[1.45]",
+                  !expanded && "line-clamp-3 md:line-clamp-4",
+                )}
                 style={{ color: "var(--foreground-90)" }}
               >
-                {shown}
+                {text}
               </p>
             ) : null}
-            {isLong && (
+            {canExpandMobile && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setExpanded((v) => !v);
                 }}
-                className="mt-[6px] text-[12px] font-semibold transition-opacity hover:opacity-80"
+                className={cn(
+                  "mt-[4px] text-[12px] font-semibold transition-opacity hover:opacity-80",
+                  // На широком экране помещается четыре строки: текст, который
+                  // на телефоне обрезан, здесь виден целиком — и кнопка не нужна.
+                  canExpandDesktop ? "" : "md:hidden",
+                )}
                 style={{ color: "var(--accent)" }}
               >
                 {expanded ? t("components.postCard.collapse") : t("components.postCard.readMore")}
@@ -687,7 +713,6 @@ export function PostCard({
             onSave={doSave}
             onComments={toggleComments}
             onRepost={toggleRepost}
-            onShare={sharePost}
           />
         </>
       )}

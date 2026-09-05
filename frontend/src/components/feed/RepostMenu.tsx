@@ -117,7 +117,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
         disabled={disabled}
         // min-h/min-w bring the 36×28 icon button up to a 44px tap target;
         // the icon and its counter keep the size and spacing they had.
-        className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[13px] transition-colors disabled:pointer-events-none disabled:opacity-45"
+        className="flex min-h-[48px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[12px] transition-colors disabled:pointer-events-none disabled:opacity-45 md:min-h-[44px]"
         style={{
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",
@@ -126,7 +126,7 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
         aria-expanded={open}
         aria-disabled={disabled}
       >
-        <Repeat2 className="h-[16px] w-[16px]" />
+        <Repeat2 className="h-[20px] w-[20px]" />
         {count > 0 && <span className="tabular-nums">{count}</span>}
       </button>
 

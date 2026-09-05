@@ -244,14 +244,17 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               >
                 {node.name}
               </span>
-              {depth === 0 && !catalog && (
+              {/* «0 онлайн» под каждым направлением — не сведение о разделе, а
+                  сообщение о том, что там пусто, повторённое двадцать раз.
+                  Строка появляется, когда в направлении кто-то есть. */}
+              {depth === 0 && !catalog && onlineForCategory(roomStats, node.id) > 0 && (
                 <span
                   className="mt-[1px] flex items-center gap-[5px] text-[11px]"
                   style={{ color: "var(--foreground-50)" }}
                 >
                   <span
                     className="inline-block h-[6px] w-[6px] rounded-full"
-                    style={{ background: "#22c55e" }}
+                    style={{ background: "var(--success)" }}
                   />
                   {t("components.rightCategories.onlineCount", {
                     count: onlineForCategory(roomStats, node.id),
@@ -344,7 +347,9 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   );
 
   return (
-    <aside className="hidden w-64 shrink-0 xl:block xl:min-h-0">
+    // 320 px: колонка направлений держит два уровня вложенности и счётчики,
+    // на 256 длинные названия обрывались многоточием уже на первом уровне.
+    <aside className="hidden w-80 shrink-0 xl:block xl:min-h-0">
       <div className="flex h-full flex-col overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
         <div
           className="shrink-0 overflow-hidden rounded-[var(--r-card)] border"
@@ -464,11 +469,11 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               <span>
                 {t("components.rightCategories.directionsCount", { count: categories.length })}
               </span>
-              {!catalog && (
+              {!catalog && totalOnline > 0 && (
                 <span className="flex items-center gap-[5px]">
                   <span
                     className="inline-block h-[6px] w-[6px] rounded-full"
-                    style={{ background: "#22c55e" }}
+                    style={{ background: "var(--success)" }}
                   />
                   {t("components.rightCategories.totalOnline", {
                     count: totalOnline.toLocaleString("ru-RU"),

@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus, Send, FileText, Video } from "lucide-react";
+import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ChevronDown, Plus, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 import { useChannels, type Channel } from "@/lib/channels";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
@@ -26,11 +28,7 @@ export interface ComposerDraft {
 interface Props {
   me: User;
   onCompose: (selection: ComposerSelection, draft: ComposerDraft) => void;
-  /** Increment after a post is successfully published to clear the inline composer. */
-  draftClearToken?: number;
 }
-
-const KIND_LABEL: Record<ComposerKind, string> = { photo: "Пост", video: "Видео" };
 
 const ROW_CLASS =
   "flex min-h-[52px] w-full cursor-pointer items-center rounded-[var(--r-card-sm)] px-3 text-left text-[15px] font-medium transition-colors hover:bg-[var(--background-surface)]";
@@ -66,6 +64,9 @@ function KindPickerMenu({
   /** Flat list for mobile sheet (no hover submenus). */
   flat?: boolean;
 }) {
+  const { t } = useTranslation();
+  const kindLabel = (kind: ComposerKind) =>
+    kind === "video" ? t("components.createPostMenu.video") : t("components.createPostMenu.post");
   const select = (kind: ComposerKind, source: ComposerSourceKind) => {
     onSelect(kind, source);
   };
@@ -80,7 +81,7 @@ function KindPickerMenu({
             style={{ color: "var(--foreground)" }}
             onClick={onAddFile}
           >
-            Фото или видео с устройства
+            {t("components.createPostMenu.fromDevice")}
           </button>
         )}
         {myChannel ? (
@@ -91,7 +92,7 @@ function KindPickerMenu({
               style={{ color: "var(--foreground)" }}
               onClick={() => select("photo", "profile")}
             >
-              Пост от профиля
+              {t("components.createPostMenu.postFromProfile")}
             </button>
             <button
               type="button"
@@ -99,7 +100,7 @@ function KindPickerMenu({
               style={{ color: "var(--foreground)" }}
               onClick={() => select("photo", "channel")}
             >
-              Пост от канала «{myChannel.name}»
+              {t("components.createPostMenu.postFromChannel", { name: myChannel.name })}
             </button>
             <button
               type="button"
@@ -107,7 +108,7 @@ function KindPickerMenu({
               style={{ color: "var(--foreground)" }}
               onClick={() => select("video", "profile")}
             >
-              Видео от профиля
+              {t("components.createPostMenu.videoFromProfile")}
             </button>
             <button
               type="button"
@@ -115,7 +116,7 @@ function KindPickerMenu({
               style={{ color: "var(--foreground)" }}
               onClick={() => select("video", "channel")}
             >
-              Видео от канала «{myChannel.name}»
+              {t("components.createPostMenu.videoFromChannel", { name: myChannel.name })}
             </button>
           </>
         ) : (
@@ -126,7 +127,7 @@ function KindPickerMenu({
               style={{ color: "var(--foreground)" }}
               onClick={() => select("photo", "profile")}
             >
-              Пост
+              {t("components.createPostMenu.post")}
             </button>
             <button
               type="button"
@@ -134,7 +135,7 @@ function KindPickerMenu({
               style={{ color: "var(--foreground)" }}
               onClick={() => select("video", "profile")}
             >
-              Видео
+              {t("components.createPostMenu.video")}
             </button>
           </>
         )}
@@ -152,14 +153,14 @@ function KindPickerMenu({
     >
       {onAddFile && (
         <button type="button" className={MENU_ITEM_CLASS} onClick={onAddFile}>
-          Фото или видео с устройства
+          {t("components.createPostMenu.fromDevice")}
         </button>
       )}
       {(["photo", "video"] as const).map((kind) =>
         myChannel ? (
           <div key={kind} className="group/sub relative">
             <button type="button" className={`${MENU_ITEM_CLASS} justify-between`}>
-              {KIND_LABEL[kind]}
+              {kindLabel(kind)}
               <ChevronDown size={14} className="-rotate-90 opacity-60" />
             </button>
             <div
@@ -174,14 +175,14 @@ function KindPickerMenu({
                 className={MENU_ITEM_CLASS}
                 onClick={() => select(kind, "profile")}
               >
-                От своего профиля
+                {t("components.createPostMenu.fromProfile")}
               </button>
               <button
                 type="button"
                 className={MENU_ITEM_CLASS}
                 onClick={() => select(kind, "channel")}
               >
-                От канала «{myChannel.name}»
+                {t("components.createPostMenu.fromChannel", { name: myChannel.name })}
               </button>
             </div>
           </div>
@@ -192,7 +193,7 @@ function KindPickerMenu({
             className={MENU_ITEM_CLASS}
             onClick={() => select(kind, "profile")}
           >
-            {KIND_LABEL[kind]}
+            {kindLabel(kind)}
           </button>
         ),
       )}
@@ -209,6 +210,7 @@ function ComposerActions({
   myChannel,
   isMobile = false,
   className,
+  sendable = true,
 }: {
   text: string;
   files: File[];
@@ -218,8 +220,13 @@ function ComposerActions({
   myChannel?: Channel;
   isMobile?: boolean;
   className?: string;
+  /** Есть ли рядом поле ввода. Без него кнопка отправки не рендерится вовсе:
+   *  скрытая прозрачностью кнопка попадала в серверную разметку и портила
+   *  проверку «ни одного невидимого узла в первом экране». */
+  sendable?: boolean;
 }) {
-  const showSend = text.trim().length > 1;
+  const { t } = useTranslation();
+  const showSend = sendable && text.trim().length > 1;
   const {
     open,
     setOpen,
@@ -280,36 +287,42 @@ function ComposerActions({
       >
         <div
           className="flex shrink-0 items-center gap-[8px]"
-          style={{ width: ACTIONS_WIDTH_EXPANDED }}
+          style={{ width: sendable ? ACTIONS_WIDTH_EXPANDED : BTN_SIZE }}
         >
-          <motion.button
-            type="button"
-            aria-label="Отправить"
-            onPointerDown={(e) => e.preventDefault()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSend();
-            }}
-            disabled={!showSend}
-            initial={false}
-            animate={{
-              opacity: showSend ? 1 : 0,
-              scale: showSend ? 1 : 0.72,
-            }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90 disabled:pointer-events-none"
-            style={{
-              background: "var(--accent)",
-              color: "var(--accent-foreground)",
-              pointerEvents: showSend ? "auto" : "none",
-            }}
-          >
-            <Send size={17} className="-translate-x-px translate-y-px" />
-          </motion.button>
+          {sendable && (
+            <motion.button
+              type="button"
+              aria-label={t("components.createPostMenu.sendAria")}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSend();
+              }}
+              disabled={!showSend}
+              initial={false}
+              animate={{
+                opacity: showSend ? 1 : 0,
+                scale: showSend ? 1 : 0.72,
+              }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90 disabled:pointer-events-none"
+              style={{
+                background: "var(--accent)",
+                color: "var(--accent-foreground)",
+                pointerEvents: showSend ? "auto" : "none",
+              }}
+            >
+              <Send size={17} className="-translate-x-px translate-y-px" />
+            </motion.button>
+          )}
 
           <button
             type="button"
-            aria-label={isMobile ? "Создать пост или видео" : "Добавить фото или видео"}
+            aria-label={
+              isMobile
+                ? t("components.createPostMenu.createAria")
+                : t("components.createPostMenu.addMediaAria")
+            }
             onClick={handlePlusClick}
             className="relative grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90"
             style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
@@ -352,7 +365,9 @@ function ComposerActions({
         >
           <DrawerContent className="pb-[calc(var(--safe-bottom)+12px)]">
             <div className="px-4 pt-3">
-              <DrawerTitle className="text-base">Создать</DrawerTitle>
+              <DrawerTitle className="text-base">
+                {t("components.createPostMenu.createTitle")}
+              </DrawerTitle>
             </div>
             <div className="mt-2 px-2 pb-1">
               <KindPickerMenu
@@ -370,233 +385,88 @@ function ComposerActions({
   );
 }
 
-function CreatePostTrigger({
-  onSelectKind,
-}: {
-  onSelectKind: (kind: ComposerKind, source: ComposerSourceKind) => void;
-}) {
-  const {
-    open,
-    setOpen,
-    wrapperRef,
-    onWrapperMouseEnter,
-    onWrapperMouseLeave,
-    onContentMouseEnter,
-  } = useHoverDropdown();
-  const [clickedOpen, setClickedOpen] = useState(false);
-  const menuOpen = open || clickedOpen;
-
-  useEffect(() => {
-    if (!clickedOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setClickedOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [clickedOpen, wrapperRef]);
-
-  const select = (kind: ComposerKind) => {
-    onSelectKind(kind, "profile");
-    setOpen(false);
-    setClickedOpen(false);
-  };
-
-  const items: { kind: ComposerKind; label: string; icon: typeof FileText }[] = [
-    { kind: "photo", label: "Пост", icon: FileText },
-    { kind: "video", label: "Видео", icon: Video },
-  ];
-
-  return (
-    <div
-      ref={wrapperRef}
-      className="relative w-full"
-      onMouseEnter={onWrapperMouseEnter}
-      onMouseLeave={onWrapperMouseLeave}
-    >
-      <div
-        className="flex w-full items-center justify-center rounded-[var(--r-card)] border px-[14px] py-[14px]"
-        style={{
-          background: "var(--background-elevated)",
-          borderColor: "var(--border)",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setClickedOpen((v) => !v)}
-          className="inline-flex items-center gap-[8px] rounded-[var(--r-pill)] px-[4px] py-[2px] text-[16px] font-semibold transition-opacity hover:opacity-80"
-          style={{ color: "var(--accent)" }}
-          aria-expanded={menuOpen}
-          aria-haspopup="menu"
-        >
-          <Plus size={20} strokeWidth={2.5} />
-          Создать
-          <ChevronDown
-            size={18}
-            className="opacity-80 transition-transform duration-200"
-            style={{ transform: menuOpen ? "rotate(180deg)" : undefined }}
-          />
-        </button>
-      </div>
-
-      {menuOpen && (
-        <div
-          role="menu"
-          className="absolute left-1/2 top-[calc(100%+8px)] z-[var(--z-modal)] w-[min(100%,300px)] -translate-x-1/2 overflow-hidden rounded-[var(--r-card)] border py-[6px]"
-          style={{
-            background: "var(--background-elevated)",
-            borderColor: "var(--border)",
-            boxShadow: "var(--shadow-float)",
-          }}
-          onMouseEnter={onContentMouseEnter}
-          onMouseLeave={onWrapperMouseLeave}
-        >
-          {items.map(({ kind, label, icon: Icon }) => (
-            <button
-              key={kind}
-              type="button"
-              role="menuitem"
-              onClick={() => select(kind)}
-              className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left text-[15px] font-medium transition-colors hover:bg-[var(--background-surface)]"
-              style={{ color: "var(--foreground)" }}
-            >
-              <Icon className="h-[20px] w-[20px]" style={{ color: "var(--foreground-70)" }} />
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/*
-function InlineComposerBar({
+/**
+ * Строка создания записи — 56 px: аватар, приглашение и ⊕.
+ *
+ * До 05.09 здесь стояла карточка высотой 64 px с одной кнопкой «Создать» по
+ * центру: она занимала место первого экрана, но не говорила, от чьего имени
+ * пишут и что вообще произойдёт. Строка отвечает на оба вопроса и заодно
+ * отдаёт первому экрану восемь пикселей.
+ *
+ * Само поле ввода здесь не живёт: нажатие открывает модальный композер — тот
+ * же, что открывается из ⊕ и из пустого состояния ленты. Второго редактора
+ * в проекте не заводим.
+ */
+function CreatePostRow({
   me,
-  draftText,
-  draftFiles,
-  onDraftTextChange,
-  onAddFiles,
-  onSend,
-  onSelectKind,
   myChannel,
-  isMobile = false,
+  onSelectKind,
+  onCompose,
 }: {
   me: User;
-  draftText: string;
-  draftFiles: File[];
-  onDraftTextChange: (v: string) => void;
-  onAddFiles: (files: File[]) => void;
-  onSend: () => void;
-  onSelectKind: (kind: ComposerKind, source: ComposerSourceKind) => void;
   myChannel?: Channel;
-  isMobile?: boolean;
+  onSelectKind: (kind: ComposerKind, source: ComposerSourceKind) => void;
+  onCompose: (selection: ComposerSelection, draft: ComposerDraft) => void;
 }) {
+  const { t } = useTranslation();
+  const isMobile = useIsMobile();
+
   return (
     <div
-      className="flex w-full items-center gap-[12px] rounded-[var(--r-card)] border px-[14px] py-[10px]"
-      style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+      className="flex h-[56px] w-full items-center gap-[10px] rounded-[var(--r-card)] border px-[12px]"
+      style={{
+        background: "var(--background-elevated)",
+        borderColor: "var(--border)",
+        boxShadow: "var(--shadow-card)",
+      }}
     >
-      <UserAvatar src={me.avatar} name={me.name} size={40} />
-      <motion.div
-        layout
-        className="min-w-0 flex-1"
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      <UserAvatar src={me.avatar} name={me.name} size={36} />
+      <button
+        type="button"
+        onClick={() => onSelectKind("photo", "profile")}
+        className="h-[36px] min-w-0 flex-1 truncate rounded-[var(--r-pill)] px-[14px] text-left text-[14px] transition-colors hover:opacity-90"
+        style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
       >
-        <input
-          type="text"
-          value={draftText}
-          onChange={(e) => onDraftTextChange(e.target.value)}
-          placeholder="Что у вас нового?"
-          className="w-full truncate rounded-[var(--r-pill)] border-0 bg-transparent px-[16px] py-[10px] text-[14px] outline-none ring-0 placeholder:text-[var(--foreground-50)] focus:ring-0"
-          style={{
-            background: "var(--background-surface)",
-            color: "var(--foreground)",
-          }}
-        />
-      </motion.div>
+        {t("components.createPostMenu.placeholder")}
+      </button>
       <ComposerActions
-        text={draftText}
-        files={draftFiles}
-        onSend={onSend}
-        onPickFiles={(picked) => onAddFiles(picked)}
+        text=""
+        files={[]}
+        onSend={() => onSelectKind("photo", "profile")}
+        onPickFiles={(picked) =>
+          onCompose({ kind: inferKind(picked), source: "profile" }, { text: "", files: picked })
+        }
         onSelectKind={onSelectKind}
         myChannel={myChannel}
         isMobile={isMobile}
+        sendable={false}
       />
     </div>
   );
 }
-*/
 
-export function CreatePostMenu({ me, onCompose, draftClearToken = 0 }: Props) {
+export function CreatePostMenu({ me, onCompose }: Props) {
   const { channels } = useChannels();
   const myChannel = channels.find((c) => c.isOwner);
   const { guardAction } = useGuestAccess();
 
-  const compose = (selection: ComposerSelection) => {
-    guardAction("feed.compose.open", () => onCompose(selection, { text: "", files: [] }));
+  const compose = (selection: ComposerSelection, draft: ComposerDraft) => {
+    guardAction("feed.compose.open", () => onCompose(selection, draft));
   };
 
   const handleSelectKind = (kind: ComposerKind, source: ComposerSourceKind) => {
-    compose({ kind, source, channel: source === "channel" ? myChannel : undefined });
-  };
-
-  return <CreatePostTrigger onSelectKind={handleSelectKind} />;
-
-  /*
-  const [draftText, setDraftText] = useState("");
-  const [draftFiles, setDraftFiles] = useState<File[]>([]);
-
-  useEffect(() => {
-    if (draftClearToken > 0) {
-      setDraftText("");
-      setDraftFiles([]);
-    }
-  }, [draftClearToken]);
-
-  const buildDraft = (): ComposerDraft => ({ text: draftText.trim(), files: draftFiles });
-
-  const handleSend = () => {
-    if (draftText.trim().length <= 1) return;
-    compose({ kind: inferKind(draftFiles), source: "profile" });
-  };
-
-  const addFiles = (picked: File[]) => {
-    setDraftFiles((prev) => [...prev, ...picked]);
+    compose(
+      { kind, source, channel: source === "channel" ? myChannel : undefined },
+      { text: "", files: [] },
+    );
   };
 
   return (
-    <>
-      <div className="hidden lg:block">
-        <InlineComposerBar
-          me={me}
-          draftText={draftText}
-          draftFiles={draftFiles}
-          onDraftTextChange={setDraftText}
-          onAddFiles={addFiles}
-          onSend={handleSend}
-          onSelectKind={handleSelectKind}
-          myChannel={myChannel}
-        />
-      </div>
-
-      <div className="lg:hidden">
-        <InlineComposerBar
-          me={me}
-          draftText={draftText}
-          draftFiles={draftFiles}
-          onDraftTextChange={setDraftText}
-          onAddFiles={addFiles}
-          onSend={handleSend}
-          onSelectKind={handleSelectKind}
-          myChannel={myChannel}
-          isMobile
-        />
-      </div>
-    </>
+    <CreatePostRow
+      me={me}
+      myChannel={myChannel}
+      onSelectKind={handleSelectKind}
+      onCompose={(selection, draft) => compose(selection, draft)}
+    />
   );
-  */
 }

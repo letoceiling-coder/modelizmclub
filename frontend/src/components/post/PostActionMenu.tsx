@@ -63,6 +63,9 @@ interface Props {
   onToggleSave?: () => void;
   /** Hides the post from the current user's feed. */
   onHide?: () => void;
+  /** Системное «Поделиться» (navigator.share, иначе копирование ссылки).
+   *  Переехало сюда из панели действий карточки. */
+  onShare?: () => void;
   onPublishNow?: () => void | Promise<void>;
   onReschedule?: () => void;
   onCancelSchedule?: () => void | Promise<void>;
@@ -85,6 +88,7 @@ export function PostActionMenu({
   onApproved,
   onToggleSave,
   onHide,
+  onShare,
   canPublishNow = false,
   canReschedule = false,
   canCancelSchedule = false,
@@ -168,7 +172,7 @@ export function PostActionMenu({
         return;
       }
       await approveModeration("posts", postId);
-      toast.success("Публикация одобрена");
+      toast.success(t("components.postActionMenu.approved"));
       onApproved?.();
       close();
     } catch (err) {
@@ -190,7 +194,7 @@ export function PostActionMenu({
         return;
       }
       await (removeOverride ? removeOverride() : deletePost(postId));
-      toast.success("Публикация удалена");
+      toast.success(t("components.postActionMenu.deleted"));
       onDeleted?.();
       close();
     } catch (err) {
@@ -275,6 +279,16 @@ export function PostActionMenu({
               <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
             </>
           )}
+          {onShare && (
+            <MenuItem
+              onClick={() => {
+                close();
+                onShare();
+              }}
+              icon={Share2}
+              label={t("components.postActionMenu.share")}
+            />
+          )}
           {canInteract && (
             <>
               <MenuItem
@@ -303,7 +317,7 @@ export function PostActionMenu({
                   style={{ color: "var(--foreground)" }}
                 >
                   <Share2 className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
-                  {t("components.postActionMenu.share")}
+                  {t("components.postActionMenu.shareTo")}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent
                   className="z-[calc(var(--z-popover)+1)] w-[200px] overflow-hidden rounded-[12px] border p-0"
@@ -339,7 +353,11 @@ export function PostActionMenu({
           {onEdit && (
             <>
               <DropdownMenuSeparator className="m-0" style={{ background: "var(--border)" }} />
-              <MenuItem onClick={onEdit} icon={Pencil} label="Редактировать" />
+              <MenuItem
+                onClick={onEdit}
+                icon={Pencil}
+                label={t("components.postActionMenu.edit")}
+              />
             </>
           )}
           {showDelete && (

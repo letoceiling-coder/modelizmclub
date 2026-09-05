@@ -4,8 +4,12 @@ import { CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Img } from "@/components/ui/Img";
 
-/** Fixed hero height — shared by feed slider and admin WYSIWYG preview (PDF QA Task 11). */
-export const BANNER_HERO_HEIGHT = "h-[200px] overflow-hidden sm:h-[220px] md:h-[240px]";
+/** Fixed hero height — shared by feed slider and admin WYSIWYG preview (PDF QA Task 11).
+ *
+ *  140 на телефоне, 200 на широком экране. Прежние 200/240 забирали у первого
+ *  экрана 375×812 почти треть высоты: до первой карточки ленты приходилось
+ *  прокручивать, ещё не увидев ни одного поста. */
+export const BANNER_HERO_HEIGHT = "h-[140px] overflow-hidden sm:h-[180px] md:h-[200px]";
 
 /** Shared shape covering both the public `Banner` model and the admin draft/row. */
 export interface BannerHeroSlideData {
@@ -79,9 +83,14 @@ export function BannerHeroSlide({
         />
       </div>
 
-      <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[14px] overflow-hidden p-[22px] pb-[30px] sm:max-w-[52%] sm:gap-[16px] sm:p-[36px] sm:pb-[44px]">
+      {/* Содержимое считается от нижнего края: значок вида, заголовок, текст,
+          кнопка. В 140 px телефона помещаются только заголовок и кнопка, в
+          180 добавляется значок вида, в 200 — одна строка текста. Раньше в
+          блок клали всё сразу, и на любой ширине верх обрезался: значок и
+          первая строка заголовка уезжали за край. */}
+      <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[8px] overflow-hidden p-[14px] pb-[16px] sm:max-w-[52%] sm:gap-[10px] sm:p-[20px] sm:pb-[22px] md:gap-[10px] md:p-[24px] md:pb-[26px]">
         <span
-          className="inline-flex w-fit shrink-0 items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-medium uppercase tracking-wide text-white"
+          className="hidden w-fit shrink-0 items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[11px] font-medium uppercase tracking-wide text-white sm:inline-flex"
           style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
         >
           <KindIcon className="h-[12px] w-[12px]" />
@@ -89,23 +98,26 @@ export function BannerHeroSlide({
           {banner.until ? <span className="opacity-70">· {banner.until}</span> : null}
         </span>
         <h2
-          className="line-clamp-2 shrink-0 break-words text-[21px] font-semibold leading-tight text-white sm:text-[26px]"
+          className="line-clamp-2 shrink-0 break-words text-[19px] font-semibold leading-tight text-white sm:text-[22px] md:text-[26px]"
           style={{ fontFamily: "var(--font-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
         >
           {banner.title || "Заголовок баннера"}
         </h2>
         {banner.text ? (
-          <p className="line-clamp-3 shrink-0 break-words text-[13px] leading-relaxed text-white/90 sm:text-[15px]">
+          // line-clamp сам ставит display:-webkit-box, и `hidden` спрятал бы
+          // строку только по случайному порядку правил. max-md выключает её
+          // ниже 768, где на неё нет высоты.
+          <p className="line-clamp-1 shrink-0 break-words text-[13px] leading-snug text-white/90 max-md:hidden md:text-[14px]">
             {banner.text}
           </p>
         ) : null}
-        <div className="mt-[6px] shrink-0">
+        <div className="shrink-0">
           <button
             type="button"
             onClick={onCtaClick}
             disabled={ctaDisabled}
             {...ctaPointerProps}
-            className="inline-flex items-center rounded-[10px] bg-white px-[16px] py-[9px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] sm:text-[14px] disabled:pointer-events-none"
+            className="inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:pointer-events-none sm:px-[16px] sm:py-[9px] sm:text-[14px]"
           >
             {banner.cta || "Подробнее"}
           </button>
