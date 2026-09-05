@@ -1152,6 +1152,13 @@ export const ru = {
       toList: "К списку сообществ",
     },
     communityDetail: {
+      rulesTitle: "Правила сообщества",
+      moreAria: "Ещё действия",
+      moreTitle: "Ещё",
+      detailsTitle: "Подробная информация",
+      postsCount: "{{count}} публикаций",
+      leaveCommunity: "Покинуть сообщество",
+      leaveConfirm: "Выйти из сообщества?",
       metaTitle: "Сообщество — МоДелизМ",
       tabPosts: "Стена",
       tabChat: "Чат",

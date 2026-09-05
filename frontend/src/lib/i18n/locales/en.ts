@@ -1108,6 +1108,13 @@ export const en: TranslationSchema = {
       loadFailedDesc: "Check the connection and try again",
     },
     communityDetail: {
+      rulesTitle: "Community rules",
+      moreAria: "More actions",
+      moreTitle: "More",
+      detailsTitle: "Details",
+      postsCount: "{{count}} posts",
+      leaveCommunity: "Leave community",
+      leaveConfirm: "Leave this community?",
       metaTitle: "Community — MoDelizM",
       tabPosts: "Posts",
       tabChat: "Chat",
