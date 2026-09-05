@@ -27,6 +27,9 @@ import {
   ChevronRight,
   Settings2,
   Flag,
+  Info,
+  Link2,
+  LogOut,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -37,7 +40,6 @@ import {
   fetchCommunityPosts,
   joinCommunity,
   leaveCommunity,
-  fetchOwnedCommunities,
   fetchCommunityMembers,
   fetchCommunityEvents,
   attendCommunityEvent,
@@ -70,6 +72,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CommunityBrandingHeader } from "@/components/communities/CommunityBrandingHeader";
+import { CommunityDetailsDialog } from "@/components/communities/CommunityDetailsDialog";
+import { EntityHeader } from "@/components/entity/EntityHeader";
+import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
@@ -110,19 +115,19 @@ function initials(name: string): string {
 
 type TabKey = "posts" | "chat" | "events" | "members" | "about" | "settings";
 
-function communityTabs(
-  t: (key: string) => string,
-  canManage: boolean,
-): { key: TabKey; label: string }[] {
-  const tabs: { key: TabKey; label: string }[] = [
+/**
+ * Вкладки сообщества. «Настройки» здесь больше нет: это действие владельца, и
+ * живёт оно в кнопке «Управление» рядом с остальными действиями. Вкладка —
+ * это раздел содержимого, а не команда.
+ */
+function communityTabs(t: (key: string) => string): { key: TabKey; label: string }[] {
+  return [
     { key: "posts", label: t("pages.communityDetail.tabPosts") },
     { key: "chat", label: t("pages.communityDetail.tabChat") },
     { key: "events", label: t("pages.communityDetail.tabEvents") },
     { key: "members", label: t("pages.communityDetail.tabMembers") },
     { key: "about", label: t("pages.communityDetail.tabAbout") },
   ];
-  if (canManage) tabs.push({ key: "settings", label: t("pages.communityDetail.tabSettings") });
-  return tabs;
 }
 
 /* ============================ Contacts block ============================ */
@@ -735,14 +740,11 @@ function EventSignupModal({
 
 function CommunityDetailPage() {
   const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
+  const { requirePremium, requireAccount } = useGuestAccess();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [community, setCommunity] = useState<Community | null>(null);
-  const tabs = useMemo(
-    () => communityTabs(t, Boolean(community?.canManage || community?.isOwner)),
-    [t, community],
-  );
+  const tabs = useMemo(() => communityTabs(t), [t]);
   const [loading, setLoading] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
@@ -754,7 +756,7 @@ function CommunityDetailPage() {
   const [signupEvent, setSignupEvent] = useState<DemoCommunityEvent | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [hasOwnCommunity, setHasOwnCommunity] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [memberList, setMemberList] = useState<CommunityMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -767,12 +769,6 @@ function CommunityDetailPage() {
   const [eventWhen, setEventWhen] = useState("");
   const [eventPlace, setEventPlace] = useState("");
   const [composerSelection] = useState<ComposerSelection>({ kind: "photo", source: "profile" });
-
-  useEffect(() => {
-    fetchOwnedCommunities()
-      .then((list) => setHasOwnCommunity(list.length > 0))
-      .catch(() => setHasOwnCommunity(false));
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -906,6 +902,55 @@ function CommunityDetailPage() {
     });
   };
 
+  /**
+   * Пункты «Ещё». Здесь только то, у чего есть обработчик и эндпоинт:
+   * уведомления, избранное, приглашение друзей и похожие сообщества
+   * появятся вместе со своими эндпоинтами — рисовать их сейчас значило бы
+   * поставить в меню четыре кнопки, которые ничего не делают.
+   */
+  const moreMenuItems: MoreMenuItem[] = (() => {
+    const items: MoreMenuItem[] = [
+      {
+        id: "details",
+        icon: Info,
+        label: t("pages.communityDetail.detailsTitle"),
+        onSelect: () => setDetailsOpen(true),
+      },
+      {
+        id: "copy",
+        icon: Link2,
+        label: t("components.postActionMenu.copyLink"),
+        onSelect: () => {
+          void navigator.clipboard
+            .writeText(url)
+            .then(() => toast.success(t("components.postActionMenu.linkCopied")))
+            .catch(() => toast.error(t("components.postActionMenu.copyFailed")));
+        },
+      },
+    ];
+    if (!isOwner) {
+      items.push({
+        id: "report",
+        icon: Flag,
+        label: t("components.postActionMenu.report"),
+        onSelect: () => requireAccount(() => setReportOpen(true)),
+      });
+    }
+    if (joined && !isOwner) {
+      items.push({
+        id: "leave",
+        icon: LogOut,
+        danger: true,
+        label: t("pages.communityDetail.leaveCommunity"),
+        onSelect: () => {
+          if (!window.confirm(t("pages.communityDetail.leaveConfirm"))) return;
+          toggleJoin();
+        },
+      });
+    }
+    return items;
+  })();
+
   const openChat = () => {
     requirePremium(() => {
       void (async () => {
@@ -974,7 +1019,7 @@ function CommunityDetailPage() {
   );
 
   return (
-    <AppLayout rightColumn={rail}>
+    <AppLayout narrowCenter rightColumn={rail}>
       <div className="space-y-[16px]">
         {/* Hero: cover + avatar + identity + actions */}
         <Card
@@ -985,192 +1030,96 @@ function CommunityDetailPage() {
             borderRadius: 16,
           }}
         >
-          <CommunityBrandingHeader
-            community={community}
-            Icon={Icon}
-            editable={false}
-            onUpdated={setCommunity}
-          />
-
-          <div className="relative px-[16px] pb-[16px] sm:px-[24px]">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-[6px]">
+          <EntityHeader
+            coverUrl={community.coverImage}
+            avatarUrl={community.avatarImage}
+            avatarFallback={<Icon size={30} />}
+            name={community.name}
+            badges={
+              <>
+                {community.isOfficial && (
                   <span
-                    className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold uppercase tracking-wider"
+                    className="shrink-0 rounded-[var(--r-pill)] px-[6px] py-[1px] text-[11px] font-semibold"
                     style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                   >
-                    {community.category}
+                    {t("pages.communities.badgeOfficial")}
                   </span>
-                  {(community.topics ?? []).slice(0, 4).map((topic) => (
-                    <span
-                      key={topic.id}
-                      className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold"
-                      style={{
-                        background: "var(--background-surface)",
-                        color: "var(--foreground-70)",
-                      }}
-                    >
-                      {topic.name}
-                    </span>
-                  ))}
-                  {community.customCategory && (
-                    <span
-                      className="inline-block rounded-[6px] px-2 py-[3px] text-[11px] font-semibold"
-                      style={{
-                        background: "var(--background-surface)",
-                        color: "var(--foreground-70)",
-                      }}
-                    >
-                      {community.customCategory}
-                    </span>
-                  )}
-                </div>
-                <h1
-                  className="mt-[10px] font-display text-[20px] font-bold leading-tight sm:text-[26px]"
-                  style={{ color: "var(--foreground)" }}
-                >
-                  {community.name}
-                </h1>
-              </div>
-              <div className="flex shrink-0 items-center gap-[6px]">
-                {!isOwner && (
-                  <button
-                    type="button"
-                    onClick={() => setReportOpen(true)}
-                    className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
-                    style={{ color: "var(--foreground-50)" }}
-                    aria-label={t("pages.communityDetail.reportAria")}
+                )}
+                {isOwner && (
+                  <span
+                    className="shrink-0 rounded-[var(--r-pill)] px-[6px] py-[1px] text-[11px] font-semibold"
+                    style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                   >
-                    <Flag size={16} />
-                  </button>
+                    {t("pages.shared.owner")}
+                  </span>
+                )}
+              </>
+            }
+            meta={
+              <>
+                {t("pages.communityDetail.members", { count: members })}
+                {community.category ? ` \u00b7 ${community.category}` : ""}
+                {community.city?.name ? ` \u00b7 ${community.city.name}` : ""}
+              </>
+            }
+            description={community.description}
+            actions={
+              <>
+                {!isOwner && (
+                  <Button
+                    onClick={toggleJoin}
+                    disabled={busy || joinPending}
+                    variant={joined || joinPending ? "outline" : "default"}
+                    size="sm"
+                    className="gap-[6px]"
+                  >
+                    {joined
+                      ? t("pages.communityDetail.youSubscribed")
+                      : joinPending
+                        ? t("pages.communityDetail.requestPending")
+                        : community.accessType === "request"
+                          ? t("pages.communityDetail.requestJoin")
+                          : t("pages.communityDetail.subscribe")}
+                  </Button>
                 )}
                 {canManage && (
-                  <EntitySettingsButton
-                    onClick={() => setSettingsOpen(true)}
-                    title={t("pages.communityDetail.manageTitle")}
-                  />
+                  <Button onClick={() => setSettingsOpen(true)} size="sm" className="gap-[6px]">
+                    <Settings2 size={15} /> {t("pages.communityDetail.manageTitle")}
+                  </Button>
                 )}
-              </div>
-            </div>
-
-            <div
-              className="mt-[14px] flex flex-wrap items-center gap-x-[16px] gap-y-[8px] text-[13px]"
-              style={{ color: "var(--foreground-70)" }}
-            >
-              <span className="inline-flex items-center gap-[6px]">
-                <Users size={14} />
-                <span>{t("pages.communityDetail.members", { count: members })}</span>
-              </span>
-              {community.city?.name && (
-                <span className="inline-flex items-center gap-[6px]">
-                  <MapPin size={14} />
-                  <span>{community.city.name}</span>
-                </span>
-              )}
-              {isOwner && (
-                <span
-                  className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                >
-                  <Check size={13} /> {t("pages.communityDetail.youOwner")}
-                </span>
-              )}
-              {!isOwner && joined && (
-                <span
-                  className="inline-flex items-center gap-[6px] rounded-full px-[10px] py-[2px] text-[12px] font-semibold"
-                  style={{
-                    background: "var(--success-soft, var(--accent-soft))",
-                    color: "var(--success, var(--accent))",
-                  }}
-                >
-                  <Check size={13} /> {t("pages.communityDetail.youSubscribed")}
-                </span>
-              )}
-            </div>
-
-            <p
-              className="mt-[14px] text-[14px] leading-[1.65]"
-              style={{ color: "var(--foreground-70)" }}
-            >
-              {community.description}
-            </p>
-
-            {/* CTA row */}
-            <div className="mt-[18px] flex flex-wrap items-center gap-[8px]">
-              {!isOwner && (
+                {(joined || isOwner) && (
+                  <Button onClick={openChat} variant="outline" size="sm" className="gap-[6px]">
+                    <MessagesSquare size={15} /> {t("pages.communityDetail.openChat")}
+                  </Button>
+                )}
+                {community.allowSubmitPost && (
+                  <Button
+                    onClick={() => setSubmitOpen(true)}
+                    variant="outline"
+                    size="sm"
+                    className="gap-[6px]"
+                  >
+                    <FilePlus size={15} /> {t("pages.communityDetail.proposeProject")}
+                  </Button>
+                )}
                 <Button
-                  onClick={toggleJoin}
-                  disabled={busy || joinPending}
-                  variant={joined || joinPending ? "outline" : "default"}
-                  size="lg"
-                  className="gap-[8px] rounded-[12px]"
-                >
-                  {joined ? (
-                    <>
-                      <Check size={16} /> {t("pages.communityDetail.youSubscribed")}
-                    </>
-                  ) : joinPending ? (
-                    <>
-                      <Check size={16} /> {t("pages.communityDetail.requestPending")}
-                    </>
-                  ) : community.accessType === "request" ? (
-                    <>
-                      <Plus size={16} /> {t("pages.communityDetail.requestJoin")}
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={16} /> {t("pages.communityDetail.subscribe")}
-                    </>
-                  )}
-                </Button>
-              )}
-              {canManage && (
-                <Button
-                  onClick={() => setSettingsOpen(true)}
-                  size="lg"
-                  className="gap-[8px] rounded-[12px]"
-                >
-                  <Settings2 size={16} /> {t("pages.communityDetail.manageTitle")}
-                </Button>
-              )}
-              {(joined || isOwner) && (
-                <Button
-                  onClick={openChat}
                   variant="outline"
-                  size="lg"
-                  className="gap-[8px] rounded-[12px]"
+                  onClick={() => setShareOpen(true)}
+                  size="sm"
+                  className="gap-[6px]"
                 >
-                  <MessagesSquare size={16} /> {t("pages.communityDetail.openChat")}
+                  <Share2 size={15} /> {t("pages.communityDetail.share")}
                 </Button>
-              )}
-              {community.allowSubmitPost && (
-                <Button
-                  onClick={() => setSubmitOpen(true)}
-                  variant="outline"
-                  size="lg"
-                  className="gap-[8px] rounded-[12px]"
-                >
-                  <FilePlus size={16} /> {t("pages.communityDetail.proposeProject")}
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => setShareOpen(true)}
-                size="lg"
-                className="gap-[8px] rounded-[12px]"
-              >
-                <Share2 size={16} /> {t("pages.communityDetail.share")}
-              </Button>
-              {!hasOwnCommunity && !isOwner && (
-                <Button asChild variant="outline" size="lg" className="gap-[8px] rounded-[12px]">
-                  <Link to="/communities/new">
-                    <Plus size={16} /> {t("pages.communityDetail.wantOwnCommunity")}
-                  </Link>
-                </Button>
-              )}
-            </div>
-          </div>
+              </>
+            }
+            menu={
+              <EntityMoreMenu
+                ariaLabel={t("pages.communityDetail.moreAria")}
+                title={t("pages.communityDetail.moreTitle")}
+                items={moreMenuItems}
+              />
+            }
+          />
         </Card>
 
         {/* Tabs */}
@@ -1197,7 +1146,7 @@ function CommunityDetailPage() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(tabItem.key)}
-                className="relative inline-flex shrink-0 items-center gap-[6px] px-[14px] py-[12px] text-[14px] font-semibold transition-colors"
+                className="relative inline-flex h-[44px] shrink-0 items-center gap-[6px] px-[14px] text-[14px] font-semibold transition-colors"
                 style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
               >
                 {tabItem.label}
@@ -1568,6 +1517,11 @@ function CommunityDetailPage() {
           setPosts((prev) => [post, ...prev]);
           setCreatePostOpen(false);
         }}
+      />
+      <CommunityDetailsDialog
+        community={community}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
       />
       <ComplaintDialog
         target={

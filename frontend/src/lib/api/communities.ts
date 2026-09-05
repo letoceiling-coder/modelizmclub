@@ -98,6 +98,7 @@ export function mapCommunity(c: ApiCommunity): Community {
     isOwner: Boolean(c.is_owner),
     canManage: Boolean(c.can_manage),
     isOfficial: Boolean(c.is_official),
+    postsCount: c.posts_count ?? 0,
     role: c.viewer_role ?? (c.is_owner ? "owner" : c.is_member ? "member" : undefined),
     accessType: c.access_type ?? "open",
     rules: c.rules ?? null,

@@ -271,6 +271,8 @@ export interface Community {
   canManage?: boolean;
   /** Официальное сообщество площадки — бейдж в списке. */
   isOfficial?: boolean;
+  /** Публикаций в сообществе — счётчик из ресурса, для «Подробной информации». */
+  postsCount?: number;
   /** Viewer's role in this community, from the backend `viewer_role`. */
   role?: "owner" | "moderator" | "member";
   accessType?: "open" | "request";

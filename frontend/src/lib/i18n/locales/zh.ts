@@ -1098,6 +1098,13 @@ export const zh: TranslationSchema = {
       loadFailedDesc: "请检查网络后重试",
     },
     communityDetail: {
+      rulesTitle: "社区规则",
+      moreAria: "更多操作",
+      moreTitle: "更多",
+      detailsTitle: "详细信息",
+      postsCount: "{{count}} 条帖子",
+      leaveCommunity: "退出社区",
+      leaveConfirm: "确定退出该社区？",
       metaTitle: "Community — MoDelizM",
       tabPosts: "Posts",
       tabChat: "Chat",
