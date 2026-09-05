@@ -8,6 +8,8 @@
 # objects that exist only on production are invisible there. Only comparing the
 # two catches this, which is what this script does.
 #
+#   schema-drift.sh --database NAME      the same for another database, e.g. a
+#                                        restored copy — .env остаётся нетронутым
 #   schema-drift.sh                      compare the app's database with the
 #                                        committed baseline
 #   schema-drift.sh --build-reference    build the reference by running the
@@ -36,13 +38,18 @@ BASELINE="${SCHEMA_BASELINE:-${BACKEND_DIR}/database/schema/objects.txt}"
 
 MODE="compare"
 STRICT=0
-for arg in "$@"; do
-  case "${arg}" in
-    --build-reference) MODE="build" ;;
-    --update-baseline) MODE="update" ;;
-    --strict)          STRICT=1 ;;
+# Имя базы по умолчанию берётся из .env приложения. Явный ключ нужен, чтобы
+# проверить схему восстановленной копии, не трогая конфигурацию прода: без
+# него единственным способом было бы подменить DB_DATABASE в боевом .env.
+DB_OVERRIDE=""
+while [[ $# -gt 0 ]]; do
+  case "${1}" in
+    --build-reference) MODE="build"; shift ;;
+    --update-baseline) MODE="update"; shift ;;
+    --strict)          STRICT=1; shift ;;
+    --database)        DB_OVERRIDE="${2:?--database needs a value}"; shift 2 ;;
     -h|--help)         sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) echo "unknown option: ${arg}" >&2; exit 2 ;;
+    *) echo "unknown option: ${1}" >&2; exit 2 ;;
   esac
 done
 
@@ -80,7 +87,8 @@ build_reference() {
 dump_target() {
   local host port user pass name
   host="$(envval DB_HOST)"; port="$(envval DB_PORT)"
-  user="$(envval DB_USERNAME)"; pass="$(envval DB_PASSWORD)"; name="$(envval DB_DATABASE)"
+  user="$(envval DB_USERNAME)"; pass="$(envval DB_PASSWORD)"
+  name="${DB_OVERRIDE:-$(envval DB_DATABASE)}"
   [[ -n "${name}" ]] || { echo "schema-drift: DB_DATABASE is empty in ${BACKEND_DIR}/.env" >&2; return 1; }
   PGPASSWORD="${pass}" psql -q -h "${host}" -p "${port}" -U "${user}" -d "${name}" -f "${QUERY}" 2>/dev/null | grep -E '^(TABLE|COLUMN|INDEX|FK|SEQ)\|' | sort
 }
