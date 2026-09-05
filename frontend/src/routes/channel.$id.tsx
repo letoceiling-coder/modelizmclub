@@ -26,6 +26,7 @@ import {
   Link2,
   Flag,
   LogOut,
+  RefreshCw,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -53,6 +54,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUploadGrid } from "@/components/ads/wizard/ImageUploadGrid";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
@@ -150,7 +152,12 @@ function ChannelPage() {
   const { requirePremium, requireAccount } = useGuestAccess();
   const { requireAction } = useActionGate();
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id);
-  const { posts, reload: reloadPosts } = useChannelPosts(id);
+  const {
+    posts,
+    loading: postsLoading,
+    failed: postsFailed,
+    reload: reloadPosts,
+  } = useChannelPosts(id);
   const [tab, setTab] = useState<ChannelTab>(tabSearch === "about" ? "about" : "posts");
   const [showOwnerView, setShowOwnerView] = useState<boolean>(false);
   const [requestOpen, setRequestOpen] = useState(false);
@@ -481,7 +488,26 @@ function ChannelPage() {
               />
             )}
 
-            {list.length === 0 ? (
+            {/* Четыре состояния вместо двух. Пока записи грузились, страница
+                показывала «постов нет» и была короткой: подвал успевал
+                отрисоваться наверху и прыгал на 236 px, когда приезжал список.
+                На проде это давало CLS 0,367 при пороге 0,1 — худший
+                показатель среди всех страниц. */}
+            {postsLoading && list.length === 0 ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <PostCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : postsFailed ? (
+              <EmptyState
+                icon={RefreshCw}
+                title={t("pages.channelDetail.postsFailedTitle")}
+                description={t("pages.channelDetail.postsFailedDesc")}
+                action={{ label: t("pages.shared.retry"), onClick: reloadPosts }}
+                variant="compact"
+              />
+            ) : list.length === 0 ? (
               <div
                 className="grid place-items-center gap-2 py-12 text-center"
                 style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-card)" }}
