@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { ViewHistoryItem } from "@/lib/view-history";
 
@@ -21,7 +21,8 @@ function mapRow(row: ApiViewHistoryRow): ViewHistoryItem {
 }
 
 export async function fetchViewHistory(perPage = 50): Promise<ViewHistoryItem[]> {
-  if (isDemoMode()) {
+  if (isDemoMode() || !getToken()) {
+    // Гость читает свою историю из localStorage — на сервере её нет.
     const { getViewHistory } = await import("@/lib/view-history");
     return getViewHistory();
   }
@@ -37,6 +38,11 @@ export async function recordViewHistory(item: Omit<ViewHistoryItem, "viewedAt">)
     recordView(item);
     return;
   }
+  // История просмотров принадлежит аккаунту. У гостя её некуда писать, а
+  // запрос всё равно уходил и возвращал 401 — единственная ошибка в консоли
+  // на странице сообщества. Локальная копия в localStorage у гостя есть,
+  // её пишет recordView() до этого вызова.
+  if (!getToken()) return;
   try {
     await api("/me/view-history", {
       method: "POST",
@@ -53,7 +59,7 @@ export async function recordViewHistory(item: Omit<ViewHistoryItem, "viewedAt">)
 }
 
 export async function clearViewHistoryRemote(): Promise<void> {
-  if (isDemoMode()) {
+  if (isDemoMode() || !getToken()) {
     const { clearViewHistory } = await import("@/lib/view-history");
     clearViewHistory();
     return;
