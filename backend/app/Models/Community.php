@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Community extends Model
@@ -80,7 +81,7 @@ class Community extends Model
         return $this->hasMany(CommunityJoinRequest::class);
     }
 
-    public function conversation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function conversation(): HasOne
     {
         return $this->hasOne(Conversation::class)->where('type', 'community');
     }
@@ -108,7 +109,7 @@ class Community extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'community_members')
-            ->withPivot(['role', 'joined_at', 'last_read_post_id']);
+            ->withPivot(['role', 'joined_at', 'last_read_post_id', 'notifications_enabled']);
     }
 
     public function subcategories(): HasMany

@@ -2,13 +2,50 @@
 
 namespace Modules\Community\Http\Resources;
 
+use App\Enums\CommunityMemberRole;
 use App\Models\Community;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Gate;
 
 /** @mixin Community */
 class CommunityResource extends JsonResource
 {
+    /**
+     * Владелец сообщества.
+     *
+     * Создатель, а если его нет (сообщество завели миграцией или он удалён) —
+     * участник с ролью owner. Без этого блока страница не могла показать,
+     * с кем вообще имеет дело.
+     *
+     * @return array{uuid: string, name: string, slug: string|null, avatar: string|null}|null
+     */
+    private function owner(): ?array
+    {
+        $owner = $this->relationLoaded('creator') ? $this->creator : null;
+
+        // Запасной путь — для сообществ без created_by: их заводили до того,
+        // как поле появилось. Один запрос на одно сообщество, и только когда
+        // создателя действительно нет.
+        if ($owner === null && $this->created_by === null) {
+            $owner = $this->members()
+                ->wherePivot('role', CommunityMemberRole::Owner->value)
+                ->with('profile.avatar')
+                ->first();
+        }
+
+        if ($owner === null) {
+            return null;
+        }
+
+        return [
+            'uuid' => $owner->uuid,
+            'name' => $owner->profile?->display_name ?? $owner->name,
+            'slug' => $owner->profile?->slug,
+            'avatar' => $owner->profile?->avatar?->url,
+        ];
+    }
+
     public function toArray(Request $request): array
     {
         $user = $request->user('sanctum');
@@ -69,6 +106,28 @@ class CommunityResource extends JsonResource
                 (bool) $this->getAttribute('join_request_pending'),
             ),
             'approved_at' => $this->approved_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'owner' => $this->owner(),
+            // Что смотрящий может сделать. Считает та же политика, что
+            // охраняет маршруты: иначе кнопка на экране и запрет за ней
+            // рано или поздно разойдутся.
+            'can' => [
+                'join' => $user !== null && Gate::forUser($user)->allows('join', $this->resource),
+                'leave' => $user !== null && Gate::forUser($user)->allows('leave', $this->resource),
+                'manage' => $user !== null && Gate::forUser($user)->allows('manage', $this->resource),
+                'post' => $user !== null && Gate::forUser($user)->allows('post', $this->resource),
+                'invite' => $user !== null && Gate::forUser($user)->allows('invite', $this->resource),
+            ],
+            // Оба поля кладёт в атрибуты запрос, который собрал страницу:
+            // спрашивать их здесь означало бы по два запроса на карточку.
+            'is_favorite' => $this->when(
+                $this->getAttribute('is_favorite') !== null,
+                (bool) $this->getAttribute('is_favorite'),
+            ),
+            'notifications_enabled' => $this->when(
+                $this->getAttribute('notifications_enabled') !== null,
+                (bool) $this->getAttribute('notifications_enabled'),
+            ),
         ];
     }
 }

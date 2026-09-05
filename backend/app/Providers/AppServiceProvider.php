@@ -2,17 +2,8 @@
 
 namespace App\Providers;
 
-use Dedoc\Scramble\Scramble;
-use Dedoc\Scramble\Support\Generator\OpenApi;
-use Dedoc\Scramble\Support\Generator\SecurityScheme;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
-use Illuminate\Routing\Route;
-use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Notifications\Events\NotificationSending;
-use Illuminate\Support\Facades\Event;
 use App\Models\Comment;
+use App\Models\Community;
 use App\Models\Conversation;
 use App\Models\Dispute;
 use App\Models\Listing;
@@ -20,21 +11,34 @@ use App\Models\Message;
 use App\Models\Post;
 use App\Models\SafeDeal;
 use App\Policies\CommentPolicy;
+use App\Policies\CommunityPolicy;
 use App\Policies\ConversationPolicy;
 use App\Policies\DisputePolicy;
 use App\Policies\ListingPolicy;
 use App\Policies\MessagePolicy;
 use App\Policies\PostPolicy;
 use App\Policies\SafeDealPolicy;
+use App\Services\Sms\IqSmsClient;
+use App\Services\Sms\MtsMarketologSmsClient;
+use App\Services\Sms\SmsSender;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Modules\Auth\Services\MaxNotificationService;
 use Modules\Auth\Socialite\MaxProvider;
 use Modules\Auth\Socialite\VkIdProvider;
 use Modules\Auth\Socialite\YandexProvider;
-use SocialiteProviders\Manager\SocialiteWasCalled;
-use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbA2cPayoutClient;
 use Modules\Billing\Clients\VtbAcquiringClient;
 use Modules\Billing\Clients\VtbPayoutOAuthClient;
@@ -53,9 +57,7 @@ use Modules\Delivery\Services\CdekClientFactory;
 use Modules\Delivery\Services\CdekService;
 use Modules\Delivery\Services\CdekTokenCache;
 use Modules\Delivery\Services\YandexDeliveryService;
-use App\Services\Sms\IqSmsClient;
-use App\Services\Sms\MtsMarketologSmsClient;
-use App\Services\Sms\SmsSender;
+use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -187,6 +189,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Message::class, MessagePolicy::class);
         Gate::policy(Comment::class, CommentPolicy::class);
         Gate::policy(Listing::class, ListingPolicy::class);
+        Gate::policy(Community::class, CommunityPolicy::class);
 
         Gate::define('viewApiDocs', function () {
             if (app()->environment(['local', 'development', 'staging'])) {

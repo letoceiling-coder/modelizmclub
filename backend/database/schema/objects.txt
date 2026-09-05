@@ -266,6 +266,9 @@ COLUMN|community_events.starts_at|timestamp without time zone|NO
 COLUMN|community_events.title|character varying|NO
 COLUMN|community_events.updated_at|timestamp without time zone|YES
 COLUMN|community_events.uuid|uuid|NO
+COLUMN|community_favorites.community_id|bigint|NO
+COLUMN|community_favorites.created_at|timestamp without time zone|NO
+COLUMN|community_favorites.user_id|bigint|NO
 COLUMN|community_join_requests.community_id|bigint|NO
 COLUMN|community_join_requests.created_at|timestamp without time zone|YES
 COLUMN|community_join_requests.id|bigint|NO
@@ -278,6 +281,7 @@ COLUMN|community_join_requests.user_id|bigint|NO
 COLUMN|community_members.community_id|bigint|NO
 COLUMN|community_members.joined_at|timestamp without time zone|NO
 COLUMN|community_members.last_read_post_id|bigint|YES
+COLUMN|community_members.notifications_enabled|boolean|NO
 COLUMN|community_members.role|character varying|NO
 COLUMN|community_members.user_id|bigint|NO
 COLUMN|community_pinned_posts.community_id|bigint|NO
@@ -1381,6 +1385,8 @@ FK|community_event_attendees|community_event_attendees_user_id_foreign
 FK|community_events|community_events_community_id_foreign
 FK|community_events|community_events_cover_media_id_foreign
 FK|community_events|community_events_created_by_foreign
+FK|community_favorites|community_favorites_community_id_foreign
+FK|community_favorites|community_favorites_user_id_foreign
 FK|community_join_requests|community_join_requests_community_id_foreign
 FK|community_join_requests|community_join_requests_reviewed_by_foreign
 FK|community_join_requests|community_join_requests_user_id_foreign
@@ -1623,6 +1629,8 @@ INDEX|community_event_attendees|community_event_attendees_pkey
 INDEX|community_events|community_events_community_id_starts_at_index
 INDEX|community_events|community_events_pkey
 INDEX|community_events|community_events_uuid_unique
+INDEX|community_favorites|community_favorites_community_id_index
+INDEX|community_favorites|community_favorites_pkey
 INDEX|community_join_requests|community_join_requests_community_id_user_id_unique
 INDEX|community_join_requests|community_join_requests_pkey
 INDEX|community_members|community_members_pkey
@@ -2016,6 +2024,7 @@ TABLE|community_applications
 TABLE|community_categories
 TABLE|community_event_attendees
 TABLE|community_events
+TABLE|community_favorites
 TABLE|community_join_requests
 TABLE|community_members
 TABLE|community_pinned_posts
