@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
+ * Сколько секунд осталось до срока.
+ *
+ * Отдельно от хука, потому что здесь вся арифметика, и проверять её живой
+ * отправкой SMS — это тратить настоящее сообщение и шаг к пределу.
+ * Округление вверх: пока не наступил срок, показываем хотя бы одну секунду,
+ * иначе кнопка успевает разблокироваться на полсекунды раньше сервера.
+ */
+export function secondsLeft(until: number, now: number): number {
+  if (until <= 0) return 0;
+  return Math.max(0, Math.ceil((until - now) / 1000));
+}
+
+/**
  * Обратный отсчёт до следующей отправки SMS.
  *
  * Держит срок, а не оставшиеся секунды: вкладку сворачивают, таймеры в
@@ -20,7 +33,7 @@ export function useResendCountdown(): {
   useEffect(() => {
     if (left <= 0) return;
     const id = window.setInterval(() => {
-      setLeft(Math.max(0, Math.ceil((untilRef.current - Date.now()) / 1000)));
+      setLeft(secondsLeft(untilRef.current, Date.now()));
     }, 250);
     return () => window.clearInterval(id);
   }, [left]);
