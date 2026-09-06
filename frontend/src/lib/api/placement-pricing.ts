@@ -24,11 +24,20 @@ export async function fetchPublicPlacementPricing(): Promise<PublicPlacementPric
  */
 export function usePublicPlacementPricing(initial?: PublicPlacementPricing | null): {
   registeredRub: number;
+  /**
+   * Цена для подписчика. Нужна там, где цену показывают до выбора категории:
+   * точную считает `/listings/placement-quote`, но он требует категорию, а
+   * человек видит строку с ценой уже на первом шаге.
+   */
+  subscriberRub: number;
   paymentEnabled: boolean;
   loading: boolean;
 } {
   const [registeredRub, setRegisteredRub] = useState(
     initial ? Math.round(initial.registered_price_cents / 100) : 20,
+  );
+  const [subscriberRub, setSubscriberRub] = useState(
+    initial ? Math.round(initial.subscriber_default_price_cents / 100) : 20,
   );
   const [paymentEnabled, setPaymentEnabled] = useState(Boolean(initial?.payment_enabled));
   const [loading, setLoading] = useState(!initial);
@@ -40,6 +49,7 @@ export function usePublicPlacementPricing(initial?: PublicPlacementPricing | nul
       .then((data) => {
         if (!active) return;
         setRegisteredRub(Math.round(data.registered_price_cents / 100));
+        setSubscriberRub(Math.round(data.subscriber_default_price_cents / 100));
         setPaymentEnabled(Boolean(data.payment_enabled));
       })
       .catch(() => {})
@@ -51,5 +61,5 @@ export function usePublicPlacementPricing(initial?: PublicPlacementPricing | nul
     };
   }, [initial]);
 
-  return { registeredRub, paymentEnabled, loading };
+  return { registeredRub, subscriberRub, paymentEnabled, loading };
 }
