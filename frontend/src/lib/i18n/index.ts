@@ -75,6 +75,39 @@ export function loadLocale(locale: Locale): Promise<void> {
   return task;
 }
 
+/**
+ * Досылает словарь админки.
+ *
+ * Тридцать три её раздела весят 45 КБ и лежали в общем словаре — то есть в
+ * главном чанке у каждого посетителя, включая тех, кто админку не откроет
+ * никогда. Ключи не менялись (`pages.adminUsers.…`), кусок домешивается в тот
+ * же словарь глубоким слиянием, поэтому места вызова остались прежними.
+ *
+ * Зовётся из `beforeLoad` маршрута /admin — до того, как что-то отрисуется,
+ * иначе первый кадр показал бы точечные пути вместо подписей.
+ *
+ * Английский и китайский догружаются целиком отдельными файлами и админские
+ * ключи несут в себе — там делить нечего.
+ */
+let adminBundle: Promise<void> | null = null;
+
+export function loadAdminLocale(): Promise<void> {
+  if (i18n.hasResourceBundle(DEFAULT_LOCALE, "translation")) {
+    const existing = i18n.getResourceBundle(DEFAULT_LOCALE, "translation") as {
+      pages?: Record<string, unknown>;
+    };
+    if (existing?.pages?.adminShell) return Promise.resolve();
+  }
+
+  adminBundle ??= import("./locales/ru-admin").then(({ ruAdmin }) => {
+    // deep = true, overwrite = false: досылаем недостающее, не затирая уже
+    // загруженный словарь.
+    i18n.addResourceBundle(DEFAULT_LOCALE, "translation", ruAdmin, true, false);
+  });
+
+  return adminBundle;
+}
+
 export function setLocale(locale: Locale): void {
   if (typeof window !== "undefined") {
     try {

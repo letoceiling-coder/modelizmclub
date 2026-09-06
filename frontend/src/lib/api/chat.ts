@@ -3,7 +3,6 @@ import { registerUser, makeMockWaveform } from "@/lib/mock";
 import { api, API_BASE_URL } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoConversations, demoMessages } from "@/lib/demo-data";
 import { wasChatWithPartnerDeleted } from "@/lib/store";
 import type { MediaVariantSet } from "@/lib/media/variants";
 import { messengerCache } from "@/lib/messenger";
@@ -304,7 +303,7 @@ export async function markConversationRead(conversationUuid: string): Promise<vo
 }
 
 export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
-  if (isDemoMode()) return demoConversations();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoConversations();
   const [chats, communities, rooms] = await Promise.all([
     api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50 } }),
     api<Paginated<ApiConversation>>("/conversations", {
@@ -320,7 +319,7 @@ export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
 
 export async function fetchConversation(uuid: string, meUuid: string): Promise<Dialog> {
   if (isDemoMode()) {
-    const found = demoConversations().find((d) => d.id === uuid);
+    const found = (await import("@/lib/demo-data")).demoConversations().find((d) => d.id === uuid);
     if (found) return found;
     throw new Error("Conversation not found");
   }
@@ -329,7 +328,7 @@ export async function fetchConversation(uuid: string, meUuid: string): Promise<D
 }
 
 export async function fetchMessages(uuid: string): Promise<Message[]> {
-  if (isDemoMode()) return demoMessages(uuid);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoMessages(uuid);
   const conv = await api<{ data: ApiConversation }>(`/conversations/${uuid}`);
   const pinnedUuid = conv.data.pinned_message?.uuid ?? null;
   const res = await api<Paginated<ApiMessage>>(`/conversations/${uuid}/messages`, {
@@ -340,7 +339,7 @@ export async function fetchMessages(uuid: string): Promise<Message[]> {
 
 /** Load full message history for in-dialog search (paginated, capped). */
 export async function fetchMessagesForSearch(uuid: string, maxPages = 20): Promise<Message[]> {
-  if (isDemoMode()) return demoMessages(uuid);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoMessages(uuid);
   const conv = await api<{ data: ApiConversation }>(`/conversations/${uuid}`);
   const pinnedUuid = conv.data.pinned_message?.uuid ?? null;
   const collected: Message[] = [];
@@ -442,7 +441,9 @@ export async function createConversation(
 ): Promise<Dialog> {
   if (isDemoMode()) {
     const peerId = `u${userId}`;
-    const existing = demoConversations().find((d) => d.userId === peerId);
+    const existing = (await import("@/lib/demo-data"))
+      .demoConversations()
+      .find((d) => d.userId === peerId);
     if (existing) return existing;
     return {
       id: `demo-d-${userId}-${Date.now()}`,

@@ -1,7 +1,6 @@
 import type { Category } from "@/lib/mock";
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoCategories } from "@/lib/demo-data";
 
 interface ApiCategoryNode {
   id: number;
@@ -48,7 +47,7 @@ export async function fetchPostCategories(): Promise<Category[]> {
   if (inflight) return inflight;
   inflight = (async () => {
     if (isDemoMode()) {
-      const categories = demoCategories();
+      const categories = (await import("@/lib/demo-data")).demoCategories();
       const byName = new Map<string, number>();
       categories.forEach((c, i) => byName.set(c.name, i + 1));
       cache = { categories, byName };
@@ -160,7 +159,7 @@ export async function fetchListingCategories(): Promise<Category[]> {
   if (listingInflight) return listingInflight;
   listingInflight = (async () => {
     if (isDemoMode()) {
-      listingCache = demoCategories();
+      listingCache = (await import("@/lib/demo-data")).demoCategories();
       return listingCache;
     }
     const res = await api<{ data: ApiCategoryNode[] }>("/categories/listings");

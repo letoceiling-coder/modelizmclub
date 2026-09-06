@@ -1,7 +1,6 @@
 import type { Banner } from "@/lib/mock";
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoBanners } from "@/lib/demo-data";
 
 export interface BannerCarouselSettings {
   enabled: boolean;
@@ -97,7 +96,7 @@ export async function fetchBannersWithSettings(placement?: string): Promise<Bann
   const req = (async (): Promise<BannerPack> => {
     if (isDemoMode()) {
       const pack: BannerPack = {
-        banners: demoBanners(),
+        banners: (await import("@/lib/demo-data")).demoBanners(),
         carousel: { ...DEFAULT_CAROUSEL, placement: placement ?? "events" },
       };
       packCache.set(key, pack);

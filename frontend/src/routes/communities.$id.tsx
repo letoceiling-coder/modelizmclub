@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { variantUrl } from "@/lib/media/variants";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -61,16 +61,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { recordView } from "@/lib/view-history";
 import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
-import {
-  demoCommunityPosts,
-  demoCommunityDiscussions,
-  demoCommunityEvents,
-  demoCommunityMembers,
-  demoCommunities,
-  type DemoDiscussion,
-  type DemoCommunityEvent,
-  type DemoCommunityMember,
-} from "@/lib/demo-data";
+import type { DemoDiscussion, DemoCommunityEvent, DemoCommunityMember } from "@/lib/demo-data";
 import { ShareSheet } from "@/components/communities/ShareSheet";
 import { SubmitPostSheet } from "@/components/communities/SubmitPostSheet";
 import { Card } from "@/components/ui/card";
@@ -89,6 +80,7 @@ import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { InviteFriendsDialog } from "@/components/communities/InviteFriendsDialog";
 import { SimilarCommunitiesList } from "@/components/communities/SimilarCommunitiesList";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useVisibleOnce } from "@/hooks/use-visible";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
 import { toast } from "@/lib/toast";
@@ -555,6 +547,7 @@ function CommunityRightRail({
   events,
   similar,
   onSignup,
+  containerRef,
 }: {
   community: Community;
   /**
@@ -564,9 +557,15 @@ function CommunityRightRail({
    */
   members: Array<{ user: { id: string; name: string; avatar?: string; online?: boolean } }>;
   events: DemoCommunityEvent[];
-  /** Похожие приходят готовыми: их грузит страница одним запросом. */
+  /** Похожие приходят готовыми: страница грузит их, когда колонка показалась. */
   similar: Community[];
   onSignup: (e: DemoCommunityEvent) => void;
+  /**
+   * Колонка спрятана до 1024 через `display: none`, но в разметке есть всегда.
+   * Ссылку вешаем на неё саму: наблюдатель пересечений у скрытого узла не
+   * срабатывает, и на телефоне запросов не будет вовсе.
+   */
+  containerRef: (node: HTMLElement | null) => void;
 }) {
   const { t } = useTranslation();
   // Сначала те, кто в сети; если в сети никого — просто первые из списка,
@@ -575,7 +574,7 @@ function CommunityRightRail({
   const online = (onlineFirst.length > 0 ? onlineFirst : members).slice(0, 8);
 
   return (
-    <aside className="hidden w-72 shrink-0 lg:block">
+    <aside ref={containerRef} className="hidden w-72 shrink-0 lg:block">
       <div
         className="flex h-full flex-col gap-[14px] overflow-y-auto py-[2px] pr-[2px]"
         style={{ scrollbarWidth: "thin" }}
@@ -860,6 +859,9 @@ function CommunityDetailPage() {
   const [togglingNotifications, setTogglingNotifications] = useState(false);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
   const [similar, setSimilar] = useState<Community[]>([]);
+  // Правая колонка сама сообщает, что показалась: до 1024 её нет, и грузить
+  // для неё нечего.
+  const { ref: railRef, visible: railVisible } = useVisibleOnce<HTMLElement>();
   const [similarOpen, setSimilarOpen] = useState(false);
   const [memberList, setMemberList] = useState<CommunityMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -917,37 +919,67 @@ function CommunityDetailPage() {
     };
   }, [id, loaded.community]);
 
-  // Похожие подтягиваются отдельно: они не нужны для первого кадра и не
-  // должны задерживать ответ сервера.
-  useEffect(() => {
-    let alive = true;
+  /*
+   * Похожие грузятся по требованию, а не при открытии страницы.
+   *
+   * Раньше запрос уходил из useEffect на монтировании — на каждый заход, в
+   * том числе с телефона, где правой колонки нет вовсе и показать их негде.
+   * Замер на проде: 776 мс на ответ, начало на 8,4 с, то есть ровно в момент
+   * гидрации, когда полоса нужна другому.
+   *
+   * Теперь зовут двое: правая колонка, когда действительно показалась, и
+   * пункт меню «Похожие сообщества». Повторно не запрашиваем.
+   */
+  const similarRequested = useRef(false);
+  const loadSimilar = useCallback(() => {
+    if (similarRequested.current) return;
+    similarRequested.current = true;
     fetchSimilarCommunities(id)
-      .then((list) => alive && setSimilar(list))
-      .catch(() => alive && setSimilar([]));
-    return () => {
-      alive = false;
-    };
+      .then(setSimilar)
+      .catch(() => setSimilar([]));
   }, [id]);
+
+  useEffect(() => {
+    if (railVisible) loadSimilar();
+  }, [railVisible, loadSimilar]);
 
   // Demo content for tabs without backend wiring.
   const demo = isDemoMode();
-  const discussions = useMemo(
-    () => (community && demo ? demoCommunityDiscussions(community.id) : []),
-    [community, demo],
-  );
-  const events = useMemo(
-    () => (community && demo ? demoCommunityEvents(community.id) : []),
-    [community, demo],
-  );
-  const demoMemberList = useMemo(
-    () => (community && demo ? demoCommunityMembers(community.id) : []),
-    [community, demo],
-  );
+  /*
+   * Демоданные приезжают отдельным куском, а не вместе со страницей.
+   *
+   * Маршрут не ленивый, поэтому его статические импорты попадают в главный
+   * чанк — вместе с ними туда уезжали 47 КБ выдуманных постов, сообществ и
+   * пользователей, которые в бою не показываются никогда. Здесь единственное
+   * место, где они нужны синхронно, поэтому вместо useMemo — состояние.
+   */
+  const [discussions, setDiscussions] = useState<DemoDiscussion[]>([]);
+  const [events, setEvents] = useState<DemoCommunityEvent[]>([]);
+  const [demoMemberList, setDemoMemberList] = useState<DemoCommunityMember[]>([]);
+
+  useEffect(() => {
+    if (!community || !demo) {
+      setDiscussions([]);
+      setEvents([]);
+      setDemoMemberList([]);
+      return;
+    }
+    let alive = true;
+    void import("@/lib/demo-data").then((m) => {
+      if (!alive) return;
+      setDiscussions(m.demoCommunityDiscussions(community.id));
+      setEvents(m.demoCommunityEvents(community.id));
+      setDemoMemberList(m.demoCommunityMembers(community.id));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [community, demo]);
 
   useEffect(() => {
     if (!community || tab !== "posts") return;
     if (demo) {
-      setPosts(demoCommunityPosts(community.id));
+      void import("@/lib/demo-data").then((m) => setPosts(m.demoCommunityPosts(community.id)));
       return;
     }
     // Записи от загрузчика уже отрисованы.
@@ -962,11 +994,19 @@ function CommunityDetailPage() {
       .finally(() => setPostsLoading(false));
   }, [community, tab, demo]);
 
-  // Участники нужны не только на своей вкладке: из них собирается карточка
-  // «Участники» в правой колонке, а она видна на вкладке записей. Поэтому
-  // список грузится один раз на сообщество, а не при переключении вкладки.
+  /*
+   * Участники нужны в двух местах, и объёмы там разные: карточке правой
+   * колонки хватает восьми аватаров, вкладке — всего списка.
+   *
+   * Раньше на монтировании тянулись сразу сто записей — на карточку, которая
+   * показывает восемь, и на телефоне, где карточки нет. Теперь короткий
+   * список запрашивает сама колонка, когда показалась, а полный — вкладка,
+   * когда её открыли.
+   */
+  const membersScope = tab === "members" ? "full" : railVisible ? "card" : "none";
+
   useEffect(() => {
-    if (!community) return;
+    if (!community || membersScope === "none") return;
     if (demo) {
       setMemberList(
         demoMemberList.map((m) => ({
@@ -978,11 +1018,11 @@ function CommunityDetailPage() {
       return;
     }
     setMembersLoading(true);
-    fetchCommunityMembers(community.id)
+    fetchCommunityMembers(community.id, membersScope === "full" ? 100 : 8)
       .then(setMemberList)
       .catch(() => setMemberList([]))
       .finally(() => setMembersLoading(false));
-  }, [community, demo, demoMemberList]);
+  }, [community, demo, demoMemberList, membersScope]);
 
   useEffect(() => {
     if (!community || tab !== "events" || demo) return;
@@ -1149,7 +1189,12 @@ function CommunityDetailPage() {
       id: "similar",
       icon: Sparkles,
       label: t("pages.communityDetail.similarCommunities"),
-      onSelect: () => setSimilarOpen(true),
+      // На телефоне правой колонки нет, и до этого нажатия похожих никто не
+      // запрашивал. Грузим здесь же; повторно запрос не уйдёт.
+      onSelect: () => {
+        loadSimilar();
+        setSimilarOpen(true);
+      },
     });
 
     items.push({
@@ -1310,6 +1355,7 @@ function CommunityDetailPage() {
       events={demo ? events : []}
       similar={similar}
       onSignup={setSignupEvent}
+      containerRef={railRef}
     />
   );
 
@@ -1385,7 +1431,10 @@ function CommunityDetailPage() {
                     ? events.length
                     : hubEvents.length
                   : tabItem.key === "members"
-                    ? memberList.length
+                    ? // Число берём из ресурса, а не из длины загруженного
+                      // списка: карточке правой колонки хватает восьми, и
+                      // счётчик показывал бы «8» вместо настоящего числа.
+                      (community.members ?? memberList.length)
                     : 0;
             return (
               <button

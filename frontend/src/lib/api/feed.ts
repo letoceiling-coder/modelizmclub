@@ -4,7 +4,6 @@ import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { rememberMediaAspect } from "@/lib/media/aspectCache";
-import { demoFeed, demoPostComments } from "@/lib/demo-data";
 import type { MediaVariantSet, VideoDelivery } from "@/lib/media/variants";
 
 interface ApiPostAuthor {
@@ -241,7 +240,7 @@ export interface FeedResult {
 
 export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
   if (isDemoMode()) {
-    return demoFeed({
+    return (await import("@/lib/demo-data")).demoFeed({
       filter: opts.filter,
       categoryName: opts.categoryName,
       page: opts.page,
@@ -327,7 +326,7 @@ async function fetchPostCommentsPage(
   opts?: { sort?: CommentSort; perPage?: number; page?: number },
 ): Promise<{ comments: Comment[]; lastPage: number }> {
   if (isDemoMode()) {
-    return { comments: demoPostComments(uuid), lastPage: 1 };
+    return { comments: (await import("@/lib/demo-data")).demoPostComments(uuid), lastPage: 1 };
   }
   const res = await api<Paginated<ApiComment>>(`/posts/${uuid}/comments`, {
     auth: false,
@@ -348,7 +347,7 @@ export async function fetchAllPostComments(
   uuid: string,
   sort: CommentSort = "interesting",
 ): Promise<Comment[]> {
-  if (isDemoMode()) return demoPostComments(uuid);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoPostComments(uuid);
   const all: Comment[] = [];
   let page = 1;
   let lastPage = 1;
@@ -458,7 +457,7 @@ export async function publishPost(uuid: string): Promise<Post> {
 
 export async function fetchPost(uuid: string): Promise<Post> {
   if (isDemoMode()) {
-    const found = demoFeed().posts.find((p) => p.id === uuid);
+    const found = (await import("@/lib/demo-data")).demoFeed().posts.find((p) => p.id === uuid);
     if (!found) throw new Error("not found");
     return found;
   }

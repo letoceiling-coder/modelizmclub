@@ -1,12 +1,6 @@
 import type { Community, Post } from "@/lib/mock";
 import { api, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import {
-  demoCommunities,
-  demoCommunity,
-  demoCommunityPosts,
-  setDemoCommunitySubscription,
-} from "@/lib/demo-data";
 import { mapPost, type ApiPost } from "./feed";
 import { useCallback, useEffect, useState } from "react";
 
@@ -170,7 +164,7 @@ function mapCommunityMember(m: ApiCommunityMember): CommunityMember {
 }
 
 export async function fetchCommunities(query?: string, taxonomyId?: number): Promise<Community[]> {
-  if (isDemoMode()) return demoCommunities(query);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoCommunities(query);
   const res = await api<Paginated<ApiCommunity>>("/communities", {
     auth: Boolean(getToken()),
     query: { q: query || undefined, taxonomy_id: taxonomyId || undefined, per_page: 50 },
@@ -178,7 +172,12 @@ export async function fetchCommunities(query?: string, taxonomyId?: number): Pro
   return (res.data ?? []).map(mapCommunity);
 }
 
-export async function fetchCommunityMembers(slug: string): Promise<CommunityMember[]> {
+/**
+ * @param limit сколько записей просить. Карточке правой колонки нужно восемь,
+ *              вкладке — весь список; сто на карточку из восьми аватаров были
+ *              лишними на каждом открытии страницы.
+ */
+export async function fetchCommunityMembers(slug: string, limit = 100): Promise<CommunityMember[]> {
   if (isDemoMode()) {
     const { demoCommunityMembers } = await import("@/lib/demo-data");
     return demoCommunityMembers(slug).map((m) => ({
@@ -188,14 +187,14 @@ export async function fetchCommunityMembers(slug: string): Promise<CommunityMemb
     }));
   }
   const res = await api<Paginated<ApiCommunityMember>>(`/communities/${slug}/members`, {
-    query: { per_page: 100 },
+    query: { per_page: limit },
   });
   return (res.data ?? []).map(mapCommunityMember);
 }
 
 export async function fetchCommunity(slug: string): Promise<Community> {
   if (isDemoMode()) {
-    const c = demoCommunity(slug);
+    const c = (await import("@/lib/demo-data")).demoCommunity(slug);
     if (c) return c;
     throw new Error("Community not found");
   }
@@ -205,8 +204,8 @@ export async function fetchCommunity(slug: string): Promise<Community> {
 
 export async function fetchCommunityPosts(slug: string): Promise<Post[]> {
   if (isDemoMode()) {
-    const c = demoCommunity(slug);
-    return c ? demoCommunityPosts(c.id) : [];
+    const c = (await import("@/lib/demo-data")).demoCommunity(slug);
+    return c ? (await import("@/lib/demo-data")).demoCommunityPosts(c.id) : [];
   }
   const res = await api<{ data: ApiPost[] }>(`/communities/${slug}/posts`, {
     query: { per_page: 50 },
@@ -218,7 +217,7 @@ export async function fetchCommunityPosts(slug: string): Promise<Post[]> {
 
 export async function joinCommunity(slug: string): Promise<{ status: "member" | "pending" }> {
   if (isDemoMode()) {
-    setDemoCommunitySubscription(slug, true);
+    (await import("@/lib/demo-data")).setDemoCommunitySubscription(slug, true);
     return { status: "member" };
   }
   const res = await api<{ status?: string }>(`/communities/${slug}/join`, { method: "POST" });
@@ -227,7 +226,7 @@ export async function joinCommunity(slug: string): Promise<{ status: "member" | 
 
 export async function leaveCommunity(slug: string): Promise<void> {
   if (isDemoMode()) {
-    setDemoCommunitySubscription(slug, false);
+    (await import("@/lib/demo-data")).setDemoCommunitySubscription(slug, false);
     return;
   }
   await api(`/communities/${slug}/leave`, { method: "DELETE" });
@@ -235,7 +234,7 @@ export async function leaveCommunity(slug: string): Promise<void> {
 
 export async function fetchOwnedCommunities(): Promise<Community[]> {
   if (isDemoMode()) {
-    return demoCommunities().filter((c) => Boolean(c.isOwner));
+    return (await import("@/lib/demo-data")).demoCommunities().filter((c) => Boolean(c.isOwner));
   }
   if (!getToken()) return [];
   const res = await api<Paginated<ApiCommunity>>("/communities", {
@@ -482,8 +481,9 @@ export async function setCommunityFavorite(slug: string, favorite: boolean): Pro
 /** Похожие: совпадение категории или тем, до пяти. Открыто и гостю. */
 export async function fetchSimilarCommunities(slug: string): Promise<Community[]> {
   if (isDemoMode()) {
-    const current = demoCommunity(slug);
-    return demoCommunities()
+    const current = (await import("@/lib/demo-data")).demoCommunity(slug);
+    return (await import("@/lib/demo-data"))
+      .demoCommunities()
       .filter((c) => c.id !== current?.id && c.category === current?.category)
       .slice(0, 5);
   }

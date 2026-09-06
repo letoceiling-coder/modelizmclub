@@ -3,12 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
-import {
-  demoChannels,
-  demoChannel,
-  demoChannelPosts,
-  setDemoChannelSubscription,
-} from "@/lib/demo-data";
 import { formatDate } from "@/lib/format/date";
 import type { MediaVariantSet, VideoDelivery } from "@/lib/media/variants";
 
@@ -257,7 +251,7 @@ export function getCachedChannels(taxonomyId?: number): Channel[] | null {
 }
 
 export async function fetchChannels(taxonomyId?: number): Promise<Channel[]> {
-  if (isDemoMode()) return demoChannels() as Channel[];
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoChannels() as Channel[];
   const res = await api<{ data: ApiChannel[] }>("/channels", {
     query: { taxonomy_id: taxonomyId || undefined },
   });
@@ -267,7 +261,8 @@ export async function fetchChannels(taxonomyId?: number): Promise<Channel[]> {
 }
 
 export async function fetchChannel(slug: string): Promise<Channel | null> {
-  if (isDemoMode()) return (demoChannel(slug) as Channel | null) ?? null;
+  if (isDemoMode())
+    return ((await import("@/lib/demo-data")).demoChannel(slug) as Channel | null) ?? null;
   try {
     const res = await api<{ data: ApiChannel }>(`/channels/${slug}`);
     return mapChannel(res.data);
@@ -277,7 +272,8 @@ export async function fetchChannel(slug: string): Promise<Channel | null> {
 }
 
 export async function fetchChannelPosts(slug: string): Promise<ChannelPost[]> {
-  if (isDemoMode()) return demoChannelPosts(slug) as ChannelPost[];
+  if (isDemoMode())
+    return (await import("@/lib/demo-data")).demoChannelPosts(slug) as ChannelPost[];
   const res = await api<{ data: ApiChannelPost[] }>(`/channels/${slug}/posts`, {
     query: { per_page: 50 },
   });
@@ -344,7 +340,7 @@ export async function deleteChannel(slug: string, confirmName: string): Promise<
 
 export async function setChannelSubscription(slug: string, subscribe: boolean): Promise<void> {
   if (isDemoMode()) {
-    setDemoChannelSubscription(slug, subscribe);
+    (await import("@/lib/demo-data")).setDemoChannelSubscription(slug, subscribe);
     return;
   }
   await api(`/channels/${slug}/subscribe`, { method: subscribe ? "POST" : "DELETE" });
