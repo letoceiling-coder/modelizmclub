@@ -1,3 +1,4 @@
+import { variantUrl } from "@/lib/media/variants";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -81,8 +82,42 @@ import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
 
+/**
+ * Вынесен из объекта маршрута с явным типом: `head` читает `loaderData`, а
+ * загрузчик — `params`, и вывод типов замыкается в кольцо. См. тот же приём
+ * в communities.$id.tsx.
+ */
+type ChannelLoaderData = { channel: Channel | null; posts: ChannelPost[] };
+
+async function loadChannel({ params }: { params: { id: string } }): Promise<ChannelLoaderData> {
+  await ensurePublicBootstrap();
+  const [channel, posts] = await Promise.all([
+    fetchChannel(params.id).catch(() => null),
+    fetchChannelPosts(params.id).catch(() => [] as ChannelPost[]),
+  ]);
+
+  return { channel, posts };
+}
+
 export const Route = createFileRoute("/channel/$id")({
-  head: () => ({ meta: [{ title: i18n.t("pages.channelDetail.metaTitle") }] }),
+  head: ({ loaderData }: { loaderData?: ChannelLoaderData }) => {
+    // Обложка канала — та же шапка EntityHeader, что и у сообщества, и тот
+    // же приём: preload в head, чтобы браузер не ждал разбора разметки.
+    const cover = loaderData?.channel?.bannerImage;
+    return {
+      meta: [{ title: i18n.t("pages.channelDetail.metaTitle") }],
+      links: cover
+        ? [
+            {
+              rel: "preload",
+              as: "image",
+              href: variantUrl(cover, "medium"),
+              fetchPriority: "high",
+            },
+          ]
+        : [],
+    };
+  },
   validateSearch: (
     search: Record<string, unknown>,
   ): {
@@ -114,14 +149,7 @@ export const Route = createFileRoute("/channel/$id")({
    * пока высота карточки неизвестна заранее, подмена всё равно двигает
    * страницу. Данные в первом кадре убирают саму подмену.
    */
-  loader: async ({ params }) => {
-    await ensurePublicBootstrap();
-    const [channel, posts] = await Promise.all([
-      fetchChannel(params.id).catch(() => null),
-      fetchChannelPosts(params.id).catch(() => [] as ChannelPost[]),
-    ]);
-    return { channel, posts };
-  },
+  loader: loadChannel,
   staleTime: 30_000,
   component: ChannelPage,
 });

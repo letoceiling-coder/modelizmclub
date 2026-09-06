@@ -84,8 +84,52 @@ import { toast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 
+/**
+ * Загрузчик вынесен из объекта маршрута с явным типом ответа.
+ *
+ * `head` читает `loaderData`, а загрузчик читает `params` — вместе они
+ * замыкают вывод типов в кольцо, и TypeScript отдаёт `never` там и там.
+ * Явный тип разрывает кольцо, ничего не меняя в поведении.
+ */
+type CommunityLoaderData = { community: Community | null; posts: Post[] };
+
+async function loadCommunity({ params }: { params: { id: string } }): Promise<CommunityLoaderData> {
+  await ensurePublicBootstrap();
+  // Стена — вместе с сообществом: иначе первый кадр показывает два
+  // скелетона по 120 px, а следом более короткое «постов нет», и всё, что
+  // ниже, прыгает на 86 px. Ровно это давало CLS 0,028 при пороге 0,01.
+  //
+  // Параллельно, а не следом: записи ищутся по тому же ключу, что и само
+  // сообщество, — адрес принимает и slug, и id. Последовательный вызов
+  // добавлял к ответу сервера целый круг до API впустую.
+  const [community, posts] = await Promise.all([
+    fetchCommunity(params.id).catch(() => null),
+    fetchCommunityPosts(params.id).catch(() => [] as Post[]),
+  ]);
+
+  return { community, posts };
+}
+
 export const Route = createFileRoute("/communities/$id")({
-  head: () => ({ meta: [{ title: i18n.t("pages.communityDetail.metaTitle") }] }),
+  head: ({ loaderData }: { loaderData?: CommunityLoaderData }) => {
+    // Обложка — самая большая картинка первого экрана. Без preload браузер
+    // узнаёт о ней только разобрав разметку и вычислив вёрстку; с preload
+    // тянет одновременно с документом. Тот же приём, что для баннера ленты.
+    const cover = loaderData?.community?.coverImage;
+    return {
+      meta: [{ title: i18n.t("pages.communityDetail.metaTitle") }],
+      links: cover
+        ? [
+            {
+              rel: "preload",
+              as: "image",
+              href: variantUrl(cover, "medium"),
+              fetchPriority: "high",
+            },
+          ]
+        : [],
+    };
+  },
   /**
    * Сообщество приходит с сервера, как и канал рядом.
    *
@@ -93,17 +137,7 @@ export const Route = createFileRoute("/communities/$id")({
    * гидрации: первая отрисовка на 3,8 с, LCP 6,6 с — худшая пара среди всех
    * страниц, и содержимое доезжало кусками, двигая соседние блоки.
    */
-  loader: async ({ params }) => {
-    await ensurePublicBootstrap();
-    const community = await fetchCommunity(params.id).catch(() => null);
-    // Стена — вместе с сообществом: иначе первый кадр показывает два
-    // скелетона по 120 px, а следом более короткое «постов нет», и всё, что
-    // ниже, прыгает на 86 px. Ровно это давало CLS 0,028 при пороге 0,01.
-    const posts = community
-      ? await fetchCommunityPosts(community.id).catch(() => [] as Post[])
-      : ([] as Post[]);
-    return { community, posts };
-  },
+  loader: loadCommunity,
   staleTime: 30_000,
   component: CommunityDetailPage,
 });

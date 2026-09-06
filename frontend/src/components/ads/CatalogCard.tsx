@@ -16,7 +16,22 @@ import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia } from "@/lib/media/variants";
 import { Img } from "@/components/ui/Img";
 
-export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
+export function CatalogCard({
+  ad,
+  className,
+  priority,
+}: {
+  ad: Ad;
+  className?: string;
+  /**
+   * Карточка на первом экране. По умолчанию картинки каталога ленивые, и
+   * браузер узнавал о самой большой из них только после вычисления вёрстки:
+   * 658 мс между ответом сервера и началом загрузки — измерено на /ads,
+   * 13 % всего LCP. Разметка приходит с сервера, так что достаточно снять
+   * lazy: картинку видно уже при разборе HTML.
+   */
+  priority?: "high" | "eager";
+}) {
   const fav = useStore(selectors.isAdFavorite(ad.id));
   const media = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
   const placeholder = categoryPlaceholder(ad.id, ad.category);
@@ -55,6 +70,8 @@ export function CatalogCard({ ad, className }: { ad: Ad; className?: string }) {
             sizes="(max-width: 640px) 50vw, 280px"
             width={640}
             height={480}
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority === "high" ? "high" : undefined}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             onError={() => setBroken(true)}
           />
