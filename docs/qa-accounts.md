@@ -23,11 +23,12 @@
 | --- | --- | --- | --- | --- | --- |
 | `miyed37693@hebase.com` | ТЕСТ БЕЗ СМС | нет | нет | `registered` | окно верификации на закрытых действиях |
 | `vevid72194@hebase.com` | ТЕСТ С СМС | `+79000000002` ✓ | нет | `verified` | окно подписки |
-| `hoxifoj625@hebase.com` | ТЕСТ СМС ПОДПИСКА | `+79000000003` ✓ | см. ниже | должна быть `subscriber` | отсутствие окон |
+| `hoxifoj625@hebase.com` | ТЕСТ СМС ПОДПИСКА | `+79000000003` ✓ | до 2027-09-06, выдана админом | `subscriber` | отсутствие окон |
 
 Проверено 06.09.2026 на `/reviews` — маршрут за подпиской (`route.reviews`,
 уровень `subscription` в карте доступа). Первая учётка получает
-«Подтвердите номер телефона», вторая — «Нужна подписка».
+«Подтвердите номер телефона», вторая — «Нужна подписка», третья не получает
+ничего.
 
 ## Как подтверждали телефоны без СМС
 
@@ -58,36 +59,46 @@ app(PhoneVerificationService::class)->verifyCode($user, $phone, '424242');
 
 Номера `+79000000002` и `+79000000003` — диапазон `+79000000xx` свободен.
 
-## Открытый дефект: ручная выдача подписки в админке не даёт доступа
+## Как выдана подписка третьей учётке
 
-`AdminUserSubscriptionController` (`POST /api/v1/admin/users/{uuid}/subscription`,
-`action=activate`) — то, что нажимает админ при ручной активации. Он создаёт
-строку `user_subscriptions` со `status=active` и будущим `ends_at`, пишет
-аудит и возвращает `is_active: true`.
-
-Приложение эту подписку не видит. `User::hasActiveSubscription()` требует
-сверх живой строки ещё одно из двух:
-
-* оплаченный `Payment` с `metadata.plan_id` (`hasPaidSubscriptionPayment()`), либо
-* промо-признак — `is_first_hundred` с `promo_pool_id` или покрытием
-  `FirstHundredPromo::coversUser()`.
-
-Ручная активация не делает ни того, ни другого. Замер на `hoxifoj625` 06.09:
+Через `AdminUserSubscriptionController` — тот самый механизм, что стоит за
+кнопкой ручной активации в админке:
 
 ```
-hasUnexpiredSubscriptionRow: true      строка живёт до 2027-09-06
-hasPaidSubscriptionPayment:  false     платежей у пользователя 0
-hasActiveSubscription:       false     ← итог
+POST /api/v1/admin/users/{uuid}/subscription   {"action":"activate","days":365}
 ```
 
-`GET /users/me/subscription` отвечает `{"data":null}`, и на `/reviews`
-учётка получает «Нужна подписка» — то есть ведёт себя как `verified`,
-неотличимо от второй учётки.
+Прямой записи в `user_subscriptions` не делалось: контроллер сам подбирает
+план, проставляет `granted_by_admin_id`, пишет аудит
+(`admin.users.subscription.activate`) и возвращает получившееся состояние.
 
-Похоже, это следствие миграций `2026_08_21_095500_cancel_unpaid_active_subscriptions`
-и `2026_08_21_112800_cancel_stub_unpaid_subscriptions`: неоплаченные
-«активные» подписки тогда осознанно погасили, а кнопку в админке под новое
-правило не привели.
+### Почему это раньше не работало
 
-Пока дефект не закрыт, третья учётка **не отличается от второй**, и
-сценарий «подписчик не видит окон» ей не проверить.
+До 06.09 та же кнопка доступа не давала. Она создавала строку со
+`status=active` и будущим `ends_at` и отвечала `is_active: true`, но
+`User::hasActiveSubscription()` требует сверх живой строки ещё одно из двух:
+оплаченный `Payment` с `metadata.plan_id` либо промо-признак
+(`is_first_hundred` с `promo_pool_id` или покрытием `FirstHundredPromo`).
+Ручная выдача не делала ни того, ни другого.
+
+Замер на `hoxifoj625` до правки: строка жила до 2027-09-06,
+`hasUnexpiredSubscriptionRow` — `true`, `hasActiveSubscription` — `false`,
+`GET /users/me/subscription` отдавал `{"data":null}`, на `/reviews`
+приходило «Нужна подписка». То есть учётка была неотличима от второй.
+
+Похоже на хвост августовских миграций `cancel_unpaid_active_subscriptions`
+и `cancel_stub_unpaid_subscriptions`: неоплаченные «активные» подписки тогда
+осознанно погасили, а кнопку под новое правило не привели.
+
+Закрыто в `v1.9.1-admin-subscription-grant`: у `user_subscriptions` появилась
+колонка `granted_by_admin_id`, и выданная админом подписка стала третьим
+основанием доступа рядом с оплатой и промо. Фиктивный «оплаченный» платёж
+выписывать было нельзя — он попал бы в выгрузки и отчёты по выручке как
+настоящие деньги.
+
+Если понадобится продлить или снять:
+
+```
+{"action":"extend","days":30}    добавить к текущему сроку
+{"action":"deactivate"}          снять (строка станет cancelled)
+```
