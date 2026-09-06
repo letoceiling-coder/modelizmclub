@@ -30,6 +30,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { FeedRightRail } from "@/components/feed/FeedRightRail";
 import {
   useChannel,
   useChannelPosts,
@@ -66,7 +67,7 @@ import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { uploadMedia, uploadMediaDeduped } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { EntityHeader } from "@/components/entity/EntityHeader";
+import { EntityHeader, type EntityAction } from "@/components/entity/EntityHeader";
 import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
@@ -371,7 +372,10 @@ function ChannelPage() {
   };
 
   return (
-    <AppLayout narrowCenter rightColumn={false} footer>
+    // Колонка направлений — та же, что в ленте: заказчик просит держать
+    // категории на виду постоянно, а страница канала была единственной, где
+    // правой колонки не было вовсе, а не просто не хватало ширины.
+    <AppLayout narrowCenter rightColumn={<FeedRightRail />} footer>
       <div className="space-y-4 pb-8">
         {/* back */}
         <Link
@@ -419,41 +423,30 @@ function ChannelPage() {
             }
             description={channel.description}
             actions={
-              <>
-                {!isOwner && (
-                  <Button
-                    variant={subscribed ? "outline" : "default"}
-                    onClick={onToggle}
-                    size="sm"
-                    className="gap-[6px]"
-                  >
-                    {subscribed ? (
-                      <>
-                        <Check size={15} /> {t("pages.shared.youSubscribed")}
-                      </>
-                    ) : (
-                      t("pages.shared.subscribe")
-                    )}
-                  </Button>
-                )}
-                {isOwner && (
-                  <Button onClick={() => setSettingsOpen(true)} size="sm" className="gap-[6px]">
-                    <Pencil size={15} /> {t("pages.channelDetail.editChannel")}
-                  </Button>
-                )}
-                {!isOwner && channel.ownerNumericId && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={messageOwner}
-                    disabled={messaging}
-                    size="sm"
-                    className="gap-[6px]"
-                  >
-                    <MessageCircle size={15} /> {t("pages.channelDetail.messageOwner")}
-                  </Button>
-                )}
-              </>
+              [
+                !isOwner && {
+                  id: "subscribe",
+                  label: subscribed ? t("pages.shared.youSubscribed") : t("pages.shared.subscribe"),
+                  icon: subscribed ? Check : Radio,
+                  onClick: onToggle,
+                  variant: subscribed ? ("outline" as const) : ("default" as const),
+                },
+                isOwner && {
+                  id: "edit",
+                  label: t("pages.channelDetail.editChannel"),
+                  icon: Pencil,
+                  onClick: () => setSettingsOpen(true),
+                  variant: "default" as const,
+                },
+                !isOwner &&
+                  channel.ownerNumericId && {
+                    id: "message",
+                    label: t("pages.channelDetail.messageOwner"),
+                    icon: MessageCircle,
+                    onClick: messageOwner,
+                    disabled: messaging,
+                  },
+              ].filter(Boolean) as EntityAction[]
             }
             menu={
               <EntityMoreMenu

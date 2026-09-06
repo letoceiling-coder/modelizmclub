@@ -349,7 +349,13 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   return (
     // 320 px: колонка направлений держит два уровня вложенности и счётчики,
     // на 256 длинные названия обрывались многоточием уже на первом уровне.
-    <aside className="hidden w-80 shrink-0 xl:block xl:min-h-0">
+    //
+    // Порог показа — 1024, а не 1280. На 1280 колонка исчезала у всех, у кого
+    // окно 1280, но область просмотра меньше: боковая панель браузера, полоса
+    // прокрутки, увеличенный масштаб. Ширину при этом не трогаем: 320 здесь
+    // измерены, а не выбраны, — место под контент возвращает свёрнутая до 64
+    // левая навигация (Sidebar).
+    <aside className="hidden w-80 shrink-0 lg:block lg:min-h-0">
       <div className="flex h-full flex-col overflow-y-auto pb-4" style={{ scrollbarWidth: "thin" }}>
         <div
           className="shrink-0 overflow-hidden rounded-[var(--r-card)] border"

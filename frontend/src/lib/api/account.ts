@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, ApiError } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 
 export interface DocumentRequisites {
@@ -54,13 +54,36 @@ export async function resendEmailChangeVerification(): Promise<void> {
 
 export async function sendPhoneVerificationCode(
   phone: string,
-): Promise<{ expires_in_minutes: number }> {
-  if (isDemoMode()) return { expires_in_minutes: 10 };
-  const res = await api<{ data: { message: string; expires_in_minutes: number } }>(
-    "/account/phone/send-code",
-    { method: "POST", json: { phone } },
-  );
-  return { expires_in_minutes: res.data.expires_in_minutes };
+): Promise<{ expires_in_minutes: number; resend_after: number }> {
+  if (isDemoMode()) return { expires_in_minutes: 10, resend_after: 60 };
+  const res = await api<{
+    data: { message: string; expires_in_minutes: number; resend_after?: number };
+  }>("/account/phone/send-code", { method: "POST", json: { phone } });
+  return {
+    expires_in_minutes: res.data.expires_in_minutes,
+    // Сервер знает паузу, клиент только показывает. 60 — на случай старого
+    // ответа без поля, чтобы кнопка всё равно блокировалась.
+    resend_after: res.data.resend_after ?? 60,
+  };
+}
+
+/** Причина отказа в отправке: ждать, ждать дольше или менять номер. */
+export type SmsRefusalCode = "sms_cooldown" | "sms_rate_limited" | "sms_provider_rejected";
+
+/**
+ * Разбирает отказ отправки: сколько ждать и можно ли вообще дождаться.
+ *
+ * Отказ оператора отличается от предела тем, что срока у него нет: сколько ни
+ * жди, этот номер не примут. Поэтому `retryAfter` там `0` — кнопку блокировать
+ * не надо, надо дать исправить номер.
+ */
+export function readSmsRefusal(err: unknown): { code?: SmsRefusalCode; retryAfter: number } {
+  if (!(err instanceof ApiError) || err.status !== 422) return { retryAfter: 0 };
+  const payload = err.payload as { code?: SmsRefusalCode; retry_after?: number | null } | undefined;
+  return {
+    code: payload?.code,
+    retryAfter: Math.max(0, Number(payload?.retry_after ?? 0)),
+  };
 }
 
 export async function verifyPhoneCode(

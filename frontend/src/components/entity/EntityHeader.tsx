@@ -1,9 +1,29 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { variantUrl } from "@/lib/media/variants";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Img } from "@/components/ui/Img";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+/**
+ * Действие в шапке сущности.
+ *
+ * Порядок в массиве — это и есть важность: первые два остаются с подписью,
+ * остальные сворачиваются в значок. Страница решает, что важнее, оболочка —
+ * сколько подписей помещается.
+ */
+export interface EntityAction {
+  id: string;
+  label: string;
+  icon: ComponentType<{ size?: number }>;
+  onClick: () => void;
+  variant?: "default" | "outline";
+  disabled?: boolean;
+}
+
+/** Сколько действий остаётся с подписью на десктопе. */
+const LABELLED = 2;
 
 interface Props {
   /** Обложка. Нет обложки — вместо градиента во всю высоту остаётся полоса. */
@@ -17,8 +37,8 @@ interface Props {
   /** Одна строка caption под названием: «128 участников · Активны сегодня». */
   meta?: ReactNode;
   description?: string | null;
-  /** Кнопки действий. Что именно — знает страница, не оболочка. */
-  actions?: ReactNode;
+  /** Действия по убыванию важности. Что именно — знает страница, не оболочка. */
+  actions?: EntityAction[];
   /** Слот для «⋯ Ещё» — рядом с действиями. */
   menu?: ReactNode;
   /** Редактор брендинга поверх обложки (владельцу). */
@@ -163,9 +183,37 @@ export function EntityHeader({
           </button>
         )}
 
-        {(actions || menu) && (
-          <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
-            {actions}
+        {(actions?.length || menu) && (
+          /*
+           * Одна строка на десктопе. Раньше здесь стоял flex-wrap, и пять
+           * кнопок с подписями («Вы подписаны», «Управление сообществом»,
+           * «Открыть чат», «Предложить проект», «Поделиться») не влезали в
+           * 680: строка разъезжалась на три, а «⋯» уходило на свою. Перенос
+           * оставлен только ниже 1024 — на телефоне он уместен, а колонка там
+           * всё равно во всю ширину.
+           */
+          <div className="mt-[12px] flex flex-wrap items-center gap-[8px] lg:flex-nowrap">
+            {(actions ?? []).map((action, i) => {
+              const Icon = action.icon;
+              const labelled = i < LABELLED;
+              return (
+                <Button
+                  key={action.id}
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  variant={action.variant ?? "outline"}
+                  size="sm"
+                  // Подпись убирается только с 1024: ниже строка переносится,
+                  // места хватает, и значок без подписи там ничего не экономит.
+                  className={cn("shrink-0 gap-[6px]", !labelled && "lg:w-9 lg:px-0")}
+                  title={labelled ? undefined : action.label}
+                  aria-label={action.label}
+                >
+                  <Icon size={15} />
+                  <span className={cn(!labelled && "lg:hidden")}>{action.label}</span>
+                </Button>
+              );
+            })}
             {menu}
           </div>
         )}
