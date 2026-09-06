@@ -2963,6 +2963,16 @@ export const zh: TranslationSchema = {
     },
     adminMonetization: {
       title: "Monetization",
+      escrowProviderTitle: "Safe deal: where the money is held",
+      escrowProviderHint:
+        "Bank — funds are held on the buyer's card until delivery is confirmed. Wallet — the amount is charged to the platform account and returned from there.",
+      escrowProviderVtb: "Bank (VTB)",
+      escrowProviderWallet: "Platform wallet",
+      escrowProviderNotSet: "Not set — the environment value applies",
+      escrowProviderEffective: "Currently in effect: {{provider}}",
+      escrowProviderMismatch: "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
+      escrowProviderSaved: "Safe deal provider saved",
+      escrowProviderSaveFailed: "Could not save the provider",
       placementTitle: "Listing placement",
       placementHint: "Prices for registered users and subscribers.",
       basePriceLabel: "Base price, ₽",
