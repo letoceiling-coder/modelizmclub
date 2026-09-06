@@ -657,6 +657,7 @@ export interface DemoPublicProfile {
   isFollowing: boolean;
   isFriend: boolean;
   friendRequestStatus?: "outgoing" | "incoming" | null;
+  canEdit: boolean;
 }
 
 export function demoPublicProfile(slug: string): DemoPublicProfile {
@@ -682,6 +683,8 @@ export function demoPublicProfile(slug: string): DemoPublicProfile {
     isFollowing: false,
     isFriend: friendIds.has(u.id),
     friendRequestStatus: null,
+    // Демо-режим показывает чужой профиль: своим он не станет.
+    canEdit: false,
   };
 }
 

@@ -183,7 +183,11 @@ function UserPage() {
   return (
     <ProfileView
       user={user}
-      isOwn={false}
+      // Владельца определяет сервер: can_edit в ресурсе профиля. Раньше здесь
+      // стояла жёсткая ложь — «чужой маршрут, значит чужой профиль», — и на
+      // /profile жила такая же жёсткая правда. Гость, попавший на /profile,
+      // получал «Изменить обложку» и три запроса к /users/me/*.
+      isOwn={profile.canEdit}
       stats={{
         publications: profile.stats.publications,
         ads: profile.stats.listings,

@@ -108,6 +108,23 @@ function buildUrl(path: string, query?: ApiOptions["query"]): string {
   return qs ? `${url}${url.includes("?") ? "&" : "?"}${qs}` : url;
 }
 
+/**
+ * Адреса, которые без токена отвечают только 401.
+ *
+ * Это «мои» данные (`/users/me/*`, `/me/*`) плюс поиск людей: он живёт под
+ * `auth:sanctum` в том же маршрутном блоке, хотя по имени на личный не похож.
+ * Список сверен с `backend/app/Modules/User/routes/api.php`.
+ */
+function isAuthOnlyPath(path: string): boolean {
+  const clean = path.split("?")[0];
+  return (
+    clean.startsWith("/users/me/") ||
+    clean === "/users/me" ||
+    clean.startsWith("/me/") ||
+    clean === "/users/search"
+  );
+}
+
 export async function api<T = unknown>(path: string, options: ApiOptions = {}): Promise<T> {
   const { json, auth = true, query, headers, ...rest } = options;
 
@@ -126,6 +143,19 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   if (auth) {
     const token = getToken();
     if (token) finalHeaders.Authorization = `Bearer ${token}`;
+  }
+
+  // Личные адреса без токена — это гарантированный 401, и ходить за ним
+  // незачем. Гость собирал их на /friends, /favorites, /my-ads и раньше на
+  // /profile и странице сообщества: запросы уходили из эффектов, которые
+  // выполняются до того, как страница решит показать заглушку. Каждый такой
+  // ответ ложится в консоль красной строкой, и в ней тонут настоящие ошибки.
+  //
+  // Ошибка та же, что вернул бы сервер, — вызывающий код её уже обрабатывает,
+  // — но без сетевого запроса. Одна проверка здесь дешевле, чем `if (!token)`
+  // в двух десятках мест, и следующий такой вызов уже не появится.
+  if (auth && isAuthOnlyPath(path) && !getToken()) {
+    throw new ApiError(401, "Unauthenticated.", undefined, { code: "no_token" });
   }
 
   const res = await fetch(buildUrl(path, query), {

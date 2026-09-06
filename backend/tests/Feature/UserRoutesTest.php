@@ -58,4 +58,59 @@ class UserRoutesTest extends TestCase
         // itself, before any controller runs.
         $this->getJson('/api/v1/users/bad%20slug!')->assertStatus(404);
     }
+
+    /**
+     * Права на правку профиля решает сервер, а не клиент.
+     *
+     * Три состояния — три отдельных теста, по одному запросу на тест. В одном
+     * тесте приложение живёт между запросами, и AuthManager держит уже
+     * разрешённую гвардию: гость, вошедший первым, оставлял бы после себя
+     * «никого» для всех следующих запросов, и владелец выглядел бы
+     * посторонним по причине, которой в бою нет.
+     */
+    public function test_can_edit_is_false_for_a_guest(): void
+    {
+        $this->makeOwnerProfile();
+
+        $this->getJson('/api/v1/users/owner-profile')
+            ->assertOk()
+            ->assertJsonPath('data.permissions.can_edit', false);
+    }
+
+    public function test_can_edit_is_false_for_a_stranger(): void
+    {
+        $this->makeOwnerProfile();
+        $token = User::factory()->create()->createToken('test')->plainTextToken;
+
+        $this->getJson('/api/v1/users/owner-profile', ['Authorization' => 'Bearer '.$token])
+            ->assertOk()
+            ->assertJsonPath('data.permissions.can_edit', false);
+    }
+
+    public function test_can_edit_is_true_for_the_owner(): void
+    {
+        // Настоящий Bearer, а не Sanctum::actingAs: подменённая гвардия по
+        // умолчанию скрыла бы ровно ту ошибку, ради которой этот тест написан.
+        // Маршрут публичный, гвардия по умолчанию — web, и Bearer она не
+        // читает; владельца видно только через гвардию sanctum.
+        $owner = $this->makeOwnerProfile();
+        $token = $owner->createToken('test')->plainTextToken;
+
+        $this->getJson('/api/v1/users/owner-profile', ['Authorization' => 'Bearer '.$token])
+            ->assertOk()
+            ->assertJsonPath('data.permissions.can_edit', true);
+    }
+
+    private function makeOwnerProfile(): User
+    {
+        $owner = User::factory()->create();
+        UserProfile::query()->create([
+            'user_id' => $owner->id,
+            'display_name' => 'Owner',
+            'slug' => 'owner-profile',
+            'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
+        ]);
+
+        return $owner;
+    }
 }
