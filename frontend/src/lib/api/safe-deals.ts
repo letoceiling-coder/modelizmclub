@@ -92,6 +92,10 @@ export interface SafeDealQuote {
   currency: string;
   escrow_holds_on_card?: boolean;
   offers_cdek: boolean;
+  /** Способ, по которому посчитан этот расчёт. */
+  delivery_method?: string | null;
+  /** Что вообще предлагает продавец — из этого строится выбор в мастере. */
+  delivery_methods?: string[];
   parcel: {
     dimensions_cm: { length: number; width: number; height: number };
     weight_kg: number;
@@ -112,17 +116,28 @@ export function kopecksToRub(kopecks: number): string {
 export async function quoteSafeDeal(
   listingUuid: string,
   destination?: SafeDealDestination,
+  deliveryMethod?: string | null,
 ): Promise<SafeDealQuote> {
   const res = await api<{ data: SafeDealQuote }>(`/listings/${listingUuid}/safe-deal/quote`, {
     method: "POST",
-    json: destination ? { destination_point: destination } : {},
+    json: {
+      ...(destination ? { destination_point: destination } : {}),
+      ...(deliveryMethod ? { delivery_method: deliveryMethod } : {}),
+    },
   });
   return res.data;
 }
 
 export async function createSafeDeal(
   listingUuid: string,
-  input?: { acceptTerms?: boolean; destination?: SafeDealDestination; returnUrl?: string },
+  input?: {
+    acceptTerms?: boolean;
+    destination?: SafeDealDestination;
+    returnUrl?: string;
+    /** Способ, выбранный покупателем. Сервер принимает только то, что
+     *  предлагает продавец, и требует выбора, когда способов несколько. */
+    deliveryMethod?: string | null;
+  },
 ): Promise<SafeDeal> {
   const res = await api<{ data: SafeDeal }>(`/listings/${listingUuid}/safe-deal`, {
     method: "POST",
@@ -130,6 +145,7 @@ export async function createSafeDeal(
       accept_terms: input?.acceptTerms ?? false,
       destination_point: input?.destination,
       return_url: input?.returnUrl,
+      delivery_method: input?.deliveryMethod || undefined,
     },
   });
   return res.data;

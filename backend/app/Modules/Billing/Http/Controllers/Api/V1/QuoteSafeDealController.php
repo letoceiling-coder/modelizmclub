@@ -15,6 +15,7 @@ class QuoteSafeDealController extends Controller
         $listing = Listing::query()->with(['city', 'author'])->where('uuid', $uuid)->firstOrFail();
 
         $data = $request->validate([
+            'delivery_method' => ['nullable', 'string', 'max:120'],
             'destination_point' => ['nullable', 'array'],
             'destination_point.city_code' => ['required_with:destination_point', 'integer', 'min:1'],
             'destination_point.external_point_id' => ['nullable', 'string', 'max:64'],
@@ -25,7 +26,11 @@ class QuoteSafeDealController extends Controller
         ]);
 
         return response()->json([
-            'data' => $deals->quoteForListing($listing, $data['destination_point'] ?? []),
+            'data' => $deals->quoteForListing(
+                $listing,
+                $data['destination_point'] ?? [],
+                $data['delivery_method'] ?? null,
+            ),
         ]);
     }
 }

@@ -7,6 +7,8 @@ use App\Enums\SafeDealStatus;
 use App\Models\Listing;
 use App\Models\SafeDeal;
 use App\Models\User;
+use App\Models\UserReview;
+use Illuminate\Auth\Access\Response;
 
 /**
  * Who may do what with a safe deal. Ownership (buyer / seller) plus the
@@ -50,10 +52,21 @@ class SafeDealPolicy
             && in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped, SafeDealStatus::Delivered], true);
     }
 
+    /**
+     * Отменить может любая из сторон, пока товар не в пути к получателю.
+     *
+     * `Created` включён с 07.09: неоплаченную сделку раньше не мог отменить
+     * никто, и брошенный чекаут держал объявление в резерве бессрочно.
+     * Возврата там нет — сервис уводит такую сделку в expireCheckout().
+     */
     public function cancel(User $user, SafeDeal $deal): bool
     {
         return ($deal->involves($user) || $user->isModerator())
-            && in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped], true);
+            && in_array($deal->status, [
+                SafeDealStatus::Created,
+                SafeDealStatus::Paid,
+                SafeDealStatus::Shipped,
+            ], true);
     }
 
     public function openDispute(User $user, SafeDeal $deal): bool
@@ -62,9 +75,38 @@ class SafeDealPolicy
             && in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped, SafeDealStatus::Delivered], true);
     }
 
-    public function review(User $user, SafeDeal $deal): bool
+    /**
+     * Оценить сделку можно один раз.
+     *
+     * Условие «оценка ещё не оставлена» живёт здесь, а не рядом в сериализаторе:
+     * там оно уже было, но политика его не знала, и после оставленной оценки
+     * `can.review` оставался истинным, пока соседнее `can_review` гасло. Два
+     * поля с одним смыслом расходились.
+     *
+     * Отказ именной: сервис на повторную оценку отвечал понятным текстом, и
+     * терять его из-за пустого 403 не хочется.
+     */
+    public function review(User $user, SafeDeal $deal): Response|bool
     {
-        return $deal->involves($user) && $deal->status === SafeDealStatus::Completed;
+        if (! $deal->involves($user) || $deal->status !== SafeDealStatus::Completed) {
+            return false;
+        }
+
+        return $this->alreadyReviewed($user, $deal)
+            ? Response::deny('Вы уже оставили оценку по этой сделке.')
+            : true;
+    }
+
+    private function alreadyReviewed(User $user, SafeDeal $deal): bool
+    {
+        if ($deal->relationLoaded('reviews')) {
+            return $deal->reviews->contains(fn ($row): bool => (int) $row->author_id === (int) $user->id);
+        }
+
+        return UserReview::query()
+            ->where('safe_deal_id', $deal->id)
+            ->where('author_id', $user->id)
+            ->exists();
     }
 
     /** Admin release / refund of held funds. */

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { isCdekDelivery, isPickupDelivery } from "@/lib/config/deliveryMethods";
 import { Check, ChevronLeft, ChevronRight, Loader2, MapPin, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,22 @@ function parcelLabel(ad: Ad): string {
 
 export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const navigate = useNavigate();
-  const offersCdek = Boolean(ad.offersCdek || ad.delivery.some((d) => /сдэк|cdek/i.test(d)));
+
+  /*
+   * Способы, которые предлагает продавец, и тот, что выбрал покупатель.
+   *
+   * До 07.09 выбора не было: мастер, как и сервер, ветвился по набору
+   * продавца, и у объявления с «СДЭК + Самовывоз» побеждал СДЭК. Покупателя
+   * заставляли выбрать ПВЗ, а самовывоз оказывался недостижим ровно там, где
+   * предложен вместе с доставкой.
+   */
+  const methods = useMemo(
+    () => (ad.delivery ?? []).map((m) => String(m).trim()).filter(Boolean),
+    [ad.delivery],
+  );
+  const [method, setMethod] = useState<string | null>(null);
+  const chosen = method ?? (methods.length === 1 ? methods[0] : null);
+  const offersCdek = chosen !== null && isCdekDelivery(chosen);
   const itemKopecks = Math.round(ad.price * 100);
   const feeKopecks = Math.round((itemKopecks * FEE_PERCENT) / 100);
 
@@ -67,6 +83,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   useEffect(() => {
     if (!open) return;
     setStep(1);
+    setMethod(null);
     setCityQuery("");
     setCities([]);
     setSelectedCity(null);
@@ -80,9 +97,9 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   // else can be priced right away, and the quote also tells us whether the
   // bank will hold the money or charge it.
   useEffect(() => {
-    if (!open || offersCdek) return;
+    if (!open || offersCdek || !chosen) return;
     let alive = true;
-    void quoteSafeDeal(ad.id)
+    void quoteSafeDeal(ad.id, undefined, chosen)
       .then((q) => {
         if (alive) setQuote(q);
       })
@@ -92,7 +109,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     return () => {
       alive = false;
     };
-  }, [open, offersCdek, ad.id]);
+  }, [open, offersCdek, chosen, ad.id]);
 
   useEffect(() => {
     if (!open || cityQuery.trim().length < 2) {
@@ -157,7 +174,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     if (!offersCdek || !destination) return;
     setQuoteLoading(true);
     try {
-      const q = await quoteSafeDeal(ad.id, destination);
+      const q = await quoteSafeDeal(ad.id, destination, chosen);
       setQuote(q);
     } catch (err) {
       toast.error(
@@ -173,6 +190,10 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
 
   const goNext = () => {
     if (step === 1) {
+      if (!chosen) {
+        toast.error("Выберите способ доставки");
+        return;
+      }
       setStep(offersCdek ? 2 : 3);
       return;
     }
@@ -192,7 +213,11 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     }
     setBusy(true);
     try {
-      const deal = await createSafeDeal(ad.id, { acceptTerms, destination });
+      const deal = await createSafeDeal(ad.id, {
+        acceptTerms,
+        destination,
+        deliveryMethod: chosen,
+      });
 
       // VTB deals finish on the bank's card form; wallet deals are already held.
       if (deal.checkout_url) {
@@ -310,6 +335,41 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               5% удерживается из выплаты продавцу и отображается здесь явно.
             </p>
             <Row label="Габариты и вес" value={parcelLabel(ad)} />
+
+            {methods.length > 1 && (
+              <div className="space-y-[8px]">
+                <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  Как получите товар
+                </div>
+                <div className="flex flex-wrap gap-[8px]">
+                  {methods.map((m) => {
+                    const active = chosen === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMethod(m)}
+                        className="min-h-[40px] rounded-[var(--r-tag)] border px-[14px] text-[13px] font-semibold transition-colors"
+                        style={{
+                          borderColor: active ? "var(--accent)" : "var(--border)",
+                          background: active ? "var(--accent-soft)" : "var(--background-elevated)",
+                          color: active ? "var(--accent)" : "var(--foreground-70)",
+                        }}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                  {chosen === null
+                    ? "Выберите способ — от него зависит стоимость доставки."
+                    : isPickupDelivery(chosen)
+                      ? "Самовывоз: доставка не оплачивается, пункт выдачи выбирать не нужно."
+                      : "Пункт выдачи выберете на следующем шаге."}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
