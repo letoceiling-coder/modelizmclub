@@ -4,6 +4,7 @@ import { variantUrl } from "@/lib/media/variants";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Img } from "@/components/ui/Img";
 import { Button } from "@/components/ui/button";
+import { coverPlaceholder } from "@/lib/placeholder-image";
 import { cn } from "@/lib/utils";
 
 /**
@@ -91,7 +92,19 @@ export function EntityHeader({
           // не должно занимать первый экран.
           hasCover ? "h-[110px] md:h-[140px] lg:h-[180px]" : "h-[80px]",
         )}
-        style={{ background: "var(--background-surface)" }}
+        style={
+          hasCover
+            ? { background: "var(--background-surface)" }
+            : {
+                // Полоса без обложки: градиент из имени и первая буква вместо
+                // ровной заливки. Данные не выдумываем — это оформление, а не
+                // подстановка несуществующей картинки, поэтому строится из
+                // самого названия и одинаково выглядит при каждом заходе.
+                backgroundImage: `url("${coverPlaceholder(name)}")`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+        }
       >
         {hasCover && (
           <Img

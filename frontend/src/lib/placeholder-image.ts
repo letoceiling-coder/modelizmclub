@@ -23,6 +23,38 @@ function hashSeed(seed: string | number): number {
   return h;
 }
 
+/**
+ * Заглушка обложки для сообщества или канала, у которых её нет.
+ *
+ * Раньше на этом месте была ровная заливка в 80 px — читалась как забытое
+ * место, а не как решение. Здесь тот же приём, что у карточек объявлений:
+ * детерминированный градиент из имени, без сетевых запросов. Плюс первая
+ * буква водяным знаком.
+ *
+ * Буква сдвинута вправо от центра: слева внизу на полосу заходит аватар, и
+ * по центру они бы наложились. Прозрачность низкая — это фон, а не заголовок,
+ * название и так стоит рядом.
+ */
+export function coverPlaceholder(name: string): string {
+  const h = hashSeed(name);
+  // Оттенок из имени, но не любой: полоса стоит под шапкой, и кислотные тона
+  // спорили бы с акцентным цветом интерфейса.
+  const hue = h % 360;
+  const c1 = `hsl(${hue} 42% 34%)`;
+  const c2 = `hsl(${(hue + 38) % 360} 46% 20%)`;
+  const letter = (name.trim()[0] || "?").toUpperCase();
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="200" viewBox="0 0 1200 200">` +
+    `<defs><linearGradient id="g" gradientTransform="rotate(${h % 90} 0.5 0.5)">` +
+    `<stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>` +
+    `</linearGradient></defs>` +
+    `<rect width="1200" height="200" fill="url(#g)"/>` +
+    `<text x="760" y="182" font-family="system-ui,sans-serif" font-size="210" font-weight="800" ` +
+    `fill="rgba(255,255,255,0.10)" text-anchor="middle">${letter}</text>` +
+    `</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 export function categoryPlaceholder(seed: string | number, category?: string): string {
   const [c1, c2] = (category && CATEGORY_COLORS[category]) || FALLBACK_COLORS;
   const angle = hashSeed(seed) % 360;
