@@ -36,6 +36,22 @@ interface ApiCommunity {
   unread_messages?: number;
   online_avatars?: Array<{ uuid: string; name: string; url?: string | null }>;
   join_request_pending?: boolean;
+  created_at?: string | null;
+  owner?: {
+    uuid: string;
+    name: string;
+    slug?: string | null;
+    avatar?: string | null;
+  } | null;
+  can?: {
+    join?: boolean;
+    leave?: boolean;
+    manage?: boolean;
+    post?: boolean;
+    invite?: boolean;
+  };
+  is_favorite?: boolean;
+  notifications_enabled?: boolean;
 }
 
 interface Paginated<T> {
@@ -110,6 +126,28 @@ export function mapCommunity(c: ApiCommunity): Community {
     unreadMessages: c.unread_messages ?? 0,
     onlineAvatars: c.online_avatars ?? [],
     joinRequestPending: Boolean(c.join_request_pending),
+    createdAt: c.created_at ?? undefined,
+    owner: c.owner
+      ? {
+          uuid: c.owner.uuid,
+          name: c.owner.name,
+          slug: c.owner.slug ?? undefined,
+          avatar: c.owner.avatar ?? undefined,
+        }
+      : undefined,
+    // Права приходят с сервера целиком. Отсутствие блока — не «всё можно», а
+    // «сервер не сказал»: считаем, что нельзя ничего.
+    can: {
+      join: Boolean(c.can?.join),
+      leave: Boolean(c.can?.leave),
+      manage: Boolean(c.can?.manage),
+      post: Boolean(c.can?.post),
+      invite: Boolean(c.can?.invite),
+    },
+    isFavorite: Boolean(c.is_favorite),
+    // Ключа нет у гостя и у того, кто не состоит в сообществе, — там это не
+    // «выключено», а «неприменимо».
+    notificationsEnabled: c.notifications_enabled,
   };
 }
 
@@ -409,6 +447,80 @@ export async function decideCommunityJoinRequest(
   action: "approve" | "reject",
 ): Promise<void> {
   await api(`/communities/${slug}/join-requests/${id}/${action}`, { method: "POST" });
+}
+
+/** Кого можно позвать: друг, которого нет в сообществе. */
+export interface InvitableFriend {
+  uuid: string;
+  name: string;
+  slug?: string;
+  avatar?: string;
+  city?: string;
+}
+
+/** Не больше стольких приглашений за раз — тот же потолок, что на сервере. */
+export const COMMUNITY_INVITE_MAX = 20;
+
+export async function setCommunityNotifications(slug: string, enabled: boolean): Promise<boolean> {
+  if (isDemoMode()) return enabled;
+  const res = await api<{ data?: { notifications_enabled?: boolean } }>(
+    `/communities/${slug}/notifications`,
+    { method: "PUT", json: { enabled } },
+  );
+  // Верим ответу, а не своей догадке: переключатель рисуется по серверу.
+  return res.data?.notifications_enabled ?? enabled;
+}
+
+export async function setCommunityFavorite(slug: string, favorite: boolean): Promise<boolean> {
+  if (isDemoMode()) return favorite;
+  const res = await api<{ data?: { is_favorite?: boolean } }>(`/communities/${slug}/favorite`, {
+    method: favorite ? "POST" : "DELETE",
+  });
+  return res.data?.is_favorite ?? favorite;
+}
+
+/** Похожие: совпадение категории или тем, до пяти. Открыто и гостю. */
+export async function fetchSimilarCommunities(slug: string): Promise<Community[]> {
+  if (isDemoMode()) {
+    const current = demoCommunity(slug);
+    return demoCommunities()
+      .filter((c) => c.id !== current?.id && c.category === current?.category)
+      .slice(0, 5);
+  }
+  const res = await api<{ data: ApiCommunity[] }>(`/communities/${slug}/similar`, { auth: false });
+  return (res.data ?? []).map(mapCommunity);
+}
+
+export async function fetchInvitableFriends(slug: string): Promise<InvitableFriend[]> {
+  if (isDemoMode()) return [];
+  const res = await api<{
+    data: Array<{
+      uuid: string;
+      display_name?: string | null;
+      name?: string | null;
+      slug?: string | null;
+      avatar?: { url?: string | null } | null;
+      city?: string | { name?: string | null } | null;
+    }>;
+  }>(`/communities/${slug}/invitable-friends`);
+
+  return (res.data ?? []).map((f) => ({
+    uuid: f.uuid,
+    name: f.display_name ?? f.name ?? "Пользователь",
+    slug: f.slug ?? undefined,
+    avatar: f.avatar?.url ?? undefined,
+    city: typeof f.city === "string" ? f.city : (f.city?.name ?? undefined),
+  }));
+}
+
+/** @returns сколько приглашений действительно ушло */
+export async function inviteToCommunity(slug: string, userUuids: string[]): Promise<number> {
+  if (isDemoMode()) return userUuids.length;
+  const res = await api<{ data?: { sent?: number } }>(`/communities/${slug}/invite`, {
+    method: "POST",
+    json: { user_uuids: userUuids.slice(0, COMMUNITY_INVITE_MAX) },
+  });
+  return res.data?.sent ?? 0;
 }
 
 export async function banCommunityMember(slug: string, userUuid: string): Promise<void> {

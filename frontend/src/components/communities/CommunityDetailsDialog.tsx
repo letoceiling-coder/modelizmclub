@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { MapPin, Users, FileText, Link2, Send, Phone } from "lucide-react";
+import { MapPin, Users, FileText, Link2, Send, Phone, CalendarDays, Crown } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { Community } from "@/lib/mock";
+import { formatDate } from "@/lib/format/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
@@ -82,6 +84,28 @@ export function CommunityDetailsDialog({
           )}
         </Row>
         {community.city?.name && <Row icon={MapPin}>{community.city.name}</Row>}
+        {community.createdAt && (
+          <Row icon={CalendarDays}>
+            {t("pages.communityDetail.createdAt")}: {formatDate(community.createdAt, "date")}
+          </Row>
+        )}
+        {community.owner && (
+          <Row icon={Crown}>
+            {t("pages.communityDetail.ownerLabel")}:{" "}
+            {community.owner.slug ? (
+              <Link
+                to="/user/$id"
+                params={{ id: community.owner.slug }}
+                className="hover:underline"
+                style={{ color: "var(--accent)" }}
+              >
+                {community.owner.name}
+              </Link>
+            ) : (
+              community.owner.name
+            )}
+          </Row>
+        )}
         {contacts?.website && (
           <Row icon={Link2}>
             <a
