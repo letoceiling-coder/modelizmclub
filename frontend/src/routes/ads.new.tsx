@@ -343,7 +343,7 @@ function NewAdPage() {
   const [submitError, setSubmitError] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
-  const { registeredRub, subscriberRub } = usePublicPlacementPricing();
+  const { registeredRub, subscriberRub, loading: pricingLoading } = usePublicPlacementPricing();
   const { sub: mySubscription } = useMySubscription();
   const [placementQuote, setPlacementQuote] = useState<PlacementQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -840,12 +840,22 @@ function NewAdPage() {
    * назовёт сервер, если у категории нет своей. Как только придёт котировка,
    * она заменяет предварительную.
    */
+  /*
+   * Пока настройка цены не пришла, числа не называем.
+   *
+   * У хука запасное значение жёстко 20, и в серверную разметку уезжало
+   * «Размещение — 20 ₽» независимо от настройки: после подъёма цены до 30 это
+   * стало прямой неправдой о деньгах для незалогиненного. Значение по
+   * умолчанию не должно ничего утверждать о цене — до готовности данных
+   * выводим «рассчитываем».
+   */
   const previewPlacementRub = mySubscription?.is_active ? subscriberRub : registeredRub;
   const placementPriceLabel = placementQuote
     ? placementQuote.is_free
       ? t("pages.adsNew.free")
       : `${formatQuoteRub(placementQuote.final_cents)} ₽`
     : `${previewPlacementRub} ₽`;
+  const priceKnown = Boolean(placementQuote) || !pricingLoading;
 
   const publishButtonLabel = useMemo(
     () =>
@@ -890,7 +900,7 @@ function NewAdPage() {
             {!flagsHydrated
               ? t("pages.adsNew.calculatingCost")
               : listingPaymentEnabled
-                ? quoteLoading
+                ? quoteLoading || !priceKnown
                   ? t("pages.adsNew.calculatingCost")
                   : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
                 : t("pages.adsNew.freePlacement")}
