@@ -2,17 +2,6 @@ import type { Video, VideoCategory, Comment } from "@/lib/mock";
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { mapComment, registerAuthor, type ApiComment } from "./feed";
-import {
-  demoVideos,
-  demoVideo,
-  demoVideoCategories,
-  demoFeaturedVideos,
-  demoIncrementVideoView,
-  demoVideoComments,
-  demoAddVideo,
-  demoDeleteVideo,
-  demoSetVideoFeatured,
-} from "@/lib/demo-data";
 
 interface Paginated<T> {
   data: T[];
@@ -100,8 +89,8 @@ export async function fetchVideoTags(q?: string): Promise<string[]> {
 
 export async function fetchVideos(params: VideoListParams = {}): Promise<Video[]> {
   if (isDemoMode()) {
-    if (params.featured) return demoFeaturedVideos();
-    return demoVideos(params.q, params.categorySlug);
+    if (params.featured) return (await import("@/lib/demo-data")).demoFeaturedVideos();
+    return (await import("@/lib/demo-data")).demoVideos(params.q, params.categorySlug);
   }
   // "all" is a UI sentinel for the "Все" tab — never send it as a real filter.
   const categorySlug =
@@ -137,14 +126,14 @@ function mapVideoCategory(c: ApiVideoCategory): VideoCategory {
 }
 
 export async function fetchVideoCategories(): Promise<VideoCategory[]> {
-  if (isDemoMode()) return demoVideoCategories();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoVideoCategories();
   const res = await api<Paginated<ApiVideoCategory>>("/videos/categories");
   return (res.data ?? []).map(mapVideoCategory);
 }
 
 export async function fetchVideo(id: string): Promise<Video> {
   if (isDemoMode()) {
-    const v = demoVideo(id);
+    const v = (await import("@/lib/demo-data")).demoVideo(id);
     if (v) return v;
     throw new Error("Video not found");
   }
@@ -154,7 +143,7 @@ export async function fetchVideo(id: string): Promise<Video> {
 
 export async function incrementVideoView(id: string): Promise<void> {
   if (isDemoMode()) {
-    demoIncrementVideoView(id);
+    (await import("@/lib/demo-data")).demoIncrementVideoView(id);
     return;
   }
   await api(`/videos/${id}/view`, { method: "POST" });
@@ -193,7 +182,7 @@ export async function uploadVideo(input: VideoUploadInput): Promise<Video> {
       comments: 0,
       commentList: [],
     };
-    demoAddVideo(v);
+    (await import("@/lib/demo-data")).demoAddVideo(v);
     return v;
   }
   const res = await api<{ data: ApiVideo }>("/videos", {
@@ -223,7 +212,7 @@ export async function reactToVideo(uuid: string, type: "like" | "dislike" | null
 }
 
 export async function fetchVideoComments(uuid: string): Promise<Comment[]> {
-  if (isDemoMode()) return demoVideoComments(uuid);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoVideoComments(uuid);
   const res = await api<Paginated<ApiComment>>(`/videos/${uuid}/comments`);
   return (res.data ?? []).map(mapComment);
 }
@@ -256,7 +245,7 @@ export async function createVideoComment(
 
 export async function deleteVideo(id: string): Promise<void> {
   if (isDemoMode()) {
-    demoDeleteVideo(id);
+    (await import("@/lib/demo-data")).demoDeleteVideo(id);
     return;
   }
   await api(`/videos/${id}`, { method: "DELETE" });
@@ -264,7 +253,7 @@ export async function deleteVideo(id: string): Promise<void> {
 
 export async function setVideoFeatured(id: string, on: boolean): Promise<void> {
   if (isDemoMode()) {
-    demoSetVideoFeatured(id, on);
+    (await import("@/lib/demo-data")).demoSetVideoFeatured(id, on);
     return;
   }
   await api(`/videos/${id}`, { method: "PATCH", json: { is_featured: on } });
@@ -275,7 +264,7 @@ export async function scheduleVideo(
   input: { scheduled_at?: string; scheduled_at_local?: string; timezone?: string },
 ): Promise<Video> {
   if (isDemoMode()) {
-    const v = demoVideo(uuid);
+    const v = (await import("@/lib/demo-data")).demoVideo(uuid);
     if (!v) throw new Error("Video not found");
     return { ...v, status: "published" };
   }

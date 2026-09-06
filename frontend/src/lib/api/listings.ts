@@ -4,14 +4,6 @@ import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
 import { isDemoMode } from "@/lib/demo-mode";
-import {
-  demoListings,
-  demoListingsFiltered,
-  demoMyListings,
-  demoListing,
-  demoAddListing,
-  demoPublicProfile,
-} from "@/lib/demo-data";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 
 import { toDisplayMedia, type MediaVariantSet } from "@/lib/media/variants";
@@ -185,7 +177,7 @@ export interface CatalogParams {
 }
 
 export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
-  if (isDemoMode()) return demoListingsFiltered(params);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoListingsFiltered(params);
   const res = await api<Paginated<ApiListing>>("/listings", {
     auth: Boolean(getToken()),
     query: {
@@ -209,7 +201,9 @@ export async function fetchPopularListings(limit = 10): Promise<Ad[]> {
 export async function fetchFavoriteListings(): Promise<Ad[]> {
   if (isDemoMode()) {
     const ids = readDemoFavoriteIds();
-    return demoListingsFiltered({}).filter((a) => ids.includes(a.id));
+    return (await import("@/lib/demo-data"))
+      .demoListingsFiltered({})
+      .filter((a) => ids.includes(a.id));
   }
   const res = await api<Paginated<ApiListing>>("/users/me/favorites", {
     query: { per_page: 100 },
@@ -243,7 +237,7 @@ function readDemoFavoriteIds(): string[] {
 }
 
 export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }[]> {
-  if (isDemoMode()) return demoMyListings();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoMyListings();
   const res = await api<Paginated<ApiListing>>("/users/me/listings", {
     query: { per_page: 100 },
   });
@@ -255,7 +249,7 @@ export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }
 
 export async function fetchListing(uuid: string): Promise<Ad> {
   if (isDemoMode()) {
-    const ad = demoListing(uuid);
+    const ad = (await import("@/lib/demo-data")).demoListing(uuid);
     if (ad) return ad;
     throw new Error("Listing not found");
   }
@@ -265,8 +259,10 @@ export async function fetchListing(uuid: string): Promise<Ad> {
 
 export async function fetchUserListings(slug: string): Promise<Ad[]> {
   if (isDemoMode()) {
-    const profile = demoPublicProfile(slug);
-    return demoListingsFiltered({}).filter((a) => a.authorId === profile.user.id);
+    const profile = (await import("@/lib/demo-data")).demoPublicProfile(slug);
+    return (await import("@/lib/demo-data"))
+      .demoListingsFiltered({})
+      .filter((a) => a.authorId === profile.user.id);
   }
   const res = await api<Paginated<ApiListing>>(`/users/${slug}/listings`, {
     query: { per_page: 50 },
@@ -292,7 +288,7 @@ export interface UpdateListingInput {
 
 export async function updateListing(uuid: string, input: UpdateListingInput): Promise<Ad> {
   if (isDemoMode()) {
-    const ad = demoListing(uuid);
+    const ad = (await import("@/lib/demo-data")).demoListing(uuid);
     if (!ad) throw new Error("Listing not found");
     return ad;
   }
@@ -341,7 +337,7 @@ export async function fetchBoostPackages(): Promise<BoostPackageApi[]> {
 export async function revealSellerPhone(adId: string): Promise<string> {
   if (isDemoMode()) {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    const ad = demoListing(adId);
+    const ad = (await import("@/lib/demo-data")).demoListing(adId);
     if (!ad?.seller?.phone) throw new Error("no phone");
     return ad.seller.phone;
   }
@@ -368,7 +364,7 @@ export async function deleteListing(uuid: string): Promise<void> {
 
 export async function restoreListing(uuid: string): Promise<Ad> {
   if (isDemoMode()) {
-    const ad = demoListing(uuid);
+    const ad = (await import("@/lib/demo-data")).demoListing(uuid);
     if (!ad) throw new Error("Listing not found");
     return ad;
   }
@@ -419,7 +415,7 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       createdAt: "только что",
       moderation: input.publish === false ? "moderation" : "published",
     };
-    demoAddListing(demoAd);
+    (await import("@/lib/demo-data")).demoAddListing(demoAd);
     return demoAd;
   }
   const res = await api<{ data: ApiListing }>("/listings", {

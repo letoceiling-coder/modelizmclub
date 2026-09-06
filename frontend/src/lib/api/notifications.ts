@@ -1,6 +1,5 @@
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import { demoNotifications } from "@/lib/demo-data";
 
 export interface AppNotification {
   id: string;
@@ -35,7 +34,7 @@ function mapNotification(n: ApiNotification): AppNotification {
 }
 
 export async function fetchNotifications(): Promise<{ items: AppNotification[]; unread: number }> {
-  if (isDemoMode()) return demoNotifications();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoNotifications();
   const res = await api<{ data: ApiNotification[]; meta?: { unread?: number } }>(
     "/users/me/notifications",
     { query: { per_page: 30 } },
@@ -47,7 +46,7 @@ export async function fetchNotifications(): Promise<{ items: AppNotification[]; 
 }
 
 export async function fetchUnreadCount(): Promise<number> {
-  if (isDemoMode()) return demoNotifications().unread;
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoNotifications().unread;
   try {
     const res = await api<{ data: { unread?: number } }>("/users/me/notifications/unread-count");
     return res.data?.unread ?? 0;

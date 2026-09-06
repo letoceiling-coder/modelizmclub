@@ -4,12 +4,6 @@ import { api, ApiError } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
 import { firstFieldError } from "./validationErrors";
-import {
-  demoFriends,
-  demoIncomingRequests,
-  demoSearchUsers,
-  demoPublicProfile,
-} from "@/lib/demo-data";
 
 export interface ApiCompactUser {
   id?: number;
@@ -152,7 +146,7 @@ export function formatSocialActionError(err: unknown, fallback: string): string 
 }
 
 export async function searchUsers(q: string): Promise<User[]> {
-  if (isDemoMode()) return demoSearchUsers(q);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoSearchUsers(q);
   const res = await api<Paginated<ApiCompactUser>>("/users/search", {
     query: { q, per_page: 50 },
   });
@@ -160,7 +154,7 @@ export async function searchUsers(q: string): Promise<User[]> {
 }
 
 export async function fetchFriends(): Promise<User[]> {
-  if (isDemoMode()) return demoFriends();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoFriends();
   const res = await api<Paginated<ApiCompactUser>>("/users/me/friends", {
     query: { per_page: 50 },
   });
@@ -168,7 +162,7 @@ export async function fetchFriends(): Promise<User[]> {
 }
 
 export async function fetchIncomingRequests(): Promise<IncomingRequest[]> {
-  if (isDemoMode()) return demoIncomingRequests();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoIncomingRequests();
   const res = await api<{ data: ApiFriendRequest[] }>("/users/me/friend-requests");
   return (res.data ?? [])
     .filter((r) => r.from)
@@ -303,7 +297,7 @@ export async function fetchBlockedUsers(): Promise<User[]> {
 }
 
 export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
-  if (isDemoMode()) return demoPublicProfile(slug);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoPublicProfile(slug);
   const res = await api<{ data: ApiPublicProfile }>(`/users/${slug}`);
   const p = res.data;
   const user = mapCompactUser({

@@ -5,7 +5,6 @@ import { shutdownCalls } from "@/lib/calls";
 import { actions } from "@/lib/store";
 import { startRealtimeHub, stopRealtimeHub } from "@/lib/realtime/hub";
 import { isDemoMode } from "@/lib/demo-mode";
-import { seedDemoStore } from "@/lib/demo-data";
 import { getMySubscription, invalidateMySubscription } from "@/lib/subscription";
 import { claimReferralCode } from "@/lib/api/referral";
 import { peekStoredReferralCode, consumeStoredReferralCode } from "@/lib/referral-cookie";
@@ -61,7 +60,7 @@ export async function fetchSession(): Promise<Session | null> {
 
   // Demo mode: no token, no network — seed the store with the mock session.
   if (isDemoMode()) {
-    seedDemoStore();
+    (await import("@/lib/demo-data")).seedDemoStore();
     await syncFavoritesFromServer();
     const me = await fetchMe();
     const sub = await getMySubscription();

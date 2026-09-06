@@ -39,6 +39,9 @@ export const Route = createFileRoute("/admin")({
   }),
   beforeLoad: async ({ location }) => {
     const { requireAdmin } = await import("@/lib/auth/requireAdmin");
-    await requireAdmin(location);
+    // Словарь админки — вместе с проверкой прав и до отрисовки: он весит
+    // 45 КБ и в главном чанке не нужен никому, кроме тех, кто сюда дошёл.
+    const [{ loadAdminLocale }] = await Promise.all([import("@/lib/i18n"), requireAdmin(location)]);
+    await loadAdminLocale();
   },
 });

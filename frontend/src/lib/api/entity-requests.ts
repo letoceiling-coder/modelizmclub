@@ -1,11 +1,5 @@
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
-import {
-  demoEntityRequests,
-  demoMyEntityRequests,
-  demoDecideEntityRequest,
-  demoCommunityCategories,
-} from "@/lib/demo-data";
 
 export type EntityKind = "channel" | "community";
 export type RequestStatus = "pending" | "approved" | "rejected";
@@ -33,7 +27,7 @@ const KIND_SEGMENT: Record<EntityKind, string> = {
 };
 
 export async function fetchCommunityCategories(): Promise<CommunityCategoryOption[]> {
-  if (isDemoMode()) return demoCommunityCategories();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoCommunityCategories();
   const res = await api<{ data: { id: number; name: string; slug: string }[] }>(
     "/categories/communities",
   );
@@ -101,13 +95,13 @@ export async function applyChannel(input: {
 }
 
 export async function fetchMyEntityRequests(): Promise<EntityRequest[]> {
-  if (isDemoMode()) return demoMyEntityRequests();
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoMyEntityRequests();
   const res = await api<{ data: EntityRequest[] }>("/me/entity-requests");
   return res.data ?? [];
 }
 
 export async function fetchEntityRequests(status?: RequestStatus): Promise<EntityRequest[]> {
-  if (isDemoMode()) return demoEntityRequests(status);
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoEntityRequests(status);
   const [communities, channels] = await Promise.all([
     api<{ data: EntityRequest[] }>("/admin/communities/applications", { query: { status } }).catch(
       () => ({ data: [] as EntityRequest[] }),
@@ -121,7 +115,7 @@ export async function fetchEntityRequests(status?: RequestStatus): Promise<Entit
 
 export async function approveEntityRequest(kind: EntityKind, id: string): Promise<void> {
   if (isDemoMode()) {
-    demoDecideEntityRequest(id);
+    (await import("@/lib/demo-data")).demoDecideEntityRequest(id);
     return;
   }
   await api(`/admin/${KIND_SEGMENT[kind]}/applications/${id}/approve`, { method: "POST" });
@@ -133,7 +127,7 @@ export async function rejectEntityRequest(
   reason?: string,
 ): Promise<void> {
   if (isDemoMode()) {
-    demoDecideEntityRequest(id);
+    (await import("@/lib/demo-data")).demoDecideEntityRequest(id);
     return;
   }
   await api(`/admin/${KIND_SEGMENT[kind]}/applications/${id}/reject`, {
