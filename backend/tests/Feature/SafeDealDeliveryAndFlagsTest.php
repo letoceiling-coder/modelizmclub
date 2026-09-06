@@ -112,10 +112,13 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         );
 
         $seller = $this->seedUser('seller');
+        // Со СДЭК объявлению нужен город отправки — см. пункт 9.
+        $city = \App\Models\City::query()->create(['name' => 'Москва', 'slug' => 'moskva-'.uniqid()]);
 
         $this->actingAs($seller, 'sanctum')
             ->postJson('/api/v1/listings', [
                 'title' => 'Крупный набор',
+                'city_id' => $city->id,
                 'description' => 'Большая коробка, мерил сам.',
                 'category_id' => ListingCategory::query()->create([
                     'name' => 'RC', 'slug' => 'rc-'.uniqid(), 'sort_order' => 1,

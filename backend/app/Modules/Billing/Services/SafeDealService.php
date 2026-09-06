@@ -270,6 +270,11 @@ class SafeDealService
                         : null,
                     'metadata' => [
                         'item_kopecks' => $item,
+                        // Снимок названия на момент сделки. Мягкое удаление
+                        // связь переживает (listing() отдаёт withTrashed), но
+                        // жёсткое — нет, а карточка завершённой сделки должна
+                        // остаться читаемой в истории обеих сторон.
+                        'listing_title' => (string) $listing->title,
                         'tariff_code' => $quote['tariff_code'] ?? null,
                         'escrow_provider' => $vtb ? SafeDealSettlementService::PROVIDER_VTB : SafeDealSettlementService::PROVIDER_WALLET,
                     ],
@@ -1001,7 +1006,7 @@ class SafeDealService
             'can' => $this->canFlags($deal, $viewer),
             'uuid' => $deal->uuid,
             'listing_uuid' => $deal->listing?->uuid,
-            'listing_title' => $deal->listing?->title,
+            'listing_title' => $deal->listing?->title ?? ($deal->metadata['listing_title'] ?? null),
             'status' => $deal->status->value,
             'status_label' => $this->lifecycleLabel($deal),
             'money_status' => $deal->status->value,
@@ -1028,6 +1033,9 @@ class SafeDealService
             'shipped_at' => $deal->shipped_at?->toIso8601String(),
             'delivered_at' => $deal->delivered_at?->toIso8601String(),
             'completed_at' => $deal->completed_at?->toIso8601String(),
+            // Отменённая сделка должна уметь сказать, когда именно её отменили:
+            // поля не было вовсе, и карточка показывала статус без даты.
+            'cancelled_at' => $deal->cancelled_at?->toIso8601String(),
             'auto_release_at' => $deal->auto_release_at?->toIso8601String(),
             'hold_expires_at' => $deal->hold_expires_at?->toIso8601String(),
             'can_dispute' => in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped, SafeDealStatus::Delivered], true)

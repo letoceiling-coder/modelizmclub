@@ -489,9 +489,30 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               value={`${kopecksToRub(quote?.platform_fee_kopecks ?? feeKopecks)} ₽`}
             />
             <Row
-              label="Доставка СДЭК"
-              value={offersCdek ? `${kopecksToRub(delivery)} ₽` : "по договорённости"}
+              label={offersCdek ? "Доставка СДЭК" : "Доставка"}
+              value={
+                offersCdek
+                  ? `${kopecksToRub(delivery)} ₽`
+                  : chosen && isPickupDelivery(chosen)
+                    ? "самовывоз, бесплатно"
+                    : "по договорённости"
+              }
             />
+            {/*
+              Доставка дороже товара — не ошибка, но и не мелочь: у песочницы
+              СДЭК тариф до Краснодара выходил 1900 ₽ при товаре 1500 ₽.
+              Покупатель должен увидеть это до оплаты, а не в чеке.
+            */}
+            {offersCdek && delivery > 0 && delivery >= (quote?.item_kopecks ?? itemKopecks) && (
+              <p
+                className="rounded-[var(--r-card)] px-[12px] py-[10px] text-[13px] leading-[1.4]"
+                style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
+              >
+                Доставка {kopecksToRub(delivery)} ₽ — это дороже самого товара (
+                {kopecksToRub(quote?.item_kopecks ?? itemKopecks)} ₽). Проверьте пункт выдачи: ближе
+                к вам может быть дешевле.
+              </p>
+            )}
             <Row
               label={holdsOnCard ? "К оплате (холд)" : "К оплате"}
               value={`${kopecksToRub(hold)} ₽`}

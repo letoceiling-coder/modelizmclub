@@ -77,7 +77,18 @@ class SafeDealHoldSyncService
             // The buyer may have paid just as the window closed — trust the bank.
             if ($incoming !== null) {
                 $this->sync($incoming);
-                if ($deal->fresh()?->status !== SafeDealStatus::Created) {
+                $after = $deal->fresh()?->status;
+
+                if ($after !== SafeDealStatus::Created) {
+                    // Сверка сама увела сделку из `created`. Если она её
+                    // погасила — это тот же результат, и он должен попасть в
+                    // счётчик: до 07.09 `continue` стоял до `$released++`, и
+                    // прогон, погасивший четыре сделки, отчитывался «expired 0».
+                    // Оператор по такому логу решает, что делать было нечего.
+                    if ($after === SafeDealStatus::Cancelled) {
+                        $released++;
+                    }
+
                     continue;
                 }
             }
