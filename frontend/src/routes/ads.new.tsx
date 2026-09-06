@@ -78,7 +78,6 @@ import { isPhoneVerified } from "@/lib/auth/verification";
 
 type NewAdSearch = { edit?: string; promo?: string };
 
-import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/ads/new")({
@@ -90,19 +89,6 @@ export const Route = createFileRoute("/ads/new")({
   beforeLoad: async ({ location }) => {
     const { requireVerified } = await import("@/lib/auth/verification");
     await requireVerified(location);
-  },
-  /*
-   * Бутстрап нужен здесь так же, как ленте: из него приходит признак
-   * listing_payment_enabled.
-   *
-   * Без загрузчика при прямом заходе на страницу флаги оставались на
-   * значениях по умолчанию — а `listingPaymentEnabled` по умолчанию `false`,
-   * и страница утверждала «размещение сейчас бесплатное», хотя сервер за него
-   * берёт 30 ₽. Не мигала, а держала это утверждение постоянно: клиент
-   * бутстрап не запрашивает вовсе, его тянут загрузчики маршрутов.
-   */
-  loader: async () => {
-    await ensurePublicBootstrap();
   },
   component: NewAdPage,
 });
