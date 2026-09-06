@@ -38,6 +38,7 @@
 | `modelizmclub-worker.service` | Очередь Laravel (`default`) |
 | `modelizmclub-media-worker.service` | Очередь `media`: постеры и копии видео (ffmpeg) |
 | `backup-db.timer` + `backup-db.service` | Ночной дамп базы в 04:00 с выгрузкой в S3 |
+| `modelizmclub-scheduler.timer` + `.service` | Тик планировщика Laravel раз в минуту (`schedule:run`) |
 | `backup-db-failure@.service` | Уведомление о неудачном дампе, вызывается через `OnFailure` |
 | `neeklo-*` | То же для dev-контура `neeklo.modelizmclub.ru` |
 
@@ -52,11 +53,14 @@ done
 install -m 644 deploy/systemd/backup-db.service          /etc/systemd/system/
 install -m 644 deploy/systemd/backup-db.timer            /etc/systemd/system/
 install -m 644 deploy/systemd/backup-db-failure@.service /etc/systemd/system/
+install -m 644 deploy/systemd/modelizmclub-scheduler.service /etc/systemd/system/
+install -m 644 deploy/systemd/modelizmclub-scheduler.timer   /etc/systemd/system/
 
 systemctl daemon-reload
 systemctl enable --now modelizmclub-frontend modelizmclub-reverb \
                        modelizmclub-worker modelizmclub-media-worker
 systemctl enable --now backup-db.timer
+systemctl enable --now modelizmclub-scheduler.timer
 ```
 
 `daemon-reload` обязателен: без него systemd продолжит использовать прежнюю
@@ -69,13 +73,14 @@ systemctl enable --now backup-db.timer
 for u in modelizmclub-frontend.service modelizmclub-reverb.service \
          modelizmclub-worker.service modelizmclub-media-worker.service \
          backup-db.service backup-db.timer \
+         modelizmclub-scheduler.service modelizmclub-scheduler.timer \
          "backup-db-failure@.service"; do
   diff -q "/var/www/modelizmclub/deploy/systemd/$u" "/etc/systemd/system/$u" >/dev/null 2>&1 \
     && echo "ok         $u" || echo "РАСХОДИТСЯ $u"
 done
 
-# таймер живой и знает, когда сработает
-systemctl list-timers backup-db.timer --no-pager
+# таймеры живые и знают, когда сработают
+systemctl list-timers backup-db.timer modelizmclub-scheduler.timer --no-pager
 ```
 
 Первая команда 04.09 сразу нашла расхождение: установленный
@@ -343,6 +348,42 @@ bash /var/www/modelizmclub-neeklo/deploy/scripts/deploy-neeklo-frontend.sh
 Копия на той же машине бэкапом не считается, поэтому каждый дамп уходит в S3.
 Если выгрузка не удалась, скрипт завершается ненулевым кодом и ротация **не
 выполняется** — последние удачные копии не удаляются из-за сбойного запуска.
+
+# Планировщик Laravel
+
+Всё, что должно происходить само — отложенная публикация постов и видео,
+семидневное автосписание безопасной сделки, гашение брошенных чекаутов,
+опрос СДЭК по статусам отправлений, снятие истёкших подписок, — живёт в
+`backend/routes/console.php` и выполняется только если кто-то раз в минуту
+зовёт `schedule:run`.
+
+**06.09 выяснилось, что на проде его не звал никто.** Ни cron у root или
+www-data, ни systemd-таймера, ни записи в supervisor; `storage/logs/scheduler.log`
+был пустым файлом от 10 июля. Проверка «а есть ли планировщик» при этом даёт
+ложноположительный ответ: `ps aux | grep schedule` находит живой
+`schedule:work`, но он принадлежит **другому** приложению на той же машине —
+`/var/www/modelizmclub-cloude`, база `modelizm_cloude`, домен
+`dev-cloude.modelizmclub.ru`, юнит supervisor `modelizm-cloude-scheduler`.
+Пути похожи, и это легко принять за свой.
+
+Проверять поэтому надо по пути, а не по имени процесса:
+
+```bash
+systemctl list-timers modelizmclub-scheduler.timer --no-pager
+journalctl -u modelizmclub-scheduler.service --since '-15 min' --no-pager
+cd /var/www/modelizmclub/backend && php artisan schedule:list
+```
+
+Тик идёт от `www-data`, а не от root: артизан пишет `storage/logs` и
+`bootstrap/cache`, и файлы, созданные root, php-fpm потом не перезапишет.
+
+`withoutOverlapping()` на командах, которые ходят наружу, требует рабочей
+блокировки в кэше. На проде это Redis (`CACHE_STORE=redis`); если он не
+поднят, команды с этим модификатором не выполнятся вовсе. Проверка:
+
+```bash
+php artisan tinker --execute='Cache::lock("probe",5)->get(fn()=>true);'
+```
 
 ## Установка (один раз, на сервере)
 

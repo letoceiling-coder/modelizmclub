@@ -1,0 +1,18 @@
+[Unit]
+Description=ModelizmClub Laravel scheduler (one tick)
+Documentation=file:///var/www/modelizmclub/deploy/README.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Не root: артизан пишет storage/logs и bootstrap/cache, и файлы, созданные
+# от root, php-fpm потом не перезапишет — очередь и логи встанут молча.
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/modelizmclub/backend
+ExecStart=/usr/bin/php /var/www/modelizmclub/backend/artisan schedule:run
+# Тик планировщика — это диспетчер: он запускает задачи и выходит. Минуты
+# хватает с запасом; всё, что дольше десяти, застряло на внешнем API.
+TimeoutStartSec=600
+Nice=10
