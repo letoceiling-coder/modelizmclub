@@ -71,7 +71,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
-import { CommunityBrandingHeader } from "@/components/communities/CommunityBrandingHeader";
 import { CommunityDetailsDialog } from "@/components/communities/CommunityDetailsDialog";
 import { EntityHeader } from "@/components/entity/EntityHeader";
 import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";

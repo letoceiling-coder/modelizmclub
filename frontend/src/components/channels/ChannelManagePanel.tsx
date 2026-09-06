@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
+import {
+  DangerZone,
+  ManageSection,
+  SaveButton,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from "@/components/entity/ManageFields";
+import { inputStyle } from "@/components/entity/manageStyles";
 import { DeleteChannelDialog } from "@/components/channels/DeleteChannelDialog";
 import { ChannelBrandingForm } from "@/components/channels/ChannelBrandingForm";
 import {
@@ -16,12 +23,6 @@ import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
 
 const EDITABLE_KINDS: ChannelKind[] = ["author", "expert", "brand", "shop"];
-
-const inputStyle = {
-  background: "var(--background-surface)",
-  borderColor: "var(--border)",
-  color: "var(--foreground)",
-} as const;
 
 interface Props {
   channel: Channel;
@@ -118,72 +119,40 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
 
   return (
     <div className="space-y-5">
-      <section className="space-y-4">
-        <h3
-          className="text-[13px] font-semibold uppercase tracking-wider"
-          style={{ color: "var(--foreground-50)" }}
-        >
-          {t("components.channelManage.sectionBranding")}
-        </h3>
+      <ManageSection title={t("components.channelManage.sectionBranding")} divided={false}>
         <ChannelBrandingForm channel={channel} onUpdated={onUpdated} />
-      </section>
+      </ManageSection>
 
-      <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3
-          className="text-[13px] font-semibold uppercase tracking-wider"
-          style={{ color: "var(--foreground-50)" }}
+      <ManageSection title={t("components.channelManage.sectionMain")}>
+        <TextField
+          label={t("components.channelManage.nameLabel")}
+          value={name}
+          onChange={setName}
+          max={CHANNEL_NAME_MAX}
+        />
+
+        <TextAreaField
+          label={t("components.channelManage.descriptionLabel")}
+          value={description}
+          onChange={setDescription}
+          max={5000}
+          rows={5}
+          minHeight={120}
+        />
+
+        <SelectField
+          label={t("components.channelManage.themeLabel")}
+          value={category}
+          onChange={setCategory}
         >
-          {t("components.channelManage.sectionMain")}
-        </h3>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            {t("components.channelManage.nameLabel")}
-          </span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={CHANNEL_NAME_MAX}
-            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-            style={inputStyle}
-          />
-          <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-            {name.length}/{CHANNEL_NAME_MAX}
-          </span>
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            {t("components.channelManage.descriptionLabel")}
-          </span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={5000}
-            rows={5}
-            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[120px]"
-            style={inputStyle}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            {t("components.channelManage.themeLabel")}
-          </span>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-            style={inputStyle}
-          >
-            <option value="">{t("components.channelManage.selectDirection")}</option>
-            {directions.map((d) => (
-              <option key={d.id} value={d.name}>
-                {d.name}
-              </option>
-            ))}
-            <option value={otherDirection}>{otherDirection}</option>
-          </select>
-        </label>
+          <option value="">{t("components.channelManage.selectDirection")}</option>
+          {directions.map((d) => (
+            <option key={d.id} value={d.name}>
+              {d.name}
+            </option>
+          ))}
+          <option value={otherDirection}>{otherDirection}</option>
+        </SelectField>
 
         {category === otherDirection && (
           <label className="flex flex-col gap-1.5">
@@ -202,23 +171,17 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
         )}
 
         {channel.kind !== "official" ? (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-              {t("components.channelManage.channelTypeLabel")}
-            </span>
-            <select
-              value={kind}
-              onChange={(e) => setKind(e.target.value as ChannelKind)}
-              className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-              style={inputStyle}
-            >
-              {EDITABLE_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {kindLabel(k)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label={t("components.channelManage.channelTypeLabel")}
+            value={kind}
+            onChange={(value) => setKind(value as ChannelKind)}
+          >
+            {EDITABLE_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {kindLabel(k)}
+              </option>
+            ))}
+          </SelectField>
         ) : (
           <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
             {t("components.channelManage.officialTypeLocked", { type: kindLabel(channel.kind) })}
@@ -239,33 +202,23 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            {t("components.channelManage.contactsLabel")}
-          </span>
-          <textarea
-            value={contacts}
-            onChange={(e) => setContacts(e.target.value)}
-            maxLength={2000}
-            rows={3}
-            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[80px]"
-            style={inputStyle}
-          />
-        </label>
+        <TextAreaField
+          label={t("components.channelManage.contactsLabel")}
+          value={contacts}
+          onChange={setContacts}
+          max={2000}
+          rows={3}
+          minHeight={80}
+        />
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            {t("components.channelManage.rulesLabel")}
-          </span>
-          <textarea
-            value={rules}
-            onChange={(e) => setRules(e.target.value)}
-            maxLength={5000}
-            rows={4}
-            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[100px]"
-            style={inputStyle}
-          />
-        </label>
+        <TextAreaField
+          label={t("components.channelManage.rulesLabel")}
+          value={rules}
+          onChange={setRules}
+          max={5000}
+          rows={4}
+          minHeight={100}
+        />
 
         <div
           className="rounded-[10px] border p-3 text-[13px]"
@@ -278,31 +231,21 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
           {t("components.channelManage.publicNotice")}
         </div>
 
-        <Button
-          type="button"
-          onClick={() => void save()}
+        <SaveButton
           disabled={!dirty || saving}
-          className="w-full rounded-[12px] gap-2 sm:w-auto"
-        >
-          <Save size={16} />
-          {saving
-            ? t("components.channelManage.saving")
-            : t("components.channelManage.saveChanges")}
-        </Button>
-      </section>
+          busy={saving}
+          label={t("components.channelManage.saveChanges")}
+          busyLabel={t("components.channelManage.saving")}
+          onClick={() => void save()}
+        />
+      </ManageSection>
 
-      <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3
-          className="text-[13px] font-semibold uppercase tracking-wider"
-          style={{ color: "var(--foreground-50)" }}
-        >
-          {t("components.channelManage.sectionDanger")}
-        </h3>
-        <p className="text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-          {t("components.channelManage.deleteWarning")}
-        </p>
+      <DangerZone
+        title={t("components.channelManage.sectionDanger")}
+        warning={t("components.channelManage.deleteWarning")}
+      >
         <DeleteChannelDialog slug={channel.slug} name={channel.name} onDeleted={onDeleted} />
-      </section>
+      </DangerZone>
     </div>
   );
 }

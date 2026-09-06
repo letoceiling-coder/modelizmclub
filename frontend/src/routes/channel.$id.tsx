@@ -65,7 +65,6 @@ import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { uploadMedia, uploadMediaDeduped } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { ChannelBrandingHeader } from "@/components/channels/ChannelBrandingHeader";
 import { EntityHeader } from "@/components/entity/EntityHeader";
 import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";

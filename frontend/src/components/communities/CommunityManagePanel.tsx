@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
-import { Save } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DangerZone,
+  ManageSection,
+  SaveButton,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from "@/components/entity/ManageFields";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 import { CommunityBrandingForm } from "@/components/communities/CommunityBrandingForm";
 import { fetchCommunityCategories, type CommunityCategoryOption } from "@/lib/api/entity-requests";
@@ -19,12 +26,6 @@ import {
   COMMUNITY_RULES_MAX,
 } from "@/lib/community-limits";
 import { isDemoMode } from "@/lib/demo-mode";
-
-const inputStyle = {
-  background: "var(--background-surface)",
-  borderColor: "var(--border)",
-  color: "var(--foreground)",
-} as const;
 
 interface Props {
   community: Community;
@@ -134,87 +135,30 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
 
   return (
     <div className="space-y-5">
-      <section className="space-y-4">
-        <h3
-          className="text-[13px] font-semibold uppercase tracking-wider"
-          style={{ color: "var(--foreground-50)" }}
-        >
-          Оформление
-        </h3>
+      <ManageSection title="Оформление" divided={false}>
         <CommunityBrandingForm community={community} Icon={Icon} onUpdated={onUpdated} />
-      </section>
+      </ManageSection>
 
-      <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3
-          className="text-[13px] font-semibold uppercase tracking-wider"
-          style={{ color: "var(--foreground-50)" }}
-        >
-          Основное
-        </h3>
+      <ManageSection title="Основное">
+        <TextField label="Название" value={name} onChange={setName} max={COMMUNITY_NAME_MAX} />
 
-        <label className="flex flex-col gap-1.5">
-          <span
-            className="flex items-center justify-between text-[13px] font-medium"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            <span>Название</span>
-            <span
-              className="font-mono text-[11px] tabular-nums"
-              style={{ color: "var(--foreground-30)" }}
-            >
-              {name.length}/{COMMUNITY_NAME_MAX}
-            </span>
-          </span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={COMMUNITY_NAME_MAX}
-            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-            style={inputStyle}
-          />
-        </label>
+        <TextAreaField
+          label="Описание"
+          value={description}
+          onChange={setDescription}
+          max={COMMUNITY_DESCRIPTION_MAX}
+          rows={5}
+          minHeight={120}
+        />
 
-        <label className="flex flex-col gap-1.5">
-          <span
-            className="flex items-center justify-between text-[13px] font-medium"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            <span>Описание</span>
-            <span
-              className="font-mono text-[11px] tabular-nums"
-              style={{ color: "var(--foreground-30)" }}
-            >
-              {description.length}/{COMMUNITY_DESCRIPTION_MAX}
-            </span>
-          </span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={COMMUNITY_DESCRIPTION_MAX}
-            rows={5}
-            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[120px] break-words"
-            style={inputStyle}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            Категория
-          </span>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-            style={inputStyle}
-          >
-            <option value="">Выберите категорию</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField label="Категория" value={categoryId} onChange={setCategoryId}>
+          <option value="">Выберите категорию</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </SelectField>
 
         <div className="grid gap-[8px] sm:grid-cols-2">
           {(["open", "request"] as const).map((kind) => (
@@ -235,82 +179,30 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
           ))}
         </div>
 
-        <label className="flex flex-col gap-1.5">
-          <span
-            className="flex items-center justify-between text-[13px] font-medium"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            <span>Правила</span>
-            <span
-              className="font-mono text-[11px] tabular-nums"
-              style={{ color: "var(--foreground-30)" }}
-            >
-              {rules.length}/{COMMUNITY_RULES_MAX}
-            </span>
-          </span>
-          <textarea
-            value={rules}
-            onChange={(e) => setRules(e.target.value)}
-            maxLength={COMMUNITY_RULES_MAX}
-            rows={4}
-            className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y min-h-[96px]"
-            style={inputStyle}
-          />
-        </label>
+        <TextAreaField
+          label="Правила"
+          value={rules}
+          onChange={setRules}
+          max={COMMUNITY_RULES_MAX}
+          rows={4}
+          minHeight={96}
+        />
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            Telegram
-          </span>
-          <input
-            value={telegram}
-            onChange={(e) => setTelegram(e.target.value)}
-            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-            style={inputStyle}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            Сайт
-          </span>
-          <input
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-            style={inputStyle}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
-            Телефон
-          </span>
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
-            style={inputStyle}
-          />
-        </label>
+        <TextField label="Telegram" value={telegram} onChange={setTelegram} />
+        <TextField label="Сайт" value={website} onChange={setWebsite} />
+        <TextField label="Телефон" value={phone} onChange={setPhone} />
 
-        <Button
-          type="button"
-          onClick={() => void save()}
+        <SaveButton
           disabled={!dirty || saving}
-          className="w-full rounded-[12px] gap-2 sm:w-auto"
-        >
-          <Save size={16} />
-          {saving ? "Сохраняем…" : "Сохранить изменения"}
-        </Button>
-      </section>
+          busy={saving}
+          label="Сохранить изменения"
+          busyLabel="Сохраняем…"
+          onClick={() => void save()}
+        />
+      </ManageSection>
 
       {requests.length > 0 && (
-        <section className="space-y-3 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-          <h3
-            className="text-[13px] font-semibold uppercase tracking-wider"
-            style={{ color: "var(--foreground-50)" }}
-          >
-            Заявки на вступление
-          </h3>
+        <ManageSection title="Заявки на вступление">
           {requests.map((row) => (
             <div
               key={row.id}
@@ -355,21 +247,15 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
               </div>
             </div>
           ))}
-        </section>
+        </ManageSection>
       )}
 
-      <section className="space-y-4 border-t pt-5" style={{ borderColor: "var(--border)" }}>
-        <h3
-          className="text-[13px] font-semibold uppercase tracking-wider"
-          style={{ color: "var(--foreground-50)" }}
-        >
-          Опасная зона
-        </h3>
-        <p className="text-[14px] leading-relaxed" style={{ color: "var(--foreground-70)" }}>
-          Удаление необратимо: сообщество исчезнет из поиска и списков для всех пользователей.
-        </p>
+      <DangerZone
+        title="Опасная зона"
+        warning="Удаление необратимо: сообщество исчезнет из поиска и списков для всех пользователей."
+      >
         <DeleteCommunityDialog slug={community.id} name={community.name} onDeleted={onDeleted} />
-      </section>
+      </DangerZone>
     </div>
   );
 }
