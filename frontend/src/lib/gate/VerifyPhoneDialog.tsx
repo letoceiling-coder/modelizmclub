@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next";
 import { Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
+import { readSmsRefusal, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
 import { setCurrentUser } from "@/lib/store";
 import { GateDialogShell } from "./GateDialogShell";
+import { formatCountdown, useResendCountdown } from "./useResendCountdown";
 
 interface Props {
   open: boolean;
@@ -23,25 +24,47 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const resend = useResendCountdown();
+
   const reset = () => {
     setStep("intro");
     setError(null);
+    resend.clear();
   };
 
-  const sendCode = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  /**
+   * Одна отправка на все случаи: первая и повторная.
+   *
+   * Раньше повторить можно было только через «Изменить номер» — обратно на шаг
+   * ввода, где кнопка ничем не блокировалась. Человек жал её сразу и получал
+   * отказ, а на четвёртый раз выбирал предел на десять минут. Теперь после
+   * успешной отправки кнопка блокируется на паузу, которую назвал сервер, а
+   * при отказе — на срок из ответа.
+   */
+  const requestCode = async () => {
     const value = phone.trim();
-    if (!value) return;
+    if (!value || busy || resend.blocked) return;
     setBusy(true);
     setError(null);
     try {
-      await sendPhoneVerificationCode(value);
+      const { resend_after } = await sendPhoneVerificationCode(value);
+      resend.start(resend_after);
       setStep("code");
     } catch (err) {
+      const { retryAfter } = readSmsRefusal(err);
+      // Отказ оператора приходит без срока: там ждать нечего, надо править
+      // номер, поэтому кнопку не блокируем и возвращаем на шаг ввода.
+      if (retryAfter > 0) resend.start(retryAfter);
+      else setStep("phone");
       setError(err instanceof Error && err.message ? err.message : "Не удалось отправить код.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const sendCode = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void requestCode();
   };
 
   const verify = async (e: FormEvent<HTMLFormElement>) => {
@@ -95,8 +118,14 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
               {error}
             </p>
           )}
-          <Button type="submit" size="lg" className="w-full" loading={busy}>
-            Получить код
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            loading={busy}
+            disabled={busy || resend.blocked}
+          >
+            {resend.blocked ? `Повторить через ${formatCountdown(resend.left)}` : "Получить код"}
           </Button>
         </form>
       )}
@@ -123,6 +152,23 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
           )}
           <Button type="submit" size="lg" className="w-full" loading={busy}>
             Подтвердить
+          </Button>
+          {/*
+            Повтор здесь, а не через возврат к вводу номера: до отсчёта было
+            видно только «Изменить номер», и человек уходил туда просто чтобы
+            нажать «Получить код» ещё раз.
+          */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            disabled={busy || resend.blocked}
+            onClick={() => void requestCode()}
+          >
+            {resend.blocked
+              ? `Отправить снова через ${formatCountdown(resend.left)}`
+              : "Отправить код ещё раз"}
           </Button>
         </form>
       )}

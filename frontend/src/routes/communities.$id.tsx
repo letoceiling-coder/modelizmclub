@@ -81,7 +81,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CommunityDetailsDialog } from "@/components/communities/CommunityDetailsDialog";
-import { EntityHeader } from "@/components/entity/EntityHeader";
+import { EntityHeader, type EntityAction } from "@/components/entity/EntityHeader";
 import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
@@ -575,7 +575,7 @@ function CommunityRightRail({
   const online = (onlineFirst.length > 0 ? onlineFirst : members).slice(0, 8);
 
   return (
-    <aside className="hidden xl:block w-72 shrink-0">
+    <aside className="hidden w-72 shrink-0 lg:block">
       <div
         className="flex h-full flex-col gap-[14px] overflow-y-auto py-[2px] pr-[2px]"
         style={{ scrollbarWidth: "thin" }}
@@ -1209,6 +1209,53 @@ function CommunityDetailPage() {
     });
   };
 
+  /*
+   * Порядок — это важность: первые два действия остаются с подписью, дальше
+   * значки. Владельцу главное — управление, гостю и постороннему — вступить;
+   * «Поделиться» замыкает список, потому что то же самое есть в меню «Ещё».
+   */
+  const headerActions: EntityAction[] = [
+    !isOwner && {
+      id: "join",
+      label: joined
+        ? t("pages.communityDetail.youSubscribed")
+        : joinPending
+          ? t("pages.communityDetail.requestPending")
+          : community.accessType === "request"
+            ? t("pages.communityDetail.requestJoin")
+            : t("pages.communityDetail.subscribe"),
+      icon: joined ? Check : UserPlus,
+      onClick: toggleJoin,
+      variant: joined || joinPending ? ("outline" as const) : ("default" as const),
+      disabled: busy || joinPending,
+    },
+    canManage && {
+      id: "manage",
+      label: t("pages.communityDetail.manageTitle"),
+      icon: Settings2,
+      onClick: () => setSettingsOpen(true),
+      variant: "default" as const,
+    },
+    (joined || isOwner) && {
+      id: "chat",
+      label: t("pages.communityDetail.openChat"),
+      icon: MessagesSquare,
+      onClick: openChat,
+    },
+    community.allowSubmitPost && {
+      id: "submit",
+      label: t("pages.communityDetail.proposeProject"),
+      icon: FilePlus,
+      onClick: () => setSubmitOpen(true),
+    },
+    {
+      id: "share",
+      label: t("pages.communityDetail.share"),
+      icon: Share2,
+      onClick: () => setShareOpen(true),
+    },
+  ].filter(Boolean) as EntityAction[];
+
   const toggleEvent = (event: CommunityEvent) => {
     if (!joined && !isOwner) {
       toast.error(t("pages.communityDetail.chatMembersOnly"));
@@ -1311,55 +1358,7 @@ function CommunityDetailPage() {
               </>
             }
             description={community.description}
-            actions={
-              <>
-                {!isOwner && (
-                  <Button
-                    onClick={toggleJoin}
-                    disabled={busy || joinPending}
-                    variant={joined || joinPending ? "outline" : "default"}
-                    size="sm"
-                    className="gap-[6px]"
-                  >
-                    {joined
-                      ? t("pages.communityDetail.youSubscribed")
-                      : joinPending
-                        ? t("pages.communityDetail.requestPending")
-                        : community.accessType === "request"
-                          ? t("pages.communityDetail.requestJoin")
-                          : t("pages.communityDetail.subscribe")}
-                  </Button>
-                )}
-                {canManage && (
-                  <Button onClick={() => setSettingsOpen(true)} size="sm" className="gap-[6px]">
-                    <Settings2 size={15} /> {t("pages.communityDetail.manageTitle")}
-                  </Button>
-                )}
-                {(joined || isOwner) && (
-                  <Button onClick={openChat} variant="outline" size="sm" className="gap-[6px]">
-                    <MessagesSquare size={15} /> {t("pages.communityDetail.openChat")}
-                  </Button>
-                )}
-                {community.allowSubmitPost && (
-                  <Button
-                    onClick={() => setSubmitOpen(true)}
-                    variant="outline"
-                    size="sm"
-                    className="gap-[6px]"
-                  >
-                    <FilePlus size={15} /> {t("pages.communityDetail.proposeProject")}
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => setShareOpen(true)}
-                  size="sm"
-                  className="gap-[6px]"
-                >
-                  <Share2 size={15} /> {t("pages.communityDetail.share")}
-                </Button>
-              </>
-            }
+            actions={headerActions}
             menu={
               <EntityMoreMenu
                 ariaLabel={t("pages.communityDetail.moreAria")}

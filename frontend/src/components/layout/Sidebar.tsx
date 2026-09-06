@@ -343,30 +343,30 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     </nav>
   );
 
-  // Планшет 768–1023 получает узкую колонку значков вместо нижней панели:
-  // на этой ширине нижняя панель забирала полосу экрана под пять подписей,
-  // которые на планшете и так помещаются сбоку. Ниже 768 остаётся нижняя
-  // панель — там боковой колонке места нет.
-  const tabletIconRail = (
-    <aside className="sticky top-0 hidden w-16 shrink-0 flex-col md:flex lg:hidden">
-      {iconNav}
-    </aside>
+  // Колонка значков живёт от 768 до 1279, полная — с 1280.
+  //
+  // Раньше полная колонка включалась уже на 1024 и занимала 240 px. Вместе с
+  // правой колонкой в 320 на контент оставалось 544 — меньше, чем на 1023,
+  // где правой колонки нет вовсе: окно расширяли, а читать становилось теснее.
+  // Прятать правую колонку нельзя, категории должны быть на виду постоянно,
+  // поэтому на 1024–1279 ужимается навигация: 64 вместо 240 возвращают
+  // контенту 176 px, и три колонки помещаются без переносов.
+  //
+  // Ниже 768 остаётся нижняя панель — там боковой колонке места нет.
+  const iconRail = (widthClasses: string) => (
+    <aside className={`sticky top-0 hidden shrink-0 flex-col ${widthClasses}`}>{iconNav}</aside>
   );
 
   if (!collapsed) {
     return (
       <>
-        {tabletIconRail}
-        <aside className="hidden w-60 shrink-0 lg:block">{fullInner}</aside>
+        {iconRail("w-16 md:flex xl:hidden")}
+        <aside className="hidden w-60 shrink-0 xl:block">{fullInner}</aside>
       </>
     );
   }
 
-  return (
-    <>
-      {tabletIconRail}
-      <aside className="hidden w-60 shrink-0 lg:block xl:hidden">{fullInner}</aside>
-      <aside className="hidden w-16 shrink-0 flex-col xl:flex">{iconNav}</aside>
-    </>
-  );
+  // Свёрнутый режим просили страницы с широкой сеткой (каталог): там значки
+  // нужны на всех ширинах, включая самые большие.
+  return iconRail("w-16 md:flex");
 }

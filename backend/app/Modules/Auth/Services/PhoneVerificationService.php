@@ -8,6 +8,7 @@ use App\Services\Sms\SmsDeliveryException;
 use App\Services\Sms\SmsMessenger;
 use App\Services\Sms\SmsTemplate;
 use App\Support\PhoneNormalizer;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,28 @@ class PhoneVerificationService
     public function __construct(
         private readonly SmsMessenger $sms,
     ) {}
+
+    /**
+     * Отказ в отправке — с машинным кодом и сроком.
+     *
+     * Три разные причины (пауза между отправками, взятый предел, отказ
+     * оператора) отвечали одинаковым 422 с текстом в `errors.phone`. Клиент
+     * не мог их различить: он не знал, сколько ждать, и заводить отсчёт было
+     * не от чего, а человеку про отказ оператора писали «попробуйте позже»,
+     * хотя ждать бессмысленно — нужен другой номер.
+     *
+     * Форма ответа прежняя (`message` + `errors.phone`), чтобы старые клиенты
+     * продолжали показывать текст; `code` и `retry_after` добавлены рядом.
+     */
+    private function refuse(string $message, string $code, ?int $retryAfter = null): never
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => $message,
+            'errors' => ['phone' => [$message]],
+            'code' => $code,
+            'retry_after' => $retryAfter,
+        ], 422));
+    }
 
     public function sendCode(User $user, string $rawPhone, ?Request $request = null): void
     {
@@ -37,9 +60,11 @@ class PhoneVerificationService
         if ($cooldown > 0 && Cache::has($cacheKey)) {
             $expiresAt = (int) Cache::get($cacheKey);
             $seconds = max(1, $expiresAt - time());
-            throw ValidationException::withMessages([
-                'phone' => ["Повторная отправка через {$seconds} сек."],
-            ]);
+            $this->refuse(
+                "Код уже отправлен. Запросить новый можно через {$seconds} сек.",
+                'sms_cooldown',
+                $seconds,
+            );
         }
 
         PhoneVerificationCode::query()
@@ -75,9 +100,14 @@ class PhoneVerificationService
                     'code' => $code,
                 ]);
             } else {
-                throw ValidationException::withMessages([
-                    'phone' => ['Не удалось отправить SMS. Попробуйте позже.'],
-                ]);
+                // Отказ оператора — не «попробуйте позже»: ждать бессмысленно,
+                // этот номер он не примет и через час. Человеку нужно понять,
+                // что дело в номере, а не в нашей очереди.
+                $this->refuse(
+                    'Оператор связи отклонил отправку на этот номер. '
+                        .'Проверьте номер или укажите другой.',
+                    'sms_provider_rejected',
+                );
             }
         }
 
@@ -207,9 +237,11 @@ class PhoneVerificationService
 
             if (RateLimiter::tooManyAttempts($check['key'], $max)) {
                 $seconds = RateLimiter::availableIn($check['key']);
-                throw ValidationException::withMessages([
-                    'phone' => ["Слишком много запросов SMS. Повторите через {$seconds} сек."],
-                ]);
+                $this->refuse(
+                    "Слишком много запросов SMS. Повторите через {$seconds} сек.",
+                    'sms_rate_limited',
+                    $seconds,
+                );
             }
         }
     }

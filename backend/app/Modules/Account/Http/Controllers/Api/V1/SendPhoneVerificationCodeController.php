@@ -25,6 +25,10 @@ class SendPhoneVerificationCodeController extends Controller
             'data' => [
                 'message' => 'Код отправлен по SMS.',
                 'expires_in_minutes' => $ttl,
+                // Сколько ждать до следующей отправки. Клиент считает отсчёт
+                // по этому числу, а не по своей копии значения: пауза задаётся
+                // переменной окружения и разъехалась бы при первой же правке.
+                'resend_after' => (int) config('sms.verification.resend_cooldown_seconds', 60),
             ],
         ], 202);
     }
