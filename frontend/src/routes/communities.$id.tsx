@@ -30,6 +30,11 @@ import {
   Info,
   Link2,
   LogOut,
+  Bell,
+  BellOff,
+  Star,
+  UserPlus,
+  Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -45,12 +50,16 @@ import {
   attendCommunityEvent,
   createCommunityEvent,
   fetchCommunityChat,
+  fetchSimilarCommunities,
+  setCommunityFavorite,
+  setCommunityNotifications,
   banCommunityMember,
   type CommunityMember,
   type CommunityEvent,
 } from "@/lib/api/communities";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { recordView } from "@/lib/view-history";
+import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
   demoCommunityPosts,
@@ -78,6 +87,9 @@ import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMor
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
+import { InviteFriendsDialog } from "@/components/communities/InviteFriendsDialog";
+import { SimilarCommunitiesList } from "@/components/communities/SimilarCommunitiesList";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
 import { toast } from "@/lib/toast";
@@ -508,33 +520,26 @@ function CommunityRightRail({
   community,
   members,
   events,
+  similar,
   onSignup,
 }: {
   community: Community;
-  members: DemoCommunityMember[];
+  /**
+   * Минимальная форма участника вместо демо-типа: карточке нужны только имя,
+   * аватар и признак «в сети», а приходить она может и из демоданных, и из
+   * настоящего списка.
+   */
+  members: Array<{ user: { id: string; name: string; avatar?: string; online?: boolean } }>;
   events: DemoCommunityEvent[];
+  /** Похожие приходят готовыми: их грузит страница одним запросом. */
+  similar: Community[];
   onSignup: (e: DemoCommunityEvent) => void;
 }) {
   const { t } = useTranslation();
-  const online = members.filter((m) => m.user.online).slice(0, 8);
-  const similar = useMemo(
-    () =>
-      isDemoMode()
-        ? demoCommunities()
-            .filter((c) => c.id !== community.id && c.category === community.category)
-            .slice(0, 3)
-        : [],
-    [community.id, community.category],
-  );
-  const fallbackSimilar = useMemo(
-    () =>
-      similar.length === 0 && isDemoMode()
-        ? demoCommunities()
-            .filter((c) => c.id !== community.id)
-            .slice(0, 3)
-        : similar,
-    [similar, community.id],
-  );
+  // Сначала те, кто в сети; если в сети никого — просто первые из списка,
+  // иначе карточка «Участники» пропадала бы ночью.
+  const onlineFirst = members.filter((m) => m.user.online);
+  const online = (onlineFirst.length > 0 ? onlineFirst : members).slice(0, 8);
 
   return (
     <aside className="hidden xl:block w-72 shrink-0">
@@ -553,7 +558,9 @@ function CommunityRightRail({
             }}
           >
             <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
-              {t("pages.communityDetail.membersOnline")}
+              {onlineFirst.length > 0
+                ? t("pages.communityDetail.membersOnline")
+                : t("pages.communityDetail.membersCard")}
             </h3>
             <div className="mt-[10px] flex flex-wrap gap-[8px]">
               {online.map((m) => (
@@ -616,8 +623,75 @@ function CommunityRightRail({
           </Card>
         )}
 
-        {/* Similar communities */}
-        {fallbackSimilar.length > 0 && (
+        {/* О сообществе — первая из трёх карточек раздела 5.6 */}
+        <Card
+          className="p-[14px] shadow-none"
+          style={{
+            background: "var(--background-elevated)",
+            borderColor: "var(--border)",
+            borderRadius: "var(--r-card)",
+          }}
+        >
+          <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+            {t("pages.communityDetail.aboutCard")}
+          </h3>
+          {community.description && (
+            <p
+              className="mt-[8px] text-[13px] leading-relaxed"
+              style={{ color: "var(--foreground-70)" }}
+            >
+              {community.description}
+            </p>
+          )}
+          <dl className="mt-[10px] flex flex-col gap-[6px] text-[12px]">
+            {community.category && (
+              <div className="flex justify-between gap-[8px]">
+                <dt style={{ color: "var(--foreground-50)" }}>
+                  {t("pages.communityDetail.categoryLabel")}
+                </dt>
+                <dd className="truncate" style={{ color: "var(--foreground)" }}>
+                  {community.category}
+                </dd>
+              </div>
+            )}
+            {/* Стиль «date», а не «relative»: относительная запись считается от
+                текущего времени, и сервер с браузером расходятся на секунды —
+                React отвечает на это ошибкой гидрации. */}
+            {community.createdAt && (
+              <div className="flex justify-between gap-[8px]">
+                <dt style={{ color: "var(--foreground-50)" }}>
+                  {t("pages.communityDetail.createdAt")}
+                </dt>
+                <dd style={{ color: "var(--foreground)" }}>
+                  {formatDate(community.createdAt, "date")}
+                </dd>
+              </div>
+            )}
+            {community.owner && (
+              <div className="flex justify-between gap-[8px]">
+                <dt style={{ color: "var(--foreground-50)" }}>
+                  {t("pages.communityDetail.ownerLabel")}
+                </dt>
+                <dd className="min-w-0 truncate" style={{ color: "var(--foreground)" }}>
+                  {community.owner.slug ? (
+                    <Link
+                      to="/user/$id"
+                      params={{ id: community.owner.slug }}
+                      className="hover:underline"
+                    >
+                      {community.owner.name}
+                    </Link>
+                  ) : (
+                    community.owner.name
+                  )}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </Card>
+
+        {/* Похожие сообщества — теперь из эндпоинта, а не из демоданных */}
+        {similar.length > 0 && (
           <Card
             className="p-[14px] shadow-none"
             style={{
@@ -629,48 +703,8 @@ function CommunityRightRail({
             <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
               {t("pages.communityDetail.similarCommunities")}
             </h3>
-            <div className="mt-[10px] flex flex-col gap-[8px]">
-              {fallbackSimilar.map((c) => {
-                const CIcon = ICON_MAP[c.avatarIcon ?? "Users"] ?? Users;
-                return (
-                  <Link
-                    key={c.id}
-                    to="/communities/$id"
-                    params={{ id: c.id }}
-                    className="flex items-center gap-[10px] rounded-[10px] p-[6px] transition-colors hover:bg-[var(--background-surface)]"
-                  >
-                    <span
-                      className="grid h-[36px] w-[36px] shrink-0 place-items-center overflow-hidden rounded-[10px]"
-                      style={{ background: "var(--accent-soft)" }}
-                    >
-                      {c.avatarImage ? (
-                        <img
-                          src={variantUrl(c.avatarImage, "thumb")}
-                          width={36}
-                          height={36}
-                          loading="lazy"
-                          decoding="async"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <CIcon size={16} style={{ color: "var(--accent)" }} />
-                      )}
-                    </span>
-                    <span className="min-w-0">
-                      <span
-                        className="block truncate text-[13px] font-medium"
-                        style={{ color: "var(--foreground)" }}
-                      >
-                        {c.name}
-                      </span>
-                      <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                        {t("pages.shared.members", { count: c.members.toLocaleString("ru") })}
-                      </span>
-                    </span>
-                  </Link>
-                );
-              })}
+            <div className="mt-[10px]">
+              <SimilarCommunitiesList items={similar} />
             </div>
           </Card>
         )}
@@ -779,6 +813,21 @@ function CommunityDetailPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  // Переключатели держим локально и правим по ответу сервера: до ответа
+  // кнопка должна отзываться, после — показывать то, что действительно
+  // сохранилось.
+  // У гостя и у не-участника ключа нет вовсе — это «неприменимо», а не
+  // «включено». Показывать им галочку значило бы обещать уведомления,
+  // которых никто не шлёт.
+  const [notificationsOn, setNotificationsOn] = useState(
+    loaded.community?.notificationsEnabled ?? false,
+  );
+  const [favorite, setFavorite] = useState(Boolean(loaded.community?.isFavorite));
+  const [togglingNotifications, setTogglingNotifications] = useState(false);
+  const [togglingFavorite, setTogglingFavorite] = useState(false);
+  const [similar, setSimilar] = useState<Community[]>([]);
+  const [similarOpen, setSimilarOpen] = useState(false);
   const [memberList, setMemberList] = useState<CommunityMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [posts, setPosts] = useState<Post[]>(loaded.posts ?? []);
@@ -797,16 +846,24 @@ function CommunityDetailPage() {
     let alive = true;
     // Данные от загрузчика уже отрисованы: повторный запрос за тем же самым
     // только мигнул бы содержимым.
-    if (primedRef.current) {
+    const first = primedRef.current;
+
+    if (first) {
       primedRef.current = false;
       const c = loaded.community;
       if (c) {
         recordView({ id: c.id, kind: "community", title: c.name, thumb: c.avatarImage });
       }
-      return;
+      // Загрузчик работает на сервере, а токен лежит в localStorage — значит,
+      // с сервера карточка всегда приходит гостевой: can, is_favorite,
+      // notifications_enabled и даже is_member посчитаны для «никого».
+      // Разметка уже отрисована и не мигнёт, но состояние надо уточнить.
+      if (!getToken()) return;
+    } else {
+      setLoading(true);
+      setTab("posts");
     }
-    setLoading(true);
-    setTab("posts");
+
     fetchCommunity(id)
       .then((c) => {
         if (!alive) return;
@@ -814,14 +871,30 @@ function CommunityDetailPage() {
         setJoined(Boolean(c.joined));
         setJoinPending(Boolean(c.joinRequestPending));
         setMembers(c.members);
-        recordView({ id: c.id, kind: "community", title: c.name, thumb: c.avatarImage });
+        setNotificationsOn(c.notificationsEnabled ?? false);
+        setFavorite(Boolean(c.isFavorite));
+        if (!first) {
+          recordView({ id: c.id, kind: "community", title: c.name, thumb: c.avatarImage });
+        }
       })
-      .catch(() => alive && setCommunity(null))
-      .finally(() => alive && setLoading(false));
+      .catch(() => alive && !first && setCommunity(null))
+      .finally(() => alive && !first && setLoading(false));
     return () => {
       alive = false;
     };
   }, [id, loaded.community]);
+
+  // Похожие подтягиваются отдельно: они не нужны для первого кадра и не
+  // должны задерживать ответ сервера.
+  useEffect(() => {
+    let alive = true;
+    fetchSimilarCommunities(id)
+      .then((list) => alive && setSimilar(list))
+      .catch(() => alive && setSimilar([]));
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
   // Demo content for tabs without backend wiring.
   const demo = isDemoMode();
@@ -856,8 +929,11 @@ function CommunityDetailPage() {
       .finally(() => setPostsLoading(false));
   }, [community, tab, demo]);
 
+  // Участники нужны не только на своей вкладке: из них собирается карточка
+  // «Участники» в правой колонке, а она видна на вкладке записей. Поэтому
+  // список грузится один раз на сообщество, а не при переключении вкладки.
   useEffect(() => {
-    if (!community || tab !== "members") return;
+    if (!community) return;
     if (demo) {
       setMemberList(
         demoMemberList.map((m) => ({
@@ -873,7 +949,7 @@ function CommunityDetailPage() {
       .then(setMemberList)
       .catch(() => setMemberList([]))
       .finally(() => setMembersLoading(false));
-  }, [community, tab, demo, demoMemberList]);
+  }, [community, demo, demoMemberList]);
 
   useEffect(() => {
     if (!community || tab !== "events" || demo) return;
@@ -940,32 +1016,128 @@ function CommunityDetailPage() {
     });
   };
 
+  const toggleNotifications = () => {
+    requireAccount(() => {
+      if (togglingNotifications) return;
+      const next = !notificationsOn;
+      setTogglingNotifications(true);
+      // Показываем сразу, но правим по ответу: сервер — источник истины.
+      setNotificationsOn(next);
+      setCommunityNotifications(id, next)
+        .then((saved) => {
+          setNotificationsOn(saved);
+          setCommunity((c) => (c ? { ...c, notificationsEnabled: saved } : c));
+          toast.success(
+            saved
+              ? t("pages.communityDetail.notificationsOn")
+              : t("pages.communityDetail.notificationsOff"),
+          );
+        })
+        .catch(() => {
+          setNotificationsOn(!next);
+          toast.error(t("pages.communityDetail.notificationsFailed"));
+        })
+        .finally(() => setTogglingNotifications(false));
+    });
+  };
+
+  const toggleFavorite = () => {
+    requireAccount(() => {
+      if (togglingFavorite) return;
+      const next = !favorite;
+      setTogglingFavorite(true);
+      setFavorite(next);
+      setCommunityFavorite(id, next)
+        .then((saved) => {
+          setFavorite(saved);
+          setCommunity((c) => (c ? { ...c, isFavorite: saved } : c));
+          toast.success(
+            saved
+              ? t("pages.communityDetail.favoriteAdded")
+              : t("pages.communityDetail.favoriteRemoved"),
+          );
+        })
+        .catch(() => {
+          setFavorite(!next);
+          toast.error(t("pages.communityDetail.favoriteFailed"));
+        })
+        .finally(() => setTogglingFavorite(false));
+    });
+  };
+
   /**
-   * Пункты «Ещё». Здесь только то, у чего есть обработчик и эндпоинт:
-   * уведомления, избранное, приглашение друзей и похожие сообщества
-   * появятся вместе со своими эндпоинтами — рисовать их сейчас значило бы
-   * поставить в меню четыре кнопки, которые ничего не делают.
+   * Восемь пунктов «Ещё».
+   *
+   * Что показывать, решает поле `can` из ресурса, а не наличие сессии: гость
+   * видит те же пункты и получает окно входа, а не пустое меню. Единственное
+   * исключение — «Покинуть»: предлагать выход тому, кто не внутри, незачем,
+   * и `can.leave` у него как раз false.
    */
   const moreMenuItems: MoreMenuItem[] = (() => {
-    const items: MoreMenuItem[] = [
-      {
-        id: "details",
-        icon: Info,
-        label: t("pages.communityDetail.detailsTitle"),
-        onSelect: () => setDetailsOpen(true),
+    const can = community.can;
+    const items: MoreMenuItem[] = [];
+
+    // Уведомления настраивает участник: строка настройки живёт в
+    // community_members, и вне участия её нет. Гостю пункт всё равно показан —
+    // он ведёт в окно входа. Прячем только от вошедшего постороннего: ему
+    // сервер ответил бы 403.
+    if (joined || !getToken()) {
+      items.push({
+        id: "notifications",
+        icon: notificationsOn ? Bell : BellOff,
+        label: notificationsOn
+          ? t("pages.communityDetail.notificationsDisable")
+          : t("pages.communityDetail.notificationsEnable"),
+        checked: notificationsOn,
+        disabled: togglingNotifications,
+        onSelect: toggleNotifications,
+      });
+    }
+
+    items.push({
+      id: "favorite",
+      icon: Star,
+      label: favorite
+        ? t("pages.communityDetail.favoriteRemove")
+        : t("pages.communityDetail.favoriteAdd"),
+      checked: favorite,
+      disabled: togglingFavorite,
+      onSelect: toggleFavorite,
+    });
+
+    items.push({
+      id: "invite",
+      icon: UserPlus,
+      label: t("pages.communityDetail.inviteFriends"),
+      onSelect: () => requireAccount(() => setInviteOpen(true)),
+    });
+
+    items.push({
+      id: "similar",
+      icon: Sparkles,
+      label: t("pages.communityDetail.similarCommunities"),
+      onSelect: () => setSimilarOpen(true),
+    });
+
+    items.push({
+      id: "details",
+      icon: Info,
+      label: t("pages.communityDetail.detailsTitle"),
+      onSelect: () => setDetailsOpen(true),
+    });
+
+    items.push({
+      id: "copy",
+      icon: Link2,
+      label: t("components.postActionMenu.copyLink"),
+      onSelect: () => {
+        void navigator.clipboard
+          .writeText(url)
+          .then(() => toast.success(t("components.postActionMenu.linkCopied")))
+          .catch(() => toast.error(t("components.postActionMenu.copyFailed")));
       },
-      {
-        id: "copy",
-        icon: Link2,
-        label: t("components.postActionMenu.copyLink"),
-        onSelect: () => {
-          void navigator.clipboard
-            .writeText(url)
-            .then(() => toast.success(t("components.postActionMenu.linkCopied")))
-            .catch(() => toast.error(t("components.postActionMenu.copyFailed")));
-        },
-      },
-    ];
+    });
+
     if (!isOwner) {
       items.push({
         id: "report",
@@ -974,7 +1146,8 @@ function CommunityDetailPage() {
         onSelect: () => requireAccount(() => setReportOpen(true)),
       });
     }
-    if (joined && !isOwner) {
+
+    if (can?.leave) {
       items.push({
         id: "leave",
         icon: LogOut,
@@ -986,6 +1159,7 @@ function CommunityDetailPage() {
         },
       });
     }
+
     return items;
   })();
 
@@ -1045,15 +1219,18 @@ function CommunityDetailPage() {
       .catch(() => toast.error(t("pages.communityDetail.banFailed")));
   };
 
-  const rail = demo ? (
+  // Правая колонка теперь есть и на боевых данных: «Похожие» получили
+  // эндпоинт, участники приходят из списка сообщества, а «О сообществе»
+  // собирается из самой карточки. События остаются демонстрационными —
+  // у них своя форма, и в правую колонку они попадают только в демо.
+  const rail = (
     <CommunityRightRail
       community={community}
-      members={demoMemberList}
-      events={events}
+      members={demo ? demoMemberList : memberList}
+      events={demo ? events : []}
+      similar={similar}
       onSignup={setSignupEvent}
     />
-  ) : (
-    false
   );
 
   return (
@@ -1561,6 +1738,22 @@ function CommunityDetailPage() {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
       />
+      <InviteFriendsDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        slug={community.id}
+        communityName={community.name}
+      />
+      {/* Отдельным окном — потому что на узком экране правой колонки нет,
+          а пункт меню есть на всех ширинах. */}
+      <Dialog open={similarOpen} onOpenChange={setSimilarOpen}>
+        <DialogContent className="max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>{t("pages.communityDetail.similarCommunities")}</DialogTitle>
+          </DialogHeader>
+          <SimilarCommunitiesList items={similar} />
+        </DialogContent>
+      </Dialog>
       <ComplaintDialog
         target={
           reportOpen

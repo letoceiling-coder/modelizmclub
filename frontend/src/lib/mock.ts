@@ -280,6 +280,18 @@ export interface Community {
   customCategory?: string | null;
   city?: { id: number; name: string } | null;
   topics?: CommunityTopic[];
+  /** Когда создано — для «Подробной информации». */
+  createdAt?: string;
+  /** Владелец из расширенного ресурса. Null там, где владелец не записан. */
+  owner?: { uuid: string; name: string; slug?: string; avatar?: string };
+  /**
+   * Что смотрящий может сделать. Считает сервер: видимость пунктов меню
+   * решается этим полем, а не наличием сессии.
+   */
+  can?: { join: boolean; leave: boolean; manage: boolean; post: boolean; invite: boolean };
+  isFavorite?: boolean;
+  /** `undefined` — не участник или гость: настройки уведомлений для него нет. */
+  notificationsEnabled?: boolean;
   unreadPosts?: number;
   unreadMessages?: number;
   onlineAvatars?: Array<{ uuid: string; name: string; url?: string | null }>;
