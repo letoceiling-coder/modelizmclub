@@ -63,9 +63,16 @@ class SafeDeal extends Model
         ];
     }
 
+    /**
+     * Объявление сделки — включая удалённое.
+     *
+     * Завершённая сделка остаётся в истории обеих сторон навсегда, а
+     * объявление продавец вправе убрать. Без `withTrashed()` карточка такой
+     * сделки теряла заголовок и ссылку: связь возвращала null.
+     */
     public function listing(): BelongsTo
     {
-        return $this->belongsTo(Listing::class);
+        return $this->belongsTo(Listing::class)->withTrashed();
     }
 
     public function shipment(): BelongsTo

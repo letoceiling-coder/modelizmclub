@@ -24,6 +24,10 @@ use Illuminate\Validation\ValidationException;
 use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Listing\Support\ListingPlacementConfig;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use App\Enums\DeliveryCarrier;
+use Modules\Delivery\Services\SellerDeliveryProfileService;
+use App\Enums\SafeDealStatus;
+use App\Models\SafeDeal;
 
 class ListingService
 {
@@ -297,7 +301,7 @@ class ListingService
     {
         $data = $this->resolveCategoryIds($data);
         $this->assertCategory($data['category_id'] ?? null);
-        $this->assertDeliveryDetails($data);
+        $this->assertDeliveryDetails($data, false, $user);
         $data = $this->normalizeParcelFields($data);
 
         return DB::transaction(function () use ($user, $data): Listing {
@@ -353,7 +357,8 @@ class ListingService
             'weight_kg' => $listing->weight_kg,
             'dimensions_cm' => $listing->dimensions_cm,
             'pickup_address' => $listing->pickup_address,
-        ], $data), true);
+            'city_id' => $listing->city_id,
+        ], $data), true, $user);
         $data = $this->normalizeParcelFields($data);
 
         if (! empty($data['taxonomy_id']) || (array_key_exists('category_id', $data) && $data['category_id'] !== null)) {
@@ -531,9 +536,42 @@ class ListingService
         );
     }
 
+    /**
+     * Удаление объявления.
+     *
+     * Пока по объявлению идёт сделка, удалять его нельзя: покупатель уже
+     * заплатил или вот-вот заплатит, а карточка сделки осталась бы со ссылкой
+     * в никуда. До 07.09 проверки не было — на проде так появилась завершённая
+     * сделка с удалённым лотом.
+     *
+     * Неоплаченные сделки в `created` при этом не держат объявление вечно: их
+     * гасит `safe-deals:auto-release`, и продавец может отменить свою сделку
+     * сам, а затем удалить лот.
+     */
     public function delete(Listing $listing, User $user): void
     {
         $this->assertOwner($listing, $user);
+
+        $live = SafeDeal::query()
+            ->where('listing_id', $listing->id)
+            ->whereIn('status', [
+                SafeDealStatus::Created,
+                SafeDealStatus::Paid,
+                SafeDealStatus::Shipped,
+                SafeDealStatus::Delivered,
+                SafeDealStatus::Disputed,
+            ])
+            ->count();
+
+        if ($live > 0) {
+            throw ValidationException::withMessages([
+                'listing' => [$live === 1
+                    ? 'По объявлению идёт безопасная сделка — сначала завершите или отмените её.'
+                    : "По объявлению идут безопасные сделки ({$live}) — сначала завершите или отмените их.",
+                ],
+            ]);
+        }
+
         $listing->delete();
     }
 
@@ -762,12 +800,20 @@ class ListingService
     }
 
     /** @param  array<string, mixed>  $data */
-    private function assertDeliveryDetails(array $data, bool $updating = false): void
+    /**
+     * Всё, чего не хватает объявлению для выбранных способов доставки.
+     *
+     * Ошибки собираются и выбрасываются разом: продавцу незачем узнавать про
+     * забытый город после того, как он вернулся и дозаполнил габариты.
+     */
+    private function assertDeliveryDetails(array $data, bool $updating = false, ?User $seller = null): void
     {
         $methods = $data['delivery_methods'] ?? [];
         if (! is_array($methods)) {
             return;
         }
+
+        $errors = [];
 
         if (ParcelSize::offersCdek($methods)) {
             $preset = is_string($data['package_size'] ?? null) ? strtolower((string) $data['package_size']) : '';
@@ -776,17 +822,32 @@ class ListingService
                 && (int) ($dims['width'] ?? 0) > 0
                 && (int) ($dims['height'] ?? 0) > 0
                 && (float) ($data['weight_kg'] ?? 0) > 0;
+
             if ($preset === '' && ! $hasCustom) {
-                throw ValidationException::withMessages([
-                    'package_size' => ['Для доставки СДЭК укажите типоразмер S/M/L или габариты и вес посылки.'],
-                ]);
+                $errors['package_size'] = ['Для доставки СДЭК укажите типоразмер S/M/L или габариты и вес посылки.'];
+            }
+
+            // Город отправки нужен СДЭК, чтобы вообще посчитать тариф. Раньше
+            // это не проверялось нигде: объявление публиковалось без него, а
+            // отказ «Продавец не указал город отправки» получал покупатель,
+            // уже открывший оформление сделки. Спрашиваем у того, кто может
+            // исправить.
+            if ($seller !== null) {
+                $hasProfile = app(SellerDeliveryProfileService::class)
+                    ->defaultFor($seller, DeliveryCarrier::Cdek) !== null;
+
+                if (! $hasProfile && (int) ($data['city_id'] ?? 0) <= 0) {
+                    $errors['city_id'] = ['Для доставки СДЭК укажите город отправки или добавьте пункт в профиле доставки.'];
+                }
             }
         }
 
         if (ParcelSize::offersPickup($methods) && trim((string) ($data['pickup_address'] ?? '')) === '') {
-            throw ValidationException::withMessages([
-                'pickup_address' => ['Укажите адрес или ориентир для самовывоза.'],
-            ]);
+            $errors['pickup_address'] = ['Укажите адрес или ориентир для самовывоза.'];
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
         }
     }
 
