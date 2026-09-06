@@ -244,7 +244,7 @@ class SafeDealService
                 is_string($options['return_url'] ?? null) ? $options['return_url'] : null,
             );
         } catch (Throwable $e) {
-            $this->releaseReservation($deal);
+            $this->settleListing($deal);
             $deal->update(['status' => SafeDealStatus::Cancelled, 'cancelled_at' => now()]);
             Log::error('SafeDeal: VTB pre-auth failed', ['deal' => $deal->uuid, 'exception' => $e->getMessage()]);
 
@@ -301,7 +301,7 @@ class SafeDealService
 
         $deal->update(['status' => SafeDealStatus::Cancelled, 'cancelled_at' => now()]);
         $this->log($deal, null, 'cancelled', null, null, $note);
-        $this->releaseReservation($deal);
+        $this->settleListing($deal);
 
         return $deal->fresh() ?? $deal;
     }
@@ -516,7 +516,7 @@ class SafeDealService
                 $this->log($deal, null, 'commission', (int) $deal->platform_fee_kopecks, null, 'Комиссия платформы удержана.');
             }
 
-            $this->releaseReservation($deal);
+            $this->settleListing($deal);
 
             $fresh = $deal->fresh() ?? $deal;
             $this->ratings->sync((int) $deal->seller_id);
@@ -577,7 +577,7 @@ class SafeDealService
             ]);
 
             $this->log($deal, $actor, $finalStatus->value, (int) $deal->amount_kopecks, $refund?->id, $note);
-            $this->releaseReservation($deal);
+            $this->settleListing($deal);
 
             $fresh = $deal->fresh();
             $this->notifyDeal($fresh, $fresh?->buyer_id, 'Сделка отменена', match (true) {
@@ -656,7 +656,7 @@ class SafeDealService
             ]);
 
             $this->log($deal, $actor, 'split', $sellerKopecks, $payout?->id, $note);
-            $this->releaseReservation($deal);
+            $this->settleListing($deal);
 
             $fresh = $deal->fresh() ?? $deal;
             $this->ratings->sync((int) $deal->seller_id);
@@ -722,13 +722,35 @@ class SafeDealService
     }
 
     /** Puts the listing back on the market once the deal is no longer holding it. */
-    private function releaseReservation(SafeDeal $deal): void
+    /**
+     * Что происходит с объявлением, когда сделка приходит к развязке.
+     *
+     * Завершённая сделка — состоявшаяся продажа: предмет один, и он уехал к
+     * покупателю. До 07.09 здесь снимался только резерв, статус оставался
+     * `published`, и лот возвращался в каталог уже проданным — его мог купить
+     * следующий. `ListingStatus::Sold` был в перечислении и не выставлялся
+     * нигде в приложении.
+     *
+     * Любая другая развязка продажей не является: отмена до отгрузки, возврат
+     * по спору, брошенный чекаут. Там снимаем резерв и оставляем лот в
+     * продаже — иначе отменённая сделка убирала бы товар с витрины.
+     *
+     * Вызывается из всех терминальных путей после того, как статус сделки уже
+     * записан, поэтому решение принимается по нему, а не по флагам.
+     */
+    private function settleListing(SafeDeal $deal): void
     {
         if ($deal->listing_id === null) {
             return;
         }
 
-        Listing::query()->whereKey($deal->listing_id)->update(['reserved_at' => null]);
+        $attributes = ['reserved_at' => null];
+
+        if ($deal->status === SafeDealStatus::Completed) {
+            $attributes['status'] = ListingStatus::Sold;
+        }
+
+        Listing::query()->whereKey($deal->listing_id)->update($attributes);
     }
 
     public function review(User $author, SafeDeal $deal, int $rating, ?string $text): UserReview

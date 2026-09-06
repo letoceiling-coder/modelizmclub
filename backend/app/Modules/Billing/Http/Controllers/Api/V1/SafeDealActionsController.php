@@ -24,7 +24,7 @@ class SafeDealActionsController extends Controller
         $this->authorize('ship', $deal);
         $deal = $this->deals->ship($request->user(), $deal, $data['tracking_number'] ?? null, $data['delivery_method'] ?? null);
 
-        return $this->respond($deal, 'Сделка отмечена как отправленная.');
+        return $this->respond($request, $deal, 'Сделка отмечена как отправленная.');
     }
 
     public function delivered(Request $request, string $uuid): JsonResponse
@@ -38,7 +38,7 @@ class SafeDealActionsController extends Controller
 
         $deal = $this->deals->markDelivered($deal, $request->user());
 
-        return $this->respond($deal, 'Сделка отмечена как доставленная.');
+        return $this->respond($request, $deal, 'Сделка отмечена как доставленная.');
     }
 
     public function confirm(Request $request, string $uuid): JsonResponse
@@ -47,7 +47,7 @@ class SafeDealActionsController extends Controller
         $this->authorize('confirmDelivery', $deal);
         $deal = $this->deals->confirm($request->user(), $deal);
 
-        return $this->respond($deal, 'Получение подтверждено, средства переведены продавцу.');
+        return $this->respond($request, $deal, 'Получение подтверждено, средства переведены продавцу.');
     }
 
     public function cancel(Request $request, string $uuid): JsonResponse
@@ -56,7 +56,7 @@ class SafeDealActionsController extends Controller
         $this->authorize('cancel', $deal);
         $deal = $this->deals->cancel($request->user(), $deal);
 
-        return $this->respond($deal, 'Сделка отменена, средства возвращены покупателю.');
+        return $this->respond($request, $deal, 'Сделка отменена, средства возвращены покупателю.');
     }
 
     public function dispute(Request $request, string $uuid): JsonResponse
@@ -94,10 +94,25 @@ class SafeDealActionsController extends Controller
         return SafeDeal::query()->with(['listing', 'buyer', 'seller', 'shipment', 'reviews'])->where('uuid', $uuid)->firstOrFail();
     }
 
-    private function respond(SafeDeal $deal, string $message): JsonResponse
+    /**
+     * Ответ на действие над сделкой.
+     *
+     * Зритель и перечитывание — не украшение. Без зрителя `canFlags()` отдаёт
+     * все права `false`, включая `view`, и интерфейс, обновляющийся ответом
+     * действия, гасит продавцу все кнопки сразу после его же отгрузки. Без
+     * `fresh()` наружу уходит объект в состоянии до транзакции: отменённая
+     * сделка приезжала с `cancelled_at: null`, хотя в базе он записан.
+     *
+     * Ветка спора ниже делала и то и другое с самого начала — здесь просто не
+     * было сделано так же.
+     */
+    private function respond(Request $request, SafeDeal $deal, string $message): JsonResponse
     {
         return response()->json([
-            'data' => $this->deals->toArray($deal),
+            'data' => $this->deals->toArray(
+                $deal->fresh(['listing', 'shipment', 'reviews']) ?? $deal,
+                $request->user(),
+            ),
             'message' => $message,
         ]);
     }
