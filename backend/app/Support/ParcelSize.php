@@ -43,6 +43,33 @@ final class ParcelSize
      */
     public static function resolve(?string $preset, ?array $dimensions, mixed $weightKg): array
     {
+        $length = (int) ($dimensions['length'] ?? 0);
+        $width = (int) ($dimensions['width'] ?? 0);
+        $height = (int) ($dimensions['height'] ?? 0);
+        $weight = (float) $weightKg;
+
+        // Измеренное побеждает типоразмер. До 07.09 приоритет был обратным:
+        // пресет перекрывал введённые габариты, и они не доезжали даже до
+        // базы — ListingService::normalizeParcelFields() пропускает данные
+        // через этот метод при сохранении и записывает результат. На проде из
+        // семи объявлений с типоразмером у всех семи габариты совпадали с
+        // пресетом до сантиметра, а объявлений со своими габаритами не было
+        // ни одного: ни один продавец не смог сохранить измеренное.
+        //
+        // Разницу между «M по умолчанию» и реальной коробкой при приёмке
+        // доплачивает площадка, поэтому измеренное важнее удобного.
+        if ($length > 0 && $width > 0 && $height > 0 && $weight > 0) {
+            return [
+                'dimensions_cm' => [
+                    'length' => $length,
+                    'width' => $width,
+                    'height' => $height,
+                ],
+                'weight_kg' => $weight,
+                'package_size' => null,
+            ];
+        }
+
         $key = is_string($preset) ? strtolower($preset) : '';
         if (isset(self::PRESETS[$key])) {
             $row = self::PRESETS[$key];
@@ -58,11 +85,9 @@ final class ParcelSize
             ];
         }
 
-        $length = (int) ($dimensions['length'] ?? 0);
-        $width = (int) ($dimensions['width'] ?? 0);
-        $height = (int) ($dimensions['height'] ?? 0);
-        $weight = (float) $weightKg;
-
+        // Ни измерений, ни типоразмера: минимальная посылка, чтобы расчёт не
+        // упал. Форма такого не пропускает — сюда приходят только импорт и
+        // старые строки.
         return [
             'dimensions_cm' => [
                 'length' => max(1, $length),

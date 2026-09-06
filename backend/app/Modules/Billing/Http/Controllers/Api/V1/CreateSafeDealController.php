@@ -19,6 +19,7 @@ class CreateSafeDealController extends Controller
         $data = $request->validate([
             'accept_terms' => ['required', 'accepted'],
             'return_url' => ['nullable', 'string', 'max:2000'],
+            'delivery_method' => ['nullable', 'string', 'max:120'],
             'destination_point' => ['nullable', 'array'],
             'destination_point.city_code' => ['required_with:destination_point', 'integer', 'min:1'],
             'destination_point.external_point_id' => ['nullable', 'string', 'max:64'],

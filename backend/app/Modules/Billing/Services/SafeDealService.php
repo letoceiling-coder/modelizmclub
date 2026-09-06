@@ -84,11 +84,68 @@ class SafeDealService
         return max(1, (int) config('billing.safe_deal.hold_days', 14));
     }
 
+
+    /**
+     * Какой способ доставки выбрал покупатель.
+     *
+     * До 07.09 выбора не существовало: и расчёт, и создание ветвились по тому,
+     * что предлагает продавец — `offersCdek($listing->delivery_methods)`. У
+     * объявления с «СДЭК + Самовывоз» побеждал СДЭК, покупателя заставляли
+     * выбрать ПВЗ, и самовывоз оказывался недостижим ровно там, где предложен
+     * вместе с доставкой. Поля выбора не было и в модели сделки.
+     *
+     * Один способ — берётся он. Несколько — покупатель обязан назвать свой:
+     * подставить первый молча нельзя, доставка входит в сумму холда, и это
+     * решение о деньгах.
+     */
+    private function resolveDeliveryMethod(Listing $listing, ?string $requested): ?string
+    {
+        $offered = array_values(array_filter(
+            array_map(
+                static fn ($method): string => trim((string) $method),
+                is_array($listing->delivery_methods) ? $listing->delivery_methods : [],
+            ),
+            static fn (string $method): bool => $method !== '',
+        ));
+
+        if ($offered === []) {
+            return null;
+        }
+
+        $requested = $requested === null ? '' : trim($requested);
+
+        if ($requested === '') {
+            if (count($offered) === 1) {
+                return $offered[0];
+            }
+
+            throw ValidationException::withMessages([
+                'delivery_method' => ['Выберите способ доставки.'],
+            ]);
+        }
+
+        foreach ($offered as $method) {
+            if (mb_strtolower($method) === mb_strtolower($requested)) {
+                return $method;
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'delivery_method' => ['Продавец не предлагает такой способ доставки.'],
+        ]);
+    }
+
+    /** Способ без перевозчика: денег за доставку нет, отгрузки и трека тоже. */
+    private function isPickup(?string $method): bool
+    {
+        return $method !== null && ParcelSize::offersPickup([$method]);
+    }
+
     /**
      * @param  array<string, mixed>  $destination
      * @return array<string, mixed>
      */
-    public function quoteForListing(Listing $listing, array $destination = []): array
+    public function quoteForListing(Listing $listing, array $destination = [], ?string $deliveryMethod = null): array
     {
         $this->assertPurchasable($listing);
 
@@ -96,7 +153,9 @@ class SafeDealService
         $feePercent = $this->platformFeePercent();
         $fee = (int) round($item * $feePercent / 100);
         $parcel = ParcelSize::fromListing($listing);
-        $offersCdek = ParcelSize::offersCdek($listing->delivery_methods ?? []);
+        $method = $this->resolveDeliveryMethod($listing, $deliveryMethod);
+        // Ветвимся по выбору покупателя, а не по набору продавца.
+        $offersCdek = $method !== null && ParcelSize::offersCdek([$method]);
 
         $delivery = 0;
         $origin = null;
@@ -124,9 +183,16 @@ class SafeDealService
             'hold_kopecks' => $item + $delivery,
             'seller_payout_kopecks' => $item - $fee,
             'currency' => $listing->currency ?? 'RUB',
-            // Tells the checkout whether to promise a card hold or a charge.
-            'escrow_holds_on_card' => ! $this->settlement->usesVtb() || $this->settlement->holdsOnCard(),
+            // Обещание о деньгах, которое видит покупатель до оплаты. Условие
+            // должно совпадать с тем, что стоит в карточке сделки ниже: до
+            // 07.09 здесь было `! usesVtb() || holdsOnCard()`, и при кошельке
+            // экран оформления обещал заморозку на карте, а карточка той же
+            // сделки говорила обратное. Заморозка бывает только у банка и
+            // только в двухстадийном режиме.
+            'escrow_holds_on_card' => $this->settlement->usesVtb() && $this->settlement->holdsOnCard(),
             'offers_cdek' => $offersCdek,
+            'delivery_method' => $method,
+            'delivery_methods' => is_array($listing->delivery_methods) ? array_values($listing->delivery_methods) : [],
             'parcel' => $parcel,
             'origin' => $origin,
             'destination_point' => $destinationPoint,
@@ -141,7 +207,11 @@ class SafeDealService
     {
         $this->assertPurchasable($listing, $buyer);
 
-        $offersCdek = ParcelSize::offersCdek($listing->delivery_methods ?? []);
+        $method = $this->resolveDeliveryMethod(
+            $listing,
+            is_string($options['delivery_method'] ?? null) ? $options['delivery_method'] : null,
+        );
+        $offersCdek = $method !== null && ParcelSize::offersCdek([$method]);
         $destination = $this->normalizeDestination(is_array($options['destination_point'] ?? null) ? $options['destination_point'] : []);
 
         if (! filter_var($options['accept_terms'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
@@ -158,7 +228,7 @@ class SafeDealService
             }
         }
 
-        $quote = $this->quoteForListing($listing, $destination ?? []);
+        $quote = $this->quoteForListing($listing, $destination ?? [], $method);
         $item = (int) $quote['item_kopecks'];
         $fee = (int) $quote['platform_fee_kopecks'];
         $delivery = (int) $quote['delivery_cost_kopecks'];
@@ -172,7 +242,7 @@ class SafeDealService
         $vtb = $this->settlement->usesVtb();
 
         try {
-            $deal = DB::transaction(function () use ($buyer, $listing, $item, $fee, $delivery, $payout, $holdAmount, $destination, $offersCdek, $quote, $vtb): SafeDeal {
+            $deal = DB::transaction(function () use ($buyer, $listing, $item, $fee, $delivery, $payout, $holdAmount, $destination, $offersCdek, $method, $quote, $vtb): SafeDeal {
                 $deal = SafeDeal::query()->create([
                     'uuid' => (string) Str::uuid(),
                     'listing_id' => $listing->id,
@@ -188,9 +258,16 @@ class SafeDealService
                     'status' => $vtb ? SafeDealStatus::Created : SafeDealStatus::Paid,
                     'paid_at' => $vtb ? null : now(),
                     'hold_expires_at' => $vtb ? null : now()->addDays($this->holdDays()),
-                    'delivery_method' => $offersCdek ? 'СДЭК' : null,
+                    'delivery_method' => $method,
                     'destination_point' => $destination,
                     'delivery_status' => $offersCdek ? 'pending' : null,
+                    // Самовывоз: перевозчика нет, отметки об отгрузке не будет,
+                    // и срок автоподтверждения нечему запустить. Отсчёт идёт от
+                    // оплаты — у кошелька она происходит здесь же; на банковском
+                    // пути срок ставится в markHoldAuthorized().
+                    'auto_release_at' => ! $vtb && $this->isPickup($method)
+                        ? now()->addDays($this->autoReleaseDays())
+                        : null,
                     'metadata' => [
                         'item_kopecks' => $item,
                         'tariff_code' => $quote['tariff_code'] ?? null,
@@ -278,6 +355,10 @@ class SafeDealService
             'status' => SafeDealStatus::Paid,
             'paid_at' => now(),
             'hold_expires_at' => now()->addDays($this->holdDays()),
+            // При самовывозе отгрузки не будет — см. create().
+            'auto_release_at' => $this->isPickup($deal->delivery_method)
+                ? now()->addDays($this->autoReleaseDays())
+                : $deal->auto_release_at,
         ]);
         $this->log($deal, null, 'paid', (int) $deal->amount_kopecks, null, $onCard
             ? 'ВТБ подтвердил холд на карте покупателя.'
@@ -381,10 +462,24 @@ class SafeDealService
         return $this->releaseToSeller($deal, null, 'Автоматическое подтверждение по истечении срока.');
     }
 
+    /**
+     * Отмена сделки любой из сторон.
+     *
+     * Две развязки, а не одна. Неоплаченная сделка отменяется без возврата:
+     * холда ещё нет, возвращать нечего — и до 07.09 из-за этого статус
+     * `created` не мог покинуть никто. `expireCheckout()` существовал, но
+     * вызывался только из сверки с банком, а политика прямо запрещала отмену,
+     * так что брошенный чекаут держал объявление в резерве бессрочно: на проде
+     * так висели четыре сделки с 30 августа.
+     */
     public function cancel(User $actor, SafeDeal $deal): SafeDeal
     {
         if (! $deal->involves($actor) && ! $actor->isModerator()) {
             throw ValidationException::withMessages(['deal' => ['Нет доступа к сделке.']]);
+        }
+
+        if ($deal->status === SafeDealStatus::Created) {
+            return $this->expireCheckout($deal, 'Сделка отменена до оплаты.');
         }
 
         if (! in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped], true)) {
@@ -937,10 +1032,12 @@ class SafeDealService
             'hold_expires_at' => $deal->hold_expires_at?->toIso8601String(),
             'can_dispute' => in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped, SafeDealStatus::Delivered], true)
                 && ($deal->hold_expires_at === null || $deal->hold_expires_at->isFuture()),
-            'can_review' => $viewer !== null
-                && $deal->status === SafeDealStatus::Completed
-                && $deal->involves($viewer)
-                && $myReview === null,
+            // Тот же источник, что и `can.review` выше. Раньше это были два
+            // независимых выражения с одним смыслом, и они расходились: после
+            // оставленной оценки `can_review` гас, а `can.review` оставался
+            // истинным, потому что политика не знала про уже поставленную
+            // оценку. Условие «оценка ещё не оставлена» переехало в политику.
+            'can_review' => $this->canFlags($deal, $viewer)['review'],
             'my_review' => $myReview,
             'escrow_provider' => $deal->metadata['escrow_provider'] ?? SafeDealSettlementService::PROVIDER_WALLET,
             // Whether the money waits on the buyer's card or on our account —
