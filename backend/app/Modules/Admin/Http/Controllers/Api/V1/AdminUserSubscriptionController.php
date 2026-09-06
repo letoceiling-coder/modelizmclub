@@ -66,6 +66,12 @@ class AdminUserSubscriptionController extends Controller
                 : now();
             $endsAt = $base->copy()->addDays($days);
 
+            // Отметка о том, кто выдал. Без неё строка выглядела как обычная
+            // неоплаченная подписка, а такие `hasActiveSubscription()` не
+            // признаёт: доступ у человека не появлялся, хотя ответ и аудит
+            // говорили, что подписка активна.
+            $grantedBy = $request->user()?->id;
+
             if ($current) {
                 $current->update([
                     'status' => 'active',
@@ -73,12 +79,14 @@ class AdminUserSubscriptionController extends Controller
                     'ends_at' => $endsAt,
                     'cancelled_at' => null,
                     'auto_renew' => false,
+                    'granted_by_admin_id' => $grantedBy,
                 ]);
                 $subscription = $current;
             } else {
                 $subscription = UserSubscription::query()->create([
                     'user_id' => $user->id,
                     'plan_id' => SubscriptionPlan::query()->orderBy('sort_order')->value('id'),
+                    'granted_by_admin_id' => $grantedBy,
                     'status' => 'active',
                     'starts_at' => now(),
                     'ends_at' => $endsAt,

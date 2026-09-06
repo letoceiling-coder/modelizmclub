@@ -1218,6 +1218,7 @@ COLUMN|user_subscriptions.auto_renew|boolean|NO
 COLUMN|user_subscriptions.cancelled_at|timestamp without time zone|YES
 COLUMN|user_subscriptions.created_at|timestamp without time zone|YES
 COLUMN|user_subscriptions.ends_at|timestamp without time zone|YES
+COLUMN|user_subscriptions.granted_by_admin_id|bigint|YES
 COLUMN|user_subscriptions.id|bigint|NO
 COLUMN|user_subscriptions.plan_id|bigint|NO
 COLUMN|user_subscriptions.starts_at|timestamp without time zone|NO
@@ -1546,6 +1547,7 @@ FK|user_profiles|user_profiles_user_id_foreign
 FK|user_reviews|user_reviews_author_id_foreign
 FK|user_reviews|user_reviews_safe_deal_id_foreign
 FK|user_reviews|user_reviews_target_user_id_foreign
+FK|user_subscriptions|user_subscriptions_granted_by_admin_id_foreign
 FK|user_subscriptions|user_subscriptions_plan_id_foreign
 FK|user_subscriptions|user_subscriptions_user_id_foreign
 FK|user_two_factor|user_two_factor_user_id_foreign
@@ -1852,6 +1854,7 @@ INDEX|user_reviews|user_reviews_safe_deal_id_author_id_unique
 INDEX|user_reviews|user_reviews_target_user_id_created_at_index
 INDEX|user_reviews|user_reviews_uuid_unique
 INDEX|user_subscriptions|user_subscriptions_pkey
+INDEX|user_subscriptions|user_subscriptions_user_granted_index
 INDEX|user_subscriptions|user_subscriptions_user_id_status_index
 INDEX|user_two_factor|user_two_factor_pkey
 INDEX|user_view_history|user_view_history_pkey
