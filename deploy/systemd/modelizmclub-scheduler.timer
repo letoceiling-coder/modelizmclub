@@ -1,0 +1,17 @@
+[Unit]
+Description=Tick the ModelizmClub Laravel scheduler every minute
+
+[Timer]
+OnCalendar=*:0/1
+# Планировщик Laravel сам решает, чему сработать в эту минуту, поэтому тик
+# должен приходить точно: с погрешностью по умолчанию (1 мин) задача,
+# назначенная на 00:05, может уехать на 00:06 и пропустить своё окно.
+AccuracySec=1s
+# Пропущенные тики не догоняем. Задачи привязаны ко времени суток, а не к
+# числу запусков: после простоя сервера нужен следующий тик, а не сотня
+# накопленных.
+Persistent=false
+Unit=modelizmclub-scheduler.service
+
+[Install]
+WantedBy=timers.target
