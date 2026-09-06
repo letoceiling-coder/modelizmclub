@@ -35,7 +35,8 @@
 | `modelizmclub-frontend.service` | Nitro на :3000, боевой фронтенд |
 | `modelizmclub-front.service` | Nitro на :3001, поддомен front |
 | `modelizmclub-reverb.service` | WebSocket-сервер Reverb |
-| `modelizmclub-worker.service` | Очередь Laravel |
+| `modelizmclub-worker.service` | Очередь Laravel (`default`) |
+| `modelizmclub-media-worker.service` | Очередь `media`: постеры и копии видео (ffmpeg) |
 | `backup-db.timer` + `backup-db.service` | Ночной дамп базы в 04:00 с выгрузкой в S3 |
 | `backup-db-failure@.service` | Уведомление о неудачном дампе, вызывается через `OnFailure` |
 | `neeklo-*` | То же для dev-контура `neeklo.modelizmclub.ru` |
@@ -44,7 +45,8 @@
 
 ```bash
 cd /var/www/modelizmclub
-for u in modelizmclub-frontend modelizmclub-front modelizmclub-reverb modelizmclub-worker; do
+for u in modelizmclub-frontend modelizmclub-front modelizmclub-reverb \
+         modelizmclub-worker modelizmclub-media-worker; do
   install -m 644 "deploy/systemd/${u}.service" /etc/systemd/system/
 done
 install -m 644 deploy/systemd/backup-db.service          /etc/systemd/system/
@@ -52,7 +54,8 @@ install -m 644 deploy/systemd/backup-db.timer            /etc/systemd/system/
 install -m 644 deploy/systemd/backup-db-failure@.service /etc/systemd/system/
 
 systemctl daemon-reload
-systemctl enable --now modelizmclub-frontend modelizmclub-reverb modelizmclub-worker
+systemctl enable --now modelizmclub-frontend modelizmclub-reverb \
+                       modelizmclub-worker modelizmclub-media-worker
 systemctl enable --now backup-db.timer
 ```
 
@@ -64,7 +67,8 @@ systemctl enable --now backup-db.timer
 ```bash
 # юнит на сервере отличается от репозитория — значит правка не доехала
 for u in modelizmclub-frontend.service modelizmclub-reverb.service \
-         modelizmclub-worker.service backup-db.service backup-db.timer \
+         modelizmclub-worker.service modelizmclub-media-worker.service \
+         backup-db.service backup-db.timer \
          "backup-db-failure@.service"; do
   diff -q "/var/www/modelizmclub/deploy/systemd/$u" "/etc/systemd/system/$u" >/dev/null 2>&1 \
     && echo "ok         $u" || echo "РАСХОДИТСЯ $u"
@@ -81,6 +85,41 @@ systemctl list-timers backup-db.timer --no-pager
 
 Пустой вывод `list-timers` означает, что таймера нет вовсе, а не что он просто
 ещё не срабатывал.
+
+## Видео: постер и копия 720p
+
+Лента отдавала исходник. Замер 06.09 на проде: один ролик в ленте, 14,1 МБ,
+браузер тянул 140 КБ ещё до нажатия play, размеров кадра в базе не было вовсе.
+
+Конвейер — сосед того, что делает варианты картинок, только кодирует ffmpeg:
+
+* `Modules\Media\Jobs\ProcessVideoJob` → `Modules\Media\Services\VideoProcessor`;
+* очередь `media`, воркер `modelizmclub-media-worker.service` (таймаут 1800 с);
+* результат ложится в ту же колонку `media.variants`, в слоты `poster` и `720p`,
+  и отдаётся тем же прокси: `/api/v1/media/<uuid>/poster.webp`,
+  `/api/v1/media/<uuid>/720p.mp4`;
+* попутно заполняются `width`, `height`, `duration_seconds` — без них карточка
+  не знала пропорций кадра.
+
+Кадр вытаскивает ffmpeg, а в WebP переводит GD: ffmpeg с libwebp собран на
+сервере, но не везде, а GD с `imagewebp` уже несёт весь конвейер картинок.
+
+Требуется `ffmpeg` и `ffprobe` в `PATH` пользователя `www-data`
+(на сервере — `/usr/bin/ffmpeg`, версия 6.1.1). Без них задача пишет в лог
+`media_video_skipped` и выходит: лента продолжает играть исходник, как раньше.
+
+Догнать ролики, загруженные до появления конвейера:
+
+```bash
+cd /var/www/modelizmclub/backend
+php artisan media:rebuild-videos --limit=50      # только те, у кого нет постера
+php artisan media:rebuild-videos --limit=5 --force  # переснять уже готовые
+```
+
+Копия 720p пишется, только если она заметно легче исходника
+(`MEDIA_VIDEO_MIN_SAVING`, по умолчанию 0,8). Ролик, уже снятый в 360p и сжатый,
+перекодировать незачем — проверено на боевом файле: 14,1 МБ → 11,5 МБ, экономия
+14 %, копия отбрасывается, лента играет оригинал по нажатию.
 
 ## Backend (dev.modelizmclub.ru)
 

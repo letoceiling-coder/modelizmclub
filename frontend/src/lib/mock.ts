@@ -107,6 +107,12 @@ export type PostMediaItem = {
   width?: number;
   height?: number;
   variants?: import("@/lib/media/variants").MediaVariantSet;
+  /**
+   * Видео: кадр и облегчённая копия. Собираются очередью после загрузки,
+   * поэтому у только что выложенного ролика их ещё нет — тогда карточка
+   * показывает заглушку, а по нажатию играет исходник.
+   */
+  video?: import("@/lib/media/variants").VideoDelivery;
 };
 
 export interface Post {

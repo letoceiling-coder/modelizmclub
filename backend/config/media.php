@@ -45,6 +45,55 @@ return [
         'skip_purposes' => ['icon', 'post_video', 'review_video', 'voice'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Видео: постер и облегчённая копия для ленты
+    |--------------------------------------------------------------------------
+    |
+    | Оригинал остаётся на месте и отдаётся в полноэкранном режиме. Очередь
+    | снимает с него кадр-постер и собирает копию 720p: лента открывает
+    | четырнадцатимегабайтный исходник только ради первого кадра.
+    |
+    | Пайплайн тот же, что у картинок (очередь + задача + процессор), но
+    | кодирует ffmpeg, а не GD, поэтому и очередь отдельная: транскодирование
+    | минутного ролика занимает десятки секунд, а воркер `default` живёт с
+    | таймаутом 120 с и обслуживает почту и уведомления.
+    |
+    */
+    'video' => [
+        'enabled' => (bool) env('MEDIA_VIDEO_ENABLED', true),
+        'queue' => env('MEDIA_VIDEO_QUEUE', 'media'),
+        'ffmpeg' => env('MEDIA_FFMPEG', 'ffmpeg'),
+        'ffprobe' => env('MEDIA_FFPROBE', 'ffprobe'),
+        /* Сколько секунд ffmpeg может работать над одним файлом. */
+        'timeout' => (int) env('MEDIA_VIDEO_TIMEOUT', 1500),
+        /* Дальше этого размера исходник не берём в работу вовсе. */
+        'max_source_bytes' => (int) env('MEDIA_VIDEO_MAX_SOURCE_BYTES', 512 * 1024 * 1024),
+        'poster' => [
+            /* Кадр берём не с нуля: первые кадры часто чёрные. */
+            'at_seconds' => (float) env('MEDIA_VIDEO_POSTER_AT', 1.0),
+            'max_width' => (int) env('MEDIA_VIDEO_POSTER_WIDTH', 1280),
+            /* Требование к первому экрану: постер до 100 КБ. */
+            'budget_bytes' => (int) env('MEDIA_VIDEO_POSTER_BUDGET', 100 * 1024),
+            'q_start' => (int) env('MEDIA_VIDEO_POSTER_Q_START', 80),
+            'q_min' => (int) env('MEDIA_VIDEO_POSTER_Q_MIN', 50),
+            'q_step' => (int) env('MEDIA_VIDEO_POSTER_Q_STEP', 10),
+        ],
+        'rendition' => [
+            'name' => '720p',
+            'height' => (int) env('MEDIA_VIDEO_HEIGHT', 720),
+            'crf' => (int) env('MEDIA_VIDEO_CRF', 26),
+            'preset' => env('MEDIA_VIDEO_PRESET', 'veryfast'),
+            'audio_kbps' => (int) env('MEDIA_VIDEO_AUDIO_KBPS', 96),
+            /*
+            | Копия имеет смысл, только если она заметно легче исходника.
+            | Ролик, снятый телефоном в 720p и уже сжатый, перекодировать
+            | незачем — отдадим оригинал и сэкономим место.
+            */
+            'min_saving_ratio' => (float) env('MEDIA_VIDEO_MIN_SAVING', 0.8),
+        ],
+    ],
+
     'transcription' => [
         // Provider selection. Defaults to the stub unless a real provider is
         // explicitly chosen. Keeping MEDIA_TRANSCRIPTION_STUB for backward compat:

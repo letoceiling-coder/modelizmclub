@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Media\Jobs\ProcessMediaVariantsJob;
+use Modules\Media\Jobs\ProcessVideoJob;
 
 class MediaUploadService
 {
@@ -310,6 +311,16 @@ class MediaUploadService
 
     private function dispatchVariants(Media $media): void
     {
+        // Видео идёт своей дорогой: GD его не откроет, а ffmpeg считает
+        // минутами и потому работает в отдельной очереди.
+        if (str_starts_with((string) $media->mime_type, 'video/')) {
+            if (config('media.video.enabled', true)) {
+                ProcessVideoJob::dispatch($media->id);
+            }
+
+            return;
+        }
+
         if (! config('media.variants.enabled', true)) {
             return;
         }

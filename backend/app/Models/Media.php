@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Media\Services\MediaVariantProcessor;
+use Modules\Media\Services\VideoProcessor;
 
 class Media extends Model
 {
@@ -154,6 +155,15 @@ class Media extends Model
 
         if ($variants !== []) {
             $payload['variants'] = $variants;
+        }
+
+        // Постер и облегчённая копия. Клиент показывает постер вместо
+        // <video>, пока не нажали play, и играет копию вместо исходника —
+        // оригинал остаётся для полноэкранного режима.
+        $video = VideoProcessor::publicVideo($this);
+
+        if ($video !== []) {
+            $payload['video'] = $video;
         }
 
         return $payload;

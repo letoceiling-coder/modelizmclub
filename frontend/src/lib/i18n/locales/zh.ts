@@ -557,6 +557,11 @@ export const zh: TranslationSchema = {
       shareAction: "分享",
       cancel: "取消",
     },
+    feedVideo: {
+      play: "播放视频",
+      posterProcessing: "正在生成封面",
+      posterFailed: "封面生成失败",
+    },
     postCard: {
       likeFailed: "无法点赞",
       reposted: "分享了记录",
