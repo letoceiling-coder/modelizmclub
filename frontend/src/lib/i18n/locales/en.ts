@@ -2980,6 +2980,16 @@ export const en: TranslationSchema = {
     },
     adminMonetization: {
       title: "Monetization",
+      escrowProviderTitle: "Safe deal: where the money is held",
+      escrowProviderHint:
+        "Bank — funds are held on the buyer's card until delivery is confirmed. Wallet — the amount is charged to the platform account and returned from there. Applies immediately; deals already open keep the provider they were created with.",
+      escrowProviderVtb: "Bank (VTB)",
+      escrowProviderWallet: "Platform wallet",
+      escrowProviderNotSet: "Not set — the environment value applies",
+      escrowProviderEffective: "Currently in effect: {{provider}}",
+      escrowProviderMismatch: "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
+      escrowProviderSaved: "Safe deal provider saved",
+      escrowProviderSaveFailed: "Could not save the provider",
       placementTitle: "Listing placement",
       placementHint:
         "Prices for registered users and subscribers. Subscriber default is 20 ₽ from this setting. Per-category prices — Categories → Listings. Optional free quota — in plans below.",

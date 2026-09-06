@@ -11,6 +11,8 @@ use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\UpdateSettingsRequest;
 use Modules\Admin\Services\AuditService;
+use Modules\Billing\Services\SafeDealSettlementService;
+use Modules\Billing\Support\SafeDealEscrowConfig;
 
 #[Group('Admin — System', weight: 80)]
 class AdminSettingsController extends Controller
@@ -28,7 +30,41 @@ class AdminSettingsController extends Controller
                 return $setting;
             });
 
-        return response()->json(['data' => $settings]);
+        return response()->json(['data' => $this->withEscrowProvider($settings)]);
+    }
+
+    /**
+     * Провайдер безопасной сделки: сохранённый выбор и фактический.
+     *
+     * Они расходятся, когда выбран банк, а эквайринг не настроен — тогда
+     * SafeDealSettlementService уводит сделки на кошелёк. Админка должна
+     * показывать, куда деньги идут на самом деле, а не только что записано.
+     * Строку отдаём всегда, даже если её ещё нет в базе: иначе интерфейсу
+     * пришлось бы додумывать текущее состояние по умолчанию.
+     *
+     * @param  \Illuminate\Support\Collection<int, SystemSetting>  $settings
+     * @return \Illuminate\Support\Collection<int, SystemSetting>
+     */
+    private function withEscrowProvider(\Illuminate\Support\Collection $settings): \Illuminate\Support\Collection
+    {
+        $effective = app(SafeDealSettlementService::class)->provider();
+        $row = $settings->firstWhere('key', SafeDealEscrowConfig::SETTING_KEY);
+
+        if ($row === null) {
+            $row = new SystemSetting([
+                'key' => SafeDealEscrowConfig::SETTING_KEY,
+                'group' => SafeDealEscrowConfig::GROUP,
+                'value' => ['provider' => null],
+            ]);
+            $settings = $settings->push($row);
+        }
+
+        $row->value = array_merge(
+            is_array($row->value) ? $row->value : [],
+            ['effective' => $effective],
+        );
+
+        return $settings;
     }
 
     #[Endpoint(title: 'Обновить настройки')]
@@ -47,6 +83,11 @@ class AdminSettingsController extends Controller
             }
             if ($row['key'] === \App\Support\ReferralProgramConfig::SETTING_KEY) {
                 $value = \App\Support\ReferralProgramConfig::normalize($value);
+            }
+            // Настройка распоряжается деньгами покупателя: неизвестное значение
+            // отклоняется, а не приводится к умолчанию (см. normalize()).
+            if ($row['key'] === SafeDealEscrowConfig::SETTING_KEY) {
+                $value = SafeDealEscrowConfig::normalize($value);
             }
 
             // Previous value is kept in the audit log so publications like

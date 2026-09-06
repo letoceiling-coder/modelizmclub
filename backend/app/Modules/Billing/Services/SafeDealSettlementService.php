@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbAcquiringClient;
 use RuntimeException;
 use Throwable;
+use Modules\Billing\Support\SafeDealEscrowConfig;
 
 /**
  * Money side of a safe deal, taken from the buyer's card by VTB.
@@ -35,7 +36,8 @@ class SafeDealSettlementService
     /** Which escrow backend this installation uses. */
     public function provider(): string
     {
-        $mode = (string) config('billing.safe_deal.escrow_provider', 'auto');
+        // Настройка из админки, иначе окружение — см. SafeDealEscrowConfig.
+        $mode = SafeDealEscrowConfig::mode();
 
         return match ($mode) {
             self::PROVIDER_WALLET => self::PROVIDER_WALLET,

@@ -20,6 +20,7 @@ import { FirstHundredAdminCard } from "@/components/admin/FirstHundredAdminCard"
 import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
+import { EscrowProviderAdminCard } from "@/components/admin/EscrowProviderAdminCard";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
 
 export function MonetizationSection() {
@@ -188,6 +189,8 @@ export function MonetizationSection() {
           {t("pages.adminMonetization.placementLegacyNote", { price: registeredPlacementRub })}
         </p>
       </div>
+
+      <EscrowProviderAdminCard cardStyle={card} />
 
       {/* Tariffs */}
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
