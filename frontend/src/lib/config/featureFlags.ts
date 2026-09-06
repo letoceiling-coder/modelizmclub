@@ -142,20 +142,53 @@ function subscribe(callback: () => void): () => void {
   };
 }
 
-/** True after the first bootstrap/feature-flags fetch (success or fail). */
+/**
+ * Снимок для серверной отрисовки и для первого кадра гидрации.
+ *
+ * Читает только то, что пришло с сервера, минуя localStorage: React берёт этот
+ * же снимок при гидрации, и если он разойдётся с серверным, разметка съедет.
+ * Локальные значения к серверным флагам всё равно не применяются — они лежат
+ * в SERVER_CONTROLLED.
+ */
+function serverSnapshot(): FeatureFlags {
+  return { ...DEFAULTS, ...serverFlags };
+}
+
+/**
+ * True после первого получения флагов — успешного или нет.
+ *
+ * Серверный снимок возвращает настоящее значение, а не `false`. Корневой
+ * маршрут дожидается бутстрапа и в `beforeLoad`, и в загрузчике, так что к
+ * моменту отрисовки флаги уже применены; прежняя заглушка `() => false`
+ * заставляла страницы, которые ждут готовности, выводить «загружаем» в
+ * серверную разметку даже тогда, когда значение было известно.
+ */
 export function useFeatureFlagsHydrated(): boolean {
   return useSyncExternalStore(
     subscribe,
     () => flagsHydrated || isDemoMode(),
-    () => false,
+    () => flagsHydrated || isDemoMode(),
   );
 }
 
-/** React hook — re-renders when the flag changes (same tab or another tab/admin). */
+/**
+ * React hook — re-renders when the flag changes (same tab or another tab/admin).
+ *
+ * Серверный снимок раньше возвращал `DEFAULTS[key]`, игнорируя флаги, которые
+ * серверная отрисовка уже применила. Из-за этого разметка с сервера всегда
+ * описывала состояние по умолчанию, а не настоящее: ссылки «Сообщества» не
+ * было ни на одной странице (`communitiesEnabled` по умолчанию `false`, на
+ * сервере `true`), она появлялась только после гидрации и сдвигала навигацию.
+ * На /ads/new тот же механизм давал утверждение «размещение сейчас
+ * бесплатное» при включённой оплате.
+ *
+ * Значение по умолчанию не должно ничего утверждать о деньгах, доступе или
+ * наличии раздела — а именно это оно и делало на каждой странице.
+ */
 export function useFeatureFlag<K extends keyof FeatureFlags>(key: K): FeatureFlags[K] {
   return useSyncExternalStore(
     subscribe,
     () => readFromStorage()[key],
-    () => DEFAULTS[key],
+    () => serverSnapshot()[key],
   );
 }
