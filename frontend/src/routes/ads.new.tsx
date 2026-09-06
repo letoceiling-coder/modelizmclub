@@ -23,6 +23,8 @@ import {
 import { createListingPlacementPayment, type PayWith } from "@/lib/api/payment";
 import { PaymentSourceDialog } from "@/components/billing/PaymentSourceDialog";
 import { ApiError } from "@/lib/api/client";
+import { usePublicPlacementPricing } from "@/lib/api/placement-pricing";
+import { useMySubscription } from "@/lib/subscription";
 import { isDemoMode } from "@/lib/demo-mode";
 import {
   firstFieldError,
@@ -341,6 +343,8 @@ function NewAdPage() {
   const [submitError, setSubmitError] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
+  const { registeredRub, subscriberRub } = usePublicPlacementPricing();
+  const { sub: mySubscription } = useMySubscription();
   const [placementQuote, setPlacementQuote] = useState<PlacementQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [pendingPay, setPendingPay] = useState<{
@@ -826,11 +830,22 @@ function NewAdPage() {
     }
   };
 
+  /*
+   * Точную цену считает placement-quote, но он требует выбранной категории и
+   * потому запрашивается только со второго шага. Строку с ценой человек видит
+   * уже на первом — и до 06.09 читал в ней «Размещение — ….», без числа и без
+   * знака рубля вовсе.
+   *
+   * До выбора категории показываем цену из системной настройки: ту же, что
+   * назовёт сервер, если у категории нет своей. Как только придёт котировка,
+   * она заменяет предварительную.
+   */
+  const previewPlacementRub = mySubscription?.is_active ? subscriberRub : registeredRub;
   const placementPriceLabel = placementQuote
     ? placementQuote.is_free
       ? t("pages.adsNew.free")
       : `${formatQuoteRub(placementQuote.final_cents)} ₽`
-    : "…";
+    : `${previewPlacementRub} ₽`;
 
   const publishButtonLabel = useMemo(
     () =>
