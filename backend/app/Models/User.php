@@ -190,6 +190,10 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($this->hasAdminGrantedSubscription()) {
+            return true;
+        }
+
         if ($this->is_first_hundred) {
             if ($this->promo_pool_id) {
                 return true;
@@ -199,6 +203,28 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    /**
+     * Подписка, выданная руками из админки.
+     *
+     * Третье основание доступа рядом с оплатой и промо. Без него ручная
+     * выдача не работала вовсе: строка появлялась, админка отвечала
+     * `is_active: true`, а `hasActiveSubscription()` возвращал false, потому
+     * что оплаты нет и промо-признака нет. Проверяем ту же строку, что и
+     * `hasUnexpiredSubscriptionRow()`: живую и непросроченную, — иначе
+     * отменённая выдача годовой давности продолжала бы открывать доступ.
+     */
+    public function hasAdminGrantedSubscription(): bool
+    {
+        return UserSubscription::query()
+            ->where('user_id', $this->id)
+            ->where('status', 'active')
+            ->whereNotNull('granted_by_admin_id')
+            ->where(function ($q): void {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->exists();
     }
 
     public function hasUnexpiredSubscriptionRow(): bool
