@@ -4,35 +4,8 @@
 // types each API function produces, so demo-mode short-circuits stay one-liners.
 // Nothing here runs in production (guarded by isDemoMode at every call site).
 
-import {
-  users as mockUsers,
-  posts as mockPosts,
-  ads as mockAds,
-  communities as mockCommunities,
-  dialogs as mockDialogs,
-  categories as mockCategories,
-  banners as mockBanners,
-  faqItems,
-  faqCategories,
-  firstHundredStats,
-  registerUser,
-  adById,
-  communityById,
-  mockVideos,
-  mockVideoCategories,
-  type User,
-  type Post,
-  type Ad,
-  type Community,
-  type Dialog,
-  type Message,
-  type Category,
-  type Banner,
-  type ID,
-  type Comment,
-  type Video,
-  type VideoCategory,
-} from "@/lib/mock";
+import { users as mockUsers, posts as mockPosts, ads as mockAds, communities as mockCommunities, dialogs as mockDialogs, categories as mockCategories, banners as mockBanners, faqItems, faqCategories, firstHundredStats, adById, communityById, mockVideos, mockVideoCategories, type User, type Post, type Ad, type Community, type Dialog, type Message, type Category, type Banner, type ID, type Comment, type Video, type VideoCategory } from "@/lib/mock";
+import { registerUser } from "@/lib/user-registry";
 import { setCurrentUser, setDialogs, actions, type AdStatusKey } from "@/lib/store";
 
 // ── Demo user ────────────────────────────────────────────────────────────────

@@ -23,7 +23,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { userById, makeMockWaveform } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
+import { makeMockWaveform } from "@/lib/media/waveform";
 import type { Dialog, Message } from "@/lib/mock";
 import { useStore, actions, GUEST_USER, getState, markDialogDeleted } from "@/lib/store";
 import {

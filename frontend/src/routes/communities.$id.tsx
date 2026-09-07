@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import type { Community, CommunityContacts, Post, User } from "@/lib/mock";
 import {
   fetchCommunity,

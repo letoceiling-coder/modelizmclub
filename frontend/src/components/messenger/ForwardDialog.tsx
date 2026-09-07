@@ -6,7 +6,7 @@ import { toast } from "@/lib/toast";
 import { forwardMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { Message } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { actions } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { useDialogs, messengerCache } from "@/lib/messenger";

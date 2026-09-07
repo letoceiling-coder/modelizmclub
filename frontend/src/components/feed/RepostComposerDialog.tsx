@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Post } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 
 interface Props {
   post: Post | null;

@@ -1,5 +1,6 @@
 import type { Dialog, DialogAdRef, DialogPostRef, Message, User } from "@/lib/mock";
-import { registerUser, makeMockWaveform } from "@/lib/mock";
+import { registerUser } from "@/lib/user-registry";
+import { makeMockWaveform } from "@/lib/media/waveform";
 import { api, API_BASE_URL } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";

@@ -1,5 +1,5 @@
 import type { User } from "@/lib/mock";
-import { registerUser } from "@/lib/mock";
+import { registerUser } from "@/lib/user-registry";
 import { api, ApiError } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";

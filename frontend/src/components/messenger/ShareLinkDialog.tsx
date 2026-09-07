@@ -6,7 +6,7 @@ import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { getToken } from "@/lib/api/client";
 import { fetchConversations, openConversation, sendMessage } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { actions } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { toast } from "@/lib/toast";

@@ -4,7 +4,7 @@
  */
 
 import { useSyncExternalStore } from "react";
-import { registerUser } from "@/lib/mock";
+import { registerUser } from "@/lib/user-registry";
 import { GUEST_USER } from "@/lib/store";
 import { getToken } from "@/lib/api/client";
 import { joinOnlinePresence } from "@/lib/realtime/echo";

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X, ChevronUp, ChevronDown, CalendarDays } from "lucide-react";
 import type { Message } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { fetchMessagesForSearch } from "@/lib/api/chat";
 import { messagePreview, searchMessages } from "@/lib/message-search";
 import { HighlightedText } from "@/components/messenger/HighlightedText";

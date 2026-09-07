@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Ban, ShieldOff } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { useStore, actions } from "@/lib/store";
 import { fetchBlockedUsers, unblockUser } from "@/lib/api/social";
 import { isDemoMode } from "@/lib/demo-mode";

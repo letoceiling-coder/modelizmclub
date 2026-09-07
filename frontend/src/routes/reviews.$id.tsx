@@ -18,7 +18,7 @@ import {
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Video, Comment } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import {
   fetchVideo,
   fetchVideos,
