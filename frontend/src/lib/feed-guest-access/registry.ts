@@ -115,13 +115,6 @@ export const FEED_FILTER_ACTIONS = {
 
 export type FeedFilterKey = keyof typeof FEED_FILTER_ACTIONS;
 
-const POPUP_DEFAULTS = {
-  title: "Войдите в аккаунт",
-  description: "Чтобы пользоваться этой функцией, войдите или зарегистрируйтесь.",
-  primary_cta: "Войти",
-  secondary_cta: "Позже",
-};
-
 export function buildDefaultFeedGuestAccessConfig(): FeedGuestAccessConfig {
   const actions: FeedGuestAccessConfig["actions"] = {};
   for (const [key, minTier] of Object.entries(GUEST_ACCESS_DEFAULT_TIERS)) {
@@ -130,7 +123,6 @@ export function buildDefaultFeedGuestAccessConfig(): FeedGuestAccessConfig {
   return {
     version: 2,
     default_deny_mode: "popup",
-    popup: POPUP_DEFAULTS,
     actions,
   };
 }

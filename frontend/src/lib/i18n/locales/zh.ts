@@ -3355,7 +3355,6 @@ export const zh: TranslationSchema = {
       denyBehaviorTitle: "拒绝时的行为",
       showPopup: "显示弹窗",
       redirectSubscription: "跳转到 /login 或 /subscription",
-      popupTitleLabel: "弹窗标题",
       primaryCtaLabel: "订阅按钮",
       popupTextLabel: "弹窗正文",
       guestAllowed: "访客可用",
@@ -3370,9 +3369,7 @@ export const zh: TranslationSchema = {
       saving: "Saving…",
       saveButton: "保存访问规则",
       denyBehavior: "When access is denied",
-      popupTitle: "Popup title",
       popupPrimaryCta: "Subscribe button",
-      popupDescription: "Popup body",
       denyModes: {
         inherit: "Default",
         popup: "Popup",

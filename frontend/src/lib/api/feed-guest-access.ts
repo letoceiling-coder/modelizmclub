@@ -12,12 +12,21 @@ export interface GuestAccessActionConfig {
 export interface FeedGuestAccessConfig {
   version: number;
   default_deny_mode: "popup" | "redirect";
-  popup: {
-    title: string;
-    description: string;
-    primary_cta: string;
-    secondary_cta: string;
-  };
+  /*
+   * Поля `popup` здесь больше нет.
+   *
+   * Оно существовало в контракте и в базе, но не рендерилось нигде: тексты
+   * окон доступа берутся из i18n (`gate.auth.*`, `gate.verify.*`,
+   * `gate.paywall.*`), а из этой конфигурации читается только `deny_mode`.
+   * На проде в нём с августа лежало «Нужна подписка» / «Оформить подписку» —
+   * восемь правок одного администратора, ни одна из которых ничего не
+   * изменила. Настройка, которая ничего не меняет, хуже её отсутствия: она
+   * выглядит как рычаг и тратит время того, кто его дёргает.
+   *
+   * Строка в system_settings осталась и безвредна, пока её никто не читает.
+   * Если тексты окон когда-нибудь понадобится задавать из админки — делать
+   * это надо там же, где живут остальные, а не воскрешать это поле.
+   */
   actions: Record<string, GuestAccessActionConfig>;
 }
 

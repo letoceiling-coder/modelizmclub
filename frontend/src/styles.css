@@ -433,6 +433,20 @@ body {
   contain-intrinsic-size: auto 320px;
 }
 
+/* Курсор на кликабельном.
+
+   Браузер даёт <button> cursor: default, и в проекте pointer выставлялся
+   поштучно — в 26 файлах из многих. Замер на /messenger 07.09: 39 из 59
+   кликабельных элементов показывали стрелку, включая все кнопки под постом.
+   Ссылки сюда не входят: у <a href> pointer и так по умолчанию.
+
+   Отключённые кнопки остаются со стрелкой — это и значит «нажать нельзя». */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary {
+  cursor: pointer;
+}
+
 /* Landing tappable cards — on touch devices iOS applies sticky :hover on the
    first tap (border/transform via JS or Tailwind hover:*), which consumes the
    tap and forces a second tap to navigate. Hover lift/border only on fine pointers. */
