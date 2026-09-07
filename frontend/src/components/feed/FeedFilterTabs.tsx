@@ -34,7 +34,7 @@ export function FeedFilterTabs({ value, onChange }: Props) {
       // Слой берётся из шкалы в styles.css: числовых z-index у липких панелей
       // в проекте нет — иначе следующая панель снова окажется выше или ниже
       // случайно.
-      className="sticky top-0 z-[var(--z-sticky)] -mx-3 px-[8px] py-[2px] backdrop-blur-md sm:mx-0 sm:rounded-[var(--r-card)] sm:border sm:px-[12px] sm:py-[6px]"
+      className="sticky top-0 z-[var(--z-sticky)] -mx-3 px-[8px] py-[1px] backdrop-blur-md sm:mx-0 sm:rounded-[var(--r-card)] sm:border sm:px-[12px] sm:py-[6px]"
       style={{
         background: "color-mix(in oklab, var(--background-elevated) 92%, transparent)",
         borderColor: "var(--border)",
@@ -43,7 +43,7 @@ export function FeedFilterTabs({ value, onChange }: Props) {
     >
       <div
         ref={scrollRef}
-        className="no-scrollbar flex gap-[6px] overflow-x-auto overscroll-x-contain py-[4px] sm:gap-[8px]"
+        className="no-scrollbar flex gap-[6px] overflow-x-auto overscroll-x-contain py-[5px] sm:gap-[8px]"
         role="tablist"
         aria-label={t("components.feedFilterTabs.ariaLabel")}
       >
@@ -60,9 +60,11 @@ export function FeedFilterTabs({ value, onChange }: Props) {
               className={cn(
                 // 36 px на чип: нижняя граница требования к размеру контрола.
                 // Палец получает 44 — невидимая ::after-коробка добирает по
-                // 4px сверху и снизу, попадая в паддинг строки, а не за её
-                // край: за краем прокрутка обрезала бы её (замерено — 33).
-                'relative h-[36px] shrink-0 whitespace-nowrap rounded-[var(--r-pill)] border px-[12px] text-[13px] leading-none transition-all duration-200 after:absolute after:inset-x-0 after:-inset-y-[4px] after:content-[""] active:scale-[0.98] sm:px-[14px]',
+                // 5px сверху и снизу (не по 4: она считается от padding-box,
+                // а border-box 36 это 34 внутри рамки), попадая в паддинг
+                // строки, а не за её край — за краем прокрутка обрезала бы
+                // её. Замерено на проде: было 33, с добором за краем 42.
+                'relative h-9 shrink-0 whitespace-nowrap rounded-[var(--r-pill)] border px-[12px] text-[13px] leading-none transition-all duration-200 after:absolute after:inset-x-0 after:-inset-y-[5px] after:content-[""] active:scale-[0.98] sm:px-[14px]',
                 active
                   ? "font-semibold text-[var(--accent-foreground,#fff)]"
                   : "font-medium text-[var(--foreground-70)] hover:border-[color-mix(in_oklab,var(--border)_70%,var(--foreground)_30%)] hover:bg-[var(--background-surface-hover)]",

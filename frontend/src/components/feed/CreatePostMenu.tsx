@@ -9,7 +9,7 @@ import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 import { useChannels, type Channel } from "@/lib/channels";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import type { User } from "@/lib/mock";
-import { TAP_TARGET_44, TAP_TARGET_ROW_44 } from "@/lib/tap-target";
+import { TAP_TARGET_44 } from "@/lib/tap-target";
 import { cn } from "@/lib/utils";
 
 export type ComposerKind = "photo" | "video";
@@ -280,9 +280,13 @@ function ComposerActions({
         }}
       />
 
-      {/* Clip container grows leftward — input (flex-1) shrinks in sync */}
+      {/* Clip container grows leftward — input (flex-1) shrinks in sync.
+          Обрезка нужна только по горизонтали, но overflow-hidden режет и
+          сверху: зона нажатия кнопки внутри срезалась до 37px. Паддинг
+          с равным отрицательным полем растит область обрезки, не двигая
+          строку. */}
       <motion.div
-        className="flex shrink-0 justify-end overflow-hidden"
+        className="flex shrink-0 justify-end overflow-hidden py-1 -my-1"
         initial={false}
         animate={{ width: showSend ? ACTIONS_WIDTH_EXPANDED : BTN_SIZE }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
@@ -429,16 +433,20 @@ function CreatePostRow({
       }}
     >
       <UserAvatar src={me.avatar} name={me.name} size={36} />
+      {/* Коробка 44 — палец; пилюля внутри 36 — глаз. Псевдоэлементом здесь
+          не обойтись: truncate ставит на кнопку overflow-hidden, который
+          обрезает и её собственный ::after. */}
       <button
         type="button"
         onClick={() => onSelectKind("photo", "profile")}
-        className={cn(
-          TAP_TARGET_ROW_44,
-          "h-[36px] min-w-0 flex-1 truncate rounded-[var(--r-pill)] px-[14px] text-left text-[14px] transition-colors hover:opacity-90",
-        )}
-        style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
+        className="flex h-11 min-w-0 flex-1 items-center"
       >
-        {t("components.createPostMenu.placeholder")}
+        <span
+          className="h-9 w-full truncate rounded-[var(--r-pill)] px-[14px] text-left text-[14px] leading-9 transition-colors hover:opacity-90"
+          style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
+        >
+          {t("components.createPostMenu.placeholder")}
+        </span>
       </button>
       <ComposerActions
         text=""
