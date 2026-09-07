@@ -362,7 +362,7 @@ export function ProfileView({
   onDeletePost,
 }: ProfileViewProps) {
   const { t } = useTranslation();
-  const { requireAccount } = useGuestAccess();
+  const { requireAccount, requirePremium: requireSubscription } = useGuestAccess();
   const { requireAction } = useActionGate();
   const [tab, setTab] = useState<TabKey>("posts");
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
@@ -629,11 +629,32 @@ export function ProfileView({
                           );
                           navigateToMessenger({ to: "/messenger", search: { chat: dialog.id } });
                         } catch (err) {
+                          /*
+                           * Отказ по подписке показываем окном, а не молчанием.
+                           *
+                           * formatApiErrorMessage намеренно возвращает пустую
+                           * строку для subscription_required: предполагается,
+                           * что окно откроет гейт. Здесь гейт уже отработал —
+                           * карта доступа считает `messenger.send` уровнем
+                           * `auth`, а ConversationPolicy требует подписку, —
+                           * поэтому отказ приходил от сервера и не показывался
+                           * никак. Пользователь добавлял собеседника в друзья
+                           * по подсказке «добавьте в друзья, чтобы написать»,
+                           * жал «Написать» и не получал ничего.
+                           */
+                          if (
+                            err instanceof ApiError &&
+                            (err.payload as { code?: string } | undefined)?.code ===
+                              "subscription_required"
+                          ) {
+                            requireSubscription(() => {});
+                            return;
+                          }
                           const message = formatApiErrorMessage(
                             err,
                             t("pages.profile.dialogOpenFailed"),
                           );
-                          if (message) toast.error(message);
+                          toast.error(message || t("pages.profile.dialogOpenFailed"));
                         }
                       })();
                     });
