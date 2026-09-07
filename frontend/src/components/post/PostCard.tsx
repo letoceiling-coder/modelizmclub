@@ -101,13 +101,7 @@ interface Props {
  * есть момент «просмотрщик открыли»: ветка подтягивается тогда, а не при
  * каждом рендере ленты.
  */
-function LightboxComments({
-  onMount,
-  children,
-}: {
-  onMount: () => void;
-  children: ReactNode;
-}) {
+function LightboxComments({ onMount, children }: { onMount: () => void; children: ReactNode }) {
   const fired = useRef(false);
   useEffect(() => {
     if (fired.current) return;
@@ -492,7 +486,9 @@ export function PostCard({
   const previewImage = (() => {
     const first = mediaPost.mediaItems?.[0];
     const slot = first?.variants?.thumb ?? first?.variants?.card;
-    return slot?.webp ?? slot?.jpeg ?? first?.url ?? mediaPost.image ?? mediaPost.images?.[0] ?? null;
+    return (
+      slot?.webp ?? slot?.jpeg ?? first?.url ?? mediaPost.image ?? mediaPost.images?.[0] ?? null
+    );
   })();
 
   const lightboxAside = (

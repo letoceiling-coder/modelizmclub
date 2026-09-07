@@ -15,7 +15,8 @@ const patch = {
     adminMonetization: {
       title: "Monetization",
       placementTitle: "Listing placement",
-      placementHint: "Default price when a category has no custom price. Category prices — in Categories → Listings.",
+      placementHint:
+        "Default price when a category has no custom price. Category prices — in Categories → Listings.",
       basePriceLabel: "Base price, ₽",
       tariffsTitle: "Plan management",
       freeListingsLabel: "Free listings / month",
@@ -46,7 +47,13 @@ const patch = {
       notifyBodyPlaceholder: "Use the code when posting a listing",
       searchPlaceholder: "Search by code…",
       filters: { all: "All", active: "Active", expired: "Expired" },
-      columns: { code: "Code", discount: "Discount", used: "Used", expires: "Expires", status: "Status" },
+      columns: {
+        code: "Code",
+        discount: "Discount",
+        used: "Used",
+        expires: "Expires",
+        status: "Status",
+      },
       statusActive: "Active",
       statusExpired: "Expired",
       empty: "Nothing found",
@@ -63,7 +70,8 @@ const patch = {
     adminFeedBanners: { title: "Ad block" },
     adminLanding: {
       title: "Home page",
-      subtitle: "Blocks «What's in MoDelizM» and «Everything that moves and flies»: titles, cards, icons and links. Drag cards to reorder.",
+      subtitle:
+        "Blocks «What's in MoDelizM» and «Everything that moves and flies»: titles, cards, icons and links. Drag cards to reorder.",
     },
     adminCategories: {
       title: "Categories",
@@ -91,7 +99,8 @@ const patch = {
     adminNotifications: {
       title: "Notifications",
       broadcastTitle: "In-app broadcast",
-      broadcastHint: "All active users will receive the notification in the bell icon and on the Notifications page.",
+      broadcastHint:
+        "All active users will receive the notification in the bell icon and on the Notifications page.",
       fieldTitle: "Title *",
       fieldBody: "Body",
       fieldLink: "In-app link",
@@ -125,10 +134,20 @@ const patch = {
   },
 };
 
-function deepMerge(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  overlay: Record<string, unknown>,
+): Record<string, unknown> {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>);
     } else {
       out[k] = v;

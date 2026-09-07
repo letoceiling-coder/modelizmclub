@@ -1753,8 +1753,8 @@ export const en: TranslationSchema = {
       paySuccess: "Payment successful — the listing can be published",
     },
     favorites: {
-   loadFailedTitle: "Could not load favorites",
-   loadFailedDesc: "Check your connection and try again.",
+      loadFailedTitle: "Could not load favorites",
+      loadFailedDesc: "Check your connection and try again.",
       metaTitle: "Избранное — МоДелизМ",
       title: "Favorites",
       subtitle: "Listings you marked with a heart",
@@ -2997,7 +2997,8 @@ export const en: TranslationSchema = {
       escrowProviderWallet: "Platform wallet",
       escrowProviderNotSet: "Not set — the environment value applies",
       escrowProviderEffective: "Currently in effect: {{provider}}",
-      escrowProviderMismatch: "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
+      escrowProviderMismatch:
+        "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
       escrowProviderSaved: "Safe deal provider saved",
       escrowProviderSaveFailed: "Could not save the provider",
       placementTitle: "Listing placement",

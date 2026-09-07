@@ -76,9 +76,30 @@ const patch = {
       markResolved: "Resolved",
       markDismissed: "No action",
       markRejected: "Reject",
-      filters: { all: "All", pending: "New", reviewing: "In review", resolved: "Resolved", rejected: "Rejected", dismissed: "No action" },
-      reportStatus: { pending: "New", reviewing: "In review", resolved: "Resolved", rejected: "Rejected", dismissed: "No action" },
-      reportTargets: { user: "User", message: "Message", conversation: "Chat", post: "Post", listing: "Listing", comment: "Comment", video: "Review" },
+      filters: {
+        all: "All",
+        pending: "New",
+        reviewing: "In review",
+        resolved: "Resolved",
+        rejected: "Rejected",
+        dismissed: "No action",
+      },
+      reportStatus: {
+        pending: "New",
+        reviewing: "In review",
+        resolved: "Resolved",
+        rejected: "Rejected",
+        dismissed: "No action",
+      },
+      reportTargets: {
+        user: "User",
+        message: "Message",
+        conversation: "Chat",
+        post: "Post",
+        listing: "Listing",
+        comment: "Comment",
+        video: "Review",
+      },
     },
     adminFeedback: {
       title: "Feedback book",
@@ -99,47 +120,56 @@ const patch = {
       featureCards: {
         demoFlags: {
           title: "Feature flags (demo)",
-          subtitle: "Local flags for this browser only. The Communities section and other public toggles below are saved on the server and apply to all users.",
+          subtitle:
+            "Local flags for this browser only. The Communities section and other public toggles below are saved on the server and apply to all users.",
           reviews: "Show Reviews section",
         },
         communities: {
           title: "Communities section",
-          subtitle: "The only visibility toggle for the section. Saved on the server and immediately shows or hides Communities in the menu for all users and devices.",
+          subtitle:
+            "The only visibility toggle for the section. Saved on the server and immediately shows or hides Communities in the menu for all users and devices.",
           toggle: "Show Communities section to all users",
           enabled: "Communities section enabled for everyone",
           disabled: "Communities section disabled for everyone",
         },
         market: {
           title: "Market button",
-          subtitle: "Saved on the server — enables/disables the button for all users immediately, without a frontend deploy.",
+          subtitle:
+            "Saved on the server — enables/disables the button for all users immediately, without a frontend deploy.",
           toggle: "Show Market button",
           enabled: "Market button enabled for everyone",
           disabled: "Market button disabled for everyone",
         },
         escrow: {
           title: "Secure deal badge",
-          subtitle: "Saved on the server — shows the Secure deal / escrow badge on listings for everyone immediately. Enable only when YooKassa Secure deal is live on the backend.",
+          subtitle:
+            "Saved on the server — shows the Secure deal / escrow badge on listings for everyone immediately. Enable only when YooKassa Secure deal is live on the backend.",
           toggle: "Show Secure deal badge",
           enabled: "Secure deal badge enabled for everyone",
           disabled: "Secure deal badge disabled for everyone",
         },
         listingPayment: {
           title: "Paid listing placement",
-          subtitle: "Saved on the server. When enabled, listing publication requires placement payment (or free quota via subscription / promo code).",
+          subtitle:
+            "Saved on the server. When enabled, listing publication requires placement payment (or free quota via subscription / promo code).",
           toggle: "Require payment for listing placement",
           enabled: "Paid listing placement enabled",
           disabled: "Listings publish for free",
         },
         feedAutoPublish: {
           title: "Feed auto-publish",
-          subtitle: "Saved on the server. Off — new feed and channel posts go to moderation (recommended). On — published immediately without manual review.",
+          subtitle:
+            "Saved on the server. Off — new feed and channel posts go to moderation (recommended). On — published immediately without manual review.",
           toggle: "Publish feed posts immediately",
           enabled: "Feed publishes immediately without moderation",
           disabled: "Feed posts go to moderation",
         },
       },
       settingMeta: {
-        feature_communities_enabled: { label: "Show Communities section to all users", hint: "The only section toggle — managed by the card above, not localStorage" },
+        feature_communities_enabled: {
+          label: "Show Communities section to all users",
+          hint: "The only section toggle — managed by the card above, not localStorage",
+        },
         feature_market_enabled: { label: "Market button" },
         feature_escrow_enabled: { label: "Secure deal badge" },
         feature_feed_auto_publish: { label: "Feed auto-publish" },
@@ -147,17 +177,33 @@ const patch = {
         icon_overrides: { label: "Icons" },
         footer_contacts: { label: "Footer contacts" },
         site_name: { label: "Site name", fields: { ru: "Name (Russian)", en: "Name (English)" } },
-        first_hundred_stats: { label: "First hundred counter", fields: { taken: "Seats taken", total: "Total seats" } },
-        moderation_auto_publish: { label: "Auto-publish listings", hint: "Publish listings immediately without manual moderation" },
+        first_hundred_stats: {
+          label: "First hundred counter",
+          fields: { taken: "Seats taken", total: "Total seats" },
+        },
+        moderation_auto_publish: {
+          label: "Auto-publish listings",
+          hint: "Publish listings immediately without manual moderation",
+        },
       },
     },
   },
 };
 
-function deepMerge(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  overlay: Record<string, unknown>,
+): Record<string, unknown> {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>);
     } else {
       out[k] = v;

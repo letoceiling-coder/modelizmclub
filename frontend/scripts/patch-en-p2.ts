@@ -20,7 +20,8 @@ const EN_PAGES: Dict = {
     roomsHeading: "Rooms by subcategory",
     chatLabel: "chat",
     noResults: "Nothing found for «{{query}}»",
-    footerNote: "Each subcategory has its own chat, listings and members. Pick a topic so you don't mix with other subjects.",
+    footerNote:
+      "Each subcategory has its own chat, listings and members. Pick a topic so you don't mix with other subjects.",
     roomPreview0: "Who ran the new track this weekend?",
     roomPreview1: "Share your setup — the suspension is floating.",
     roomPreview2: "Selling a kit — will let it go to good hands.",
@@ -117,11 +118,13 @@ const EN_PAGES: Dict = {
     emailLabel: "Email",
     verificationSentTo: "A confirmation link was sent to {{email}}.",
     resendVerificationBtn: "Send confirmation email",
-    phoneConfirmNote: "Verification is SMS-only. The number is used in billing details and for site actions.",
+    phoneConfirmNote:
+      "Verification is SMS-only. The number is used in billing details and for site actions.",
     navBack: "Settings",
     securityTitle: "Security",
     changePassword: "Change password",
-    changePasswordDesc: "Enter your current and new password — the change takes effect immediately without signing out.",
+    changePasswordDesc:
+      "Enter your current and new password — the change takes effect immediately without signing out.",
     currentPassword: "Current password",
     newPassword: "New password",
     confirmNewPassword: "Confirm new password",
@@ -134,7 +137,8 @@ const EN_PAGES: Dict = {
     demoPasswordChange: "Password change is unavailable in demo mode",
     demoUnavailable: "Unavailable in demo mode",
     sessionsTitle: "Active sessions",
-    sessionsDesc: "If you signed in on someone else's device — end all sessions except this one. You'll stay signed in here.",
+    sessionsDesc:
+      "If you signed in on someone else's device — end all sessions except this one. You'll stay signed in here.",
     logoutOtherDevices: "Sign out on other devices",
     loggedOutOtherDevices: "Signed out on all other devices",
     logoutOthersFailed: "Could not end other sessions",
@@ -190,7 +194,8 @@ const EN_PAGES: Dict = {
     ratingEmpty: "No reviews yet",
     defaultUser: "User",
     paymentTitle: "Payment methods",
-    paymentDesc: "Cards for subscription and paid listings. We don't store the full card number — cards are linked via a secure bank gateway; we only keep a token and the last 4 digits for display.",
+    paymentDesc:
+      "Cards for subscription and paid listings. We don't store the full card number — cards are linked via a secure bank gateway; we only keep a token and the last 4 digits for display.",
     paymentSoon: "Card linking will be available after payment processing is connected",
     paymentDemo: "Payment gateway is not connected in demo mode.",
     paymentEmpty: "No linked cards yet.",
@@ -206,7 +211,8 @@ const EN_PAGES: Dict = {
     cardBrandMir: "MIR",
     cardBrandDefault: "Card",
     requisitesTitle: "Billing details",
-    requisitesDesc: "Stored in your account and used for transaction documents. Phone is pulled from",
+    requisitesDesc:
+      "Stored in your account and used for transaction documents. Phone is pulled from",
     requisitesProfileLink: "profile & account",
     requisitesSaved: "Billing details saved",
     requisitesSaveFailed: "Could not save billing details",
@@ -220,7 +226,8 @@ const EN_PAGES: Dict = {
     phoneMismatch: "A different number is on file ({{phone}}).",
     changeInProfile: "Change in profile",
     payoutCardTitle: "Payout card",
-    payoutCardDesc: "Card number is stored encrypted and used only for manual transfers by an administrator — no automatic payouts via payment gateway.",
+    payoutCardDesc:
+      "Card number is stored encrypted and used only for manual transfers by an administrator — no automatic payouts via payment gateway.",
     payoutCardSaved: "Saved card •••• {{last4}}",
     payoutCardNew: "New card number (to replace)",
     payoutCardNumber: "Card number",
@@ -243,7 +250,8 @@ const EN_PAGES: Dict = {
     skip: "Skip",
     step: "Step 1 of 1",
     title: "What are you interested in?",
-    subtitle: "Pick categories — your feed, chats and listings will be tailored to them. You can change this later in your profile.",
+    subtitle:
+      "Pick categories — your feed, chats and listings will be tailored to them. You can change this later in your profile.",
     selected: "Selected: {{count}} of {{total}}",
     continue: "Continue →",
     selectOne: "Select at least one category",
@@ -277,7 +285,8 @@ const EN_PAGES: Dict = {
     freeListings: "Free listings: {{left}} of {{limit}}",
     subscribe: "Subscribe",
     oneTimeTitle: "One-time listing",
-    oneTimeDesc: "One listing for 99 ₽ — no subscription or commitment. For when you need a single post, not ongoing access.",
+    oneTimeDesc:
+      "One listing for 99 ₽ — no subscription or commitment. For when you need a single post, not ongoing access.",
     oneTimeCta: "Post listing",
     paySoon: "Payment will be available after payment processing is connected",
     paySoonDesc: "One-time listing — 99 ₽",
@@ -324,7 +333,8 @@ const EN_PAGES: Dict = {
   },
   legal: {
     rulesMetaTitle: "Community rules — MoDelizM",
-    rulesMetaDescription: "Rules for posting, communication and behavior in the MoDelizM community.",
+    rulesMetaDescription:
+      "Rules for posting, communication and behavior in the MoDelizM community.",
     rulesTitle: "Community rules",
     rulesSubtitle: "These rules help everyone enjoy MoDelizM comfortably.",
     rule1Title: "Respect members",
@@ -338,19 +348,24 @@ const EN_PAGES: Dict = {
     rule5Title: "Copyright",
     rule5Text: "Do not post others' content without permission and attribution.",
     rule6Title: "Moderation",
-    rule6Text: "Moderators may hide rule-breaking content. Repeated violations lead to account suspension.",
+    rule6Text:
+      "Moderators may hide rule-breaking content. Repeated violations lead to account suspension.",
     questions: "Questions and reports:",
     privacyMetaTitle: "Privacy policy — MoDelizM",
     privacyTitle: "Data processing policy",
     privacyDemo: "Demo version. The official policy will be published at production launch.",
     privacy1Title: "1. What data we collect",
-    privacy1Text: "Name, email, avatar, content you publish, and technical session data (IP, device, browser).",
+    privacy1Text:
+      "Name, email, avatar, content you publish, and technical session data (IP, device, browser).",
     privacy2Title: "2. Why we need it",
-    privacy2Text: "Authentication, feed personalization, fraud prevention, service quality analytics.",
+    privacy2Text:
+      "Authentication, feed personalization, fraud prevention, service quality analytics.",
     privacy3Title: "3. Third-party sharing",
-    privacy3Text: "We do not sell your data. Sharing is only required by law or with your explicit consent.",
+    privacy3Text:
+      "We do not sell your data. Sharing is only required by law or with your explicit consent.",
     privacy4Title: "4. Storage and deletion",
-    privacy4Text: "Data is kept while your account is active. You can delete your account and related data in profile settings or on request.",
+    privacy4Text:
+      "Data is kept while your account is active. You can delete your account and related data in profile settings or on request.",
     privacy5Title: "5. Cookies",
     privacy5Text: "We use cookies for authentication, UI preferences and basic analytics.",
     privacy6Title: "6. Contact",
@@ -366,25 +381,33 @@ const EN_PAGES: Dict = {
     fallbackTitle: "Page in preparation",
     fallbackDesc: "This section is coming soon. You can return home or contact support for now.",
     aboutTitle: "About us",
-    aboutDesc: "MoDelizM is a marketplace, feed and community for modelers in Russia. We bring together people who build, fly and race.",
+    aboutDesc:
+      "MoDelizM is a marketplace, feed and community for modelers in Russia. We bring together people who build, fly and race.",
     companyTitle: "About the company",
-    companyDesc: "Legal and organizational information about MoDelizM. Company details will appear at production launch.",
+    companyDesc:
+      "Legal and organizational information about MoDelizM. Company details will appear at production launch.",
     partnersTitle: "For partners",
-    partnersDesc: "Partnerships with shops, brands and clubs. Joint promos, showcases and brand channels for the modeling world.",
+    partnersDesc:
+      "Partnerships with shops, brands and clubs. Joint promos, showcases and brand channels for the modeling world.",
     advertisingTitle: "Advertising",
-    advertisingDesc: "Promotion formats on the platform: banners, boosted listings and brand channels. Media kit in preparation.",
+    advertisingDesc:
+      "Promotion formats on the platform: banners, boosted listings and brand channels. Media kit in preparation.",
     complianceTitle: "Compliance",
     complianceDesc: "Principles for legal compliance, content moderation and safe transactions.",
     consentTitle: "Personal data consent",
     consentDesc: "Terms for processing personal data of MoDelizM platform users.",
     supportTitle: "Support",
-    supportDesc: "We're available daily 10:00–20:00 MSK. Write to us — we'll help with your account, listings or transactions.",
+    supportDesc:
+      "We're available daily 10:00–20:00 MSK. Write to us — we'll help with your account, listings or transactions.",
     feedbackTitle: "Feedback",
-    feedbackDesc: "Your ideas and feedback make the platform better. Leave a review or report an issue.",
+    feedbackDesc:
+      "Your ideas and feedback make the platform better. Leave a review or report an issue.",
     contactsTitle: "Contacts",
-    contactsDesc: "Reach us: support@modelizmclub.ru, 8 800 000-00-00, Mon–Sun 10:00–20:00 MSK. Social links will appear when official channels launch.",
+    contactsDesc:
+      "Reach us: support@modelizmclub.ru, 8 800 000-00-00, Mon–Sun 10:00–20:00 MSK. Social links will appear when official channels launch.",
     securityTitle: "Security",
-    securityDesc: "Safe transaction principles, listing moderation and personal data protection on MoDelizM. Full policy at production launch.",
+    securityDesc:
+      "Safe transaction principles, listing moderation and personal data protection on MoDelizM. Full policy at production launch.",
     returnHome: "Return home",
   },
   reviews: {
@@ -434,7 +457,14 @@ const EN_PAGES: Dict = {
 function deepMerge(base: Dict, overlay: Dict): Dict {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Dict, v as Dict);
     } else {
       out[k] = v;

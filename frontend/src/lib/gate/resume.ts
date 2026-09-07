@@ -49,7 +49,10 @@ export async function resumeIntent(navigate?: (to: string) => void): Promise<voi
    * гость на /ads/{id} жал закрытое действие, входил через VK и оказывался
    * в ленте. Теперь по крайней мере возвращается на свою страницу.
    */
-  if (typeof window !== "undefined" && `${window.location.pathname}${window.location.search}` === to) {
+  if (
+    typeof window !== "undefined" &&
+    `${window.location.pathname}${window.location.search}` === to
+  ) {
     return;
   }
   navigate(to);

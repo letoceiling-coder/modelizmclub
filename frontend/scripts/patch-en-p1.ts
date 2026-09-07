@@ -46,14 +46,16 @@ const EN_PAGES: Dict = {
     upcomingEvents: "Upcoming events",
     similarCommunities: "Similar communities",
     requestSent: "Request sent",
-    demoSignupNote: "Demo mode: event signup saved. Production will show a participant form and confirmation.",
+    demoSignupNote:
+      "Demo mode: event signup saved. Production will show a participant form and confirmation.",
     gotIt: "Got it",
     reportSuffix: " (community)",
     reportDesc: "You are reporting community «{{name}}». Describe the issue.",
   },
   channels: {
     metaTitle: "Channels — MoDelizM",
-    metaDescription: "Subscribe to brand, shop, author and expert channels: news, reviews and offers.",
+    metaDescription:
+      "Subscribe to brand, shop, author and expert channels: news, reviews and offers.",
     title: "Channels",
     subtitle: "News, reviews and announcements — from channel owners only",
     searchPlaceholder: "Search channels",
@@ -103,11 +105,13 @@ const EN_PAGES: Dict = {
     addVideo: "Add video",
     publishing: "Publishing…",
     publish: "Publish",
-    moderationPendingDesc: "Subscribers will see the post after moderator approval. Track status in the Posts tab.",
+    moderationPendingDesc:
+      "Subscribers will see the post after moderator approval. Track status in the Posts tab.",
     publishedDesc: "The post is already visible to subscribers and duplicated to the site feed.",
     rulePremodTitle: "Pre-moderation",
     rulePublishTitle: "Publishing",
-    rulePremodText: "Every post is reviewed before publishing. Subscribers cannot see it until approved.",
+    rulePremodText:
+      "Every post is reviewed before publishing. Subscribers cannot see it until approved.",
     rulePublishText: "Owner posts publish immediately and are visible to subscribers.",
     ruleNoChatTitle: "No chat",
     ruleNoChatText: "Subscribers cannot write to the feed — this is a one-way channel.",
@@ -121,7 +125,8 @@ const EN_PAGES: Dict = {
     emptyPosts: "No posts yet",
     emptyPostsChannel: "No posts in this channel yet",
     tabPosts: "Posts",
-    publicChannelNote: "This is a public channel: only the owner publishes. Subscribers read and cannot post to the feed.",
+    publicChannelNote:
+      "This is a public channel: only the owner publishes. Subscribers read and cannot post to the feed.",
     ownerViewTitle: "Owner view",
     ownerViewDesc: "Shows posts under moderation and rejected",
     subscribersCount: "{{count}} subscribers",
@@ -131,7 +136,8 @@ const EN_PAGES: Dict = {
     rejectionReasonTitle: "Rejection reason",
     postTextPlaceholder: "{{kind}} text for subscribers…",
     aboutTitle: "Description",
-    aboutExtra: "This channel publishes {{kind}} content: news, reviews, announcements and special offers for subscribers. Subscribe to get new posts in your feed.",
+    aboutExtra:
+      "This channel publishes {{kind}} content: news, reviews, announcements and special offers for subscribers. Subscribe to get new posts in your feed.",
     ownerSection: "Owner",
     ownerProfileAria: "Profile {{name}}",
     ownerLeads: "{{kind}} · runs channel «{{name}}»",
@@ -318,8 +324,10 @@ const EN_PAGES: Dict = {
     titleFallback: "Listing title",
     descFallback: "Description not filled in.",
     moderationNoteFree: "Placement is free — the listing will go to moderation after publishing.",
-    moderationNotePaid: "To pay {{price}} ₽. After payment the listing goes to moderation (usually within 60 minutes).",
-    moderationNoteDefault: "After publishing the listing goes to moderation (usually within 60 minutes).",
+    moderationNotePaid:
+      "To pay {{price}} ₽. After payment the listing goes to moderation (usually within 60 minutes).",
+    moderationNoteDefault:
+      "After publishing the listing goes to moderation (usually within 60 minutes).",
     promocodeLabel: "Promo code",
     basePrice: "Base price: {{price}} ₽",
     promoDiscount: "Promo discount: −{{price}} ₽",
@@ -423,7 +431,14 @@ const EN_PAGES: Dict = {
 function deepMerge(base: Dict, overlay: Dict): Dict {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Dict, v as Dict);
     } else {
       out[k] = v;

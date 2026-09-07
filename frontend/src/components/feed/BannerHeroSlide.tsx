@@ -119,7 +119,10 @@ export function BannerHeroSlide({
             onClick={onCtaClick}
             disabled={ctaDisabled}
             {...ctaPointerProps}
-            className={cn(TAP_TARGET_ROW_44, "inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:pointer-events-none sm:px-[16px] sm:py-[9px] sm:text-[14px]")}
+            className={cn(
+              TAP_TARGET_ROW_44,
+              "inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:pointer-events-none sm:px-[16px] sm:py-[9px] sm:text-[14px]",
+            )}
           >
             {banner.cta || "Подробнее"}
           </button>

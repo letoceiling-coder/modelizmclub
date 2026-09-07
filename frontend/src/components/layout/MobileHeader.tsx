@@ -61,7 +61,10 @@ export function MobileHeader() {
               type="button"
               aria-label={t("common.search")}
               onClick={() => guardAction("layout.header.search", () => setSearchOpen(true))}
-              className={cn(TAP_TARGET_44, "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]")}
+              className={cn(
+                TAP_TARGET_44,
+                "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]",
+              )}
               style={{ color: "var(--foreground-70)" }}
             >
               <Search size={20} />
@@ -71,7 +74,10 @@ export function MobileHeader() {
               actionKey="layout.nav.favorites"
               to={ROUTES.favorites}
               aria-label={t("nav.favorites")}
-              className={cn(TAP_TARGET_44, "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]")}
+              className={cn(
+                TAP_TARGET_44,
+                "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]",
+              )}
               style={{ color: "var(--foreground-70)" }}
             >
               <Heart size={20} />
@@ -81,7 +87,10 @@ export function MobileHeader() {
               actionKey="layout.header.notifications"
               to={ROUTES.notifications}
               aria-label={t("nav.notifications")}
-              className={cn(TAP_TARGET_44, "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]")}
+              className={cn(
+                TAP_TARGET_44,
+                "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]",
+              )}
               style={{ color: "var(--foreground-70)" }}
             >
               <span className="relative inline-flex">
@@ -196,7 +205,10 @@ function MoreMenu() {
       <DrawerTrigger asChild>
         <button
           aria-label={t("common.more")}
-          className={cn(TAP_TARGET_44, "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]")}
+          className={cn(
+            TAP_TARGET_44,
+            "grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]",
+          )}
           style={{ color: "var(--foreground-70)" }}
         >
           <Menu size={20} />

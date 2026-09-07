@@ -263,7 +263,7 @@ export function PostMediaCarousel({
         />
         {lightbox !== null && item.type === "image" && (
           <Lightbox
-          aside={aside}
+            aside={aside}
             images={[item.url]}
             startIndex={0}
             alt={alt}

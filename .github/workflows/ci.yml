@@ -54,9 +54,8 @@ jobs:
       - name: Build
         run: bun run build
 
-      # ~75 tsc errors and ~17 eslint errors are pre-existing (docs/audit/01-baseline.md).
-      # Counted into the job summary, not blocking — drop continue-on-error once a
-      # checker reaches 0 so it can start guarding the baseline.
+      # tsc пока не ворота: 39 ошибок (замер 08.09), почти все — типы
+      # маршрутов TanStack. Считается в summary, мерж не блокирует.
       - name: tsc
         continue-on-error: true
         run: |
@@ -67,7 +66,7 @@ jobs:
           {
             echo "## tsc — $count error(s)"
             echo
-            echo "Baseline is 75; this run must not exceed it."
+            echo "Порог 39 (замер 08.09); этот прогон не должен его превышать."
             echo
             echo "<details><summary>Errors by code</summary>"
             echo
@@ -79,11 +78,14 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $status
 
+      # Ошибок больше нет — все 191 были prettier/prettier и вычищены
+      # автофиксом 08.09. Шаг стал воротами: ни одной ошибки и не больше
+      # 1518 предупреждений (текущий порог; 1451 из них — точные px вместо
+      # шкалы Tailwind). Порог только вниз: новый код не должен его двигать.
       - name: eslint
-        continue-on-error: true
         run: |
           set +e
-          npx eslint . --max-warnings=0 -f json -o "$RUNNER_TEMP/eslint.json"
+          npx eslint . --max-warnings=1518 -f json -o "$RUNNER_TEMP/eslint.json"
           status=$?
           if [ -s "$RUNNER_TEMP/eslint.json" ]; then
             node -e '
@@ -99,7 +101,7 @@ jobs:
               const out = [
                 `## eslint — ${errors} error(s), ${warnings} warning(s)`,
                 "",
-                "Errors block the merge once this reaches 0 and continue-on-error is dropped.",
+                "Ворота: 0 ошибок, не более 1518 предупреждений.",
                 "",
                 "<details><summary>Errors by rule</summary>",
                 "",

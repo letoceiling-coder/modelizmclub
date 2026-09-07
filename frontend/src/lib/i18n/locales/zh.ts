@@ -1740,8 +1740,8 @@ export const zh: TranslationSchema = {
       paySuccess: "Payment successful — the listing can be published",
     },
     favorites: {
-   loadFailedTitle: "无法加载收藏",
-   loadFailedDesc: "请检查网络连接后重试。",
+      loadFailedTitle: "无法加载收藏",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "Избранное — МоДелизМ",
       title: "Favorites",
       subtitle: "Listings you marked with a heart",
@@ -2980,7 +2980,8 @@ export const zh: TranslationSchema = {
       escrowProviderWallet: "Platform wallet",
       escrowProviderNotSet: "Not set — the environment value applies",
       escrowProviderEffective: "Currently in effect: {{provider}}",
-      escrowProviderMismatch: "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
+      escrowProviderMismatch:
+        "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
       escrowProviderSaved: "Safe deal provider saved",
       escrowProviderSaveFailed: "Could not save the provider",
       placementTitle: "Listing placement",

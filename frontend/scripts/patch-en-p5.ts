@@ -13,7 +13,8 @@ const patch = {
       checkingAccess: "Checking access…",
       forbiddenTitle: "Access denied",
       forbiddenDesc: "The admin panel is available only to super administrators (admin role).",
-      forbiddenSignedIn: "You are signed in as {{name}}. Your account does not have super admin rights — contact an existing administrator or sign in with another account.",
+      forbiddenSignedIn:
+        "You are signed in as {{name}}. Your account does not have super admin rights — contact an existing administrator or sign in with another account.",
       loginOther: "Sign in with another account",
       backHome: "Back to home",
       nav: {
@@ -49,10 +50,20 @@ const patch = {
   },
 };
 
-function deepMerge(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  overlay: Record<string, unknown>,
+): Record<string, unknown> {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>);
     } else {
       out[k] = v;

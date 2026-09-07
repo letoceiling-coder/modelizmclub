@@ -39,7 +39,8 @@ const patch = {
       endCall: "End call",
     },
     voiceBubble: {
-      transcriptUnavailable: "Transcript unavailable — speech recognition is being enabled on the server.",
+      transcriptUnavailable:
+        "Transcript unavailable — speech recognition is being enabled on the server.",
       demoTranscript: "Sample voice message transcript.",
       speechNotRecognized: "Speech not recognized.",
       pause: "Pause",
@@ -56,10 +57,20 @@ const patch = {
   },
 };
 
-function deepMerge(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  overlay: Record<string, unknown>,
+): Record<string, unknown> {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>);
     } else {
       out[k] = v;

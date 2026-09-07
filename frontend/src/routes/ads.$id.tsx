@@ -140,7 +140,6 @@ function AdDetailPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-
   const proceedToConversation = async (queuedMessage: string | null) => {
     const sellerId = ad?.seller?.numericId;
     const sellerUuid = ad?.seller?.id;

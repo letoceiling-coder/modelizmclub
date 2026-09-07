@@ -50,14 +50,17 @@ const patch = {
       customThemePlaceholder: "e.g. Display models",
       channelTypeLabel: "Channel type",
       officialTypeLocked: "Type: {{type}} (official channel, cannot be changed)",
-      publicNotice: "Channels are public: everyone can see them. Privacy settings are not available yet.",
+      publicNotice:
+        "Channels are public: everyone can see them. Privacy settings are not available yet.",
       saving: "Saving…",
       saveChanges: "Save changes",
-      deleteWarning: "Deletion is permanent: the channel disappears from the catalog and subscribers lose access to all posts.",
+      deleteWarning:
+        "Deletion is permanent: the channel disappears from the catalog and subscribers lose access to all posts.",
       settingsTitle: "Channel settings",
       settingsDesc: "Name, description, branding and other channel options.",
       deleteTitle: "Delete channel?",
-      deleteDesc: "This cannot be undone. The channel will disappear and subscribers will lose access to all posts. Type the name to confirm",
+      deleteDesc:
+        "This cannot be undone. The channel will disappear and subscribers will lose access to all posts. Type the name to confirm",
       deleteCompact: "Delete",
       deleteChannel: "Delete channel",
       cancel: "Cancel",
@@ -102,7 +105,8 @@ const patch = {
       userUnblocked: "{{name}} unblocked",
       userUnblockedDesc: "You can exchange messages again",
       userBlockedToast: "{{name}} blocked",
-      userBlockedDesc: "You will no longer receive messages from this user; they were removed from your friends",
+      userBlockedDesc:
+        "You will no longer receive messages from this user; they were removed from your friends",
     },
   },
   pages: {
@@ -157,10 +161,20 @@ const patch = {
   },
 };
 
-function deepMerge(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  overlay: Record<string, unknown>,
+): Record<string, unknown> {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>);
     } else {
       out[k] = v;
