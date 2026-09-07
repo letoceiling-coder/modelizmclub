@@ -10,6 +10,15 @@ import { IconBox } from "@/components/ui/Icon";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 
 /** Common Lucide icons for landing blocks — click to pick. */
+/*
+ * Только имена, которые в lucide действительно есть.
+ *
+ * В списке был `Tank` — такой иконки нет ни в одной версии lucide. Админ
+ * выбирал её из официального пикера и получал заглушку `Box`, а страница
+ * дополнительно тянула всю библиотеку (115 КБ brotli), пытаясь найти
+ * несуществующее имя. На проде это лежит в landing_cards #9 и
+ * post_categories #6 — обе «Бронетехника».
+ */
 export const LANDING_ICON_PRESETS = [
   "Megaphone",
   "Newspaper",
@@ -19,7 +28,6 @@ export const LANDING_ICON_PRESETS = [
   "Clapperboard",
   "Plane",
   "Ship",
-  "Tank",
   "Car",
   "Bot",
   "Cpu",

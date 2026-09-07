@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Hash,
   MessageCircle,
   Paperclip,
   Pencil,
@@ -17,11 +18,11 @@ import {
   X,
 } from "lucide-react";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
-import * as Icons from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
+import { resolveLucideIcon, useLucideTail } from "@/lib/lucide-icon";
 import { userById } from "@/lib/user-registry";
 import type { Category, CategoryChild, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
@@ -272,6 +273,10 @@ function SubcategoryRoomPage() {
     };
   }, [c, sub]);
 
+  // Подписка до раннего выхода ниже: хук не должен зависеть от того,
+  // нашлась категория или нет.
+  useLucideTail();
+
   const onlineCount = useMemo(
     () => roomMembers.filter((m) => isUserOnline(m.user.id, onlineSet, m.user)).length,
     [roomMembers, onlineSet],
@@ -289,9 +294,7 @@ function SubcategoryRoomPage() {
     );
   }
 
-  const Icon =
-    (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[c.icon] ??
-    Icons.Hash;
+  const Icon = resolveLucideIcon(c.icon, Hash);
 
   return (
     <AppLayout rightColumn={false}>
