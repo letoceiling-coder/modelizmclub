@@ -79,17 +79,22 @@ class BillingRequiresVerifiedPhoneTest extends TestCase
         ]);
     }
 
-    /** @return list<array{string, string}> */
+    /**
+     * Только операции. Чтения намеренно открыты: `fetchSession` на фронте
+     * блокируется на `GET users/me/subscription`, а `GuestAccessProvider`
+     * открывает окно верификации по коду `phone_not_verified` независимо от
+     * страницы. Закрыв чтения, я 07.09 получил модалку поверх каждой
+     * страницы сайта — см. test_reads_stay_open_for_an_unverified_phone.
+     *
+     * @return list<array{string, string}>
+     */
     public static function moneyRoutes(): array
     {
         return [
-            'кошелёк' => ['GET', '/api/v1/wallet'],
-            'операции кошелька' => ['GET', '/api/v1/wallet/transactions'],
             'пополнение' => ['POST', '/api/v1/wallet/topup'],
             'вывод' => ['POST', '/api/v1/wallet/withdraw'],
             'платёж' => ['POST', '/api/v1/payments'],
-            'подписка' => ['GET', '/api/v1/users/me/subscription'],
-            'список сделок' => ['GET', '/api/v1/safe-deals'],
+            'отмена подписки' => ['POST', '/api/v1/users/me/subscription/cancel'],
         ];
     }
 
@@ -129,6 +134,19 @@ class BillingRequiresVerifiedPhoneTest extends TestCase
             ->assertCreated();
 
         $this->assertNotNull($listing->fresh()->reserved_at);
+    }
+
+    public function test_reads_stay_open_for_an_unverified_phone(): void
+    {
+        // Ради чего разделены группы: сессия собирается на каждой странице и
+        // упирается в подписку. 403 отсюда открывал окно верификации поверх
+        // всего сайта, включая оформление и смену пароля.
+        $user = $this->user(false);
+
+        $this->actingAs($user, 'sanctum')->getJson('/api/v1/users/me/subscription')->assertOk();
+        $this->actingAs($user, 'sanctum')->getJson('/api/v1/wallet')->assertOk();
+        $this->actingAs($user, 'sanctum')->getJson('/api/v1/wallet/transactions')->assertOk();
+        $this->actingAs($user, 'sanctum')->getJson('/api/v1/safe-deals')->assertOk();
     }
 
     public function test_a_verified_user_still_reads_wallet_and_subscription(): void
