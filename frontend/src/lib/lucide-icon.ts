@@ -132,6 +132,19 @@ let pending: Promise<void> | null = null;
 let revision = 0;
 const listeners = new Set<() => void>();
 
+/** Имена, которые промахнулись мимо REGISTRY и ждут проверки по списку. */
+const wanted = new Set<string>();
+let names: Set<string> | null = null;
+let namesPending: Promise<void> | null = null;
+
+/** `EllipsisVertical` → `ellipsis-vertical`, `Users2` → `users-2`. */
+function toKebabCase(name: string): string {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Za-z])(\d)/g, "$1-$2")
+    .toLowerCase();
+}
+
 function loadFullLucide(): void {
   if (full || pending) return;
   pending = import("lucide-react")
@@ -144,6 +157,42 @@ function loadFullLucide(): void {
       // Stay on the Box placeholder; a later render retries the fetch.
       pending = null;
     });
+}
+
+/**
+ * Тянет библиотеку, только если хоть одно из запрошенных имён в ней есть.
+ *
+ * Библиотека весит 115 КБ по проводу. Имя, которого в lucide нет, стоило
+ * ровно столько же и всё равно оставляло `Box` — см. комментарий к
+ * `lucideNamesModule` в vite.config.ts. Список имён на порядок легче
+ * (6,8 КБ brotli) и грузится только при первом промахе.
+ */
+function loadNamesThenIcon(): void {
+  if (!names) {
+    if (namesPending) return;
+    namesPending = import("virtual:lucide-names")
+      .then((mod) => {
+        names = new Set(mod.NAMES);
+        loadNamesThenIcon();
+      })
+      .catch(() => {
+        // Список не доехал — не выдумываем, оставляем заглушку.
+        namesPending = null;
+      });
+    return;
+  }
+  for (const name of wanted) {
+    if (names.has(toKebabCase(name))) {
+      loadFullLucide();
+      return;
+    }
+  }
+}
+
+function requestLazyIcon(...candidates: string[]): void {
+  if (full || pending) return;
+  for (const name of candidates) wanted.add(name);
+  loadNamesThenIcon();
 }
 
 /** `useSyncExternalStore` pair so a component repaints once the tail lands. */
@@ -171,8 +220,13 @@ export function useLucideTail(): void {
   useSyncExternalStore(subscribeLucide, getLucideRevision, getLucideServerRevision);
 }
 
-export function resolveLucideIcon(name?: string | null): LucideIcon {
-  if (!name) return Box;
+/**
+ * `fallback` — что рисовать, пока имя не разрешилось или не разрешится вовсе.
+ * По умолчанию нейтральная коробка; вызывающий может передать свою заглушку,
+ * если на его экране принята другая (у списка подкатегорий это `Hash`).
+ */
+export function resolveLucideIcon(name?: string | null, fallback: LucideIcon = Box): LucideIcon {
+  if (!name) return fallback;
   const direct = REGISTRY[name];
   if (direct) return direct;
   const normalized = toPascalCase(name);
@@ -182,6 +236,6 @@ export function resolveLucideIcon(name?: string | null): LucideIcon {
   const lazy = full?.[name] ?? full?.[normalized];
   if (lazy) return lazy;
 
-  if (typeof window !== "undefined") loadFullLucide();
-  return Box;
+  if (typeof window !== "undefined") requestLazyIcon(name, normalized);
+  return fallback;
 }

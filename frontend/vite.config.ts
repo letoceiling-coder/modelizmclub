@@ -76,6 +76,46 @@ function kebab(name: string): string {
     .toLowerCase();
 }
 
+/*
+ * Список существующих имён lucide — отдельным ленивым модулем.
+ *
+ * `resolveLucideIcon` на незнакомом имени добирал всю библиотеку ленивым
+ * `import("lucide-react")`. Имя, которого в lucide нет вовсе, стоило ровно
+ * столько же — и всё равно оставляло на экране заглушку.
+ *
+ * Замер прода 07.09: в `post_categories` лежит `tank` (категория
+ * «Бронетехника»), такой иконки в lucide нет ни в одной версии. Каждая
+ * загрузка /feed тянула из-за неё бочку `lucide-react-*.js`: 549 КБ
+ * исходника, 115 КБ по проводу brotli, плюс восемь отдельных чанков-иконок,
+ * на которые бочка разбивается. Ради пустого места.
+ *
+ * Теперь промах сначала спрашивает этот список — 24 КБ исходника, 6,8 КБ
+ * brotli, — и лезет за библиотекой, только если имя в ней действительно
+ * есть. Список собирается из установленного пакета, поэтому не расходится
+ * с ним при обновлении.
+ */
+const LUCIDE_NAMES_ID = "virtual:lucide-names";
+
+function lucideNamesModule(): Plugin {
+  return {
+    name: "modelizm:lucide-names",
+    resolveId(id) {
+      return id === LUCIDE_NAMES_ID ? "\0" + LUCIDE_NAMES_ID : undefined;
+    },
+    load(id) {
+      if (id !== "\0" + LUCIDE_NAMES_ID) return undefined;
+      const dir = resolve(import.meta.dirname, "node_modules/lucide-react/dist/esm/icons");
+      const names = readdirSync(dir)
+        .filter((f) => f.endsWith(".js"))
+        .map((f) => f.slice(0, -3))
+        .sort();
+      // Одной строкой с разделителем: так их сжимает brotli, а массив из
+      // 1936 строковых литералов раздувает и исходник, и разбор.
+      return `export const NAMES = ${JSON.stringify(names.join(" "))}.split(" ");\n`;
+    },
+  };
+}
+
 const EAGER_ICONS = staticallyImportedLucideIcons();
 
 // Цвета берутся из токенов тёмной темы (src/styles.css): --bg-primary для
@@ -106,6 +146,7 @@ export default defineConfig({
   },
   plugins: [
     ensureNitroPublicDir(),
+    lucideNamesModule(),
     VitePWA({
       // Свой service worker (src/sw.ts): страницы отдаёт SSR, поэтому готовые
       // стратегии generateSW с их SPA-фолбэком тут не подходят.
