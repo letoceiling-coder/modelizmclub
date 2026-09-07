@@ -83,6 +83,16 @@ export function CommentsSheet({ open, onOpenChange, stats, preview, children }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-[720px] max-w-[calc(100vw-32px)] flex-col gap-0 p-0 pt-[16px]">
         {header(DialogTitle)}
+        {/* Пост над веткой: без него окно открывалось голым списком реплик, и
+            было не видно, к чему они. Пропс `preview` существовал с самого
+            появления шторки, но не отрисовывался и никем не передавался —
+            найдено 07.09. На мобильном не показываем: там 85 % высоты и так
+            уходят под список, а превью съело бы половину экрана. */}
+        {preview && (
+          <div className="border-b px-[16px] pb-[12px]" style={{ borderColor: "var(--border)" }}>
+            {preview}
+          </div>
+        )}
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </DialogContent>
     </Dialog>
