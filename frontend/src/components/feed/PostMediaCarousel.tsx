@@ -181,6 +181,7 @@ function SingleMedia({
           width={item.width}
           height={item.height}
           alt={alt}
+          priority={priority}
         />
       </MediaFrame>
     );
@@ -287,6 +288,7 @@ export function PostMediaCarousel({
                     width={item.width}
                     height={item.height}
                     alt={`${alt} — видео`}
+                    priority={priority && i === 0}
                   />
                 ) : (
                   <GalleryImage
