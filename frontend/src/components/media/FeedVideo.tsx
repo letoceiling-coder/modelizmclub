@@ -5,6 +5,8 @@ import { Img } from "@/components/ui/Img";
 import type { VideoDelivery } from "@/lib/media/variants";
 
 interface Props {
+  /** Первая карточка ленты: постер грузится сразу и с высоким приоритетом. */
+  priority?: boolean;
   /** Исходник. Играется в полноэкранном режиме и там, где копии нет. */
   src: string;
   /** Постер и облегчённая копия от бэкенда. */
@@ -36,7 +38,7 @@ const PLACEHOLDER_H = 720;
  * она уезжает далеко за экран: иначе прокрученная лента держит десяток
  * плееров с буферами.
  */
-export function FeedVideo({ src, video, width, height, alt }: Props) {
+export function FeedVideo({ src, video, width, height, alt, priority = false }: Props) {
   const { t } = useTranslation();
   const [active, setActive] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -133,6 +135,12 @@ export function FeedVideo({ src, video, width, height, alt }: Props) {
           alt={alt}
           width={width ?? PLACEHOLDER_W}
           height={height ?? PLACEHOLDER_H}
+          /* Постер первой карточки ленты — кандидат в LCP, и до 07.09 он
+             грузился лениво: признак приоритета до FeedVideo не доходил.
+             Замер Lighthouse на 412 px: элемент LCP — этот самый постер
+             (сверху 638, высота 232), из 3,2 с LCP 703 мс уходило на
+             задержку до начала загрузки. */
+          priority={priority}
           className="h-full w-full object-contain"
         />
       ) : (
