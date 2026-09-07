@@ -338,6 +338,25 @@ class User extends Authenticatable
         return $code;
     }
 
+    /**
+     * Проходит ли пользователь стену `verified` — ту самую, что стоит на всех
+     * пишущих группах маршрутов (лента, сообщества, объявления, биллинг).
+     *
+     * Одна истина на двоих: её спрашивает и middleware `EnsureFullyVerified`,
+     * и флаги `can.*` в выдаче. Раньше флаги считала только политика, о
+     * middleware не знавшая, и API обещал то, что сам же запрещал: замер
+     * прода 07.09 — `GET /feed` отдавал `can.react: true` учётке без
+     * подтверждённого телефона, а `POST /posts/{uuid}/react` отвечал 403.
+     */
+    public function isFullyVerified(): bool
+    {
+        if ($this->isModerator()) {
+            return true;
+        }
+
+        return ! $this->requiresEmailVerification() && $this->phone_verified_at !== null;
+    }
+
     public function isModerator(): bool
     {
         return in_array($this->role, [UserRole::Moderator, UserRole::Admin], true);

@@ -16,9 +16,11 @@ class EnsureFullyVerified
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        if ($user->isModerator()) {
+        if ($user->isFullyVerified()) {
             return $next($request);
         }
+
+        // Ниже — какой именно ступени не хватает, чтобы отказ назвал причину.
 
         if ($user->requiresEmailVerification()) {
             return response()->json([
