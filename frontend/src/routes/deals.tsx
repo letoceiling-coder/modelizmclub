@@ -15,6 +15,25 @@ import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/deals")({
+  /*
+   * Денежный экран требует подтверждённого телефона — ровно ту же ступень,
+   * что и маршруты биллинга на сервере.
+   *
+   * Без стража страница показывала неподтверждённому пустой список сделок,
+   * хотя `GET /safe-deals` отвечал 403. Отказ был невидим, а ноль —
+   * выдуман: сервер не сказал «ноль», он отказался отвечать. Замер прода
+   * 07.09 после закрытия группы Billing.
+   *
+   * Уровень берётся из карты доступа, как у /messenger: `route.deals`
+   * объявлен там `auth`, а `levelFromAccessTier` переводит его в `verified`.
+   * Карта не меняется — она наконец применяется.
+   */
+  beforeLoad: async ({ location }) => {
+    const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] =
+      await Promise.all([import("@/lib/gate"), import("@/lib/feed-guest-access/store")]);
+    await loadFeedGuestAccess();
+    await routeGuard(levelFromAccessTier(resolveMinTier("route.deals")), location);
+  },
   component: DealsRoute,
   pendingComponent: DealsPageSkeleton,
 });
