@@ -102,97 +102,97 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose, aside }: P
       {/* Колонка с фотографией. Управление лежит внутри неё, а не в корне:
           иначе крестик и стрелка «вперёд» оказались бы поверх правой панели. */}
       <div className="relative flex min-w-0 flex-1 items-center justify-center">
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Закрыть"
-        className={`${CONTROL} h-[44px] w-[44px]`}
-        style={{
-          ...CONTROL_BG,
-          top: "max(12px, env(safe-area-inset-top))",
-          right: "max(12px, env(safe-area-inset-right))",
-        }}
-      >
-        <X className="h-[20px] w-[20px]" />
-      </button>
-
-      {images.length > 1 && (
-        <div
-          className="absolute left-1/2 z-[2] -translate-x-1/2 rounded-full px-[12px] py-[5px] text-[13px] font-medium text-white"
-          style={{ background: "rgba(0,0,0,0.5)", top: "max(20px, env(safe-area-inset-top))" }}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Закрыть"
+          className={`${CONTROL} h-[44px] w-[44px]`}
+          style={{
+            ...CONTROL_BG,
+            top: "max(12px, env(safe-area-inset-top))",
+            right: "max(12px, env(safe-area-inset-right))",
+          }}
         >
-          {selected + 1} / {images.length}
-        </div>
-      )}
+          <X className="h-[20px] w-[20px]" />
+        </button>
 
-      {/* The strip fills the screen, so a click only counts as "outside" when
+        {images.length > 1 && (
+          <div
+            className="absolute left-1/2 z-[2] -translate-x-1/2 rounded-full px-[12px] py-[5px] text-[13px] font-medium text-white"
+            style={{ background: "rgba(0,0,0,0.5)", top: "max(20px, env(safe-area-inset-top))" }}
+          >
+            {selected + 1} / {images.length}
+          </div>
+        )}
+
+        {/* The strip fills the screen, so a click only counts as "outside" when
           it lands on the padding around a photo rather than on the photo. */}
-      <div
-        className="h-full w-full touch-pan-x overflow-hidden"
-        ref={viewportRef}
-        onClick={(e) => {
-          if (e.target instanceof HTMLImageElement) e.stopPropagation();
-        }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        style={{
-          transform: dragY ? `translateY(${dragY}px)` : undefined,
-          opacity: dragY ? Math.max(0.35, 1 - Math.abs(dragY) / 400) : 1,
-          transition: dragY ? "none" : "transform 0.18s ease, opacity 0.18s ease",
-        }}
-      >
-        <div className="flex h-full">
-          {images.map((src, i) => (
-            <div
-              key={`${src}-${i}`}
-              className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]"
-            >
-              <img
-                src={src}
-                width={1600}
-                height={1200}
-                loading={i === startIndex ? "eager" : "lazy"}
-                decoding="async"
-                alt={images.length > 1 ? `${alt} — фото ${i + 1}` : alt}
-                className="max-h-full max-w-full object-contain"
-                style={{ borderRadius: 4 }}
-                draggable={false}
-              />
-            </div>
-          ))}
+        <div
+          className="h-full w-full touch-pan-x overflow-hidden"
+          ref={viewportRef}
+          onClick={(e) => {
+            if (e.target instanceof HTMLImageElement) e.stopPropagation();
+          }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          style={{
+            transform: dragY ? `translateY(${dragY}px)` : undefined,
+            opacity: dragY ? Math.max(0.35, 1 - Math.abs(dragY) / 400) : 1,
+            transition: dragY ? "none" : "transform 0.18s ease, opacity 0.18s ease",
+          }}
+        >
+          <div className="flex h-full">
+            {images.map((src, i) => (
+              <div
+                key={`${src}-${i}`}
+                className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]"
+              >
+                <img
+                  src={src}
+                  width={1600}
+                  height={1200}
+                  loading={i === startIndex ? "eager" : "lazy"}
+                  decoding="async"
+                  alt={images.length > 1 ? `${alt} — фото ${i + 1}` : alt}
+                  className="max-h-full max-w-full object-contain"
+                  style={{ borderRadius: 4 }}
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {images.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              embla?.scrollPrev();
-            }}
-            aria-label="Предыдущее фото"
-            className={`${CONTROL} left-[12px] top-1/2 h-[44px] w-[44px] -translate-y-1/2`}
-            style={CONTROL_BG}
-          >
-            <ChevronLeft className="h-[22px] w-[22px]" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              embla?.scrollNext();
-            }}
-            aria-label="Следующее фото"
-            className={`${CONTROL} right-[12px] top-1/2 h-[44px] w-[44px] -translate-y-1/2`}
-            style={CONTROL_BG}
-          >
-            <ChevronRight className="h-[22px] w-[22px]" />
-          </button>
-        </>
-      )}
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                embla?.scrollPrev();
+              }}
+              aria-label="Предыдущее фото"
+              className={`${CONTROL} left-[12px] top-1/2 h-[44px] w-[44px] -translate-y-1/2`}
+              style={CONTROL_BG}
+            >
+              <ChevronLeft className="h-[22px] w-[22px]" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                embla?.scrollNext();
+              }}
+              aria-label="Следующее фото"
+              className={`${CONTROL} right-[12px] top-1/2 h-[44px] w-[44px] -translate-y-1/2`}
+              style={CONTROL_BG}
+            >
+              <ChevronRight className="h-[22px] w-[22px]" />
+            </button>
+          </>
+        )}
       </div>
 
       {aside && (

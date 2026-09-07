@@ -1198,6 +1198,8 @@ export const zh: TranslationSchema = {
       editPostFailed: "无法保存帖子",
     },
     channels: {
+      loadFailedTitle: "无法加载频道",
+      loadFailedDesc: "请检查网络连接后重试。",
       noSubscribersYet: "新频道",
       metaTitle: "Channels — MoDelizM",
       metaDescription:
@@ -1314,6 +1316,8 @@ export const zh: TranslationSchema = {
       pinFailed: "Could not update pin",
     },
     notifications: {
+      loadFailedTitle: "无法加载通知",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "Уведомления — МоДелизМ",
       title: "Уведомления",
       loadFailed: "Не удалось загрузить уведомления",
@@ -1659,6 +1663,8 @@ export const zh: TranslationSchema = {
       priceMaxError: "Enter a valid price — maximum {{max}} ₽",
     },
     myAds: {
+      loadFailedTitle: "无法加载广告",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "My listings — MoDelizM",
       title: "My listings",
       postListing: "Post a listing",
@@ -1734,8 +1740,8 @@ export const zh: TranslationSchema = {
       paySuccess: "Payment successful — the listing can be published",
     },
     favorites: {
-   loadFailedTitle: "无法加载收藏",
-   loadFailedDesc: "请检查网络连接后重试。",
+      loadFailedTitle: "无法加载收藏",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "Избранное — МоДелизМ",
       title: "Favorites",
       subtitle: "Listings you marked with a heart",
@@ -2334,6 +2340,8 @@ export const zh: TranslationSchema = {
       returnHome: "Return home",
     },
     reviews: {
+      loadFailedTitle: "无法加载评测",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "Reviews — MoDelizM",
       detailMetaTitle: "Review — MoDelizM",
       searchPlaceholder: "Search reviews",
@@ -2972,7 +2980,8 @@ export const zh: TranslationSchema = {
       escrowProviderWallet: "Platform wallet",
       escrowProviderNotSet: "Not set — the environment value applies",
       escrowProviderEffective: "Currently in effect: {{provider}}",
-      escrowProviderMismatch: "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
+      escrowProviderMismatch:
+        "Bank selected, but VTB acquiring is not configured — deals go through the wallet.",
       escrowProviderSaved: "Safe deal provider saved",
       escrowProviderSaveFailed: "Could not save the provider",
       placementTitle: "Listing placement",

@@ -13,6 +13,8 @@ import {
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
+import { TAP_TARGET_44 } from "@/lib/tap-target";
+import { cn } from "@/lib/utils";
 
 /** Ключ, под которым лежат закрытые пользователем баннеры. */
 const DISMISSED_KEY = "mc_feed_hero_dismissed";
@@ -225,7 +227,10 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
             onClick={dismissCurrent}
             {...stopPointerPropagation}
             aria-label={t("components.eventsHero.dismiss")}
-            className="absolute right-[8px] top-[8px] grid h-[28px] w-[28px] place-items-center rounded-full text-white"
+            className={cn(
+              TAP_TARGET_44,
+              "absolute right-[8px] top-[8px] grid h-[28px] w-[28px] place-items-center rounded-full text-white",
+            )}
             style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
           >
             <X className="h-[15px] w-[15px]" />

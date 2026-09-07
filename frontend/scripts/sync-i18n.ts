@@ -6,10 +6,20 @@ import { writeFileSync } from "node:fs";
 import { ru } from "../src/lib/i18n/locales/ru.ts";
 import { en as baseEn } from "../src/lib/i18n/locales/en.ts";
 
-function deepMerge(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  overlay: Record<string, unknown>,
+): Record<string, unknown> {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>);
     } else if (!(k in out)) {
       out[k] = v;
@@ -31,9 +41,18 @@ function toTs(obj: unknown, indent = 0): string {
   return "{\n" + lines.join(",\n") + "\n" + pad + "}";
 }
 
-const en = deepMerge(baseEn as unknown as Record<string, unknown>, ru as unknown as Record<string, unknown>);
+const en = deepMerge(
+  baseEn as unknown as Record<string, unknown>,
+  ru as unknown as Record<string, unknown>,
+);
 const zh = en;
 
-writeFileSync("src/lib/i18n/locales/en.ts", `import type { TranslationSchema } from "./ru";\n\nexport const en: TranslationSchema = ${toTs(en)};\n`);
-writeFileSync("src/lib/i18n/locales/zh.ts", `import type { TranslationSchema } from "./ru";\n\nexport const zh: TranslationSchema = ${toTs(zh)};\n`);
+writeFileSync(
+  "src/lib/i18n/locales/en.ts",
+  `import type { TranslationSchema } from "./ru";\n\nexport const en: TranslationSchema = ${toTs(en)};\n`,
+);
+writeFileSync(
+  "src/lib/i18n/locales/zh.ts",
+  `import type { TranslationSchema } from "./ru";\n\nexport const zh: TranslationSchema = ${toTs(zh)};\n`,
+);
 console.log("Expanded en.ts and zh.ts to match ru.ts");

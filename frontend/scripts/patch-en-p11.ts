@@ -12,7 +12,13 @@ const patch = {
       defaultCta: "Learn more",
       placements: { events: "Feed — top slider", feed: "Feed — inline ads" },
       kinds: { event: "Event", news: "News", promo: "Promo" },
-      scheduleStatus: { hidden: "Hidden", test: "Test display", scheduled: "Scheduled", ended: "Ended", active: "Active" },
+      scheduleStatus: {
+        hidden: "Hidden",
+        test: "Test display",
+        scheduled: "Scheduled",
+        ended: "Ended",
+        active: "Active",
+      },
       carousel: {
         title: "Feed slider",
         hint: "Block above the post feed. Slide rotation, display limit, and view stats are configured here.",
@@ -77,12 +83,22 @@ const patch = {
       saveFailed: "Could not save contacts",
       saving: "Saving…",
       save: "Save contacts",
-      fields: { email: "Email", phone: "Phone", hours: "Business hours", social: "Social networks" },
-      placeholders: { email: "support@modelizmclub.ru", phone: "8 800 000-00-00", hours: "Mon–Sun, 10:00–20:00 MSK" },
+      fields: {
+        email: "Email",
+        phone: "Phone",
+        hours: "Business hours",
+        social: "Social networks",
+      },
+      placeholders: {
+        email: "support@modelizmclub.ru",
+        phone: "8 800 000-00-00",
+        hours: "Mon–Sun, 10:00–20:00 MSK",
+      },
     },
     adminMedia: {
       title: "Media manager",
-      subtitle: "Upload and pick images (PNG, JPEG, WebP, SVG). Files tagged as icons can be added to the icon library in Design System.",
+      subtitle:
+        "Upload and pick images (PNG, JPEG, WebP, SVG). Files tagged as icons can be added to the icon library in Design System.",
       loadFailed: "Could not load media files",
       loadMediaFailed: "Could not load media",
       empty: "No files yet. Upload PNG, SVG or photos via Upload files.",
@@ -102,7 +118,14 @@ const patch = {
       back: "Back",
       forward: "Forward",
       pageSummary: "{{page}} / {{lastPage}} · {{total}} total",
-      purposes: { icon: "Icons", banner: "Banners", cover: "Covers", post: "Posts", listing: "Listings", avatar: "Avatars" },
+      purposes: {
+        icon: "Icons",
+        banner: "Banners",
+        cover: "Covers",
+        post: "Posts",
+        listing: "Listings",
+        avatar: "Avatars",
+      },
     },
     adminIcons: {
       title: "Site icons",
@@ -115,10 +138,20 @@ const patch = {
   },
 };
 
-function deepMerge(base: Record<string, unknown>, overlay: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  overlay: Record<string, unknown>,
+): Record<string, unknown> {
   const out = { ...base };
   for (const [k, v] of Object.entries(overlay)) {
-    if (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) {
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      out[k] &&
+      typeof out[k] === "object" &&
+      !Array.isArray(out[k])
+    ) {
       out[k] = deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>);
     } else {
       out[k] = v;

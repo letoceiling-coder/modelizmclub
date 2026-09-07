@@ -9,6 +9,8 @@ import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 import { useChannels, type Channel } from "@/lib/channels";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import type { User } from "@/lib/mock";
+import { TAP_TARGET_44, TAP_TARGET_ROW_44 } from "@/lib/tap-target";
+import { cn } from "@/lib/utils";
 
 export type ComposerKind = "photo" | "video";
 export type ComposerSourceKind = "profile" | "channel";
@@ -305,7 +307,10 @@ function ComposerActions({
                 scale: showSend ? 1 : 0.72,
               }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90 disabled:pointer-events-none"
+              className={cn(
+                TAP_TARGET_44,
+                "grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90 disabled:pointer-events-none",
+              )}
               style={{
                 background: "var(--accent)",
                 color: "var(--accent-foreground)",
@@ -324,7 +329,10 @@ function ComposerActions({
                 : t("components.createPostMenu.addMediaAria")
             }
             onClick={handlePlusClick}
-            className="relative grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90"
+            className={cn(
+              TAP_TARGET_44,
+              "relative grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90",
+            )}
             style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
           >
             <Plus size={18} />
@@ -424,7 +432,10 @@ function CreatePostRow({
       <button
         type="button"
         onClick={() => onSelectKind("photo", "profile")}
-        className="h-[36px] min-w-0 flex-1 truncate rounded-[var(--r-pill)] px-[14px] text-left text-[14px] transition-colors hover:opacity-90"
+        className={cn(
+          TAP_TARGET_ROW_44,
+          "h-[36px] min-w-0 flex-1 truncate rounded-[var(--r-pill)] px-[14px] text-left text-[14px] transition-colors hover:opacity-90",
+        )}
         style={{ background: "var(--background-surface)", color: "var(--foreground-50)" }}
       >
         {t("components.createPostMenu.placeholder")}

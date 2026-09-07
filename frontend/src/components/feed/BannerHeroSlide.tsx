@@ -3,6 +3,8 @@ import type { HTMLAttributes } from "react";
 import { CalendarDays, Newspaper, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Img } from "@/components/ui/Img";
+import { TAP_TARGET_ROW_44 } from "@/lib/tap-target";
+import { cn } from "@/lib/utils";
 
 /** Fixed hero height — shared by feed slider and admin WYSIWYG preview (PDF QA Task 11).
  *
@@ -117,7 +119,10 @@ export function BannerHeroSlide({
             onClick={onCtaClick}
             disabled={ctaDisabled}
             {...ctaPointerProps}
-            className="inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:pointer-events-none sm:px-[16px] sm:py-[9px] sm:text-[14px]"
+            className={cn(
+              TAP_TARGET_ROW_44,
+              "inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:pointer-events-none sm:px-[16px] sm:py-[9px] sm:text-[14px]",
+            )}
           >
             {banner.cta || "Подробнее"}
           </button>

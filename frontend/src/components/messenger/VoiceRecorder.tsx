@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Mic, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
+import { TAP_TARGET_44 } from "@/lib/tap-target";
 
 const MAX_SECONDS = 180;
 const CANCEL_THRESHOLD = 72;

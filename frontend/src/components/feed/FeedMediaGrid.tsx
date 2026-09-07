@@ -290,7 +290,7 @@ export function FeedMediaGrid({
       </div>
       {lightbox !== null && (
         <Lightbox
-            aside={aside}
+          aside={aside}
           images={lightboxUrls}
           startIndex={lightbox}
           alt={alt}

@@ -24,7 +24,7 @@ import { qk } from "@/lib/queries/keys";
 
 export { rememberDialogScroll, recallDialogScroll, forgetDialogScroll } from "./scroll-memory";
 export { useVisualViewportInset } from "./useVisualViewportInset";
-export { TAP_TARGET_44, TAP_TARGET_ROW_44 } from "./tap-target";
+export { TAP_TARGET_44, TAP_TARGET_ROW_44 } from "../tap-target";
 export { findFirstUnreadMessageId } from "./unread";
 
 // ---------------- hooks: the only way components read messenger data ----------------
