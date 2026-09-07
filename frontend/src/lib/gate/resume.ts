@@ -37,6 +37,20 @@ export async function resumeIntent(navigate?: (to: string) => void): Promise<voi
     await pending.run();
     return;
   }
-  const to = stored?.key === "navigate" ? stored.params?.to : undefined;
-  if (typeof to === "string" && navigate) navigate(to);
+  const to = stored?.key === "navigate" ? stored.params?.to : (stored?.returnTo ?? undefined);
+  if (typeof to !== "string" || !navigate) return;
+
+  /*
+   * Вернуть туда, откуда ушли.
+   *
+   * Замыкание действия живёт только в памяти и полную перезагрузку не
+   * переживает, поэтому лайк после возврата из OAuth не повторится — это
+   * известное ограничение, а не недосмотр. Но раньше терялось и место:
+   * гость на /ads/{id} жал закрытое действие, входил через VK и оказывался
+   * в ленте. Теперь по крайней мере возвращается на свою страницу.
+   */
+  if (typeof window !== "undefined" && `${window.location.pathname}${window.location.search}` === to) {
+    return;
+  }
+  navigate(to);
 }
