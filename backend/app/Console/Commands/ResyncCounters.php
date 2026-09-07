@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Post;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +27,16 @@ class ResyncCounters extends Command
 
     protected $description = 'Пересчитать счётчики-кеши из настоящих связей';
 
-    /** @var list<array{string, string, string}> [подпись, SQL пересчёта, SQL подсчёта расхождений] */
+    /**
+     * @var list<array{string, string, string, list<string>}>
+     *   [подпись, SQL пересчёта, SQL подсчёта расхождений, привязки]
+     *
+     * Привязки, а не литералы: 07.09 имя класса было вписано строкой с
+     * экранированием, PHP свернул `\\\\` в `\\`, SQL сравнивал с
+     * `App\\Models\\Post` вместо `App\Models\Post`, подзапрос не нашёл ничего
+     * и записал нули в `posts.comments_count` шести постам. У поста #96 было
+     * двенадцать комментариев, счётчик показывал ноль.
+     */
     private function targets(): array
     {
         return [
@@ -34,36 +44,43 @@ class ResyncCounters extends Command
                 'channels.subscribers_count',
                 'update channels c set subscribers_count = x.n from (select ch.id, (select count(*) from channel_subscriptions s where s.channel_id = ch.id) as n from channels ch) x where x.id = c.id and c.subscribers_count is distinct from x.n',
                 'select count(*) from channels c where c.subscribers_count is distinct from (select count(*) from channel_subscriptions s where s.channel_id = c.id)',
+                [],
             ],
             [
                 'listings.favorites_count',
                 'update listings l set favorites_count = x.n from (select li.id, (select count(*) from listing_favorites f where f.listing_id = li.id) as n from listings li) x where x.id = l.id and l.favorites_count is distinct from x.n',
                 'select count(*) from listings l where l.favorites_count is distinct from (select count(*) from listing_favorites f where f.listing_id = l.id)',
+                [],
             ],
             [
                 'listings.views_count',
                 'update listings l set views_count = x.n from (select li.id, (select coalesce(sum(v.views_count), 0) from listing_view_daily v where v.listing_id = li.id) as n from listings li) x where x.id = l.id and l.views_count is distinct from x.n',
                 'select count(*) from listings l where l.views_count is distinct from (select coalesce(sum(v.views_count), 0) from listing_view_daily v where v.listing_id = l.id)',
+                [],
             ],
             [
                 'posts.reactions_count',
                 'update posts p set reactions_count = x.n from (select po.id, (select count(*) from post_reactions r where r.post_id = po.id) as n from posts po) x where x.id = p.id and p.reactions_count is distinct from x.n',
                 'select count(*) from posts p where p.reactions_count is distinct from (select count(*) from post_reactions r where r.post_id = p.id)',
+                [],
             ],
             [
                 'posts.comments_count',
-                "update posts p set comments_count = x.n from (select po.id, (select count(*) from comments c where c.commentable_type = 'App\\\\Models\\\\Post' and c.commentable_id = po.id and c.deleted_at is null) as n from posts po) x where x.id = p.id and p.comments_count is distinct from x.n",
-                "select count(*) from posts p where p.comments_count is distinct from (select count(*) from comments c where c.commentable_type = 'App\\\\Models\\\\Post' and c.commentable_id = p.id and c.deleted_at is null)",
+                'update posts p set comments_count = x.n from (select po.id, (select count(*) from comments c where c.commentable_type = ? and c.commentable_id = po.id and c.deleted_at is null) as n from posts po) x where x.id = p.id and p.comments_count is distinct from x.n',
+                'select count(*) from posts p where p.comments_count is distinct from (select count(*) from comments c where c.commentable_type = ? and c.commentable_id = p.id and c.deleted_at is null)',
+                [Post::class, Post::class],
             ],
             [
                 'channel_posts.likes_count',
                 'update channel_posts p set likes_count = x.n from (select cp.id, (select count(*) from channel_post_likes l where l.channel_post_id = cp.id) as n from channel_posts cp) x where x.id = p.id and p.likes_count is distinct from x.n',
                 'select count(*) from channel_posts p where p.likes_count is distinct from (select count(*) from channel_post_likes l where l.channel_post_id = p.id)',
+                [],
             ],
             [
                 'communities.members_count',
                 'update communities c set members_count = x.n from (select co.id, (select count(*) from community_members m where m.community_id = co.id) as n from communities co) x where x.id = c.id and c.members_count is distinct from x.n',
                 'select count(*) from communities c where c.members_count is distinct from (select count(*) from community_members m where m.community_id = c.id)',
+                [],
             ],
         ];
     }
@@ -73,8 +90,8 @@ class ResyncCounters extends Command
         $dry = (bool) $this->option('dry-run');
         $touched = 0;
 
-        foreach ($this->targets() as [$label, $update, $count]) {
-            $drifted = (int) DB::selectOne("select ({$count}) as n")->n;
+        foreach ($this->targets() as [$label, $update, $count, $bindings]) {
+            $drifted = (int) DB::selectOne("select ({$count}) as n", $bindings)->n;
 
             if ($drifted === 0) {
                 $this->line(sprintf('  %-30s совпадает', $label));
@@ -88,7 +105,7 @@ class ResyncCounters extends Command
                 continue;
             }
 
-            $changed = DB::update($update);
+            $changed = DB::update($update, $bindings);
             $touched += $changed;
             $this->info(sprintf('  %-30s пересчитано строк: %d', $label, $changed));
         }
