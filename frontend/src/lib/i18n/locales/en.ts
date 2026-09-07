@@ -3410,7 +3410,6 @@ export const en: TranslationSchema = {
       denyBehaviorTitle: "When access is denied",
       showPopup: "Show popup",
       redirectSubscription: "Redirect to /login or /subscription",
-      popupTitleLabel: "Popup title",
       primaryCtaLabel: "Subscribe button",
       popupTextLabel: "Popup text",
       guestAllowed: "Available to guests",
@@ -3425,9 +3424,7 @@ export const en: TranslationSchema = {
       saving: "Saving…",
       saveButton: "Save access rules",
       denyBehavior: "When access is denied",
-      popupTitle: "Popup title",
       popupPrimaryCta: "Subscribe button",
-      popupDescription: "Popup body",
       denyModes: {
         inherit: "Default",
         popup: "Popup",

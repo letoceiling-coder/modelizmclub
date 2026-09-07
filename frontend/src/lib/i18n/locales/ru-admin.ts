@@ -807,7 +807,6 @@ export const ruAdmin = {
       denyBehaviorTitle: "Поведение при запрете",
       showPopup: "Показывать попап",
       redirectSubscription: "Перенаправлять на /login или /subscription",
-      popupTitleLabel: "Заголовок попапа",
       primaryCtaLabel: "Кнопка «Оформить»",
       popupTextLabel: "Текст попапа",
       guestAllowed: "Доступно гостям",

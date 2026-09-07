@@ -19,6 +19,11 @@ interface Props {
   animateOnMount?: boolean;
   animate?: Record<string, number>;
   exit?: Record<string, number>;
+  /**
+   * Тег обёртки. По умолчанию блок; внутри <button> нужен `span` — <div>
+   * там невалиден по модели содержимого и ломает гидрацию.
+   */
+  as?: "div" | "span";
 }
 
 /**
@@ -42,6 +47,7 @@ export function ReducedMotionSwitch({
   animate = { opacity: 1, y: 0 },
   exit = { opacity: 0, y: -8 },
   transition = { duration: 0.2 },
+  as = "div",
 }: Props) {
   const reduce = useReducedMotion();
   // Первый отрисованный ребёнок не получает начального состояния вовсе.
@@ -54,16 +60,19 @@ export function ReducedMotionSwitch({
   useEffect(() => {
     firstRender.current = false;
   }, []);
+  const Plain = as;
+  const Motion = as === "span" ? motion.span : motion.div;
+
   if (reduce) {
     return (
-      <div key={switchKey} className={className}>
+      <Plain key={switchKey} className={className}>
         {children}
-      </div>
+      </Plain>
     );
   }
   return (
     <AnimatePresence mode="wait">
-      <motion.div
+      <Motion
         key={switchKey}
         className={className}
         initial={!animateOnMount && isFirst ? false : initial}
@@ -72,7 +81,7 @@ export function ReducedMotionSwitch({
         transition={transition}
       >
         {children}
-      </motion.div>
+      </Motion>
     </AnimatePresence>
   );
 }

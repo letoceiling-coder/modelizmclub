@@ -1,4 +1,5 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useTranslation } from "react-i18next";
 import { Heart, MessageCircle, Bookmark, Eye } from "lucide-react";
 import type { Post } from "@/lib/mock";
@@ -83,18 +84,26 @@ export function PostActions({
             >
               <Heart className="h-[20px] w-[20px]" fill={liked ? "currentColor" : "none"} />
             </motion.span>
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
-                key={likes}
-                className="tabular-nums"
-                initial={{ y: 6, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -6, opacity: 0 }}
-                transition={{ duration: 0.18 }}
-              >
-                {likes}
-              </motion.span>
-            </AnimatePresence>
+            {/*
+              Смена цифры идёт через общий переключатель, а не через голый
+              AnimatePresence. При системной настройке «уменьшить движение»
+              framer-motion гасит анимацию, но не вызывает колбэк завершения
+              выхода: уходящий узел не размонтировался, и в кнопке оставались
+              два числа — старое видимое и новое с opacity 0. Пользователь
+              лайкал, а счётчик не менялся. Механизм описан в самом
+              ReducedMotionSwitch, здесь он просто не был применён.
+            */}
+            <ReducedMotionSwitch
+              as="span"
+              switchKey={likes}
+              className="tabular-nums"
+              initial={{ y: 6, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -6, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              {likes}
+            </ReducedMotionSwitch>
           </button>
         </Gated>
       )}

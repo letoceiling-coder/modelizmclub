@@ -56,6 +56,19 @@ foreach (Registry::actions() as $row) {
 $refActions = $reference['actions'] ?? [];
 $curActions = $stored['actions'] ?? [];
 
+/*
+ * `inherit` и явное значение по умолчанию — одно и то же.
+ *
+ * Реестр хранит `deny_mode: "inherit"`, а карта, сохранённая из админки, —
+ * явный `"popup"`. Смысл совпадает, но сверка считала это расхождением и
+ * выдавала сорок строк шума: настоящие пять изменений уровня доступа в них
+ * тонули. Приводим оба к тому, что реально применится.
+ */
+$defaultDeny = $stored['default_deny_mode'] ?? ($reference['default_deny_mode'] ?? 'popup');
+$resolveDeny = static fn (?string $mode): string => ($mode === null || $mode === 'inherit')
+    ? (string) $defaultDeny
+    : $mode;
+
 $out = [];
 
 foreach ($refActions as $key => $want) {
@@ -65,7 +78,13 @@ foreach ($refActions as $key => $want) {
     $wantDeny = $want['deny_mode'];
     $haveDeny = $have['deny_mode'] ?? $wantDeny;
 
-    if ($wantTier !== $haveTier || $wantDeny !== $haveDeny) {
+    if ($resolveDeny($wantDeny) !== $resolveDeny($haveDeny)) {
+        $denyDiffers = true;
+    } else {
+        $denyDiffers = false;
+    }
+
+    if ($wantTier !== $haveTier || $denyDiffers) {
         $out[] = sprintf(
             'OVERRIDE|%s|%s|%s|%s|%s|%s',
             $key,
