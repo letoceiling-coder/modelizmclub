@@ -495,6 +495,17 @@ export function PostCard({
    *
    * Показывается только от 1024 px, см. `aside` у Lightbox.
    */
+  /*
+   * Миниатюра записи для шапки окна комментариев. Берём готовый вариант
+   * `thumb` (320 px) — в квадрате 64 px он с запасом, а `card` там был бы
+   * втрое тяжелее без разницы на глаз.
+   */
+  const previewImage = (() => {
+    const first = mediaPost.mediaItems?.[0];
+    const slot = first?.variants?.thumb ?? first?.variants?.card;
+    return slot?.webp ?? slot?.jpeg ?? first?.url ?? mediaPost.image ?? mediaPost.images?.[0] ?? null;
+  })();
+
   const lightboxAside = (
     <div className="flex h-full flex-col">
       <div className="border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
@@ -881,7 +892,45 @@ export function PostCard({
   // что стоял в карточке, только развёрнутый и без предпросмотра — в ленте
   // от него остаётся счётчик.
   const commentsLayer = commentsEnabled ? (
-    <CommentsSheet open={commentsOpen} onOpenChange={setCommentsOpen} stats={commentsStats}>
+    <CommentsSheet
+      open={commentsOpen}
+      onOpenChange={setCommentsOpen}
+      stats={commentsStats}
+      preview={
+        <div className="flex items-start gap-[10px]">
+          <div className="min-w-0 flex-1">
+            <PostHeader
+              author={author}
+              authorHref={authorHref}
+              authorActionKey={authorActionKey}
+              post={post}
+              isScheduled={isScheduled}
+              showContext={false}
+              badges={badges}
+            />
+            {post.text.trim() !== "" && (
+              <p
+                className="mt-[6px] line-clamp-2 text-[14px]"
+                style={{ color: "var(--foreground-70)" }}
+              >
+                {post.text}
+              </p>
+            )}
+          </div>
+          {previewImage && (
+            <img
+              src={previewImage}
+              alt=""
+              width={64}
+              height={64}
+              loading="lazy"
+              decoding="async"
+              className="h-[64px] w-[64px] shrink-0 rounded-[8px] object-cover"
+            />
+          )}
+        </div>
+      }
+    >
       <div ref={commentsRef} className="px-[16px] pb-[16px]">
         <CommentSection
           comments={commentList}
