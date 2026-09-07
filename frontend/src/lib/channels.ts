@@ -1,7 +1,7 @@
 // API-backed module for the "Каналы" (Channels) section.
 // Channels are one-way publishing surfaces: only owners post, users subscribe.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { formatDate } from "@/lib/format/date";
 import type { MediaVariantSet, VideoDelivery } from "@/lib/media/variants";
@@ -506,6 +506,24 @@ export function useChannels(
  *   кадр содержит настоящие данные, и подмены «скелетон → содержимое» не
  *   происходит вовсе.
  */
+/**
+ * Данные загрузчика годятся как есть только гостю.
+ *
+ * Загрузчик маршрута выполняется на сервере и токена читателя не видит, так
+ * что зрительские флаги приходят анонимными: `isSubscribed` всегда false.
+ * Клиент их не пересматривал, и подписанный человек видел на странице канала
+ * кнопку «Подписаться» — отписаться было нечем. Замер 07.09 на /channel/tamiya:
+ * сервер отдаёт `is_subscribed: true`, строка в `channel_subscriptions` есть,
+ * страница показывает «Подписаться» и после полной гидрации.
+ *
+ * Разметка с сервера по-прежнему рисуется сразу (LCP не страдает), но при
+ * наличии токена уходит повторный запрос за правами настоящего зрителя.
+ * Без токена перезапрашивать нечего — там анонимный ответ и есть верный.
+ */
+function loaderDataIsFinal(initial: unknown): boolean {
+  return initial !== undefined && !getToken();
+}
+
 export function useChannel(
   slug: string,
   initial?: Channel | null,
@@ -518,7 +536,7 @@ export function useChannel(
   const [channel, setChannel] = useState<Channel | null>(initial ?? null);
   const [loading, setLoading] = useState(initial === undefined);
   const [notFound, setNotFound] = useState(initial === null);
-  const primed = useRef(initial !== undefined);
+  const primed = useRef(loaderDataIsFinal(initial));
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -556,7 +574,7 @@ export function useChannelPosts(
   const [posts, setPosts] = useState<ChannelPost[]>(initial ?? []);
   const [loading, setLoading] = useState(initial === undefined);
   const [failed, setFailed] = useState(false);
-  const primed = useRef(initial !== undefined);
+  const primed = useRef(loaderDataIsFinal(initial));
 
   const reload = useCallback(() => {
     setLoading(true);

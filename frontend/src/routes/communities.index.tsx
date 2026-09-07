@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { getToken } from "@/lib/api/client";
 import { variantUrl } from "@/lib/media/variants";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -163,7 +164,13 @@ function CommunitiesPage() {
   const isGuest = !me.id || me.id === "guest";
   const hasRowsRef = useRef(loaded.communities.length > 0);
 
-  const primed = useRef(loaded.communities.length > 0);
+  /*
+   * Тот же случай, что на странице канала: загрузчик выполняется на сервере
+   * без токена читателя, и членство в сообществах приходит анонимным. Список,
+   * снятый с сервера, окончателен только для гостя — вошедшему нужен
+   * повторный запрос за его правами. Разметка при этом рисуется сразу.
+   */
+  const primed = useRef(loaded.communities.length > 0 && !getToken());
 
   useEffect(() => {
     if (loaded.communities.length === 0) return;
