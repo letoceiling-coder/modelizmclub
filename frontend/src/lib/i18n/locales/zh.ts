@@ -1198,6 +1198,8 @@ export const zh: TranslationSchema = {
       editPostFailed: "无法保存帖子",
     },
     channels: {
+      loadFailedTitle: "无法加载频道",
+      loadFailedDesc: "请检查网络连接后重试。",
       noSubscribersYet: "新频道",
       metaTitle: "Channels — MoDelizM",
       metaDescription:
@@ -1314,6 +1316,8 @@ export const zh: TranslationSchema = {
       pinFailed: "Could not update pin",
     },
     notifications: {
+      loadFailedTitle: "无法加载通知",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "Уведомления — МоДелизМ",
       title: "Уведомления",
       loadFailed: "Не удалось загрузить уведомления",
@@ -1659,6 +1663,8 @@ export const zh: TranslationSchema = {
       priceMaxError: "Enter a valid price — maximum {{max}} ₽",
     },
     myAds: {
+      loadFailedTitle: "无法加载广告",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "My listings — MoDelizM",
       title: "My listings",
       postListing: "Post a listing",
@@ -2334,6 +2340,8 @@ export const zh: TranslationSchema = {
       returnHome: "Return home",
     },
     reviews: {
+      loadFailedTitle: "无法加载评测",
+      loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "Reviews — MoDelizM",
       detailMetaTitle: "Review — MoDelizM",
       searchPlaceholder: "Search reviews",

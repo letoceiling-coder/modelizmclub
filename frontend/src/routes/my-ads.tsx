@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -126,6 +126,7 @@ function MyAdsPage() {
   const [tab, setTab] = useState<TabKey>("active");
   const [items, setItems] = useState<{ ad: Ad; status: AdStatusKey }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -164,15 +165,23 @@ function MyAdsPage() {
     return "all";
   }, [filters]);
 
-  useEffect(() => {
+  /*
+   * Четвёртое состояние списка: ошибка с «Повторить». Раньше `.catch` просто
+   * чистил массив, и отказ сети выглядел как «объявлений нет» — ответ
+   * сервера, которого не было.
+   */
+  const loadListings = useCallback(() => {
     let alive = true;
     setLoading(true);
+    setLoadFailed(false);
     fetchMyListings()
       .then((rows) => {
         if (alive) setItems(rows);
       })
       .catch(() => {
-        if (alive) setItems([]);
+        if (!alive) return;
+        setItems([]);
+        setLoadFailed(true);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -181,6 +190,8 @@ function MyAdsPage() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => loadListings(), [loadListings]);
 
   useEffect(() => {
     if (!payment) return;
@@ -762,6 +773,14 @@ function MyAdsPage() {
         >
           {loading ? (
             Array.from({ length: 6 }, (_, i) => <AdCardSkeleton key={i} />)
+          ) : loadFailed ? (
+            <EmptyState
+              icon={Inbox}
+              title={t("pages.myAds.loadFailedTitle")}
+              description={t("pages.myAds.loadFailedDesc")}
+              action={{ label: t("pages.shared.retry"), onClick: loadListings }}
+              variant="compact"
+            />
           ) : visible.length === 0 ? (
             <EmptyTab
               tab={tab}

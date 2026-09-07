@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 
 import { useMemo, useState } from "react";
 
@@ -73,9 +73,15 @@ export const Route = createFileRoute("/channels/")({
   loaderDeps: ({ search }) => ({ taxonomy_id: search.taxonomy_id }),
   loader: async ({ deps }) => {
     await ensurePublicBootstrap();
-    const channels = await fetchChannels(deps.taxonomy_id).catch(() => []);
+    // Неудача помечается, а не превращается в пустой список: иначе отказ
+    // сети выглядел как «каналов нет» — ответ сервера, которого не было.
+    let failed = false;
+    const channels = await fetchChannels(deps.taxonomy_id).catch(() => {
+      failed = true;
+      return [];
+    });
     void prefetchCategoryRoomStats();
-    return { channels };
+    return { channels, failed };
   },
   staleTime: 30_000,
   component: ChannelsPage,
@@ -172,6 +178,8 @@ function ChannelsPage() {
   const { taxonomy_id: taxonomyId } = Route.useSearch();
 
   const loaded = Route.useLoaderData();
+  const loadFailed = Boolean((loaded as { failed?: boolean }).failed);
+  const router = useRouter();
 
   const { channels: all, loading, reload } = useChannels(taxonomyId, loaded.channels);
 
@@ -273,6 +281,14 @@ function ChannelsPage() {
               <EntityRowSkeleton key={i} />
             ))}
           </div>
+        ) : loadFailed ? (
+          <EmptyState
+            icon={Radio}
+            title={t("pages.channels.loadFailedTitle")}
+            description={t("pages.channels.loadFailedDesc")}
+            action={{ label: t("pages.shared.retry"), onClick: () => router.invalidate() }}
+            variant="compact"
+          />
         ) : nothing ? (
           <EmptyState
             icon={Radio}

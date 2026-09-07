@@ -1278,6 +1278,8 @@ export const ru = {
       editPostFailed: "Не удалось сохранить пост",
     },
     channels: {
+      loadFailedTitle: "Не удалось загрузить каналы",
+      loadFailedDesc: "Проверьте соединение и попробуйте ещё раз.",
       noSubscribersYet: "Новый канал",
       metaTitle: "Каналы — МоДелизМ",
       metaDescription:
@@ -1396,6 +1398,8 @@ export const ru = {
       pinFailed: "Не удалось изменить закрепление",
     },
     notifications: {
+      loadFailedTitle: "Не удалось загрузить уведомления",
+      loadFailedDesc: "Проверьте соединение и попробуйте ещё раз.",
       metaTitle: "Уведомления — МоДелизМ",
       title: "Уведомления",
       loadFailed: "Не удалось загрузить уведомления",
@@ -1748,6 +1752,8 @@ export const ru = {
       priceMaxError: "Укажите корректную цену — максимум {{max}} ₽",
     },
     myAds: {
+      loadFailedTitle: "Не удалось загрузить объявления",
+      loadFailedDesc: "Проверьте соединение и попробуйте ещё раз.",
       metaTitle: "Мои объявления — МоДелизМ",
       title: "Мои объявления",
       postListing: "Разместить объявление",
@@ -2437,6 +2443,8 @@ export const ru = {
       returnHome: "Вернуться на главную",
     },
     reviews: {
+      loadFailedTitle: "Не удалось загрузить обзоры",
+      loadFailedDesc: "Проверьте соединение и попробуйте ещё раз.",
       metaTitle: "Обзоры — МоДелизМ",
       detailMetaTitle: "Обзор — МоДелизМ",
       searchPlaceholder: "Поиск обзоров",

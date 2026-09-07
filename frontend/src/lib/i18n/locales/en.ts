@@ -1208,6 +1208,8 @@ export const en: TranslationSchema = {
       editPostFailed: "Could not save post",
     },
     channels: {
+      loadFailedTitle: "Could not load channels",
+      loadFailedDesc: "Check your connection and try again.",
       noSubscribersYet: "New channel",
       metaTitle: "Channels — MoDelizM",
       metaDescription:
@@ -1325,6 +1327,8 @@ export const en: TranslationSchema = {
       pinFailed: "Could not update pin",
     },
     notifications: {
+      loadFailedTitle: "Could not load notifications",
+      loadFailedDesc: "Check your connection and try again.",
       metaTitle: "Уведомления — МоДелизМ",
       title: "Уведомления",
       loadFailed: "Не удалось загрузить уведомления",
@@ -1672,6 +1676,8 @@ export const en: TranslationSchema = {
       priceMaxError: "Enter a valid price — maximum {{max}} ₽",
     },
     myAds: {
+      loadFailedTitle: "Could not load listings",
+      loadFailedDesc: "Check your connection and try again.",
       metaTitle: "My listings — MoDelizM",
       title: "My listings",
       postListing: "Post a listing",
@@ -2350,6 +2356,8 @@ export const en: TranslationSchema = {
       returnHome: "Return home",
     },
     reviews: {
+      loadFailedTitle: "Could not load reviews",
+      loadFailedDesc: "Check your connection and try again.",
       metaTitle: "Reviews — MoDelizM",
       detailMetaTitle: "Review — MoDelizM",
       searchPlaceholder: "Search reviews",

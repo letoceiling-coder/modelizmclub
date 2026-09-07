@@ -91,6 +91,8 @@ function ReviewsPage() {
   const { t } = useTranslation();
   const { category: categoryFromUrl, q: qFromUrl, tag: tagFromUrl } = Route.useSearch();
   const [videos, setVideos] = useState<Video[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const [featured, setFeatured] = useState<Video[]>([]);
   const [categories, setCategories] = useState<VideoCategory[]>([]);
   const [watchLaterItems, setWatchLaterItems] = useState<WatchLaterItem[]>(() => getWatchLater());
@@ -161,9 +163,14 @@ function ReviewsPage() {
 
     fetchVideos({ q: query || undefined, categorySlug: activeCat, tag: tagFromUrl || undefined })
       .then((list) => {
-        if (alive) setVideos(list);
+        if (!alive) return;
+        setVideos(list);
+        setLoadFailed(false);
       })
-      .catch(() => {})
+      // Раньше отказ проглатывался, и список выглядел как «обзоров нет».
+      .catch(() => {
+        if (alive) setLoadFailed(true);
+      })
       .finally(() => {
         if (!alive) return;
         setInitialLoading(false);
@@ -173,7 +180,7 @@ function ReviewsPage() {
     return () => {
       alive = false;
     };
-  }, [query, activeCat, isWatchLaterTab, tagFromUrl]);
+  }, [query, activeCat, isWatchLaterTab, tagFromUrl, reloadTick]);
 
   const newest = videos.slice(0, 10);
 
@@ -245,6 +252,16 @@ function ReviewsPage() {
           </h2>
           {(initialLoading || refreshing) && videos.length === 0 && !isWatchLaterTab ? (
             <VideoGridSkeleton />
+          ) : loadFailed && !isWatchLaterTab ? (
+            <EmptyState
+              icon={SearchX}
+              title={t("pages.reviews.loadFailedTitle")}
+              description={t("pages.reviews.loadFailedDesc")}
+              action={{
+                label: t("pages.shared.retry"),
+                onClick: () => setReloadTick((n) => n + 1),
+              }}
+            />
           ) : isWatchLaterTab ? (
             watchLaterItems.length === 0 ? (
               <EmptyState

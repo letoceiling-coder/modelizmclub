@@ -137,6 +137,8 @@ function NotificationsPage() {
   const router = useRouter();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const pendingDeletes = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
@@ -162,8 +164,14 @@ function NotificationsPage() {
         const r = await fetchNotifications();
         if (!alive) return;
         setItems(r.items);
+        setLoadFailed(false);
       } catch {
-        if (alive) toast.error(t("pages.notifications.loadFailed"));
+        // Тост исчезает, а список остаётся выглядеть пустым. Нужна ещё и
+        // ветка на месте, с кнопкой «Повторить».
+        if (alive) {
+          setLoadFailed(true);
+          toast.error(t("pages.notifications.loadFailed"));
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -171,7 +179,7 @@ function NotificationsPage() {
     return () => {
       alive = false;
     };
-  }, [t]);
+  }, [t, reloadTick]);
 
   useEffect(() => {
     return onRealtimeNotification((n) => {
@@ -359,6 +367,20 @@ function NotificationsPage() {
               </Card>
             ))}
           </div>
+        ) : loadFailed ? (
+          <EmptyState
+            icon={Bell}
+            title={t("pages.notifications.loadFailedTitle")}
+            description={t("pages.notifications.loadFailedDesc")}
+            action={{
+              label: t("pages.shared.retry"),
+              onClick: () => {
+                setLoading(true);
+                setReloadTick((n) => n + 1);
+              },
+            }}
+            variant="compact"
+          />
         ) : items.length === 0 ? (
           <EmptyState
             icon={Bell}
