@@ -21,7 +21,26 @@ class StoreConversationController extends Controller
             'listing_id' => ['nullable'],
         ]);
 
-        $this->authorize('create', Conversation::class);
+        /*
+         * Отказ должен быть внятным, а не пустым.
+         *
+         * ConversationPolicy::create требует подписку. Голый authorize() отдавал
+         * 403 «This action is unauthorized» без кода, и клиент — который для
+         * известных кодов открывает окно, а неизвестные показывает тостом —
+         * не показывал ничего вовсе. Замер 07.09: пользователь с
+         * подтверждённым номером добавляет собеседника в друзья по подсказке
+         * «добавьте в друзья, чтобы написать», жмёт «Написать» и не получает
+         * ни диалога, ни объяснения.
+         *
+         * Правило доступа здесь не меняется — меняется только то, что о нём
+         * сообщают.
+         */
+        if ($request->user()?->cannot('create', Conversation::class)) {
+            return response()->json([
+                'message' => 'Оформите подписку, чтобы начинать переписку.',
+                'code' => 'subscription_required',
+            ], 403);
+        }
 
         $to = User::query()->findOrFail($data['user_id']);
         $listing = $this->resolveListing($data);
