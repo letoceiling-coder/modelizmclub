@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ImageOff } from "lucide-react";
 import { getMediaAspect, rememberMediaAspect } from "@/lib/media/aspectCache";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
@@ -134,10 +134,13 @@ export function FeedMediaGrid({
   images,
   alt,
   priority = false,
+  aside,
 }: {
   images: Array<string | DisplayMedia>;
   alt: string;
   priority?: boolean;
+  /** Правая панель просмотрщика: см. `aside` у Lightbox. */
+  aside?: ReactNode;
 }) {
   const items = images
     .map((item) => (typeof item === "string" ? toDisplayMedia(item) : item))
@@ -153,6 +156,7 @@ export function FeedMediaGrid({
         <SingleImage media={items[0]} alt={alt} onOpen={() => setLightbox(0)} priority={priority} />
         {lightbox !== null && (
           <Lightbox
+            aside={aside}
             images={lightboxUrls}
             startIndex={lightbox}
             alt={alt}
@@ -187,6 +191,7 @@ export function FeedMediaGrid({
         </div>
         {lightbox !== null && (
           <Lightbox
+            aside={aside}
             images={lightboxUrls}
             startIndex={lightbox}
             alt={alt}
@@ -241,6 +246,7 @@ export function FeedMediaGrid({
         </div>
         {lightbox !== null && (
           <Lightbox
+            aside={aside}
             images={lightboxUrls}
             startIndex={lightbox}
             alt={alt}
@@ -284,6 +290,7 @@ export function FeedMediaGrid({
       </div>
       {lightbox !== null && (
         <Lightbox
+            aside={aside}
           images={lightboxUrls}
           startIndex={lightbox}
           alt={alt}

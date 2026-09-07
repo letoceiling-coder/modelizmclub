@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -8,6 +8,14 @@ interface Props {
   startIndex?: number;
   alt?: string;
   onClose: () => void;
+  /**
+   * Правая панель: автор, дата, действия и комментарии к записи.
+   *
+   * Показывается только на широком экране — от 1024 px. На телефоне колонка
+   * в 380 px отняла бы у фотографии больше половины ширины, поэтому там
+   * просмотрщик остаётся прежним, во весь экран.
+   */
+  aside?: ReactNode;
 }
 
 const CONTROL = "absolute z-[2] grid place-items-center rounded-full text-white";
@@ -18,7 +26,7 @@ const CONTROL_BG = { background: "rgba(255,255,255,0.14)" } as const;
  * ancestor clips it. Closes on Escape, the backdrop, or the ✕; arrows and
  * ←/→ move between images; on touch the strip itself swipes (embla).
  */
-export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
+export function Lightbox({ images, startIndex = 0, alt = "", onClose, aside }: Props) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: images.length > 1, startIndex });
   const [selected, setSelected] = useState(startIndex);
   // Vertical drag-to-dismiss. Embla owns the horizontal axis (swiping between
@@ -84,13 +92,16 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center"
+      className="fixed inset-0 z-[var(--z-modal)] flex"
       style={{ background: "rgba(0,0,0,0.92)" }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={alt || "Просмотр фото"}
     >
+      {/* Колонка с фотографией. Управление лежит внутри неё, а не в корне:
+          иначе крестик и стрелка «вперёд» оказались бы поверх правой панели. */}
+      <div className="relative flex min-w-0 flex-1 items-center justify-center">
       <button
         type="button"
         onClick={onClose}
@@ -181,6 +192,23 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose }: Props) {
             <ChevronRight className="h-[22px] w-[22px]" />
           </button>
         </>
+      )}
+      </div>
+
+      {aside && (
+        <aside
+          className="hidden w-[380px] shrink-0 overflow-y-auto lg:block"
+          style={{
+            background: "var(--background)",
+            borderLeft: "1px solid var(--border)",
+          }}
+          /* Клик по панели — это работа с записью, а не «мимо фотографии».
+             Без остановки всплытия лайк или отправка комментария закрывали бы
+             просмотрщик. */
+          onClick={(e) => e.stopPropagation()}
+        >
+          {aside}
+        </aside>
       )}
     </div>,
     document.body,

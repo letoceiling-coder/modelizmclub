@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import type { Post, PostMediaItem } from "@/lib/mock";
@@ -27,7 +28,16 @@ function VideoProcessingFrame({ failed }: { failed: boolean }) {
   );
 }
 
-export function PostMedia({ post, priority = false }: { post: Post; priority?: boolean }) {
+export function PostMedia({
+  post,
+  priority = false,
+  aside,
+}: {
+  post: Post;
+  priority?: boolean;
+  /** Правая панель просмотрщика: собирается в PostCard, где живут обработчики. */
+  aside?: ReactNode;
+}) {
   const items: PostMediaItem[] = post.mediaItems ?? [
     ...(post.video ? [{ type: "video" as const, url: post.video }] : []),
     ...(post.images?.length
@@ -49,11 +59,11 @@ export function PostMedia({ post, priority = false }: { post: Post; priority?: b
 
   const hasVideo = items.some((item) => item.type === "video");
   if (hasVideo) {
-    return <PostMediaCarousel items={items} alt={post.title} priority={priority} />;
+    return <PostMediaCarousel items={items} alt={post.title} priority={priority} aside={aside} />;
   }
 
   const imageItems = items
     .filter((item) => item.type === "image")
     .map((item) => ({ url: item.url, variants: item.variants }));
-  return <FeedMediaGrid images={imageItems} alt={post.title} priority={priority} />;
+  return <FeedMediaGrid images={imageItems} alt={post.title} priority={priority} aside={aside} />;
 }

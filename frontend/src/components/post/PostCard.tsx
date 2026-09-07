@@ -93,6 +93,32 @@ interface Props {
   priority?: boolean;
 }
 
+/**
+ * Обёртка, догружающая комментарии при открытии просмотрщика.
+ *
+ * Панель существует как узел ещё до открытия — её создаёт карточка, — но
+ * монтируется только когда Lightbox её отрисует. Эффект на монтировании и
+ * есть момент «просмотрщик открыли»: ветка подтягивается тогда, а не при
+ * каждом рендере ленты.
+ */
+function LightboxComments({
+  onMount,
+  children,
+}: {
+  onMount: () => void;
+  children: ReactNode;
+}) {
+  const fired = useRef(false);
+  useEffect(() => {
+    if (fired.current) return;
+    fired.current = true;
+    onMount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return <>{children}</>;
+}
+
 export function PostCard({
   post,
   variant = "feed",
@@ -461,6 +487,80 @@ export function PostCard({
   const authorHref = `/user/${profileTo}`;
   const authorActionKey = !isAllowed("feed.post.author") ? "feed.post.author" : "route.user";
 
+  /*
+   * Правая панель полноэкранного просмотрщика — автор и дата, действия,
+   * комментарии. Собирается здесь, а не в PostMedia: все обработчики (лайк,
+   * репост, отправка комментария, удаление) живут в карточке, и повторять их
+   * рядом значило бы завести второй экземпляр той же логики.
+   *
+   * Показывается только от 1024 px, см. `aside` у Lightbox.
+   */
+  const lightboxAside = (
+    <div className="flex h-full flex-col">
+      <div className="border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
+        <PostHeader
+          author={author}
+          authorHref={authorHref}
+          authorActionKey={authorActionKey}
+          post={post}
+          isScheduled={isScheduled}
+          showContext={false}
+          badges={badges}
+        />
+      </div>
+
+      <div className="border-b px-[8px]" style={{ borderColor: "var(--border)" }}>
+        <PostActions
+          post={post}
+          liked={liked}
+          likes={likes}
+          saved={saved}
+          saves={saves}
+          reposted={reposted}
+          reposts={reposts}
+          commentsCount={commentsCount}
+          commentsEnabled={commentsEnabled}
+          reactionsEnabled={reactionsEnabled}
+          canInteract={canInteract}
+          levelFor={levelFor}
+          onLike={doLike}
+          onSave={doSave}
+          onComments={toggleComments}
+          onRepost={toggleRepost}
+        />
+      </div>
+
+      {commentsEnabled && (
+        <div className="min-h-0 flex-1 overflow-y-auto px-[16px] py-[12px]">
+          <LightboxComments
+            onMount={() => {
+              setShowAllComments(true);
+              loadComments(commentSort, true);
+            }}
+          >
+            <CommentSection
+              comments={commentList}
+              onAdd={addComment}
+              loading={commentsFetchStarted && !commentsFetched}
+              readOnly={!canInteract && !guestNeedsAuth}
+              can={post.can}
+              showAll
+              totalCount={commentsCount}
+              onDeleted={(id) => {
+                setCommentList((prev) => removeFromCommentThread(prev, id));
+                onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
+              }}
+              onSortChange={(next) => {
+                setCommentSort(next);
+                loadComments(next, true);
+              }}
+            />
+          </LightboxComments>
+        </div>
+      )}
+    </div>
+  );
+
   const shell = (
     <Card
       className={cn(
@@ -750,7 +850,7 @@ export function PostCard({
             post.image ||
             (post.images?.length ?? 0) > 0 ||
             (post.mediaItems?.length ?? 0) > 0) && (
-            <PostMedia post={mediaPost} priority={priority} />
+            <PostMedia post={mediaPost} priority={priority} aside={lightboxAside} />
           )}
 
           {/* Footer actions */}
