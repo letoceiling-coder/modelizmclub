@@ -343,7 +343,7 @@ function CatalogPage() {
               )}
 
               {loadState === "loading" && !hasLoadedOnce.current && (
-                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
                   {Array.from({ length: 12 }).map((_, i) => (
                     <CatalogCardSkeleton key={i} />
                   ))}
@@ -398,7 +398,7 @@ function CatalogPage() {
                 )}
 
               {isFilterBusy && ads.length === 0 && (
-                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
                   {Array.from({ length: 8 }).map((_, i) => (
                     <CatalogCardSkeleton key={i} />
                   ))}
@@ -409,7 +409,7 @@ function CatalogPage() {
                 <>
                   <div
                     className={cn(
-                      "grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5",
+                      "grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]",
                       "transition-opacity duration-200",
                       isFilterBusy && "pointer-events-none opacity-[0.72]",
                     )}
