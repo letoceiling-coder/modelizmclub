@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import {
   pinConversation,

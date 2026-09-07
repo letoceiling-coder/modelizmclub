@@ -16,7 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/lib/toast";
-import { mockWalletBalance, mockWalletOperations } from "@/lib/mock";
 import {
   fetchWalletBalance,
   fetchWalletTransactions,
@@ -86,11 +85,30 @@ function WalletSection() {
   const demo = isDemoMode();
   const navigate = useNavigate();
   const { payment, uuid, reason } = Route.useSearch();
-  const [balanceKopecks, setBalanceKopecks] = useState(demo ? mockWalletBalance * 100 : 0);
+  const [balanceKopecks, setBalanceKopecks] = useState(0);
   const [heldKopecks, setHeldKopecks] = useState(0);
-  const [operations, setOperations] = useState<WalletTransaction[]>(
-    demo ? mockWalletOperations : [],
-  );
+  const [operations, setOperations] = useState<WalletTransaction[]>([]);
+
+  /*
+   * Демо-данные приезжают динамическим импортом, а не статическим.
+   *
+   * lib/mock — 108 КБ демо-контента, и любой статический импорт оттуда
+   * тянул весь файл в главный чанк боевой сборки: выбросить его сборщик
+   * не может, потому что часть массивов строится вызовами на уровне
+   * модуля. Тот же приём уже применён в lib/api/wallet.ts.
+   */
+  useEffect(() => {
+    if (!demo) return;
+    let alive = true;
+    void import("@/lib/mock").then(({ mockWalletBalance, mockWalletOperations }) => {
+      if (!alive) return;
+      setBalanceKopecks(mockWalletBalance * 100);
+      setOperations(mockWalletOperations);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [demo]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 

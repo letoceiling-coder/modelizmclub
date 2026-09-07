@@ -5,7 +5,6 @@ import { Star } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { mockMyRating, mockMyReviews } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchUserRating, fetchUserReviews } from "@/lib/api/rating";
@@ -48,8 +47,29 @@ function RatingSection() {
   const { t } = useTranslation();
   const me = useCurrentUser();
   const demo = isDemoMode();
-  const [rating, setRating] = useState(demo ? mockMyRating : { average: 0, count: 0 });
-  const [reviews, setReviews] = useState<ReviewRow[]>(demo ? mockMyReviews : []);
+  const [rating, setRating] = useState({ average: 0, count: 0 });
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+
+  /*
+   * Демо-данные приезжают динамическим импортом, а не статическим.
+   *
+   * lib/mock — 108 КБ демо-контента, и любой статический импорт оттуда
+   * тянул весь файл в главный чанк боевой сборки: выбросить его сборщик
+   * не может, потому что часть массивов строится вызовами на уровне
+   * модуля. Тот же приём уже применён в lib/api/wallet.ts.
+   */
+  useEffect(() => {
+    if (!demo) return;
+    let alive = true;
+    void import("@/lib/mock").then(({ mockMyRating, mockMyReviews }) => {
+      if (!alive) return;
+      setRating(mockMyRating);
+      setReviews(mockMyReviews);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [demo]);
 
   useEffect(() => {
     if (demo || !me.numericId) return;

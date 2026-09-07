@@ -22,7 +22,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import type { Category, CategoryChild, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { setHubConversation } from "@/lib/realtime/hub";

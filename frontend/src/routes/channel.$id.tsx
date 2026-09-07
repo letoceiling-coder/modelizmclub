@@ -76,7 +76,7 @@ import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
 import { useCurrentUser } from "@/lib/session";
 import { PostCard } from "@/components/post/PostCard";
 import type { Post } from "@/lib/mock";
-import { registerUser } from "@/lib/mock";
+import { registerUser } from "@/lib/user-registry";
 import { openConversation } from "@/lib/api/chat";
 
 import i18n from "@/lib/i18n";

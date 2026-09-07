@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Play, Eye } from "lucide-react";
 import type { Video } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
 import { formatDuration } from "@/lib/format-duration";
 import { cn } from "@/lib/utils";

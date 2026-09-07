@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Reply, Send, MoreHorizontal, ChevronDown, Paperclip, X } from "lucide-react";
 import type { Comment, User } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { useCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { reactToComment, deleteComment, type CommentSort } from "@/lib/api/feed";

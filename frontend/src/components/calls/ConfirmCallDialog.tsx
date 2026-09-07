@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Phone, Video, X } from "lucide-react";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 
 interface Props {
   open: boolean;

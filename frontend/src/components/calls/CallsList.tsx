@@ -11,7 +11,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { calls } from "@/lib/calls";
 import { fetchCallHistory, type ApiCallRecord } from "@/lib/api/calls";
-import { registerUser, userById } from "@/lib/mock";
+import { registerUser, userById } from "@/lib/user-registry";
 import { navigateToPartnerChat } from "@/lib/api/chat";
 import { useCurrentUser } from "@/lib/session";
 import { useActionGate } from "@/lib/gate";

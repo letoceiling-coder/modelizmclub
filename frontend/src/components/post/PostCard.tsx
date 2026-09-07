@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Clock, Check, Radio, Repeat2 } from "lucide-react";
 import type { Post, Comment, Community } from "@/lib/mock";
-import { userById } from "@/lib/mock";
+import { userById } from "@/lib/user-registry";
 import { useCurrentUser } from "@/lib/session";
 import {
   reactToPost,

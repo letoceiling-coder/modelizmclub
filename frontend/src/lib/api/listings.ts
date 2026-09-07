@@ -1,5 +1,5 @@
 import type { Ad, AdSeller, User } from "@/lib/mock";
-import { registerUser } from "@/lib/mock";
+import { registerUser } from "@/lib/user-registry";
 import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import type { AdStatusKey } from "@/lib/store";
