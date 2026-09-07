@@ -19,24 +19,48 @@ export function GateHost() {
   const { open, returnTo } = useGateState();
   const navigate = useNavigate();
   const session = useSession();
-  const bootChecked = useRef(false);
+  const resumed = useRef(false);
 
   const go = (to: string) => void navigate({ to: to as "/feed" });
 
+  const level = levelOf(session.data);
+
+  /*
+   * Проверка намерения повторяется при каждой смене уровня, а не один раз.
+   *
+   * Раньше здесь стоял разовый `bootChecked`, и на возврате из OAuth он
+   * сгорал впустую: `/login?oauth_token=…` монтирует хост, пока сессия ещё
+   * гостевая, проверка видит непройденный уровень, взводит флаг — и токен
+   * применяется мгновением позже, когда возвращаться уже некому.
+   *
+   * Замер прода 07.09: гость жмёт «Нравится», входит по ссылке с токеном,
+   * возвращается в ленту — лайка нет, окна нет, сообщения нет, а
+   * `gate.intent` так и лежит в sessionStorage. Обычная перезагрузка той же
+   * страницы с тем же намерением его снимала: механизм был рабочий,
+   * не срабатывал только порядок.
+   *
+   * `resumed` не даёт возобновить дважды, если уровень поднимется ещё раз
+   * до того, как `resumeIntent` дочистит намерение.
+   */
   useEffect(() => {
-    if (bootChecked.current || session.isPending) return;
-    bootChecked.current = true;
+    if (session.isPending) return;
     const stored = readIntent();
-    if (!stored) return;
-    if (stored.level && meets(levelOf(session.data), stored.level)) {
-      void resumeIntent(go);
-    } else if (!stored.level) {
-      clearIntent();
+    if (!stored) {
+      resumed.current = false;
+      return;
     }
-    // A stored intent whose level is still unmet stays put: the user opens
-    // the gate again by retrying the action; nothing pops up unasked.
+    if (!stored.level) {
+      clearIntent();
+      return;
+    }
+    if (!meets(level, stored.level)) return;
+    if (resumed.current) return;
+    resumed.current = true;
+    void resumeIntent(go);
+    // Намерение с непройденным уровнем остаётся лежать: пользователь откроет
+    // окно сам, повторив действие. Ничего не всплывает без спроса.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.isPending]);
+  }, [session.isPending, level]);
 
   const dismiss = (next: boolean) => {
     if (next) return;
