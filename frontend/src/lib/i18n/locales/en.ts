@@ -1747,6 +1747,8 @@ export const en: TranslationSchema = {
       paySuccess: "Payment successful — the listing can be published",
     },
     favorites: {
+   loadFailedTitle: "Could not load favorites",
+   loadFailedDesc: "Check your connection and try again.",
       metaTitle: "Избранное — МоДелизМ",
       title: "Favorites",
       subtitle: "Listings you marked with a heart",

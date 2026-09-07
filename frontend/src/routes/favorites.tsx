@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -23,11 +23,20 @@ function FavoritesPage() {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
+  /*
+   * Четыре состояния списка: скелетон, ошибка с «Повторить», пусто, данные.
+   *
+   * Раньше `.catch` просто чистил список, и неудачная загрузка выглядела как
+   * «в избранном пусто» — то есть как ответ сервера, которого не было. Тот же
+   * дефект чинили в сообществах 05.09, см. комментарий в communities.index.
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
   const favoriteAdIds = useStore((s) => s.favoriteAdIds);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let alive = true;
     setLoading(true);
+    setLoadFailed(false);
     fetchFavoriteListings()
       .then((list) => {
         if (!alive) return;
@@ -36,7 +45,9 @@ function FavoritesPage() {
         actions.setFavoriteAdIds(list.map((ad) => ad.id));
       })
       .catch(() => {
-        if (alive) setFavorites([]);
+        if (!alive) return;
+        setFavorites([]);
+        setLoadFailed(true);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -45,6 +56,8 @@ function FavoritesPage() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => load(), [load]);
 
   const visibleFavorites = useMemo(
     () => favorites.filter((ad) => favoriteAdIds.includes(ad.id)),
@@ -67,11 +80,19 @@ function FavoritesPage() {
         </header>
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
             {Array.from({ length: 8 }).map((_, i) => (
               <AdCardSkeleton key={i} />
             ))}
           </div>
+        ) : loadFailed ? (
+          <EmptyState
+            icon={Heart}
+            title={t("pages.favorites.loadFailedTitle")}
+            description={t("pages.favorites.loadFailedDesc")}
+            action={{ label: t("pages.shared.retry"), onClick: load }}
+            variant="compact"
+          />
         ) : visibleFavorites.length === 0 ? (
           <EmptyState
             icon={Heart}
@@ -83,7 +104,7 @@ function FavoritesPage() {
             </Button>
           </EmptyState>
         ) : (
-          <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
             {visibleFavorites.map((ad) => (
               <CatalogCard key={ad.id} ad={ad} />
             ))}
