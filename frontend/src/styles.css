@@ -10,7 +10,21 @@
 @custom-variant dark (&:where(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  --font-sans: "Manrope", system-ui, sans-serif;
+  /*
+   * Пакеты @fontsource-variable объявляют семейство с суффиксом: не
+   * «Manrope», а «Manrope Variable». Стек просил имя без суффикса, ни одно
+   * @font-face не совпадало, и сайт рисовался системным шрифтом целиком:
+   * замер 07.09 — 24 объявления в CSS, `document.fonts` из 24 начертаний,
+   * загружено ноль. Файлы при этом отдавались с кодом 200.
+   *
+   * Имя без суффикса оставлено вторым: если пакет когда-нибудь заменят на
+   * невариативный, стек продолжит работать.
+   *
+   * Space Grotesk остаётся системным намеренно: у него нет кириллического
+   * подмножества (только latin, latin-ext, vietnamese), и включение дало бы
+   * заголовки вперемешку — латиница своим шрифтом, кириллица системным.
+   */
+  --font-sans: "Manrope Variable", "Manrope", system-ui, sans-serif;
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
 
