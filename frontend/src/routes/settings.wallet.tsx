@@ -34,6 +34,26 @@ import { formatDate } from "@/lib/format/date";
 type WalletSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
 
 export const Route = createFileRoute("/settings/wallet")({
+  /*
+   * Денежный экран требует подтверждённого телефона — ровно ту же ступень,
+   * что и маршруты биллинга на сервере.
+   *
+   * Без стража страница показывала неподтверждённому «Баланс 0 ₽»,
+   * «Операций пока нет» и кнопки «Пополнить» и «Вывести», хотя `GET /wallet`
+   * и `GET /wallet/transactions` отвечали 403. Отказ был невидим, а ноль —
+   * выдуман: сервер не сказал «ноль», он отказался отвечать. Замер прода
+   * 07.09 после закрытия группы Billing.
+   *
+   * Уровень берётся из карты доступа, как у /messenger: `route.settings`
+   * объявлен там `auth`, а `levelFromAccessTier` переводит его в `verified`.
+   * Карта не меняется — она наконец применяется.
+   */
+  beforeLoad: async ({ location }) => {
+    const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] =
+      await Promise.all([import("@/lib/gate"), import("@/lib/feed-guest-access/store")]);
+    await loadFeedGuestAccess();
+    await routeGuard(levelFromAccessTier(resolveMinTier("route.settings")), location);
+  },
   validateSearch: (s: Record<string, unknown>): WalletSearch => ({
     payment: s.payment === "success" || s.payment === "failed" ? s.payment : undefined,
     uuid: typeof s.uuid === "string" ? s.uuid : undefined,
