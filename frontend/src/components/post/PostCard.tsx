@@ -128,12 +128,59 @@ export function PostCard({
   const commentsRef = useRef<HTMLDivElement>(null);
 
   const [likes, setLikes] = useState(post.likes);
+
   // Только достоверные числа: просмотры на проде нулевые у всех постов,
   // поэтому в статистику ветки они не идут.
   const commentsStats =
     likes > 0 ? t("components.commentsSheet.liked", { count: likes }) : undefined;
   const [saves, setSaves] = useState(post.saves ?? 0);
   const [reposts, setReposts] = useState(post.reposts ?? 0);
+
+  /*
+   * Состояние зрителя переезжает с сервера, а не застывает на первом рендере.
+   *
+   * useState берёт начальное значение один раз. Серверная отрисовка анонимна —
+   * токен лежит в localStorage, и загрузчик маршрута до него не дотягивается, —
+   * поэтому в первом кадре у поста всегда `isLiked: false`. Клиент дозапрашивает
+   * ленту и получает настоящее, но карточка это уже игнорировала: пользователь,
+   * который лайкнул пост раньше, видел «не лайкнуто», а первый клик прибавлял
+   * единицу вместо того, чтобы снять лайк. Замер 07.09: API 3 и «я реагировал»,
+   * интерфейс показывал 4 после клика, сервер уходил в 2.
+   *
+   * Сверяемся во время отрисовки, а не в эффекте: так исправленное значение
+   * попадает в тот же кадр, без промежуточной перерисовки с неверным числом.
+   * Сравнение с прошлым серверным снимком, а не с текущим состоянием, — чтобы
+   * оптимистичное обновление после клика жило до тех пор, пока сервер не
+   * сообщит что-то другое.
+   */
+  const [serverView, setServerView] = useState({
+    liked: !!post.isLiked,
+    likes: post.likes,
+    saved: !!post.isSaved,
+    reposted: !!post.isReposted,
+    reposts: post.reposts ?? 0,
+  });
+  if (
+    serverView.liked !== !!post.isLiked ||
+    serverView.likes !== post.likes ||
+    serverView.saved !== !!post.isSaved ||
+    serverView.reposted !== !!post.isReposted ||
+    serverView.reposts !== (post.reposts ?? 0)
+  ) {
+    setServerView({
+      liked: !!post.isLiked,
+      likes: post.likes,
+      saved: !!post.isSaved,
+      reposted: !!post.isReposted,
+      reposts: post.reposts ?? 0,
+    });
+    setLiked(!!post.isLiked);
+    setLikes(post.likes);
+    setSavedInner(!!post.isSaved);
+    setReposted(!!post.isReposted);
+    setReposts(post.reposts ?? 0);
+  }
+
   const [commentList, setCommentList] = useState<Comment[]>(post.commentList ?? []);
   const [commentsFetchStarted, setCommentsFetchStarted] = useState(
     (post.commentList?.length ?? 0) > 0,
