@@ -1474,7 +1474,11 @@ function CommunityDetailPage() {
         {/* Tab panels */}
         {tab === "posts" && (
           <>
-            {canCreatePost && (
+            {/* На пустой стене кнопка живёт только в пустом состоянии.
+                Раньше при нуле записей рисовались обе — вверху справа и в
+                центре, — и обе назывались «Создать первый пост». Одно
+                действие, два одинаковых предложения в одном экране. */}
+            {canCreatePost && posts.length > 0 && (
               <div className="mb-[16px] flex justify-end">
                 <Button
                   type="button"
@@ -1482,9 +1486,7 @@ function CommunityDetailPage() {
                   className="gap-[6px]"
                 >
                   <Plus size={16} />
-                  {posts.length > 0
-                    ? t("pages.communityDetail.createPost")
-                    : t("pages.communityDetail.createFirstPost")}
+                  {t("pages.communityDetail.createPost")}
                 </Button>
               </div>
             )}
