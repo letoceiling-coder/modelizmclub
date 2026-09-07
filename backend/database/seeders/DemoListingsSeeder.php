@@ -53,8 +53,12 @@ class DemoListingsSeeder extends Seeder
                 'delivery_methods' => ['СДЭК', 'Почта России'],
                 'contact_via_messenger' => true,
                 'published_at' => now()->subDays($i),
-                'views_count' => 100 + $i * 50,
-                'favorites_count' => $i % 3,
+                // Счётчики не засеиваем: их ведут ListingService при просмотре
+                // и добавлении в избранное. Здесь стояли `100 + $i * 50`
+                // просмотров и `$i % 3` в избранном — сотни просмотров при
+                // двух-пяти настоящих. Пересчёт: `counters:resync`.
+                'views_count' => 0,
+                'favorites_count' => 0,
             ]);
             $listing->deleted_at = null;
             $listing->save();
