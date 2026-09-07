@@ -328,6 +328,83 @@ bash /var/www/modelizmclub-neeklo/deploy/scripts/deploy-neeklo-frontend.sh
 
 # Резервные копии базы и восстановление
 
+## Учения: восстановление и откат
+
+Обе процедуры проверены на боевом сервере 07.09.2026. До этого дня ни одна
+из них не запускалась ни разу за проект — дамп, который не разворачивали,
+это надежда, а не бэкап.
+
+### Восстановление из дампа
+
+Проверяется весь путь целиком, включая выгрузку: дамп берётся **из S3**, а
+не с диска сервера.
+
+```bash
+# 1. свежайший автоматический дамп (таймер backup-db.timer, ~04:00 UTC)
+cd /var/www/modelizmclub/backend
+php ../deploy/scripts/backup-db-download.php --list daily | head -3
+php ../deploy/scripts/backup-db-download.php backups/daily/<ключ> /root/restore-drill/from-s3.dump
+
+# 2. отдельная база — прод не трогаем
+sudo -u postgres createdb -O modelizmclub modelizmclub_restore_test
+
+# 3. КЛЮЧ --database ОБЯЗАТЕЛЕН.
+#    Без него restore-db.sh берёт DB_DATABASE из .env, то есть боевую базу.
+cd /var/www/modelizmclub
+bash deploy/scripts/restore-db.sh /root/restore-drill/from-s3.dump \
+  --database modelizmclub_restore_test --yes
+
+# 4. сверка и уборка
+bash deploy/scripts/schema-drift.sh --database modelizmclub_restore_test
+sudo -u postgres dropdb modelizmclub_restore_test
+```
+
+Замер 07.09 (дамп `20260907T040100-7d3d5eb2.dump`, 842 КБ, 1302 объекта):
+
+| шаг | время |
+| --- | --- |
+| скачивание из S3 | 0,94 с |
+| восстановление, включая страховочный дамп | 1,73 с |
+| **итого простоя в реальной аварии** | **менее 3 с** плюс перезапуск приложения |
+
+Результат: 142 таблицы против 142 на проде, `schema-drift` — ноль расхождений,
+2144 объекта. Ключевые таблицы `users`, `posts`, `listings`, `communities`,
+`channels`, `migrations` совпали точно; расхождения в `messages` (7),
+`safe_deals` (3), `comments` (1) и `media` (1) — это работа, проделанная на
+проде после снятия дампа в 04:01.
+
+`restore-db.sh` перед перезаписью сам снимает страховочный дамп цели в
+`/root/backups/auto/pre-restore/` и отказывается продолжать, если снять его
+не удалось.
+
+### Откат фронтенда
+
+```bash
+cd /var/www/modelizmclub
+bash deploy/scripts/rollback-frontend.sh --list      # что доступно
+bash deploy/scripts/rollback-frontend.sh --yes       # на предыдущий
+bash deploy/scripts/rollback-frontend.sh <релиз> --yes
+```
+
+Замер 07.09, четыре переключения подряд: **2,5–4,2 с каждое, простоя нет**.
+Опрос `http://127.0.0.1:3000/` раз в 200 мс во время переключения дал
+321, 326, 322 и 329 успешных ответов и **ноль отказов** — подмена симлинка
+с перезапуском службы укладывается между двумя опросами.
+
+Проверять откат надо **по поведению, а не по имени каталога**. В учении
+признаком служил шрифтовой стек: релиз 16:19 отдаёт
+`--font-sans:"Manrope Variable"`, релиз 16:11 — `"Manrope"`, и хеш файла
+стилей меняется с `styles-W-eYdu94` на `styles-m4bfkgz5`.
+
+**Что учение нашло.** `rollback-frontend.sh` файл `.worktrees/PREVIOUS` только
+читал, а записывал его один `deploy-frontend.sh`. После отката PREVIOUS
+продолжал указывать на релиз, ставший текущим. Второй откат подряд — то есть
+ровно тогда, когда первый не помог — отбрасывал такого кандидата и по правилу
+«самый свежий по времени» возвращался на ту сборку, от которой ушли.
+Исправлено: имя покидаемого релиза записывается после успешного смоука.
+Повторное учение подтвердило — второй откат выбирает цель со строкой
+`выбран: запись деплоя (.worktrees/PREVIOUS)`.
+
 ## Что и куда сохраняется
 
 `deploy/scripts/backup-db.sh` снимает дамп в формате `pg_dump -Fc`. Имя файла —
