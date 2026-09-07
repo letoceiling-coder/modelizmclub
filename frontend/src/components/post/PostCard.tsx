@@ -281,8 +281,6 @@ export function PostCard({
     // Poller is keyed to this post; mediaItems live on the first snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
-  const hasCommentsHint = (post.comments ?? 0) > 0 || (post.commentList?.length ?? 0) > 0;
-
   const loadComments = useCallback(
     (sort: CommentSort, all: boolean) => {
       setCommentsFetchStarted(true);
@@ -304,20 +302,11 @@ export function PostCard({
     [post.id],
   );
 
-  const startCommentsFetch = useCallback(() => {
-    if (commentsFetchStarted) return;
-    loadComments(commentSort, showAllComments);
-  }, [commentsFetchStarted, loadComments, commentSort, showAllComments]);
-
-  useEffect(() => {
-    if (isShare) return;
-    // Комментарии выключены — их незачем и не у кого спрашивать. На странице
-    // канала это давало по два 404 на пост: у записи канала свой uuid, а
-    // ветка комментариев живёт у зеркальной записи ленты, которой может не
-    // быть вовсе.
-    if (!commentsEnabled) return;
-    if (hasCommentsHint || canInteract) startCommentsFetch();
-  }, [hasCommentsHint, canInteract, startCommentsFetch, isShare, commentsEnabled]);
+  // Ветка не загружается вперёд. Раньше каждая карточка ленты просила свои
+  // 50 комментариев на монтировании — на первом экране это десятки запросов
+  // ради данных, которые почти никто не открывает, и они же затем
+  // выбрасывались: toggleComments всё равно перезапрашивает ветку целиком.
+  // Счётчик под постом берётся из post.comments и без них.
 
   const text = post.text ?? "";
   // Текст обрезается строками, а не символами: четыре строки на широком

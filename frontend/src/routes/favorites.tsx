@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { AdCardSkeleton } from "@/components/ads/AdCardSkeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -65,7 +66,7 @@ function FavoritesPage() {
   );
 
   return (
-    <AppLayout rightColumn={false} footer>
+    <AppLayout rightColumn={<DirectionsRightRail variant="ads" />} footer>
       <div className="space-y-[16px] pb-[24px]">
         <header>
           <h1
