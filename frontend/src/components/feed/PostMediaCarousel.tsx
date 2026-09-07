@@ -205,10 +205,13 @@ export function PostMediaCarousel({
   items,
   alt,
   priority = false,
+  aside,
 }: {
   items: MediaCarouselItem[];
   alt: string;
   priority?: boolean;
+  /** Правая панель просмотрщика: см. `aside` у Lightbox. */
+  aside?: ReactNode;
 }) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: items.length > 1 });
   const [selected, setSelected] = useState(0);
@@ -259,6 +262,7 @@ export function PostMediaCarousel({
         />
         {lightbox !== null && item.type === "image" && (
           <Lightbox
+          aside={aside}
             images={[item.url]}
             startIndex={0}
             alt={alt}
@@ -348,6 +352,7 @@ export function PostMediaCarousel({
 
       {lightbox !== null && imageUrls.length > 0 && (
         <Lightbox
+          aside={aside}
           images={imageUrls}
           startIndex={lightbox}
           alt={alt}
