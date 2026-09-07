@@ -5,6 +5,7 @@ import {
   BookOpen,
   Bot,
   Box,
+  Boxes,
   Camera,
   Car,
   Clapperboard,
@@ -56,7 +57,13 @@ import {
 /**
  * Icons that ship in the entry chunk: every `defaultLucide` from
  * `lib/icon-slots`, every entry of the admin landing picker, and the icon
- * names the category seeds use. Importing them by name keeps Rollup's
+ * names the category seeds use.
+ *
+ * Сюда же — имена из вычисляемых дефолтов, а не только из литералов таблицы
+ * слотов: `lib/api/categories.ts` и `icon-slots.ts` подставляют `Boxes`
+ * категории без своей иконки. Такое имя есть в lucide, но его не было здесь,
+ * и каждая загрузка /feed добирала ради него всю библиотеку — 115 КБ по
+ * проводу. Замер 07.09. Importing them by name keeps Rollup's
  * tree-shaking intact — a namespace import (`import * as Icons`) pulled all
  * ~1600 Lucide icons into the first-load bundle instead.
  *
@@ -69,6 +76,7 @@ const REGISTRY: Record<string, LucideIcon> = {
   BookOpen,
   Bot,
   Box,
+  Boxes,
   Camera,
   Car,
   Clapperboard,
