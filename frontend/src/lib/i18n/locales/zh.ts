@@ -1734,6 +1734,8 @@ export const zh: TranslationSchema = {
       paySuccess: "Payment successful — the listing can be published",
     },
     favorites: {
+   loadFailedTitle: "无法加载收藏",
+   loadFailedDesc: "请检查网络连接后重试。",
       metaTitle: "Избранное — МоДелизМ",
       title: "Favorites",
       subtitle: "Listings you marked with a heart",
