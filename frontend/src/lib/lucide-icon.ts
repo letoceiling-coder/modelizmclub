@@ -124,13 +124,28 @@ const REGISTRY: Record<string, LucideIcon> = {
   Zap,
 };
 
+/**
+ * Хранимое имя → имя компонента lucide.
+ *
+ * Прежняя версия для имени без дефиса делала `toLowerCase` по хвосту и
+ * уничтожала внутренние заглавные: `MessageSquare` становился
+ * `Messagesquare`. Здесь это не выстреливало — такие имена находятся в
+ * REGISTRY прямым обращением и до нормализации не доходят, — но та же
+ * функция на бэкенде ломала карточки главной. Изъян одинаковый, чиним
+ * симметрично, см. app/Support/LucideIconName.php.
+ */
 function toPascalCase(name: string): string {
-  return name.includes("-")
-    ? name
-        .split("-")
-        .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-        .join("")
-    : name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  if (/[-_]/.test(name)) {
+    return name
+      .split(/[-_]+/)
+      .filter(Boolean)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+      .join("");
+  }
+  // `TANK` — регистр не несёт смысла. `MessageSquare` — несёт, не трогаем.
+  const body = name === name.toUpperCase() ? name.toLowerCase() : name;
+  const normalized = /[A-Z]/.test(body.slice(1)) ? body : body.toLowerCase();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 // --- lazy tail of the icon set -------------------------------------------
