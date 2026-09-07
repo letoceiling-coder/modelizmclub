@@ -31,37 +31,46 @@ Route::post('safe-deals/webhooks/vtb-payout', SafeDealPayoutWebhookController::c
 Route::post('safe-deals/webhooks/delivery', SafeDealDeliveryWebhookController::class);
 
 /*
- * Денежный контур требует подтверждённого телефона — как лента, сообщества
- * и объявления.
+ * Чтение — за входом, денежные операции — за подтверждённым телефоном.
  *
- * До 07.09 в группе стоял только `auth:sanctum`, тогда как у ленты
- * (Feed/routes/api.php:28), сообществ (Community:32) и объявлений
- * (Listing:37) — `['auth:sanctum', 'verified']`. Замер на проде: учётка с
- * неподтверждённым телефоном получала 403 на лайк поста и при этом
- * **создавала безопасную сделку**, забронировав чужой лот. Опознание
- * личности для денег было слабее, чем для лайка.
+ * 07.09 я закрыл `verified` всю группу разом и получил P0: `fetchSession`
+ * на фронте блокируется на `GET users/me/subscription`, тот стал отвечать
+ * 403 с кодом `phone_not_verified`, а `GuestAccessProvider` открывает по
+ * этому коду окно верификации независимо от страницы. Пользователь с
+ * неподтверждённым телефоном получал модалку поверх **каждой** страницы
+ * сайта, включая оформление и смену пароля. Замер: /settings/appearance,
+ * чистое хранилище, окно есть.
  *
- * Вебхуки провайдера и публичный список тарифов остаются выше, вне группы:
- * у них нет пользователя вовсе.
+ * Разделение повторяет остальные модули: у ленты, сообществ и объявлений
+ * чтения тоже открыты, а `verified` стоит на записи. Денежные экраны
+ * (/settings/wallet, /deals) закрыты маршрутным стражем на фронте, так что
+ * открытые чтения им ничего не показывают лишнего.
+ */
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('users/me/subscription', MySubscriptionController::class);
+    Route::get('wallet', WalletBalanceController::class);
+    Route::get('wallet/transactions', WalletTransactionsController::class);
+    Route::get('safe-deals', IndexSafeDealsController::class);
+    Route::get('safe-deals/{uuid}', ShowSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::get('payments/{uuid}', ShowPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
+});
+
+/*
+ * Деньги требуют подтверждённого телефона — как лента, сообщества и
+ * объявления. До 07.09 здесь стоял только `auth:sanctum`, и учётка, которой
+ * нельзя поставить лайк, создавала безопасную сделку и бронировала чужой лот.
  */
 Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
-    Route::get('users/me/subscription', MySubscriptionController::class);
     Route::post('users/me/subscription/cancel', CancelSubscriptionController::class);
     Route::post('payments', CreatePaymentController::class);
-    Route::get('payments/{uuid}', ShowPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('payments/{uuid}/sync', SyncPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('payments/{uuid}/confirm-stub', ConfirmStubPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
 
-    Route::get('wallet', WalletBalanceController::class);
-    Route::get('wallet/transactions', WalletTransactionsController::class);
     Route::post('wallet/topup', WalletTopupController::class);
     Route::post('wallet/withdraw', WalletWithdrawController::class);
 
-    // Wallet-based safe deals (spec v4.0 §T5).
-    Route::get('safe-deals', IndexSafeDealsController::class);
     Route::post('listings/{uuid}/safe-deal/quote', QuoteSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/safe-deal', CreateSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::get('safe-deals/{uuid}', ShowSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/ship', [SafeDealActionsController::class, 'ship'])->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/delivered', [SafeDealActionsController::class, 'delivered'])->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/confirm', [SafeDealActionsController::class, 'confirm'])->where('uuid', '[0-9a-f-]{36}');
