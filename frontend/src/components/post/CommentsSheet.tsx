@@ -38,7 +38,9 @@ export function CommentsSheet({ open, onOpenChange, stats, preview, children }: 
   // прозвучать.
   const header = (Title: typeof DialogTitle | typeof DrawerTitle) => (
     <div className="flex items-center gap-[8px] px-[16px] pb-[8px]">
-      {preview}
+      {/* Запись показывается блоком под заголовком, а не миниатюрой в его
+          строке: в строке она давала только картинку без автора и текста,
+          и было по-прежнему не видно, к чему ветка. */}
       <div className="min-w-0 flex-1">
         <Title
           className="truncate text-[20px] font-semibold"
