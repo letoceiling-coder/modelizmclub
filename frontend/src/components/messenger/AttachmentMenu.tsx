@@ -9,7 +9,7 @@ import {
   type ChatAttachmentKind,
 } from "@/lib/chat-attachments";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
-import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
+import { TAP_TARGET_44 } from "@/lib/tap-target";
 
 export type AttachmentKind = ChatAttachmentKind;
 

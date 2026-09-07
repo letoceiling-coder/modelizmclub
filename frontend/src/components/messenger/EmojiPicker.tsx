@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Smile } from "lucide-react";
 import { MESSENGER_EMOJI_GROUPS } from "@/lib/messenger-emojis";
-import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
+import { TAP_TARGET_44 } from "@/lib/tap-target";
 
 interface Props {
   onPick: (emoji: string) => void;

@@ -18,7 +18,7 @@ import {
   Flag,
   MoreHorizontal,
 } from "lucide-react";
-import { TAP_TARGET_44 } from "@/lib/messenger/tap-target";
+import { TAP_TARGET_44 } from "@/lib/tap-target";
 
 export interface MessageActionsMenuHandle {
   open: () => void;
