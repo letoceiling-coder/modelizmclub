@@ -128,11 +128,23 @@ if [[ "${ASSUME_YES}" != "1" ]]; then
   esac
 fi
 
+# Откуда уходим — это и будет «предыдущий» после переключения.
+LEAVING="$(basename "$(current_dir)" 2>/dev/null || true)"
+
 ln -sfn "${OUT}" "${FRONTEND_DIR}/.output.next"
 mv -Tf "${FRONTEND_DIR}/.output.next" "${FRONTEND_DIR}/.output"
 systemctl restart "${SERVICE}"
 
 if "${APP_DIR}/deploy/scripts/smoke-check.sh" --frontend "${HEALTH_URL}"; then
+  # Записать, откуда ушли. Раньше это делал только deploy-frontend.sh, а откат
+  # файл лишь читал — и после отката PREVIOUS указывал на релиз, который стал
+  # текущим. Второй откат подряд правило №1 отбрасывал (кандидат равен
+  # текущему) и по правилу №2 брал самый свежий по времени, то есть ровно ту
+  # сборку, от которой только что ушли. Найдено учением 07.09: откат прошёл,
+  # PREVIOUS остался на frontend-20260907161129, ставшем текущим.
+  if [[ -n "${LEAVING}" && "${LEAVING}" != "$(basename "${TARGET}")" ]]; then
+    printf '%s\n' "${LEAVING}" > "${PREVIOUS_FILE}"
+  fi
   echo "откат выполнен -> $(basename "${TARGET}")"
 else
   echo "откат выполнен, но смоук всё ещё падает — дело не в этом релизе" >&2
