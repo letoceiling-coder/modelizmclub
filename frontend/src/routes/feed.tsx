@@ -60,6 +60,7 @@ import {
 } from "@/lib/queries/feed";
 
 import i18n from "@/lib/i18n";
+import { getToken } from "@/lib/api/client";
 
 function findCategoryName(categories: Category[], id: string): string | null {
   for (const c of categories) {
@@ -280,6 +281,23 @@ function FeedPage() {
       ? { pages: [loaded.feed], pageParams: [1] }
       : undefined;
 
+  /*
+   * Серверная выдача анонимна, и для вошедшего она врёт про права.
+   *
+   * Загрузчик маршрута работает на сервере, а токен лежит в localStorage —
+   * дотянуться до него оттуда нельзя. Поэтому у постов, отрисованных на
+   * сервере, `can` всегда гостевой: `react: false` даже там, где тот же API с
+   * токеном отвечает `true`. Дальше <Gated> видит не-гостя с запретом и
+   * убирает кнопку лайка совсем — вошедший пользователь оставался без неё,
+   * пока гость её видел (Gated гостя из этого правила исключает).
+   *
+   * Помечаем серверные данные как уже устаревшие, когда токен есть: разметка
+   * с сервера показывается сразу — LCP не страдает, — но запрос уходит и
+   * возвращает права настоящего зрителя. Без токена данные и правда свежие,
+   * перезапрашивать нечего.
+   */
+  const initialDataUpdatedAt = initialData && getToken() ? 0 : undefined;
+
   // Explicit type arguments: with an `initialData` that may be undefined the
   // overload resolution otherwise widens the page param to `unknown`.
   const feedQuery = useInfiniteQuery<FeedResult, Error, FeedPages, typeof feedKey, number>({
@@ -291,6 +309,7 @@ function FeedPage() {
     staleTime: STALE.feed,
     gcTime: GC.feed,
     initialData,
+    initialDataUpdatedAt,
   });
 
   const posts = useMemo(() => feedPostsOf(feedQuery.data), [feedQuery.data]);
