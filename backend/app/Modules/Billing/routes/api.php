@@ -30,7 +30,21 @@ Route::match(['get', 'post'], 'safe-deals/webhooks/vtb', SafeDealVtbWebhookContr
 Route::post('safe-deals/webhooks/vtb-payout', SafeDealPayoutWebhookController::class);
 Route::post('safe-deals/webhooks/delivery', SafeDealDeliveryWebhookController::class);
 
-Route::middleware('auth:sanctum')->group(function (): void {
+/*
+ * Денежный контур требует подтверждённого телефона — как лента, сообщества
+ * и объявления.
+ *
+ * До 07.09 в группе стоял только `auth:sanctum`, тогда как у ленты
+ * (Feed/routes/api.php:28), сообществ (Community:32) и объявлений
+ * (Listing:37) — `['auth:sanctum', 'verified']`. Замер на проде: учётка с
+ * неподтверждённым телефоном получала 403 на лайк поста и при этом
+ * **создавала безопасную сделку**, забронировав чужой лот. Опознание
+ * личности для денег было слабее, чем для лайка.
+ *
+ * Вебхуки провайдера и публичный список тарифов остаются выше, вне группы:
+ * у них нет пользователя вовсе.
+ */
+Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::get('users/me/subscription', MySubscriptionController::class);
     Route::post('users/me/subscription/cancel', CancelSubscriptionController::class);
     Route::post('payments', CreatePaymentController::class);
