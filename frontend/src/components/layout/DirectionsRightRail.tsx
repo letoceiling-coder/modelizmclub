@@ -15,7 +15,6 @@ import {
   totalOnlineFromStats,
   useCategoryRoomStats,
 } from "@/lib/hooks/useCategoryRoomStats";
-import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import type { Category, CategoryChild } from "@/lib/mock";
 import { parseTaxonomyId, type RailVariant } from "@/lib/taxonomy";
@@ -227,16 +226,14 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
         const toggle = () => setOpenIds((p) => ({ ...p, [node.id]: !p[node.id] }));
         const label = (
           <>
-            {depth === 0 && (
-              <IconBox size="sm" variant="surface">
-                <CategoryIcon
-                  categoryId={node.id}
-                  name={categories.find((c) => c.id === node.id)?.icon}
-                  iconImageUrl={categories.find((c) => c.id === node.id)?.iconImageUrl}
-                  fill
-                />
-              </IconBox>
-            )}
+            {/* Иконок здесь нет намеренно.
+                Своя иконка есть у трёх направлений из четырнадцати — plane,
+                truck, ship; остальным одиннадцати подставлялась одна и та же
+                заглушка Boxes, и колонка читалась как стена одинаковых
+                значков (замер 07.09: 41 интерактивная строка).
+                У Avito списки категорий без иконок вовсе — текст, счётчик и
+                шеврон; у VK иконка своя у каждого пункта. Худший из вариантов —
+                один глиф, повторённый одиннадцать раз. */}
             <span className="min-w-0 flex-1 text-left">
               <span
                 className={`block truncate ${depth === 0 ? "text-[13.5px] font-medium" : "text-[12.5px]"}`}
