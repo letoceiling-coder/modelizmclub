@@ -2,7 +2,8 @@
 @source "../src";
 @import "tw-animate-css";
 @import "@fontsource-variable/manrope";
-@import "@fontsource-variable/space-grotesk";
+/* Space Grotesk не импортируется: он больше нигде не используется, а его
+   объявления @font-face всё равно ехали бы в CSS. */
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 @import "@fontsource/ibm-plex-mono/600.css";
@@ -20,12 +21,17 @@
    * Имя без суффикса оставлено вторым: если пакет когда-нибудь заменят на
    * невариативный, стек продолжит работать.
    *
-   * Space Grotesk остаётся системным намеренно: у него нет кириллического
-   * подмножества (только latin, latin-ext, vietnamese), и включение дало бы
-   * заголовки вперемешку — латиница своим шрифтом, кириллица системным.
+   * Заголовки тоже на Manrope. Space Grotesk отвергнут: у него нет
+   * кириллического подмножества — только latin, latin-ext, vietnamese, —
+   * и на русскоязычном сайте он давал бы заголовки вперемешку: латиница
+   * своим шрифтом, кириллица системным. Смесь двух шрифтов в одной строке
+   * хуже одного, выбранного сознательно.
+   *
+   * Веса это не добавляет: Manrope уже качается для текста, у заголовков
+   * то же семейство и те же подмножества.
    */
   --font-sans: "Manrope Variable", "Manrope", system-ui, sans-serif;
-  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-display: "Manrope Variable", "Manrope", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
 
   /* shadcn bridge — map to design tokens so existing UI keeps working */
