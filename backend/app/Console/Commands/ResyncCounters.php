@@ -68,7 +68,8 @@ class ResyncCounters extends Command
                 'posts.comments_count',
                 'update posts p set comments_count = x.n from (select po.id, (select count(*) from comments c where c.commentable_type = ? and c.commentable_id = po.id and c.deleted_at is null) as n from posts po) x where x.id = p.id and p.comments_count is distinct from x.n',
                 'select count(*) from posts p where p.comments_count is distinct from (select count(*) from comments c where c.commentable_type = ? and c.commentable_id = p.id and c.deleted_at is null)',
-                [Post::class, Post::class],
+                // По одному `?` в каждом из двух запросов — значение одно.
+                [Post::class],
             ],
             [
                 'channel_posts.likes_count',
