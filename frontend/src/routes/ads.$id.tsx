@@ -19,7 +19,6 @@ import { AdOwnerActionPanel } from "@/components/ads/AdOwnerActionPanel";
 import { AdOwnerMobileBar } from "@/components/ads/AdOwnerMobileBar";
 import { AskSellerWidget } from "@/components/ads/AskSellerWidget";
 import { MobileStickyActionBar } from "@/components/ads/MobileStickyActionBar";
-import { DeliveryChoiceSheet } from "@/components/ads/DeliveryChoiceSheet";
 import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { AdDetailSkeleton } from "@/components/ads/AdDetailSkeleton";
 import { Card } from "@/components/ui/card";
@@ -49,26 +48,11 @@ export const Route = createFileRoute("/ads/$id")({
 
 type LoadState = "loading" | "ok" | "notFound" | "error";
 
-function formatDeliveryChoice(
-  choice: string,
-  tr: (key: string, opts?: Record<string, string>) => string,
-): string {
-  const lower = choice.toLowerCase();
-  if (lower.includes("сдэк") || lower.includes("cdek"))
-    return tr("pages.adDetail.deliveryCdek", { choice });
-  if (lower.includes("почт")) return tr("pages.adDetail.deliveryPost", { choice });
-  if (lower.includes("самовывоз") || lower.includes("встреч"))
-    return tr("pages.adDetail.deliveryPickup", { choice });
-  return tr("pages.adDetail.deliveryGeneric", { choice });
-}
-
 function buildSellerIntroMessage(
   ad: Ad,
   tr: (key: string, opts?: Record<string, string>) => string,
-  deliveryNote?: string | null,
 ): string {
-  const intro = tr("pages.adDetail.sellerIntro", { title: ad.title });
-  return deliveryNote ? `${intro}\n\n${deliveryNote}` : intro;
+  return tr("pages.adDetail.sellerIntro", { title: ad.title });
 }
 
 /**
@@ -150,17 +134,12 @@ function AdDetailPage() {
     };
   }, [id]);
 
-  const [deliveryPickerOpen, setDeliveryPickerOpen] = useState(false);
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
   const [ownerBusy, setOwnerBusy] = useState(false);
   const [safeDealBusy] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const availableDeliveryMethods = useMemo(
-    () => (ad?.delivery ?? []).filter((d) => DELIVERY_METHODS.some((m) => m.label === d)),
-    [ad],
-  );
 
   const proceedToConversation = async (queuedMessage: string | null) => {
     const sellerId = ad?.seller?.numericId;
@@ -191,16 +170,20 @@ function AdDetailPage() {
     });
   };
 
+  /*
+   * «Написать продавцу» открывает переписку сразу.
+   *
+   * Раньше, если у объявления был указан хоть один способ доставки, сначала
+   * показывалось окно «Способ получения». Человек нажимал «Написать
+   * продавцу», а его спрашивали, как он хочет получить товар: спросить
+   * «ещё продаётся?» было нельзя, не объявив сперва способ получения.
+   * Доставку выбирают там, где она к месту, — в мастере безопасной сделки,
+   * у него есть собственный шаг выбора.
+   */
   const writeToSeller = () => {
     if (!ad) return;
     requireAuthAndNotOwnAd("ads.write_seller", () => {
-      void (async () => {
-        if (availableDeliveryMethods.length > 0) {
-          setDeliveryPickerOpen(true);
-          return;
-        }
-        await proceedToConversation(buildSellerIntroMessage(ad, t));
-      })();
+      void proceedToConversation(buildSellerIntroMessage(ad, t));
     });
   };
 
@@ -527,16 +510,6 @@ function AdDetailPage() {
         />
       )}
 
-      <DeliveryChoiceSheet
-        open={deliveryPickerOpen}
-        methods={availableDeliveryMethods}
-        onConfirm={(choice) => {
-          setDeliveryPickerOpen(false);
-          void proceedToConversation(
-            buildSellerIntroMessage(ad, t, choice ? formatDeliveryChoice(choice, t) : null),
-          );
-        }}
-      />
       {ad && (
         <ShareSheet
           open={shareOpen}
