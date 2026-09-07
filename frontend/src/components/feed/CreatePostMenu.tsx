@@ -43,6 +43,10 @@ function inferKind(files: File[]): ComposerKind {
 }
 
 const BTN_SIZE = 36;
+// Кнопки композера нарисованы 36. Зону нажатия до 44 добирает псевдоэлемент,
+// а клип-контейнеру нужны эти же 4px паддинга с каждой стороны, иначе он её
+// срежет (замерено на проде: 37 вместо 44).
+const TAP_PAD = 4;
 const ACTION_GAP = 8;
 const ACTIONS_WIDTH_EXPANDED = BTN_SIZE * 2 + ACTION_GAP;
 
@@ -286,9 +290,11 @@ function ComposerActions({
           с равным отрицательным полем растит область обрезки, не двигая
           строку. */}
       <motion.div
-        className="flex shrink-0 justify-end overflow-hidden py-1 -my-1"
+        className="-mx-1 -my-1 flex shrink-0 justify-end overflow-hidden px-1 py-1"
         initial={false}
-        animate={{ width: showSend ? ACTIONS_WIDTH_EXPANDED : BTN_SIZE }}
+        // Ширина анимируется по border-box, а паддинг ниже — часть зоны
+        // нажатия, не содержимого: без этих 8 внутренняя строка обрезалась бы.
+        animate={{ width: (showSend ? ACTIONS_WIDTH_EXPANDED : BTN_SIZE) + TAP_PAD * 2 }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       >
         <div
