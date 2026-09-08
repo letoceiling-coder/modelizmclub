@@ -15,6 +15,20 @@
 # файл доступен всем на чтение — секрет уже утёк, и права 600 у `.env` дают
 # только иллюзию. 07.09 так и было: `.env` 600 root, а
 # bootstrap/cache/config.php — 644 со всеми паролями внутри.
+#
+# И третья проверка — зеркало первой, про сам кеш.
+#
+# `config:cache` сначала удаляет файл (`config:clear` внутри команды), потом
+# создаёт заново — то есть владельцем становится тот, кто запустил команду.
+# Запуск от root плюс предписанный `chmod 640` дают `root:root 640`, а
+# php-fpm работает от www-data и в группе root не состоит. Читать такой файл
+# он не может, а Laravel не подстраховывается: `LoadConfiguration` проверяет
+# `file_exists` и сразу делает `require`. Существующий, но нечитаемый файл —
+# это фатальная ошибка на каждом запросе, а не откат к `.env`.
+#
+# Ровно та же беда, что 07.09, только с другой стороны: тогда www-data не мог
+# прочитать `.env`, теперь — кеш. Поэтому после `config:cache` от root нужен
+# `chown root:www-data`, а проверка обязана это ловить.
 set -uo pipefail
 
 ROOT="${1:-/var/www/modelizmclub}"
@@ -54,6 +68,19 @@ if [[ -f "${CONFIG_CACHE}" ]]; then
   if [[ "${mode: -1}" != "0" ]]; then
     echo "  WARN  config.php читают все, а внутри пароль базы открытым текстом"
     echo "        Починка: chmod 640 ${CONFIG_CACHE}"
+    STATUS=1
+  fi
+
+  if sudo -u "${FPM_USER}" test -r "${CONFIG_CACHE}" 2>/dev/null; then
+    echo "  ok    ${FPM_USER} читает кеш конфига"
+  else
+    echo "  FAIL  ${FPM_USER} НЕ читает bootstrap/cache/config.php"
+    echo "        Laravel делает require существующего файла без запасного пути:"
+    echo "        каждый запрос отвечает 500. Сайт лежит прямо сейчас."
+    echo "        Обычная причина: config:cache запущен от root, файл стал"
+    echo "        root:root, а chmod 640 закрыл его от ${FPM_USER}."
+    echo "        Починка:"
+    echo "          chown root:${FPM_USER} ${CONFIG_CACHE} && chmod 640 ${CONFIG_CACHE}"
     STATUS=1
   fi
 fi
