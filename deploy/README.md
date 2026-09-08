@@ -338,12 +338,14 @@ bash /var/www/modelizmclub-neeklo/deploy/scripts/deploy-neeklo-frontend.sh
 
 ```bash
 chown root:www-data backend/.env && chmod 640 backend/.env
-chmod 640 backend/bootstrap/cache/*.php
+chmod 640 backend/bootstrap/cache/config.php
 ```
 
-Второй chmod не про удобство: в кеше конфига лежит пароль базы открытым
-текстом, а файл был 644 — читал любой пользователь сервера. Права 600 у
-`.env` при этом не закрывали ничего.
+Второй chmod не про удобство: `config.php` — это запечённый `.env`, пароль
+базы там открытым текстом, а файл был 644, то есть читал любой пользователь
+сервера. Права 600 у самого `.env` при этом не закрывали ничего. Остальные
+файлы в `bootstrap/cache` (routes, events, packages, services) секретов не
+несут, их права трогать незачем.
 
 Проверяет `deploy/scripts/check-config-access.sh`; он же вызывается из
 `smoke-check.sh` после каждой выкатки, предупреждением.
