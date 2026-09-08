@@ -243,6 +243,51 @@ class ReconcilePendingPaymentsTest extends TestCase
         $this->assertSame('pending', $payment->fresh()->status);
     }
 
+    public function test_only_applies_to_the_named_outcomes(): void
+    {
+        // Отбор нужен затем, что исходы стоят разного: тестовые и отменённые
+        // закрывать нечем рисковать, а оплаченные требуют разбора — 08.09
+        // выяснилось, что за ними стоят списанные и невыданные подписки.
+        $user = $this->seedUser();
+        $stub = $this->pending($user, 'stub-'.Str::uuid(), 3, 'stub');
+        $cancelled = $this->pending($user, 'order-cancelled');
+        $paid = $this->pending($user, 'order-paid');
+
+        $this->bankSays([
+            'order-cancelled' => ['errorCode' => '0', 'orderStatus' => 3],
+            'order-paid' => ['errorCode' => '0', 'orderStatus' => 2],
+        ]);
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0 --only=test,cancelled')
+            ->expectsOutputToContain('не в --only, оставлен')
+            ->assertSuccessful();
+
+        $this->assertSame('failed', $stub->fresh()->status);
+        $this->assertSame('failed', $cancelled->fresh()->status);
+        $this->assertSame('pending', $paid->fresh()->status, 'оплаченный должен остаться нетронутым');
+    }
+
+    public function test_unknown_outcome_in_only_stops_the_run(): void
+    {
+        // Опечатка при --apply иначе выглядела бы как успешный прогон, не
+        // тронувший ни строки, — и заметили бы её не сразу.
+        $user = $this->seedUser();
+        $stub = $this->pending($user, 'stub-'.Str::uuid(), 3, 'stub');
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0 --only=test,отменённые')
+            ->expectsOutputToContain('Неизвестный исход в --only')
+            ->assertFailed();
+
+        $this->assertSame('pending', $stub->fresh()->status);
+    }
+
+    public function test_only_question_mark_lists_the_keys(): void
+    {
+        $this->artisan('payments:reconcile-pending --only=?')
+            ->expectsOutputToContain('test-fulfilled')
+            ->assertFailed();
+    }
+
     public function test_fresh_payments_are_out_of_scope(): void
     {
         // Платёж, созданный минуту назад, ещё в полёте: человек прямо сейчас
