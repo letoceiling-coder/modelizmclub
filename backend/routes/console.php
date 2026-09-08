@@ -22,10 +22,21 @@ Artisan::command('inspire', function () {
 | тик приходит раз в минуту, и медленный внешний ответ не должен собирать
 | очередь из копий той же команды.
 |
+| Срок замка задаётся всегда и равен интервалу запуска. Умолчание у Laravel —
+| 1440 минут, то есть сутки, и это не страховка, а мина: замок снимает сам
+| процесс в конце работы, а если он умер — не снимает никто. 08.09 так и
+| вышло. `safe-deals:auto-release` и `payments:reconcile-pending` не
+| запускались шесть часов: в Redis висели два замка с семнадцатью часами
+| остатка. Брошенный чекаут из-за этого держал объявление два с половиной
+| часа вместо тридцати минут, а автоопрос банка молчал всё это время.
+|
+| Замок короче интервала не нужен: он снимется к следующему тику сам. Замок
+| длиннее интервала превращает один сбой в суточный простой команды.
+|
 */
 
-Schedule::command('posts:publish-scheduled')->everyMinute()->withoutOverlapping();
-Schedule::command('videos:publish-scheduled')->everyMinute()->withoutOverlapping();
+Schedule::command('posts:publish-scheduled')->everyMinute()->withoutOverlapping(1);
+Schedule::command('videos:publish-scheduled')->everyMinute()->withoutOverlapping(1);
 
 // Раз в четверть часа, а не раз в час. Команда делает три вещи, и одна из
 // них — гасить брошенные чекауты; их TTL 30 минут, так что при часовом
@@ -36,12 +47,12 @@ Schedule::command('videos:publish-scheduled')->everyMinute()->withoutOverlapping
 // Опрос выдерживает паузу между запросами к банку, и полсотни холдов держат
 // процесс около минуты. Без отдельного процесса на это время встают
 // поминутные задачи расписания: они ждут, пока тик закончится.
-Schedule::command('safe-deals:auto-release')->everyFifteenMinutes()->withoutOverlapping()->runInBackground();
+Schedule::command('safe-deals:auto-release')->everyFifteenMinutes()->withoutOverlapping(15)->runInBackground();
 
 // Опрос СДЭК и Яндекса по активным отправлениям. В расписании не было
 // вовсе, и вызвать её больше неоткуда: без этого статус доставки, однажды
 // записанный при создании, не менялся бы никогда.
-Schedule::command('delivery:sync-statuses')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('delivery:sync-statuses')->everyFifteenMinutes()->withoutOverlapping(15);
 
 /*
  * Автоопрос банка по висящим платежам.
@@ -66,7 +77,16 @@ if (config('billing.auto_poll.enabled', true)) {
         '--only='.(string) config('billing.auto_poll.apply', 'paid,cancelled'),
     ])
         ->cron((string) config('billing.auto_poll.cron', '*/5 * * * *'))
-        ->withoutOverlapping()
+        /*
+         * Пять минут — ровно интервал. Обычный прогон занимает меньше минуты:
+         * полсотни платежей с секундной паузой между обращениями к банку.
+         * Затянуться он может только на повторах при отказе по частоте, и
+         * тогда второй прогон не страшен: `markPaid` перечитывает платёж под
+         * `lockForUpdate` и выходит, если он уже оплачен, а `markFailed`
+         * идемпотентен. То есть цена короткого замка — возможный лишний
+         * прогон, цена длинного — сутки молчания.
+         */
+        ->withoutOverlapping(5)
         // Опрос выдерживает паузу между запросами: полсотни платежей — около
         // минуты. Держать на это время весь тик расписания незачем.
         ->runInBackground();
