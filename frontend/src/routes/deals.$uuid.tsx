@@ -28,7 +28,7 @@ import {
 import { toast } from "@/lib/toast";
 import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { uploadMedia } from "@/lib/api/media";
+import { openAuthorizedMedia, uploadMedia } from "@/lib/api/media";
 import {
   fetchSafeDeal,
   resolveSafeDealRole,
@@ -293,6 +293,28 @@ function DealDetailPage() {
               <div className="text-[13px]">
                 <div className="font-semibold">Открыт спор</div>
                 <div style={{ color: "var(--foreground-70)" }}>Причина: {deal.dispute.reason}</div>
+                {(deal.dispute.evidence?.length ?? 0) > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {deal.dispute.evidence!.map((f, i) => (
+                      // Файл отдаётся только по токену — обычная ссылка
+                      // пришла бы анонимной и получила 403.
+                      <button
+                        key={f.uuid}
+                        type="button"
+                        className="underline"
+                        style={{ color: "var(--foreground-70)" }}
+                        onClick={() => {
+                          if (!f.url) return;
+                          void openAuthorizedMedia(f.url).catch(() =>
+                            toast.error("Не удалось открыть файл"),
+                          );
+                        }}
+                      >
+                        {f.filename || `файл ${i + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

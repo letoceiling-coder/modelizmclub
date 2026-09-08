@@ -71,7 +71,12 @@ export interface SafeDeal {
   auto_release_at: string | null;
   hold_expires_at?: string | null;
   can_dispute?: boolean;
-  dispute?: { uuid: string; status: string; reason: string } | null;
+  dispute?: {
+    uuid: string;
+    status: string;
+    reason: string;
+    evidence?: { uuid: string; url: string | null; filename: string | null }[];
+  } | null;
   can_review?: boolean;
   my_review?: { rating: number; text: string | null } | null;
   escrow_provider?: "vtb" | "wallet";
