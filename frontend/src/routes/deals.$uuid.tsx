@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/lib/toast";
+import { askConfirm } from "@/lib/ui/ask";
 import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { openAuthorizedMedia, uploadMedia } from "@/lib/api/media";
@@ -370,11 +371,13 @@ function DealDetailPage() {
                 disabled={busy}
                 className="gap-[8px]"
                 onClick={() => {
-                  if (
-                    window.confirm("Подтвердить получение? Средства будут переведены продавцу.")
-                  ) {
-                    void runAction(() => confirmSafeDeal(uuid), "Получение подтверждено");
-                  }
+                  void askConfirm({
+                    title: "Подтвердить получение?",
+                    description: "Средства будут переведены продавцу.",
+                    confirmLabel: "Подтвердить",
+                  }).then((ok) => {
+                    if (ok) void runAction(() => confirmSafeDeal(uuid), "Получение подтверждено");
+                  });
                 }}
               >
                 <CheckCircle2 size={16} /> Подтвердить получение
@@ -386,16 +389,18 @@ function DealDetailPage() {
                 disabled={busy}
                 className="gap-[8px]"
                 onClick={() => {
-                  if (
-                    window.confirm(
-                      "Запросить возврат? Средства будут возвращены покупателю, сделка отменится.",
-                    )
-                  ) {
+                  void askConfirm({
+                    title: "Запросить возврат?",
+                    description: "Средства вернутся покупателю, сделка отменится.",
+                    confirmLabel: "Запросить возврат",
+                    danger: true,
+                  }).then((ok) => {
+                    if (!ok) return;
                     void runAction(
                       () => cancelSafeDeal(uuid),
                       "Возврат запрошен, средства возвращены покупателю",
                     );
-                  }
+                  });
                 }}
               >
                 <XCircle size={16} /> Запросить возврат

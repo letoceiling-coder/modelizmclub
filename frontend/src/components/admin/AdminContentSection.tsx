@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Eye, Check, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
+import { askConfirm } from "@/lib/ui/ask";
 import {
   fetchAdminPosts,
   updateAdminPostStatus,
@@ -76,7 +77,7 @@ export function ContentSection() {
     }
   };
   const remove = async (uuid: string) => {
-    if (!window.confirm(t("pages.adminContent.deleteConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adminContent.deleteConfirm") }))) return;
     try {
       await deleteAdminPost(uuid);
       setRows((prev) => prev.filter((r) => r.uuid !== uuid));

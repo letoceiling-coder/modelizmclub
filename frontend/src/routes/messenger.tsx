@@ -108,6 +108,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import i18n from "@/lib/i18n";
 import { MessengerPageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatDate } from "@/lib/format/date";
+import { askConfirm } from "@/lib/ui/ask";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
@@ -1328,7 +1329,7 @@ function MessengerPage() {
 
   const handleDeleteForEveryone = async (m: Message) => {
     if (!active) return;
-    if (!window.confirm(t("pages.messenger.deleteForAllConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.messenger.deleteForAllConfirm") }))) return;
 
     const dialogId = active.id;
     messengerCache.removeMessage(dialogId, m.id);
@@ -2020,7 +2021,12 @@ function MessengerPage() {
             actions.unblockUser(dlg.userId);
             toast.success(t("pages.messenger.userUnblocked", { name: partner.name }));
           } else {
-            if (!window.confirm(t("pages.messenger.blockConfirm", { name: partner.name }))) return;
+            if (
+              !(await askConfirm({
+                title: t("pages.messenger.blockConfirm", { name: partner.name }),
+              }))
+            )
+              return;
             if (!isDemoMode() && partner.numericId) {
               try {
                 await blockUser(partner.numericId);
@@ -2048,7 +2054,7 @@ function MessengerPage() {
         }}
         onClearHistory={async () => {
           if (!dialogCtxMenu) return;
-          if (!window.confirm(t("pages.messenger.clearHistoryConfirm"))) return;
+          if (!(await askConfirm({ title: t("pages.messenger.clearHistoryConfirm") }))) return;
           const dialogId = dialogCtxMenu.dialogId;
           if (!isDemoMode()) {
             try {
@@ -2063,7 +2069,7 @@ function MessengerPage() {
         }}
         onDeleteChat={async () => {
           if (!dialogCtxMenu) return;
-          if (!window.confirm(t("pages.messenger.deleteChatConfirm"))) return;
+          if (!(await askConfirm({ title: t("pages.messenger.deleteChatConfirm") }))) return;
           const dialogId = dialogCtxMenu.dialogId;
           const dlg = dlgs.find((d) => d.id === dialogId);
           const partnerId = dlg?.userId ?? "";

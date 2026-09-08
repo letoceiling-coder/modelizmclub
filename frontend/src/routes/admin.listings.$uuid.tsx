@@ -14,6 +14,7 @@ import {
   type AdminListingDetail,
 } from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
+import { askConfirm } from "@/lib/ui/ask";
 
 export const Route = createFileRoute("/admin/listings/$uuid")({
   head: () => ({ meta: [{ title: "Объявление — админ — МоДелизМ" }] }),
@@ -138,7 +139,7 @@ function AdminListingPage() {
   };
 
   const remove = async () => {
-    if (!window.confirm("Удалить объявление?")) return;
+    if (!(await askConfirm({ title: "Удалить объявление?" }))) return;
     try {
       await deleteAdminListing(uuid);
       toast.success("Объявление удалено");

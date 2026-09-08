@@ -36,6 +36,7 @@ import { calls, useCalls } from "@/lib/calls";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { groupCalls, useGroupCall } from "@/lib/groupCall";
 import { actions, useStore, selectors, markDialogDeleted } from "@/lib/store";
+import { askConfirm } from "@/lib/ui/ask";
 
 interface Props {
   partnerId: string;
@@ -187,7 +188,10 @@ export function ChatHeaderActions({
   const clearHistory = async () => {
     close();
     if (!dialogId) return;
-    if (!window.confirm(t("components.chatHeader.clearConfirm", { name: partnerName }))) return;
+    if (
+      !(await askConfirm({ title: t("components.chatHeader.clearConfirm", { name: partnerName }) }))
+    )
+      return;
     if (!isDemoMode()) {
       try {
         await clearConversationHistory(dialogId);
@@ -203,7 +207,12 @@ export function ChatHeaderActions({
   const deleteChat = async () => {
     close();
     if (!dialogId) return;
-    if (!window.confirm(t("components.chatHeader.deleteConfirm", { name: partnerName }))) return;
+    if (
+      !(await askConfirm({
+        title: t("components.chatHeader.deleteConfirm", { name: partnerName }),
+      }))
+    )
+      return;
     if (!isDemoMode()) {
       try {
         await clearConversationHistory(dialogId);

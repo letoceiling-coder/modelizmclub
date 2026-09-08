@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/admin";
 import { H, card, inputStyle, IconBtn } from "@/components/admin/adminShared";
 import { SubscriptionCell } from "@/components/admin/AdminDashboardSection";
+import { askConfirm } from "@/lib/ui/ask";
 
 export function UsersSection() {
   const { t } = useTranslation();
@@ -115,7 +116,10 @@ export function UsersSection() {
       toast.error(t("pages.adminUsers.cannotDeleteSelf"));
       return;
     }
-    if (!window.confirm(t("pages.adminUsers.deleteConfirm", { email: target.email }))) return;
+    if (
+      !(await askConfirm({ title: t("pages.adminUsers.deleteConfirm", { email: target.email }) }))
+    )
+      return;
     setDeletingUuid(uuid);
     try {
       await deleteAdminUser(uuid);

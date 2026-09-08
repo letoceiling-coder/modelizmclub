@@ -24,6 +24,7 @@ import {
 import { uploadAdminMedia } from "@/lib/api/admin-media";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { formatDate } from "@/lib/format/date";
+import { askConfirm } from "@/lib/ui/ask";
 
 const BANNER_LIMITS = {
   title: 200,
@@ -327,7 +328,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
   };
 
   const removeBanner = async (id: string) => {
-    if (!window.confirm(t("pages.adminBanners.toast.deleteConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adminBanners.toast.deleteConfirm") }))) return;
     try {
       await deleteAdminBanner(id);
       setBanners((prev) => prev.filter((b) => b.id !== id));

@@ -87,6 +87,7 @@ import { toast } from "@/lib/toast";
 
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
+import { askConfirm } from "@/lib/ui/ask";
 
 /**
  * Загрузчик вынесен из объекта маршрута с явным типом ответа.
@@ -1231,8 +1232,12 @@ function CommunityDetailPage() {
         icon: LogOut,
         danger: true,
         label: t("pages.communityDetail.leaveCommunity"),
-        onSelect: () => {
-          if (!window.confirm(t("pages.communityDetail.leaveConfirm"))) return;
+        onSelect: async () => {
+          if (
+            !(await askConfirm({ title: t("pages.communityDetail.leaveConfirm"), danger: true }))
+          ) {
+            return;
+          }
           toggleJoin();
         },
       });
@@ -1334,8 +1339,8 @@ function CommunityDetailPage() {
       .catch(() => toast.error(t("pages.communityDetail.eventFailed")));
   };
 
-  const handleBan = (uuid: string) => {
-    if (!window.confirm(t("pages.communityDetail.banMember"))) return;
+  const handleBan = async (uuid: string) => {
+    if (!(await askConfirm({ title: t("pages.communityDetail.banMember"), danger: true }))) return;
     void banCommunityMember(community.id, uuid)
       .then(() => {
         setMemberList((prev) => prev.filter((m) => m.user.uuid !== uuid));

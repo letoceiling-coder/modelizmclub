@@ -82,6 +82,7 @@ import { openConversation } from "@/lib/api/chat";
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
+import { askConfirm } from "@/lib/ui/ask";
 
 /**
  * Вынесен из объекта маршрута с явным типом: `head` читает `loaderData`, а
@@ -327,8 +328,15 @@ function ChannelPage() {
           icon: LogOut,
           danger: true,
           label: t("pages.channelDetail.unsubscribe"),
-          onSelect: () => {
-            if (!window.confirm(t("pages.channelDetail.unsubscribeConfirm"))) return;
+          onSelect: async () => {
+            if (
+              !(await askConfirm({
+                title: t("pages.channelDetail.unsubscribeConfirm"),
+                danger: true,
+              }))
+            ) {
+              return;
+            }
             onToggle();
           },
         });

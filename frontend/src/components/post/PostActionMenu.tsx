@@ -35,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
+import { askConfirm } from "@/lib/ui/ask";
 
 interface Props {
   postId: string;
@@ -187,7 +188,7 @@ export function PostActionMenu({
 
   const handleDelete = async () => {
     if (busy) return;
-    if (!window.confirm(t("components.postActionMenu.deleteConfirm"))) return;
+    if (!(await askConfirm({ title: t("components.postActionMenu.deleteConfirm") }))) return;
     setBusy(true);
     try {
       if (isDemoMode()) {

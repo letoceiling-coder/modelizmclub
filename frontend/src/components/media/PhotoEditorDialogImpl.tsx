@@ -33,6 +33,7 @@ import {
   type PhotoShape,
 } from "@/lib/photo-editor";
 import { CropSafeZoneOverlay } from "@/components/media/CropSafeZoneOverlay";
+import { askConfirm } from "@/lib/ui/ask";
 import {
   BANNER_ASPECT,
   BANNER_EXPORT_HEIGHT,
@@ -333,9 +334,9 @@ export function PhotoEditorDialog({
     onCancel();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!onDelete) return;
-    if (!window.confirm("Удалить это фото?")) return;
+    if (!(await askConfirm({ title: "Удалить это фото?", danger: true }))) return;
     onDelete();
   };
 

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
+import { askConfirm } from "@/lib/ui/ask";
 import {
   adminCreateFaqArticle,
   adminCreateFaqCategory,
@@ -212,7 +213,7 @@ function CategoryBlock({
   };
 
   const deleteArticle = async (id: number) => {
-    if (!window.confirm(t("pages.adminFaq.deleteQuestionConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adminFaq.deleteQuestionConfirm") }))) return;
     try {
       await adminDeleteFaqArticle(id);
       toast.success(t("pages.adminFaq.questionDeleted"));
@@ -241,7 +242,7 @@ function CategoryBlock({
   };
 
   const deleteCategory = async () => {
-    if (!window.confirm(t("pages.adminFaq.deleteCategoryConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adminFaq.deleteCategoryConfirm") }))) return;
     try {
       await adminDeleteFaqCategory(local.id);
       toast.success(t("pages.adminFaq.categoryDeleted"));

@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TimeAgo } from "@/components/TimeAgo";
+import { askConfirm } from "@/lib/ui/ask";
 
 type CommentPhotosPayload = { mediaIds: string[]; urls: string[] };
 
@@ -486,8 +487,15 @@ function CommentItem({
                   <DropdownMenuContent align="end">
                     {canDelete ? (
                       <DropdownMenuItem
-                        onClick={() => {
-                          if (!window.confirm(t("components.commentSection.deleteConfirm"))) return;
+                        onClick={async () => {
+                          if (
+                            !(await askConfirm({
+                              title: t("components.commentSection.deleteConfirm"),
+                              danger: true,
+                            }))
+                          ) {
+                            return;
+                          }
                           void deleteComment(comment.id)
                             .then(() => onDeleted?.(comment.id))
                             .catch((err) => {

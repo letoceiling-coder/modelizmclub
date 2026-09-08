@@ -47,6 +47,7 @@ import { Button } from "@/components/ui/button";
 import { RepostComposerDialog } from "@/components/feed/RepostComposerDialog";
 import { formatDate } from "@/lib/format/date";
 import { Img } from "@/components/ui/Img";
+import { askConfirm } from "@/lib/ui/ask";
 
 export type PostCardVariant = "feed" | "community" | "channel" | "profile" | "embedded";
 
@@ -639,7 +640,8 @@ export function PostCard({
             }}
             onReschedule={() => setScheduleDialogOpen(true)}
             onCancelSchedule={async () => {
-              if (!window.confirm(t("components.postCard.cancelScheduleConfirm"))) return;
+              if (!(await askConfirm({ title: t("components.postCard.cancelScheduleConfirm") })))
+                return;
               try {
                 await cancelScheduledPost(post.id);
                 onDelete?.(post.id);

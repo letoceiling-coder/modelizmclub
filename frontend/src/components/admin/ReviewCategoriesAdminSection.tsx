@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Reorder, useDragControls } from "framer-motion";
 import { GripVertical, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { askConfirm, askText } from "@/lib/ui/ask";
 import {
   createAdminCategory,
   deleteAdminCategory,
@@ -152,9 +153,14 @@ export function ReviewCategoriesAdminSection() {
   }, [load]);
 
   const add = async () => {
-    const name = window.prompt(t("pages.adminReviewCategories.promptName"))?.trim();
+    const name = (await askText({ title: t("pages.adminReviewCategories.promptName") }))?.trim();
     if (!name) return;
-    const slug = window.prompt(t("pages.adminReviewCategories.promptSlug"), slugify(name))?.trim();
+    const slug = (
+      await askText({
+        title: t("pages.adminReviewCategories.promptSlug"),
+        defaultValue: slugify(name),
+      })
+    )?.trim();
     if (!slug) return;
     setSaving(true);
     try {
@@ -174,9 +180,19 @@ export function ReviewCategoriesAdminSection() {
   };
 
   const edit = async (c: AdminCategory) => {
-    const name = window.prompt(t("pages.adminReviewCategories.promptEditName"), c.name)?.trim();
+    const name = (
+      await askText({
+        title: t("pages.adminReviewCategories.promptEditName"),
+        defaultValue: c.name,
+      })
+    )?.trim();
     if (!name) return;
-    const slug = window.prompt(t("pages.adminReviewCategories.promptEditSlug"), c.slug)?.trim();
+    const slug = (
+      await askText({
+        title: t("pages.adminReviewCategories.promptEditSlug"),
+        defaultValue: c.slug,
+      })
+    )?.trim();
     if (!slug) return;
     setSaving(true);
     try {
@@ -196,7 +212,12 @@ export function ReviewCategoriesAdminSection() {
   };
 
   const remove = async (c: AdminCategory) => {
-    if (!window.confirm(t("pages.adminReviewCategories.deleteConfirm", { name: c.name }))) return;
+    if (
+      !(await askConfirm({
+        title: t("pages.adminReviewCategories.deleteConfirm", { name: c.name }),
+      }))
+    )
+      return;
     setSaving(true);
     try {
       await deleteAdminCategory("video", c.id);
