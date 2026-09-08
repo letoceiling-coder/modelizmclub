@@ -43,6 +43,7 @@ class ReconcilePendingPaymentsCommand extends Command
         {--apply : применить изменения; без флага только разбор}
         {--older-than=15 : не трогать платежи моложе этого числа минут}
         {--limit=0 : ограничить число разбираемых платежей}
+        {--only= : применять только к этим исходам, через запятую (см. --only=? )}
         {--delay-ms= : пауза между запросами к банку, мс (по умолчанию из billing.vtb.reconcile)}
         {--retries= : повторов при отказе по частоте (по умолчанию из billing.vtb.reconcile)}';
 
@@ -72,6 +73,30 @@ class ReconcilePendingPaymentsCommand extends Command
     /** Тестовый контур: исполнение состоялось, а статус отстал. */
     private const STUB_FULFILLED = 'тестовый контур, исполнен — статус отстал';
 
+    /**
+     * Короткие имена исходов для `--only`.
+     *
+     * Разбор всегда идёт по всем платежам — иначе не узнать исход, — а
+     * записывается только то, что названо. Нужно это затем, что исходы стоят
+     * разного: тестовые и отменённые закрывать нечем рисковать, а по
+     * оплаченным сначала надо понять, что человеку причитается. 08.09 такой
+     * разбор показал, что один пользователь заплатил 1 097 ₽ тремя платежами
+     * и не получил ничего; выдавать ему три подписки подряд командой было бы
+     * хуже, чем не трогать.
+     *
+     * @var array<string, string>
+     */
+    private const ONLY_KEYS = [
+        'paid' => self::PAID,
+        'cancelled' => self::CANCELLED,
+        'open' => self::ABANDONED,
+        'unknown' => self::UNKNOWN,
+        'never-sent' => self::NEVER_SENT,
+        'failed' => self::FAILED_TO_ASK,
+        'test' => self::STUB_ABANDONED,
+        'test-fulfilled' => self::STUB_FULFILLED,
+    ];
+
     public function handle(VtbAcquiringClient $client, PaymentFulfillmentService $fulfillment): int
     {
         $apply = (bool) $this->option('apply');
@@ -85,6 +110,12 @@ class ReconcilePendingPaymentsCommand extends Command
             ? max(0, (int) $this->option('retries'))
             : (int) config('billing.vtb.reconcile.max_retries', 3);
         $backoffMs = (int) config('billing.vtb.reconcile.backoff_ms', 2000);
+
+        $only = $this->resolveOnly();
+
+        if ($only === false) {
+            return self::FAILURE;
+        }
 
         $query = Payment::query()
             ->where('status', 'pending')
@@ -112,6 +143,10 @@ class ReconcilePendingPaymentsCommand extends Command
             $delayMs,
             $retries,
         ));
+
+        if ($only !== null) {
+            $this->line('Записываются только исходы: '.implode(', ', $only));
+        }
         $this->newLine();
 
         /** @var array<string, list<Payment>> $buckets */
@@ -133,16 +168,19 @@ class ReconcilePendingPaymentsCommand extends Command
 
             $buckets[$verdict][] = $payment;
 
+            $selected = $only === null || in_array($verdict, $only, true);
+
             $this->line(sprintf(
-                '  %s  %s  %s  %s  %s',
+                '  %s  %s  %s  %s  %s%s',
                 str_pad($payment->uuid, 38),
                 str_pad((string) $payment->created_at?->format('d.m H:i'), 12),
                 str_pad(number_format($payment->amount_cents / 100, 2, ',', ' ').' ₽', 12, ' ', STR_PAD_LEFT),
                 str_pad((string) $payment->provider, 5),
                 $verdict,
+                $only !== null && ! $selected ? '  — не в --only, оставлен' : '',
             ));
 
-            if ($apply) {
+            if ($apply && $selected) {
                 $this->applyVerdict($fulfillment, $payment, $verdict);
             }
         }
@@ -170,6 +208,46 @@ class ReconcilePendingPaymentsCommand extends Command
         $this->verifyIndependently($pending);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Разбор `--only`: список исходов или null, если ключ не задан.
+     *
+     * Незнакомое имя — остановка, а не молчаливое «ничего не подошло».
+     * Опечатка в ключе при `--apply` иначе выглядела бы как успешный прогон,
+     * не тронувший ни строки, и это заметили бы не сразу.
+     *
+     * @return list<string>|null|false false — ключ разобрать не удалось
+     */
+    private function resolveOnly(): array|null|false
+    {
+        $raw = $this->option('only');
+
+        if ($raw === null || trim((string) $raw) === '') {
+            return null;
+        }
+
+        if (trim((string) $raw) === '?') {
+            $this->line('Исходы для --only: '.implode(', ', array_keys(self::ONLY_KEYS)));
+
+            return false;
+        }
+
+        $names = array_values(array_filter(array_map('trim', explode(',', (string) $raw))));
+        $verdicts = [];
+
+        foreach ($names as $name) {
+            if (! array_key_exists($name, self::ONLY_KEYS)) {
+                $this->error("Неизвестный исход в --only: {$name}");
+                $this->line('Допустимые: '.implode(', ', array_keys(self::ONLY_KEYS)));
+
+                return false;
+            }
+
+            $verdicts[] = self::ONLY_KEYS[$name];
+        }
+
+        return $verdicts;
     }
 
     /**
@@ -279,8 +357,9 @@ class ReconcilePendingPaymentsCommand extends Command
      *
      * Считать итог тем же условием, каким шла правка, бессмысленно: сломанное
      * условие сломано в обеих половинах одинаково. Поэтому пересчитываем по
-     * факту в базе — сколько строк из разобранных всё ещё `pending`, — и
-     * сверяем с числом тех, кого решено было не трогать.
+     * факту в базе — по конечному статусу каждой разобранной строки — и
+     * сверяем, что закрытые и оставшиеся дают ровно то число, с которого
+     * начали. Разошлось — значит, кто-то поменял строки помимо команды.
      *
      * @param  Collection<int, Payment>  $pending
      */
@@ -288,17 +367,17 @@ class ReconcilePendingPaymentsCommand extends Command
     {
         $ids = $pending->pluck('id')->all();
         $stillPending = Payment::query()->whereIn('id', $ids)->where('status', 'pending')->count();
-        $untouched = $pending->count() - Payment::query()
-            ->whereIn('id', $ids)
-            ->whereIn('status', ['paid', 'failed'])
-            ->count();
+        $closed = Payment::query()->whereIn('id', $ids)->whereIn('status', ['paid', 'failed'])->count();
+        $paid = Payment::query()->whereIn('id', $ids)->where('status', 'paid')->count();
+        $failed = Payment::query()->whereIn('id', $ids)->where('status', 'failed')->count();
 
         $this->newLine();
-        $this->line("Осталось в pending: {$stillPending} из {$pending->count()}.");
+        $this->line("Закрыто: {$closed} из {$pending->count()} (доведено до оплаты {$paid}, отмечено неудавшимися {$failed}).");
+        $this->line("Осталось в pending: {$stillPending}.");
 
-        if ($stillPending !== $untouched) {
+        if ($closed + $stillPending !== $pending->count()) {
             $this->error(
-                "Расхождение: не тронуто {$untouched}, а в pending {$stillPending}. ".
+                'Расхождение: закрытые и оставшиеся не складываются в разобранные. '.
                 'Разберитесь до следующего запуска.',
             );
         }
