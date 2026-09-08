@@ -456,7 +456,11 @@ class SafeDealService
             throw ValidationException::withMessages(['deal' => ['Сделку нельзя завершить в текущем статусе.']]);
         }
 
-        return $this->releaseToSeller($deal, $buyer, 'Покупатель подтвердил получение.');
+        return $this->releaseToSeller($deal, $buyer, 'Покупатель подтвердил получение.', [
+            SafeDealStatus::Paid,
+            SafeDealStatus::Shipped,
+            SafeDealStatus::Delivered,
+        ]);
     }
 
     /** Scheduled auto-release for delivered deals past their window. */
@@ -466,7 +470,9 @@ class SafeDealService
             return $deal;
         }
 
-        return $this->releaseToSeller($deal, null, 'Автоматическое подтверждение по истечении срока.');
+        return $this->releaseToSeller($deal, null, 'Автоматическое подтверждение по истечении срока.', [
+            SafeDealStatus::Delivered,
+        ]);
     }
 
     /**
@@ -493,7 +499,10 @@ class SafeDealService
             throw ValidationException::withMessages(['deal' => ['Отменить можно только неотправленную/недоставленную сделку.']]);
         }
 
-        return $this->refundBuyer($deal, $actor, SafeDealStatus::Cancelled, 'Сделка отменена, средства возвращены покупателю.');
+        return $this->refundBuyer($deal, $actor, SafeDealStatus::Cancelled, 'Сделка отменена, средства возвращены покупателю.', [
+            SafeDealStatus::Paid,
+            SafeDealStatus::Shipped,
+        ]);
     }
 
     public function openDispute(User $user, SafeDeal $deal, string $reason, ?string $description, array $evidenceUuids = []): Dispute
@@ -515,6 +524,16 @@ class SafeDealService
         $evidence = $this->normalizeDisputeEvidence($user, $evidenceUuids);
 
         $dispute = DB::transaction(function () use ($user, $deal, $reason, $description, $evidence): Dispute {
+            // Проверка в начале метода смотрела в копию, прочитанную до того,
+            // как покупатель в соседней вкладке подтвердил получение. Здесь
+            // сделка перечитывается под блокировкой — если подтверждение уже
+            // прошло, спор не открывается.
+            $deal = $this->lockForTransition($deal, [
+                SafeDealStatus::Paid,
+                SafeDealStatus::Shipped,
+                SafeDealStatus::Delivered,
+            ], 'Спор можно открыть только по активной сделке.');
+
             $previousStatus = $deal->status->value;
 
             $deal->update([
@@ -560,14 +579,19 @@ class SafeDealService
 
         // Money first, and outside a transaction: both paths talk to the bank,
         // and the dispute row must only close once the money actually moved.
+        // Только из `disputed`. Второй модератор, открывший ту же карточку,
+        // упрётся в это же условие: первая развязка уже увела сделку в
+        // refunded или completed, и деньги второй раз не двинутся.
+        $fromDispute = [SafeDealStatus::Disputed];
+
         if ($inFavorOf === 'buyer') {
-            $this->refundBuyer($deal, $admin, SafeDealStatus::Refunded, 'Спор решён в пользу покупателя.');
+            $this->refundBuyer($deal, $admin, SafeDealStatus::Refunded, 'Спор решён в пользу покупателя.', $fromDispute);
             $dispute->status = DisputeStatus::ResolvedBuyer;
         } elseif ($inFavorOf === 'split') {
-            $this->splitPayout($deal, $admin, (int) $buyerKopecks, (int) $sellerKopecks, $resolution ?: 'Спор: сумма разделена.');
+            $this->splitPayout($deal, $admin, (int) $buyerKopecks, (int) $sellerKopecks, $resolution ?: 'Спор: сумма разделена.', $fromDispute);
             $dispute->status = DisputeStatus::ResolvedSplit;
         } else {
-            $this->releaseToSeller($deal, $admin, 'Спор решён в пользу продавца.');
+            $this->releaseToSeller($deal, $admin, 'Спор решён в пользу продавца.', $fromDispute);
             $dispute->status = DisputeStatus::ResolvedSeller;
         }
 
@@ -579,8 +603,62 @@ class SafeDealService
         return $dispute->fresh();
     }
 
-    private function releaseToSeller(SafeDeal $deal, ?User $actor, string $note): SafeDeal
+    /**
+     * Перечитать сделку под блокировкой строки и убедиться, что переход всё
+     * ещё законен.
+     *
+     * Проверки статуса в начале публичных методов смотрят в объект, который
+     * запрос прочитал у себя, — и ничего не знают о том, что за это время
+     * сделала соседняя вкладка. 08.09 из-за этого одновременные
+     * «Подтвердить получение» и «Открыть спор» проходили оба: сделка
+     * `completed`, спор `open`, деньги у продавца, а решение спора в пользу
+     * покупателя выплачивало ему полную сумму сверх выплаченной продавцу.
+     *
+     * Вызывать только внутри транзакции: вне её `lockForUpdate` бесполезен,
+     * блокировка снимается тем же запросом, что её взял. Возвращённый объект
+     * — единственный, с которым дальше можно работать: тот, что пришёл
+     * аргументом, к этому моменту уже может врать.
+     *
+     * @param  list<SafeDealStatus>  $allowedFrom
+     */
+    private function lockForTransition(SafeDeal $deal, array $allowedFrom, string $message): SafeDeal
     {
+        $locked = SafeDeal::query()->whereKey($deal->getKey())->lockForUpdate()->first();
+
+        if ($locked === null || ! in_array($locked->status, $allowedFrom, true)) {
+            throw ValidationException::withMessages(['deal' => [$message]]);
+        }
+
+        return $locked;
+    }
+
+    /**
+     * Тот же вопрос, но без блокировки и до обращения в банк.
+     *
+     * Захват средств стоит перед транзакцией намеренно — сеть не должна
+     * держать блокировку строки. Значит, между «проверили» и «записали» есть
+     * окно, и дешёвая проверка перед банком его почти закрывает: если спор
+     * уже открыт, деньги не захватываются вовсе. Полной гарантией остаётся
+     * повторная проверка под блокировкой; захват, случившийся до чужой
+     * записи, не теряется — сделка остаётся оплаченной, и решение спора
+     * вернёт или выплатит уже захваченное.
+     *
+     * @param  list<SafeDealStatus>  $allowedFrom
+     */
+    private function assertFreshStatus(SafeDeal $deal, array $allowedFrom, string $message): void
+    {
+        $fresh = SafeDeal::query()->whereKey($deal->getKey())->first();
+
+        if ($fresh === null || ! in_array($fresh->status, $allowedFrom, true)) {
+            throw ValidationException::withMessages(['deal' => [$message]]);
+        }
+    }
+
+    /** @param  list<SafeDealStatus>  $allowedFrom */
+    private function releaseToSeller(SafeDeal $deal, ?User $actor, string $note, array $allowedFrom): SafeDeal
+    {
+        $this->assertFreshStatus($deal, $allowedFrom, 'Сделку нельзя завершить в текущем статусе.');
+
         // Capture first: crediting the seller before the bank settles would
         // hand out money we might never receive.
         $incoming = $this->activeIncoming($deal);
@@ -588,7 +666,9 @@ class SafeDealService
             $this->settlement->capture($incoming);
         }
 
-        $completed = DB::transaction(function () use ($deal, $actor, $note, $incoming): SafeDeal {
+        $completed = DB::transaction(function () use ($deal, $actor, $note, $incoming, $allowedFrom): SafeDeal {
+            $deal = $this->lockForTransition($deal, $allowedFrom, 'Сделку нельзя завершить в текущем статусе.');
+
             $buyer = $deal->buyer;
             $seller = $deal->seller;
 
@@ -654,14 +734,19 @@ class SafeDealService
         }
     }
 
-    private function refundBuyer(SafeDeal $deal, ?User $actor, SafeDealStatus $finalStatus, string $note): SafeDeal
+    /** @param  list<SafeDealStatus>  $allowedFrom */
+    private function refundBuyer(SafeDeal $deal, ?User $actor, SafeDealStatus $finalStatus, string $note, array $allowedFrom): SafeDeal
     {
+        $this->assertFreshStatus($deal, $allowedFrom, 'Возврат по сделке в текущем статусе невозможен.');
+
         $incoming = $this->activeIncoming($deal);
         if ($incoming !== null) {
             $this->settlement->releaseBack($incoming);
         }
 
-        return DB::transaction(function () use ($deal, $actor, $finalStatus, $note, $incoming): SafeDeal {
+        return DB::transaction(function () use ($deal, $actor, $finalStatus, $note, $incoming, $allowedFrom): SafeDeal {
+            $deal = $this->lockForTransition($deal, $allowedFrom, 'Возврат по сделке в текущем статусе невозможен.');
+
             $refund = $incoming !== null ? null : $this->wallet->refundHold(
                 $deal->buyer,
                 (int) $deal->amount_kopecks,
@@ -697,7 +782,8 @@ class SafeDealService
      * Wallet-only split: consume the hold, then credit buyer X and seller Y.
      * Card (VTB) one-stage charges cannot be split without a partial refund API.
      */
-    private function splitPayout(SafeDeal $deal, ?User $actor, int $buyerKopecks, int $sellerKopecks, string $note): SafeDeal
+    /** @param  list<SafeDealStatus>  $allowedFrom */
+    private function splitPayout(SafeDeal $deal, ?User $actor, int $buyerKopecks, int $sellerKopecks, string $note, array $allowedFrom): SafeDeal
     {
         $total = (int) $deal->amount_kopecks;
         if ($buyerKopecks < 0 || $sellerKopecks < 0 || $buyerKopecks + $sellerKopecks !== $total) {
@@ -713,7 +799,9 @@ class SafeDealService
             ]);
         }
 
-        $completed = DB::transaction(function () use ($deal, $actor, $buyerKopecks, $sellerKopecks, $note, $total): SafeDeal {
+        $completed = DB::transaction(function () use ($deal, $actor, $buyerKopecks, $sellerKopecks, $note, $total, $allowedFrom): SafeDeal {
+            $deal = $this->lockForTransition($deal, $allowedFrom, 'Разделение суммы по сделке в текущем статусе невозможно.');
+
             $buyer = $deal->buyer;
             $seller = $deal->seller;
 

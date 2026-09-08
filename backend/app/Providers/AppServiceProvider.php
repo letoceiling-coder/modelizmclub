@@ -166,6 +166,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', function (Request $request) {
             if ($request->is('api/v1/media/*')
                 || $request->is('api/v1/payments/webhooks/*')
+                // Колбэки безопасной сделки: оплата, выплата продавцу и
+                // доставка. Соседний `payments/webhooks/*` был исключён, а
+                // этот — нет, и разницы никто не заметил, потому что банк
+                // шлёт уведомления с одного адреса: 150 запросов залпом дали
+                // 30 отказов 429 (замерено 08.09 на тестовых ключах). Каждый
+                // такой отказ — потерянное уведомление о движении денег.
+                || $request->is('api/v1/safe-deals/webhooks/*')
                 || $request->is('api/v1/webhooks/*')
                 || $request->is('api/v1/health')
                 // Public site config — loaded once on app boot; must not be throttled
