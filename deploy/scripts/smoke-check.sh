@@ -122,6 +122,18 @@ if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_CONFIG_ACCESS:-0}" != "1" ]]; then
   fi
 fi
 
+# На чём держится модерация. Предупреждение, не приговор: автопубликация
+# бывает нужна осознанно, важно про неё знать. 08.09 выяснилось, что модерацию
+# постов на проде держала одна строка в system_settings поверх
+# FEED_AUTO_PUBLISH=true в окружении — удалить её можно из админки.
+if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_MODERATION_GATES:-0}" != "1" ]]; then
+  MOD_GATES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-moderation-gates.sh"
+  if [[ -x "${MOD_GATES}" ]]; then
+    echo ""
+    "${MOD_GATES}" || true
+  fi
+fi
+
 if [[ "${FAILED}" != "0" ]]; then
   echo "smoke check FAILED" >&2
   exit 1
