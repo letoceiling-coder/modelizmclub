@@ -4,7 +4,7 @@ namespace Modules\Billing\Clients;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
+use Modules\Billing\Exceptions\VtbApiException;
 
 /**
  * VTB internet acquiring REST client (ИЭ / RBS).
@@ -128,20 +128,27 @@ class VtbAcquiringClient
     private function decode(Response $response, string $endpoint): array
     {
         if (! $response->successful()) {
-            throw new RuntimeException("VTB {$endpoint} HTTP {$response->status()}");
+            throw new VtbApiException(
+                "VTB {$endpoint} HTTP {$response->status()}",
+                httpStatus: $response->status(),
+            );
         }
 
         /** @var array<string, mixed>|null $data */
         $data = $response->json();
 
         if (! is_array($data)) {
-            throw new RuntimeException("VTB {$endpoint} returned invalid JSON");
+            throw new VtbApiException("VTB {$endpoint} returned invalid JSON", httpStatus: $response->status());
         }
 
         if (isset($data['errorCode']) && (string) $data['errorCode'] !== '0') {
             $message = (string) ($data['errorMessage'] ?? 'Unknown VTB error');
 
-            throw new RuntimeException("VTB {$endpoint}: {$message} (code {$data['errorCode']})");
+            throw new VtbApiException(
+                "VTB {$endpoint}: {$message} (code {$data['errorCode']})",
+                httpStatus: $response->status(),
+                errorCode: (string) $data['errorCode'],
+            );
         }
 
         return $data;
