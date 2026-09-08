@@ -4,6 +4,8 @@
 export const ROUTES = {
   home: "/",
   feed: "/feed",
+  /** Отдельная страница записи: собственные метаданные и canonical. */
+  post: (uuid: string) => `/post/${uuid}` as const,
   communities: "/communities",
   community: (id: string) => `/communities/${id}` as const,
   ads: "/ads",
@@ -45,7 +47,7 @@ export const SUBSCRIPTION_INVITE_URL = ROUTES.referral;
 
 // Maps sidebar section ids to URL prefixes that should highlight it.
 export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
-  feed: ["/feed", "/categories"],
+  feed: ["/feed", "/post", "/categories"],
   communities: ["/communities"],
   channels: ["/channels", "/channel"],
   // "ad-create" стоит ПЕРЕД "ads": getActiveSection возвращает первое

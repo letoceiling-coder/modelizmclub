@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -30,7 +30,7 @@ import { FeedFilterTabs, type FeedFilter } from "@/components/feed/FeedFilterTab
 import { EmptyState } from "@/components/ui/empty-state";
 import { useCurrentUser } from "@/lib/session";
 import type { Post, Category, Banner } from "@/lib/mock";
-import { fetchFeed, fetchPost, type FeedQuery, type FeedResult } from "@/lib/api/feed";
+import { fetchFeed, type FeedQuery, type FeedResult } from "@/lib/api/feed";
 import {
   fetchPostCategories,
   categoryIdByName,
@@ -114,6 +114,9 @@ export const Route = createFileRoute("/feed")({
   // fetchPostCategories() source, so the names are guaranteed to match.
   // `tag` — a hashtag chip from a post card; the backend's feed filter
   // takes the bare name, so it is stored without the leading "#".
+  // `post` — только для переадресации старых ссылок «Поделиться» (см.
+  // beforeLoad выше). Лента его больше не отрисовывает: у записи есть
+  // собственный адрес /post/{uuid}.
   validateSearch: (
     search: Record<string, unknown>,
   ): {
@@ -132,6 +135,46 @@ export const Route = createFileRoute("/feed")({
         ? search.tag.replace(/^#/, "").slice(0, 64)
         : undefined,
   }),
+  /*
+   * До появления /post/{uuid} записью делились ссылкой /feed?post={id}: лента
+   * подтягивала запись и подводила к ней скроллом. Такие ссылки уже разосланы
+   * и должны открываться — поэтому параметр не удалён, а переадресован на
+   * собственный адрес записи. Замена постоянная (replace), чтобы «назад» не
+   * возвращало на редирект.
+   *
+   * Проверка стоит в загрузчике, а не в beforeLoad: у маршрута с
+   * validateSearch вывод типов схлопывает возврат beforeLoad до never, и
+   * условная ветка (вернуть undefined, когда параметра нет) не проходит
+   * проверку типов. Загрузчик видит тот же разобранный search и срабатывает
+   * до единственного сетевого запроса — лишней загрузки ленты не будет.
+   */
+  /*
+   * До появления /post/{uuid} записью делились ссылкой /feed?post={id}: лента
+   * подтягивала запись и подводила к ней скроллом. Такие ссылки уже разосланы
+   * и должны открываться — поэтому параметр не удалён, а переадресован на
+   * собственный адрес записи. Замена постоянная (replace), чтобы «назад» не
+   * возвращало на редирект.
+   *
+   * Тип аргумента выписан руками намеренно. Стоит положиться на вывод
+   * (`({ search })` без аннотации) — и разрешение типа контекста у маршрута с
+   * validateSearch зацикливается: TypeScript схлопывает ожидаемый возврат
+   * beforeLoad до never, и ветка «параметра нет, ничего не делаем» перестаёт
+   * проходить проверку. Форма search здесь та же, что отдаёт validateSearch.
+   */
+  beforeLoad: async ({ search }: { search: { post?: string } }) => {
+    if (search.post) {
+      throw redirect({
+        to: "/post/$uuid",
+        params: { uuid: search.post },
+        replace: true,
+        // 301, а не умолчательный 307: адрес записи сменился насовсем, и
+        // поисковику надо перенести на него вес старых ссылок. Кешируется
+        // только пара «/feed?post=<uuid> → /post/<uuid>»; сама /feed без
+        // параметра — другой адрес и не затрагивается.
+        statusCode: 301,
+      });
+    }
+  },
   loader: async () => {
     await ensurePublicBootstrap();
     const [feed, inline, categories, hero] = await Promise.all([
@@ -162,7 +205,6 @@ function FeedPage() {
     composer,
     category: categoryFromUrl,
     taxonomy_id: taxonomyFromUrl,
-    post: focusPostId,
     tag,
   } = Route.useSearch();
   const navigate = useNavigate();
@@ -320,34 +362,6 @@ function FeedPage() {
     },
     [queryClient, feedKey],
   );
-
-  // A post opened by link (/feed?post=…) may sit past the loaded pages —
-  // fetch it once and pin it to the top so the anchor has something to hit.
-  useEffect(() => {
-    if (!focusPostId) return;
-    let cancelled = false;
-    const node = document.getElementById(`feed-post-${focusPostId}`);
-    if (node) {
-      node.scrollIntoView({ block: "start", behavior: "smooth" });
-      return;
-    }
-    void fetchPost(focusPostId)
-      .then((post) => {
-        if (cancelled) return;
-        updateFeed((data) =>
-          feedPostsOf(data).some((p) => p.id === post.id) ? data : prependFeedPost(data, post),
-        );
-        window.setTimeout(() => {
-          document
-            .getElementById(`feed-post-${post.id}`)
-            ?.scrollIntoView({ block: "start", behavior: "smooth" });
-        }, 50);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [focusPostId, updateFeed]);
 
   const hideFeedPost = (id: string) => {
     hidePostId(id);

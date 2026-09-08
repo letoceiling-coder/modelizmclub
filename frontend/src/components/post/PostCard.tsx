@@ -43,13 +43,14 @@ import { resolveMinTier } from "@/lib/feed-guest-access/store";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { setChannelSubscription, type Channel } from "@/lib/channels";
+import { ROUTES } from "@/lib/routes";
 import { Button } from "@/components/ui/button";
 import { RepostComposerDialog } from "@/components/feed/RepostComposerDialog";
 import { formatDate } from "@/lib/format/date";
 import { Img } from "@/components/ui/Img";
 import { askConfirm } from "@/lib/ui/ask";
 
-export type PostCardVariant = "feed" | "community" | "channel" | "profile" | "embedded";
+export type PostCardVariant = "feed" | "community" | "channel" | "profile" | "post" | "embedded";
 
 export interface PostCardContext {
   community?: Pick<Community, "id" | "name">;
@@ -68,8 +69,9 @@ interface Props {
   /**
    * feed — full card with the context line; community — no context line;
    * channel — reactions only when the channel allows them; profile — like
-   * feed; embedded — the original inside a repost: no chrome, no actions,
-   * the whole block links to the post.
+   * feed; post — отдельная страница записи /post/{uuid}: как feed, но
+   * карточка остаётся карточкой и на телефоне; embedded — the original
+   * inside a repost: no chrome, no actions, the whole block links to the post.
    */
   variant?: PostCardVariant;
   context?: PostCardContext;
@@ -221,7 +223,7 @@ export function PostCard({
     post.channel?.commentsEnabled !== false && context?.channel?.commentsEnabled !== false;
   const reactionsEnabled =
     variant === "channel" ? context?.channel?.reactionsEnabled !== false : true;
-  const showContextLine = variant === "feed" || variant === "profile";
+  const showContextLine = variant === "feed" || variant === "profile" || variant === "post";
   const [editOpen, setEditOpen] = useState(false);
   const [channelSubscribed, setChannelSubscribed] = useState(Boolean(post.channel?.isSubscribed));
   const isScheduled = post.status === "scheduled";
@@ -415,7 +417,7 @@ export function PostCard({
   };
 
   const sharePost = async () => {
-    const url = `${window.location.origin}/feed?post=${post.id}`;
+    const url = `${window.location.origin}${ROUTES.post(post.id)}`;
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({

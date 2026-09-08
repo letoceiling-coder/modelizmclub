@@ -149,11 +149,15 @@ already have».
 `SafeDealHoldSyncService::syncByRbsOrderId()`. Идемпотентность обеспечивается
 тем же способом — повторный вызов просто повторно синхронизирует статус.
 
-Отдельно существует `VtbCallbackChecksumValidator`
-(`backend/app/Support/`, тест `tests/Unit/VtbCallbackChecksumValidatorTest.php`)
-— проверка контрольной суммы колбэка, добавленная коммитом `8ed8d55`.
-Используется ли она в `SafeDealVtbWebhookController` — нет: контроллер её не
-вызывает.
+`VtbCallbackChecksumValidator` **в коде отсутствует** (проверено 08.09.2026).
+Он был добавлен коммитом `8ed8d55` в `backend/app/Modules/Billing/Support/`
+вместе с тестом и скриптом `deploy/scripts/test-vtb-callback-checksum.php`, а
+затем удалён откатом `d95d8aa` «Rollback to pre-secure-deal state» — тем же,
+что снёс 7331 строку в 80 файлах. В `master` его нет ни в одном из трёх мест.
+
+Прежняя редакция этого абзаца утверждала, что класс лежит в
+`backend/app/Support/` и просто не вызывается. Это неверно вдвойне: каталог
+был другой, и файла давно нет.
 
 ## Где пишется `rbs_order_status`
 
