@@ -14,6 +14,7 @@ import { api } from "./client";
  *   GET    /payments/{uuid}               ShowPaymentController
  *   POST   /payments/{uuid}/sync          SyncPaymentController
  *   POST   /payments/{uuid}/confirm-stub  ConfirmStubPaymentController  (test acquiring outcomes)
+ *   GET    /users/me/payments            MyPaymentsController
  *   GET    /users/me/subscription         MySubscriptionController
  *   POST   /users/me/subscription/cancel  CancelSubscriptionController
  *   GET    /plans                         IndexPlansController
@@ -166,6 +167,63 @@ export function paymentFailureCopy(reason: string | undefined, t: (key: string) 
 }
 
 /** Current subscription, or null when the user is on the free tier. */
+/**
+ * Строка истории платежей.
+ *
+ * Отдельно от истории кошелька, а не вместе с ней: карточное пополнение
+ * даёт и платёж, и проводку в кошельке — объединённый список показал бы его
+ * дважды. А платёж, который не дошёл, в кошельке не появляется вовсе, и
+ * ровно ради таких строк экран и нужен.
+ */
+export interface PaymentHistoryItem {
+  uuid: string;
+  /** Копейки. */
+  amount: number;
+  amountRub: number;
+  currency: string;
+  status: "pending" | "paid" | "failed" | "cancelled" | string;
+  /** Назначение: subscription | listing | listing_boost | escrow | topup | other. */
+  type: string;
+  /** Русская подпись назначения с бэкенда — запасная, экран переводит `type` сам. */
+  typeLabel: string;
+  /** Название тарифа: единственное, что отличает одну подписку от другой. */
+  planName: string | null;
+  date: string;
+  paidAt: string | null;
+}
+
+interface PaymentHistoryApi {
+  uuid: string;
+  amount: number;
+  amount_rub: number;
+  currency: string;
+  status: string;
+  type: string;
+  type_label: string;
+  plan_name: string | null;
+  date: string;
+  paid_at: string | null;
+}
+
+export async function fetchMyPayments(perPage = 50): Promise<PaymentHistoryItem[]> {
+  const res = await api<{ data: PaymentHistoryApi[] }>("/users/me/payments", {
+    query: { per_page: perPage },
+  });
+
+  return (res.data ?? []).map((p) => ({
+    uuid: p.uuid,
+    amount: p.amount,
+    amountRub: p.amount_rub,
+    currency: p.currency,
+    status: p.status,
+    type: p.type,
+    typeLabel: p.type_label,
+    planName: p.plan_name,
+    date: p.date,
+    paidAt: p.paid_at,
+  }));
+}
+
 export async function fetchMySubscription(): Promise<MySubscription | null> {
   const res = await api<{ data: MySubscription | null }>("/users/me/subscription");
   return res.data ?? null;

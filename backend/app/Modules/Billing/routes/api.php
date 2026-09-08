@@ -9,6 +9,7 @@ use Modules\Billing\Http\Controllers\Api\V1\QuoteSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\ReviewSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexSafeDealsController;
+use Modules\Billing\Http\Controllers\Api\V1\MyPaymentsController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\SafeDealActionsController;
 use Modules\Billing\Http\Controllers\Api\V1\SafeDealDeliveryWebhookController;
@@ -48,6 +49,7 @@ Route::post('safe-deals/webhooks/delivery', SafeDealDeliveryWebhookController::c
  */
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('users/me/subscription', MySubscriptionController::class);
+    Route::get('users/me/payments', MyPaymentsController::class);
     Route::get('wallet', WalletBalanceController::class);
     Route::get('wallet/transactions', WalletTransactionsController::class);
     Route::get('safe-deals', IndexSafeDealsController::class);
