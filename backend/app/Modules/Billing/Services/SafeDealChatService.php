@@ -19,7 +19,24 @@ use Modules\Chat\Services\ChatService;
  */
 class SafeDealChatService
 {
-    public function __construct(private readonly ChatService $chat) {}
+    public function __construct(
+        private readonly ChatService $chat,
+        private readonly SafeDealSettlementService $settlement,
+    ) {}
+
+    /**
+     * Лежат ли деньги по сделке на карте покупателя.
+     *
+     * Системные сообщения в чате сделки пишут статус словами, а «оплачена»
+     * значит разное в двух режимах эквайринга: при двухстадийном деньги на
+     * карте покупателя, при одностадийном уже на счёте площадки. Без этого
+     * признака подпись сказала бы про холд там, где его нет.
+     */
+    private function holdsOnCard(SafeDeal $deal): bool
+    {
+        return ($deal->metadata['escrow_provider'] ?? null) === SafeDealSettlementService::PROVIDER_VTB
+            && $this->settlement->holdsOnCard();
+    }
 
     /**
      * The deal's chat, created on first call. Idempotent: a deal keeps the one
@@ -62,7 +79,7 @@ class SafeDealChatService
 
         $this->chat->postSystemMessage(
             $conversation,
-            "Сделка №{$this->number($deal)} создана. Статус: {$deal->status->label()}.",
+            "Сделка №{$this->number($deal)} создана. Статус: {$deal->status->label($this->holdsOnCard($deal))}.",
         );
 
         return $conversation;
@@ -95,7 +112,7 @@ class SafeDealChatService
                 'settings' => array_merge($settings, ['deal_status' => $status]),
             ])->save();
 
-            $body = "Сделка №{$this->number($deal)} — {$deal->status->label()}.";
+            $body = "Сделка №{$this->number($deal)} — {$deal->status->label($this->holdsOnCard($deal))}.";
             if ($note !== '') {
                 $body .= ' '.$note;
             }

@@ -424,7 +424,7 @@ function DealDetailPage() {
             )}
             {!holdOpen && (s === "paid" || s === "shipped" || s === "delivered") && (
               <p className="w-full text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                Срок холда истёк — открыть спор больше нельзя.
+                Срок для открытия спора истёк.
               </p>
             )}
           </div>
@@ -501,7 +501,18 @@ function DealDetailPage() {
 function DealTimeline({ deal }: { deal: SafeDeal }) {
   const steps = [
     { key: "created", label: "Создан", done: Boolean(deal.paid_at) },
-    { key: "paid", label: "Оплачен (Средства захолдированы)", done: Boolean(deal.paid_at) },
+    {
+      key: "paid",
+      // Та же подпись, что и на бэкенде (`lifecycleLabel`), и по той же
+      // причине с ветвлением: при одностадийном списании денег на карте уже
+      // нет, они у площадки. Обещать холд в этом случае — говорить неправду о
+      // том, где лежат деньги покупателя.
+      label:
+        deal.escrow_holds_on_card === false
+          ? "Оплачен (деньги у площадки)"
+          : "Оплачен (средства захолдированы)",
+      done: Boolean(deal.paid_at),
+    },
     {
       key: "handed",
       label: "Передан в СДЭК (Трек-номер)",

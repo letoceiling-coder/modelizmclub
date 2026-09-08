@@ -541,8 +541,11 @@ class SafeDealService
             throw ValidationException::withMessages(['deal' => ['Спор по этой сделке уже открыт.']]);
         }
 
+        // `hold_expires_at` — окно, в которое можно открыть спор. Оно есть в
+        // обоих режимах, а холд — только в двухстадийном, поэтому подпись про
+        // срок, а не про холд.
         if ($deal->hold_expires_at !== null && ! $deal->hold_expires_at->isFuture()) {
-            throw ValidationException::withMessages(['deal' => ['Срок холда истёк, открыть спор нельзя.']]);
+            throw ValidationException::withMessages(['deal' => ['Срок для открытия спора истёк.']]);
         }
 
         $evidence = $this->normalizeDisputeEvidence($user, $evidenceUuids);
@@ -956,7 +959,7 @@ class SafeDealService
         }
 
         throw ValidationException::withMessages([
-            'deal' => ['Холд в банке по этой сделке недействителен: банк снял удержание или вернул деньги. Разберитесь вручную.'],
+            'deal' => ['Оплата по этой сделке в банке недействительна: удержание снято или деньги возвращены. Разберитесь вручную.'],
         ]);
     }
 
@@ -1165,7 +1168,7 @@ class SafeDealService
             'status' => $deal->status->value,
             'status_label' => $this->lifecycleLabel($deal),
             'money_status' => $deal->status->value,
-            'money_status_label' => $deal->status->label(),
+            'money_status_label' => $deal->status->label($this->holdsOnCard($deal)),
             'item_kopecks' => $item,
             'amount_kopecks' => (int) $deal->amount_kopecks,
             'platform_fee_percent' => $this->platformFeePercent(),
@@ -1205,8 +1208,7 @@ class SafeDealService
             'escrow_provider' => $deal->metadata['escrow_provider'] ?? SafeDealSettlementService::PROVIDER_WALLET,
             // Whether the money waits on the buyer's card or on our account —
             // the wording the buyer sees differs, the flow does not.
-            'escrow_holds_on_card' => ($deal->metadata['escrow_provider'] ?? null) === SafeDealSettlementService::PROVIDER_VTB
-                && $this->settlement->holdsOnCard(),
+            'escrow_holds_on_card' => $this->holdsOnCard($deal),
             // Present only while the buyer still has to pass the card form.
             'checkout_url' => $deal->status === SafeDealStatus::Created
                 ? ($deal->metadata['checkout_url'] ?? null)
@@ -1412,11 +1414,27 @@ class SafeDealService
         };
     }
 
+    /**
+     * Лежат ли деньги по этой сделке на карте покупателя.
+     *
+     * Кошельковая сделка — нет, деньги на внутреннем балансе. Карточная — да,
+     * но только в двухстадийном режиме; в одностадийном они списаны на счёт
+     * площадки в момент оплаты. От этого зависят подписи, которые видит
+     * покупатель, поэтому признак считается в одном месте.
+     */
+    private function holdsOnCard(SafeDeal $deal): bool
+    {
+        return ($deal->metadata['escrow_provider'] ?? null) === SafeDealSettlementService::PROVIDER_VTB
+            && $this->settlement->holdsOnCard();
+    }
+
     private function lifecycleLabel(SafeDeal $deal): string
     {
         return match ($deal->status) {
             SafeDealStatus::Created => 'Создан',
-            SafeDealStatus::Paid => 'Оплачен (Средства захолдированы)',
+            SafeDealStatus::Paid => $this->holdsOnCard($deal)
+                ? 'Оплачен (средства захолдированы)'
+                : 'Оплачен (деньги у площадки)',
             SafeDealStatus::Shipped => $this->deliveryStatusLabel($deal->delivery_status)
                 ?? 'Передан в СДЭК (Трек-номер)',
             SafeDealStatus::Delivered => 'Получен покупателем',
