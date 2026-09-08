@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
-import { type AdCondition, type Category } from "@/lib/mock";
+import { type AdCondition, type Category, type CategoryChild } from "@/lib/mock";
 import {
   fetchListingCategories,
   fetchPostCategories,
@@ -816,6 +816,14 @@ function NewAdPage() {
   const completePaidListing = async (source: PayWith) => {
     const job = pendingPay;
     if (!job) return;
+    /*
+     * `parcelFromForm` берёт `Pick<Form, …>` из семи полей, и отложенная
+     * оплата все семь несёт — приводить её к `Form` целиком было незачем, а
+     * привести и нельзя: у `job` нет остальных полей формы, и `as Form`
+     * TypeScript отвергал как несопоставимые типы. Заодно расчёт делался
+     * дважды подряд ради двух полей одного результата.
+     */
+    const jobParcel = parcelFromForm(job);
     setPendingPay(null);
     setSubmitting(true);
     try {
@@ -832,8 +840,8 @@ function NewAdPage() {
         publish: false,
         promocode: job.promocode,
         packageSize: job.packageSize || undefined,
-        weightKg: parcelFromForm(job as Form).weightKg,
-        dimensionsCm: parcelFromForm(job as Form).dimensionsCm,
+        weightKg: jobParcel.weightKg,
+        dimensionsCm: jobParcel.dimensionsCm,
         pickupAddress: job.pickupAddress || undefined,
       });
       const checkout = await createListingPlacementPayment({
@@ -1271,7 +1279,13 @@ function StepData({
   set: <K extends keyof Form>(k: K, v: Form[K]) => void;
   cat: Category | undefined;
   cats: Category[];
-  subcategories: { id: string; name: string }[];
+  /*
+   * Не `{ id, name }[]`, а полный `CategoryChild[]`: ниже по коду форма
+   * читает `s.children`, чтобы предзаполнить третий уровень при смене
+   * подкатегории. Сокращённый тип обещал меньше, чем компонент на самом деле
+   * требует, — и обращение к `children` не проходило проверку.
+   */
+  subcategories: CategoryChild[];
   touched: Set<string>;
   touch: (name: string) => void;
   verifiedPhone: string;

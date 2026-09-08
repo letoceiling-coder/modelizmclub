@@ -34,7 +34,7 @@ export function ShareSheet({
     }
     storePendingShare({ url, title, kind: "community" });
     onOpenChange(false);
-    void navigate({ to: "/messenger", search: { share: "1" } });
+    void navigate({ to: "/messenger", search: { share: true } });
   };
 
   const copyLink = async () => {

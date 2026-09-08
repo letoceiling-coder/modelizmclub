@@ -18,7 +18,18 @@ import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/reviews/")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.metaTitle") }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  /*
+   * Тип возврата объявлен явно, с необязательными ключами.
+   *
+   * Без него роутер выводит `{ category: string | undefined; ... }` — ключи
+   * обязательные, значения могут быть пустыми, — и требует `search` у каждой
+   * ссылки на `/reviews`. Пять переходов в `reviews.$id` и `reviews.upload`
+   * из-за этого не проходили проверку типов, хотя параметры и правда
+   * необязательные. Так же объявлен `validateSearch` у мессенджера.
+   */
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { category?: string; q?: string; tag?: string } => ({
     category: typeof search.category === "string" ? search.category : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
     tag: typeof search.tag === "string" ? search.tag : undefined,

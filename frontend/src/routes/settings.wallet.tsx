@@ -153,26 +153,6 @@ function WalletSection() {
   const [heldKopecks, setHeldKopecks] = useState(0);
   const [operations, setOperations] = useState<WalletTransaction[]>([]);
 
-  /*
-   * Демо-данные приезжают динамическим импортом, а не статическим.
-   *
-   * lib/mock — 108 КБ демо-контента, и любой статический импорт оттуда
-   * тянул весь файл в главный чанк боевой сборки: выбросить его сборщик
-   * не может, потому что часть массивов строится вызовами на уровне
-   * модуля. Тот же приём уже применён в lib/api/wallet.ts.
-   */
-  useEffect(() => {
-    if (!demo) return;
-    let alive = true;
-    void import("@/lib/mock").then(({ mockWalletBalance, mockWalletOperations }) => {
-      if (!alive) return;
-      setBalanceKopecks(mockWalletBalance * 100);
-      setOperations(mockWalletOperations);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [demo]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
@@ -199,8 +179,19 @@ function WalletSection() {
       .catch(() => {});
   };
 
+  /*
+   * Демо-режим отдельной ветки больше не требует.
+   *
+   * Раньше здесь стоял `if (demo) return`, а рядом жил второй эффект, который
+   * тянул `lib/mock` и клал в состояние `WalletOperation[]` — тип демо-данных,
+   * у которого нет ни `kind`, ни `service`, ни `status`. Экран же работает с
+   * `WalletTransaction[]`, и присваивание не проходило проверку типов.
+   *
+   * Разбирать демо-данные экрану и не нужно: `fetchWalletBalance` и
+   * `fetchWalletTransactions` сами возвращают демо-значения, уже приведённые к
+   * типу API. Второй разбор был копией первого, только неверной.
+   */
   useEffect(() => {
-    if (demo) return;
     load();
     const onBilling = () => load();
     window.addEventListener("modelizm:billing-changed", onBilling);

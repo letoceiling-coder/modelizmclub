@@ -250,7 +250,7 @@ function RegisterPage() {
           />
           <span>
             Принимаю{" "}
-            <Link to="/legal/rules" style={{ color: "var(--accent)" }}>
+            <Link to="/legal/$slug" params={{ slug: "rules" }} style={{ color: "var(--accent)" }}>
               Пользовательское соглашение
             </Link>
           </span>
@@ -267,7 +267,7 @@ function RegisterPage() {
           />
           <span>
             Согласен(на) на обработку персональных данных (
-            <Link to="/legal/consent" style={{ color: "var(--accent)" }}>
+            <Link to="/legal/$slug" params={{ slug: "consent" }} style={{ color: "var(--accent)" }}>
               Согласие на обработку ПД
             </Link>
             )
@@ -285,7 +285,7 @@ function RegisterPage() {
           />
           <span>
             Согласен(на) на получение рекламных материалов (
-            <Link to="/legal/privacy" style={{ color: "var(--accent)" }}>
+            <Link to="/legal/$slug" params={{ slug: "privacy" }} style={{ color: "var(--accent)" }}>
               Политика конфиденциальности
             </Link>
             )

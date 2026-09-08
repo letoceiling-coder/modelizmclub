@@ -90,7 +90,12 @@ export function CookieBanner() {
             style={{ color: "var(--foreground-70)" }}
           >
             Мы используем cookie.{" "}
-            <Link to="/legal/privacy" className="underline" style={{ color: "var(--accent)" }}>
+            <Link
+              to="/legal/$slug"
+              params={{ slug: "privacy" }}
+              className="underline"
+              style={{ color: "var(--accent)" }}
+            >
               Политика
             </Link>
             {" · "}

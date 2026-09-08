@@ -634,8 +634,11 @@ function ChatTab({
     setMessages([]);
 
     resolveRoomConversation(category.id, subId)
-      .then((uuid) => {
-        if (!alive) return uuid;
+      .then((uuid): RoomMessage[] | Promise<RoomMessage[]> => {
+        // Экран размонтирован — сообщений не ждём. Возвращать сюда `uuid`,
+        // как было раньше, значило отдать строку в звено, которое ждёт список:
+        // дальше по цепочке `msgs` оказывался то массивом, то строкой.
+        if (!alive) return [];
         setConversationUuid(uuid);
         return fetchRoomMessages(uuid);
       })

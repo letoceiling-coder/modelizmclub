@@ -15,11 +15,6 @@ import type { ID, User } from "@/lib/mock";
  */
 const users: Record<ID, User> = {};
 
-export function registerUser(user: User): void {
-  if (!user?.id) return;
-  users[user.id] = { ...users[user.id], ...user };
-}
-
 /**
  * Нейтральная заглушка вместо неизвестного пользователя.
  *
@@ -33,5 +28,22 @@ const placeholder = (id: ID): User => ({
   interests: "",
   avatar: "",
 });
+
+/**
+ * Дописать в реестр то, что стало известно.
+ *
+ * Принимает часть записи, а не всю: функция и так сливает новое поверх
+ * прежнего, и требовать полного `User` было бы требованием данных, которых у
+ * вызывающего нет. Присутствие знает про человека только идентификатор и
+ * то, в сети ли он; карточка объявления — имя и аватар; профиль — всё
+ * остальное. Прежняя сигнатура требовала `User` целиком, и три вызова из
+ * `realtime/presence` не проходили проверку типов.
+ *
+ * `id` обязателен — по нему и складывается запись.
+ */
+export function registerUser(user: Partial<User> & { id: ID }): void {
+  if (!user?.id) return;
+  users[user.id] = { ...placeholder(user.id), ...users[user.id], ...user };
+}
 
 export const userById = (id: ID): User => users[id] ?? placeholder(id);

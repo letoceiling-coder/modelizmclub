@@ -93,10 +93,10 @@ function ConsentsSettingsPage() {
   }
 
   return (
-    <SettingsSectionShell title="Мои согласия" backTo="/settings/dashboard">
+    <SettingsSectionShell title="Мои согласия">
       <p className="mb-4 text-sm text-muted-foreground">
         Управление согласиями в соответствии с 152-ФЗ.{" "}
-        <Link to="/legal/privacy" className="text-primary underline">
+        <Link to="/legal/$slug" params={{ slug: "privacy" }} className="text-primary underline">
           Политика конфиденциальности
         </Link>
       </p>

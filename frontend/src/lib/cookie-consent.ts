@@ -30,9 +30,16 @@ export function readCookiePrefs(): StoredCookiePrefs | null {
   }
 }
 
-export function writeCookiePrefs(
-  prefs: Omit<StoredCookiePrefs, "necessary"> & { necessary?: true },
-): void {
+/**
+ * Запись выбора по cookie.
+ *
+ * Принимает ровно то, что решает человек: аналитика и реклама. `necessary`
+ * всегда `true` по смыслу, `savedAt` функция ставит сама — требовать их от
+ * вызывающего значило бы просить данные, которые она тут же выбрасывает.
+ * Прежняя сигнатура их требовала, и вызов из баннера не проходил проверку
+ * типов.
+ */
+export function writeCookiePrefs(prefs: Pick<StoredCookiePrefs, "analytics" | "ads">): void {
   const payload: StoredCookiePrefs = {
     necessary: true,
     analytics: prefs.analytics,

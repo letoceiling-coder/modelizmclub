@@ -130,7 +130,9 @@ export default defineConfig({
   },
   // VPS runs a long-lived Node process (systemd). The wrapper defaults Nitro to
   // the cloudflare target, which exits immediately under Node and yields 502.
-  nitro: { preset: "node-server", compressPublicAssets: { gzip: true, brotli: true } },
+  // compressPublicAssets переехал в nitro.config.ts — там его тип объявлен
+  // по-настоящему, а в наборе ключей обёртки его нет. См. комментарий там.
+  nitro: { preset: "node-server" },
   vite: {
     build: {
       rollupOptions: {
