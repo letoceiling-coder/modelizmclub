@@ -260,6 +260,59 @@ class SafeDealCdekCheckoutTest extends TestCase
             ->assertJsonPath('data.status', 'shipped');
     }
 
+    /**
+     * Колбэк без опознавательных данных не должен трогать чужое отправление.
+     *
+     * Отбор строился вложенным `where`, который при пустом теле не добавлял
+     * ни одного условия: запрос вырождался в «первое попавшееся отправление
+     * СДЭК», и по нему шёл запрос статуса во внешний API с записью в базу.
+     * Подписи у колбэков СДЭК нет, так что вызвать это мог кто угодно телом
+     * `{}`. Пока путь считался общим лимитом, потолок был 120 в минуту с
+     * адреса; после исключения пути из лимитера потолка не осталось.
+     */
+    public function test_cdek_webhook_without_identifiers_touches_nothing(): void
+    {
+        $this->fakeCdekQuote(350.0);
+        $seller = $this->seedUser('seller');
+        $buyer = $this->seedUser('buyer');
+        $listing = $this->seedCdekListing($seller);
+        app(WalletService::class)->credit($buyer, 200000, WalletTransactionType::Topup, 'test');
+
+        $uuid = $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+                'destination_point' => [
+                    'city_code' => 137,
+                    'external_point_id' => 'SPB1',
+                    'name' => 'ПВЗ СПб',
+                ],
+            ])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/ship")
+            ->assertOk();
+
+        $before = $this->actingAs($buyer, 'sanctum')
+            ->getJson("/api/v1/safe-deals/{$uuid}")
+            ->json('data.delivery_status');
+
+        Http::fake();
+
+        $this->postJson('/api/v1/webhooks/cdek/order-status', [])
+            ->assertOk()
+            ->assertJsonPath('message', 'ignored');
+
+        // Ни обращения к СДЭК, ни изменения статуса.
+        Http::assertNothingSent();
+
+        $this->actingAs($buyer, 'sanctum')
+            ->getJson("/api/v1/safe-deals/{$uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.delivery_status', $before);
+    }
+
     public function test_rating_counts_only_completed_safe_deals(): void
     {
         $seller = $this->seedUser('seller');
