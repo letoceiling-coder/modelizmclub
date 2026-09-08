@@ -172,6 +172,24 @@ class AdminListingModerationTest extends TestCase
         $this->assertSame('pending', $this->queueStatus($listing));
     }
 
+    /**
+     * Номер задачи из очереди вместо uuid — «не найдено», а не пятисотка.
+     *
+     * В очереди у задачи свой числовой id, и подставить его в адрес — первое,
+     * что делает человек, читающий её вывод. До 08.09 PostgreSQL получал
+     * `where uuid = 97`, отвечал «invalid input syntax for type uuid», и
+     * админка показывала «Server Error».
+     */
+    public function test_queue_id_instead_of_uuid_is_not_a_server_error(): void
+    {
+        $admin = $this->seedUser(UserRole::Admin);
+        $this->pendingListing($this->seedUser());
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/admin/moderation/listings/97/approve')
+            ->assertNotFound();
+    }
+
     public function test_editing_text_without_a_status_leaves_moderation_alone(): void
     {
         $admin = $this->seedUser(UserRole::Admin);
