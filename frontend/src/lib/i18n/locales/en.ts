@@ -988,6 +988,15 @@ export const en: TranslationSchema = {
       info: "Информация",
       membersNew: "Новое сообщество",
     },
+    post: {
+      metaTitleByAuthor: "Запись {{author}}",
+      metaTitleFallback: "Запись — МоДелизМ",
+      metaDescriptionByAuthor: "Запись {{author}} в сообществе моделистов МоДелизМ.",
+      metaDescriptionFallback: "Запись в сообществе моделистов МоДелизМ.",
+      backToFeed: "К ленте",
+      notFoundTitle: "Запись не найдена",
+      notFoundDesc: "Возможно, её удалили или она доступна не всем.",
+    },
     feed: {
       metaTitle: "Лента — МоДелизМ",
       metaDescription: "Главная лента сообщества моделистов: новые проекты, фото, обсуждения.",

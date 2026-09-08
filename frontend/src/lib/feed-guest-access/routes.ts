@@ -35,6 +35,9 @@ export function isAlwaysPublicRoute(pathname: string): boolean {
 export function isPublicGuestRoute(pathname: string): boolean {
   if (isAlwaysPublicRoute(pathname)) return true;
   if (pathname === ROUTES.feed || pathname.startsWith("/feed/")) return true;
+  // Отдельная страница записи открыта ровно так же, как лента: ссылку на
+  // запись присылают человеку без аккаунта, и она должна открываться.
+  if (pathname.startsWith("/post/")) return true;
   if (pathname === ROUTES.ads) return true;
   if (
     pathname.startsWith("/ads/") &&
@@ -104,6 +107,9 @@ export function pathnameToRouteAction(pathname: string): string | null {
   if (isAlwaysPublicRoute(pathname)) return null;
 
   if (pathname === ROUTES.feed || pathname.startsWith("/feed/")) return "route.feed";
+  // Запись на своей странице подчиняется правам ленты: закрыли ленту —
+  // закрыта и запись, отдельной ступени доступа у неё нет.
+  if (pathname.startsWith("/post/")) return "route.feed";
   if (pathname === ROUTES.adCreate || pathname.startsWith("/ads/new")) return "route.ads_new";
   if (pathname === ROUTES.ads || pathname.startsWith("/ads/")) return "route.ads";
   if (pathname === ROUTES.myAds || pathname.startsWith("/my-ads")) return "route.my_ads";
