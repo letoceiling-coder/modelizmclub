@@ -197,6 +197,40 @@ bash /var/www/modelizmclub/deploy/scripts/deploy-frontend.sh
    автоматически возвращается на предыдущий релиз.
 5. Хранятся **два последних релиза** — этого достаточно для отката.
 
+### Планировщик: фоновые задачи и KillMode
+
+Юнит `modelizmclub-scheduler.service` — `Type=oneshot`: `schedule:run`
+запускает задачи и выходит за секунду. С умолчанием
+`KillMode=control-group` systemd в этот момент сносит всю контрольную группу
+— вместе с задачами, помеченными `runInBackground()`.
+
+Laravel запускает такую задачу как
+`( artisan <команда> ; artisan schedule:finish <ключ> ) &`. Убитая на первой
+секунде, она до `schedule:finish` не доходит, и замок `withoutOverlapping`
+остаётся висеть до истечения срока. При сроке по умолчанию — сутки.
+
+Так 08.09 `payments:reconcile-pending` и `safe-deals:auto-release` молчали
+шесть часов. Видно это было только по `schedule:list` («Has Mutex») и по
+отсутствию команд в журнале: сам планировщик отвечал `active` и честно тикал
+каждую минуту.
+
+Поэтому в юните стоит `KillMode=process`, а у каждой команды срок замка равен
+интервалу (`backend/routes/console.php`). Первое чинит причину, второе
+ограничивает ущерб, если задача умрёт по другой причине.
+
+**Как проверить, что фоновая задача доживает:**
+
+```bash
+journalctl -u modelizmclub-scheduler.service --since "-3min" | grep "in background"
+ps aux | grep "[a]rtisan payments:reconcile-pending"   # должен быть виден сразу после тика
+redis-cli --scan --pattern "*framework/schedule-*" | while read k; do
+  echo "$k TTL=$(redis-cli ttl "$k")"                  # 300 c, не 86400
+done
+```
+
+Пусто в `ps` через секунду после «Running … in background» — задачу убили,
+смотрите `KillMode`.
+
 ### tsc и build на сервере — только в worktree деплоя
 
 **В основном чекауте они дают неверное число.** Замер 08.09:
