@@ -283,3 +283,26 @@ export function uploadMediaDeduped(
   inflightUploads.set(file, pending);
   return pending;
 }
+
+/**
+ * Открывает файл, который прокси отдаёт только по токену.
+ *
+ * Обычная <a href> сюда не годится: приложение авторизуется заголовком, а не
+ * cookie, поэтому переход по ссылке приходит анонимным и получает 403. Так
+ * было с вложениями спора — их не мог открыть даже модератор, который по ним
+ * решает, кому достанутся деньги (замер прода 08.09).
+ *
+ * Файл забирается запросом с токеном и открывается из blob. Ссылка живёт
+ * минуту — этого хватает вкладке, чтобы её прочитать.
+ */
+export async function openAuthorizedMedia(url: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(String(res.status));
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  window.open(href, "_blank", "noopener");
+  window.setTimeout(() => URL.revokeObjectURL(href), 60_000);
+}

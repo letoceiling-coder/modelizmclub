@@ -17,6 +17,7 @@ import {
   type AdminWithdrawalRow,
 } from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
+import { openAuthorizedMedia } from "@/lib/api/media";
 
 type CardStyle = React.CSSProperties;
 
@@ -541,15 +542,25 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
                   {(d.evidence?.length ?? 0) > 0 && (
                     <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {d.evidence!.map((f, i) => (
-                        <a
+                        // Прокси отдаёт вложение спора только по токену:
+                        // обычная ссылка приходила бы анонимной и получала 403.
+                        <button
                           key={f.uuid}
-                          href={f.url ?? "#"}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ fontSize: 11, color: "var(--accent)" }}
+                          type="button"
+                          onClick={() => {
+                            if (!f.url) return;
+                            void openAuthorizedMedia(f.url).catch(() =>
+                              toast.error("Не удалось открыть файл"),
+                            );
+                          }}
+                          style={{
+                            fontSize: 11,
+                            color: "var(--accent)",
+                            textDecoration: "underline",
+                          }}
                         >
                           {f.filename || `файл ${i + 1}`}
-                        </a>
+                        </button>
                       ))}
                     </div>
                   )}

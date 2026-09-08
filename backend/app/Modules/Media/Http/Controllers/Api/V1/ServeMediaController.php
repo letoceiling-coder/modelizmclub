@@ -3,7 +3,9 @@
 namespace Modules\Media\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Dispute;
 use App\Models\Media;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Modules\Media\Services\MediaVariantProcessor;
@@ -30,6 +32,9 @@ class ServeMediaController extends Controller
      */
     private const PUBLIC_PURPOSES = ['avatar', 'cover', 'post', 'post_video', 'listing', 'banner', 'icon', 'voice', 'review_video', 'chat'];
 
+    /** Доказательства по спору: не публичные, но и не «никому». */
+    private const DISPUTE_PURPOSE = 'dispute';
+
     public function __invoke(Request $request, MediaVariantProcessor $processor, string $uuid, ?string $variant = null): StreamedResponse
     {
         $media = Media::query()->where('uuid', $uuid)->first();
@@ -38,9 +43,9 @@ class ServeMediaController extends Controller
             abort(404);
         }
 
-        $purpose = explode('/', (string) $media->path)[1] ?? '';
+        $purpose = $media->purpose;
 
-        if (! in_array($purpose, self::PUBLIC_PURPOSES, true)) {
+        if (! in_array($purpose, self::PUBLIC_PURPOSES, true) && ! $this->mayViewPrivate($media, $purpose)) {
             abort(403);
         }
 
@@ -97,6 +102,48 @@ class ServeMediaController extends Controller
     /**
      * @return array{name: string, ext: string, format: string, mime: string}|null
      */
+    /**
+     * Кто видит файл непубличного назначения.
+     *
+     * До 08.09 такой ветки не было вовсе: прокси либо отдавал всем, либо
+     * отвечал 403. Файлы спора при этом загружались (purpose `dispute`
+     * заведён в MediaUploadService), но открыть их не мог никто — ни
+     * покупатель, ни продавец, ни модератор, который по ним решает, кому
+     * достанутся деньги. Замерено на проде 08.09: 403 всем четверым,
+     * включая аноним.
+     *
+     * Маршрут лежит вне `auth:sanctum` — иначе <img> без заголовка перестал
+     * бы грузить аватары, — поэтому зритель берётся из гарда напрямую.
+     * Ссылку на такой файл интерфейс открывает запросом с токеном, а не
+     * <a href>.
+     */
+    private function mayViewPrivate(Media $media, string $purpose): bool
+    {
+        if ($purpose !== self::DISPUTE_PURPOSE) {
+            return false;
+        }
+
+        $user = auth('sanctum')->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        // Модератор разбирает спор, автор перечитывает своё вложение.
+        if ($user->isModerator() || (int) $media->uploaded_by === (int) $user->id) {
+            return true;
+        }
+
+        // Вторая сторона сделки: файл приложен к спору по её сделке.
+        $deal = Dispute::query()
+            ->whereJsonContains('evidence', [['uuid' => $media->uuid]])
+            ->with('safeDeal')
+            ->first()?->safeDeal;
+
+        return $deal !== null
+            && ((int) $deal->buyer_id === (int) $user->id || (int) $deal->seller_id === (int) $user->id);
+    }
+
     private function parseVariant(?string $variant): ?array
     {
         if ($variant === null || $variant === '') {
