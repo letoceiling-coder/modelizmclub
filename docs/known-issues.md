@@ -134,3 +134,52 @@ Worth checking as part of the F3 routing audit:
 **Not fixed** — recorded deliberately. The smoke check probes
 `users/me/listings` instead, so the deploy gate does not depend on this bug
 being resolved first.
+
+---
+
+## `fb05263` содержит две несвязанные работы: ключи ВТБ и страницу `/post/{uuid}`
+
+**Найдено:** 08.09.2026, в тот же день, что и сам коммит.
+
+Ищущий, когда в проекте появилась отдельная страница записи, придёт сюда из
+`git log --follow frontend/src/routes/post.$uuid.tsx` и увидит первым:
+
+```
+fb05263 docs(vtb): инвентаризация ключей и переписанный чек-лист перехода
+```
+
+Сообщение не врёт — оно просто описывает половину коммита. Вторая половина,
+восемь файлов страницы записи, попала туда без ведома обеих сторон.
+
+**Что в коммите на самом деле.** Инвентаризация ключей ВТБ: `deploy/docs/vtb-go-live.md`,
+`deploy/docs/vtb-one-stage-wording.md`, `docs/context/80-payments.md`. Страница
+записи: `frontend/src/routes/post.$uuid.tsx`, `frontend/src/routes/feed.tsx`,
+`frontend/src/components/post/PostCard.tsx`, `frontend/src/lib/routes.ts`,
+`frontend/src/lib/feed-guest-access/routes.ts`, три файла локалей,
+`frontend/docs/backend-endpoints-needed.md`.
+
+**Отчего.** Две сессии работали в одном рабочем дереве. Пока одна дописывала
+страницу записи, вторая закончила свою работу и сделала `git add -A` — и
+незакоммиченные чужие правки уехали вместе с её документами. Тем же днём и по
+той же причине пострадал `DeliveryChoiceSheet.tsx`. Разбор и правила — в
+CLAUDE.md, раздел «Параллельные сессии — каждая в своём worktree»; `git add -A`
+с тех пор запрещён, а pre-commit останавливает коммит, где документация
+смешана с кодом.
+
+**Почему не исправлено.** Коммит слит в `master` и `develop` и запушен.
+Переписывание опубликованной истории общих веток опаснее неточного сообщения:
+у всех, кто уже подтянул эти ветки, работа разошлась бы с origin. Решение
+принято осознанно 08.09.
+
+**Что искать вместо `fb05263`.** Полная история страницы записи:
+
+| Коммит | Что |
+|---|---|
+| `fb05263` | страница целиком, под чужим сообщением |
+| `d4a63da` | убран задвоенный комментарий над `beforeLoad` в `feed.tsx` |
+| `9244676` | точные px заменены шкалой Tailwind |
+| `5495e70` | мерж `fix/post-page-stale-comment` в `master` |
+
+Со стороны бэкенда к странице относится пункт 28
+`frontend/docs/backend-endpoints-needed.md` — ссылка в уведомлениях
+`subscription_posts` должна вести на `/post/{uuid}`, а не в начало ленты.
