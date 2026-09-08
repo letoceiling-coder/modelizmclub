@@ -74,6 +74,21 @@ class ReconcilePendingPaymentsCommand extends Command
     private const STUB_FULFILLED = 'тестовый контур, исполнен — статус отстал';
 
     /**
+     * Платёж создан не тем и не другим — спросить некого.
+     *
+     * Раньше всё, что не `vtb`, попадало в ветку тестового контура. 08.09
+     * выяснилось, что на проде есть третий провайдер: 27 платежей с меткой
+     * `yookassa`, номера заказов боевого вида, ВТБ о них не знает. Они лежали
+     * в корзине «тестовый контур, оплата не подтверждена», и `--apply` закрыл
+     * бы их как неудавшиеся, не спросив никого.
+     *
+     * Отдельный исход, и он не закрывается никогда: `--only` его не
+     * принимает, `applyVerdict` не знает. Пока провайдера не научат
+     * опрашивать, такие платежи только видны.
+     */
+    private const UNKNOWN_PROVIDER = 'провайдер неизвестен, разбор невозможен';
+
+    /**
      * Короткие имена исходов для `--only`.
      *
      * Разбор всегда идёт по всем платежам — иначе не узнать исход, — а
@@ -162,8 +177,12 @@ class ReconcilePendingPaymentsCommand extends Command
                 }
                 $asked++;
                 $verdict = $this->askBank($client, $payment, $retries, $backoffMs);
-            } else {
+            } elseif ($payment->provider === 'stub') {
                 $verdict = $this->askOurselves($payment);
+            } else {
+                // Ни банк, ни внутренние следы тут не годятся: чей это
+                // платёж и что с ним, команда не знает.
+                $verdict = self::UNKNOWN_PROVIDER;
             }
 
             $buckets[$verdict][] = $payment;

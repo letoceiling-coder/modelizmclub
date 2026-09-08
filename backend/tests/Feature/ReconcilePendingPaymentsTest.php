@@ -288,6 +288,39 @@ class ReconcilePendingPaymentsTest extends TestCase
             ->assertFailed();
     }
 
+    public function test_unknown_provider_is_never_closed(): void
+    {
+        // 08.09 на проде нашлись 27 платежей с меткой `yookassa`: номера
+        // заказов боевого вида, ВТБ о них не знает, шлюза в коде нет. Они
+        // лежали в корзине тестового контура, и --apply закрыл бы их как
+        // неудавшиеся, не спросив никого.
+        $user = $this->seedUser();
+        $alien = $this->pending($user, '31edfe1f-000f-5001-9000-173311369be8', 3, 'yookassa');
+        config(['billing.vtb.api_url' => 'https://bank.test/', 'billing.vtb.token' => 'test-token']);
+        Http::fake(fn () => Http::response(['errorCode' => '0', 'orderStatus' => 3]));
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0')
+            ->expectsOutputToContain('провайдер неизвестен, разбор невозможен')
+            ->assertSuccessful();
+
+        Http::assertNothingSent();
+        $this->assertSame('pending', $alien->fresh()->status);
+    }
+
+    public function test_unknown_provider_cannot_be_selected_by_only(): void
+    {
+        // Даже назвав исход в --only, закрыть такой платёж нельзя: имени для
+        // него нет, и команда останавливается на неизвестном ключе.
+        $user = $this->seedUser();
+        $alien = $this->pending($user, 'order-alien', 3, 'yookassa');
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0 --only=unknown-provider')
+            ->expectsOutputToContain('Неизвестный исход в --only')
+            ->assertFailed();
+
+        $this->assertSame('pending', $alien->fresh()->status);
+    }
+
     public function test_fresh_payments_are_out_of_scope(): void
     {
         // Платёж, созданный минуту назад, ещё в полёте: человек прямо сейчас
