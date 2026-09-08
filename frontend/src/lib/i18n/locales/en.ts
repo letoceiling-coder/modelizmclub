@@ -2432,6 +2432,8 @@ export const en: TranslationSchema = {
     },
     homeLink: "Home",
     adminReviews: {
+      deleteConfirmNamed: "Delete review «{{title}}»?",
+      deleteConfirmDesc: "The review and the uploaded video disappear from the site for good.",
       title: "Reviews",
       subTabList: "Reviews",
       subTabCategories: "Categories",
@@ -2565,6 +2567,7 @@ export const en: TranslationSchema = {
       },
     },
     adminCommon: {
+      deleteAction: "Delete",
       searchPlaceholder: "Search by title…",
       allStatuses: "All statuses",
       loading: "Loading…",
@@ -2616,6 +2619,9 @@ export const en: TranslationSchema = {
       all: "All",
     },
     adminContent: {
+      deleteConfirmNamed: "Delete post «{{title}}»?",
+      deleteConfirmDesc:
+        "The post disappears from the feed along with its comments and reactions. It cannot be brought back.",
       title: "Posts",
       empty: "No posts",
       loadFailed: "Could not load posts",
@@ -2764,6 +2770,12 @@ export const en: TranslationSchema = {
       },
     },
     adminUsers: {
+      deleteConfirmDesc:
+        "The account and everything in it are removed for good: posts, listings, messages.",
+      blockConfirm: "Block {{name}}?",
+      blockConfirmDesc:
+        "The person loses access to the account until the block is lifted. Their content stays.",
+      blockAction: "Block",
       title: "Users",
       searchPlaceholder: "Search by name or email…",
       allRoles: "All roles",
@@ -2791,6 +2803,9 @@ export const en: TranslationSchema = {
       cannotDeleteSelf: "You cannot delete your own account",
     },
     adminAds: {
+      deleteConfirmNamed: "Delete listing «{{title}}»?",
+      deleteConfirmDesc:
+        "The listing disappears from the catalogue and from search. It cannot be restored from the admin panel.",
       title: "Listings",
       empty: "No listings",
       loadFailed: "Could not load listings",

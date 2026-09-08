@@ -162,6 +162,10 @@ class AdminSafeDealController extends Controller
     private function row(SafeDeal $deal): array
     {
         $row = $this->deals->toArray($deal);
+        // Номер сделки нужен админке, чтобы подтверждение денежного действия
+        // называло конкретную сделку, а не «эту». Наружу id не уходит:
+        // публичный ресурс собирается тем же toArray без него.
+        $row['id'] = $deal->id;
         $row['buyer'] = ['uuid' => $deal->buyer?->uuid, 'name' => $deal->buyer?->name, 'email' => $deal->buyer?->email];
         $row['seller'] = ['uuid' => $deal->seller?->uuid, 'name' => $deal->seller?->name, 'email' => $deal->seller?->email];
 

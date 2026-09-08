@@ -1805,6 +1805,10 @@ export async function updateAdminWithdrawal(
 
 export interface AdminSafeDealRow {
   uuid: string;
+  /** Номер сделки. Отдаётся только админским эндпоинтом, наружу не уходит. */
+  id?: number | null;
+  buyer_name?: string | null;
+  seller_name?: string | null;
   status: string;
   status_label: string;
   amount_kopecks: number;

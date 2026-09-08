@@ -18,6 +18,15 @@ import {
 } from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
 import { openAuthorizedMedia } from "@/lib/api/media";
+import { askConfirm } from "@/lib/ui/ask";
+
+/**
+ * «по сделке 6» — только когда номер известен. Без него подтверждение
+ * не должно врать про несуществующий номер, поэтому кусок просто исчезает.
+ */
+function dealNo(deal: { id?: number | null }): string {
+  return typeof deal.id === "number" ? ` по сделке ${deal.id}` : "";
+}
 
 type CardStyle = React.CSSProperties;
 
@@ -231,7 +240,16 @@ function WithdrawalsBlock({ cardStyle }: { cardStyle: CardStyle }) {
                         type="button"
                         disabled={busy === w.uuid}
                         style={ghostBtn}
-                        onClick={() => void act(w.uuid, "paid")}
+                        onClick={() => {
+                          void askConfirm({
+                            title: `Отметить выплаченными ${rub(w.amount_kopecks)} ₽ пользователю ${w.user.name ?? "—"}?`,
+                            description: `Заявка закроется как выплаченная. Деньги должны быть уже отправлены на ${w.method}: ${w.destination}. Отменить отметку нельзя.`,
+                            confirmLabel: "Выплачено",
+                            danger: true,
+                          }).then((ok) => {
+                            if (ok) void act(w.uuid, "paid");
+                          });
+                        }}
                       >
                         Выплачено
                       </button>
@@ -239,7 +257,17 @@ function WithdrawalsBlock({ cardStyle }: { cardStyle: CardStyle }) {
                         type="button"
                         disabled={busy === w.uuid}
                         style={{ ...ghostBtn, color: "var(--danger)" }}
-                        onClick={() => void act(w.uuid, "rejected")}
+                        onClick={() => {
+                          void askConfirm({
+                            title: `Отклонить заявку на вывод ${rub(w.amount_kopecks)} ₽ от ${w.user.name ?? "—"}?`,
+                            description:
+                              "Сумма вернётся на баланс пользователя, заявка закроется. Открыть её заново нельзя — потребуется новая.",
+                            confirmLabel: "Отклонить",
+                            danger: true,
+                          }).then((ok) => {
+                            if (ok) void act(w.uuid, "rejected");
+                          });
+                        }}
                       >
                         Отклонить
                       </button>
@@ -429,7 +457,17 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
                         type="button"
                         disabled={busy === d.uuid}
                         style={ghostBtn}
-                        onClick={() => void act(d.uuid, "release")}
+                        onClick={() => {
+                          void askConfirm({
+                            title: `Выплатить ${rub(d.amount_kopecks)} ₽ продавцу ${d.seller?.name ?? "—"}${dealNo(d)}?`,
+                            description:
+                              "Деньги уйдут продавцу, сделка закроется как завершённая. Отменить перевод нельзя.",
+                            confirmLabel: "Выплатить",
+                            danger: true,
+                          }).then((ok) => {
+                            if (ok) void act(d.uuid, "release");
+                          });
+                        }}
                       >
                         Выплатить
                       </button>
@@ -437,7 +475,17 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
                         type="button"
                         disabled={busy === d.uuid}
                         style={{ ...ghostBtn, color: "var(--danger)" }}
-                        onClick={() => void act(d.uuid, "refund")}
+                        onClick={() => {
+                          void askConfirm({
+                            title: `Вернуть ${rub(d.amount_kopecks)} ₽ покупателю ${d.buyer?.name ?? "—"}${dealNo(d)}?`,
+                            description:
+                              "Сделка будет отменена, деньги вернутся покупателю. Отменить возврат нельзя.",
+                            confirmLabel: "Вернуть",
+                            danger: true,
+                          }).then((ok) => {
+                            if (ok) void act(d.uuid, "refund");
+                          });
+                        }}
                       >
                         Вернуть
                       </button>
@@ -589,7 +637,17 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
                           type="button"
                           disabled={busy === d.uuid}
                           style={ghostBtn}
-                          onClick={() => void act(d.uuid, "buyer")}
+                          onClick={() => {
+                            void askConfirm({
+                              title: `Закрыть спор в пользу покупателя: вернуть ${rub(d.deal.amount_kopecks)} ₽ ${d.deal.buyer_name ?? d.deal.buyer?.name ?? "покупателю"}${dealNo(d.deal)}?`,
+                              description:
+                                "Вся сумма вернётся покупателю, продавец не получит ничего. Решение по спору окончательное.",
+                              confirmLabel: "Вернуть покупателю",
+                              danger: true,
+                            }).then((ok) => {
+                              if (ok) void act(d.uuid, "buyer");
+                            });
+                          }}
                         >
                           Вернуть покупателю
                         </button>
@@ -597,7 +655,17 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
                           type="button"
                           disabled={busy === d.uuid}
                           style={ghostBtn}
-                          onClick={() => void act(d.uuid, "seller")}
+                          onClick={() => {
+                            void askConfirm({
+                              title: `Закрыть спор в пользу продавца: выплатить ${rub(d.deal.amount_kopecks)} ₽ ${d.deal.seller_name ?? d.deal.seller?.name ?? "продавцу"}${dealNo(d.deal)}?`,
+                              description:
+                                "Вся сумма уйдёт продавцу, покупатель не получит ничего. Решение по спору окончательное.",
+                              confirmLabel: "Выплатить продавцу",
+                              danger: true,
+                            }).then((ok) => {
+                              if (ok) void act(d.uuid, "seller");
+                            });
+                          }}
                         >
                           Выплатить продавцу
                         </button>
@@ -661,7 +729,17 @@ function DisputesBlock({ cardStyle }: { cardStyle: CardStyle }) {
                             type="button"
                             disabled={busy === d.uuid}
                             style={ghostBtn}
-                            onClick={() => void act(d.uuid, "split")}
+                            onClick={() => {
+                              void askConfirm({
+                                title: `Разделить ${rub(d.deal.amount_kopecks)} ₽${dealNo(d.deal)}: ${buyerRub} ₽ покупателю, ${sellerRub} ₽ продавцу?`,
+                                description:
+                                  "Деньги разойдутся по указанным суммам, спор закроется. Пересчитать после этого нельзя.",
+                                confirmLabel: "Разделить",
+                                danger: true,
+                              }).then((ok) => {
+                                if (ok) void act(d.uuid, "split");
+                              });
+                            }}
                           >
                             Применить X/Y
                           </button>

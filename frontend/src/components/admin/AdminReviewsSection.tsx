@@ -241,7 +241,19 @@ export function ReviewsSection({
   };
 
   const remove = async (uuid: string) => {
-    if (!(await askConfirm({ title: t("pages.adminReviews.deleteConfirm") }))) return;
+    const target = rows.find((v) => v.uuid === uuid);
+    if (
+      !(await askConfirm({
+        title: target?.title
+          ? t("pages.adminReviews.deleteConfirmNamed", { title: target.title })
+          : t("pages.adminReviews.deleteConfirm"),
+        description: t("pages.adminReviews.deleteConfirmDesc"),
+        confirmLabel: t("pages.adminCommon.deleteAction"),
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     try {
       await deleteAdminVideo(uuid);
       setRows((prev) => prev.filter((v) => v.uuid !== uuid));
