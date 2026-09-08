@@ -10,11 +10,15 @@ use Modules\Legal\Http\Controllers\Api\V1\IndexRulePagesController;
 use Modules\Legal\Http\Controllers\Api\V1\ShowLegalPageController;
 use Modules\Legal\Http\Controllers\Api\V1\ShowRulePageController;
 use Modules\Legal\Http\Controllers\Api\V1\StoreCookiePreferencesController;
+use Modules\Legal\Http\Controllers\Api\V1\TariffsController;
 
 Route::get('legal/{slug}', ShowLegalPageController::class)->where('slug', '[a-z0-9-]+');
 Route::get('rules', IndexRulePagesController::class);
 Route::get('rules/{slug}', ShowRulePageController::class)->where('slug', '[a-z0-9-]+');
 Route::get('footer-links', FooterLinksController::class);
+// Стоимость платных услуг. Публичный ответ: страницу тарифов читают до
+// входа, и её же смотрит банк-эквайер.
+Route::get('public/tariffs', TariffsController::class);
 Route::post('cookie-preferences', StoreCookiePreferencesController::class);
 
 Route::middleware('auth:sanctum')->group(function (): void {

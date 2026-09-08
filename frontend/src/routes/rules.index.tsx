@@ -102,7 +102,96 @@ function RulesHubPage() {
           {hub.intro}
         </p>
 
-        <ul className="mt-8 grid gap-3">
+        {(hub.groups ?? []).map((group) => (
+          <section key={group.key} className="mt-10">
+            <h2 className="text-[18px] font-semibold" style={{ color: "var(--foreground)" }}>
+              {group.title}
+            </h2>
+            <p className="mt-1 text-[13.5px]" style={{ color: "var(--foreground-60)" }}>
+              {group.description}
+            </p>
+            <ul className="mt-3 grid gap-2">
+              {group.items.map((item) => {
+                const card = (
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div
+                        className="text-[15px] font-semibold"
+                        style={{
+                          color:
+                            item.state === "ready" ? "var(--foreground)" : "var(--foreground-50)",
+                        }}
+                      >
+                        {item.title}
+                        {item.state === "planned" && (
+                          <span
+                            className="ml-2 align-middle text-[11px] font-medium uppercase tracking-wide"
+                            style={{ color: "var(--foreground-40)" }}
+                          >
+                            готовится
+                          </span>
+                        )}
+                      </div>
+                      {item.summary && (
+                        <p
+                          className="mt-1 text-[13px] leading-snug"
+                          style={{ color: "var(--foreground-60)" }}
+                        >
+                          {item.summary}
+                        </p>
+                      )}
+                      {item.published_at && (
+                        <p className="mt-1 text-[12px]" style={{ color: "var(--foreground-40)" }}>
+                          Редакция от {formatRevisionDate(item.published_at)}
+                        </p>
+                      )}
+                    </div>
+                    {item.state === "ready" && (
+                      <ChevronRight
+                        className="mt-1 h-4 w-4 shrink-0"
+                        style={{ color: "var(--foreground-40)" }}
+                      />
+                    )}
+                  </div>
+                );
+
+                return (
+                  <li key={item.title}>
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        className="block rounded-[var(--r-card)] border p-4 transition-colors hover:bg-[var(--background-surface)]"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        {card}
+                      </a>
+                    ) : (
+                      /*
+                        Ссылки нет нарочно: документ ещё пишется. Пустая ссылка
+                        уводит в 404 и читается как поломка сайта, а строка
+                        «готовится» говорит правду.
+                      */
+                      <div
+                        className="block rounded-[var(--r-card)] border border-dashed p-4"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        {card}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+
+        {/*
+          Плоский список — запасной путь, а не мёртвая разметка: он рисуется,
+          только если бэкенд почему-то не прислал раскладку по группам.
+          Оставлять хаб пустым в этом случае нельзя — на него ссылается подвал
+          каждой страницы.
+        */}
+        <ul className={(hub.groups?.length ?? 0) > 0 ? "hidden" : "mt-8 grid gap-3"}>
           {hub.documents.map((doc) => (
             <li key={doc.slug}>
               <Link
