@@ -224,6 +224,78 @@ class PaymentAutoPollTest extends TestCase
         );
     }
 
+    /**
+     * Замена тарифа на всех трёх, а не на одном.
+     *
+     * Переход между тарифами — единственный случай, где перенос остатка
+     * виден: у продления тем же тарифом разница между «от конца» и «от
+     * сегодня» равна остатку, а у замены к ней добавляется ещё и разная
+     * длительность периода. 508 потерял бы двадцать дней именно на замене.
+     *
+     * Проверяются все три боевых тарифа в обе стороны: с дешёвого на
+     * дорогой и обратно. Ожидание считается арифметикой от даты окончания
+     * прежней подписки, а не переписыванием того, что вернул код.
+     */
+    public function test_switching_between_all_three_plans_keeps_paid_days(): void
+    {
+        $plans = [
+            'month' => $this->seedPlan('month', 30),
+            'half-year' => $this->seedPlan('half-year', 182),
+            'year' => $this->seedPlan('year', 365),
+        ];
+
+        $service = app(PaymentFulfillmentService::class);
+
+        foreach ($plans as $fromSlug => $from) {
+            foreach ($plans as $toSlug => $to) {
+                $user = $this->seedUser();
+
+                // Действующая подписка: половина периода уже прожита.
+                $remaining = intdiv($from->period_days, 2);
+                $running = UserSubscription::query()->create([
+                    'user_id' => $user->id,
+                    'plan_id' => $from->id,
+                    'status' => 'active',
+                    'starts_at' => now()->subDays($from->period_days - $remaining),
+                    'ends_at' => now()->addDays($remaining),
+                    'auto_renew' => true,
+                ]);
+
+                $service->activateSubscription($user, $to->id);
+
+                $active = UserSubscription::query()
+                    ->where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->get();
+
+                $this->assertCount(
+                    1,
+                    $active,
+                    "{$fromSlug} → {$toSlug}: действующая подписка должна остаться одна",
+                );
+
+                $this->assertSame(
+                    $to->id,
+                    (int) $active->first()->plan_id,
+                    "{$fromSlug} → {$toSlug}: действует новый тариф",
+                );
+
+                $this->assertSame(
+                    $running->ends_at->copy()->addDays($to->period_days)->toDateString(),
+                    $active->first()->ends_at->toDateString(),
+                    "{$fromSlug} → {$toSlug}: срок отсчитан от конца прежней подписки",
+                );
+
+                // И отдельно то, ради чего всё: оплаченные дни не сгорели.
+                $this->assertGreaterThanOrEqual(
+                    $remaining + $to->period_days - 1,
+                    (int) now()->diffInDays($active->first()->ends_at),
+                    "{$fromSlug} → {$toSlug}: остаток прежнего периода потерян",
+                );
+            }
+        }
+    }
+
     public function test_expired_subscription_does_not_carry_anything_over(): void
     {
         $user = $this->seedUser();

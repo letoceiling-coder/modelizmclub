@@ -26,7 +26,12 @@ import {
   type WalletTransaction,
   type WithdrawMethod,
 } from "@/lib/api/wallet";
-import { paymentFailureCopy, syncPayment } from "@/lib/api/payment";
+import {
+  fetchMyPayments,
+  paymentFailureCopy,
+  syncPayment,
+  type PaymentHistoryItem,
+} from "@/lib/api/payment";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
 import { notifyBillingChanged } from "@/lib/billing-events";
@@ -90,6 +95,44 @@ function walletKindLabel(t: (key: string) => string, kind: string, fallback: str
   return key ? t(key) : fallback;
 }
 
+const PAYMENT_PURPOSE_KEYS: Record<string, string> = {
+  subscription: "pages.settings.paymentsPurposeSubscription",
+  listing: "pages.settings.paymentsPurposeListing",
+  listing_boost: "pages.settings.paymentsPurposeListingBoost",
+  escrow: "pages.settings.paymentsPurposeEscrow",
+  topup: "pages.settings.paymentsPurposeTopup",
+  other: "pages.settings.paymentsPurposeOther",
+};
+
+/**
+ * Назначение платежа словами.
+ *
+ * Ключ приходит с бэкенда (`PaymentAccountingType`), перевод берётся здесь —
+ * иначе экран говорил бы по-русски и в английской, и в китайской версии.
+ * `type_label` с бэкенда остаётся запасным: он нужен, если появится
+ * назначение, о котором фронт ещё не знает.
+ */
+function paymentPurpose(t: (key: string) => string, item: PaymentHistoryItem): string {
+  const key = PAYMENT_PURPOSE_KEYS[item.type];
+  const base = key ? t(key) : item.typeLabel;
+
+  return item.planName ? `${base} — ${item.planName}` : base;
+}
+
+function paymentStatusMeta(status: string): {
+  labelKey: string;
+  variant: "published" | "moderation" | "error" | "draft";
+} {
+  if (status === "paid")
+    return { labelKey: "pages.settings.paymentsStatusPaid", variant: "published" };
+  if (status === "pending")
+    return { labelKey: "pages.settings.paymentsStatusPending", variant: "moderation" };
+  if (status === "cancelled")
+    return { labelKey: "pages.settings.paymentsStatusCancelled", variant: "draft" };
+
+  return { labelKey: "pages.settings.paymentsStatusFailed", variant: "error" };
+}
+
 function walletStatusMeta(status: WalletTransaction["status"]): {
   labelKey: string;
   variant: "published" | "moderation" | "error";
@@ -132,6 +175,8 @@ function WalletSection() {
   }, [demo]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
+  const [historyTab, setHistoryTab] = useState<"wallet" | "payments">("wallet");
 
   const load = () => {
     Promise.all([fetchWalletBalance(), fetchWalletTransactions()])
@@ -140,6 +185,17 @@ function WalletSection() {
         setHeldKopecks(b.held_kopecks);
         setOperations(ops);
       })
+      .catch(() => {});
+
+    /*
+     * Платежи грузятся своим запросом, а не вместе с балансом.
+     *
+     * Список платежей нужен и тогда, когда кошелёк ответил отказом, и
+     * наоборот: это разные права и разные таблицы. В одном `Promise.all`
+     * отказ любого из трёх обнулял бы все три.
+     */
+    fetchMyPayments()
+      .then(setPayments)
       .catch(() => {});
   };
 
@@ -255,11 +311,105 @@ function WalletSection() {
         )}
       </Card>
 
+      {/*
+        Две истории рядом, а не одна общая.
+
+        Кошелёк показывает движения баланса; платежи — что человек покупал и
+        дошло ли это. Списки пересекаются лишь наполовину: карточное
+        пополнение даёт и платёж, и проводку — в общем списке оно двоилось бы,
+        а платёж, который не прошёл, в кошельке не появляется вовсе. Ради
+        таких строк вкладка и заведена: у пользователя с двенадцатью
+        неоплаченными подписками кошелёк показывает одно пополнение, и по нему
+        никак не понять, что деньги ушли впустую.
+      */}
+      <div role="tablist" className="flex gap-1.5" aria-label={t("pages.settings.walletHistory")}>
+        {(["wallet", "payments"] as const).map((key) => {
+          const active = historyTab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setHistoryTab(key)}
+              className="min-h-[44px] px-3.5 text-[13px] font-semibold transition-colors"
+              style={{
+                borderRadius: "var(--r-pill)",
+                background: active ? "var(--accent-soft)" : "var(--background-surface)",
+                color: active ? "var(--accent)" : "var(--foreground-50)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              {key === "wallet"
+                ? t("pages.settings.walletTabWallet")
+                : t("pages.settings.walletTabPayments")}
+            </button>
+          );
+        })}
+      </div>
+
       <h2 className="text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
-        {t("pages.settings.walletHistory")}
+        {historyTab === "wallet"
+          ? t("pages.settings.walletHistory")
+          : t("pages.settings.paymentsHistory")}
       </h2>
+
+      {historyTab === "payments" && (
+        <>
+          <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {t("pages.settings.paymentsHint")}
+          </p>
+          <Card
+            className="divide-y p-0"
+            style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+          >
+            {payments.length === 0 && (
+              <div className="px-4 py-3.5 text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                {t("pages.settings.paymentsEmpty")}
+              </div>
+            )}
+            {payments.map((item) => {
+              const status = paymentStatusMeta(item.status);
+              return (
+                <div
+                  key={item.uuid}
+                  className="flex items-start gap-3 px-4 py-3.5"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="truncate text-[14px] font-medium"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      {paymentPurpose(t, item)}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <Badge variant={status.variant} withIcon={false}>
+                        {t(status.labelKey)}
+                      </Badge>
+                      <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                        {formatDate(item.paidAt ?? item.date)}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className="shrink-0 text-[14px] font-semibold tabular-nums"
+                    style={{
+                      color: item.status === "paid" ? "var(--foreground)" : "var(--foreground-50)",
+                    }}
+                  >
+                    {formatRub(item.amount)} ₽
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+        </>
+      )}
+
       <Card
         className="divide-y p-0"
+        hidden={historyTab !== "wallet"}
         style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
       >
         {operations.length === 0 && (

@@ -12,6 +12,16 @@ final class PaymentAccountingType
 
     public const ESCROW = 'escrow';
 
+    /**
+     * Пополнение кошелька.
+     *
+     * Раньше попадало в «Прочее»: `payable_type = wallet_topup` не был
+     * перечислен, и в выгрузке для бухгалтерии пополнения лежали вместе с
+     * тем, что классифицировать не удалось. В истории платежей пользователя
+     * это видно ещё хуже — «Прочее, 300 ₽» не говорит человеку ничего.
+     */
+    public const TOPUP = 'topup';
+
     public const OTHER = 'other';
 
     /** @return array<string, string> */
@@ -22,6 +32,7 @@ final class PaymentAccountingType
             self::LISTING => 'Размещение объявления',
             self::LISTING_BOOST => 'Поднятие объявления',
             self::ESCROW => 'Безопасная сделка',
+            self::TOPUP => 'Пополнение кошелька',
             self::OTHER => 'Прочее',
         ];
     }
@@ -43,6 +54,7 @@ final class PaymentAccountingType
             'listing_placement' => self::LISTING,
             'listing_boost' => self::LISTING_BOOST,
             'escrow' => self::ESCROW,
+            'wallet_topup' => self::TOPUP,
             default => self::OTHER,
         };
     }
