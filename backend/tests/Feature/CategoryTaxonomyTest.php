@@ -269,6 +269,8 @@ class CategoryTaxonomyTest extends TestCase
 
         $this->assertDatabaseMissing('listing_categories', ['slug' => 'ice-'.$suffix]);
 
+        $this->ensureListingIdsAheadOfPostIds();
+
         $pair = $taxonomy->listingPairForPostCategory((int) $leaf->id);
 
         $listingRoot = ListingCategory::query()->where('slug', 'aviation-'.$suffix)->firstOrFail();
@@ -278,6 +280,44 @@ class CategoryTaxonomyTest extends TestCase
         $this->assertSame((int) $listingLeaf->id, $pair['subcategory_id']);
         $this->assertNotSame((int) $root->id, $pair['category_id']);
         $this->assertNotSame((int) $leaf->id, $pair['subcategory_id']);
+    }
+
+    /**
+     * Развести идентификаторы двух таблиц заведомо, а не понадеяться на них.
+     *
+     * Два теста ниже проверяют, что сервис переводит идентификатор категории
+     * постов в идентификатор категории объявлений, а не возвращает то же
+     * число. Проверка имеет смысл, только пока числа разные, — а разными они
+     * были по случайности: по тому, сколько строк успело появиться в каждой
+     * таблице к этому месту прогона.
+     *
+     * 08.09 случайность кончилась. Пять новых тестов модерации добавили
+     * категорий объявлений, последовательности сравнялись, и оба утверждения
+     * упали — при том, что по отдельности файл проходил. Дефект был записан в
+     * docs/known-issues.md в тот же день; здесь он закрыт.
+     *
+     * Расхождение теперь создаётся руками: добиваем `listing_categories`
+     * строками, пока её следующий идентификатор не уйдёт выше наибольшего у
+     * категорий постов.
+     */
+    private function ensureListingIdsAheadOfPostIds(): void
+    {
+        $maxPost = (int) PostCategory::query()->max('id');
+
+        for ($i = 0; $i < 50; $i++) {
+            if ((int) ListingCategory::query()->max('id') > $maxPost) {
+                return;
+            }
+
+            ListingCategory::query()->create([
+                'name' => 'Заполнитель',
+                'slug' => 'filler-'.uniqid(),
+                'sort_order' => 999,
+                'is_active' => false,
+            ]);
+        }
+
+        $this->fail('не удалось развести идентификаторы таблиц');
     }
 
     public function test_create_listing_accepts_post_taxonomy_id_when_listing_ids_differ(): void
@@ -299,6 +339,8 @@ class CategoryTaxonomyTest extends TestCase
             'sort_order' => 1,
             'is_active' => true,
         ]);
+        $this->ensureListingIdsAheadOfPostIds();
+
         $taxonomy->syncFromPostCategory($root);
         $taxonomy->syncFromPostCategory($leaf);
 

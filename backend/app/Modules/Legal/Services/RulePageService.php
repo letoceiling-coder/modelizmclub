@@ -3,6 +3,7 @@
 namespace Modules\Legal\Services;
 
 use App\Enums\LegalPageStatus;
+use App\Models\LegalPage;
 use App\Models\RulePage;
 use App\Models\RulePageRevision;
 use App\Models\RulePageSection;
@@ -54,8 +55,134 @@ class RulePageService
                     'published_at' => $page->published_at?->toIso8601String(),
                     'href' => '/rules/'.$page->slug,
                 ])->all(),
+                'groups' => $this->hubGroups($pages),
             ];
         });
+    }
+
+    /**
+     * Хаб по смыслу, а не плоским списком.
+     *
+     * Раскладка нужна затем, что документов больше десятка и живут они в трёх
+     * местах: `rule_pages` (блочные документы), `legal_pages` (сплошной текст)
+     * и несколько отдельных маршрутов вроде `/payment`. Человеку, ищущему
+     * порядок возврата, всё равно, в какой таблице он лежит.
+     *
+     * Отсутствующие документы показываются как «готовится», а не прячутся.
+     * Пустая ссылка хуже отсутствующей: по ней человек уходит в 404 и решает,
+     * что сайт сломан. Строка «готовится» говорит правду — документ нужен и
+     * его пишут.
+     *
+     * Состав групп задан здесь, а не в базе, нарочно: это требование к
+     * правовому разделу, а не настройка. Меняется он вместе с законом, то
+     * есть правкой кода с обсуждением, а не кнопкой в админке. Содержимое
+     * каждого документа при этом правится из админки без выкатки.
+     *
+     * @param  \Illuminate\Support\Collection<int, RulePage>  $rulePages
+     * @return list<array<string, mixed>>
+     */
+    private function hubGroups($rulePages): array
+    {
+        $legal = LegalPage::query()
+            ->where('status', LegalPageStatus::Published)
+            ->get()
+            ->keyBy('slug');
+
+        $rules = $rulePages->keyBy('slug');
+
+        $resolve = function (array $entry) use ($rules, $legal): array {
+            $card = [
+                'title' => $entry['title'],
+                'summary' => $entry['summary'] ?? null,
+                'href' => null,
+                'published_at' => null,
+                'state' => 'planned',
+            ];
+
+            if (($entry['kind'] ?? null) === 'route') {
+                $card['href'] = $entry['href'];
+                $card['state'] = 'ready';
+
+                if (isset($entry['legal_slug']) && $legal->has($entry['legal_slug'])) {
+                    $card['published_at'] = $legal[$entry['legal_slug']]->published_at?->toIso8601String();
+                }
+
+                return $card;
+            }
+
+            if (isset($entry['rule_slug']) && $rules->has($entry['rule_slug'])) {
+                $page = $rules[$entry['rule_slug']];
+                $card['href'] = '/rules/'.$page->slug;
+                $card['summary'] = $card['summary'] ?? $page->summary;
+                $card['published_at'] = $page->published_at?->toIso8601String();
+                $card['state'] = 'ready';
+
+                return $card;
+            }
+
+            if (isset($entry['legal_slug']) && $legal->has($entry['legal_slug'])) {
+                $page = $legal[$entry['legal_slug']];
+                $card['href'] = '/legal/'.$page->slug;
+                $card['published_at'] = $page->published_at?->toIso8601String();
+                $card['state'] = 'ready';
+
+                return $card;
+            }
+
+            return $card;
+        };
+
+        $groups = [
+            [
+                'key' => 'money',
+                'title' => 'Деньги и услуги',
+                'description' => 'Сколько стоят платные услуги, как их оплатить и вернуть деньги.',
+                'items' => [
+                    ['title' => 'Тарифы и стоимость услуг', 'kind' => 'route', 'href' => '/rules/tariffs', 'summary' => 'Подписка, размещение, продвижение, комиссия сделки — цены в рублях.'],
+                    ['title' => 'Оферта на платные услуги', 'rule_slug' => 'services-offer'],
+                    ['title' => 'Оплата', 'kind' => 'route', 'href' => '/payment', 'legal_slug' => 'payment', 'summary' => 'Способы оплаты и момент списания.'],
+                    ['title' => 'Возврат денежных средств', 'kind' => 'route', 'href' => '/refund', 'legal_slug' => 'refund', 'summary' => 'Когда и как возвращаются деньги.'],
+                    ['title' => 'Безопасная сделка', 'rule_slug' => 'safe-deal'],
+                ],
+            ],
+            [
+                'key' => 'platform',
+                'title' => 'Правила площадки',
+                'description' => 'Что можно размещать, как проходит проверка и что делать при споре.',
+                'items' => [
+                    ['title' => 'Условия пользования', 'rule_slug' => 'terms'],
+                    ['title' => 'Правила размещения объявлений', 'rule_slug' => 'ads'],
+                    ['title' => 'Пользовательское соглашение', 'legal_slug' => 'rules'],
+                    ['title' => 'Кодекс этики и правила сообщества', 'legal_slug' => 'compliance'],
+                ],
+            ],
+            [
+                'key' => 'privacy',
+                'title' => 'Данные и приватность',
+                'description' => 'Что мы собираем, зачем и как это отозвать.',
+                'items' => [
+                    ['title' => 'Политика конфиденциальности', 'legal_slug' => 'privacy'],
+                    ['title' => 'Согласие на обработку персональных данных', 'legal_slug' => 'consent'],
+                    ['title' => 'Использование cookie', 'legal_slug' => 'cookies'],
+                ],
+            ],
+            [
+                'key' => 'about',
+                'title' => 'О сервисе',
+                'description' => 'Как это работает и с кем вы имеете дело.',
+                'items' => [
+                    ['title' => 'Как работает платформа', 'kind' => 'route', 'href' => '/how-it-works', 'legal_slug' => 'how-it-works'],
+                    ['title' => 'Реквизиты и контакты', 'legal_slug' => 'contacts'],
+                    ['title' => 'Обратная связь', 'legal_slug' => 'feedback'],
+                ],
+            ],
+        ];
+
+        return array_map(static function (array $group) use ($resolve): array {
+            $group['items'] = array_map($resolve, $group['items']);
+
+            return $group;
+        }, $groups);
     }
 
     /** @return array<string, mixed>|null */

@@ -19,11 +19,29 @@ export interface RuleDocumentCard {
   href: string;
 }
 
+/** Карточка документа в хабе. `planned` — документ нужен, но его ещё нет. */
+export interface RuleHubItem {
+  title: string;
+  summary?: string | null;
+  href: string | null;
+  published_at?: string | null;
+  state: "ready" | "planned";
+}
+
+export interface RuleHubGroup {
+  key: string;
+  title: string;
+  description: string;
+  items: RuleHubItem[];
+}
+
 export interface RulesHubData {
   title: string;
   intro: string;
   published_at?: string | null;
   documents: RuleDocumentCard[];
+  /** Раскладка по смыслу. Старый плоский `documents` оставлен для совместимости. */
+  groups?: RuleHubGroup[];
 }
 
 export interface RulePageData {
@@ -51,6 +69,51 @@ export interface AdminRulePageRevision {
   status: string;
   created_at?: string | null;
   editor?: string | null;
+}
+
+/**
+ * Стоимость платных услуг.
+ *
+ * Все цены — в копейках и из тех же настроек, что и оплата. В тексте
+ * документа их набирать нельзя: разойдутся при первом изменении тарифа, а на
+ * страницу тарифов ссылается оферта и банк-эквайер.
+ */
+export interface TariffPlan {
+  slug: string;
+  name: string;
+  price_cents: number;
+  period_days: number;
+  features: string[];
+}
+
+export interface TariffBoost {
+  id: string;
+  label: string;
+  days: number;
+  price_cents: number;
+}
+
+export interface TariffsData {
+  subscriptions: TariffPlan[];
+  placement: {
+    without_subscription_cents: number;
+    with_subscription_cents: number;
+    guest_cents: number;
+  };
+  boost: TariffBoost[];
+  safe_deal: {
+    enabled: boolean;
+    percent: number;
+    min_cents: number;
+    max_cents: number | null;
+    base: string;
+  };
+  currency: string;
+}
+
+export async function fetchTariffs(): Promise<TariffsData> {
+  const res = await api<{ data: TariffsData }>("/public/tariffs", { auth: false });
+  return res.data;
 }
 
 export async function fetchRulesHub(): Promise<RulesHubData> {
