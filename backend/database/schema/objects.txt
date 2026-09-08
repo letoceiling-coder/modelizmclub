@@ -1738,8 +1738,8 @@ INDEX|notifications|notifications_pkey
 INDEX|password_reset_tokens|password_reset_tokens_pkey
 INDEX|payment_items|payment_items_payable_type_payable_id_index
 INDEX|payment_items|payment_items_pkey
-INDEX|payments|payments_idempotency_key_unique
 INDEX|payments|payments_pkey
+INDEX|payments|payments_user_id_idempotency_key_unique
 INDEX|payments|payments_user_id_status_index
 INDEX|payments|payments_uuid_unique
 INDEX|pending_email_changes|pending_email_changes_pkey
