@@ -17,7 +17,7 @@ class AdminDisputeController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Dispute::query()->with(['safeDeal.listing', 'openedBy'])->latest();
+        $query = Dispute::query()->with(['safeDeal.listing', 'safeDeal.buyer', 'safeDeal.seller', 'openedBy'])->latest();
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);
@@ -35,7 +35,11 @@ class AdminDisputeController extends Controller
                 'description' => $d->description,
                 'evidence' => $d->evidence ?? [],
                 'opened_by' => ['uuid' => $d->openedBy?->uuid, 'name' => $d->openedBy?->name],
-                'deal' => $this->deals->toArray($d->safeDeal),
+                'deal' => array_merge($this->deals->toArray($d->safeDeal), [
+                    'id' => $d->safeDeal?->id,
+                    'buyer_name' => $d->safeDeal?->buyer?->name,
+                    'seller_name' => $d->safeDeal?->seller?->name,
+                ]),
                 'created_at' => $d->created_at?->toIso8601String(),
             ])->all(),
             'meta' => [

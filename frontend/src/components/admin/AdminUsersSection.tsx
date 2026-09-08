@@ -98,6 +98,19 @@ export function UsersSection() {
     const target = users.find((u) => u.uuid === uuid);
     if (!target) return;
     const ns = target.status === "active" ? "blocked" : "active";
+    // Блокировка отрезает живого человека от аккаунта — спрашиваем.
+    // Разблокировка возвращает как было, её подтверждать незачем.
+    if (
+      ns === "blocked" &&
+      !(await askConfirm({
+        title: t("pages.adminUsers.blockConfirm", { name: target.name ?? target.email }),
+        description: t("pages.adminUsers.blockConfirmDesc"),
+        confirmLabel: t("pages.adminUsers.blockAction"),
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     try {
       await updateAdminUser(uuid, { status: ns });
       setUsers((prev) => prev.map((u) => (u.uuid === uuid ? { ...u, status: ns } : u)));
@@ -117,9 +130,15 @@ export function UsersSection() {
       return;
     }
     if (
-      !(await askConfirm({ title: t("pages.adminUsers.deleteConfirm", { email: target.email }) }))
-    )
+      !(await askConfirm({
+        title: t("pages.adminUsers.deleteConfirm", { email: target.email }),
+        description: t("pages.adminUsers.deleteConfirmDesc"),
+        confirmLabel: t("pages.adminCommon.deleteAction"),
+        danger: true,
+      }))
+    ) {
       return;
+    }
     setDeletingUuid(uuid);
     try {
       await deleteAdminUser(uuid);

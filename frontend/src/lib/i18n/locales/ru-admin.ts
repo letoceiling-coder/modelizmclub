@@ -93,6 +93,7 @@ export const ruAdmin = {
       statusUpdated: "Статус обновлён",
       statusUpdateFailed: "Не удалось обновить статус",
       deleted: "Удалено",
+      deleteAction: "Удалить",
       deleteFailed: "Не удалось удалить",
       cancel: "Отмена",
       colSeller: "Продавец",
@@ -141,8 +142,13 @@ export const ruAdmin = {
       statusChangeFailed: "Не удалось изменить статус",
       changeRoleTitle: "Изменить роль",
       previewToast: "Просмотр: {{name}}",
-      deleteConfirm:
-        "Удалить пользователя {{email}} и все связанные данные? Это действие нельзя отменить.",
+      deleteConfirm: "Удалить пользователя {{email}}?",
+      deleteConfirmDesc:
+        "Аккаунт и всё его содержимое удаляются безвозвратно: публикации, объявления, сообщения.",
+      blockConfirm: "Заблокировать {{name}}?",
+      blockConfirmDesc:
+        "Человек потеряет доступ к аккаунту до снятия блокировки. Содержимое остаётся на месте.",
+      blockAction: "Заблокировать",
       userDeleted: "Пользователь удалён",
       deleteFailed: "Не удалось удалить пользователя",
       cannotDeleteSelf: "Нельзя удалить собственный аккаунт",
@@ -152,6 +158,9 @@ export const ruAdmin = {
       empty: "Объявлений нет",
       loadFailed: "Не удалось загрузить объявления",
       deleteConfirm: "Удалить объявление?",
+      deleteConfirmNamed: "Удалить объявление «{{title}}»?",
+      deleteConfirmDesc:
+        "Объявление пропадёт из каталога и из выдачи. Восстановить его из админки нельзя.",
       selectAll: "Выбрать все объявления",
       selectRow: "Выбрать «{{title}}»",
       bulkUnpublish: "Снять с публикации",
@@ -222,6 +231,9 @@ export const ruAdmin = {
       empty: "Публикаций нет",
       loadFailed: "Не удалось загрузить публикации",
       deleteConfirm: "Удалить публикацию?",
+      deleteConfirmNamed: "Удалить публикацию «{{title}}»?",
+      deleteConfirmDesc:
+        "Публикация исчезнет из ленты вместе с комментариями и реакциями. Вернуть её нельзя.",
       previewDialog: "Просмотр публикации",
       noMedia: "Медиа не прикреплено",
     },
@@ -1151,6 +1163,8 @@ export const ruAdmin = {
       statusUpdated: "Статус обновлён",
       deleted: "Обзор удалён",
       deleteConfirm: "Удалить обзор?",
+      deleteConfirmNamed: "Удалить обзор «{{title}}»?",
+      deleteConfirmDesc: "Обзор и загруженное видео пропадут с сайта. Вернуть их нельзя.",
       selectedCount: "Выбрано: {{count}}",
       selectAll: "Выбрать все обзоры",
       selectRow: "Выбрать «{{title}}»",

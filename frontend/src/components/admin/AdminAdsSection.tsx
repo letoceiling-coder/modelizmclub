@@ -132,7 +132,19 @@ export function AdsSection() {
   };
 
   const remove = async (uuid: string) => {
-    if (!(await askConfirm({ title: t("pages.adminAds.deleteConfirm") }))) return;
+    const target = rows.find((r) => r.uuid === uuid);
+    if (
+      !(await askConfirm({
+        title: target?.title
+          ? t("pages.adminAds.deleteConfirmNamed", { title: target.title })
+          : t("pages.adminAds.deleteConfirm"),
+        description: t("pages.adminAds.deleteConfirmDesc"),
+        confirmLabel: t("pages.adminCommon.deleteAction"),
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     try {
       await deleteAdminListing(uuid);
       setRows((prev) => prev.filter((r) => r.uuid !== uuid));

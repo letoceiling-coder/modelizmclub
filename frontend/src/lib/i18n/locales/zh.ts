@@ -2416,6 +2416,8 @@ export const zh: TranslationSchema = {
     },
     homeLink: "Home",
     adminReviews: {
+      deleteConfirmNamed: "删除评测《{{title}}》？",
+      deleteConfirmDesc: "评测及已上传的视频将从站点永久消失。",
       title: "Reviews",
       subTabList: "Reviews",
       subTabCategories: "Categories",
@@ -2548,6 +2550,7 @@ export const zh: TranslationSchema = {
       },
     },
     adminCommon: {
+      deleteAction: "删除",
       searchPlaceholder: "Search by title…",
       allStatuses: "All statuses",
       loading: "Loading…",
@@ -2599,6 +2602,8 @@ export const zh: TranslationSchema = {
       all: "All",
     },
     adminContent: {
+      deleteConfirmNamed: "删除帖子《{{title}}》？",
+      deleteConfirmDesc: "帖子连同评论和互动一并从动态中消失，无法恢复。",
       title: "Posts",
       empty: "No posts",
       loadFailed: "Could not load posts",
@@ -2747,6 +2752,10 @@ export const zh: TranslationSchema = {
       },
     },
     adminUsers: {
+      deleteConfirmDesc: "账号及其全部内容将被永久删除：帖子、广告、消息。",
+      blockConfirm: "封禁 {{name}}？",
+      blockConfirmDesc: "该用户在解封前无法登录账号，其内容保留。",
+      blockAction: "封禁",
       title: "Users",
       searchPlaceholder: "Search by name or email…",
       allRoles: "All roles",
@@ -2774,6 +2783,8 @@ export const zh: TranslationSchema = {
       cannotDeleteSelf: "You cannot delete your own account",
     },
     adminAds: {
+      deleteConfirmNamed: "删除广告《{{title}}》？",
+      deleteConfirmDesc: "广告将从目录和搜索中消失，且无法从管理面板恢复。",
       title: "Listings",
       empty: "No listings",
       loadFailed: "Could not load listings",
