@@ -294,8 +294,38 @@ function AdminPage() {
   const { section: sectionFromUrl } = Route.useSearch();
   const me = useCurrentUser();
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
+  const [localeReady, setLocaleReady] = useState(false);
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [section, setSection] = useState<Section>(sectionFromUrl ?? "dashboard");
+
+  /*
+   * Словарь админки — по той же причине, что и проверка доступа ниже.
+   *
+   * `loadAdminLocale()` стоит в `beforeLoad` маршрута, и на переходе внутри
+   * приложения этого достаточно. На прямой загрузке `beforeLoad` отрабатывает
+   * на сервере, чанк словаря туда и приезжает, а клиент после гидрации его
+   * не запрашивает вовсе — замерено на проде 08.09: при переходе внутри
+   * приложения грузится ru-admin-*.js и сырых ключей ноль, при прямой
+   * загрузке чанка нет и на экране 37 точечных путей вида
+   * `pages.adminShell.nav.users`.
+   *
+   * Поэтому словарь дозагружается здесь, на клиентском монтировании, и
+   * рендер ждёт его наравне с проверкой прав.
+   */
+  useEffect(() => {
+    let alive = true;
+    void import("@/lib/i18n")
+      .then(({ loadAdminLocale }) => loadAdminLocale())
+      // Не пришёл — показываем ключи, но не пустую страницу.
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setLocaleReady(true);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Client-side access gate. `beforeLoad` alone is not enough: on a direct load /
   // F5 it resolves during SSR (where there is no token) and does not re-run on
@@ -350,13 +380,15 @@ function AdminPage() {
     return <Outlet />;
   }
 
-  if (access === "checking") {
+  if (access === "checking" || !localeReady) {
     return (
       <div
         className="min-h-screen grid place-items-center"
         style={{ background: "var(--background)", color: "var(--foreground-50)", fontSize: "13px" }}
       >
-        {t("pages.adminShell.checkingAccess")}
+        {/* Пока словарь едет, ключ отдал бы точечный путь — запасное значение
+            держит экран читаемым. */}
+        {t("pages.adminShell.checkingAccess", { defaultValue: "Проверка доступа…" })}
       </div>
     );
   }

@@ -11,13 +11,13 @@ import {
   pathnameToRouteAction,
 } from "@/lib/feed-guest-access/routes";
 import { loadFeedGuestAccess, resolveMinTier } from "@/lib/feed-guest-access/store";
-import { levelFromAccessTier, type Level } from "@/lib/gate/levels";
+import { levelFromAccessTier, levelOf, meets, type Level } from "@/lib/gate/levels";
 import { openRouteGate } from "@/lib/gate/routeGate";
 import { getMySubscription } from "@/lib/subscription";
 import { ROUTES } from "@/lib/routes";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 import { setCurrentUser } from "@/lib/store";
-import { getSessionUser } from "@/lib/session";
+import { getSession, getSessionUser } from "@/lib/session";
 
 export type ClientRouteRedirect = {
   to: string;
@@ -113,6 +113,24 @@ export async function enforceClientRouteAccess(
     if (sub?.is_active === true) return null;
     return gateRoute("subscriber", pathname);
   }
+
+  /*
+   * Общая проверка тира для вошедшего пользователя.
+   *
+   * Выше разобраны только три случая: гость, маршруты из жёсткого списка
+   * `isVerifiedRequiredRoute` и тир `subscription`. Тир `auth` для вошедшего
+   * не проверялся вовсе и проваливался в `return null` — а `auth` в карте
+   * доступа означает уровень `verified` (см. levelFromAccessTier: «the old
+   * guard always demanded the SMS step right after login»).
+   *
+   * Из-за этого маршрутные записи карты работали ровно для одного маршрута —
+   * /messenger, где стоит собственный beforeLoad. Замер 07.09: учётка с
+   * неподтверждённым телефоном открывала /deals по прямой ссылке без окна,
+   * тогда как переходом внутри приложения окно появлялось.
+   */
+  const need = levelFromAccessTier(minTier);
+  const have = levelOf(getSession());
+  if (!meets(have, need)) return gateRoute(need, pathname);
 
   return null;
 }
