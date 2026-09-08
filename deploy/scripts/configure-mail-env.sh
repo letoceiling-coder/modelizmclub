@@ -50,5 +50,10 @@ mv "${ENV_FILE}.tmp" "$ENV_FILE"
 cd "$(dirname "$ENV_FILE")"
 php artisan config:clear
 php artisan config:cache
+# Кеш конфига — это запечённый .env: пароль базы внутри открытым текстом.
+# `config:cache` создаёт файл с умолчательными 644, то есть открывает его
+# любому пользователю сервера. Возвращаем 640 сразу, иначе следующая выкатка
+# молча отменяет починку прав (см. deploy/README.md, «Доступ к .env»).
+chmod 640 bootstrap/cache/config.php 2>/dev/null || true
 
 echo "Mail configured: ${MAIL_MAILER} via ${MAIL_HOST}:${MAIL_PORT} (${MAIL_ENCRYPTION}) as ${MAIL_USERNAME}"

@@ -65,6 +65,11 @@ composer install --optimize-autoloader --no-interaction
 #     uncached window the old order left open.
 php artisan config:clear
 php artisan config:cache
+# Кеш конфига — это запечённый .env: пароль базы внутри открытым текстом.
+# `config:cache` создаёт файл с умолчательными 644, то есть открывает его
+# любому пользователю сервера. Возвращаем 640 сразу, иначе следующая выкатка
+# молча отменяет починку прав (см. deploy/README.md, «Доступ к .env»).
+chmod 640 bootstrap/cache/config.php 2>/dev/null || true
 
 # --- P6: configuration comes from .env as written. A deploy that rewrites
 #     .env silently undoes deliberate operator changes, so required keys are
