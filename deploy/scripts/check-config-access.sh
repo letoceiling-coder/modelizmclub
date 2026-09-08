@@ -44,16 +44,18 @@ else
   STATUS=1
 fi
 
-# Секреты в кеше не должны быть доступны всем на чтение.
-shopt -s nullglob
-for f in "${CACHE_DIR}"/*.php; do
-  mode="$(stat -c '%a' "${f}")"
+# Секреты лежат ровно в одном файле кеша — config.php: это запечённый .env.
+# Остальные (routes, events, packages, services) секретов не несут, и трогать
+# их права незачем.
+CONFIG_CACHE="${CACHE_DIR}/config.php"
+if [[ -f "${CONFIG_CACHE}" ]]; then
+  mode="$(stat -c '%a' "${CONFIG_CACHE}")"
+  echo "  кеш конфига: ${mode} $(stat -c '%U:%G' "${CONFIG_CACHE}")"
   if [[ "${mode: -1}" != "0" ]]; then
-    echo "  WARN  $(basename "${f}") ${mode} — читают все, а внутри пароли из .env"
-    echo "        Починка: chmod 640 ${f}"
+    echo "  WARN  config.php читают все, а внутри пароль базы открытым текстом"
+    echo "        Починка: chmod 640 ${CONFIG_CACHE}"
     STATUS=1
   fi
-done
-shopt -u nullglob
+fi
 
 exit "${STATUS}"

@@ -145,7 +145,7 @@ P0: чинится сразу, отдельным релизом, с прове�
 
 ```bash
 chown root:www-data backend/.env && chmod 640 backend/.env
-chmod 640 backend/bootstrap/cache/*.php
+chmod 640 backend/bootstrap/cache/config.php
 ```
 
 После этого чистка кеша безопасна: Laravel прочитает `.env` напрямую.
