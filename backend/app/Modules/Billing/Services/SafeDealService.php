@@ -84,7 +84,6 @@ class SafeDealService
         return max(1, (int) config('billing.safe_deal.hold_days', 14));
     }
 
-
     /**
      * Какой способ доставки выбрал покупатель.
      *
@@ -190,6 +189,9 @@ class SafeDealService
             // сделки говорила обратное. Заморозка бывает только у банка и
             // только в двухстадийном режиме.
             'escrow_holds_on_card' => $this->settlement->usesVtb() && $this->settlement->holdsOnCard(),
+            // Провайдер нужен экрану оформления, чтобы не обещать карту там,
+            // где её не будет: при кошельке деньги замораживаются на балансе.
+            'escrow_provider' => $this->settlement->provider(),
             'offers_cdek' => $offersCdek,
             'delivery_method' => $method,
             'delivery_methods' => is_array($listing->delivery_methods) ? array_values($listing->delivery_methods) : [],
@@ -1185,7 +1187,7 @@ class SafeDealService
                 ]);
             }
             $deal->update(['shipment_id' => $shipment->id]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Deal is still valid without a CDEK draft; seller can ship manually.
         }
     }
@@ -1227,7 +1229,7 @@ class SafeDealService
                 }
                 $shipment = $shipments->confirmAndCreate($seller, $shipment);
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return $shipment->tracking_number;
         }
 
@@ -1282,5 +1284,4 @@ class SafeDealService
 
         return $flags;
     }
-
 }

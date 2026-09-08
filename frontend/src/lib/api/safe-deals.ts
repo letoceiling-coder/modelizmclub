@@ -96,6 +96,8 @@ export interface SafeDealQuote {
   seller_payout_kopecks: number;
   currency: string;
   escrow_holds_on_card?: boolean;
+  /** Где будут ждать деньги: банк или кошелёк площадки. */
+  escrow_provider?: "vtb" | "wallet";
   offers_cdek: boolean;
   /** Способ, по которому посчитан этот расчёт. */
   delivery_method?: string | null;

@@ -260,6 +260,8 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const delivery = quote?.delivery_cost_kopecks ?? 0;
   const hold = quote?.hold_kopecks ?? itemKopecks + delivery;
   const holdsOnCard = quote?.escrow_holds_on_card ?? true;
+  // Кошелёк площадки: карты в этой сделке не будет ни на одном шаге.
+  const payFromWallet = quote?.escrow_provider === "wallet";
   const mapSrc =
     selectedPoint?.latitude && selectedPoint?.longitude
       ? `https://www.openstreetmap.org/export/embed.html?bbox=${selectedPoint.longitude - 0.03}%2C${selectedPoint.latitude - 0.02}%2C${selectedPoint.longitude + 0.03}%2C${selectedPoint.latitude + 0.02}&layer=mapnik&marker=${selectedPoint.latitude}%2C${selectedPoint.longitude}`
@@ -514,7 +516,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               </p>
             )}
             <Row
-              label={holdsOnCard ? "К оплате (холд)" : "К оплате"}
+              label={holdsOnCard && !payFromWallet ? "К оплате (холд)" : "К оплате"}
               value={`${kopecksToRub(hold)} ₽`}
               emphasize
             />
@@ -539,9 +541,15 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               Открыть правила в новой вкладке
             </a>
             <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              {holdsOnCard
-                ? "Банк удержит сумму на вашей карте и спишет её только после того, как вы подтвердите получение. Если сделка не состоится — удержание снимается, деньги вернутся на карту."
-                : "Сумма списывается с карты и хранится на счёте платформы. Продавец получит её только после того, как вы подтвердите получение. Если сделка не состоится — банк вернёт деньги на карту."}
+              {/* Текст обязан совпадать с тем, что произойдёт на самом деле.
+                  При эскроу на кошельке карта не участвует вовсе: сумма
+                  замораживается на балансе площадки и оттуда же возвращается.
+                  Раньше все три варианта обещали карту. */}
+              {payFromWallet
+                ? "Сумма заморозится на вашем балансе и уйдёт продавцу только после того, как вы подтвердите получение. Если сделка не состоится — деньги вернутся на баланс."
+                : holdsOnCard
+                  ? "Банк удержит сумму на вашей карте и спишет её только после того, как вы подтвердите получение. Если сделка не состоится — удержание снимается, деньги вернутся на карту."
+                  : "Сумма списывается с карты и хранится на счёте платформы. Продавец получит её только после того, как вы подтвердите получение. Если сделка не состоится — банк вернёт деньги на карту."}
             </p>
           </div>
         )}
@@ -574,7 +582,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               className="gap-[6px]"
             >
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-              {holdsOnCard ? "Оплатить и захолдировать" : "Оплатить"}
+              {holdsOnCard && !payFromWallet ? "Оплатить и захолдировать" : "Оплатить"}
             </Button>
           )}
         </div>
