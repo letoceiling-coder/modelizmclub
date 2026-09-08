@@ -7,6 +7,7 @@ use App\Enums\SafeDealStatus;
 use App\Models\SafeDeal;
 use App\Models\SafeDealIncomingPayment;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Reconciles a VTB hold with the deal it backs.
@@ -53,6 +54,104 @@ class SafeDealHoldSyncService
             SafeDealIncomingStatus::Reversed => $this->deals->expireCheckout($deal, 'Банк отклонил оплату.'),
             default => $deal,
         };
+    }
+
+    /**
+     * Опрос банка по сделкам, которые считаются оплаченными.
+     *
+     * Холд — не вечное состояние. Банк снимает авторизацию по сроку жизни,
+     * её отменяют из кабинета, одностадийный платёж возвращают. Узнать об
+     * этом площадке было неоткуда: колбэк приходит не всегда, а спрашивать
+     * банк по сделке в `paid` не приходило в голову никому — до самой
+     * выплаты продавцу деньги считались удержанными.
+     *
+     * Команда ничего не решает за человека. Сделку она не трогает: снять
+     * отгруженную сделку с рейсов из-за ответа банка — решение не машинное.
+     * Что она делает — приводит запись о холде в соответствие с банком, и
+     * этого достаточно: после такой записи денежные развязки по сделке
+     * останавливаются сами ({@see SafeDealService::assertHoldUsable}), а
+     * расхождение видно в логе и в журнале событий шлюза.
+     *
+     * Темп берётся оттуда же, откуда у разбора висящих платежей: у банка
+     * один лимит частоты на всех, и два разных представления о нём рано или
+     * поздно разойдутся.
+     *
+     * @return array{polled: int, held: int, lost: int, failed: int}
+     */
+    public function syncActiveHolds(?int $olderThanMinutes = null, ?int $limit = null): array
+    {
+        $result = ['polled' => 0, 'held' => 0, 'lost' => 0, 'failed' => 0];
+
+        if (! $this->settlement->vtbConfigured()) {
+            return $result;
+        }
+
+        $olderThan = max(0, $olderThanMinutes ?? (int) config('billing.auto_poll.holds.older_than_minutes', 60));
+        $limit = max(1, $limit ?? (int) config('billing.auto_poll.holds.limit', 50));
+        $delayMs = max(0, (int) config('billing.vtb.reconcile.delay_ms', 1000));
+
+        /*
+         * `updated_at` строки холда — это время последнего ответа банка:
+         * `applyRbsOrderStatus` всегда пишет `last_callback_at`. Отбор по
+         * нему и есть защита от частых повторов: каждый холд опрашивается не
+         * чаще, чем раз в `older_than_minutes`, сколько бы раз ни сработало
+         * расписание.
+         */
+        $rows = SafeDealIncomingPayment::query()
+            ->whereIn('status', [
+                SafeDealIncomingStatus::Pending,
+                SafeDealIncomingStatus::Authorized,
+            ])
+            ->whereNotNull('rbs_order_id')
+            ->where('updated_at', '<=', now()->subMinutes($olderThan))
+            ->whereHas('safeDeal', fn ($q) => $q->where('status', SafeDealStatus::Paid->value))
+            ->orderBy('updated_at')
+            ->limit($limit)
+            ->get();
+
+        foreach ($rows as $index => $incoming) {
+            if ($index > 0 && $delayMs > 0) {
+                usleep($delayMs * 1000);
+            }
+
+            $result['polled']++;
+
+            try {
+                $fresh = $this->settlement->syncHold($incoming);
+            } catch (Throwable $e) {
+                // Сбой опроса — не ответ. Состояние холда осталось
+                // неизвестным, и трогать его нельзя: закрыть сделку из-за
+                // своей же сетевой ошибки хуже, чем не узнать ничего.
+                $result['failed']++;
+                Log::warning('SafeDeal hold poll failed', [
+                    'incoming' => $incoming->uuid,
+                    'deal' => $incoming->safe_deal_id,
+                    'exception' => $e->getMessage(),
+                ]);
+
+                continue;
+            }
+
+            if (in_array($fresh->status, [
+                SafeDealIncomingStatus::Reversed,
+                SafeDealIncomingStatus::Refunded,
+                SafeDealIncomingStatus::Failed,
+            ], true)) {
+                $result['lost']++;
+                Log::error('SafeDeal hold is gone at the bank', [
+                    'deal' => $fresh->safeDeal?->uuid,
+                    'incoming' => $fresh->uuid,
+                    'status' => $fresh->status->value,
+                    'rbs_order_status' => $fresh->rbs_order_status,
+                ]);
+
+                continue;
+            }
+
+            $result['held']++;
+        }
+
+        return $result;
     }
 
     /**

@@ -195,7 +195,8 @@ class SafeDealSettlementService
             ->first();
     }
 
-    private function vtbConfigured(): bool
+    /** Публичный, потому что по нему решает автоопрос холдов: спрашивать некого, если доступов нет. */
+    public function vtbConfigured(): bool
     {
         if (! config('billing.vtb.enabled')) {
             return false;
@@ -205,20 +206,38 @@ class SafeDealSettlementService
             || (config('billing.vtb.username') && config('billing.vtb.password'));
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * Запись события шлюза в журнал.
+     *
+     * Ключ идемпотентности собран из типа события и содержимого ответа,
+     * поэтому повторный тот же ответ банка даёт тот же ключ. Раньше это была
+     * вставка с перехватом исключения — и на повторе она честно падала в
+     * `unique`, а перехват гасил ошибку. В PostgreSQL этого мало: неудавшийся
+     * оператор ломает всю транзакцию, и следующий запрос получает «current
+     * transaction is aborted». Пока журнал вели только колбэки, повторов
+     * почти не случалось; автоопрос спрашивает банк по расписанию и получает
+     * один и тот же ответ, пока холд держится, — то есть повтор стал нормой.
+     *
+     * `firstOrCreate` вместо вставки: то же событие второй раз не пишется и
+     * ничего не ломает. Перехват оставлен на гонку двух опросов.
+     *
+     * @param array<string, mixed> $payload
+     */
     private function journal(?SafeDeal $deal, SafeDealIncomingPayment $incoming, string $eventType, array $payload): void
     {
         try {
-            SafeDealGatewayEvent::query()->create([
-                'uuid' => (string) Str::uuid(),
-                'contour' => SafeDealGatewayContour::Ie,
-                'event_type' => $eventType,
-                'safe_deal_id' => $deal?->id ?? $incoming->safe_deal_id,
-                'incoming_payment_id' => $incoming->id,
-                'idempotency_key' => $eventType.':'.$incoming->id.':'.md5(json_encode($payload) ?: ''),
-                'payload' => $payload,
-                'processed_at' => now(),
-            ]);
+            SafeDealGatewayEvent::query()->firstOrCreate(
+                ['idempotency_key' => $eventType.':'.$incoming->id.':'.md5(json_encode($payload) ?: '')],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'contour' => SafeDealGatewayContour::Ie,
+                    'event_type' => $eventType,
+                    'safe_deal_id' => $deal?->id ?? $incoming->safe_deal_id,
+                    'incoming_payment_id' => $incoming->id,
+                    'payload' => $payload,
+                    'processed_at' => now(),
+                ],
+            );
         } catch (Throwable $e) {
             Log::warning('SafeDeal: gateway event not journalled', [
                 'incoming' => $incoming->id,

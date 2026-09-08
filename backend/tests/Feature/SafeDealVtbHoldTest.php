@@ -303,4 +303,87 @@ class SafeDealVtbHoldTest extends TestCase
         ]);
         $this->assertNull($listing->fresh()->reserved_at);
     }
+
+    /**
+     * Холд, который банк снял сам, а мы об этом не знали.
+     *
+     * До автоопроса такая сделка спокойно доезжала до выплаты продавцу:
+     * `activeIncoming()` переставал её находить, и код шёл в кошельковую
+     * ветку — списывать холд, которого в кошельке никогда не было.
+     */
+    public function test_hold_poll_records_a_reversal_and_stops_the_money(): void
+    {
+        [$seller, $buyer, , $uuid] = $this->startDeal();
+        $this->authorizeHold();
+
+        // Банк снял удержание — из кабинета или по сроку жизни холда.
+        // Колбэка об этом мы не получили.
+        $this->orderStatus = 3;
+
+        $polled = app(SafeDealHoldSyncService::class)->syncActiveHolds(0, 10);
+
+        $this->assertSame(1, $polled['polled']);
+        $this->assertSame(1, $polled['lost']);
+
+        $this->assertDatabaseHas('safe_deal_incoming_payments', [
+            'rbs_order_id' => 'RBS-ORDER-1',
+            'status' => SafeDealIncomingStatus::Reversed->value,
+        ]);
+
+        // Сделку опрос не трогает: снимать отгруженную сделку с рейсов —
+        // решение человека, а не сторожа.
+        $this->assertDatabaseHas('safe_deals', [
+            'uuid' => $uuid,
+            'status' => SafeDealStatus::Paid->value,
+        ]);
+
+        // А вот денежные развязки по ней встают: платить продавцу нечем.
+        $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/ship", ['tracking_number' => 'TRK-GONE'])
+            ->assertOk();
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/confirm")
+            ->assertStatus(422);
+
+        $this->assertSame(0, app(WalletService::class)->balanceKopecks($seller->fresh()));
+        $this->assertSame(0, app(WalletService::class)->balanceKopecks($buyer->fresh()));
+    }
+
+    public function test_hold_poll_leaves_a_live_hold_alone(): void
+    {
+        [, $buyer, , $uuid] = $this->startDeal();
+        $this->authorizeHold();
+
+        $polled = app(SafeDealHoldSyncService::class)->syncActiveHolds(0, 10);
+
+        $this->assertSame(['polled' => 1, 'held' => 1, 'lost' => 0, 'failed' => 0], $polled);
+
+        $this->assertDatabaseHas('safe_deal_incoming_payments', [
+            'rbs_order_id' => 'RBS-ORDER-1',
+            'status' => SafeDealIncomingStatus::Authorized->value,
+        ]);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->getJson("/api/v1/safe-deals/{$uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'paid');
+    }
+
+    /**
+     * Опрашивается не всё подряд, а только то, что давно не отвечало.
+     *
+     * Иначе расписание, срабатывающее раз в пятнадцать минут, дёргало бы
+     * банк по каждой живой сделке каждые пятнадцать минут: у холда, который
+     * держится две недели, это полторы тысячи запросов ни о чём.
+     */
+    public function test_hold_poll_skips_holds_asked_about_recently(): void
+    {
+        $this->startDeal();
+        $this->authorizeHold();
+
+        $polled = app(SafeDealHoldSyncService::class)->syncActiveHolds(60, 10);
+
+        $this->assertSame(0, $polled['polled']);
+    }
 }

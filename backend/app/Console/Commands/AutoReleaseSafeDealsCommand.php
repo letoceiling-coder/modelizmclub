@@ -31,6 +31,15 @@ class AutoReleaseSafeDealsCommand extends Command
 
         $expired = $holds->expireStaleCheckouts();
 
+        // Сделки в `paid` держатся на авторизации в банке, а её могут снять
+        // без нас. Опрос идёт здесь, а не отдельной командой: это тот же
+        // сторож холдов, что гасит брошенные чекауты, и лимит частоты у
+        // банка на них общий.
+        $polled = ['polled' => 0, 'held' => 0, 'lost' => 0, 'failed' => 0];
+        if (config('billing.auto_poll.holds.enabled', true)) {
+            $polled = $holds->syncActiveHolds();
+        }
+
         // SBP payouts move APPROVED → CONFIRMED → PAID out of band; callbacks
         // are best-effort, so poll anything still in flight.
         $advanced = 0;
@@ -42,6 +51,19 @@ class AutoReleaseSafeDealsCommand extends Command
         }
 
         $this->info("Auto-released {$count} safe deal(s); expired {$expired} abandoned checkout(s); advanced {$advanced} payout(s).");
+        $this->info(sprintf(
+            'Опрошено холдов: %d (в силе %d, снято банком %d, опрос не удался %d).',
+            $polled['polled'],
+            $polled['held'],
+            $polled['lost'],
+            $polled['failed'],
+        ));
+
+        if ($polled['lost'] > 0) {
+            $this->warn(
+                'Есть сделки, по которым банк снял удержание. Денежные развязки по ним остановлены — разберитесь вручную.',
+            );
+        }
 
         return self::SUCCESS;
     }
