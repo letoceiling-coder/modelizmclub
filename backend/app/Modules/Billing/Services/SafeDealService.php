@@ -245,6 +245,28 @@ class SafeDealService
 
         try {
             $deal = DB::transaction(function () use ($buyer, $listing, $item, $fee, $delivery, $payout, $holdAmount, $destination, $offersCdek, $method, $quote, $vtb): SafeDeal {
+                /*
+                 * Бронь — единственное, что мешает двум сделкам по одному
+                 * объявлению, и `assertPurchasable` читает её из объекта,
+                 * который запрос прочитал у себя. Два нажатия «Оформить»
+                 * подряд идут одновременно, оба видят `reserved_at = null`,
+                 * оба доходят сюда — и оба создают сделку, а на банковском
+                 * пути ещё и удержание на карте.
+                 *
+                 * Ключа идемпотентности у сделки нет: в отличие от подписки и
+                 * пополнения, она не проходит через `PaymentRecorder`.
+                 * Поэтому строка объявления берётся под блокировку и бронь
+                 * перечитывается — второй запрос ждёт первого и получает
+                 * отказ, а не вторую сделку.
+                 */
+                $locked = Listing::query()->whereKey($listing->getKey())->lockForUpdate()->first();
+
+                if ($locked === null || $locked->reserved_at !== null) {
+                    throw ValidationException::withMessages([
+                        'listing' => ['Объявление уже забронировано другим покупателем.'],
+                    ]);
+                }
+
                 $deal = SafeDeal::query()->create([
                     'uuid' => (string) Str::uuid(),
                     'listing_id' => $listing->id,
@@ -301,7 +323,9 @@ class SafeDealService
                     $this->log($deal, $buyer, 'paid', $holdAmount, $hold->id, 'Средства заблокированы на балансе покупателя.');
                 }
 
-                $listing->forceFill(['reserved_at' => now()])->save();
+                // Бронь пишется в ту же строку, что взята под блокировку выше.
+                $locked->forceFill(['reserved_at' => now()])->save();
+                $listing->setAttribute('reserved_at', $locked->reserved_at);
 
                 if ($offersCdek && $destination !== null) {
                     $this->attachDraftShipment($deal, $listing, $buyer, $destination, $quote);

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
+import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category } from "@/lib/mock";
@@ -376,6 +377,8 @@ function NewAdPage() {
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  // Ключ попытки оплаты размещения: переживает повторные нажатия.
+  const attempt = usePaymentAttempt();
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
   const { registeredRub, subscriberRub, loading: pricingLoading } = usePublicPlacementPricing();
@@ -840,11 +843,13 @@ function NewAdPage() {
         promocode: job.promocode,
         listingUuid: draft.id,
         payWith: source,
+        idempotencyKey: attempt.key(`placement:${draft.id}:${source}`),
       });
       if (checkout.checkout_url) {
         window.location.href = checkout.checkout_url;
         return;
       }
+      attempt.reset();
       notifyBillingChanged();
       toast.success(
         source === "wallet" ? t("pages.subscription.payWalletPaid") : t("pages.adsNew.paySuccess"),

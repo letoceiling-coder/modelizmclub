@@ -6,6 +6,7 @@ import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
 import { Zap, CalendarClock } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { InviteBlock } from "@/components/referral/InviteBlock";
 import { ROUTES } from "@/lib/routes";
@@ -86,14 +87,20 @@ function requireAuthForCheckout(navigate: ReturnType<typeof useNavigate>): boole
   return false;
 }
 
-async function startSubscriptionCheckout(plan: { id: string; name: string }, source: PayWith) {
+async function startSubscriptionCheckout(
+  plan: { id: string; name: string },
+  source: PayWith,
+  idempotencyKey: string,
+  onPaid: () => void,
+) {
   try {
-    const checkout = await createSubscriptionPayment(plan.id, source);
+    const checkout = await createSubscriptionPayment(plan.id, source, idempotencyKey);
     if (checkout.checkout_url) {
       window.location.href = checkout.checkout_url;
       return;
     }
     // Wallet payments come back already "paid".
+    onPaid();
     notifyBillingChanged();
     const sub = await fetchMySubscription();
     if (source === "wallet") {
@@ -110,13 +117,14 @@ async function startSubscriptionCheckout(plan: { id: string; name: string }, sou
   }
 }
 
-async function startPlacementCheckout(source: PayWith) {
+async function startPlacementCheckout(source: PayWith, idempotencyKey: string, onPaid: () => void) {
   try {
-    const checkout = await createListingPlacementPayment({ payWith: source });
+    const checkout = await createListingPlacementPayment({ payWith: source, idempotencyKey });
     if (checkout.checkout_url) {
       window.location.href = checkout.checkout_url;
       return;
     }
+    onPaid();
     notifyBillingChanged();
     toast.success(
       source === "wallet"
@@ -139,6 +147,8 @@ function SubscriptionPage() {
   const { placement } = Route.useLoaderData();
   const { registeredRub: placementPrice, paymentEnabled } = usePublicPlacementPricing(placement);
   const [pending, setPending] = useState<PendingCheckout | null>(null);
+  // Ключ попытки: переживает повторные нажатия, сбрасывается после успеха.
+  const attempt = usePaymentAttempt();
 
   const openSubscribe = async (plan: { id: string; name: string; priceRub: number }) => {
     if (!requireAuthForCheckout(navigate)) return;
@@ -172,8 +182,16 @@ function SubscriptionPage() {
     if (!pending) return;
     const job = pending;
     setPending(null);
-    if (job.kind === "subscription") void startSubscriptionCheckout(job.plan, source);
-    else void startPlacementCheckout(source);
+    if (job.kind === "subscription") {
+      void startSubscriptionCheckout(
+        job.plan,
+        source,
+        attempt.key(`subscription:${job.plan.id}:${source}`),
+        attempt.reset,
+      );
+    } else {
+      void startPlacementCheckout(source, attempt.key(`placement:${source}`), attempt.reset);
+    }
   };
 
   const daysLeft = Math.max(0, Math.floor(Number(sub?.days_left ?? 0)));

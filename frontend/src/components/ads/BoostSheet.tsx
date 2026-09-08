@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { X, Zap, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -26,6 +27,8 @@ export function BoostSheet({
   const [packages, setPackages] = useState(BOOST_PACKAGES);
   const [selected, setSelected] = useState(BOOST_PACKAGES[1]?.id ?? BOOST_PACKAGES[0].id);
   const [paying, setPaying] = useState(false);
+  // Ключ попытки: одно продвижение одного объявления — один платёж.
+  const attempt = usePaymentAttempt();
 
   useEffect(() => {
     if (!open) return;
@@ -57,11 +60,16 @@ export function BoostSheet({
     }
     setPaying(true);
     try {
-      const checkout = await createListingBoostPayment(listingId, selected);
+      const checkout = await createListingBoostPayment(
+        listingId,
+        selected,
+        attempt.key(`boost:${listingId}:${selected}`),
+      );
       if (checkout.checkout_url) {
         window.location.href = checkout.checkout_url;
         return;
       }
+      attempt.reset();
       toast.success("Продвижение активировано");
       onClose();
     } catch (err) {
