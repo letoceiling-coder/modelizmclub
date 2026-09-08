@@ -7,6 +7,7 @@ use App\Models\SafeDeal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Admin\Services\AuditService;
 use Modules\Billing\Services\SafeDealService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -94,20 +95,35 @@ class AdminSafeDealController extends Controller
         ]);
     }
 
-    public function release(Request $request, string $uuid): JsonResponse
+    public function release(Request $request, string $uuid, AuditService $audit): JsonResponse
     {
         $deal = SafeDeal::query()->where('uuid', $uuid)->firstOrFail();
         $this->authorize('resolve', $deal);
+        $before = $deal->only(['status', 'completed_at']);
         $deal = $this->deals->confirm($request->user(), $deal);
+
+        // Ручной перевод денег продавцу мимо покупателя: без записи не видно,
+        // кто это сделал и по какой сделке.
+        $audit->log($request->user(), 'admin.safe_deals.release', $deal, $before, [
+            'status' => $deal->status->value,
+            'amount_kopecks' => $deal->amount_kopecks,
+            'seller_payout_kopecks' => $deal->seller_payout_kopecks,
+        ], $request);
 
         return response()->json(['data' => $this->deals->toArray($deal), 'message' => 'Средства переведены продавцу.']);
     }
 
-    public function refund(Request $request, string $uuid): JsonResponse
+    public function refund(Request $request, string $uuid, AuditService $audit): JsonResponse
     {
         $deal = SafeDeal::query()->where('uuid', $uuid)->firstOrFail();
         $this->authorize('resolve', $deal);
+        $before = $deal->only(['status', 'cancelled_at']);
         $deal = $this->deals->cancel($request->user(), $deal);
+
+        $audit->log($request->user(), 'admin.safe_deals.refund', $deal, $before, [
+            'status' => $deal->status->value,
+            'amount_kopecks' => $deal->amount_kopecks,
+        ], $request);
 
         return response()->json(['data' => $this->deals->toArray($deal), 'message' => 'Средства возвращены покупателю.']);
     }

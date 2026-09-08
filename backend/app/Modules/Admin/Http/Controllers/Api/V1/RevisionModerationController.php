@@ -9,6 +9,7 @@ use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\ModerationDecisionRequest;
+use Modules\Admin\Services\AuditService;
 use Modules\Admin\Services\ModerationService;
 
 #[Group('Admin — Moderation', weight: 10)]
@@ -22,6 +23,7 @@ class RevisionModerationController extends Controller
         string $type,
         string $id,
         ModerationService $moderation,
+        AuditService $audit,
     ): JsonResponse {
         $validated = $request->validate([
             'comment' => ['required', 'string', 'min:10', 'max:2000'],
@@ -33,6 +35,12 @@ class RevisionModerationController extends Controller
             $request->user(),
             $validated['comment'],
         );
+
+        $audit->log($request->user(), 'admin.moderation.revision', $model, null, [
+            'type' => $type,
+            'id' => $id,
+            'comment' => $validated['comment'],
+        ], $request);
 
         return response()->json([
             'data' => [

@@ -8,6 +8,7 @@ use App\Models\Dispute;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Modules\Admin\Services\AuditService;
 use Modules\Billing\Services\SafeDealService;
 
 class AdminDisputeController extends Controller
@@ -45,7 +46,7 @@ class AdminDisputeController extends Controller
         ]);
     }
 
-    public function resolve(Request $request, string $uuid): JsonResponse
+    public function resolve(Request $request, string $uuid, AuditService $audit): JsonResponse
     {
         $data = $request->validate([
             'in_favor_of' => ['required', Rule::in(['buyer', 'seller', 'split'])],
@@ -55,6 +56,7 @@ class AdminDisputeController extends Controller
         ]);
 
         $dispute = Dispute::query()->where('uuid', $uuid)->firstOrFail();
+        $before = $dispute->only(['status', 'resolution', 'resolved_by']);
         $dispute = $this->deals->resolveDispute(
             $request->user(),
             $dispute,
@@ -63,6 +65,16 @@ class AdminDisputeController extends Controller
             isset($data['buyer_kopecks']) ? (int) $data['buyer_kopecks'] : null,
             isset($data['seller_kopecks']) ? (int) $data['seller_kopecks'] : null,
         );
+
+        // Здесь решается, кому достанутся деньги покупателя. Без записи
+        // «кто отдал 400 ₽ продавцу» восстановить нельзя ничем.
+        $audit->log($request->user(), 'admin.disputes.resolve', $dispute, $before, [
+            'in_favor_of' => $data['in_favor_of'],
+            'buyer_kopecks' => $data['buyer_kopecks'] ?? null,
+            'seller_kopecks' => $data['seller_kopecks'] ?? null,
+            'resolution' => $data['resolution'] ?? null,
+            'deal_uuid' => $dispute->safeDeal?->uuid,
+        ], $request);
 
         return response()->json([
             'data' => [

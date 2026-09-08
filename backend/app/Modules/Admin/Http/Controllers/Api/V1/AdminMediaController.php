@@ -66,6 +66,18 @@ class AdminMediaController extends Controller
         ]);
     }
 
+    /*
+
+     * Загрузка файла намеренно не пишется в аудит: кроппер баннера шлёт по
+
+     * запросу на каждое сохранение рамки, и журнал решений утонул бы в них.
+
+     * Значимо не «загрузил картинку», а что с ней сделали дальше — создание
+
+     * баннера, иконки и лендинг-карточки логируются каждое.
+
+     */
+
     public function store(Request $request, MediaUploadService $uploads): JsonResponse
     {
         $validated = $request->validate([

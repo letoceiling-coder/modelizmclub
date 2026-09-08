@@ -9,6 +9,7 @@ use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Modules\Admin\Http\Requests\ModerationDecisionRequest;
+use Modules\Admin\Services\AuditService;
 use Modules\Admin\Services\ModerationService;
 
 #[Group('Admin — Moderation', weight: 10)]
@@ -22,12 +23,21 @@ class RejectModerationController extends Controller
         string $type,
         string $id,
         ModerationService $moderation,
+        AuditService $audit,
     ): JsonResponse {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:10', 'max:2000'],
         ]);
 
         $model = $moderation->reject($type, $id, $request->user(), $validated['reason']);
+
+        // Причина отказа хранится у самого материала, но кто и когда его снял
+        // — только здесь.
+        $audit->log($request->user(), 'admin.moderation.reject', $model, null, [
+            'type' => $type,
+            'id' => $id,
+            'reason' => $validated['reason'],
+        ], $request);
 
         return response()->json([
             'data' => [
