@@ -290,12 +290,15 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         className="mt-4 flex items-center gap-[10px] rounded-xl px-3 py-[10px] text-xs transition-colors hover:bg-muted"
         style={{ background: "var(--background-surface)", border: "1px solid var(--border)" }}
       >
-        <SlotIcon
-          slot="nav.subscription"
-          size={16}
-          className="shrink-0"
-          style={{ color: "var(--foreground-50)" }}
-        />
+        {/*
+          Цвет иконки задаётся не здесь: у слота есть свой токен, и его можно
+          переопределить из админки. `inheritColor` — тот самый штатный способ
+          сказать «возьми цвет окружения»; `style` компонент не принимает
+          нарочно, иначе подпись из админки перебивалась бы разметкой.
+        */}
+        <span className="shrink-0" style={{ color: "var(--foreground-50)" }}>
+          <SlotIcon slot="nav.subscription" size={16} inheritColor />
+        </span>
         <span className="min-w-0">
           {!isGuest && sub?.is_active ? (
             <>

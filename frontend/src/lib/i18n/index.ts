@@ -86,26 +86,43 @@ export function loadLocale(locale: Locale): Promise<void> {
  * Зовётся из `beforeLoad` маршрута /admin — до того, как что-то отрисуется,
  * иначе первый кадр показал бы точечные пути вместо подписей.
  *
- * Английский и китайский догружаются целиком отдельными файлами и админские
- * ключи несут в себе — там делить нечего.
+ * Английский и китайский раньше несли админские ключи прямо в общем файле —
+ * то есть ровно ту тяжесть, ради избавления от которой русскую часть и
+ * вынесли, и вдобавок расхождение с `TranslationSchema` на тысячу ключей: в
+ * `ru.ts` этих ключей уже не было, а в `en.ts` и `zh.ts` они остались. Теперь
+ * у каждого языка свой кусок, и грузится тот, на котором смотрят.
  */
-let adminBundle: Promise<void> | null = null;
+const ADMIN_BUNDLES: Record<Locale, () => Promise<Record<string, unknown>>> = {
+  ru: () => import("./locales/ru-admin").then((m) => m.ruAdmin as Record<string, unknown>),
+  en: () => import("./locales/en-admin").then((m) => m.enAdmin as Record<string, unknown>),
+  zh: () => import("./locales/zh-admin").then((m) => m.zhAdmin as Record<string, unknown>),
+};
+
+const adminBundles = new Map<Locale, Promise<void>>();
 
 export function loadAdminLocale(): Promise<void> {
-  if (i18n.hasResourceBundle(DEFAULT_LOCALE, "translation")) {
-    const existing = i18n.getResourceBundle(DEFAULT_LOCALE, "translation") as {
+  const locale =
+    (i18n.language as Locale) in ADMIN_BUNDLES ? (i18n.language as Locale) : DEFAULT_LOCALE;
+
+  if (i18n.hasResourceBundle(locale, "translation")) {
+    const existing = i18n.getResourceBundle(locale, "translation") as {
       pages?: Record<string, unknown>;
     };
     if (existing?.pages?.adminShell) return Promise.resolve();
   }
 
-  adminBundle ??= import("./locales/ru-admin").then(({ ruAdmin }) => {
+  const pending = adminBundles.get(locale);
+  if (pending) return pending;
+
+  const promise = ADMIN_BUNDLES[locale]().then((bundle) => {
     // deep = true, overwrite = false: досылаем недостающее, не затирая уже
     // загруженный словарь.
-    i18n.addResourceBundle(DEFAULT_LOCALE, "translation", ruAdmin, true, false);
+    i18n.addResourceBundle(locale, "translation", bundle, true, false);
   });
 
-  return adminBundle;
+  adminBundles.set(locale, promise);
+
+  return promise;
 }
 
 export function setLocale(locale: Locale): void {

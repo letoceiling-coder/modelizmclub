@@ -91,7 +91,7 @@ export function FeedbackForm({ onSent }: { onSent?: () => void }) {
         />
         <span>
           Согласен(на) на обработку персональных данных (
-          <Link to="/legal/consent" className="text-primary underline">
+          <Link to="/legal/$slug" params={{ slug: "consent" }} className="text-primary underline">
             Согласие на обработку ПД
           </Link>
           )

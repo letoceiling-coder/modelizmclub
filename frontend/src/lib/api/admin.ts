@@ -1310,14 +1310,28 @@ export interface AdminPaymentRow {
   description: string;
 }
 
-export interface AdminPaymentsQuery {
+/*
+ * Не `interface`, а `type`, и это не вкусовщина.
+ *
+ * Оба объекта уходят в `api({ query })`, где параметр объявлен как
+ * `Record<string, string | number | boolean | null | undefined>`. Интерфейс
+ * такому типу не соответствует: его можно дополнить объявлением позже
+ * (declaration merging), поэтому TypeScript не считает набор полей
+ * окончательным и не выводит неявную индексную сигнатуру. У псевдонима типа
+ * набор полей закрыт, и сигнатура выводится сама.
+ *
+ * Поэтому здесь `type` — а не индексная сигнатура, дописанная руками: та
+ * разрешила бы любое поле с любым именем и убрала бы проверку опечаток в
+ * названиях параметров запроса.
+ */
+export type AdminPaymentsQuery = {
   type?: AdminPaymentType | string;
   status?: AdminPaymentStatus | string;
   from?: string;
   to?: string;
   page?: number;
   per_page?: number;
-}
+};
 
 interface ApiAdminPayment {
   id: number;
@@ -1817,13 +1831,13 @@ export interface AdminSafeDealRow {
   seller?: { uuid: string | null; name: string | null; email?: string | null };
 }
 
-export interface AdminSafeDealsQuery {
+export type AdminSafeDealsQuery = {
   status?: string;
   search?: string;
   from?: string;
   to?: string;
   page?: number;
-}
+};
 
 export async function fetchAdminSafeDeals(
   query: AdminSafeDealsQuery = {},
