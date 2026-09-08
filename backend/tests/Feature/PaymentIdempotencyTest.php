@@ -123,6 +123,32 @@ class PaymentIdempotencyTest extends TestCase
         $this->assertSame(2, Payment::query()->where('user_id', $user->id)->count());
     }
 
+    public function test_same_key_from_another_user_is_a_separate_payment(): void
+    {
+        // Ключ выдаёт браузер, и совпадение у двух людей — вопрос вероятности,
+        // а не злого умысла. Пока уникальность была глобальной, поиск у
+        // второго (он идёт по паре «ключ + пользователь») ничего не находил,
+        // вставка упиралась в чужую строку, и человек получал 500 на кнопке
+        // «Оплатить». Сведение двух оплат в одну было бы ещё хуже: первый
+        // получил бы платёж, оплаченный вторым.
+        config(['billing.provider' => 'stub']);
+        $this->seedPlan();
+        $key = (string) Str::uuid();
+
+        $first = $this->actingAs($this->seedUser('A'), 'sanctum')
+            ->postJson('/api/v1/payments', ['plan_slug' => 'year', 'idempotency_key' => $key])
+            ->assertCreated()
+            ->json('data.payment_uuid');
+
+        $second = $this->actingAs($this->seedUser('B'), 'sanctum')
+            ->postJson('/api/v1/payments', ['plan_slug' => 'year', 'idempotency_key' => $key])
+            ->assertCreated()
+            ->json('data.payment_uuid');
+
+        $this->assertNotSame($first, $second);
+        $this->assertSame(2, Payment::query()->count());
+    }
+
     public function test_wallet_topup_honours_the_key(): void
     {
         config(['billing.provider' => 'stub']);
