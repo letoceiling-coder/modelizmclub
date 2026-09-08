@@ -25,6 +25,7 @@ set -uo pipefail
 
 REPO="${1:-/var/www/modelizmclub}/deploy/nginx"
 AVAILABLE=/etc/nginx/sites-available
+CONFD=/etc/nginx/conf.d
 ENABLED=/etc/nginx/sites-enabled
 STATUS=0
 
@@ -34,7 +35,9 @@ shopt -s nullglob
 for f in "${REPO}"/*.conf; do
   base="$(basename "${f}" .conf)"
   live=""
-  for cand in "${AVAILABLE}/${base}" "${AVAILABLE}/${base}.conf"; do
+  # conf.d — тоже законное место: там живут конфиги без домена, например
+  # fpm-status на 127.0.0.1. Ищем и там, иначе скрипт вечно ругался бы на них.
+  for cand in "${AVAILABLE}/${base}" "${AVAILABLE}/${base}.conf" "${CONFD}/${base}.conf"; do
     [[ -f "${cand}" ]] && live="${cand}" && break
   done
 
