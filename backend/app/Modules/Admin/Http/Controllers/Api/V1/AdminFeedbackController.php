@@ -7,6 +7,7 @@ use App\Models\Feedback;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Admin\Services\AuditService;
 
 #[Group('Admin', weight: 90)]
 class AdminFeedbackController extends Controller
@@ -30,14 +31,17 @@ class AdminFeedbackController extends Controller
     /**
      * Update a feedback item's status (new | read | resolved).
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, int $id, AuditService $audit): JsonResponse
     {
         $data = $request->validate([
             'status' => ['required', 'string', 'in:new,read,resolved'],
         ]);
 
         $feedback = Feedback::query()->findOrFail($id);
+        $old = $feedback->only(['status']);
         $feedback->update(['status' => $data['status']]);
+
+        $audit->log($request->user(), 'admin.feedback.update', $feedback, $old, ['status' => $data['status']], $request);
 
         return response()->json(['data' => ['id' => $feedback->id, 'status' => $feedback->status]]);
     }

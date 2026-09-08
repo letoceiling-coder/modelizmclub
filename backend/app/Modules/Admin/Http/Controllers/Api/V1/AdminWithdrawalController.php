@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Modules\Admin\Services\AuditService;
 use Modules\Billing\Services\WalletService;
 
 class AdminWithdrawalController extends Controller
@@ -41,7 +42,7 @@ class AdminWithdrawalController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $uuid, WalletService $wallet): JsonResponse
+    public function update(Request $request, string $uuid, WalletService $wallet, AuditService $audit): JsonResponse
     {
         $data = $request->validate([
             'status' => ['required', Rule::in(['processing', 'paid', 'rejected'])],
@@ -53,6 +54,8 @@ class AdminWithdrawalController extends Controller
         if (in_array($withdrawal->status, ['paid', 'rejected'], true)) {
             return response()->json(['message' => 'Заявка уже обработана.'], 422);
         }
+
+        $before = $withdrawal->only(['status', 'admin_comment', 'processed_at']);
 
         DB::transaction(function () use ($withdrawal, $data, $wallet): void {
             if ($data['status'] === 'rejected') {
@@ -74,6 +77,14 @@ class AdminWithdrawalController extends Controller
                 'processed_at' => in_array($data['status'], ['paid', 'rejected'], true) ? now() : null,
             ]);
         });
+
+        // Вывод денег наружу. Отклонение возвращает сумму на баланс —
+        // обе ветки должны быть видны в журнале.
+        $audit->log($request->user(), 'admin.withdrawals.update', $withdrawal, $before, [
+            'status' => $data['status'],
+            'amount_kopecks' => $withdrawal->amount_kopecks,
+            'admin_comment' => $data['admin_comment'] ?? null,
+        ], $request);
 
         return response()->json([
             'data' => ['uuid' => $withdrawal->uuid, 'status' => $withdrawal->fresh()->status],

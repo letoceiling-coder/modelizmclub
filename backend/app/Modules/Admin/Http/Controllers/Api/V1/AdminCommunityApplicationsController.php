@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
+use Modules\Admin\Services\AuditService;
 use Modules\Community\Http\Resources\CommunityResource;
 use Modules\Community\Services\CommunityService;
 
@@ -31,19 +32,23 @@ class AdminCommunityApplicationsController extends Controller
         return EntityRequestResource::collection($items);
     }
 
-    public function approve(Request $request, int $id, CommunityService $communities): JsonResponse
+    public function approve(Request $request, int $id, CommunityService $communities, AuditService $audit): JsonResponse
     {
         $application = CommunityApplication::query()->findOrFail($id);
 
         $community = $communities->approveApplication($application, $request->user());
         $community->load(['category', 'avatar', 'cover']);
 
+        $audit->log($request->user(), 'admin.community_applications.approve', $community, null, [
+            'application_id' => $application->id,
+        ], $request);
+
         return response()->json([
             'data' => new CommunityResource($community),
         ]);
     }
 
-    public function reject(Request $request, int $id, CommunityService $communities): JsonResponse
+    public function reject(Request $request, int $id, CommunityService $communities, AuditService $audit): JsonResponse
     {
         $request->validate([
             'reason' => ['nullable', 'string', 'max:2000'],
@@ -57,6 +62,10 @@ class AdminCommunityApplicationsController extends Controller
             $request->string('reason')->toString() ?: null,
         );
         $application->load(['user.profile', 'category']);
+
+        $audit->log($request->user(), 'admin.community_applications.reject', $application, null, [
+            'reason' => $request->string('reason')->toString() ?: null,
+        ], $request);
 
         return response()->json([
             'data' => new EntityRequestResource($application),

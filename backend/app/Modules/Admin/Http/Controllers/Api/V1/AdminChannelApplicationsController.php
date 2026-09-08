@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
+use Modules\Admin\Services\AuditService;
 use Modules\Channel\Http\Resources\ChannelResource;
 use Modules\Channel\Services\ChannelApplicationService;
 
@@ -31,19 +32,23 @@ class AdminChannelApplicationsController extends Controller
         return EntityRequestResource::collection($items);
     }
 
-    public function approve(Request $request, int $id, ChannelApplicationService $applications): JsonResponse
+    public function approve(Request $request, int $id, ChannelApplicationService $applications, AuditService $audit): JsonResponse
     {
         $application = ChannelApplication::query()->findOrFail($id);
 
         $channel = $applications->approve($application, $request->user());
         $channel->loadMissing('owner.profile');
 
+        $audit->log($request->user(), 'admin.channel_applications.approve', $channel, null, [
+            'application_id' => $application->id,
+        ], $request);
+
         return response()->json([
             'data' => new ChannelResource($channel),
         ]);
     }
 
-    public function reject(Request $request, int $id, ChannelApplicationService $applications): JsonResponse
+    public function reject(Request $request, int $id, ChannelApplicationService $applications, AuditService $audit): JsonResponse
     {
         $request->validate([
             'reason' => ['nullable', 'string', 'max:2000'],
@@ -57,6 +62,10 @@ class AdminChannelApplicationsController extends Controller
             $request->string('reason')->toString() ?: null,
         );
         $application->load('user.profile');
+
+        $audit->log($request->user(), 'admin.channel_applications.reject', $application, null, [
+            'reason' => $request->string('reason')->toString() ?: null,
+        ], $request);
 
         return response()->json([
             'data' => new EntityRequestResource($application),
