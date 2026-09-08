@@ -100,6 +100,17 @@ if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_ACCESS_MAP:-0}" != "1" ]]; then
   fi
 fi
 
+# Доступ к настройкам — предупреждение, не приговор. Пока кеш конфига цел,
+# сайт работает и с нечитаемым .env; узнать об этом хочется до того, как кто-то
+# кеш почистит, а не через шесть минут простоя (07.09).
+if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_CONFIG_ACCESS:-0}" != "1" ]]; then
+  CONFIG_ACCESS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-config-access.sh"
+  if [[ -x "${CONFIG_ACCESS}" ]]; then
+    echo ""
+    "${CONFIG_ACCESS}" || true
+  fi
+fi
+
 if [[ "${FAILED}" != "0" ]]; then
   echo "smoke check FAILED" >&2
   exit 1

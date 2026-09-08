@@ -328,6 +328,26 @@ bash /var/www/modelizmclub-neeklo/deploy/scripts/deploy-neeklo-frontend.sh
 
 # Резервные копии базы и восстановление
 
+## Доступ к .env и кешу конфигурации
+
+`backend/.env` должен читаться пользователем php-fpm, иначе сайт держится
+только на `bootstrap/cache/config.php` и падает от любой чистки кеша — так
+прод и лежал шесть минут 07.09.
+
+Правильное состояние и починка:
+
+```bash
+chown root:www-data backend/.env && chmod 640 backend/.env
+chmod 640 backend/bootstrap/cache/*.php
+```
+
+Второй chmod не про удобство: в кеше конфига лежит пароль базы открытым
+текстом, а файл был 644 — читал любой пользователь сервера. Права 600 у
+`.env` при этом не закрывали ничего.
+
+Проверяет `deploy/scripts/check-config-access.sh`; он же вызывается из
+`smoke-check.sh` после каждой выкатки, предупреждением.
+
 ## Переход на боевой ВТБ
 
 Сейчас на проде `BILLING_PROVIDER=stub`: подписки и пополнения кошелька
