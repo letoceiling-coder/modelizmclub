@@ -42,6 +42,8 @@ class ReconcilePendingPaymentsCommand extends Command
     protected $signature = 'payments:reconcile-pending
         {--apply : применить изменения; без флага только разбор}
         {--older-than=15 : не трогать платежи моложе этого числа минут}
+        {--newer-than=0 : не трогать платежи старше этого числа минут (0 — без верхней границы)}
+        {--provider= : разбирать только платежи этого провайдера (vtb, stub)}
         {--limit=0 : ограничить число разбираемых платежей}
         {--only= : применять только к этим исходам, через запятую (см. --only=? )}
         {--delay-ms= : пауза между запросами к банку, мс (по умолчанию из billing.vtb.reconcile)}
@@ -116,7 +118,11 @@ class ReconcilePendingPaymentsCommand extends Command
     {
         $apply = (bool) $this->option('apply');
         $olderThan = max(0, (int) $this->option('older-than'));
+        $newerThan = max(0, (int) $this->option('newer-than'));
         $limit = max(0, (int) $this->option('limit'));
+        $provider = $this->option('provider') !== null && trim((string) $this->option('provider')) !== ''
+            ? trim((string) $this->option('provider'))
+            : null;
 
         $delayMs = $this->option('delay-ms') !== null
             ? max(0, (int) $this->option('delay-ms'))
@@ -137,6 +143,24 @@ class ReconcilePendingPaymentsCommand extends Command
             ->where('created_at', '<=', now()->subMinutes($olderThan))
             ->orderBy('created_at');
 
+        /*
+         * Верхняя граница окна. Нужна автоопросу: брошенные заказы банк
+         * держит в статусе 0 бессрочно, и без неё каждый прогон по расписанию
+         * заново опрашивал бы всё, что накопилось с июля, — упираясь в лимит
+         * частоты раньше, чем дойдёт до сегодняшних оплат. Разбору руками
+         * граница не нужна, поэтому по умолчанию её нет.
+         */
+        if ($newerThan > 0) {
+            $query->where('created_at', '>=', now()->subMinutes($newerThan));
+        }
+
+        // Отбор по провайдеру: автоопрос ходит в банк и берёт только `vtb`.
+        // Платежи тестового контура разбираются по внутренним следам, ждать
+        // им нечего, и в прогоне по расписанию им делать нечего.
+        if ($provider !== null) {
+            $query->where('provider', $provider);
+        }
+
         if ($limit > 0) {
             $query->limit($limit);
         }
@@ -151,10 +175,12 @@ class ReconcilePendingPaymentsCommand extends Command
         }
 
         $this->line(sprintf(
-            '%s: %d платёж(ей) в pending старше %d мин. Пауза между запросами к банку %d мс, повторов при 429 — %d.',
+            '%s: %d платёж(ей) в pending старше %d мин%s%s. Пауза между запросами к банку %d мс, повторов при 429 — %d.',
             $apply ? 'Разбор с записью' : 'Разбор без записи (добавьте --apply)',
             $pending->count(),
             $olderThan,
+            $newerThan > 0 ? " и моложе {$newerThan} мин" : '',
+            $provider !== null ? ", провайдер {$provider}" : '',
             $delayMs,
             $retries,
         ));

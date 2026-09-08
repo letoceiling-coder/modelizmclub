@@ -686,6 +686,7 @@ class SafeDealService
         // Capture first: crediting the seller before the bank settles would
         // hand out money we might never receive.
         $incoming = $this->activeIncoming($deal);
+        $this->assertHoldUsable($deal, $incoming);
         if ($incoming !== null) {
             $this->settlement->capture($incoming);
         }
@@ -764,6 +765,7 @@ class SafeDealService
         $this->assertFreshStatus($deal, $allowedFrom, 'Возврат по сделке в текущем статусе невозможен.');
 
         $incoming = $this->activeIncoming($deal);
+        $this->assertHoldUsable($deal, $incoming);
         if ($incoming !== null) {
             $this->settlement->releaseBack($incoming);
         }
@@ -822,6 +824,7 @@ class SafeDealService
                 'split' => ['Разделение суммы при оплате картой недоступно в одностадийном режиме ВТБ. Выберите полный возврат или полную выплату.'],
             ]);
         }
+        $this->assertHoldUsable($deal, $incoming);
 
         $completed = DB::transaction(function () use ($deal, $actor, $buyerKopecks, $sellerKopecks, $note, $total, $allowedFrom): SafeDeal {
             $deal = $this->lockForTransition($deal, $allowedFrom, 'Разделение суммы по сделке в текущем статусе невозможно.');
@@ -919,6 +922,44 @@ class SafeDealService
     }
 
     /** The VTB hold backing this deal, or null when it is a wallet deal. */
+    /**
+     * Заказ в банке по этой сделке когда-либо регистрировался.
+     *
+     * Отличает сделку на кошельке от карточной. Раньше это выводили из
+     * `activeIncoming() === null` — и вывод был неверным в двух случаях:
+     * когда банк снял холд (строка перестаёт быть активной) и когда
+     * администратор переключил эскроу на кошелёк при живых карточных
+     * сделках. В обоих `releaseToSeller` и `refundBuyer` уходили в
+     * кошельковую ветку и пытались списать холд, которого в кошельке
+     * никогда не было. Автоопрос холдов делает первый случай не
+     * теоретическим: он ровно за тем и заведён, чтобы находить снятые холды.
+     */
+    private function bankBacked(SafeDeal $deal): bool
+    {
+        return SafeDealIncomingPayment::query()
+            ->where('safe_deal_id', $deal->id)
+            ->exists();
+    }
+
+    /**
+     * Развязка возможна только если деньги там, где мы думаем.
+     *
+     * Карточная сделка без действующего холда — это деньги, которых у нас
+     * нет: банк вернул их покупателю сам. Выплатить продавцу или вернуть
+     * покупателю ещё раз означало бы создать сумму из воздуха, поэтому
+     * такая сделка останавливается и ждёт человека.
+     */
+    private function assertHoldUsable(SafeDeal $deal, ?SafeDealIncomingPayment $incoming): void
+    {
+        if ($incoming !== null || ! $this->bankBacked($deal)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'deal' => ['Холд в банке по этой сделке недействителен: банк снял удержание или вернул деньги. Разберитесь вручную.'],
+        ]);
+    }
+
     private function activeIncoming(SafeDeal $deal): ?SafeDealIncomingPayment
     {
         if (! $this->settlement->usesVtb()) {

@@ -144,17 +144,64 @@ class PaymentFulfillmentService
         ]);
     }
 
+    /**
+     * Выдать подписку по оплате, не отнимая уже оплаченного.
+     *
+     * Раньше метод отменял все активные подписки и заводил новую от
+     * сегодняшнего числа. Для покупки при действующей подписке это прямая
+     * потеря: человек с месяцем до 28.09, оплатив ещё месяц 08.09, получал
+     * месяц до 08.10 — то есть двадцать оплаченных дней исчезали. Пока
+     * оплаты доходили сразу, это выглядело покупкой «взамен»; с автоопросом
+     * платёж может дойти и через месяц после списания, и тогда старое
+     * поведение съедало бы весь промежуток.
+     *
+     * Теперь новый срок отсчитывается от конца действующего, а не от
+     * сегодня, — то есть остаток переносится. Активная строка по-прежнему
+     * одна: прежняя закрывается, её оплаченные дни уходят в новую. История
+     * при этом читается: у закрытой строки остаются её собственные даты.
+     *
+     * `$endsAt` задаётся явно только промо-выдачей ({@see FirstHundredService}),
+     * и она вызывает метод лишь при отсутствии действующей подписки. Явная
+     * дата — это распоряжение, а не расчёт, поэтому перенос к ней не
+     * применяется.
+     */
     public function activateSubscription(User $user, int $planId, ?\DateTimeInterface $endsAt = null): UserSubscription
     {
         $plan = SubscriptionPlan::query()->findOrFail($planId);
         $startsAt = now();
+
+        $current = UserSubscription::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where(function ($q): void {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->orderByRaw('ends_at is null desc')
+            ->orderByDesc('ends_at')
+            ->first();
+
+        /*
+         * Бессрочная подписка (`ends_at is null`) переносу не поддаётся:
+         * прибавить дни к «никогда» нельзя, а закрыть её ради оплаченного
+         * месяца — отнять больше, чем выдать. Такой строки на проде нет ни
+         * одной, но случись она — оплата не должна её укоротить, поэтому
+         * оставляем как есть и просто продлеваем от сегодня.
+         */
+        $carryFrom = $current !== null && $current->ends_at !== null && $current->ends_at->isFuture()
+            ? $current->ends_at->copy()
+            : $startsAt->copy();
+
         $endsAt = $endsAt
             ? \Illuminate\Support\Carbon::parse($endsAt)
-            : $startsAt->copy()->addDays($plan->period_days);
+            : $carryFrom->addDays($plan->period_days);
 
         UserSubscription::query()
             ->where('user_id', $user->id)
             ->where('status', 'active')
+            ->when(
+                $current !== null && $current->ends_at === null,
+                fn ($q) => $q->whereNotNull('ends_at'),
+            )
             ->update([
                 'status' => 'cancelled',
                 'cancelled_at' => now(),
