@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/lib/toast";
+import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import {
   fetchWalletBalance,
   fetchWalletTransactions,
@@ -341,6 +342,8 @@ function TopupDialog({
   const { t } = useTranslation();
   const [amount, setAmount] = useState("500");
   const [busy, setBusy] = useState(false);
+  // Ключ попытки: один на сумму, пока пополнение не удалось довести до банка.
+  const attempt = usePaymentAttempt();
 
   const submit = async () => {
     const rub = Math.round(Number(amount));
@@ -350,7 +353,7 @@ function TopupDialog({
     }
     setBusy(true);
     try {
-      const checkout = await topupWallet(rub);
+      const checkout = await topupWallet(rub, attempt.key(`topup:${rub}`));
       if (!checkout.checkout_url) {
         toast.error(t("pages.settings.walletTopupVtbMissing"));
         return;

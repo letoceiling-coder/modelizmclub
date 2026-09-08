@@ -49,12 +49,6 @@ export interface WithdrawalResult {
   status: string; // "pending"
 }
 
-function newIdempotencyKey(): string {
-  const c = globalThis.crypto;
-  if (c && typeof c.randomUUID === "function") return c.randomUUID();
-  return `wal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 export async function fetchWalletBalance(): Promise<WalletBalance> {
   if (isDemoMode()) {
     const { mockWalletBalance } = await import("@/lib/mock");
@@ -103,11 +97,12 @@ export async function fetchWalletTransactions(perPage = 50): Promise<WalletTrans
  */
 export async function topupWallet(
   amountRub: number,
+  idempotencyKey: string,
   returnUrl?: string,
 ): Promise<WalletTopupResult> {
   const res = await api<{ data: WalletTopupResult }>("/wallet/topup", {
     method: "POST",
-    json: { amount: amountRub, idempotency_key: newIdempotencyKey(), return_url: returnUrl },
+    json: { amount: amountRub, idempotency_key: idempotencyKey, return_url: returnUrl },
   });
   return res.data;
 }

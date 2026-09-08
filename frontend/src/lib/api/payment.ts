@@ -75,14 +75,6 @@ export interface MySubscription {
   plan?: SubscriptionPlanApi | null;
 }
 
-/** Best-effort idempotency key so a double-tap doesn't create two payments
- *  (backend enforces uniqueness on payments.idempotency_key). */
-function newIdempotencyKey(): string {
-  const c = globalThis.crypto;
-  if (c && typeof c.randomUUID === "function") return c.randomUUID();
-  return `pay-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 /** List active subscription plans (prices managed in admin). */
 export async function fetchPublicPlans(): Promise<SubscriptionPlanApi[]> {
   const res = await api<{ data: SubscriptionPlanApi[] }>("/plans", { auth: false });
@@ -96,10 +88,11 @@ export async function fetchPublicPlans(): Promise<SubscriptionPlanApi[]> {
 export async function createSubscriptionPayment(
   planSlug: string,
   payWith: PayWith = "gateway",
+  idempotencyKey: string,
 ): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>("/payments", {
     method: "POST",
-    json: { plan_slug: planSlug, pay_with: payWith, idempotency_key: newIdempotencyKey() },
+    json: { plan_slug: planSlug, pay_with: payWith, idempotency_key: idempotencyKey },
   });
   return res.data;
 }
@@ -107,13 +100,15 @@ export async function createSubscriptionPayment(
 /** One-time paid listing placement (99 ₽) — same checkout shape as
  *  subscription; backend credits `users.listing_placement_credits` on
  *  fulfillment. */
-export async function createListingPlacementPayment(input?: {
+export async function createListingPlacementPayment(input: {
   taxonomyId?: number;
   categoryId?: number;
   subcategoryId?: number;
   promocode?: string;
   listingUuid?: string;
   payWith?: PayWith;
+  /** Ключ попытки, см. lib/payments/idempotency.ts. */
+  idempotencyKey: string;
 }): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>("/payments", {
     method: "POST",
@@ -125,7 +120,7 @@ export async function createListingPlacementPayment(input?: {
       promocode: input?.promocode?.trim() || undefined,
       listing_uuid: input?.listingUuid,
       pay_with: input?.payWith ?? "gateway",
-      idempotency_key: newIdempotencyKey(),
+      idempotency_key: input.idempotencyKey,
     },
   });
   return res.data;
@@ -231,10 +226,11 @@ export async function deletePaymentMethod(id: string): Promise<void> {
 export async function createListingBoostPayment(
   listingUuid: string,
   packageId: string,
+  idempotencyKey: string,
 ): Promise<PaymentCheckout> {
   const res = await api<{ data: PaymentCheckout }>(`/listings/${listingUuid}/promote`, {
     method: "POST",
-    json: { package: packageId, idempotency_key: newIdempotencyKey() },
+    json: { package: packageId, idempotency_key: idempotencyKey },
   });
   return res.data;
 }

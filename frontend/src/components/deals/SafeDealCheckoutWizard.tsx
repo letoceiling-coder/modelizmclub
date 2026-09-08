@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { useNavigate } from "@tanstack/react-router";
 import { isCdekDelivery, isPickupDelivery } from "@/lib/config/deliveryMethods";
 import { Check, ChevronLeft, ChevronRight, Loader2, MapPin, ShieldCheck } from "lucide-react";
@@ -68,6 +69,9 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const feeKopecks = Math.round((itemKopecks * FEE_PERCENT) / 100);
 
   const [step, setStep] = useState(1);
+  // Ключ попытки пополнения: недостаток средств ловится при каждом нажатии
+  // «Оформить», и без общего ключа каждое давало бы свой заказ в банке.
+  const attempt = usePaymentAttempt();
   const [cityQuery, setCityQuery] = useState("");
   const [cities, setCities] = useState<CdekCity[]>([]);
   const [cityLoading, setCityLoading] = useState(false);
@@ -236,7 +240,11 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
         const needRub = Math.max(100, Math.ceil(hold / 100));
         toast.error("Недостаточно средств. Пополните баланс через ВТБ.");
         try {
-          const checkout = await topupWallet(needRub, window.location.href);
+          const checkout = await topupWallet(
+            needRub,
+            attempt.key(`topup:${needRub}`),
+            window.location.href,
+          );
           if (checkout.checkout_url) {
             window.location.href = checkout.checkout_url;
             return;
