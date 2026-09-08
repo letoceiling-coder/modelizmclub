@@ -190,13 +190,9 @@ function PostView({ uuid, initial }: { uuid: string; initial: Post | null }) {
 
   return (
     <AppLayout rightColumn={false} narrowCenter>
-      <div className="px-0 py-[12px] sm:px-[16px]">
-        <div className="px-[16px] sm:px-0">
-          <Button
-            variant="ghost"
-            className="mb-[8px] h-[36px] gap-[6px] px-[8px] text-[14px]"
-            onClick={backToFeed}
-          >
+      <div className="px-0 py-3 sm:px-4">
+        <div className="px-4 sm:px-0">
+          <Button variant="ghost" className="mb-2 h-9 gap-1.5 px-2 text-sm" onClick={backToFeed}>
             <ChevronLeft className="h-[16px] w-[16px]" />
             {t("pages.post.backToFeed")}
           </Button>
