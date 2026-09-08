@@ -34,13 +34,24 @@ class ModeratableResolver
             throw new NotFoundHttpException('Неизвестный тип модерации.');
         }
 
-        $query = $modelClass::query();
-
-        if (in_array($type, ['posts', 'post', 'channel_posts', 'channel_post', 'communities', 'community', 'videos', 'video', 'listings', 'listing'], true)) {
-            $record = $query->where('uuid', $id)->first();
-        } else {
-            $record = $query->whereKey($id)->first();
+        /*
+         * Все типы ищутся по uuid — ветка «иначе по ключу» была недостижима:
+         * в её условии перечислены ровно те же типы, что и в карте выше.
+         *
+         * А без проверки формата это ещё и пятисотка. В очереди у задачи свой
+         * числовой id, и передать его сюда — первое, что делает человек,
+         * читающий вывод очереди: `moderation/listings/97/approve`. PostgreSQL
+         * получал `where uuid = 97`, отвечал «invalid input syntax for type
+         * uuid», и админка показывала «Server Error» вместо «не найдено».
+         * Проверено на проде 08.09.
+         */
+        if (! preg_match('/^[0-9a-fA-F-]{36}$/', $id)) {
+            throw new NotFoundHttpException(
+                'Объект модерации адресуется по uuid, а не по номеру задачи в очереди.',
+            );
         }
+
+        $record = $modelClass::query()->where('uuid', $id)->first();
 
         if (! $record) {
             throw new NotFoundHttpException('Объект модерации не найден.');
