@@ -15,6 +15,7 @@ import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider"
 import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
 import { GateHost } from "@/lib/gate";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
+import { AskHost } from "@/components/ui/ask";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { PwaUpdatePrompt } from "@/components/pwa/PwaUpdatePrompt";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
@@ -244,6 +245,7 @@ function RootComponent() {
         <ThemeProvider>
           <GuestAccessProvider>
             <RouteAccessEnforcer />
+            <AskHost />
             <FadingOutlet />
             <GateHost />
           </GuestAccessProvider>

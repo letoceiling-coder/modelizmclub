@@ -4,6 +4,7 @@ import { Send } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { broadcastNotification } from "@/lib/api/admin";
 import { H, card, inputStyle, primaryBtn } from "@/components/admin/adminShared";
+import { askConfirm } from "@/lib/ui/ask";
 
 export function NotificationsSection() {
   const { t } = useTranslation();
@@ -14,7 +15,7 @@ export function NotificationsSection() {
 
   const send = async () => {
     if (!title.trim()) return toast.error(t("pages.adminNotifications.errTitle"));
-    if (!window.confirm(t("pages.adminNotifications.confirmSend"))) return;
+    if (!(await askConfirm({ title: t("pages.adminNotifications.confirmSend") }))) return;
     setSending(true);
     try {
       const sent = await broadcastNotification({

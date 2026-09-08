@@ -12,6 +12,7 @@ import {
   type CategoryKind,
 } from "@/lib/api/admin";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
+import { askConfirm, askText } from "@/lib/ui/ask";
 
 const CATEGORY_KIND_IDS: CategoryKind[] = ["post", "community", "listing", "video"];
 
@@ -103,9 +104,11 @@ export function CategoriesSection() {
   };
 
   const addRoot = async () => {
-    const name = window.prompt(t("pages.adminCategories.promptName"))?.trim();
+    const name = (await askText({ title: t("pages.adminCategories.promptName") }))?.trim();
     if (!name) return;
-    const slug = window.prompt(t("pages.adminCategories.promptSlug"), slugify(name))?.trim();
+    const slug = (
+      await askText({ title: t("pages.adminCategories.promptSlug"), defaultValue: slugify(name) })
+    )?.trim();
     if (!slug) return;
     try {
       const created = await createAdminCategory(kind, { name, slug, sortOrder: roots.length });
@@ -125,7 +128,9 @@ export function CategoriesSection() {
       .prompt(t("pages.adminCategories.promptSubName", { name: parent.name }))
       ?.trim();
     if (!name) return;
-    const slug = window.prompt(t("pages.adminCategories.promptSlug"), slugify(name))?.trim();
+    const slug = (
+      await askText({ title: t("pages.adminCategories.promptSlug"), defaultValue: slugify(name) })
+    )?.trim();
     if (!slug) return;
     try {
       const created = await createAdminCategory(kind, {
@@ -143,17 +148,28 @@ export function CategoriesSection() {
   };
 
   const edit = async (c: AdminCategory) => {
-    const name = window.prompt(t("pages.adminCategories.promptEditName"), c.name)?.trim();
+    const name = (
+      await askText({ title: t("pages.adminCategories.promptEditName"), defaultValue: c.name })
+    )?.trim();
     if (!name) return;
-    const slug = window.prompt(t("pages.adminCategories.promptEditSlug"), c.slug)?.trim();
+    const slug = (
+      await askText({ title: t("pages.adminCategories.promptEditSlug"), defaultValue: c.slug })
+    )?.trim();
     if (!slug) return;
-    const icon = window.prompt(t("pages.adminCategories.promptIcon"), c.icon ?? "") ?? c.icon;
-    const sortRaw = window.prompt(t("pages.adminCategories.promptSort"), String(c.sortOrder));
+    const icon =
+      (await askText({
+        title: t("pages.adminCategories.promptIcon"),
+        defaultValue: c.icon ?? "",
+      })) ?? c.icon;
+    const sortRaw = await askText({
+      title: t("pages.adminCategories.promptSort"),
+      defaultValue: String(c.sortOrder),
+    });
     const sortOrder = sortRaw != null && sortRaw !== "" ? Number(sortRaw) : c.sortOrder;
-    const parentRaw = window.prompt(
-      t("pages.adminCategories.promptParent"),
-      c.parentId != null ? String(c.parentId) : "",
-    );
+    const parentRaw = await askText({
+      title: t("pages.adminCategories.promptParent"),
+      defaultValue: c.parentId != null ? String(c.parentId) : "",
+    });
     let parentId = c.parentId;
     if (parentRaw !== null) {
       const trimmed = parentRaw.trim();
@@ -278,7 +294,8 @@ export function CategoriesSection() {
   };
 
   const remove = async (c: AdminCategory) => {
-    if (!window.confirm(t("pages.adminCategories.deleteConfirm", { name: c.name }))) return;
+    if (!(await askConfirm({ title: t("pages.adminCategories.deleteConfirm", { name: c.name }) })))
+      return;
     try {
       await deleteAdminCategory(kind, c.id);
       const drop = new Set<number>([c.id]);

@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/format/date";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
 import { ReviewsPreviewModal } from "@/components/admin/AdminReviewsPreviewModal";
+import { askConfirm } from "@/lib/ui/ask";
 import {
   fetchAdminVideos,
   updateAdminVideo,
@@ -240,7 +241,7 @@ export function ReviewsSection({
   };
 
   const remove = async (uuid: string) => {
-    if (!window.confirm(t("pages.adminReviews.deleteConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adminReviews.deleteConfirm") }))) return;
     try {
       await deleteAdminVideo(uuid);
       setRows((prev) => prev.filter((v) => v.uuid !== uuid));

@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Eye, Check, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
+import { askConfirm } from "@/lib/ui/ask";
 import {
   fetchAdminListings,
   updateAdminListingStatus,
@@ -131,7 +132,7 @@ export function AdsSection() {
   };
 
   const remove = async (uuid: string) => {
-    if (!window.confirm(t("pages.adminAds.deleteConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adminAds.deleteConfirm") }))) return;
     try {
       await deleteAdminListing(uuid);
       setRows((prev) => prev.filter((r) => r.uuid !== uuid));

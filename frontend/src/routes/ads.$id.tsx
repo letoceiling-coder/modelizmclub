@@ -40,6 +40,7 @@ import { ShareSheet } from "@/components/communities/ShareSheet";
 
 import i18n from "@/lib/i18n";
 import { useActionGate } from "@/lib/gate";
+import { askConfirm } from "@/lib/ui/ask";
 
 export const Route = createFileRoute("/ads/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.adDetail.metaTitle") }] }),
@@ -295,7 +296,7 @@ function AdDetailPage() {
   const goEdit = () => navigate({ to: "/ads/new", search: { edit: ad.id } });
 
   const handleOwnerUnpublish = async () => {
-    if (!window.confirm(t("pages.adDetail.ownerUnpublishConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adDetail.ownerUnpublishConfirm") }))) return;
     setOwnerBusy(true);
     try {
       await archiveListing(ad.id);
@@ -309,7 +310,7 @@ function AdDetailPage() {
   };
 
   const handleOwnerDelete = async () => {
-    if (!window.confirm(t("pages.adDetail.ownerDeleteConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adDetail.ownerDeleteConfirm") }))) return;
     setOwnerBusy(true);
     try {
       await deleteListing(ad.id);

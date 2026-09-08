@@ -20,6 +20,7 @@ import {
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { formatDate } from "@/lib/format/date";
+import { askConfirm } from "@/lib/ui/ask";
 
 const SECTION_TYPES: { value: RuleSectionType; label: string }[] = [
   { value: "intro", label: "Вступление" },
@@ -275,8 +276,10 @@ export function AdminRulesSection() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      if (confirm(`Удалить «${p.title}»?`)) deleteMut.mutate(p.id);
+                    onClick={async () => {
+                      if (await askConfirm({ title: `Удалить «${p.title}»?`, danger: true })) {
+                        deleteMut.mutate(p.id);
+                      }
                     }}
                   >
                     Удалить

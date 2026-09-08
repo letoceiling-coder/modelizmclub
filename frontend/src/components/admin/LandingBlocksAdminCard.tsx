@@ -7,6 +7,7 @@ import { LandingCardIconField } from "@/components/admin/LandingCardIconField";
 import { LandingCardIcon } from "@/components/landing/LandingCardIcon";
 import { IconBox } from "@/components/ui/Icon";
 import { fetchPostCategories } from "@/lib/api/categories";
+import { askConfirm } from "@/lib/ui/ask";
 import {
   createAdminLandingCard,
   deleteAdminLandingCard,
@@ -235,7 +236,7 @@ function SectionBlock({
   };
 
   const removeCard = async (id: number) => {
-    if (!window.confirm(t("pages.adminLandingBlocks.deleteConfirm"))) return;
+    if (!(await askConfirm({ title: t("pages.adminLandingBlocks.deleteConfirm") }))) return;
     try {
       await deleteAdminLandingCard(id);
       onCardsChange(cards.filter((c) => c.id !== id));

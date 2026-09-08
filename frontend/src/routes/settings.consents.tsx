@@ -17,6 +17,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
+import { askConfirm } from "@/lib/ui/ask";
 
 export const Route = createFileRoute("/settings/consents")({
   head: () => ({ meta: [{ title: `Мои согласия — ${i18n.t("common.appName")}` }] }),
@@ -40,7 +41,7 @@ function ConsentsSettingsPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   async function onRevoke(type: string) {
-    if (!window.confirm("Отозвать это согласие?")) return;
+    if (!(await askConfirm({ title: "Отозвать это согласие?" }))) return;
     setBusy(type);
     try {
       await revokeConsent(type);
@@ -73,8 +74,11 @@ function ConsentsSettingsPage() {
   }
 
   async function onDeleteAccount() {
-    if (!window.confirm("Удалить аккаунт и все данные без возможности восстановления?")) return;
-    if (!window.confirm("Это действие необратимо. Подтвердите ещё раз.")) return;
+    if (
+      !(await askConfirm({ title: "Удалить аккаунт и все данные без возможности восстановления?" }))
+    )
+      return;
+    if (!(await askConfirm({ title: "Это действие необратимо. Подтвердите ещё раз." }))) return;
     setBusy("delete");
     try {
       await deleteMyAccount();
