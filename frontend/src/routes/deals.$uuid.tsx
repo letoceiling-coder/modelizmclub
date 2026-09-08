@@ -244,10 +244,15 @@ function DealDetailPage() {
               label="Комиссия платформы"
               value={`${kopecksToRub(deal.platform_fee_kopecks)} ₽`}
             />
-            <Row
-              label="Доставка СДЭК"
-              value={`${kopecksToRub(deal.delivery_cost_kopecks ?? 0)} ₽`}
-            />
+            {/* При самовывозе строки доставки нет вовсе: «Доставка СДЭК 0 ₽»
+                при способе «Самовывоз» в той же карточке — не ноль рублей,
+                а несуществующая услуга. */}
+            {(deal.delivery_cost_kopecks ?? 0) > 0 && (
+              <Row
+                label={deal.delivery_method ? `Доставка · ${deal.delivery_method}` : "Доставка"}
+                value={`${kopecksToRub(deal.delivery_cost_kopecks ?? 0)} ₽`}
+              />
+            )}
             <Row label="Выплата продавцу" value={`${kopecksToRub(deal.seller_payout_kopecks)} ₽`} />
             {deal.tracking_number && <Row label="Трек-номер" value={deal.tracking_number} />}
             {deal.delivery_method && <Row label="Способ доставки" value={deal.delivery_method} />}
