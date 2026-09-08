@@ -33,7 +33,16 @@ export type Section =
 // admin panel — 20+ sections — ships as its own chunk and never touches the
 // bundle for logged-out / non-admin pages like /feed.
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: i18n.t("pages.adminShell.metaTitle") }] }),
+  // Заголовок вкладки считается до того, как словарь админки догрузится:
+  // на прямой загрузке он приезжает только на клиентском монтировании, и без
+  // запасного значения во вкладке стояло `pages.adminShell.metaTitle`.
+  head: () => ({
+    meta: [
+      {
+        title: i18n.t("pages.adminShell.metaTitle", { defaultValue: "Админ-панель — МоДелизМ" }),
+      },
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>): { section?: Section } => ({
     section: typeof search.section === "string" ? (search.section as Section) : undefined,
   }),
