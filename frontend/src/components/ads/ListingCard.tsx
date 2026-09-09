@@ -11,6 +11,7 @@ import { toDisplayMedia } from "@/lib/media/variants";
 
 export type ListingStatus =
   | "active"
+  | "sold"
   | "archived"
   | "moderation"
   | "rejected"
@@ -22,6 +23,7 @@ type StatusVariant = "published" | "draft" | "moderation" | "warning" | "outline
 
 const STATUS_CONFIG: Record<ListingStatus, { variant: StatusVariant; label: string }> = {
   active: { variant: "published", label: "Активно" },
+  sold: { variant: "outline", label: "Продано" },
   archived: { variant: "draft", label: "В архиве" },
   moderation: { variant: "moderation", label: "На модерации" },
   rejected: { variant: "warning", label: "С ошибками" },

@@ -6,6 +6,7 @@ import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/format/date";
 import {
   fetchAdminFeedback,
+  replyToAdminFeedback,
   updateAdminFeedbackStatus,
   type FeedbackRow,
   type FeedbackStatus,
@@ -48,6 +49,9 @@ export function FeedbackSection() {
   const [filter, setFilter] = useState<FeedbackStatus | "all">("all");
   const [items, setItems] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -60,6 +64,33 @@ export function FeedbackSection() {
       active = false;
     };
   }, [filter]);
+
+  const sendReply = async (row: FeedbackRow) => {
+    const text = draft.trim();
+    if (text.length < 2 || sending) return;
+    setSending(true);
+    try {
+      const res = await replyToAdminFeedback(row.id, text);
+      setItems((list) =>
+        list.map((x) =>
+          x.id === row.id
+            ? { ...x, reply: text, repliedAt: new Date().toISOString(), status: res.status }
+            : x,
+        ),
+      );
+      setReplyTo(null);
+      setDraft("");
+      toast.success(
+        res.notified
+          ? t("pages.adminFeedback.replySent")
+          : t("pages.adminFeedback.replySavedGuest"),
+      );
+    } catch {
+      toast.error(t("pages.adminFeedback.replyFailed"));
+    } finally {
+      setSending(false);
+    }
+  };
 
   const setStatus = async (row: FeedbackRow, status: FeedbackStatus) => {
     const prev = row.status;
@@ -159,6 +190,82 @@ export function FeedbackSection() {
                 >
                   {row.message}
                 </p>
+                {row.reply && (
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      padding: "10px 12px",
+                      borderRadius: "var(--r-card)",
+                      background: "var(--background-subtle)",
+                      borderLeft: "3px solid var(--accent)",
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: "11px", fontWeight: 600, color: "var(--foreground-50)" }}
+                    >
+                      {t("pages.adminFeedback.replyLabel")}
+                      {row.repliedAt ? ` · ${formatDate(row.repliedAt, "absolute")}` : ""}
+                    </div>
+                    <p
+                      style={{
+                        marginTop: "4px",
+                        fontSize: "13px",
+                        color: "var(--foreground-80)",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {row.reply}
+                    </p>
+                  </div>
+                )}
+                {replyTo === row.id && (
+                  <div style={{ marginTop: "10px" }}>
+                    <textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      rows={4}
+                      maxLength={4000}
+                      autoFocus
+                      placeholder={t("pages.adminFeedback.replyPlaceholder")}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "13px",
+                        color: "var(--foreground)",
+                        background: "var(--background)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--r-card)",
+                        resize: "vertical",
+                      }}
+                    />
+                    {row.fromGuest && (
+                      <p style={{ marginTop: "6px", fontSize: "12px", color: "var(--warning)" }}>
+                        {t("pages.adminFeedback.replyGuestHint")}
+                      </p>
+                    )}
+                    <div className="flex gap-[8px]" style={{ marginTop: "8px" }}>
+                      <button
+                        onClick={() => void sendReply(row)}
+                        disabled={draft.trim().length < 2 || sending}
+                        style={{
+                          ...feedbackBtn("var(--accent)", "var(--accent-foreground)"),
+                          opacity: draft.trim().length < 2 || sending ? 0.5 : 1,
+                        }}
+                      >
+                        {t("pages.adminFeedback.replySend")}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setReplyTo(null);
+                          setDraft("");
+                        }}
+                        style={feedbackBtn("transparent", "var(--foreground-70)")}
+                      >
+                        {t("pages.adminFeedback.replyCancel")}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div
                   className="flex items-center justify-between flex-wrap gap-[8px]"
                   style={{ marginTop: "10px" }}
@@ -168,6 +275,19 @@ export function FeedbackSection() {
                     {row.page ? ` · ${row.page}` : ""}
                   </span>
                   <div className="flex gap-[8px]">
+                    {replyTo !== row.id && (
+                      <button
+                        onClick={() => {
+                          setReplyTo(row.id);
+                          setDraft(row.reply || "");
+                        }}
+                        style={feedbackBtn("var(--accent)", "var(--accent-foreground)")}
+                      >
+                        {row.reply
+                          ? t("pages.adminFeedback.replyEdit")
+                          : t("pages.adminFeedback.replyOpen")}
+                      </button>
+                    )}
                     {row.status !== "read" && (
                       <button
                         onClick={() => setStatus(row, "read")}

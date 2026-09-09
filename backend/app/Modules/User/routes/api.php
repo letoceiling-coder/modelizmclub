@@ -32,6 +32,7 @@ Route::prefix('users')->group(function (): void {
         Route::get('me/settings', [SettingsController::class, 'show']);
         Route::patch('me/settings', [SettingsController::class, 'update']);
         Route::get('me/interests', [InterestsController::class, 'show']);
+        Route::get('me/feedback', \Modules\User\Http\Controllers\Api\V1\MyFeedbackController::class);
         Route::get('me/referrals', ReferralController::class);
         Route::post('me/referrals/claim', \Modules\User\Http\Controllers\Api\V1\ClaimReferralController::class);
 

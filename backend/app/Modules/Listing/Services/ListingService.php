@@ -331,6 +331,7 @@ class ListingService
                 'slug' => $slug,
                 'description' => $data['description'],
                 'price_cents' => (int) ($data['price_cents'] ?? 0),
+                'condition' => $data['condition'] ?? null,
                 'city_id' => $data['city_id'] ?? null,
                 'delivery_methods' => $data['delivery_methods'] ?? [],
                 'package_size' => $data['package_size'] ?? null,
@@ -393,6 +394,10 @@ class ListingService
 
             if (array_key_exists('price_cents', $data)) {
                 $listing->price_cents = (int) $data['price_cents'];
+            }
+
+            if (array_key_exists('condition', $data)) {
+                $listing->condition = $data['condition'];
             }
 
             if (array_key_exists('delivery_methods', $data)) {

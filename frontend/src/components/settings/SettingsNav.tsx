@@ -9,6 +9,7 @@ import {
   FileText,
   Star,
   History,
+  MessagesSquare,
   ShieldCheck,
   Palette,
   BarChart3,
@@ -37,6 +38,11 @@ const ROWS: Row[] = [
   { to: "/settings/rating", labelKey: "components.settingsNav.rating", icon: Star },
   { to: "/settings/spaces", labelKey: "components.settingsNav.spaces", icon: Radio },
   { to: "/settings/history", labelKey: "components.settingsNav.history", icon: History },
+  {
+    to: "/settings/feedback",
+    labelKey: "components.settingsNav.feedback",
+    icon: MessagesSquare,
+  },
 ];
 
 export function SettingsNav({ activePath }: { activePath: string }) {

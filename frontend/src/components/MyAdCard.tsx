@@ -1,6 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Pencil, Archive, Trash2, Upload, MoreHorizontal, Zap, RotateCcw } from "lucide-react";
+import {
+  Pencil,
+  Archive,
+  Trash2,
+  Upload,
+  MoreHorizontal,
+  Zap,
+  RotateCcw,
+  AlertTriangle,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { Ad } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
@@ -31,6 +41,7 @@ export function MyAdCard({
   onDelete,
   onRestore,
 }: Props) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
   const archived = status !== "active" && status !== "moderation";
@@ -136,6 +147,34 @@ export function MyAdCard({
           </div>
         }
       />
+      {/*
+       * Причина отклонения.
+       *
+       * Модератор её пишет, `ListingResource` отдаёт, админка показывает — а
+       * продавец видел только вкладку «Отклонённые» и объявление без единого
+       * слова о том, что не так. Исправить он при этом мог только угадав.
+       */}
+      {status === "rejected" && ad.rejectionReason && (
+        <div
+          className="mt-[8px] flex items-start gap-[8px] rounded-[10px] px-[12px] py-[10px]"
+          style={{
+            background: "var(--error-soft, color-mix(in oklab, var(--error) 12%, transparent))",
+            color: "var(--foreground-80)",
+          }}
+        >
+          <AlertTriangle
+            size={16}
+            className="mt-[1px] shrink-0"
+            style={{ color: "var(--error)" }}
+          />
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold" style={{ color: "var(--error)" }}>
+              {t("pages.myAds.rejectionReasonTitle")}
+            </div>
+            <p className="mt-[2px] whitespace-pre-wrap text-[13px]">{ad.rejectionReason}</p>
+          </div>
+        </div>
+      )}
       <BoostSheet
         open={boostOpen}
         onClose={() => setBoostOpen(false)}

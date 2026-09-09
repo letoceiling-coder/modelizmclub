@@ -392,6 +392,7 @@ function NewAdPage() {
     subcategoryId?: number;
     cityId?: number;
     priceCents: number;
+    condition: AdCondition;
     promocode?: string;
     amountRub: number;
     title: string;
@@ -696,6 +697,7 @@ function NewAdPage() {
           title: form.title.trim(),
           description: form.description.trim(),
           priceCents,
+          condition: form.condition,
           taxonomyId,
           categoryId,
           subcategoryId:
@@ -758,6 +760,7 @@ function NewAdPage() {
               subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
             cityId: resolvedCityId,
             priceCents,
+            condition: form.condition,
             promocode,
             amountRub: (quote?.final_cents ?? 0) / 100,
             title: form.title.trim(),
@@ -777,6 +780,7 @@ function NewAdPage() {
             title: form.title.trim(),
             description: form.description.trim(),
             priceCents,
+            condition: form.condition,
             taxonomyId,
             categoryId,
             subcategoryId:
@@ -831,6 +835,7 @@ function NewAdPage() {
         title: job.title,
         description: job.description,
         priceCents: job.priceCents,
+        condition: job.condition,
         taxonomyId: job.taxonomyId,
         categoryId: job.categoryId,
         subcategoryId: job.subcategoryId,

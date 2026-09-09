@@ -206,6 +206,8 @@ export interface Ad {
   /** ISO timestamp for sorting/filtering (display string is in createdAt). */
   publishedAt?: string;
   moderation?: "published" | "moderation" | "rejected";
+  /** Причина отклонения от модератора. Есть только у отклонённых объявлений. */
+  rejectionReason?: string;
   /** Currently boosted/продвигается (Stage 5). On the real backend this comes
    *  from ListingResource (is_promoted / promoted_until) — not yet exposed. */
   promoted?: boolean;

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ListingCondition;
 use App\Enums\ListingStatus;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,7 @@ class Listing extends Model
         'slug',
         'description',
         'price_cents',
+        'condition',
         'currency',
         'city_id',
         'status',
@@ -48,6 +50,7 @@ class Listing extends Model
     {
         return [
             'status' => ListingStatus::class,
+            'condition' => ListingCondition::class,
             'delivery_methods' => 'array',
             'dimensions_cm' => 'array',
             'weight_kg' => 'float',
