@@ -1,9 +1,8 @@
 import * as React from "react";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -174,57 +173,96 @@ const CarouselItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
 );
 CarouselItem.displayName = "CarouselItem";
 
-const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
-  ({ className, variant = "outline", size = "icon", ...props }, ref) => {
+/*
+ * Стрелки листания.
+ *
+ * Позиция задаётся здесь и только здесь. Раньше базовый класс уводил их за
+ * пределы карусели (`-left-12`), а место вызова возвращало обратно
+ * (`left-[8px]`); при склейке терялись и сдвиг, и вертикальное
+ * центрирование — обе стрелки оказывались друг на друге у левого края и у
+ * нижнего края видео. Замер на 1440: обе на x 348 и 364 при центре видео 345
+ * и центре стрелок 494.
+ *
+ * Прижаты к краям с отступом 12 и центрированы по вертикали относительно
+ * содержимого карусели — то есть самого видео: кроме него в корне ничего
+ * нет, а сами кнопки в поток не попадают.
+ *
+ * Круг 40 с полупрозрачной подложкой, значок 20. На узком экране 32: там
+ * листают свайпом, и стрелка — подсказка, что слайд не один, а не основной
+ * способ. Хит-зона в обоих случаях 44 — её даёт псевдоэлемент, не трогая
+ * рисунок.
+ *
+ * Тупиковая стрелка не рисуется вовсе. Кнопка, которая никуда не ведёт,
+ * — это обещание, которого нет; `disabled` оставляет её на экране серой,
+ * а места у края видео и так мало.
+ */
+/*
+ * Хит-зона задаётся здесь псевдоэлементом напрямую, а не через TAP_TARGET_44:
+ * тот начинается с `relative`, а склейка классов считает `relative` и
+ * `absolute` одной группой и оставляет последний. Кнопка переставала быть
+ * absolute, падала в поток и уезжала под видео — ровно то, что чинится.
+ */
+const ARROW_BASE =
+  "absolute top-1/2 z-[2] grid -translate-y-1/2 place-items-center rounded-full " +
+  "h-[32px] w-[32px] sm:h-[40px] sm:w-[40px] " +
+  "text-white transition-opacity hover:opacity-90 " +
+  "after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 " +
+  "after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']";
+
+const ARROW_STYLE: React.CSSProperties = {
+  background: "rgba(9,11,20,0.55)",
+  backdropFilter: "blur(2px)",
+};
+
+const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button">>(
+  ({ className, ...props }, ref) => {
     const { orientation, scrollPrev, canScrollPrev } = useCarousel();
 
+    if (!canScrollPrev) return null;
+
     return (
-      <Button
+      <button
         ref={ref}
-        variant={variant}
-        size={size}
+        type="button"
         className={cn(
-          "absolute  h-8 w-8 rounded-full",
-          orientation === "horizontal"
-            ? "-left-12 top-1/2 -translate-y-1/2"
-            : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+          ARROW_BASE,
+          orientation === "horizontal" ? "left-[12px]" : "left-1/2 top-[12px] rotate-90",
           className,
         )}
-        disabled={!canScrollPrev}
+        style={ARROW_STYLE}
         onClick={scrollPrev}
         {...props}
       >
-        <ArrowLeft className="h-4 w-4" />
-        <span className="sr-only">Previous slide</span>
-      </Button>
+        <ChevronLeft className="h-[20px] w-[20px]" />
+        <span className="sr-only">Предыдущий слайд</span>
+      </button>
     );
   },
 );
 CarouselPrevious.displayName = "CarouselPrevious";
 
-const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
-  ({ className, variant = "outline", size = "icon", ...props }, ref) => {
+const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button">>(
+  ({ className, ...props }, ref) => {
     const { orientation, scrollNext, canScrollNext } = useCarousel();
 
+    if (!canScrollNext) return null;
+
     return (
-      <Button
+      <button
         ref={ref}
-        variant={variant}
-        size={size}
+        type="button"
         className={cn(
-          "absolute h-8 w-8 rounded-full",
-          orientation === "horizontal"
-            ? "-right-12 top-1/2 -translate-y-1/2"
-            : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+          ARROW_BASE,
+          orientation === "horizontal" ? "right-[12px]" : "left-1/2 bottom-[12px] rotate-90",
           className,
         )}
-        disabled={!canScrollNext}
+        style={ARROW_STYLE}
         onClick={scrollNext}
         {...props}
       >
-        <ArrowRight className="h-4 w-4" />
-        <span className="sr-only">Next slide</span>
-      </Button>
+        <ChevronRight className="h-[20px] w-[20px]" />
+        <span className="sr-only">Следующий слайд</span>
+      </button>
     );
   },
 );
