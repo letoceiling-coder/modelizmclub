@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ListingCategory;
 use App\Models\PostCategory;
+use App\Modules\Catalog\Services\CatalogService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -76,6 +77,16 @@ class FlattenCategoriesCommand extends Command
 
             return self::SUCCESS;
         }
+
+        /*
+         * Дерево категорий лежит в кеше сутки, и правка данных сама по себе
+         * приложению не видна: первый боевой прогон 09.09 привёл базу в
+         * порядок, а API ещё сутки отдавал бы «ил 6» третьим уровнем. Правка
+         * данных мимо админки обязана сбрасывать тот же кеш, что сбрасывает
+         * админка, — иначе она наполовину не состоялась.
+         */
+        CatalogService::flushCache();
+        $this->line('кеш справочников сброшен');
 
         return $this->verify();
     }
