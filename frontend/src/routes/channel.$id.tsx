@@ -3,31 +3,32 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowLeft,
-  Users,
-  Check,
-  BadgeCheck,
-  Clock,
-  ShieldCheck,
   AlertTriangle,
-  Radio,
-  Newspaper,
-  Star,
-  Megaphone,
-  Tag,
-  Send,
-  Calendar,
-  MessageSquareOff,
-  FileCheck2,
+  ArrowLeft,
+  BadgeCheck,
   Ban,
-  Pin,
-  Pencil,
-  MessageCircle,
-  Share2,
-  Link2,
+  Calendar,
+  Check,
+  Clock,
+  FileCheck2,
   Flag,
+  ImageOff,
+  Link2,
   LogOut,
+  Megaphone,
+  MessageCircle,
+  MessageSquareOff,
+  Newspaper,
+  Pencil,
+  Pin,
+  Radio,
   RefreshCw,
+  Send,
+  Share2,
+  ShieldCheck,
+  Star,
+  Tag,
+  Users,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FeedRightRail } from "@/components/feed/FeedRightRail";
@@ -68,6 +69,7 @@ import { uploadMedia, uploadMediaDeduped } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { EntityHeader, type EntityAction } from "@/components/entity/EntityHeader";
+import { EntityTabs } from "@/components/entity/EntityTabs";
 import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
@@ -466,50 +468,19 @@ function ChannelPage() {
           />
         </Card>
 
-        <nav
-          role="tablist"
-          className="flex items-center gap-[2px] overflow-x-auto no-scrollbar"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          {(
-            [
-              ["posts", t("pages.channelDetail.tabPosts"), visiblePublic.length],
-              ["about", t("pages.channelDetail.tabAbout"), 0],
-            ] as const
-          ).map(([k, label, count]) => {
-            const active = tab === k;
-            return (
-              <button
-                key={k}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(k)}
-                className="relative inline-flex h-[44px] shrink-0 items-center gap-[6px] px-[14px] text-[14px] font-semibold transition-colors"
-                style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
-              >
-                {label}
-                {count > 0 && (
-                  <span
-                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[5px] text-[11px] font-bold"
-                    style={{
-                      background: active ? "var(--accent-soft)" : "var(--background-surface)",
-                      color: active ? "var(--accent)" : "var(--foreground-50)",
-                      borderRadius: "var(--r-pill)",
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-                {active && (
-                  <span
-                    className="absolute bottom-[-1px] left-[8px] right-[8px]"
-                    style={{ height: 2, background: "var(--accent)", borderRadius: 2 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        <EntityTabs
+          layoutId="channel-tab-underline"
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            {
+              key: "posts" as const,
+              label: t("pages.channelDetail.tabPosts"),
+              count: visiblePublic.length,
+            },
+            { key: "about" as const, label: t("pages.channelDetail.tabAbout") },
+          ]}
+        />
 
         {tab === "posts" ? (
           <>
@@ -566,16 +537,15 @@ function ChannelPage() {
                 variant="compact"
               />
             ) : list.length === 0 ? (
-              <div
-                className="grid place-items-center gap-2 py-12 text-center"
-                style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-card)" }}
-              >
-                <div className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
-                  {t("pages.channelDetail.emptyPostsChannel")}
-                </div>
-              </div>
+              /* Пунктирная рамка читалась как поле формы — будто сюда надо
+                 что-то ввести. Общее пустое состояние раздела вместо неё. */
+              <EmptyState
+                icon={ImageOff}
+                title={t("pages.channelDetail.emptyPostsChannel")}
+                variant="section"
+              />
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {list.map((p: ChannelPost) => (
                   <PostItem
                     key={p.id}
