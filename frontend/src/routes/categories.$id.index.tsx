@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, MessageCircle, Search, Tag, Users } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,22 @@ import {
 import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/categories/$id/")({
+  /*
+   * Адрес направления — /categories/{slug}. Числовой id остаётся рабочим
+   * ради старых ссылок: уведомлений, закладок, внешних переходов, — но не
+   * рисует страницу, а отвечает постоянной переадресацией. Два адреса у
+   * одной страницы означают две строки в поиске и в отчётах.
+   *
+   * 301, а не клиентский переход: адрес сменился насовсем, и поисковику
+   * надо сказать об этом кодом, а не заменой истории в браузере.
+   */
+  beforeLoad: async ({ params }) => {
+    if (!/^\d+$/.test(params.id)) return;
+    const { resolveCategory } = await import("@/lib/api/categories");
+    const found = await resolveCategory(params.id);
+    if (!found || found.slug === params.id) return;
+    throw redirect({ to: "/categories/$id", params: { id: found.slug }, code: 301 });
+  },
   head: () => ({ meta: [{ title: i18n.t("pages.categoryDetail.metaTitle") }] }),
   component: CategoryRoomsPage,
 });
@@ -46,8 +62,11 @@ function CategoryRoomsPage() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
   const categories = usePostCategories();
-  const c = categories.find((x) => x.id === id);
-  const roomStats = useCategoryRoomStats(id);
+  // Адрес — slug, но старые числовые ссылки живут в закладках и приходят
+  // редиректом не всегда (демо-данные слугов не знают вовсе). Ищем по обоим.
+  const c = categories.find((x) => x.slug === id || x.id === id);
+  // Статистика комнат ходит в API по числовому id направления, не по слугу.
+  const roomStats = useCategoryRoomStats(c?.id ?? id);
   const [query, setQuery] = useState("");
 
   // Rooms live on levels 2 and 3 — a flat, indented list keeps «Ил-6»-style

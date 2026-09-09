@@ -112,7 +112,7 @@ export function GlobalSearch() {
                     <ResultRow
                       key={c.id}
                       to="/categories/$id"
-                      params={{ id: c.id }}
+                      params={{ id: c.slug ?? c.id }}
                       fallbackIcon={Compass}
                       title={c.name}
                       onNavigate={() => setOpen(false)}
