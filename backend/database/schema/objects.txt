@@ -784,6 +784,7 @@ COLUMN|post_categories.icon_image_url|character varying|YES
 COLUMN|post_categories.icon|character varying|YES
 COLUMN|post_categories.id|bigint|NO
 COLUMN|post_categories.is_active|boolean|NO
+COLUMN|post_categories.listing_category_id|bigint|YES
 COLUMN|post_categories.name|character varying|NO
 COLUMN|post_categories.parent_id|bigint|YES
 COLUMN|post_categories.path|character varying|YES
@@ -1467,6 +1468,7 @@ FK|personal_data_consents|personal_data_consents_user_id_foreign
 FK|phone_verification_codes|phone_verification_codes_user_id_foreign
 FK|post_bookmarks|post_bookmarks_post_id_foreign
 FK|post_bookmarks|post_bookmarks_user_id_foreign
+FK|post_categories|post_categories_listing_category_id_foreign
 FK|post_categories|post_categories_parent_id_foreign
 FK|post_hashtags|post_hashtags_post_id_foreign
 FK|post_hashtags|post_hashtags_tag_id_foreign
