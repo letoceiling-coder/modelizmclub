@@ -2,6 +2,7 @@ import { markConversationRead } from "@/lib/api/chat";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { Dialog, Message } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
+import { useStore } from "@/lib/store";
 import { getSessionUserId } from "@/lib/session/cache";
 import { getSessionQueryClient } from "@/lib/session/queryClient";
 import {
@@ -54,10 +55,22 @@ export function useDialogMessages(conversationUuid: string | null) {
   };
 }
 
+/**
+ * Общий счётчик непрочитанного — тот, что висит в шапке и в нижней навигации.
+ *
+ * Диалоги, удалённые у себя, не считаются. Они не показаны ни на одной
+ * вкладке, открыть их нельзя — а значит, нельзя и обнулить: счётчик от
+ * такого диалога висел бы вечно и ни с чем не сходился. Это же условие
+ * делает верной проверку «шапка равна сумме по вкладкам»: и там, и там
+ * складываются ровно видимые диалоги.
+ */
 export function useUnreadMessagesTotal(): number {
   const me = useCurrentUser();
-  const q = useQuery({ ...conversationsQuery(me.id), select: unreadMessagesTotal });
-  return q.data ?? 0;
+  const deleted = useStore((s) => s.dialogMeta);
+  const q = useQuery({ ...conversationsQuery(me.id) });
+  return unreadMessagesTotal(
+    (q.data ?? EMPTY_DIALOGS).filter((d) => !deleted[d.id]?.deletedLocally),
+  );
 }
 
 const EMPTY_DIALOGS: Dialog[] = [];
