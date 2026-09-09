@@ -4,9 +4,9 @@ namespace App\Console\Commands;
 
 use App\Models\ListingCategory;
 use App\Models\PostCategory;
-use App\Modules\Catalog\Services\CatalogService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Modules\Catalog\Services\CatalogService;
 
 /**
  * Приводит оба дерева категорий к двум уровням и связывает их между собой.
