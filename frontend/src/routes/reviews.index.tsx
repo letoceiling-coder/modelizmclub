@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, SearchX, Bookmark } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import type { Video, VideoCategory } from "@/lib/mock";
 import { fetchVideos, fetchVideoCategories } from "@/lib/api/reviews";
 import { getWatchLater, type WatchLaterItem } from "@/lib/watch-later";
@@ -90,7 +91,7 @@ function VideoCardSkeleton() {
 
 function VideoGridSkeleton({ count = SKELETON_COUNT }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-2">
       {Array.from({ length: count }, (_, i) => (
         <VideoCardSkeleton key={i} />
       ))}
@@ -196,7 +197,13 @@ function ReviewsPage() {
   const newest = videos.slice(0, 10);
 
   return (
-    <AppLayout rightColumn={false}>
+    /*
+      Правая панель и общая ширина центра — как у ленты, друзей, сообществ
+      и каналов. Обзоры были единственной страницей этого ряда без панели:
+      центр занимал 1135 против 680 у остальных, и переход сюда сдвигал
+      разметку сразу на 455 px.
+    */
+    <AppLayout narrowCenter rightColumn={<DirectionsRightRail />}>
       <div className="mx-auto flex max-w-[1200px] flex-col gap-[20px]">
         <SearchInput
           value={query}
@@ -281,7 +288,7 @@ function ReviewsPage() {
                 description={t("pages.reviews.watchLaterEmptyDesc")}
               />
             ) : (
-              <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-[16px] sm:grid-cols-3 lg:grid-cols-2">
                 {watchLaterItems.map((item) => (
                   <WatchLaterCard key={item.id} item={item} />
                 ))}
@@ -296,7 +303,7 @@ function ReviewsPage() {
           ) : (
             <div
               className={cn(
-                "grid grid-cols-2 gap-[16px] transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-4",
+                "grid grid-cols-2 gap-[16px] transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-2",
                 refreshing && "pointer-events-none opacity-55",
               )}
             >
