@@ -69,8 +69,21 @@ class ListingService
                     $q->whereIn('category_id', $ids)->orWhereIn('subcategory_id', $ids);
                 });
             })
-            ->when(empty($filters['taxonomy_id']) && ($filters['category_id'] ?? null), fn ($q, $id) => $q->where('category_id', $id))
-            ->when(empty($filters['taxonomy_id']) && ($filters['subcategory_id'] ?? null), fn ($q, $id) => $q->where('subcategory_id', $id))
+            /*
+             * Идентификатор берётся из массива, а не из второго аргумента
+             * `when`. Условие здесь составное, а `&&` возвращает логическое
+             * значение — в замыкание приходил `true`, и отбор превращался в
+             * `category_id = true`. Каталог отвечал пустотой на любую
+             * выбранную категорию: 0 объявлений там, где в базе их 18.
+             */
+            ->when(
+                empty($filters['taxonomy_id']) && ! empty($filters['category_id']),
+                fn ($q) => $q->where('category_id', (int) $filters['category_id'])
+            )
+            ->when(
+                empty($filters['taxonomy_id']) && ! empty($filters['subcategory_id']),
+                fn ($q) => $q->where('subcategory_id', (int) $filters['subcategory_id'])
+            )
             ->when(empty($filters['taxonomy_id']) && ! empty($filters['category_ids']), fn ($q) => $q->whereIn('category_id', (array) $filters['category_ids']))
             ->when($filters['q'] ?? null, fn ($q, $term) => $this->applyTextSearch($q, (string) $term))
             ->when(isset($filters['price_min']), fn ($q) => $q->where('price_cents', '>=', (int) round(((float) $filters['price_min']) * 100)))

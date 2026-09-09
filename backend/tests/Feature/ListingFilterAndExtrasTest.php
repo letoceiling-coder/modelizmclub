@@ -41,6 +41,44 @@ class ListingFilterAndExtrasTest extends TestCase
         ]);
     }
 
+    /**
+     * Отбор по разделу каталога.
+     *
+     * Условие в `when` было составным, а `&&` возвращает логическое
+     * значение — в замыкание приходил `true`, и отбор превращался в
+     * `category_id = true`. Каталог отвечал пустотой на любую выбранную
+     * категорию. Ни один тест этого не ловил.
+     */
+    public function test_отбор_объявлений_по_разделу_каталога(): void
+    {
+        $наборы = $this->category('kits-filter');
+        $моторы = ListingCategory::create([
+            'name' => 'Моторы',
+            'slug' => 'motors-filter',
+            'sort_order' => 2,
+            'depth' => 0,
+            'is_active' => true,
+        ]);
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        $this->listing($user, $наборы, 'Сборная модель', 100_00);
+        $this->listing($user, $наборы, 'Ещё один набор', 200_00);
+        $this->listing($user, $моторы, 'Мотор для катера', 300_00);
+
+        $this->getJson('/api/v1/listings')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+
+        $this->getJson('/api/v1/listings?category_id='.$наборы->id)
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->getJson('/api/v1/listings?category_id='.$моторы->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Мотор для катера');
+    }
+
     public function test_listings_filter_by_price_and_sort_by_price(): void
     {
         $category = $this->category();
