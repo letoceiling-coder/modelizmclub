@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import type { Ad } from "@/lib/mock";
@@ -138,6 +138,23 @@ function AdDetailPage() {
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
   const [ownerBusy, setOwnerBusy] = useState(false);
   const [safeDealBusy] = useState(false);
+  /*
+   * Блок действий на экране — липкая полоса не нужна: она повторяла бы то,
+   * что человек и так видит. Наблюдатель, а не расчёт прокрутки: высота
+   * блока зависит от того, сколько кнопок доступно этому зрителю.
+   */
+  const actionPanelRef = useRef<HTMLDivElement>(null);
+  const [actionsVisible, setActionsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = actionPanelRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setActionsVisible(entry.isIntersecting), {
+      rootMargin: "0px 0px -72px 0px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ad?.id]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -384,15 +401,17 @@ function AdDetailPage() {
               </Alert>
             )}
             {showBuyerUi ? (
-              <AdActionPanel
-                ad={ad}
-                saved={saved}
-                onWrite={writeToSeller}
-                onToggleSave={toggleSave}
-                onShare={share}
-                onSafeDeal={() => void startSafeDeal()}
-                safeDealBusy={safeDealBusy}
-              />
+              <div ref={actionPanelRef}>
+                <AdActionPanel
+                  ad={ad}
+                  saved={saved}
+                  onWrite={writeToSeller}
+                  onToggleSave={toggleSave}
+                  onShare={share}
+                  onSafeDeal={() => void startSafeDeal()}
+                  safeDealBusy={safeDealBusy}
+                />
+              </div>
             ) : (
               <AdOwnerActionPanel
                 ad={ad}
@@ -500,7 +519,14 @@ function AdDetailPage() {
       </div>
 
       {showBuyerUi ? (
-        <MobileStickyActionBar ad={ad} onWrite={writeToSeller} />
+        /*
+         * Липкая полоса — для тех мест страницы, где действий не видно.
+         * Пока блок действий на экране, она повторяет его кнопку «Написать
+         * продавцу» в ста пикселях под ней: два одинаковых действия рядом,
+         * и повторяется при этом вторичное — главное здесь «Купить через
+         * безопасную сделку». Замерено на 440.
+         */
+        !actionsVisible && <MobileStickyActionBar ad={ad} onWrite={writeToSeller} />
       ) : (
         <AdOwnerMobileBar
           ad={ad}
