@@ -126,7 +126,6 @@ function DashboardSection() {
         className="flex flex-col items-center gap-[8px] p-[24px] text-center"
         style={{
           borderColor: "var(--border)",
-          borderStyle: "dashed",
           borderRadius: "var(--r-card)",
         }}
       >
