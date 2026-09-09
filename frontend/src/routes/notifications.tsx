@@ -286,7 +286,7 @@ function NotificationsPage() {
   };
 
   return (
-    <AppLayout footer>
+    <AppLayout narrowCenter footer>
       <div className="mx-auto w-full max-w-[640px] px-[8px] py-[16px]">
         <div className="mb-[16px] flex flex-col gap-[10px] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-[10px]">

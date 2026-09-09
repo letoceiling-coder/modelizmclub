@@ -475,7 +475,7 @@ function FriendsPage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout narrowCenter>
       <div className="space-y-[16px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>
