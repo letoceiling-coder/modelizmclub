@@ -18,7 +18,12 @@ function ReviewsSection() {
   const guestBlocked = useGuestRouteBlocked("route.reviews");
   if (guestBlocked) {
     return (
-      <AppLayout>
+      /*
+        Та же ширина, что и у самой страницы обзоров: гостевая заглушка —
+        тот же раздел, и переход в него не должен двигать разметку. Без
+        narrowCenter центр у гостя выходил 750 против 680 у вошедшего.
+      */
+      <AppLayout narrowCenter>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={Clapperboard}
