@@ -648,6 +648,12 @@ export function PostCard({
     <Card
       className={cn(
         "overflow-hidden border-[var(--border)]",
+        // Наведение слегка подсвечивает карточку — как во ВКонтакте. Нужно
+        // не для красоты: в списке из десятка постов ничем не обозначено,
+        // где кончается один и начинается следующий, и курсор оказывается
+        // единственной подсказкой. Вложенная карточка репоста подсветку не
+        // берёт: она внутри уже подсвеченной.
+        variant !== "embedded" && "transition-colors hover:bg-[var(--background-surface)]",
         variant === "embedded"
           ? "rounded-none border-0 shadow-none"
           : variant === "feed"

@@ -24,8 +24,12 @@ export function GuestSectionStub({
   const { requireLogin } = useGuestAccess();
 
   return (
-    <EmptyState icon={icon as never} title={title} description={description}>
-      <Button onClick={() => requireLogin(() => {})}>
+    // `section`, а не рамка по умолчанию: пунктирная рамка читается как поле
+    // формы — будто сюда надо что-то ввести, — а не как «этот раздел пока
+    // закрыт». Гость видит ровно то же оформление пустого раздела, что и
+    // вошедший, отличается только предложение.
+    <EmptyState icon={icon as never} title={title} description={description} variant="section">
+      <Button size="sm" onClick={() => requireLogin(() => {})}>
         <LogIn size={14} /> Войти
       </Button>
     </EmptyState>

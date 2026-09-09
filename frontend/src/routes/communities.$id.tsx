@@ -70,9 +70,12 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
+import { CreatePostRow } from "@/components/feed/CreatePostMenu";
+import { useCurrentUser } from "@/lib/session";
 import type { ComposerSelection } from "@/components/feed/CreatePostMenu";
 import { CommunityDetailsDialog } from "@/components/communities/CommunityDetailsDialog";
 import { EntityHeader, type EntityAction } from "@/components/entity/EntityHeader";
+import { EntityTabs } from "@/components/entity/EntityTabs";
 import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
 import { CommunitySettingsSheet } from "@/components/communities/CommunitySettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
@@ -871,6 +874,7 @@ function CommunityDetailPage() {
   const postsPrimedRef = useRef(true);
   const [hubEvents, setHubEvents] = useState<CommunityEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
+  const me = useCurrentUser();
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
@@ -1367,6 +1371,20 @@ function CommunityDetailPage() {
   return (
     <AppLayout narrowCenter rightColumn={rail}>
       <div className="space-y-[16px]">
+        {/*
+          Хлебная крошка над обложкой. Раньше «Все сообщества» стояли под
+          стеной: чтобы вернуться к списку, надо было пролистать все записи
+          сообщества до самого низа — то есть возврат находился дальше всего
+          от того места, где о нём вспоминают.
+        */}
+        <Link
+          to="/communities"
+          className="hit-target -mb-1 inline-flex items-center gap-1 text-[13px] transition-colors hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          style={{ color: "var(--foreground-50)" }}
+        >
+          <ArrowLeft size={14} /> {t("pages.communityDetail.allCommunities")}
+        </Link>
+
         {/* Hero: cover + avatar + identity + actions */}
         <Card
           className="overflow-hidden shadow-none"
@@ -1420,14 +1438,14 @@ function CommunityDetailPage() {
         </Card>
 
         {/* Tabs */}
-        <nav
-          role="tablist"
-          className="flex items-center gap-[2px] overflow-x-auto no-scrollbar"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          {tabs.map((tabItem) => {
-            const active = tab === tabItem.key;
-            const count =
+        <EntityTabs
+          layoutId="community-tab-underline"
+          active={tab}
+          onChange={setTab}
+          tabs={tabs.map((tabItem) => ({
+            key: tabItem.key,
+            label: tabItem.label,
+            count:
               tabItem.key === "posts"
                 ? posts.length
                 : tabItem.key === "events"
@@ -1439,59 +1457,31 @@ function CommunityDetailPage() {
                       // списка: карточке правой колонки хватает восьми, и
                       // счётчик показывал бы «8» вместо настоящего числа.
                       (community.members ?? memberList.length)
-                    : 0;
-            return (
-              <button
-                key={tabItem.key}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(tabItem.key)}
-                className="relative inline-flex h-[44px] shrink-0 items-center gap-[6px] px-[14px] text-[14px] font-semibold transition-colors"
-                style={{ color: active ? "var(--foreground)" : "var(--foreground-50)" }}
-              >
-                {tabItem.label}
-                {count > 0 && tabItem.key !== "about" && (
-                  <span
-                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center px-[5px] text-[11px] font-bold"
-                    style={{
-                      background: active ? "var(--accent-soft)" : "var(--background-surface)",
-                      color: active ? "var(--accent)" : "var(--foreground-50)",
-                      borderRadius: "var(--r-pill)",
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-                {active && (
-                  <motion.span
-                    layoutId="community-tab-underline"
-                    className="absolute bottom-[-1px] left-[8px] right-[8px]"
-                    style={{ height: 3, background: "var(--accent)", borderRadius: 2 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+                    : 0,
+          }))}
+        />
 
         {/* Tab panels */}
         {tab === "posts" && (
           <>
-            {/* На пустой стене кнопка живёт только в пустом состоянии.
-                Раньше при нуле записей рисовались обе — вверху справа и в
-                центре, — и обе назывались «Создать первый пост». Одно
-                действие, два одинаковых предложения в одном экране. */}
-            {canCreatePost && posts.length > 0 && (
-              <div className="mb-[16px] flex justify-end">
-                <Button
-                  type="button"
-                  onClick={() => requirePremium(() => setCreatePostOpen(true))}
-                  className="gap-[6px]"
-                >
-                  <Plus size={16} />
-                  {t("pages.communityDetail.createPost")}
-                </Button>
+            {/* Поле создания вместо кнопки «Создать пост» в углу: кнопка
+                говорила, что произойдёт, но не показывала, где окажется
+                запись. Строка стоит там же, где появится пост, и это та же
+                строка, что в ленте.
+
+                Она показывается и на пустой стене. Прежний запрет — «на
+                пустой стене только одно предложение» — был про две кнопки
+                с одинаковой подписью «Создать первый пост»: одно действие,
+                два одинаковых предложения. Поле и призыв в пустом состоянии
+                разного рода: первое всегда на своём месте, второй объясняет,
+                почему здесь пусто. */}
+            {canCreatePost && (
+              <div className="mb-3">
+                <CreatePostRow
+                  me={me}
+                  onSelectKind={() => requirePremium(() => setCreatePostOpen(true))}
+                  onCompose={() => requirePremium(() => setCreatePostOpen(true))}
+                />
               </div>
             )}
             {postsLoading ? (
@@ -1500,7 +1490,10 @@ function CommunityDetailPage() {
                 <Skeleton className="h-[120px] w-full rounded-[var(--r-card)]" />
               </div>
             ) : posts.length > 0 ? (
-              <div className="space-y-[16px]">
+              /* Восемь между карточками, а не шестнадцать: подсветка при
+                 наведении сама отделяет одну запись от другой, и лишний
+                 воздух только удлиняет стену. */
+              <div className="space-y-2">
                 {posts.map((p) => (
                   <PostCard
                     key={p.id}
@@ -1522,13 +1515,14 @@ function CommunityDetailPage() {
                 icon={ImageOff}
                 title={t("pages.communityDetail.emptyPosts")}
                 description={t("pages.communityDetail.emptyPostsDesc")}
-                variant="compact"
+                variant="section"
               >
                 {canCreatePost && (
                   <Button
                     type="button"
+                    size="sm"
                     onClick={() => requirePremium(() => setCreatePostOpen(true))}
-                    className="mt-[12px] gap-[6px]"
+                    className="gap-[6px]"
                   >
                     <Plus size={16} />
                     {t("pages.communityDetail.createFirstPost")}
@@ -1775,15 +1769,6 @@ function CommunityDetailPage() {
             </div>
           </div>
         )}
-
-        {/* Back link */}
-        <div className="pb-[8px]">
-          <Button asChild variant="ghost" className="gap-[6px] text-[13px]">
-            <Link to="/communities">
-              <ArrowLeft size={14} /> {t("pages.communityDetail.allCommunities")}
-            </Link>
-          </Button>
-        </div>
       </div>
 
       <ShareSheet
