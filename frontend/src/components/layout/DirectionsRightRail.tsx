@@ -110,7 +110,8 @@ function filterNodes(nodes: RailNode[], q: string): RailNode[] {
   });
 }
 
-function hrefFor(variant: RailVariant, id: string): string {
+/** Отбор по разделу на той странице, где панель показана. */
+function filterHrefFor(variant: RailVariant, id: string): string {
   if (variant === "ads") return `/ads?taxonomy_id=${id}`;
   if (variant === "communities") return `/communities?taxonomy_id=${id}`;
   if (variant === "channels") return `/channels?taxonomy_id=${id}`;
@@ -118,9 +119,33 @@ function hrefFor(variant: RailVariant, id: string): string {
 }
 
 /**
- * Значок чата: у направления открывает список комнат, у подкатегории —
- * саму комнату. Адрес один и тот же — узел называет себя сам, родителя
- * называть незачем.
+ * Куда ведёт название.
+ *
+ * В ленте — на само направление: панель здесь точка входа, а не фильтр,
+ * и «Авиация» должна открывать «Авиацию», а не ленту, суженную до неё.
+ * Отбор при этом никуда не делся — он на строке «Все посты направления»
+ * внутри раскрытого узла.
+ *
+ * На остальных страницах панель именно отбирает: она сужает тот список,
+ * рядом с которым стоит. Уводить оттуда на страницу направления значило бы
+ * увести человека со страницы, на которую он пришёл, — а в каталоге ещё и
+ * в пустоту: дерево там своё, и тринадцати его разделам из двадцати пяти
+ * направления не соответствует ни одно (замер 09.09).
+ */
+function nameHrefFor(variant: RailVariant, node: RailNode): string {
+  if (variant !== "feed") return filterHrefFor(variant, node.id);
+
+  return `/categories/${node.slug ?? node.id}`;
+}
+
+/**
+ * Значок чата ведёт в чат этого уровня. Уровень у чата ровно один:
+ * `ChatService::isDescendantOf` отказывает узлу без родителя, то есть
+ * комната есть у подкатегории и не бывает у направления.
+ *
+ * Поэтому у направления значка нет — раньше он вёл на список комнат, то
+ * есть туда же, куда теперь ведёт название. Две кнопки в одно место, и
+ * одна из них обещает чат, которого на этом уровне не существует.
  */
 function chatHrefFor(node: RailNode): string {
   return `/categories/${node.slug ?? node.id}`;
@@ -227,7 +252,8 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
       {nodes.map((node) => {
         const open = Boolean(openIds[node.id]);
         const hasChildren = node.children.length > 0;
-        const href = hrefFor(variant, node.id);
+        const href = nameHrefFor(variant, node);
+        const filterHref = filterHrefFor(variant, node.id);
         const active = activeTaxonomyId === Number(node.id);
         const pad = depth === 0 ? "py-[8px] pl-[10px]" : "px-[8px] py-[5px]";
         const toggle = () => setOpenIds((p) => ({ ...p, [node.id]: !p[node.id] }));
@@ -276,39 +302,39 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
         return (
           <li key={node.id}>
             <div className="flex items-stretch">
-              {hasChildren ? (
-                // A branch expands on click; the filter lives on its leaves and
-                // on the chat icon next to it.
-                <button
-                  type="button"
-                  onClick={toggle}
-                  aria-expanded={open}
-                  className={rowClass}
-                  style={rowStyle}
-                >
-                  {label}
-                </button>
-              ) : (
-                <RailLink
-                  to={href}
-                  guestGuard={guestGuard}
-                  actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
-                  className={rowClass}
-                  style={rowStyle}
-                >
-                  {label}
-                </RailLink>
-              )}
-              {!catalog && (
+              {/*
+                Название ведёт, шеврон раскрывает. Раньше у узла с
+                подкатегориями название было кнопкой раскрытия и не вело
+                никуда, а у узла без них — ссылкой: одна и та же строка
+                означала разное в зависимости от того, есть ли под ней
+                что-то. Теперь правило одно на все строки.
+              */}
+              <RailLink
+                to={href}
+                guestGuard={guestGuard}
+                actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
+                className={rowClass}
+                style={rowStyle}
+              >
+                {label}
+              </RailLink>
+              {/*
+                Колонка чата занята всегда — как и колонка шеврона: иначе у
+                направления без чата название разъезжалось бы на её ширину,
+                и значки в столбце стояли бы по двум вертикалям.
+              */}
+              {!catalog && depth > 0 ? (
                 <RailLink
                   to={chatHrefFor(node)}
                   guestGuard={guestGuard}
-                  actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
+                  actionKey="feed.rail.subcategory"
                   className="grid w-6 shrink-0 place-items-center transition-colors hover:bg-[var(--background-surface)]"
                   style={{ color: "var(--foreground-50)" }}
                 >
                   <MessageCircle className="h-[13px] w-[13px]" />
                 </RailLink>
+              ) : (
+                !catalog && <span className="w-6 shrink-0" aria-hidden />
               )}
               {/*
                 Колонка шеврона занята всегда — даже когда раскрывать нечего.
@@ -340,7 +366,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
             {open && hasChildren && (
               <>
                 <RailLink
-                  to={href}
+                  to={filterHref}
                   guestGuard={guestGuard}
                   actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
                   className="mb-[2px] ml-[36px] mt-[2px] block border-l pl-[10px] text-[12px]"
