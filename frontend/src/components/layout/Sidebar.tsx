@@ -137,8 +137,11 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   ) => {
     const actionKey = NAV_ROUTE_TO_ACTION[to] ?? "";
     const className = compact
-      ? "grid h-10 w-10 place-items-center rounded-lg transition-colors hover:bg-muted"
-      : `relative flex items-center gap-3 rounded-lg pl-3 pr-3 py-2 text-sm transition-colors ${active ? "bg-accent/10 text-primary font-medium" : "text-foreground hover:bg-muted"}`;
+      ? "hit-target grid h-10 w-10 cursor-pointer place-items-center rounded-lg transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      : // min-h-11 вместо hit-target: строки меню идут вплотную друг к другу, и
+        // псевдоэлемент в 44 у строки в 36 залезал бы на соседнюю — нажатие у
+        // края уводило бы не туда. Здесь растёт сама строка.
+        `relative flex min-h-11 cursor-pointer items-center gap-3 rounded-lg pl-3 pr-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${active ? "bg-accent/10 text-primary font-medium" : "text-foreground hover:bg-muted"}`;
     const style = active
       ? compact
         ? { background: "var(--accent-soft)", color: "var(--accent)" }
@@ -234,7 +237,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           rel="noopener noreferrer"
           title={t("nav.market")}
           aria-label={t("nav.market")}
-          className="grid h-10 w-10 place-items-center rounded-lg transition-colors hover:bg-muted"
+          className="hit-target grid h-10 w-10 cursor-pointer place-items-center rounded-lg transition-colors hover:bg-muted"
           style={{ color: "var(--foreground-70)" }}
         >
           <SlotIcon slot="nav.market" inheritColor className="h-5 w-5" />
