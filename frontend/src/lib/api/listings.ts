@@ -166,6 +166,9 @@ export interface CatalogParams {
   cityName?: string;
   categoryName?: string;
   subcategoryName?: string;
+  /** Идентификаторы разделов каталога — именно по ним отбирает сервер. */
+  categoryId?: number;
+  subcategoryId?: number;
   priceMin?: number;
   priceMax?: number;
   deliveries?: string[];
@@ -183,6 +186,10 @@ export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
     query: {
       q: params.q || undefined,
       taxonomy_id: params.taxonomyId || undefined,
+      // Раздел каталога. Раньше выбранная категория оставалась в типе и
+      // до запроса не доходила — фильтр слева не фильтровал ничего.
+      category_id: params.categoryId || undefined,
+      subcategory_id: params.subcategoryId || undefined,
       city_id: params.cityId || undefined,
       price_min: params.priceMin || undefined,
       price_max: params.priceMax || undefined,

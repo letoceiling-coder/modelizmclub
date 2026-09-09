@@ -3,7 +3,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useTranslation } from "react-i18next";
 import { Plus, X, RotateCcw, AlertCircle, RefreshCw, Megaphone } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { DirectionsRightRail } from "@/components/layout/DirectionsRightRail";
 import { fetchListings, type CatalogParams } from "@/lib/api/listings";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
@@ -22,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { useListingCategories } from "@/lib/hooks/useCategories";
 import type { Ad } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
@@ -81,10 +81,14 @@ function buildParams(
   filters: FiltersState,
   sort: SortKey,
   taxonomyId?: number,
+  categoryId?: number,
+  subcategoryId?: number,
 ): CatalogParams {
   return {
     q: q || undefined,
     taxonomyId,
+    categoryId,
+    subcategoryId,
     cityId: filters.cityId,
     cityName: filters.city || undefined,
     categoryName: filters.category !== "Все" ? filters.category : undefined,
@@ -101,6 +105,7 @@ function CatalogPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const loaded = Route.useLoaderData();
+  const listingCategories = useListingCategories();
   const taxonomyId = search.taxonomy_id;
   const { guardAction } = useGuestAccess();
 
@@ -123,6 +128,30 @@ function CatalogPage() {
   const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  /*
+   * Выбранный слева раздел уходит в запрос как category_id/subcategory_id.
+   *
+   * Раньше он не уходил никак: `fetchListings` клал в query только q,
+   * taxonomy_id, город, цену и сортировку, а имена разделов принимались
+   * типом и молча терялись. Выбор категории менял фишку над списком и не
+   * менял список — «Найдено: 6» на любой категории.
+   *
+   * Не taxonomy_id: у объявлений он означает раздел ленты и переводится
+   * через зеркало, а слева выбирается раздел каталога. Правая панель
+   * подставляла туда каталожный идентификатор и получала пустой список —
+   * то есть не работала тоже.
+   */
+  const { categoryId, subcategoryId } = useMemo(() => {
+    const cat = listingCategories.find((c) => c.name === filters.category);
+    if (!cat) return { categoryId: undefined, subcategoryId: undefined };
+    const sub = cat.subcategories.find((x) => x.name === filters.subcategory);
+    const num = (v: string | undefined) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : undefined;
+    };
+    return { categoryId: num(cat.id), subcategoryId: num(sub?.id) };
+  }, [listingCategories, filters.category, filters.subcategory]);
+
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   const isFilterBusy = isRefreshing || isPendingRefresh;
@@ -135,7 +164,7 @@ function CatalogPage() {
       setLoadState("loading");
     }
     try {
-      const params = buildParams(q, filters, sort, taxonomyId);
+      const params = buildParams(q, filters, sort, taxonomyId, categoryId, subcategoryId);
       const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: 1 });
       setAds(result);
       setPage(1);
@@ -155,7 +184,7 @@ function CatalogPage() {
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const params = buildParams(q, filters, sort, taxonomyId);
+      const params = buildParams(q, filters, sort, taxonomyId, categoryId, subcategoryId);
       const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: nextPage });
       setAds((prev) => [...prev, ...result]);
       setPage(nextPage);
@@ -224,7 +253,13 @@ function CatalogPage() {
   const hasAnyFilter = activeFilterCount > 0 || q;
 
   return (
-    <AppLayout rightColumn={<DirectionsRightRail variant="ads" />} navCollapsed footer>
+    /*
+      Правой панели здесь нет: она повторяла выбор категории, который уже
+      делается фильтром слева. Две одинаковые точки выбора в одном экране
+      расходятся в поведении — панель уводила на /ads?taxonomy_id=, фильтр
+      менял состояние на месте, — и это два разных ответа на один вопрос.
+    */
+    <AppLayout rightColumn={false} navCollapsed footer>
       <div className="space-y-[16px] pb-[24px]">
         {/* Header */}
         <div className="flex items-start justify-between gap-[12px]">
@@ -280,16 +315,17 @@ function CatalogPage() {
             />
 
             {/*
-              Ряд фишек рисуется, только когда в нём что-то есть.
-              Здесь стояло `min-h-[32px]`, чтобы появление фишки не сдвигало
-              список. Но фильтров чаще нет, чем есть, и резерв стоил 57 px
-              пустоты над первой карточкой на каждом заходе — на 365 это
-              заметная часть первого экрана. Сдвиг, от которого он защищал,
-              случается сразу после действия человека и в CLS не попадает:
-              такие сдвиги браузер исключает как вызванные вводом.
+              Ряд фишек держит высоту, даже когда пуст.
+
+              Резерв убирался — рассуждение было, что сдвиг случается сразу
+              после действия человека и в CLS не попадает. Замер показал
+              обратное: при смене категории блок результатов уезжал вниз на
+              38 px, и запись сдвига приходила с hadRecentInput = false, то
+              есть считалась. Тридцать два пикселя пустоты стоят меньше, чем
+              прыжок карточек под курсором при каждом выборе фильтра.
             */}
-            {hasAnyFilter && (
-              <div className="flex flex-wrap items-center gap-[6px]">
+            <div className="flex min-h-[32px] flex-wrap items-center gap-[6px]">
+              {hasAnyFilter && (
                 <>
                   {q && <FilterTag label={`«${q}»`} onRemove={() => setQ("")} />}
                   {filters.category !== "Все" && (
@@ -317,8 +353,8 @@ function CatalogPage() {
                     </button>
                   )}
                 </>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Results — keep the previous grid mounted while filters refresh to avoid layout jumps */}
             <div
