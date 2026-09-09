@@ -18,11 +18,21 @@ interface Props {
   count: number;
   onRepost: () => void;
   disabled?: boolean;
+  /** Класс кнопки — приходит из строки действий, чтобы репост выглядел
+   *  и вёл себя ровно как соседи. */
+  className: string;
 }
 
 type View = "main" | "chats" | "share";
 
-export function RepostMenu({ postId, reposted, count, onRepost, disabled = false }: Props) {
+export function RepostMenu({
+  postId,
+  reposted,
+  count,
+  onRepost,
+  disabled = false,
+  className,
+}: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
   const [open, setOpen] = useState(false);
@@ -115,9 +125,10 @@ export function RepostMenu({ postId, reposted, count, onRepost, disabled = false
       <button
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        // min-h/min-w bring the 36×28 icon button up to a 44px tap target;
-        // the icon and its counter keep the size and spacing they had.
-        className="flex min-h-[48px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[6px] text-[12px] transition-colors disabled:pointer-events-none disabled:opacity-45 md:min-h-[44px]"
+        // Тот же класс, что у соседей по строке действий. Здесь лежала его
+        // копия — без подсветки наведения: репост был единственной кнопкой
+        // ряда, которая на курсор не отзывалась.
+        className={className}
         style={{
           color: reposted ? "var(--accent)" : "var(--foreground-70)",
           background: open ? "var(--background-surface)" : "transparent",

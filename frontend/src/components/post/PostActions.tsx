@@ -8,9 +8,14 @@ import { RepostMenu } from "@/components/feed/RepostMenu";
 
 /** Shared class for footer action buttons — ghost-style, accent hover.
  *  48 px на телефоне, 44 на широком экране: палец и курсор просят разного,
- *  и панель действий — единственное место карточки, где это заметно. */
+ *  и панель действий — единственное место карточки, где это заметно.
+ *
+ *  Подсветка наведения — круглая: у кнопок без счётчика (репост, сохранить)
+ *  это ровный кружок вокруг иконки, у кнопок со счётчиком — пилюля с теми же
+ *  скруглениями. Прямоугольник с радиусом 10 выглядел чужеродно рядом с
+ *  круглым аватаром и круглыми кнопками просмотрщика. */
 const actionCls =
-  "inline-flex min-h-[48px] min-w-[44px] items-center justify-center gap-[6px] rounded-[10px] px-[10px] py-[7px] text-[12px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45 md:min-h-[44px]";
+  "inline-flex min-h-[48px] min-w-[44px] cursor-pointer items-center justify-center gap-[6px] rounded-full px-[10px] py-[7px] text-[12px] font-medium transition-colors hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:pointer-events-none disabled:opacity-45 md:min-h-[44px]";
 
 interface Props {
   post: Post;
@@ -124,6 +129,7 @@ export function PostActions({
       )}
 
       <RepostMenu
+        className={actionCls}
         postId={post.id}
         reposted={reposted}
         count={reposts}
