@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Reply, Send, MoreHorizontal, ChevronDown, Paperclip, X } from "lucide-react";
+import { Heart, Send, ChevronDown, Paperclip, X } from "lucide-react";
 import type { Comment, User } from "@/lib/mock";
 import { userById } from "@/lib/user-registry";
 import { useCurrentUser } from "@/lib/session";
@@ -12,7 +12,7 @@ import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
-import { variantUrl } from "@/lib/media/variants";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
@@ -43,11 +43,34 @@ interface Props {
   onSortChange?: (sort: CommentSort) => void;
   /** Server verdict for the whole thread: `can.comment === false` makes it read-only. */
   can?: Record<string, boolean>;
+  /**
+   * `inline` — ветка внутри карточки и внутри шторки: композер сверху, всё
+   * растёт вниз вместе со страницей.
+   * `panel` — колонка просмотрщика: занимает всю высоту, список прокручивается
+   * отдельно, композер закреплён внизу.
+   */
+  layout?: "inline" | "panel";
 }
 
 /** Expanded lists grow in chunks so a thread with hundreds of replies
  *  doesn't mount at once and shift the feed. */
 const PAGE_SIZE = 20;
+
+/** Сдвиг ответа: 40 px — ширина аватара 32 плюс половина отступа. Глубже
+ *  двух уровней ветка не уходит, поэтому сдвиг ровно один. */
+const REPLY_INDENT = 40;
+
+/**
+ * Мелкое действие в строке под комментарием.
+ *
+ * Видимая высота 32, а не 44: строка набрана caption и несёт до четырёх
+ * действий — четыре цели по 44 растянули бы её втрое и оторвали от текста,
+ * к которому она относится. Зону нажатия добирает `hit-target`: его
+ * псевдоэлемент растягивает только область попадания пальца, вёрстка и
+ * размеры остаются прежними.
+ */
+const META_ACTION =
+  "hit-target inline-flex min-h-[32px] cursor-pointer items-center transition-colors hover:text-[var(--foreground-90)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
 
 function commentTime(c: Comment): number {
   const t = Date.parse(c.time);
@@ -118,37 +141,12 @@ function CommentAvatar({
   name: string;
   actionKey: string;
 }) {
-  const src = author.avatar;
-  const initials =
-    name
-      .split(" ")
-      .slice(0, 2)
-      .map((w) => w[0] ?? "")
-      .join("")
-      .toUpperCase() || "?";
-  const face = !src ? (
-    <div
-      className="grid h-[32px] w-[32px] place-items-center rounded-full text-[11px] font-bold text-white"
-      style={{ background: "var(--accent)" }}
-      aria-hidden
-    >
-      {initials}
-    </div>
-  ) : (
-    <img
-      // Six of these render on the first screen of the feed, and they were
-      // pulling the original uploads — 412 KB of 480x480 PNG, and one 900x675
-      // — into a 32px circle. They were the two heaviest transfers on the
-      // page; the post header beside them already asks for a thumb.
-      src={variantUrl(src, "thumb")}
-      width={32}
-      height={32}
-      loading="lazy"
-      decoding="async"
-      alt=""
-      className="h-[32px] w-[32px] rounded-full object-cover"
-    />
-  );
+  // Общий аватар приложения. Здесь лежал свой — <img> с вариантом thumb и
+  // собственные инициалы на акцентном фоне; ровно то, что UserAvatar уже
+  // делает, только с другим цветом подложки и без запасного пути, когда
+  // картинка не загрузилась.
+  const face = <UserAvatar src={author.avatar} name={name} size={32} />;
+
   if (!author.id) return <span className="shrink-0">{face}</span>;
   return (
     <GuestGuardLink
@@ -416,6 +414,33 @@ function CommentItem({
     });
   };
 
+  const startReply = () =>
+    runGuarded(guest, "feed.post.comment", () => {
+      if (replying) {
+        setReplying(false);
+        setDraft("");
+        replyPhotos.clear();
+        return;
+      }
+      setReplying(true);
+      // On the second level the indent no longer says who is being
+      // answered, so the mention carries it instead.
+      setDraft((d) => (d.trim() ? d : rootId ? `@${author.name}, ` : `${author.name}, `));
+    });
+
+  const removeComment = async () => {
+    if (
+      !(await askConfirm({ title: t("components.commentSection.deleteConfirm"), danger: true }))
+    ) {
+      return;
+    }
+    void deleteComment(comment.id)
+      .then(() => onDeleted?.(comment.id))
+      .catch((err) => {
+        toast.error(formatApiErrorMessage(err, t("components.commentSection.deleteFailed")));
+      });
+  };
+
   const toggleLike = () => {
     runGuarded(guest, "feed.post.like", () => {
       const next = !liked;
@@ -431,141 +456,87 @@ function CommentItem({
 
   return (
     <>
-      <div className="flex gap-[10px]" style={{ marginLeft: depth > 0 ? 36 : 0 }}>
+      <div className="flex gap-3" style={{ marginLeft: depth > 0 ? REPLY_INDENT : 0 }}>
         <CommentAvatar author={author} name={author.name} actionKey={authorActionKey(guest)} />
         <div className="min-w-0 flex-1">
-          <div
-            className="rounded-[12px] px-[12px] py-[8px]"
-            style={{ background: "var(--background-surface)" }}
+          {/*
+            Плоский комментарий, без пузыря.
+            Серая подложка под каждой репликой делила и без того узкую панель
+            просмотрщика на прямоугольники и отнимала по 12 px с каждой
+            стороны — на 380 px это заметная доля строки. Имя автора стоит в
+            одной строке с текстом, как во ВКонтакте: отдельная строка с
+            именем и датой над текстом стоила ещё восемнадцать пикселей на
+            каждый комментарий.
+          */}
+          <p
+            className="whitespace-pre-line text-[14px] leading-[19px]"
+            style={{ color: "var(--foreground-90)" }}
           >
-            <div className="flex items-start gap-[8px]">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-[8px]">
-                  {author.id ? (
-                    <GuestGuardLink
-                      actionKey={authorActionKey(guest)}
-                      to={profileHref(author)}
-                      className="text-[13px] font-semibold hover:underline"
-                      style={{ color: "var(--foreground)" }}
-                    >
-                      {author.name}
-                    </GuestGuardLink>
-                  ) : (
-                    <span
-                      className="text-[13px] font-semibold"
-                      style={{ color: "var(--foreground)" }}
-                    >
-                      {author.name}
-                    </span>
-                  )}
-                  <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
-                    <TimeAgo iso={comment.time} />
-                  </span>
-                </div>
-                {comment.text ? (
-                  <p
-                    className="mt-[4px] whitespace-pre-line text-[14px]"
-                    style={{ color: "var(--foreground-90)" }}
-                  >
-                    {comment.text}
-                  </p>
-                ) : null}
-                <CommentPhotos urls={comment.images ?? []} />
-              </div>
-              {(canDelete || !readOnly) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[8px] hover:bg-[var(--background-elevated)]"
-                      style={{ color: "var(--foreground-50)" }}
-                      aria-label={t("components.commentSection.actions")}
-                    >
-                      <MoreHorizontal size={14} />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {canDelete ? (
-                      <DropdownMenuItem
-                        onClick={async () => {
-                          if (
-                            !(await askConfirm({
-                              title: t("components.commentSection.deleteConfirm"),
-                              danger: true,
-                            }))
-                          ) {
-                            return;
-                          }
-                          void deleteComment(comment.id)
-                            .then(() => onDeleted?.(comment.id))
-                            .catch((err) => {
-                              toast.error(
-                                formatApiErrorMessage(
-                                  err,
-                                  t("components.commentSection.deleteFailed"),
-                                ),
-                              );
-                            });
-                        }}
-                      >
-                        {t("components.commentSection.delete")}
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          runGuarded(guest, "feed.post.comment", () => setReportOpen(true))
-                        }
-                      >
-                        {t("components.commentSection.report")}
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          </div>
+            {author.id ? (
+              <GuestGuardLink
+                actionKey={authorActionKey(guest)}
+                to={profileHref(author)}
+                className="mr-1 font-semibold hover:underline"
+                style={{ color: "var(--foreground)" }}
+              >
+                {author.name}
+              </GuestGuardLink>
+            ) : (
+              <span className="mr-1 font-semibold" style={{ color: "var(--foreground)" }}>
+                {author.name}
+              </span>
+            )}
+            {comment.text}
+          </p>
+          <CommentPhotos urls={comment.images ?? []} />
+
+          {/*
+            Строка мета: время · Ответить · Пожаловаться (или Удалить) ·
+            справа лайк со счётчиком.
+            «Пожаловаться» и «Удалить» стоят здесь, а не под ⋯: меню на
+            комментарии — это два нажатия ради одного действия и ещё один
+            плавающий слой поверх панели, которая сама лежит поверх
+            просмотрщика.
+          */}
           <div
-            className="mt-[6px] flex items-center gap-[12px] pl-[4px] text-[12px]"
-            style={{ color: "var(--foreground-70)" }}
+            className="mt-1 flex items-center gap-3 text-[12px]"
+            style={{ color: "var(--foreground-50)" }}
           >
+            <TimeAgo iso={comment.time} />
+            {!readOnly && (
+              <button type="button" onClick={startReply} className={META_ACTION}>
+                {t("components.commentSection.reply")}
+              </button>
+            )}
+            {!isOwn && !readOnly && (
+              <button
+                type="button"
+                onClick={() => runGuarded(guest, "feed.post.comment", () => setReportOpen(true))}
+                className={META_ACTION}
+              >
+                {t("components.commentSection.report")}
+              </button>
+            )}
+            {canDelete && (
+              <button type="button" onClick={removeComment} className={META_ACTION}>
+                {t("common.delete")}
+              </button>
+            )}
             <button
               type="button"
               onClick={toggleLike}
-              className="flex items-center gap-[4px] transition-colors"
-              style={{ color: liked ? "var(--accent)" : "var(--foreground-70)" }}
+              aria-label={t("components.postCard.likeAria")}
+              className={cn(META_ACTION, "ml-auto flex items-center gap-1")}
+              style={{ color: liked ? "var(--accent)" : "var(--foreground-50)" }}
             >
               <motion.span
                 whileTap={{ scale: 1.4 }}
                 transition={{ type: "spring", stiffness: 500, damping: 12 }}
               >
-                <Heart className="h-[12px] w-[12px]" fill={liked ? "currentColor" : "none"} />
+                <Heart className="h-[14px] w-[14px]" fill={liked ? "currentColor" : "none"} />
               </motion.span>
-              {likes > 0 && <span>{likes}</span>}
+              {likes > 0 && <span className="tabular-nums">{likes}</span>}
             </button>
-            {!readOnly && (
-              <button
-                type="button"
-                onClick={() =>
-                  runGuarded(guest, "feed.post.comment", () => {
-                    if (replying) {
-                      setReplying(false);
-                      setDraft("");
-                      replyPhotos.clear();
-                      return;
-                    }
-                    setReplying(true);
-                    // On the second level the indent no longer says who is being
-                    // answered, so the mention carries it instead.
-                    setDraft((d) =>
-                      d.trim() ? d : rootId ? `@${author.name}, ` : `${author.name}, `,
-                    );
-                  })
-                }
-                className="flex items-center gap-[4px] hover:opacity-80"
-              >
-                <Reply className="h-[12px] w-[12px]" /> {t("components.commentSection.reply")}
-              </button>
-            )}
           </div>
 
           <AnimatePresence>
@@ -657,6 +628,7 @@ export function CommentSection({
   onSortChange,
   onDeleted,
   can,
+  layout = "inline",
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
@@ -740,142 +712,140 @@ export function CommentSection({
         ? t("components.commentSection.sortOld")
         : t("components.commentSection.sortNew");
 
-  return (
-    <div
-      className="border-t px-[16px] py-[12px]"
-      style={{ borderColor: "var(--border)", background: "var(--background-overlay)" }}
-    >
-      {!readOnly && (
-        <div className="flex items-start gap-[10px]">
-          <CommentAvatar author={me} name={me.name} actionKey={authorActionKey(guest)} />
-          <div className="min-w-0 flex-1">
-            <div
-              className="rounded-[12px] border px-[10px] py-[6px]"
-              style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
-            >
-              <div className="flex min-w-0 items-center gap-[6px]">
-                <input
-                  value={draft}
-                  readOnly={commentBlocked}
-                  onPointerDown={promptComposerAuth}
-                  onFocus={promptComposerAuth}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
-                  placeholder={t("components.commentSection.placeholder")}
-                  className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
-                  style={{ color: "var(--foreground)" }}
-                />
-                <CommentAttachMenu
-                  onPick={(files) => {
-                    if (commentBlocked) {
-                      guest?.guardAction("feed.post.comment", () => {});
-                      return;
-                    }
-                    photos.pick(files);
-                  }}
-                  disabled={commentBlocked || photos.uploading}
-                />
-                <EmojiPicker
-                  onBeforeOpen={() => {
-                    if (!commentBlocked) return true;
-                    guest?.guardAction("feed.post.comment", () => {});
-                    return false;
-                  }}
-                  onPick={(emoji) => {
-                    if (commentBlocked) {
-                      guest?.guardAction("feed.post.comment", () => {});
-                      return;
-                    }
-                    setDraft((v) => v + emoji);
-                  }}
-                  align="end"
-                  compact
-                />
-                <button
-                  type="button"
-                  onClick={submit}
-                  disabled={photos.uploading || (!draft.trim() && photos.photos.length === 0)}
-                  className="grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
-                  style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-                  aria-label={t("components.commentSection.send")}
-                >
-                  <Send className="h-[14px] w-[14px]" />
-                </button>
-              </div>
-              <PhotoDraftStrip photos={photos.photos} onRemove={photos.remove} />
-            </div>
-          </div>
-        </div>
-      )}
+  const isLoading = Boolean(loading) && comments.length === 0;
 
-      {loading && comments.length === 0 ? (
-        <CommentSkeleton />
-      ) : (
-        <>
-          {showSort && (
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="mt-[10px] inline-flex items-center gap-[4px] text-[13px] font-semibold transition-opacity hover:opacity-80"
-                  style={{ color: "var(--foreground-70)" }}
-                >
-                  {sortLabel}
-                  <ChevronDown className="h-[14px] w-[14px]" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="z-[var(--z-modal)] min-w-[220px] overflow-hidden rounded-[12px] border p-0"
-                style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
-              >
-                {(
-                  [
-                    ["interesting", t("components.commentSection.sortInteresting")],
-                    ["old", t("components.commentSection.sortOld")],
-                    ["new", t("components.commentSection.sortNew")],
-                  ] as const
-                ).map(([key, label]) => (
-                  <DropdownMenuItem
-                    key={key}
-                    onSelect={() => applySort(key)}
-                    className="cursor-pointer rounded-none px-[14px] py-[10px] text-[13px]"
-                    style={{ color: sort === key ? "var(--accent)" : "var(--foreground)" }}
-                  >
-                    {label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {canLoadMore && (
+  const composer = readOnly ? null : (
+    <div className="flex items-start gap-[10px]">
+      <CommentAvatar author={me} name={me.name} actionKey={authorActionKey(guest)} />
+      <div className="min-w-0 flex-1">
+        <div
+          className="rounded-[12px] border px-[10px] py-[6px]"
+          style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+        >
+          <div className="flex min-w-0 items-center gap-[6px]">
+            <input
+              value={draft}
+              readOnly={commentBlocked}
+              onPointerDown={promptComposerAuth}
+              onFocus={promptComposerAuth}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
+              placeholder={t("components.commentSection.placeholder")}
+              className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
+              style={{ color: "var(--foreground)" }}
+            />
+            <CommentAttachMenu
+              onPick={(files) => {
+                if (commentBlocked) {
+                  guest?.guardAction("feed.post.comment", () => {});
+                  return;
+                }
+                photos.pick(files);
+              }}
+              disabled={commentBlocked || photos.uploading}
+            />
+            <EmojiPicker
+              onBeforeOpen={() => {
+                if (!commentBlocked) return true;
+                guest?.guardAction("feed.post.comment", () => {});
+                return false;
+              }}
+              onPick={(emoji) => {
+                if (commentBlocked) {
+                  guest?.guardAction("feed.post.comment", () => {});
+                  return;
+                }
+                setDraft((v) => v + emoji);
+              }}
+              align="end"
+              compact
+            />
             <button
               type="button"
-              onClick={() => setPage((p) => p + 1)}
-              className="mt-[10px] text-[13px] font-semibold transition-opacity hover:opacity-80"
-              style={{ color: "var(--accent)" }}
+              onClick={submit}
+              disabled={photos.uploading || (!draft.trim() && photos.photos.length === 0)}
+              className="grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
+              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              aria-label={t("components.commentSection.send")}
             >
-              {t("components.commentSection.loadMore")}
+              <Send className="h-[14px] w-[14px]" />
             </button>
-          )}
-          {visibleComments.length > 0 && (
-            <div className={cn(!readOnly ? "mt-[12px]" : "", "space-y-[12px]")}>
-              {visibleComments.map((c) => (
-                <CommentItem
-                  key={c.id}
-                  comment={c}
-                  onReply={handleReply}
-                  onDeleted={onDeleted}
-                  readOnly={readOnly}
-                  likeOverrides={likeOverrides}
-                  onLikeChange={onLikeChange}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+          </div>
+          <PhotoDraftStrip photos={photos.photos} onRemove={photos.remove} />
+        </div>
+      </div>
+    </div>
+  );
 
+  const sortControl = showSort ? (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-[4px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          {sortLabel}
+          <ChevronDown className="h-[14px] w-[14px]" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        className="z-[var(--z-modal)] min-w-[220px] overflow-hidden rounded-[12px] border p-0"
+        style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+      >
+        {(
+          [
+            ["interesting", t("components.commentSection.sortInteresting")],
+            ["old", t("components.commentSection.sortOld")],
+            ["new", t("components.commentSection.sortNew")],
+          ] as const
+        ).map(([key, label]) => (
+          <DropdownMenuItem
+            key={key}
+            onSelect={() => applySort(key)}
+            className="cursor-pointer rounded-none px-[14px] py-[10px] text-[13px]"
+            style={{ color: sort === key ? "var(--accent)" : "var(--foreground)" }}
+          >
+            {label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : null;
+
+  const items = (
+    <>
+      {canLoadMore && (
+        <button
+          type="button"
+          onClick={() => setPage((p) => p + 1)}
+          className="mt-[10px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+          style={{ color: "var(--accent)" }}
+        >
+          {t("components.commentSection.loadMore")}
+        </button>
+      )}
+      {visibleComments.length > 0 && (
+        <div className={cn(!readOnly ? "mt-[12px]" : "", "space-y-[12px]")}>
+          {visibleComments.map((c) => (
+            <CommentItem
+              key={c.id}
+              comment={c}
+              onReply={handleReply}
+              onDeleted={onDeleted}
+              readOnly={readOnly}
+              likeOverrides={likeOverrides}
+              onLikeChange={onLikeChange}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  const tail = (
+    <>
       {!showAll && hiddenCount > 0 && onShowAll && (
         <button
           type="button"
@@ -897,6 +867,56 @@ export function CommentSection({
           {t("components.commentSection.hide")}
         </button>
       )}
+    </>
+  );
+
+  /*
+   * Раскладка панели просмотрщика.
+   *
+   * Сортировка стоит над списком и никуда не уезжает, список прокручивается
+   * сам, композер прибит к низу. Иначе поле «Написать комментарий…» уходит
+   * вверх вместе с веткой: в разговоре из тридцати реплик до него надо
+   * пролистать всё обратно — а именно к нему человек и открыл панель.
+   */
+  if (layout === "panel") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col" style={{ background: "var(--background)" }}>
+        {sortControl && (
+          <div className="shrink-0 border-b px-4 py-2" style={{ borderColor: "var(--border)" }}>
+            {sortControl}
+          </div>
+        )}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          {isLoading ? <CommentSkeleton /> : items}
+          {tail}
+        </div>
+        {composer && (
+          <div
+            className="shrink-0 border-t px-4 py-3"
+            style={{ borderColor: "var(--border)", background: "var(--background)" }}
+          >
+            {composer}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="border-t px-[16px] py-[12px]"
+      style={{ borderColor: "var(--border)", background: "var(--background-overlay)" }}
+    >
+      {composer}
+      {isLoading ? (
+        <CommentSkeleton />
+      ) : (
+        <>
+          {sortControl && <div className="mt-[10px]">{sortControl}</div>}
+          {items}
+        </>
+      )}
+      {tail}
     </div>
   );
 }

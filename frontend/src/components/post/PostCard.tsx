@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { Appear } from "@/components/ui/Appear";
 import { CommentSection } from "@/components/post/CommentSection";
 import { CommentsSheet } from "@/components/post/CommentsSheet";
+import { LightboxCloseButton } from "@/components/post/Lightbox";
 import { PostMedia } from "@/components/post/PostMedia";
 import { PostHeader } from "@/components/post/PostHeader";
 import { PostActions } from "@/components/post/PostActions";
@@ -146,6 +147,10 @@ export function PostCard({
   const saved = isSavedExternal ?? savedInner;
   const [reposted, setReposted] = useState(!!post.isReposted);
   const [expanded, setExpanded] = useState(false);
+  // Своё состояние у панели просмотрщика: там текст обрезается шестью
+  // строками, в карточке — тремя на телефоне и четырьмя на широком экране.
+  // Одно на двоих раскрывало бы карточку в ленте заодно с панелью.
+  const [asideExpanded, setAsideExpanded] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const commentsRef = useRef<HTMLDivElement>(null);
@@ -316,6 +321,8 @@ export function PostCard({
   // всё это и затевалось. Пороги — вместимость строк: ~50 символов в строке
   // на 375 (три строки) и ~90 на 680 (четыре).
   const CLAMP_MOBILE_CHARS = 150;
+  /** Панель просмотрщика: колонка 380, шесть строк по ~48 знаков. */
+  const CLAMP_ASIDE_CHARS = 290;
   const CLAMP_DESKTOP_CHARS = 330;
   const canExpandMobile = text.length > CLAMP_MOBILE_CHARS;
   const canExpandDesktop = text.length > CLAMP_DESKTOP_CHARS;
@@ -474,10 +481,16 @@ export function PostCard({
   const authorActionKey = !isAllowed("feed.post.author") ? "feed.post.author" : "route.user";
 
   /*
-   * Правая панель полноэкранного просмотрщика — автор и дата, действия,
+   * Правая панель просмотрщика — автор и дата, действия, текст записи,
    * комментарии. Собирается здесь, а не в PostMedia: все обработчики (лайк,
    * репост, отправка комментария, удаление) живут в карточке, и повторять их
    * рядом значило бы завести второй экземпляр той же логики.
+   *
+   * Отсюда же берётся синхронизация счётчиков, которой в панели нет как
+   * отдельного механизма: `liked`, `likes`, `saved`, `reposts` — то же
+   * состояние, что рисует карточка в ленте, а не его копия. Лайк из панели
+   * и лайк из карточки — один вызов `doLike`; наружу, в список ленты, число
+   * уходит через `onOptimistic`, как и раньше.
    *
    * Показывается только от 1024 px, см. `aside` у Lightbox.
    */
@@ -495,20 +508,23 @@ export function PostCard({
   })();
 
   const lightboxAside = (
-    <div className="flex h-full flex-col">
-      <div className="border-b px-[16px] py-[12px]" style={{ borderColor: "var(--border)" }}>
-        <PostHeader
-          author={author}
-          authorHref={authorHref}
-          authorActionKey={authorActionKey}
-          post={post}
-          isScheduled={isScheduled}
-          showContext={false}
-          badges={badges}
-        />
-      </div>
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Шапка 56: аватар 40, имя, под ним дата. Крестик справа — он же
+          единственный в окне, когда панель есть (см. Lightbox). */}
+      <PostHeader
+        author={author}
+        authorHref={authorHref}
+        authorActionKey={authorActionKey}
+        post={post}
+        isScheduled={isScheduled}
+        showContext={false}
+        badges={badges}
+        className="h-[56px] min-h-0 shrink-0 border-b border-[var(--border)] px-4 pt-0 md:px-4"
+      >
+        <LightboxCloseButton />
+      </PostHeader>
 
-      <div className="border-b px-[8px]" style={{ borderColor: "var(--border)" }}>
+      <div className="shrink-0 border-b px-[8px]" style={{ borderColor: "var(--border)" }}>
         <PostActions
           post={post}
           liked={liked}
@@ -529,33 +545,72 @@ export function PostCard({
         />
       </div>
 
-      {commentsEnabled && (
-        <div className="min-h-0 flex-1 overflow-y-auto px-[16px] py-[12px]">
-          <LightboxComments
-            onMount={() => {
-              setShowAllComments(true);
-              loadComments(commentSort, true);
+      {/*
+        Текст записи под действиями — шесть строк, дальше «Показать ещё».
+        Порог по длине, а не по измеренной высоте: измерять пришлось бы после
+        первого кадра, и кнопка появлялась бы уже после отрисовки, толкая
+        список комментариев вниз. Ширина колонки 380 минус поля — около
+        сорока восьми знаков в строке, шесть строк это примерно 290.
+      */}
+      {text && (
+        <div className="shrink-0 border-b border-[var(--border)] px-4 py-3">
+          <p
+            className="whitespace-pre-line text-[15px] leading-[20px]"
+            style={{
+              color: "var(--foreground-90)",
+              ...(asideExpanded
+                ? {}
+                : {
+                    display: "-webkit-box",
+                    WebkitBoxOrient: "vertical",
+                    WebkitLineClamp: 6,
+                    overflow: "hidden",
+                  }),
             }}
           >
-            <CommentSection
-              comments={commentList}
-              onAdd={addComment}
-              loading={commentsFetchStarted && !commentsFetched}
-              readOnly={!canInteract && !guestNeedsAuth}
-              can={post.can}
-              showAll
-              totalCount={commentsCount}
-              onDeleted={(id) => {
-                setCommentList((prev) => removeFromCommentThread(prev, id));
-                onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
-              }}
-              onSortChange={(next) => {
-                setCommentSort(next);
-                loadComments(next, true);
-              }}
-            />
-          </LightboxComments>
+            {text}
+          </p>
+          {text.length > CLAMP_ASIDE_CHARS && (
+            <button
+              type="button"
+              onClick={() => setAsideExpanded((v) => !v)}
+              className="mt-1 min-h-[32px] cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80"
+              style={{ color: "var(--accent)" }}
+            >
+              {asideExpanded
+                ? t("components.postCard.collapse")
+                : t("components.postCard.readMore")}
+            </button>
+          )}
         </div>
+      )}
+
+      {commentsEnabled && (
+        <LightboxComments
+          onMount={() => {
+            setShowAllComments(true);
+            loadComments(commentSort, true);
+          }}
+        >
+          <CommentSection
+            layout="panel"
+            comments={commentList}
+            onAdd={addComment}
+            loading={commentsFetchStarted && !commentsFetched}
+            readOnly={!canInteract && !guestNeedsAuth}
+            can={post.can}
+            showAll
+            totalCount={commentsCount}
+            onDeleted={(id) => {
+              setCommentList((prev) => removeFromCommentThread(prev, id));
+              onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
+            }}
+            onSortChange={(next) => {
+              setCommentSort(next);
+              loadComments(next, true);
+            }}
+          />
+        </LightboxComments>
       )}
     </div>
   );

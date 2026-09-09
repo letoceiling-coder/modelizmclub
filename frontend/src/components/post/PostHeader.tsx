@@ -7,6 +7,7 @@ import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { formatScheduledAt, defaultScheduleTimezone } from "@/lib/post-schedule";
 import { TimeAgo } from "@/components/TimeAgo";
 import { Img } from "@/components/ui/Img";
+import { cn } from "@/lib/utils";
 
 /** Avatar with initials fallback when the image fails to load or src is empty */
 function AuthorAvatar({ src, name }: { src: string; name: string }) {
@@ -59,6 +60,13 @@ interface Props {
   badges?: ReactNode;
   /** The ⋯ menu, rendered on the right. */
   children?: ReactNode;
+  /**
+   * Переопределяет высоту и поля шапки. Нужно панели просмотрщика: там строка
+   * автора занимает ровно 56 px без верхнего отступа карточки. Классы идут
+   * через `cn`, то есть `twMerge`, — конфликтующие значения заменяются, а не
+   * дописываются.
+   */
+  className?: string;
 }
 
 /** Avatar → profile, name → profile, date, optional context line, menu slot. */
@@ -71,12 +79,18 @@ export function PostHeader({
   showContext,
   badges,
   children,
+  className,
 }: Props) {
   const { t } = useTranslation();
   return (
     // 48 px на строку автора: аватар 40 плюс 8 сверху. Раньше было 16 сверху
     // при аватаре 40 — 56 px, и это повторялось у каждой карточки ленты.
-    <header className="flex min-h-[48px] items-center gap-[10px] px-[12px] pt-[8px] md:gap-[12px] md:px-[16px]">
+    <header
+      className={cn(
+        "flex min-h-[48px] items-center gap-[10px] px-[12px] pt-[8px] md:gap-[12px] md:px-[16px]",
+        className,
+      )}
+    >
       {/* The ::after box lifts the 40px avatar to a 44px tap target without
           moving it or the name beside it. */}
       <GuestGuardLink
