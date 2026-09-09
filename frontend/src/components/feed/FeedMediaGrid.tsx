@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ImageOff } from "lucide-react";
 import { getMediaAspect, rememberMediaAspect } from "@/lib/media/aspectCache";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
-import { Lightbox } from "@/components/post/Lightbox";
 import { displaySrc, toDisplayMedia, variantUrl, type DisplayMedia } from "@/lib/media/variants";
 
 const MAX_HEIGHT_DESKTOP = 480;
@@ -129,40 +128,54 @@ function SingleImage({
   );
 }
 
+/**
+ * Адреса снимков для просмотрщика — в том же порядке, в каком сетка их
+ * показывает. Карточка строит по ним свой список: номер, который приходит
+ * из `onOpenViewer`, должен указывать на тот же снимок.
+ */
+export function viewerUrls(images: Array<string | DisplayMedia>): string[] {
+  return images
+    .map((item) => (typeof item === "string" ? toDisplayMedia(item) : item))
+    .filter((item): item is DisplayMedia => Boolean(item?.url))
+    .map((item) => displaySrc(item, "large"));
+}
+
 /** VK-style image grid for feed posts (images only). */
 export function FeedMediaGrid({
   images,
   alt,
   priority = false,
-  aside,
+  onOpenViewer,
 }: {
   images: Array<string | DisplayMedia>;
   alt: string;
   priority?: boolean;
-  /** Правая панель просмотрщика: см. `aside` у Lightbox. */
-  aside?: ReactNode;
+  /**
+   * Открыть просмотрщик на снимке с этим номером.
+   *
+   * Сам просмотрщик сетка больше не рисует. Четыре её ветки держали по
+   * своему экземпляру Lightbox — четыре одинаковых окна с одинаковой
+   * панелью, и ни одно из них нельзя было открыть иначе как щелчком по
+   * фотографии. Теперь окно одно и живёт в карточке: его открывает и
+   * счётчик комментариев тоже.
+   */
+  onOpenViewer?: (index: number) => void;
 }) {
   const items = images
     .map((item) => (typeof item === "string" ? toDisplayMedia(item) : item))
     .filter((item): item is DisplayMedia => Boolean(item?.url));
-  const lightboxUrls = items.map((item) => displaySrc(item, "large"));
-  const [lightbox, setLightbox] = useState<number | null>(null);
 
   if (items.length === 0) return null;
 
   if (items.length === 1) {
     return (
       <>
-        <SingleImage media={items[0]} alt={alt} onOpen={() => setLightbox(0)} priority={priority} />
-        {lightbox !== null && (
-          <Lightbox
-            aside={aside}
-            images={lightboxUrls}
-            startIndex={lightbox}
-            alt={alt}
-            onClose={() => setLightbox(null)}
-          />
-        )}
+        <SingleImage
+          media={items[0]}
+          alt={alt}
+          onOpen={() => onOpenViewer?.(0)}
+          priority={priority}
+        />
       </>
     );
   }
@@ -184,20 +197,11 @@ export function FeedMediaGrid({
                 media={item}
                 alt={`${alt} — ${i + 1}`}
                 priority={priority && i === 0}
-                onClick={() => setLightbox(i)}
+                onClick={() => onOpenViewer?.(i)}
               />
             </div>
           ))}
         </div>
-        {lightbox !== null && (
-          <Lightbox
-            aside={aside}
-            images={lightboxUrls}
-            startIndex={lightbox}
-            alt={alt}
-            onClose={() => setLightbox(null)}
-          />
-        )}
       </>
     );
   }
@@ -222,7 +226,7 @@ export function FeedMediaGrid({
               priority={priority}
               width={640}
               height={720}
-              onClick={() => setLightbox(0)}
+              onClick={() => onOpenViewer?.(0)}
             />
           </div>
           <div className="relative min-h-0 overflow-hidden">
@@ -231,7 +235,7 @@ export function FeedMediaGrid({
               alt={`${alt} — 2`}
               width={320}
               height={360}
-              onClick={() => setLightbox(1)}
+              onClick={() => onOpenViewer?.(1)}
             />
           </div>
           <div className="relative min-h-0 overflow-hidden">
@@ -240,19 +244,10 @@ export function FeedMediaGrid({
               alt={`${alt} — 3`}
               width={320}
               height={360}
-              onClick={() => setLightbox(2)}
+              onClick={() => onOpenViewer?.(2)}
             />
           </div>
         </div>
-        {lightbox !== null && (
-          <Lightbox
-            aside={aside}
-            images={lightboxUrls}
-            startIndex={lightbox}
-            alt={alt}
-            onClose={() => setLightbox(null)}
-          />
-        )}
       </>
     );
   }
@@ -272,12 +267,12 @@ export function FeedMediaGrid({
               media={item}
               alt={`${alt} — ${i + 1}`}
               priority={priority && i === 0}
-              onClick={() => setLightbox(i)}
+              onClick={() => onOpenViewer?.(i)}
             />
             {i === 3 && extra > 0 && (
               <button
                 type="button"
-                onClick={() => setLightbox(3)}
+                onClick={() => onOpenViewer?.(3)}
                 className="absolute inset-0 flex items-center justify-center text-[22px] font-bold text-white"
                 style={{ background: "rgba(0,0,0,0.55)" }}
                 aria-label={`Ещё ${extra} фото`}
@@ -288,15 +283,6 @@ export function FeedMediaGrid({
           </div>
         ))}
       </div>
-      {lightbox !== null && (
-        <Lightbox
-          aside={aside}
-          images={lightboxUrls}
-          startIndex={lightbox}
-          alt={alt}
-          onClose={() => setLightbox(null)}
-        />
-      )}
     </>
   );
 }

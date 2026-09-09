@@ -9,7 +9,6 @@ import {
   type MediaVariantSet,
   type VideoDelivery,
 } from "@/lib/media/variants";
-import { Lightbox } from "@/components/post/Lightbox";
 import { FeedVideo } from "@/components/media/FeedVideo";
 
 export type MediaCarouselItem = {
@@ -202,25 +201,32 @@ function SingleMedia({
 }
 
 /** Mixed image/video carousel for feed and channel posts. */
+/**
+ * Адреса снимков карусели для просмотрщика, в порядке их номеров. Видео
+ * пропускаются: просмотрщик показывает только фотографии, и номер, который
+ * приходит из `onOpenViewer`, считается по этому же списку.
+ */
+export function carouselViewerUrls(items: MediaCarouselItem[]): string[] {
+  return items
+    .filter((item) => item.type === "image")
+    .map((item) => displaySrc({ url: item.url, variants: item.variants ?? undefined }, "large"));
+}
+
 export function PostMediaCarousel({
   items,
   alt,
   priority = false,
-  aside,
+  onOpenViewer,
 }: {
   items: MediaCarouselItem[];
   alt: string;
   priority?: boolean;
-  /** Правая панель просмотрщика: см. `aside` у Lightbox. */
-  aside?: ReactNode;
+  /** Открыть просмотрщик на снимке с этим номером; см. `onOpenViewer` у сетки. */
+  onOpenViewer?: (index: number) => void;
 }) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: items.length > 1 });
   const [selected, setSelected] = useState(0);
-  const [lightbox, setLightbox] = useState<number | null>(null);
 
-  const imageUrls = items
-    .filter((item) => item.type === "image")
-    .map((item) => displaySrc({ url: item.url, variants: item.variants ?? undefined }, "large"));
   let imageCounter = 0;
   const imageIndexBySlide = items.map((item) => (item.type === "image" ? imageCounter++ : -1));
 
@@ -259,17 +265,8 @@ export function PostMediaCarousel({
           item={item}
           alt={alt}
           priority={priority}
-          onImageClick={item.type === "image" ? () => setLightbox(0) : undefined}
+          onImageClick={item.type === "image" ? () => onOpenViewer?.(0) : undefined}
         />
-        {lightbox !== null && item.type === "image" && (
-          <Lightbox
-            aside={aside}
-            images={[item.url]}
-            startIndex={0}
-            alt={alt}
-            onClose={() => setLightbox(null)}
-          />
-        )}
       </>
     );
   }
@@ -299,7 +296,7 @@ export function PostMediaCarousel({
                     priority={priority && i === 0}
                     onClick={() => {
                       const idx = imageIndexBySlide[i];
-                      if (idx >= 0) setLightbox(idx);
+                      if (idx >= 0) onOpenViewer?.(idx);
                     }}
                   />
                 )}
@@ -351,16 +348,6 @@ export function PostMediaCarousel({
           />
         ))}
       </div>
-
-      {lightbox !== null && imageUrls.length > 0 && (
-        <Lightbox
-          aside={aside}
-          images={imageUrls}
-          startIndex={lightbox}
-          alt={alt}
-          onClose={() => setLightbox(null)}
-        />
-      )}
     </div>
   );
 }

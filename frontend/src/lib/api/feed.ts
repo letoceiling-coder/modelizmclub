@@ -321,12 +321,20 @@ export async function fetchPostComments(
   return comments;
 }
 
-async function fetchPostCommentsPage(
+/**
+ * Одна страница верхнеуровневых комментариев.
+ *
+ * Ответы приходят вложенными в свой корневой комментарий целиком — API их не
+ * разбивает на страницы, — поэтому «Показать ещё N ответов» раскрывается без
+ * запроса, а листается только верхний уровень.
+ */
+export async function fetchPostCommentsPage(
   uuid: string,
   opts?: { sort?: CommentSort; perPage?: number; page?: number },
-): Promise<{ comments: Comment[]; lastPage: number }> {
+): Promise<{ comments: Comment[]; lastPage: number; total: number }> {
   if (isDemoMode()) {
-    return { comments: (await import("@/lib/demo-data")).demoPostComments(uuid), lastPage: 1 };
+    const comments = (await import("@/lib/demo-data")).demoPostComments(uuid);
+    return { comments, lastPage: 1, total: comments.length };
   }
   const res = await api<Paginated<ApiComment>>(`/posts/${uuid}/comments`, {
     auth: false,
@@ -340,6 +348,7 @@ async function fetchPostCommentsPage(
   return {
     comments: rows.map(mapComment),
     lastPage: Math.max(1, res.meta?.last_page ?? 1),
+    total: res.meta?.total ?? rows.length,
   };
 }
 

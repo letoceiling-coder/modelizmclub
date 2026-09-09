@@ -72,7 +72,6 @@ import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMor
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { ChannelSettingsSheet } from "@/components/channels/ChannelSettingsSheet";
 import { EntitySettingsButton } from "@/components/entity/EntitySettingsButton";
-import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
 import { useCurrentUser } from "@/lib/session";
 import { PostCard } from "@/components/post/PostCard";
 import type { Post } from "@/lib/mock";

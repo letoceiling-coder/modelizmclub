@@ -10,8 +10,7 @@ import {
   reactToPost,
   bookmarkPost,
   repostPost,
-  fetchPostComments,
-  fetchAllPostComments,
+  fetchPostCommentsPage,
   createComment,
   publishPost,
   cancelScheduledPost,
@@ -30,9 +29,8 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Appear } from "@/components/ui/Appear";
 import { CommentSection } from "@/components/post/CommentSection";
-import { CommentsSheet } from "@/components/post/CommentsSheet";
-import { LightboxCloseButton } from "@/components/post/Lightbox";
-import { PostMedia } from "@/components/post/PostMedia";
+import { Lightbox, LightboxCloseButton } from "@/components/post/Lightbox";
+import { PostMedia, postViewerImages } from "@/components/post/PostMedia";
 import { PostHeader } from "@/components/post/PostHeader";
 import { PostActions } from "@/components/post/PostActions";
 import { EditPostDialog } from "@/components/post/EditPostDialog";
@@ -117,6 +115,9 @@ function LightboxComments({ onMount, children }: { onMount: () => void; children
   return <>{children}</>;
 }
 
+/** Комментариев за раз. Столько же, сколько показывает VK до первой догрузки. */
+const COMMENTS_PER_PAGE = 20;
+
 export function PostCard({
   post,
   variant = "feed",
@@ -152,15 +153,21 @@ export function PostCard({
   // Одно на двоих раскрывало бы карточку в ленте заодно с панелью.
   const [asideExpanded, setAsideExpanded] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const commentsRef = useRef<HTMLDivElement>(null);
+  /*
+   * Просмотрщик записи: номер открытого снимка.
+   *
+   * Раньше окно принадлежало медиа: сетка держала четыре его экземпляра,
+   * карусель ещё два, и открыть его можно было только щелчком по
+   * фотографии. Счётчику комментариев доставалось отдельное окно с
+   * миниатюрой — то есть разговор о записи шёл рядом с записью, а не
+   * внутри неё. Теперь окно одно и живёт здесь, а медиа только сообщает
+   * номер снимка.
+   */
+  const [viewerAt, setViewerAt] = useState<number | null>(null);
+  const viewerOpen = viewerAt !== null;
 
   const [likes, setLikes] = useState(post.likes);
 
-  // Только достоверные числа: просмотры на проде нулевые у всех постов,
-  // поэтому в статистику ветки они не идут.
-  const commentsStats =
-    likes > 0 ? t("components.commentsSheet.liked", { count: likes }) : undefined;
   const [saves, setSaves] = useState(post.saves ?? 0);
   const [reposts, setReposts] = useState(post.reposts ?? 0);
 
@@ -215,6 +222,10 @@ export function PostCard({
   );
   const [commentsFetched, setCommentsFetched] = useState((post.commentList?.length ?? 0) > 0);
   const [commentSort, setCommentSort] = useState<CommentSort>("interesting");
+  const [commentPage, setCommentPage] = useState(0);
+  const [commentLastPage, setCommentLastPage] = useState(1);
+  const [commentTotal, setCommentTotal] = useState<number | null>(null);
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
   const commentsReq = useRef(0);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [repostComposerOpen, setRepostComposerOpen] = useState(false);
@@ -241,6 +252,9 @@ export function PostCard({
   // всё остаётся как было.
   const guestNeedsAuth = !isAllowed("feed.post.comment");
   const [mediaPost, setMediaPost] = useState(post);
+  // Тот же список и в том же порядке, что нумерует показывающий медиа
+  // компонент: номер из `onOpenViewer` указывает на этот массив.
+  const viewerImages = postViewerImages(mediaPost);
 
   useEffect(() => {
     setMediaPost(post);
@@ -283,22 +297,37 @@ export function PostCard({
     // Poller is keyed to this post; mediaItems live on the first snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
+  /*
+   * Ветка грузится страницами по двадцать, а не целиком.
+   *
+   * `fetchAllPostComments` обходил все страницы подряд и отдавал список
+   * одним куском: на записи с сотней комментариев это сто строк разметки и
+   * столько же аватаров до того, как человек увидит первую реплику. Первая
+   * страница приходит одна, остальные — по мере прокрутки.
+   *
+   * Номер запроса (`commentsReq`) отсекает ответы на отменённые запросы:
+   * смена сортировки во время догрузки иначе подмешала бы старую страницу
+   * к новому порядку.
+   */
   const loadComments = useCallback(
-    (sort: CommentSort, all: boolean) => {
-      setCommentsFetchStarted(true);
+    (sort: CommentSort, page: number) => {
+      if (page === 1) setCommentsFetchStarted(true);
+      else setCommentsLoadingMore(true);
       const n = ++commentsReq.current;
-      const req = all
-        ? fetchAllPostComments(post.id, sort)
-        : fetchPostComments(post.id, { sort, perPage: 50 });
-      req
-        .then((list) => {
+      fetchPostCommentsPage(post.id, { sort, perPage: COMMENTS_PER_PAGE, page })
+        .then(({ comments, lastPage, total }) => {
           if (n !== commentsReq.current) return;
-          setCommentList(list);
+          setCommentList((prev) => (page === 1 ? comments : [...prev, ...comments]));
+          setCommentPage(page);
+          setCommentLastPage(lastPage);
+          setCommentTotal(total);
           setCommentsFetched(true);
+          setCommentsLoadingMore(false);
         })
         .catch(() => {
           if (n !== commentsReq.current) return;
           setCommentsFetched(true);
+          setCommentsLoadingMore(false);
         });
     },
     [post.id],
@@ -321,19 +350,23 @@ export function PostCard({
   // всё это и затевалось. Пороги — вместимость строк: ~50 символов в строке
   // на 375 (три строки) и ~90 на 680 (четыре).
   const CLAMP_MOBILE_CHARS = 150;
-  /** Панель просмотрщика: колонка 380, шесть строк по ~48 знаков. */
-  const CLAMP_ASIDE_CHARS = 290;
+  /** Панель просмотрщика: колонка 380, ~48 знаков в строке. Шесть строк на
+   *  широком экране, три на узком — по числу строк и считаем. */
+  const CLAMP_ASIDE_NARROW_CHARS = 145;
+  const CLAMP_ASIDE_WIDE_CHARS = 290;
   const CLAMP_DESKTOP_CHARS = 330;
   const canExpandMobile = text.length > CLAMP_MOBILE_CHARS;
   const canExpandDesktop = text.length > CLAMP_DESKTOP_CHARS;
-  const commentsCount =
-    commentList.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) || post.comments;
-
-  const focusComments = () => {
-    commentsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    const input = commentsRef.current?.querySelector("input");
-    if (input instanceof HTMLInputElement) input.focus();
-  };
+  /*
+   * Счётчик берётся из записи, а не из загруженного куска ветки.
+   *
+   * Пока ветка приезжала целиком, пересчёт по списку был точнее серверного
+   * числа. Со страничной загрузкой он стал бы считать «сколько успели
+   * подгрузить»: открыл окно — под записью двадцать, долистал — сорок.
+   * Оптимистичные добавление и удаление правят `post.comments` через
+   * `onTogglePost`, так что число остаётся живым.
+   */
+  const commentsCount = post.comments ?? 0;
 
   // Reading comments is a gated action of its own: when the admin config puts
   // `feed.post.comment` above the guest rung, tapping «Комментарии» opens the
@@ -344,9 +377,11 @@ export function PostCard({
     // предпросмотр и поле readOnly — точку входа; после переезда в слой она
     // должна остаться, иначе счётчик ведёт в стену, а не в разговор. Композер
     // внутри слоя гейтится сам и открывает окно на первом нажатии.
+    //
+    // Открывается тот же просмотрщик, что и по щелчку на фотографии: запись
+    // целиком, а разговор — её часть, а не отдельное окно рядом.
     setShowAllComments(true);
-    loadComments(commentSort, true);
-    setCommentsOpen(true);
+    setViewerAt(0);
   };
 
   // Bodies run only once the gate lets them through (see the <Gated> wrappers
@@ -494,19 +529,6 @@ export function PostCard({
    *
    * Показывается только от 1024 px, см. `aside` у Lightbox.
    */
-  /*
-   * Миниатюра записи для шапки окна комментариев. Берём готовый вариант
-   * `thumb` (320 px) — в квадрате 64 px он с запасом, а `card` там был бы
-   * втрое тяжелее без разницы на глаз.
-   */
-  const previewImage = (() => {
-    const first = mediaPost.mediaItems?.[0];
-    const slot = first?.variants?.thumb ?? first?.variants?.card;
-    return (
-      slot?.webp ?? slot?.jpeg ?? first?.url ?? mediaPost.image ?? mediaPost.images?.[0] ?? null
-    );
-  })();
-
   const lightboxAside = (
     <div className="flex h-full min-h-0 flex-col">
       {/* Шапка 56: аватар 40, имя, под ним дата. Крестик справа — он же
@@ -554,27 +576,30 @@ export function PostCard({
       */}
       {text && (
         <div className="shrink-0 border-b border-[var(--border)] px-4 py-3">
+          {/*
+            Шесть строк на широком экране и три на узком: там панель делит
+            высоту с фотографией, и шесть строк текста не оставили бы места
+            самим комментариям.
+          */}
           <p
-            className="whitespace-pre-line text-[15px] leading-[20px]"
-            style={{
-              color: "var(--foreground-90)",
-              ...(asideExpanded
-                ? {}
-                : {
-                    display: "-webkit-box",
-                    WebkitBoxOrient: "vertical",
-                    WebkitLineClamp: 6,
-                    overflow: "hidden",
-                  }),
-            }}
+            className={`whitespace-pre-line text-[15px] leading-[20px] ${
+              asideExpanded ? "" : "line-clamp-3 lg:line-clamp-6"
+            }`}
+            style={{ color: "var(--foreground-90)" }}
           >
             {text}
           </p>
-          {text.length > CLAMP_ASIDE_CHARS && (
+          {/* Кнопка появляется по тому же порогу, по которому обрезается
+              текст: на узком экране раньше, чем на широком. Иначе на 1440
+              она предлагала бы раскрыть то, что и так видно целиком. */}
+          {text.length > CLAMP_ASIDE_NARROW_CHARS && (
             <button
               type="button"
               onClick={() => setAsideExpanded((v) => !v)}
-              className="mt-1 min-h-[32px] cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80"
+              className={cn(
+                "mt-1 min-h-[32px] cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80",
+                text.length > CLAMP_ASIDE_WIDE_CHARS ? "" : "lg:hidden",
+              )}
               style={{ color: "var(--accent)" }}
             >
               {asideExpanded
@@ -589,7 +614,7 @@ export function PostCard({
         <LightboxComments
           onMount={() => {
             setShowAllComments(true);
-            loadComments(commentSort, true);
+            loadComments(commentSort, 1);
           }}
         >
           <CommentSection
@@ -601,13 +626,17 @@ export function PostCard({
             can={post.can}
             showAll
             totalCount={commentsCount}
+            onLoadMore={() => loadComments(commentSort, commentPage + 1)}
+            loadingMore={commentsLoadingMore}
+            hasMore={commentPage > 0 && commentPage < commentLastPage}
             onDeleted={(id) => {
               setCommentList((prev) => removeFromCommentThread(prev, id));
+              setCommentTotal((n) => (n === null ? n : Math.max(0, n - 1)));
               onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
             }}
             onSortChange={(next) => {
               setCommentSort(next);
-              loadComments(next, true);
+              loadComments(next, 1);
             }}
           />
         </LightboxComments>
@@ -905,7 +934,7 @@ export function PostCard({
             post.image ||
             (post.images?.length ?? 0) > 0 ||
             (post.mediaItems?.length ?? 0) > 0) && (
-            <PostMedia post={mediaPost} priority={priority} aside={lightboxAside} />
+            <PostMedia post={mediaPost} priority={priority} onOpenViewer={setViewerAt} />
           )}
 
           {/* Footer actions */}
@@ -932,75 +961,23 @@ export function PostCard({
     </Card>
   );
 
-  // Ветка живёт слоем поверх, а не в потоке ленты: тот же CommentSection,
-  // что стоял в карточке, только развёрнутый и без предпросмотра — в ленте
-  // от него остаётся счётчик.
-  const commentsLayer = commentsEnabled ? (
-    <CommentsSheet
-      open={commentsOpen}
-      onOpenChange={setCommentsOpen}
-      stats={commentsStats}
-      preview={
-        <div className="flex items-start gap-[10px]">
-          <div className="min-w-0 flex-1">
-            <PostHeader
-              author={author}
-              authorHref={authorHref}
-              authorActionKey={authorActionKey}
-              post={post}
-              isScheduled={isScheduled}
-              showContext={false}
-              badges={badges}
-            />
-            {post.text.trim() !== "" && (
-              <p
-                className="mt-[6px] line-clamp-2 text-[14px]"
-                style={{ color: "var(--foreground-70)" }}
-              >
-                {post.text}
-              </p>
-            )}
-          </div>
-          {previewImage && (
-            <img
-              src={previewImage}
-              alt=""
-              width={64}
-              height={64}
-              loading="lazy"
-              decoding="async"
-              className="h-[64px] w-[64px] shrink-0 rounded-[8px] object-cover"
-            />
-          )}
-        </div>
-      }
-    >
-      <div ref={commentsRef} className="px-[16px] pb-[16px]">
-        <CommentSection
-          comments={commentList}
-          onAdd={addComment}
-          loading={commentsFetchStarted && !commentsFetched}
-          readOnly={!canInteract && !guestNeedsAuth}
-          can={post.can}
-          previewLimit={3}
-          showAll={showAllComments}
-          onShowAll={() => {
-            setShowAllComments(true);
-            loadComments(commentSort, true);
-          }}
-          onHide={() => setShowAllComments(false)}
-          totalCount={commentsCount}
-          onDeleted={(id) => {
-            setCommentList((prev) => removeFromCommentThread(prev, id));
-            onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
-          }}
-          onSortChange={(next) => {
-            setCommentSort(next);
-            loadComments(next, showAllComments);
-          }}
-        />
-      </div>
-    </CommentsSheet>
+  /*
+   * Просмотрщик записи — единственный слой поверх ленты.
+   *
+   * До этого их было два: окно с фотографией, которое открывалось щелчком по
+   * медиа, и окно «Комментарии» с миниатюрой записи, которое открывал
+   * счётчик. Второе показывало разговор рядом с записью, а не внутри неё:
+   * ни медиа, ни полного текста в нём не было — только картинка 64×64 и две
+   * строки. Теперь и то и другое открывает одно окно с полной записью.
+   */
+  const viewerLayer = viewerOpen ? (
+    <Lightbox
+      images={viewerImages}
+      startIndex={Math.min(viewerAt ?? 0, Math.max(0, viewerImages.length - 1))}
+      alt={post.title}
+      onClose={() => setViewerAt(null)}
+      aside={commentsEnabled || variant !== "embedded" ? lightboxAside : undefined}
+    />
   ) : null;
 
   return (
@@ -1012,7 +989,7 @@ export function PostCard({
           {shell}
         </Appear>
       )}
-      {commentsLayer}
+      {viewerLayer}
       {onEdited && (
         <EditPostDialog
           post={post}
