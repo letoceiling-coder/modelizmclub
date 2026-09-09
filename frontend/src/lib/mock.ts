@@ -225,6 +225,10 @@ export interface Ad {
 
 export interface CategoryChild {
   id: ID;
+  /** Адрес подкатегории — тот же /categories/{slug}: дерево двухуровневое,
+   *  и slug уникален во всём дереве, а не только среди соседей.
+   *  Необязателен по той же причине, что и у родителя. */
+  slug?: string;
   name: string;
   usageCount?: number;
   children?: CategoryChild[];
@@ -232,6 +236,11 @@ export interface CategoryChild {
 
 export interface Category {
   id: ID;
+  /** Адрес направления: /categories/{slug}. Уникален в пределах дерева.
+   *  Необязателен: у демо-дерева настоящих slug нет, и выдумывать их — значит
+   *  подставлять несуществующие адреса. Там, где нужен адрес, берётся
+   *  `slug ?? id` — тот же запасной путь, что в разборе ответа API. */
+  slug?: string;
   name: string;
   description: string;
   icon: string; // lucide icon name

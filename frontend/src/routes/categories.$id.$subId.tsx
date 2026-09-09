@@ -218,7 +218,7 @@ function SubcategoryRoomPage() {
   const { t } = useTranslation();
   const { id, subId } = Route.useParams();
   const categories = usePostCategories();
-  const c = categories.find((x) => x.id === id);
+  const c = categories.find((x) => x.slug === id || x.id === id);
   // Rooms exist on levels 2 and 3, so the id can sit anywhere in the subtree.
   const sub = c ? findDescendant(c.subcategories, subId) : null;
   const onlineSet = useOnlineSet();
@@ -302,7 +302,7 @@ function SubcategoryRoomPage() {
         <Breadcrumbs
           items={[
             { label: t("pages.subcategoryDetail.breadcrumbs"), to: "/categories" },
-            { label: c.name, to: "/categories/$id", params: { id: c.id } },
+            { label: c.name, to: "/categories/$id", params: { id: c.slug ?? c.id } },
             { label: sub.name },
           ]}
         />
@@ -318,7 +318,7 @@ function SubcategoryRoomPage() {
         >
           <Link
             to="/categories/$id"
-            params={{ id: c.id }}
+            params={{ id: c.slug ?? c.id }}
             aria-label={t("pages.subcategoryDetail.backAria")}
             className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
           >

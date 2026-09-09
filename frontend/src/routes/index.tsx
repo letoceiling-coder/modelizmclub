@@ -722,8 +722,14 @@ function LandingBlockLink({
   style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
+  /*
+   * Сервер уже кладёт в link_url адрес направления со слугом, если у карточки
+   * не задана своя ссылка. Числовой post_category_id — запасной путь для
+   * направлений без слуга: он рабочий, но через переадресацию, поэтому идёт
+   * вторым, а не первым, как было.
+   */
   const categoryMatch =
-    card.post_category_id != null
+    card.link_url == null && card.post_category_id != null
       ? { to: "/categories/$id" as const, params: { id: String(card.post_category_id) } }
       : null;
   const href = card.link_url ?? (categoryMatch ? undefined : "/");

@@ -119,7 +119,7 @@ export function FindYourPeopleSheet() {
                     <SheetClose asChild>
                       <GuestGuardLink
                         actionKey="feed.find_people.category"
-                        to={`/categories/${c.id}`}
+                        to={`/categories/${c.slug ?? c.id}`}
                         className="group flex flex-1 items-center gap-[12px] rounded-l-[12px] px-[12px] py-[10px] transition-colors hover:bg-[var(--background-surface)]"
                       >
                         <IconBox size="md" variant="surface">

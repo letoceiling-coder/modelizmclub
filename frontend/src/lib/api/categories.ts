@@ -19,6 +19,9 @@ export type CategoryApiNode = ApiCategoryNode;
 function mapChild(node: ApiCategoryNode): Category["subcategories"][number] {
   return {
     id: String(node.id),
+    // API отдавал slug и раньше, но обе функции разбора его выбрасывали —
+    // во фронтенде адреса направлений просто не существовало.
+    slug: node.slug ?? String(node.id),
     name: node.name,
     usageCount: node.usage_count ?? 0,
     children: (node.children ?? []).map(mapChild),
@@ -28,6 +31,7 @@ function mapChild(node: ApiCategoryNode): Category["subcategories"][number] {
 function mapCategory(node: ApiCategoryNode, includeListingsCount = false): Category {
   return {
     id: String(node.id),
+    slug: node.slug ?? String(node.id),
     name: node.name,
     description: "",
     icon: node.icon || "Boxes",
@@ -169,4 +173,35 @@ export async function fetchListingCategories(): Promise<Category[]> {
     listingInflight = null;
   });
   return listingInflight;
+}
+
+/**
+ * Направление по адресу: сначала по slug, потом по числовому id.
+ *
+ * Числовой путь оставлен ради старых ссылок — уведомлений, закладок,
+ * внешних переходов. Маршрут по такому адресу отвечает переадресацией на
+ * slug (см. beforeLoad в routes/categories.$id.index.tsx), а не рисует
+ * страницу: два адреса у одной страницы — это два адреса в поиске и две
+ * разные строки в отчётах.
+ *
+ * Дерево двухуровневое, поэтому ответ плоский: узел найдётся и на верхнем
+ * уровне, и среди детей, и вызывающему не нужно знать, где именно.
+ */
+export async function resolveCategory(
+  key: string,
+): Promise<{ id: string; slug: string; name: string; parentSlug: string | null } | null> {
+  const categories = await fetchPostCategories();
+  for (const top of categories) {
+    const topSlug = top.slug ?? top.id;
+    if (topSlug === key || top.id === key) {
+      return { id: top.id, slug: topSlug, name: top.name, parentSlug: null };
+    }
+    for (const child of top.subcategories) {
+      const childSlug = child.slug ?? child.id;
+      if (childSlug === key || child.id === key) {
+        return { id: child.id, slug: childSlug, name: child.name, parentSlug: topSlug };
+      }
+    }
+  }
+  return null;
 }

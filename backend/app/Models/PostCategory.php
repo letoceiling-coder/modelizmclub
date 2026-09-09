@@ -10,6 +10,7 @@ class PostCategory extends Model
 {
     protected $fillable = [
         'parent_id',
+        'listing_category_id',
         'name',
         'slug',
         'icon',
@@ -35,5 +36,17 @@ class PostCategory extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
+    }
+
+    /**
+     * Полка этого направления в каталоге объявлений.
+     *
+     * Пусто — законное состояние: у «Мастерской», «Обзоров наборов» и
+     * «Выставок» своей категории объявлений нет и не предполагается. Вкладка
+     * «Объявления» на странице направления в таком случае не показывается.
+     */
+    public function listingCategory(): BelongsTo
+    {
+        return $this->belongsTo(ListingCategory::class, 'listing_category_id');
     }
 }

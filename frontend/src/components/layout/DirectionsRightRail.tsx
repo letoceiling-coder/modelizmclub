@@ -33,6 +33,8 @@ type Props = {
 
 type RailNode = {
   id: string;
+  /** Адрес направления — slug; id остаётся для API и для вложенных уровней. */
+  slug?: string;
   name: string;
   usageCount?: number;
   children: RailNode[];
@@ -80,12 +82,14 @@ function sortNodes(nodes: RailNode[], sort: SortMode): RailNode[] {
 function toRailNodes(categories: Category[]): RailNode[] {
   const mapChild = (c: CategoryChild): RailNode => ({
     id: c.id,
+    slug: c.slug,
     name: c.name,
     usageCount: c.usageCount,
     children: (c.children ?? []).map(mapChild),
   });
   return categories.map((c) => ({
     id: c.id,
+    slug: c.slug,
     name: c.name,
     usageCount: c.usageCount,
     children: c.subcategories.map(mapChild),
@@ -113,10 +117,14 @@ function hrefFor(variant: RailVariant, id: string): string {
   return `/feed?taxonomy_id=${id}`;
 }
 
-/** Category chat: level-1 opens the room list, deeper levels open the room. */
-function chatHrefFor(id: string, ancestors: string[]): string {
-  if (ancestors.length === 0) return `/categories/${id}`;
-  return `/categories/${ancestors[0]}/${id}`;
+/**
+ * Category chat: level-1 opens the room list, deeper levels open the room.
+ * Первый уровень адресуется слугом — числовой id туда ведёт только через
+ * переадресацию. Вложенный адрес пока двухсегментный и на id, как был.
+ */
+function chatHrefFor(node: RailNode, ancestors: string[]): string {
+  if (ancestors.length === 0) return `/categories/${node.slug ?? node.id}`;
+  return `/categories/${ancestors[0]}/${node.id}`;
 }
 
 function allHref(variant: RailVariant): string {
@@ -294,7 +302,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               )}
               {!catalog && (
                 <RailLink
-                  to={chatHrefFor(node.id, ancestors)}
+                  to={chatHrefFor(node, ancestors)}
                   guestGuard={guestGuard}
                   actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
                   className="grid w-6 shrink-0 place-items-center transition-colors hover:bg-[var(--background-surface)]"

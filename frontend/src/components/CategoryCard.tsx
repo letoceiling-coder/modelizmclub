@@ -9,7 +9,7 @@ export function CategoryCard({ c }: { c: Category }) {
   return (
     <Link
       to="/categories/$id"
-      params={{ id: c.id }}
+      params={{ id: c.slug ?? c.id }}
       className="group flex flex-col rounded-xl border bg-card p-4 transition hover:border-[var(--neutral-400)] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       aria-label={t("pages.categories.openCategory", { name: c.name })}
     >
