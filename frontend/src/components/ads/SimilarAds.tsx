@@ -7,14 +7,25 @@ import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 const CARD_WIDTH = 220;
 const CARD_GAP = 12;
 
-/** Single source of truth for how many cards this row always shows — the
- *  caller (ads.$id.tsx) fetches/tiers up to this many real ads, and this
- *  component backfills whatever's left with placeholder cards so the row
- *  is never short a few slots. */
+/** Сколько похожих объявлений имеет смысл искать: страница набирает до
+ *  этого числа, расширяя поиск по ступеням. Ряд показывает столько,
+ *  сколько нашлось, — добивки пустыми карточками здесь больше нет. */
 export const SIMILAR_ADS_SLOTS = 12;
 
 export function SimilarAds({ items }: { items: Ad[] }) {
-  const placeholderCount = Math.max(0, SIMILAR_ADS_SLOTS - items.length);
+  /*
+   * Ряд показывает столько объявлений, сколько нашлось, и ничего больше.
+   *
+   * Здесь ряд добивался пустыми карточками до двенадцати, чтобы не выходить
+   * короче полки. На деле похожих почти всегда меньше: у этого объявления
+   * их пять, и рядом рисовалось семь пунктирных плашек «Скоро появятся» —
+   * больше половины ряда, не сообщающей ничего. А когда похожих нет вовсе,
+   * раздел состоял из заголовка и двенадцати плашек.
+   *
+   * Горизонтальная полка не обязана быть полной: она прокручивается ровно
+   * настолько, сколько в ней есть. Похожих нет — раздела нет.
+   */
+  const hasReal = items.length > 0;
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -38,7 +49,7 @@ export function SimilarAds({ items }: { items: Ad[] }) {
       el.removeEventListener("scroll", updateScrollEdges);
       ro.disconnect();
     };
-  }, [updateScrollEdges, items.length, placeholderCount]);
+  }, [updateScrollEdges, items.length]);
 
   const scrollByCards = (direction: -1 | 1) => {
     scrollerRef.current?.scrollBy({
@@ -46,6 +57,8 @@ export function SimilarAds({ items }: { items: Ad[] }) {
       behavior: "smooth",
     });
   };
+
+  if (!hasReal) return null;
 
   return (
     <section className="space-y-[16px]">
@@ -120,9 +133,6 @@ export function SimilarAds({ items }: { items: Ad[] }) {
               </div>
             </Link>
           ))}
-          {Array.from({ length: placeholderCount }).map((_, i) => (
-            <SimilarAdPlaceholder key={`similar-placeholder-${i}`} />
-          ))}
         </HorizontalScrollNav>
       </div>
     </section>
@@ -146,35 +156,5 @@ function ScrollArrow({ direction, onClick }: { direction: "left" | "right"; onCl
     >
       <Icon size={18} />
     </button>
-  );
-}
-
-/** Backfill card for an empty slot in the row — keeps it always exactly
- *  SIMILAR_ADS_SLOTS wide (no short/ragged row) when there simply isn't
- *  enough matching (or even total) inventory yet. Non-interactive. */
-function SimilarAdPlaceholder() {
-  return (
-    <div
-      aria-hidden
-      className="flex shrink-0 snap-start flex-col overflow-hidden"
-      style={{
-        width: `${CARD_WIDTH}px`,
-        background: "var(--background-elevated)",
-        border: "1px dashed var(--border)",
-        borderRadius: "var(--r-card)",
-      }}
-    >
-      <div
-        className="grid place-items-center"
-        style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}
-      >
-        <Tag size={22} style={{ color: "var(--foreground-30)" }} />
-      </div>
-      <div className="flex flex-col gap-[6px] p-[12px]">
-        <span className="text-[13px] font-medium" style={{ color: "var(--foreground-50)" }}>
-          Скоро появятся
-        </span>
-      </div>
-    </div>
   );
 }

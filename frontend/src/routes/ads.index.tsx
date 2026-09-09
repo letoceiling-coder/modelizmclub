@@ -279,9 +279,17 @@ function CatalogPage() {
               refreshing={isFilterBusy}
             />
 
-            {/* Active filter tags — fixed min-height prevents layout jump when tags appear */}
-            <div className="flex min-h-[32px] flex-wrap items-center gap-[6px]">
-              {hasAnyFilter && (
+            {/*
+              Ряд фишек рисуется, только когда в нём что-то есть.
+              Здесь стояло `min-h-[32px]`, чтобы появление фишки не сдвигало
+              список. Но фильтров чаще нет, чем есть, и резерв стоил 57 px
+              пустоты над первой карточкой на каждом заходе — на 365 это
+              заметная часть первого экрана. Сдвиг, от которого он защищал,
+              случается сразу после действия человека и в CLS не попадает:
+              такие сдвиги браузер исключает как вызванные вводом.
+            */}
+            {hasAnyFilter && (
+              <div className="flex flex-wrap items-center gap-[6px]">
                 <>
                   {q && <FilterTag label={`«${q}»`} onRemove={() => setQ("")} />}
                   {filters.category !== "Все" && (
@@ -309,8 +317,8 @@ function CatalogPage() {
                     </button>
                   )}
                 </>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Results — keep the previous grid mounted while filters refresh to avoid layout jumps */}
             <div
