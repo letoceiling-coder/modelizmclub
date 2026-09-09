@@ -261,7 +261,9 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
             </span>
           </>
         );
-        const rowClass = `group flex flex-1 items-center gap-[10px] ${pad} transition-colors hover:bg-[var(--background-surface)] ${hasChildren ? "rounded-l-[10px] pr-[4px]" : "rounded-[10px] pr-[10px]"}`;
+        // Правый отступ и скругление одинаковые независимо от того, есть ли
+        // подкатегории: обе колонки справа теперь занимают место всегда.
+        const rowClass = `group flex min-w-0 flex-1 items-center gap-[10px] ${pad} rounded-l-[10px] pr-[4px] transition-colors hover:bg-[var(--background-surface)]`;
         const rowStyle = active ? { background: "var(--accent-soft)" } : undefined;
 
         return (
@@ -295,13 +297,19 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                   to={chatHrefFor(node.id, ancestors)}
                   guestGuard={guestGuard}
                   actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
-                  className="grid w-[26px] shrink-0 place-items-center transition-colors hover:bg-[var(--background-surface)]"
+                  className="grid w-6 shrink-0 place-items-center transition-colors hover:bg-[var(--background-surface)]"
                   style={{ color: "var(--foreground-50)" }}
                 >
                   <MessageCircle className="h-[13px] w-[13px]" />
                 </RailLink>
               )}
-              {hasChildren && (
+              {/*
+                Колонка шеврона занята всегда — даже когда раскрывать нечего.
+                Раньше у направления без подкатегорий её просто не было, и
+                значок чата уезжал вправо на её ширину: в столбце из
+                четырнадцати строк значки стояли по двум разным вертикалям.
+              */}
+              {hasChildren ? (
                 <button
                   type="button"
                   onClick={toggle}
@@ -311,13 +319,15 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                       : t("components.rightCategories.expandSubcategories")
                   }
                   aria-expanded={open}
-                  className="grid w-[28px] shrink-0 place-items-center rounded-r-[10px] transition-colors hover:bg-[var(--background-surface)]"
+                  className="grid w-6 shrink-0 place-items-center rounded-r-[10px] transition-colors hover:bg-[var(--background-surface)]"
                 >
                   <ChevronDown
                     className={`h-[14px] w-[14px] transition-transform ${open ? "rotate-180" : ""}`}
                     style={{ color: "var(--foreground-50)" }}
                   />
                 </button>
+              ) : (
+                <span className="w-6 shrink-0" aria-hidden />
               )}
             </div>
             {open && hasChildren && (
