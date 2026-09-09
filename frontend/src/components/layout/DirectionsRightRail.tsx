@@ -146,9 +146,12 @@ function nameHrefFor(variant: RailVariant, node: RailNode): string {
  * Поэтому у направления значка нет — раньше он вёл на список комнат, то
  * есть туда же, куда теперь ведёт название. Две кнопки в одно место, и
  * одна из них обещает чат, которого на этом уровне не существует.
+ *
+ * Вкладка названа в адресе, а не оставлена на умолчание: по умолчанию
+ * комната открывается записями, и без `?tab=chat` значок открывал бы их же.
  */
 function chatHrefFor(node: RailNode): string {
-  return `/categories/${node.slug ?? node.id}`;
+  return `/categories/${node.slug ?? node.id}?tab=chat`;
 }
 
 function allHref(variant: RailVariant): string {
