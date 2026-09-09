@@ -6,6 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import type { Category, CategoryChild } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import { SubcategoryRoomPage } from "@/components/categories/SubcategoryRoomPage";
 import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import {
   membersForSubcategory,
@@ -32,9 +33,51 @@ export const Route = createFileRoute("/categories/$id/")({
     if (!found || found.slug === params.id) return;
     throw redirect({ to: "/categories/$id", params: { id: found.slug }, code: 301 });
   },
-  head: () => ({ meta: [{ title: i18n.t("pages.categoryDetail.metaTitle") }] }),
-  component: CategoryRoomsPage,
+  /*
+   * Один адрес на направление и комнату — значит и один заголовок вкладки.
+   * Ставить в него «Направление» на странице комнаты было бы неверно, а
+   * выбирать из двух слов нечем: маршрут не знает, что за узел он открыл.
+   * Поэтому заголовок называет сам узел, а общее слово остаётся запасным —
+   * для случая, когда дерево ещё не приехало или узла нет.
+   */
+  loader: async ({ params }) => {
+    const { resolveCategory } = await import("@/lib/api/categories");
+
+    return { name: (await resolveCategory(params.id))?.name ?? null };
+  },
+  head: ({ loaderData }) => ({
+    meta: [
+      {
+        title: loaderData?.name
+          ? i18n.t("pages.categoryDetail.metaTitleNamed", { name: loaderData.name })
+          : i18n.t("pages.categoryDetail.metaTitle"),
+      },
+    ],
+  }),
+  component: DirectionOrRoomPage,
 });
+
+/**
+ * Один адрес, две страницы. Направление и комната различаются глубиной узла
+ * в дереве, а не длиной адреса: комната жила на `/categories/{id}/{subId}`,
+ * где второй сегмент лишь повторял то, что и так известно из дерева, а
+ * первый заставлял помнить родителя, чтобы сослаться на ребёнка.
+ *
+ * Пока дерево не приехало, `categories` пуст, узел не находится, и
+ * управление уходит в комнату — она сама покажет «загружаем». Тяжёлого при
+ * этом не монтируется: чат и вкладки живут за проверкой «нашлась комната».
+ */
+function DirectionOrRoomPage() {
+  const { id } = Route.useParams();
+  const categories = usePostCategories();
+  const direction = categories.find((x) => x.slug === id || x.id === id);
+
+  return direction ? (
+    <CategoryRoomsPage category={direction} />
+  ) : (
+    <SubcategoryRoomPage roomKey={id} />
+  );
+}
 
 function seedFrom(s: string): number {
   return s.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
@@ -58,38 +101,20 @@ const ROOM_PREVIEW_KEYS = [
   "roomPreview7",
 ] as const;
 
-function CategoryRoomsPage() {
+function CategoryRoomsPage({ category: c }: { category: Category }) {
   const { t } = useTranslation();
-  const { id } = Route.useParams();
-  const categories = usePostCategories();
-  // Адрес — slug, но старые числовые ссылки живут в закладках и приходят
-  // редиректом не всегда (демо-данные слугов не знают вовсе). Ищем по обоим.
-  const c = categories.find((x) => x.slug === id || x.id === id);
   // Статистика комнат ходит в API по числовому id направления, не по слугу.
-  const roomStats = useCategoryRoomStats(c?.id ?? id);
+  const roomStats = useCategoryRoomStats(c.id);
   const [query, setQuery] = useState("");
 
   // Rooms live on levels 2 and 3 — a flat, indented list keeps «Ил-6»-style
   // third-level rooms reachable without an extra page.
   const filteredSubs = useMemo(() => {
-    if (!c) return [];
     const q = query.trim().toLowerCase();
     const flat = flattenRooms(c.subcategories);
     if (!q) return flat;
     return flat.filter(({ node }) => node.name.toLowerCase().includes(q));
   }, [c, query]);
-
-  if (!c) {
-    return (
-      <AppLayout rightColumn={false}>
-        <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
-          {categories.length === 0
-            ? t("pages.categoryDetail.loading")
-            : t("pages.categoryDetail.notFound")}
-        </p>
-      </AppLayout>
-    );
-  }
 
   return (
     <AppLayout rightColumn={false}>
@@ -199,8 +224,8 @@ function CategoryRoomsPage() {
                   style={{ borderColor: "var(--border)" }}
                 >
                   <Link
-                    to="/categories/$id/$subId"
-                    params={{ id: c.id, subId: s.id }}
+                    to="/categories/$id"
+                    params={{ id: s.slug ?? s.id }}
                     className="flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface)]"
                     style={{ paddingLeft: 16 + depth * 20 }}
                   >

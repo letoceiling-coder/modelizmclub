@@ -82,7 +82,7 @@ interface ApiConversation {
   last_read_message_id?: number | null;
   last_read_message_uuid?: string | null;
   community?: { slug?: string; name?: string; avatar?: string | null } | null;
-  room?: { category_id?: number | null; root_id?: number | null } | null;
+  room?: { category_id?: number | null; slug?: string | null } | null;
   deal?: { uuid: string; status?: string | null; status_label?: string | null } | null;
 }
 
@@ -263,7 +263,7 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
       isRoom && c.room?.category_id
         ? {
             categoryId: String(c.room.category_id),
-            rootId: c.room.root_id ? String(c.room.root_id) : null,
+            slug: c.room.slug ?? null,
           }
         : undefined,
     lastReadMessageId: c.last_read_message_uuid ?? undefined,

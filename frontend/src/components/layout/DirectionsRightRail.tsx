@@ -118,13 +118,12 @@ function hrefFor(variant: RailVariant, id: string): string {
 }
 
 /**
- * Category chat: level-1 opens the room list, deeper levels open the room.
- * Первый уровень адресуется слугом — числовой id туда ведёт только через
- * переадресацию. Вложенный адрес пока двухсегментный и на id, как был.
+ * Значок чата: у направления открывает список комнат, у подкатегории —
+ * саму комнату. Адрес один и тот же — узел называет себя сам, родителя
+ * называть незачем.
  */
-function chatHrefFor(node: RailNode, ancestors: string[]): string {
-  if (ancestors.length === 0) return `/categories/${node.slug ?? node.id}`;
-  return `/categories/${ancestors[0]}/${node.id}`;
+function chatHrefFor(node: RailNode): string {
+  return `/categories/${node.slug ?? node.id}`;
 }
 
 function allHref(variant: RailVariant): string {
@@ -218,7 +217,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
     );
   }
 
-  const renderNodes = (nodes: RailNode[], ancestors: string[], depth: number) => (
+  const renderNodes = (nodes: RailNode[], depth: number) => (
     <ul
       className={
         depth === 0 ? "p-[6px]" : "mb-[4px] ml-[36px] mt-[2px] space-y-[1px] border-l pl-[10px]"
@@ -302,7 +301,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               )}
               {!catalog && (
                 <RailLink
-                  to={chatHrefFor(node, ancestors)}
+                  to={chatHrefFor(node)}
                   guestGuard={guestGuard}
                   actionKey={depth === 0 ? "feed.rail.category" : "feed.rail.subcategory"}
                   className="grid w-6 shrink-0 place-items-center transition-colors hover:bg-[var(--background-surface)]"
@@ -352,7 +351,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                 >
                   {t("components.rightCategories.allInCategory")}
                 </RailLink>
-                {renderNodes(node.children, [...ancestors, node.id], depth + 1)}
+                {renderNodes(node.children, depth + 1)}
               </>
             )}
           </li>
@@ -476,7 +475,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               {t("components.rightCategories.emptySearch")}
             </p>
           ) : (
-            renderNodes(visible, [], 0)
+            renderNodes(visible, 0)
           )}
 
           <div

@@ -1805,6 +1805,7 @@ export const en: TranslationSchema = {
     },
     categoryDetail: {
       metaTitle: "Category — MoDelizM",
+      metaTitleNamed: "{{name}} — MoDelizM",
       loading: "Loading…",
       notFound: "Category not found.",
       breadcrumbs: "Categories",
@@ -1827,7 +1828,6 @@ export const en: TranslationSchema = {
       roomPreview7: "Who's racing on Saturday?",
     },
     subcategoryDetail: {
-      metaTitle: "Subcategory — MoDelizM",
       loading: "Loading…",
       notFound: "Subcategory not found.",
       breadcrumbs: "Categories",

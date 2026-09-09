@@ -19,8 +19,8 @@ export const ROUTES = {
   user: (userId: string) => `/user/${userId}` as const,
   friends: "/friends",
   categories: "/categories",
-  category: (id: string) => `/categories/${id}` as const,
-  subcategory: (id: string, subId: string) => `/categories/${id}/${subId}` as const,
+  /** Направление и комната адресуются одинаково: слуг узла, без родителя. */
+  category: (slug: string) => `/categories/${slug}` as const,
   subscription: "/subscription",
   deals: "/deals",
   help: "/help",

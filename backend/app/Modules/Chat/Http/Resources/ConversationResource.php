@@ -95,7 +95,7 @@ class ConversationResource extends JsonResource
                 $this->type === ConversationType::Room && $this->post_category_id !== null,
                 fn () => [
                     'category_id' => (int) $this->post_category_id,
-                    'root_id' => $this->roomRootCategoryId(),
+                    'slug' => $this->roomCategorySlug(),
                 ],
             ),
             'community' => $this->when(
@@ -126,14 +126,18 @@ class ConversationResource extends JsonResource
         return is_string($uuid) ? $uuid : null;
     }
 
-    /** Top-level ancestor of the room's category — the /categories/{root}/{sub} URL needs it. */
-    private function roomRootCategoryId(): ?int
+    /**
+     * Слуг категории комнаты — им она и адресуется: `/categories/{slug}`.
+     *
+     * Здесь стоял подъём по цепочке `parent_id` до корня: старый адрес был
+     * двухсегментным, и, чтобы сослаться на комнату, надо было назвать её
+     * родителя. До пяти запросов на каждую беседу в списке — ради сегмента,
+     * который ничего не добавлял. Узел называет себя сам.
+     */
+    private function roomCategorySlug(): ?string
     {
-        $current = PostCategory::query()->whereKey($this->post_category_id)->first();
-        for ($depth = 0; $current && $current->parent_id !== null && $depth < 5; $depth++) {
-            $current = PostCategory::query()->whereKey($current->parent_id)->first();
-        }
+        $slug = PostCategory::query()->whereKey($this->post_category_id)->value('slug');
 
-        return $current?->id;
+        return is_string($slug) ? $slug : null;
     }
 }

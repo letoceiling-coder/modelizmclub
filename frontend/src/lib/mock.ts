@@ -421,7 +421,7 @@ export interface Dialog {
   avatar?: string;
   communitySlug?: string;
   /** Category chat: taxonomy ids needed to build the /categories/{root}/{id} link. */
-  room?: { categoryId: string; rootId: string | null };
+  room?: { categoryId: string; slug: string | null };
   /**
    * uuid последнего прочитанного сообщения. Точка, с которой открывается чат:
    * всё, что пришло после неё, читатель ещё не видел.

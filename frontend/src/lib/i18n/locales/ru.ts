@@ -1851,6 +1851,8 @@ export const ru = {
     },
     categoryDetail: {
       metaTitle: "Направление — МоДелизМ",
+      /** Заголовок с именем узла: на этом адресе живут и направление, и комната. */
+      metaTitleNamed: "{{name}} — МоДелизМ",
       loading: "Загрузка…",
       notFound: "Направление не найдено.",
       breadcrumbs: "Направления",
@@ -1873,7 +1875,6 @@ export const ru = {
       roomPreview7: "Кто будет на гонке в субботу?",
     },
     subcategoryDetail: {
-      metaTitle: "Подкатегория — МоДелизМ",
       loading: "Загрузка…",
       notFound: "Подкатегория не найдена.",
       breadcrumbs: "Направления",
