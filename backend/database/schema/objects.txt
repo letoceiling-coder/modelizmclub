@@ -421,6 +421,9 @@ COLUMN|feedback.created_at|timestamp without time zone|YES
 COLUMN|feedback.id|bigint|NO
 COLUMN|feedback.message|text|NO
 COLUMN|feedback.page|character varying|YES
+COLUMN|feedback.replied_at|timestamp without time zone|YES
+COLUMN|feedback.replied_by|bigint|YES
+COLUMN|feedback.reply|text|YES
 COLUMN|feedback.status|character varying|NO
 COLUMN|feedback.subject|character varying|YES
 COLUMN|feedback.updated_at|timestamp without time zone|YES
@@ -571,6 +574,7 @@ COLUMN|listing_view_daily.views_count|integer|NO
 COLUMN|listings.ai_draft|json|YES
 COLUMN|listings.category_id|bigint|NO
 COLUMN|listings.city_id|bigint|YES
+COLUMN|listings.condition|character varying|YES
 COLUMN|listings.contact_via_messenger|boolean|NO
 COLUMN|listings.created_at|timestamp without time zone|YES
 COLUMN|listings.currency|character|NO
@@ -1416,6 +1420,7 @@ FK|escrow_transactions|escrow_transactions_actor_id_foreign
 FK|escrow_transactions|escrow_transactions_safe_deal_id_foreign
 FK|escrow_transactions|escrow_transactions_wallet_transaction_id_foreign
 FK|faq_articles|faq_articles_category_id_foreign
+FK|feedback|feedback_replied_by_foreign
 FK|feedback|feedback_user_id_foreign
 FK|friend_requests|friend_requests_from_user_id_foreign
 FK|friend_requests|friend_requests_to_user_id_foreign
