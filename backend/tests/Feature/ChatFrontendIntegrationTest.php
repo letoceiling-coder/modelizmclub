@@ -856,6 +856,55 @@ class ChatFrontendIntegrationTest extends TestCase
             ->assertJsonPath('data.0.uuid', $direct->uuid);
     }
 
+    /**
+     * Беседа комнаты называет свою категорию слугом — им комната и
+     * адресуется: `/categories/{slug}`. Раньше здесь лежал `root_id`,
+     * корневой предок, и существовал он только ради двухсегментного адреса.
+     * Замену не проверял ни один тест — отсюда этот.
+     */
+    public function test_беседа_комнаты_отдаёт_слуг_категории(): void
+    {
+        [$user] = $this->usersWithProfiles();
+
+        $parent = PostCategory::create([
+            'name' => 'Armor',
+            'slug' => 'armor',
+            'sort_order' => 10,
+            'depth' => 0,
+            'path' => 'armor',
+            'is_active' => true,
+        ]);
+
+        $sub = PostCategory::create([
+            'parent_id' => $parent->id,
+            'name' => 'APC',
+            'slug' => 'apc',
+            'sort_order' => 10,
+            'depth' => 1,
+            'path' => 'armor/apc',
+            'is_active' => true,
+        ]);
+
+        $room = Conversation::create([
+            'type' => ConversationType::Room,
+            'post_category_id' => $sub->id,
+            'title' => $sub->name,
+        ]);
+
+        ConversationParticipant::create([
+            'conversation_id' => $room->id,
+            'user_id' => $user->id,
+            'role' => 'member',
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/conversations?space=rooms')
+            ->assertOk()
+            ->assertJsonPath('data.0.room.slug', 'apc')
+            ->assertJsonPath('data.0.room.category_id', $sub->id);
+    }
+
     public function test_category_room_members_returns_real_online_status(): void
     {
         [$onlineUser, $offlineUser] = $this->usersWithProfiles();

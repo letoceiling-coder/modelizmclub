@@ -1687,15 +1687,15 @@ function MessengerPage() {
                     to={
                       active.type === "community" && activeIdentity?.communitySlug
                         ? "/communities/$id"
-                        : active.type === "room" && active.room?.rootId
-                          ? "/categories/$id/$subId"
+                        : active.type === "room" && active.room
+                          ? "/categories/$id"
                           : "/user/$id"
                     }
                     params={
                       active.type === "community" && activeIdentity?.communitySlug
                         ? { id: activeIdentity.communitySlug }
-                        : active.type === "room" && active.room?.rootId
-                          ? { id: active.room.rootId, subId: active.room.categoryId }
+                        : active.type === "room" && active.room
+                          ? { id: active.room.slug ?? active.room.categoryId }
                           : { id: partner?.slug ?? partner?.id ?? active.userId }
                     }
                     className="flex min-w-0 items-center gap-[12px]"
