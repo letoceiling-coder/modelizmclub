@@ -1137,11 +1137,25 @@ function MessengerPage() {
     scrollToBottom("auto");
   }, [keyboardInset, scrollToBottom]);
 
+  /*
+   * Выбор диалога меняет и адрес.
+   *
+   * Раньше `?chat=` ставили только те пути, что открывают диалог со
+   * стороны — ссылка, переход из звонков, «написать» из профиля. Клик по
+   * строке списка менял только состояние, и адрес оставался от предыдущего
+   * диалога: перезагрузка возвращала не туда, куда смотрел человек, а
+   * ссылка из строки браузера вела в чужую переписку.
+   *
+   * `replace`, а не push: история заполнялась бы каждым просмотренным
+   * диалогом, а «назад» в мессенджере — это кнопка к списку, не история
+   * браузера.
+   */
   const handleSelect = (id: string) => {
     setActiveId(id);
     setMobileView("chat");
     setReplyTo(null);
     messengerCache.markRead(id);
+    if (chat !== id) void navigate({ to: "/messenger", search: { chat: id }, replace: true });
   };
 
   // Used after "Удалить чат". Also clears the ?chat= search param when it
