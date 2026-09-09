@@ -134,7 +134,6 @@ function DealsPage() {
               className="p-[24px] text-center"
               style={{
                 borderColor: "var(--border)",
-                borderStyle: "dashed",
                 borderRadius: "var(--r-card)",
               }}
             >

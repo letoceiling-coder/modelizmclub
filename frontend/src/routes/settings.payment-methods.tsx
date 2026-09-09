@@ -127,7 +127,6 @@ function PaymentMethodsSection() {
               className="p-[20px] text-center"
               style={{
                 borderColor: "var(--border)",
-                borderStyle: "dashed",
                 borderRadius: "var(--r-card)",
               }}
             >

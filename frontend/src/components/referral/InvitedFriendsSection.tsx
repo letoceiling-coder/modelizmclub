@@ -41,7 +41,7 @@ export function InvitedFriendsSection() {
           className="mt-[12px] flex flex-col items-center justify-center text-center"
           style={{
             padding: "32px 16px",
-            border: "1px dashed var(--border)",
+            border: "1px solid var(--border)",
             borderRadius: "var(--r-card)",
             color: "var(--foreground-50)",
           }}

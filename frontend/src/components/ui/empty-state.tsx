@@ -13,14 +13,17 @@ interface EmptyStateProps {
   /** Secondary outline button */
   secondaryAction?: { label: string; onClick: () => void };
   /**
-   * - default:  dashed border, elevated bg, 56px vertical padding
-   * - compact:  same border style, 32px vertical padding, smaller icon/text
+   * - default:  сплошная рамка, приподнятый фон, 56px по вертикали
+   * - compact:  та же рамка, 32px по вертикали, значок и текст мельче
    * - bare:     no border, transparent bg, 48px vertical padding — for panels/chat
    * - section:  пустой раздел страницы: без рамки, значок 48 приглушённый,
    *             заголовок body, пояснение caption, отступ 48 сверху и снизу.
-   *             Пунктирная рамка на месте пустой стены читалась как поле
-   *             формы — будто сюда надо что-то ввести, — а не как отсутствие
-   *             содержимого.
+   *
+   * Пунктира здесь больше нет ни в одном варианте. Он читался как поле
+   * формы — будто сюда надо что-то ввести, — а не как отсутствие
+   * содержимого; у `section` его убрали раньше, теперь та же причина
+   * доведена до остальных. Там, где блок всё же надо отделить от страницы,
+   * это делает обычная сплошная рамка, как у любой карточки.
    */
   variant?: "default" | "compact" | "bare" | "section";
   className?: string;
@@ -47,7 +50,7 @@ export function EmptyState({
     <div
       className={cn(
         "flex flex-col items-center justify-center text-center",
-        !isBare && "rounded-[var(--r-card)] border border-dashed",
+        !isBare && "rounded-[var(--r-card)] border",
         isCompact
           ? "gap-[8px] px-[16px] py-[32px]"
           : isSection
