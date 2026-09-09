@@ -96,6 +96,7 @@ import { CallsList } from "@/components/calls/CallsList";
 import { useChannels, formatCount } from "@/lib/channels";
 import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
+import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -1269,25 +1270,7 @@ function MessengerPage() {
     }
   };
 
-  const insertEmoji = useCallback(
-    (emoji: string) => {
-      const el = composerRef.current;
-      if (!el) {
-        setText((prev) => prev + emoji);
-        return;
-      }
-      const start = el.selectionStart ?? text.length;
-      const end = el.selectionEnd ?? text.length;
-      const next = text.slice(0, start) + emoji + text.slice(end);
-      setText(next);
-      requestAnimationFrame(() => {
-        el.focus();
-        const pos = start + emoji.length;
-        el.setSelectionRange(pos, pos);
-      });
-    },
-    [text],
-  );
+  const insertEmoji = useInsertAtCaret(composerRef, text, setText);
 
   const handleCopy = (m: Message) => {
     const copyText =

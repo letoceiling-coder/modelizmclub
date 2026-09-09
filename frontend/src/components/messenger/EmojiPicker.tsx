@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import { Smile } from "lucide-react";
 import { MESSENGER_EMOJI_GROUPS } from "@/lib/messenger-emojis";
 import { TAP_TARGET_44 } from "@/lib/tap-target";
@@ -99,14 +98,28 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
       if (panelRef.current?.contains(t)) return;
       setOpen(false);
     };
+    /*
+     * Escape закрывает панель — и только её.
+     *
+     * Просмотрщик записи слушает Escape на том же `document` и закрывается
+     * вместе с ней: человек, открывший смайлы поверх записи, одним нажатием
+     * терял и панель, и запись, — а потом не мог открыть панель снова,
+     * потому что нажимать было уже не на что. Найдено 09.09 на проде.
+     *
+     * Перехват (`capture`) идёт до обработчиков, повешенных на всплытии, —
+     * поэтому здесь и останавливается: верхний слой закрывается первым и
+     * событие дальше не пускает.
+     */
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setOpen(false);
     };
     document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     return () => {
       document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
 
@@ -121,17 +134,26 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
     ? `grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)] ${TAP_TARGET_44}`
     : `grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full sm:h-[40px] sm:w-[40px] ${TAP_TARGET_44}`;
 
+  /*
+   * Без анимации появления и ухода.
+   *
+   * Панель жила внутри `AnimatePresence` и уходила затуханием. Прерванный
+   * уход оставлял её узел в `body` навсегда — `opacity: 0`, `pointer-events:
+   * auto`, слой popover, — и следующее открытие рисовало в тот же
+   * застрявший узел: панель больше никогда не становилась видимой. Ровно
+   * это и выглядело как «кнопка эмодзи не работает, повторное нажатие тоже».
+   * Заодно призрак 280×240 молча перехватывал нажатия по комментариям под
+   * собой.
+   *
+   * Всплывающему списку анимация ухода не нужна: он либо есть, либо его нет.
+   * А узел, которого нет, не может застрять.
+   */
   const panel =
     mounted && open && panelStyle ? (
-      <motion.div
+      <div
         ref={panelRef}
-        key="emoji-panel"
         role="dialog"
         aria-label="Выбор смайла"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.12, ease: "easeOut" }}
         className="fixed z-[var(--z-popover)] overflow-hidden rounded-[12px] border"
         style={{
           top: panelStyle.top,
@@ -171,7 +193,7 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     ) : null;
 
   return (
@@ -194,7 +216,7 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
       >
         <Smile size={compact ? 16 : 18} />
       </button>
-      {mounted ? createPortal(<AnimatePresence>{panel}</AnimatePresence>, document.body) : null}
+      {mounted ? createPortal(panel, document.body) : null}
     </>
   );
 }

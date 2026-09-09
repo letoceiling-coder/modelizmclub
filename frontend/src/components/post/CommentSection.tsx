@@ -14,6 +14,7 @@ import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import {
@@ -672,6 +673,8 @@ export function CommentSection({
   const [draft, setDraft] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<CommentSort>("interesting");
+  const draftRef = useRef<HTMLInputElement>(null);
+  const insertEmoji = useInsertAtCaret(draftRef, draft, setDraft);
   const [likeOverrides, setLikeOverrides] = useState<Record<string, number>>({});
   const photos = useCommentPhotoDraft();
 
@@ -794,6 +797,7 @@ export function CommentSection({
         >
           <div className="flex min-w-0 items-center gap-[6px]">
             <input
+              ref={draftRef}
               value={draft}
               readOnly={commentBlocked}
               onPointerDown={promptComposerAuth}
@@ -825,7 +829,7 @@ export function CommentSection({
                   guest?.guardAction("feed.post.comment", () => {});
                   return;
                 }
-                setDraft((v) => v + emoji);
+                insertEmoji(emoji);
               }}
               align="end"
               compact

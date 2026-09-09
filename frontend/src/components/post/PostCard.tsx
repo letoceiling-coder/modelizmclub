@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { Appear } from "@/components/ui/Appear";
 import { CommentSection } from "@/components/post/CommentSection";
 import { Lightbox, LightboxCloseButton } from "@/components/post/Lightbox";
-import { PostMedia, postViewerImages } from "@/components/post/PostMedia";
+import { PostMedia, postViewerSlides } from "@/components/post/PostMedia";
 import { PostHeader } from "@/components/post/PostHeader";
 import { PostActions } from "@/components/post/PostActions";
 import { EditPostDialog } from "@/components/post/EditPostDialog";
@@ -254,7 +254,7 @@ export function PostCard({
   const [mediaPost, setMediaPost] = useState(post);
   // Тот же список и в том же порядке, что нумерует показывающий медиа
   // компонент: номер из `onOpenViewer` указывает на этот массив.
-  const viewerImages = postViewerImages(mediaPost);
+  const viewerSlides = postViewerSlides(mediaPost);
 
   useEffect(() => {
     setMediaPost(post);
@@ -978,8 +978,8 @@ export function PostCard({
    */
   const viewerLayer = viewerOpen ? (
     <Lightbox
-      images={viewerImages}
-      startIndex={Math.min(viewerAt ?? 0, Math.max(0, viewerImages.length - 1))}
+      slides={viewerSlides}
+      startIndex={Math.min(viewerAt ?? 0, Math.max(0, viewerSlides.length - 1))}
       alt={post.title}
       onClose={() => setViewerAt(null)}
       aside={commentsEnabled || variant !== "embedded" ? lightboxAside : undefined}
