@@ -28,6 +28,19 @@ use Illuminate\Support\Facades\DB;
  * запросом — «сколько строк глубже первого уровня» и «сколько строк, у
  * которых path не сходится с parent_id», — и ждёт нулей.
  *
+ * ЗА ЧТО ПРОВЕРКА ОТВЕЧАЕТ, А ЗА ЧТО НЕТ. Первый боевой прогон 09.09 показал
+ * 8 несошедшихся строк в направлениях и 2 в каталоге — и ни одной из тех,
+ * которые команда писала. У всех десяти path не заполнен вовсе: так их
+ * когда-то и завели. Условие `is distinct from` считает NULL расхождением,
+ * и проверка валила выкатку за чужое.
+ *
+ * Поэтому сверка путей смотрит только на строки, у которых path есть, —
+ * ровно те, которые команда пишет. Строки без пути и строки, где depth
+ * спорит с parent_id, считаются отдельно и печатаются поимённо: это
+ * расхождение настоящее, но не этой правки, и прятать его внутрь общего
+ * числа значило бы обменять красную выкатку на молчание. Оно не валит
+ * прогон — оно называется вслух.
+ *
  * Идемпотентна: повторный запуск на приведённых данных ничего не меняет.
  */
 class FlattenCategoriesCommand extends Command
@@ -157,7 +170,8 @@ class FlattenCategoriesCommand extends Command
 
     /**
      * Независимая проверка: не тем условием, которым правили, а по факту в
-     * данных. Ждём нулей в обоих запросах.
+     * данных. Ждём нулей в обоих запросах — и отдельно называем то, что
+     * команда не создавала и не чинит.
      */
     private function verify(): int
     {
@@ -166,13 +180,18 @@ class FlattenCategoriesCommand extends Command
         foreach (self::TREES as [, $table]) {
             $deep = DB::table($table)->where('depth', '>', 1)->count();
 
+            // Только строки с путём: их команда и пишет. Строки без пути
+            // считаются ниже, отдельной строкой отчёта.
             $mismatched = DB::table("{$table} as c")
                 ->leftJoin("{$table} as p", 'p.id', '=', 'c.parent_id')
+                ->whereNotNull('c.path')
                 ->whereRaw("c.path is distinct from (case when c.parent_id is null then c.slug else p.slug || '/' || c.slug end)")
                 ->count();
 
             $this->line("проверка {$table}: глубже первого уровня — {$deep}, путь не сходится с parent_id — {$mismatched}");
             $bad += $deep + $mismatched;
+
+            $this->reportInherited($table);
         }
 
         if ($bad > 0) {
@@ -184,5 +203,34 @@ class FlattenCategoriesCommand extends Command
         $this->info('Проверка сошлась: оба дерева двухуровневые, пути согласованы с parent_id.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Расхождения, которые команда не создавала: строки без path и строки,
+     * где depth спорит с parent_id. Печатаются поимённо — по номеру и слугу
+     * их видно в админке, а «8 строк» не видно нигде.
+     */
+    private function reportInherited(string $table): void
+    {
+        $rows = DB::table($table)
+            ->select('id', 'slug', 'depth', 'parent_id', 'path')
+            ->where(function ($q): void {
+                $q->whereNull('path')
+                    ->orWhereRaw('(parent_id is null and depth <> 0) or (parent_id is not null and depth <> 1)');
+            })
+            ->orderBy('id')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        $this->warn("    досталось в наследство, этой правкой не лечится — строк: {$rows->count()}");
+
+        foreach ($rows as $row) {
+            $what = $row->path === null ? 'без path' : 'depth спорит с parent_id';
+            $parent = $row->parent_id === null ? 'NULL' : (string) $row->parent_id;
+            $this->warn("        #{$row->id} {$row->slug}: {$what} (depth {$row->depth}, parent_id {$parent})");
+        }
     }
 }
