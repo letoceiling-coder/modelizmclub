@@ -535,6 +535,18 @@ export const enAdmin = {
       markRead: "Mark read",
       markResolved: "Resolved",
       backToNew: "Back to new",
+      replyOpen: "Reply",
+      replyEdit: "Edit reply",
+      replySend: "Send reply",
+      replyCancel: "Cancel",
+      replyLabel: "Reply",
+      replyPlaceholder: "The author will see this reply under “My requests” and in a notification.",
+      replyGuestHint:
+        "Guest request: the reply is stored, but there is nobody to notify — write to the email in the message.",
+      replySent: "Reply sent",
+      replySavedGuest:
+        "Reply saved. The guest was not notified — write to the email in the message.",
+      replyFailed: "Could not send the reply",
       filters: {
         all: "All",
         new: "New",

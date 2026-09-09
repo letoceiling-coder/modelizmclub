@@ -50,6 +50,7 @@ export const Route = createFileRoute("/my-ads")({
 
 type TabKey =
   | "active"
+  | "sold"
   | "moderation"
   | "rejected"
   | "unpublished"
@@ -59,6 +60,7 @@ type TabKey =
 
 const TAB_KEYS: { key: TabKey; labelKey: string }[] = [
   { key: "active", labelKey: "pages.myAds.tabActive" },
+  { key: "sold", labelKey: "pages.myAds.tabSold" },
   { key: "moderation", labelKey: "pages.myAds.tabModeration" },
   { key: "rejected", labelKey: "pages.myAds.tabRejected" },
   { key: "unpublished", labelKey: "pages.myAds.tabUnpublished" },
@@ -246,6 +248,7 @@ function MyAdsPage() {
   const counts = useMemo<Record<TabKey, number>>(() => {
     const c: Record<TabKey, number> = {
       active: 0,
+      sold: 0,
       moderation: 0,
       rejected: 0,
       unpublished: 0,
@@ -908,6 +911,7 @@ function EmptyTab({
   const { t } = useTranslation();
   const config: Record<TabKey, { titleKey: string; descKey: string }> = {
     active: { titleKey: "pages.myAds.emptyActive", descKey: "pages.myAds.emptyActiveDesc" },
+    sold: { titleKey: "pages.myAds.emptySold", descKey: "pages.myAds.emptySoldDesc" },
     moderation: {
       titleKey: "pages.myAds.emptyModeration",
       descKey: "pages.myAds.emptyModerationDesc",

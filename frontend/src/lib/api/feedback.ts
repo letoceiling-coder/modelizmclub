@@ -22,3 +22,40 @@ export async function submitFeedback(
   });
   return res.data;
 }
+
+/** Обращение пользователя вместе с ответом, если он уже есть. */
+export interface MyFeedbackItem {
+  id: number;
+  subject: string;
+  message: string;
+  page: string;
+  status: "new" | "read" | "resolved" | string;
+  reply: string;
+  repliedAt: string;
+  createdAt: string;
+}
+
+interface ApiMyFeedback {
+  id: number;
+  subject?: string | null;
+  message?: string | null;
+  page?: string | null;
+  status?: string | null;
+  reply?: string | null;
+  replied_at?: string | null;
+  created_at?: string | null;
+}
+
+export async function fetchMyFeedback(): Promise<MyFeedbackItem[]> {
+  const res = await api<{ data: ApiMyFeedback[] }>("/users/me/feedback");
+  return (res.data ?? []).map((f) => ({
+    id: f.id,
+    subject: f.subject ?? "",
+    message: f.message ?? "",
+    page: f.page ?? "",
+    status: f.status ?? "new",
+    reply: f.reply ?? "",
+    repliedAt: f.replied_at ?? "",
+    createdAt: f.created_at ?? "",
+  }));
+}

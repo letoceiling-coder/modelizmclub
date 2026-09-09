@@ -437,11 +437,13 @@ class MaxAuthService
         );
 
         if ($phone !== null && ($siteUser->phone === null || $siteUser->phone === $phone)) {
+            $wasUnverified = $siteUser->phone_verified_at === null;
             try {
                 $siteUser->forceFill([
                     'phone' => $phone,
                     'phone_verified_at' => $siteUser->phone_verified_at ?? now(),
                 ])->save();
+                $this->afterFirstPhoneVerification($siteUser, $wasUnverified);
             } catch (UniqueConstraintViolationException) {
                 $siteUser->refresh();
             }
@@ -677,11 +679,13 @@ class MaxAuthService
             return;
         }
 
+        $wasUnverified = $siteUser->phone_verified_at === null;
         try {
             $siteUser->forceFill([
                 'phone' => $phone,
                 'phone_verified_at' => $siteUser->phone_verified_at ?? now(),
             ])->save();
+            $this->afterFirstPhoneVerification($siteUser, $wasUnverified);
         } catch (UniqueConstraintViolationException) {
             $siteUser->refresh();
         }
@@ -724,11 +728,13 @@ class MaxAuthService
                 ];
                 $note = 'Вошли в аккаунт, где уже есть этот номер.';
             } elseif ($siteUser->phone === null || $siteUser->phone === $phone) {
+                $wasUnverified = $siteUser->phone_verified_at === null;
                 try {
                     $siteUser->forceFill([
                         'phone' => $phone,
                         'phone_verified_at' => $phoneVerified ? ($siteUser->phone_verified_at ?? now()) : $siteUser->phone_verified_at,
                     ])->save();
+                    $this->afterFirstPhoneVerification($siteUser, $wasUnverified && $phoneVerified);
                 } catch (UniqueConstraintViolationException) {
                     $siteUser->refresh();
                 }
@@ -745,6 +751,37 @@ class MaxAuthService
             'note' => $note,
             'created_at' => is_array($data) ? ($data['created_at'] ?? now()->getTimestamp()) : now()->getTimestamp(),
         ], self::SESSION_TTL_SECONDS);
+    }
+
+    /**
+     * То же, что делает подтверждение телефона по СМС.
+     *
+     * MAX подтверждает номер сам — приложение отдаёт его вместе с
+     * согласием, — и три места в этом файле проставляли
+     * `phone_verified_at` напрямую, минуя `PhoneVerificationService`. Тот
+     * при первом подтверждении выдаёт промо «первой сотни» и закрывает
+     * приглашение друга; здесь не выдавалось ничего. Пригласивший ждал
+     * бонуса, а строка приглашения оставалась в `pending` навсегда —
+     * заметить это по базе нельзя, потому что она выглядит так же, как у
+     * друга, который просто не дошёл до подтверждения.
+     *
+     * Вызывается только при первом подтверждении: `onPhoneVerified`
+     * идемпотентен по статусу строки, но лишний вызов на каждом входе через
+     * MAX означал бы лишнюю транзакцию с блокировкой на ровном месте.
+     */
+    private function afterFirstPhoneVerification(User $user, bool $wasUnverified): void
+    {
+        if (! $wasUnverified) {
+            return;
+        }
+
+        $fresh = $user->fresh();
+        if ($fresh === null || $fresh->phone_verified_at === null) {
+            return;
+        }
+
+        app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($fresh);
+        app(\Modules\Billing\Services\ReferralService::class)->onPhoneVerified($fresh);
     }
 
     private function relinkMaxAccount(string $maxUserId, User $from, User $to): void

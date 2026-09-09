@@ -26,6 +26,7 @@ class ListingResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'price_cents' => $this->price_cents,
+            'condition' => $this->condition?->value,
             'currency' => $this->currency,
             'status' => $this->status->value,
             'delivery_methods' => $this->delivery_methods ?? [],

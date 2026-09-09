@@ -25,6 +25,7 @@ export { GUEST_USER };
 
 export type AdStatusKey =
   | "active"
+  | "sold"
   | "archived"
   | "moderation"
   | "rejected"

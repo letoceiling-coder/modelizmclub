@@ -1470,6 +1470,9 @@ export interface FeedbackRow {
   status: FeedbackStatus;
   author: string;
   createdAt: string;
+  reply: string;
+  repliedAt: string;
+  fromGuest: boolean;
 }
 
 interface ApiFeedback {
@@ -1479,6 +1482,8 @@ interface ApiFeedback {
   page?: string | null;
   status?: string | null;
   created_at?: string | null;
+  reply?: string | null;
+  replied_at?: string | null;
   user?: { id?: number; name?: string | null } | null;
 }
 
@@ -1494,11 +1499,37 @@ export async function fetchAdminFeedback(status?: FeedbackStatus): Promise<Feedb
     status: (f.status as FeedbackStatus) ?? "new",
     author: f.user?.name ?? "Гость",
     createdAt: f.created_at ?? "",
+    reply: f.reply ?? "",
+    repliedAt: f.replied_at ?? "",
+    // Гостю ответить в приложении некому: он оставил только email в теле
+    // письма. Кнопка ответа для такой строки обещала бы то, чего не будет.
+    fromGuest: f.user?.id == null,
   }));
 }
 
 export async function updateAdminFeedbackStatus(id: number, status: FeedbackStatus): Promise<void> {
   await api(`/admin/feedback/${id}`, { method: "PATCH", json: { status } });
+}
+
+/**
+ * Ответ на обращение.
+ *
+ * Возвращает `notified`: для обращения от гостя ответ сохранится, но
+ * уведомления не будет — админке надо сказать об этом вслух, иначе
+ * сотрудник решит, что человек ответ получил.
+ */
+export async function replyToAdminFeedback(
+  id: number,
+  reply: string,
+): Promise<{ status: FeedbackStatus; notified: boolean }> {
+  const res = await api<{ data: { status: string; notified: boolean } }>(`/admin/feedback/${id}`, {
+    method: "PATCH",
+    json: { reply },
+  });
+  return {
+    status: (res.data?.status as FeedbackStatus) ?? "resolved",
+    notified: Boolean(res.data?.notified),
+  };
 }
 
 // ---- Reports (жалобы пользователей) ----

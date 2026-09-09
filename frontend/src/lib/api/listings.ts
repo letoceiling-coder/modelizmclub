@@ -1,4 +1,4 @@
-import type { Ad, AdSeller, User } from "@/lib/mock";
+import type { Ad, AdCondition, AdSeller, User } from "@/lib/mock";
 import { registerUser } from "@/lib/user-registry";
 import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
@@ -28,6 +28,8 @@ interface ApiListing {
   slug?: string;
   description?: string | null;
   price_cents?: number;
+  /** «new» | «used» — состояние товара; null, если продавец его не указал. */
+  condition?: string | null;
   currency?: string;
   status?: string;
   delivery_methods?: string[];
@@ -48,6 +50,7 @@ interface ApiListing {
   is_reserved?: boolean;
   promoted_until?: string | null;
   published_at?: string | null;
+  rejection_reason?: string | null;
   deleted_at?: string | null;
   created_at?: string;
 }
@@ -89,12 +92,39 @@ export function mapListingStatus(status?: string): AdStatusKey {
       return "rejected";
     case "unpublished":
       return "unpublished";
+    /*
+     * Проданное и истёкшее — разные вкладки.
+     *
+     * Раньше обе строки вели в «Архив», и продавец не отличал объявление,
+     * по которому прошла сделка, от того, у которого просто вышел срок. У
+     * первого есть покупатель и деньги, у второго — только дата.
+     */
     case "sold":
+      return "sold";
     case "expired":
       return "archived";
     default:
       return "active";
   }
+}
+
+/**
+ * Состояние товара: латиница в базе — подпись на экране.
+ *
+ * Карточка каталога рисует `ad.condition` как есть, поэтому перевод делается
+ * здесь, а не в разметке: иначе две карточки (каталог и «мои объявления»)
+ * переводили бы одно и то же поле каждая по-своему.
+ */
+export function conditionFromApi(value?: string | null): AdCondition | undefined {
+  if (value === "new") return "Новое";
+  if (value === "used") return "Б/у";
+  return undefined;
+}
+
+export function conditionToApi(value?: AdCondition | null): "new" | "used" | undefined {
+  if (value === "Новое") return "new";
+  if (value === "Б/у") return "used";
+  return undefined;
 }
 
 export function mapListing(l: ApiListing): Ad {
@@ -128,6 +158,8 @@ export function mapListing(l: ApiListing): Ad {
     galleryMedia,
     description: l.description ?? undefined,
     delivery: l.delivery_methods ?? [],
+    condition: conditionFromApi(l.condition),
+    rejectionReason: l.rejection_reason ?? undefined,
     status: "Продаю",
     contact: l.contact_via_messenger ? "Написать в мессенджере" : "",
     authorId: author?.id ?? "",
@@ -281,6 +313,7 @@ export interface UpdateListingInput {
   title?: string;
   description?: string;
   priceCents?: number;
+  condition?: AdCondition;
   taxonomyId?: number;
   categoryId?: number;
   subcategoryId?: number;
@@ -305,6 +338,7 @@ export async function updateListing(uuid: string, input: UpdateListingInput): Pr
       title: input.title,
       description: input.description,
       price_cents: input.priceCents,
+      condition: conditionToApi(input.condition),
       taxonomy_id: input.taxonomyId,
       category_id: input.categoryId,
       subcategory_id: input.subcategoryId,
@@ -383,6 +417,7 @@ export interface CreateListingInput {
   title: string;
   description: string;
   priceCents: number;
+  condition?: AdCondition;
   taxonomyId?: number;
   categoryId?: number;
   subcategoryId?: number;
@@ -431,6 +466,7 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       title: input.title,
       description: input.description,
       price_cents: input.priceCents,
+      condition: conditionToApi(input.condition),
       taxonomy_id: input.taxonomyId,
       category_id: input.categoryId,
       subcategory_id: input.subcategoryId,

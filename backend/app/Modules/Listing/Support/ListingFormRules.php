@@ -2,6 +2,7 @@
 
 namespace Modules\Listing\Support;
 
+use App\Enums\ListingCondition;
 use App\Models\DeliveryMethod;
 use Illuminate\Validation\Rule;
 
@@ -20,6 +21,7 @@ final class ListingFormRules
             'category_id' => ['required_without:taxonomy_id', 'nullable', 'integer'],
             'subcategory_id' => ['nullable', 'integer'],
             'price_cents' => ['nullable', 'integer', 'min:0', 'max:'.self::MAX_PRICE_CENTS],
+            'condition' => ['nullable', Rule::enum(ListingCondition::class)],
             'city_id' => ['nullable', 'integer'],
             'delivery_methods' => ['nullable', 'array'],
             'delivery_methods.*' => ['string', 'max:120', Rule::in(DeliveryMethod::activeNames())],
@@ -48,6 +50,7 @@ final class ListingFormRules
             'category_id' => ['sometimes', 'nullable', 'integer'],
             'subcategory_id' => ['nullable', 'integer'],
             'price_cents' => ['sometimes', 'integer', 'min:0', 'max:'.self::MAX_PRICE_CENTS],
+            'condition' => ['sometimes', 'nullable', Rule::enum(ListingCondition::class)],
             'city_id' => ['nullable', 'integer'],
             'delivery_methods' => ['sometimes', 'array'],
             'delivery_methods.*' => ['string', 'max:120', Rule::in(DeliveryMethod::activeNames())],
@@ -78,6 +81,7 @@ final class ListingFormRules
             'price_cents.integer' => 'Укажите корректную цену — слишком большое число или неверный формат.',
             'price_cents.max' => 'Цена слишком большая. Максимум — 999 999 999 ₽.',
             'price_cents.min' => 'Цена не может быть отрицательной.',
+            'condition.enum' => 'Выберите состояние: новое или б/у.',
         ];
     }
 
@@ -92,6 +96,7 @@ final class ListingFormRules
             'taxonomy_id' => 'категория',
             'price_cents' => 'цена',
             'city_id' => 'город',
+            'condition' => 'состояние',
         ];
     }
 }
