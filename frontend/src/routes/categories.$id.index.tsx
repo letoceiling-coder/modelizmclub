@@ -33,7 +33,27 @@ export const Route = createFileRoute("/categories/$id/")({
     if (!found || found.slug === params.id) return;
     throw redirect({ to: "/categories/$id", params: { id: found.slug }, code: 301 });
   },
-  head: () => ({ meta: [{ title: i18n.t("pages.categoryDetail.metaTitle") }] }),
+  /*
+   * Один адрес на направление и комнату — значит и один заголовок вкладки.
+   * Ставить в него «Направление» на странице комнаты было бы неверно, а
+   * выбирать из двух слов нечем: маршрут не знает, что за узел он открыл.
+   * Поэтому заголовок называет сам узел, а общее слово остаётся запасным —
+   * для случая, когда дерево ещё не приехало или узла нет.
+   */
+  loader: async ({ params }) => {
+    const { resolveCategory } = await import("@/lib/api/categories");
+
+    return { name: (await resolveCategory(params.id))?.name ?? null };
+  },
+  head: ({ loaderData }) => ({
+    meta: [
+      {
+        title: loaderData?.name
+          ? i18n.t("pages.categoryDetail.metaTitleNamed", { name: loaderData.name })
+          : i18n.t("pages.categoryDetail.metaTitle"),
+      },
+    ],
+  }),
   component: DirectionOrRoomPage,
 });
 
