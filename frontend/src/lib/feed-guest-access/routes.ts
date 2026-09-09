@@ -94,6 +94,24 @@ export function isGuestStubRoute(pathname: string): boolean {
   return false;
 }
 
+/**
+ * Действия, которым мало входа: нужен подтверждённый телефон.
+ *
+ * Тир в карте доступа отвечает только на вопрос «нужен ли вход» — значений
+ * там три, и `verified` среди них нет. Требование телефона выражается вот
+ * этим списком, как и для маршрутов ниже.
+ *
+ * Список короткий намеренно. Сюда попадает то, что на сервере всё равно
+ * стоит за middleware `verified`: старт безопасной сделки и звонок продавцу.
+ * Без записи здесь человек без СМС нажимал бы кнопку и получал 403 вместо
+ * окна с подтверждением — сервер бы его не пустил, но и не объяснил бы.
+ */
+const VERIFIED_REQUIRED_ACTIONS = new Set(["ads.safe_deal", "ads.call_seller"]);
+
+export function isVerifiedRequiredAction(actionKey: string): boolean {
+  return VERIFIED_REQUIRED_ACTIONS.has(actionKey);
+}
+
 /** Logged-in users must confirm SMS before using these routes. */
 export function isVerifiedRequiredRoute(pathname: string): boolean {
   if (pathname === ROUTES.friends || pathname.startsWith("/friends/")) return true;

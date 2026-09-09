@@ -2,6 +2,7 @@ export {
   LEVEL_ORDER,
   levelOf,
   levelFromAccessTier,
+  levelForAction,
   meets,
   firstFailingStep,
   type Level,

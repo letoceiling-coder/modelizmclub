@@ -5,10 +5,9 @@ import { levelFromAccessTier, levelOf, meets, firstFailingStep } from "@/lib/gat
  * Решение, которое принимает enforceClientRouteAccess для вошедшего
  * пользователя: тир маршрута из карты доступа против уровня зрителя.
  *
- * До 07.09 тир `auth` для вошедшего не проверялся вовсе — ветки были только
- * для гостя, для жёсткого списка isVerifiedRequiredRoute и для тира
- * `subscription`. Матрица ниже закрепляет то, что теперь должно происходить
- * на прямой ссылке под каждым из трёх состояний.
+ * Тир отвечает только на вопрос «нужен ли вход». Требование подтверждённого
+ * телефона выражается отдельно, списком isVerifiedRequiredRoute, и в эту
+ * матрицу не входит.
  */
 const session = (phoneVerified: boolean, subscribed: boolean) =>
   ({
@@ -22,8 +21,17 @@ const verified = session(true, false);
 const subscriber = session(true, true);
 
 describe("тир маршрута против уровня зрителя", () => {
-  it("«auth» в карте означает уровень verified", () => {
-    expect(levelFromAccessTier("auth")).toBe("verified");
+  it("«auth» означает «вошёл», а не «подтвердил телефон»", () => {
+    expect(levelFromAccessTier("auth")).toBe("registered");
+  });
+
+  it("неизвестный тир требует больше, а не меньше", () => {
+    // Опечатка в карте или значение из будущей версии не должны открывать
+    // доступ. Все три существующих значения разобраны явно, сюда попадает
+    // только неизвестное.
+    expect(levelFromAccessTier("чепуха")).toBe("verified");
+    expect(levelFromAccessTier(null)).toBe("verified");
+    expect(levelFromAccessTier(undefined)).toBe("verified");
   });
 
   it("гостевой тир не закрывает никого", () => {
@@ -33,11 +41,18 @@ describe("тир маршрута против уровня зрителя", () 
     }
   });
 
-  it("тир auth: без СМС закрыт, с СМС и с подпиской открыт", () => {
+  it("тир auth открыт всем вошедшим, включая учётку без СМС", () => {
     const need = levelFromAccessTier("auth");
-    expect(meets(levelOf(registered), need)).toBe(false);
+    // Ровно то, ради чего правка: настройки — место, где подтверждают номер,
+    // и требовать подтверждённый номер для входа туда значит запереть
+    // человека без выхода.
+    expect(meets(levelOf(registered), need)).toBe(true);
     expect(meets(levelOf(verified), need)).toBe(true);
     expect(meets(levelOf(subscriber), need)).toBe(true);
+  });
+
+  it("гость тиру auth не удовлетворяет", () => {
+    expect(meets(levelOf(null), levelFromAccessTier("auth"))).toBe(false);
   });
 
   it("тир subscription: открыт только подписчику", () => {

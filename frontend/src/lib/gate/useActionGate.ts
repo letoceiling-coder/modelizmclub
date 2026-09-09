@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { resolveMinTier } from "@/lib/feed-guest-access/store";
-import { levelFromAccessTier, type Level } from "./levels";
+import { levelForAction, type Level } from "./levels";
 import { useGate, type GateAction, type RequireOptions } from "./useGate";
 
 /**
@@ -15,7 +15,7 @@ export function useActionGate() {
   const gate = useGate();
 
   const levelFor = useCallback(
-    (actionKey: string): Level => levelFromAccessTier(resolveMinTier(actionKey, config)),
+    (actionKey: string): Level => levelForAction(actionKey, resolveMinTier(actionKey, config)),
     [config],
   );
 

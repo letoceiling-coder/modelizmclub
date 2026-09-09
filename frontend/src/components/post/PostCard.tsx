@@ -37,7 +37,7 @@ import { EditPostDialog } from "@/components/post/EditPostDialog";
 import { PostActionMenu } from "@/components/post/PostActionMenu";
 import { SchedulePostDialog } from "@/components/feed/SchedulePostDialog";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
-import { levelFromAccessTier, useGate } from "@/lib/gate";
+import { levelForAction, useGate } from "@/lib/gate";
 import { resolveMinTier } from "@/lib/feed-guest-access/store";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -234,7 +234,7 @@ export function PostCard({
   // Required rung per action comes from the admin's guest-access config
   // (guest | auth | subscription); the gate turns it into one window.
   const levelFor = (actionKey: string) =>
-    levelFromAccessTier(resolveMinTier(actionKey, accessConfig));
+    levelForAction(actionKey, resolveMinTier(actionKey, accessConfig));
   const commentsEnabled =
     post.channel?.commentsEnabled !== false && context?.channel?.commentsEnabled !== false;
   const reactionsEnabled =
