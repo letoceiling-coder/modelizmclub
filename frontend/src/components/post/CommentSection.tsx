@@ -50,6 +50,15 @@ interface Props {
    * отдельно, композер закреплён внизу.
    */
   layout?: "inline" | "panel";
+  /**
+   * Догрузить следующую страницу ветки. Задан — список подтягивает её сам,
+   * когда прокрутка подходит к концу, и кнопка «Показать ещё» не нужна.
+   */
+  onLoadMore?: () => void;
+  /** Идёт запрос следующей страницы: место под неё уже занято скелетом. */
+  loadingMore?: boolean;
+  /** Есть ли ещё непрочитанные страницы. */
+  hasMore?: boolean;
 }
 
 /** Expanded lists grow in chunks so a thread with hundreds of replies
@@ -59,6 +68,9 @@ const PAGE_SIZE = 20;
 /** Сдвиг ответа: 40 px — ширина аватара 32 плюс половина отступа. Глубже
  *  двух уровней ветка не уходит, поэтому сдвиг ровно один. */
 const REPLY_INDENT = 40;
+
+/** Сколько ответов видно до того, как ветку раскроют. */
+const REPLY_PREVIEW = 3;
 
 /**
  * Мелкое действие в строке под комментарием.
@@ -389,6 +401,10 @@ function CommentItem({
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
+  const [repliesOpen, setRepliesOpen] = useState(false);
+  const allReplies = comment.replies ?? [];
+  const visibleReplies = repliesOpen ? allReplies : allReplies.slice(0, REPLY_PREVIEW);
+  const hiddenReplies = allReplies.length - visibleReplies.length;
   const isOwn = comment.authorId === me.id;
   // Server verdict wins when present (moderators); the author always may.
   const canDelete = isOwn || comment.can?.delete === true;
@@ -584,7 +600,7 @@ function CommentItem({
 
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-[10px] space-y-[10px]">
-              {comment.replies.map((r) => (
+              {visibleReplies.map((r) => (
                 <CommentItem
                   key={r.id}
                   comment={r}
@@ -597,6 +613,23 @@ function CommentItem({
                   onLikeChange={onLikeChange}
                 />
               ))}
+              {/*
+                Ответы приходят вложенными в свой корневой комментарий
+                целиком — API их не разбивает на страницы. Значит,
+                «Показать ещё» здесь ничего не грузит, а только показывает
+                уже полученное: ветка из сорока ответов не должна занимать
+                панель до самого низа, пока её об этом не попросили.
+              */}
+              {hiddenReplies > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setRepliesOpen(true)}
+                  className={cn(META_ACTION, "text-[13px] font-semibold")}
+                  style={{ color: "var(--accent)" }}
+                >
+                  {t("components.commentSection.showReplies", { count: hiddenReplies })}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -629,6 +662,9 @@ export function CommentSection({
   onDeleted,
   can,
   layout = "inline",
+  onLoadMore,
+  loadingMore = false,
+  hasMore = false,
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
@@ -683,6 +719,36 @@ export function CommentSection({
     onSortChange?.(next);
   };
 
+  /*
+   * Догрузка по прокрутке.
+   *
+   * Сторож стоит под последним комментарием; как только он показывается в
+   * прокручиваемой области, просим следующую страницу. Порог 240 px —
+   * запрос уходит до того, как человек упрётся в конец, и подстановка
+   * успевает произойти незаметно.
+   *
+   * `onLoadMore` вызывается только когда есть что грузить и предыдущий
+   * запрос уже завершился: наблюдатель срабатывает и на изменение размера
+   * списка, то есть сразу после подстановки новой страницы.
+   */
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef(onLoadMore);
+  loadMoreRef.current = onLoadMore;
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasMore || loadingMore || !onLoadMore) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMoreRef.current?.();
+      },
+      { root: scrollerRef.current, rootMargin: "240px" },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [hasMore, loadingMore, onLoadMore, comments.length]);
+
   const onLikeChange = (id: string, likes: number) => {
     setLikeOverrides((prev) => ({ ...prev, [id]: likes }));
   };
@@ -693,13 +759,17 @@ export function CommentSection({
   );
 
   const visibleComments = useMemo(() => {
+    // Когда страницы приходят с сервера, своей нарезки быть не должно: она
+    // резала уже полученное поверх серверной, и догруженная страница
+    // молча не показывалась — запрос уходил, список не менялся.
+    if (onLoadMore) return sortedComments;
     if (showAll) {
       if (sortedComments.length <= PAGE_SIZE) return sortedComments;
       return sortedComments.slice(0, page * PAGE_SIZE);
     }
     if (previewLimit <= 0 || sortedComments.length <= previewLimit) return sortedComments;
     return sortedComments.slice(0, previewLimit);
-  }, [sortedComments, previewLimit, showAll, page]);
+  }, [sortedComments, previewLimit, showAll, page, onLoadMore]);
 
   const hiddenCount = Math.max(0, (totalCount ?? comments.length) - visibleComments.length);
   const canLoadMore = showAll && sortedComments.length > visibleComments.length;
@@ -816,7 +886,7 @@ export function CommentSection({
 
   const items = (
     <>
-      {canLoadMore && (
+      {canLoadMore && !onLoadMore && (
         <button
           type="button"
           onClick={() => setPage((p) => p + 1)}
@@ -841,6 +911,20 @@ export function CommentSection({
           ))}
         </div>
       )}
+      {/*
+        Место под догружаемую страницу занимается заранее.
+        Скелет ровно той высоты, что займут первые строки следующей
+        страницы: если показывать спиннер в одну строку, список подрастает
+        рывком в тот момент, когда строки приходят, и прокрутка уезжает
+        из-под пальца.
+      */}
+      {loadingMore && (
+        <div className="mt-3" aria-live="polite" aria-busy="true">
+          <span className="sr-only">{t("components.commentSection.loadingMore")}</span>
+          <CommentSkeleton />
+        </div>
+      )}
+      {onLoadMore && hasMore && <div ref={sentinelRef} className="h-px w-full" aria-hidden />}
     </>
   );
 
@@ -886,7 +970,7 @@ export function CommentSection({
             {sortControl}
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {isLoading ? <CommentSkeleton /> : items}
           {tail}
         </div>

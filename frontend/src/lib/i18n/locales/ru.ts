@@ -484,12 +484,6 @@ export const ru = {
       reportDescription: "Жалоба на публикацию{{title}} — выберите причину и опишите ситуацию.",
       reportSuffix: " (публикация)",
     },
-    commentsSheet: {
-      title: "Комментарии",
-      liked: "Оценили {{count}} чел.",
-      empty: "Пока нет комментариев",
-      emptyHint: "Напишите первым",
-    },
     commentSection: {
       reply: "Ответить",
       replyTo: "Ответить {{name}}…",
@@ -514,6 +508,10 @@ export const ru = {
       deleteConfirm: "Удалить комментарий?",
       deleteFailed: "Не удалось удалить комментарий",
       sendFailed: "Не удалось отправить комментарий",
+      showReplies_one: "Показать ещё {{count}} ответ",
+      showReplies_few: "Показать ещё {{count}} ответа",
+      showReplies_many: "Показать ещё {{count}} ответов",
+      loadingMore: "Загружаем ещё комментарии",
       sortInteresting: "Сначала интересные",
       sortNew: "Сначала новые",
       sortOld: "Сначала старые",

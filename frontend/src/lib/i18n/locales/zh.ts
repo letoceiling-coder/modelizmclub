@@ -492,12 +492,6 @@ export const zh: TranslationSchema = {
       reportDescription: "Жалоба на публикацию{{title}} — выберите причину и опишите ситуацию.",
       reportSuffix: " (публикация)",
     },
-    commentsSheet: {
-      title: "评论",
-      liked: "{{count}} 人点赞",
-      empty: "还没有评论",
-      emptyHint: "来写第一条",
-    },
     commentSection: {
       reply: "回复",
       replyTo: "Ответить {{name}}…",
@@ -519,6 +513,10 @@ export const zh: TranslationSchema = {
       reportSuffix: "（评论）",
       reportDesc: "请说明这条评论有什么问题。",
       sendFailed: "评论发送失败",
+      showReplies_one: "还有 {{count}} 条回复",
+      showReplies_few: "还有 {{count}} 条回复",
+      showReplies_many: "还有 {{count}} 条回复",
+      loadingMore: "正在加载更多评论",
       sortInteresting: "先看热门",
       sortNew: "先看新的",
       sortOld: "先看旧的",

@@ -494,12 +494,6 @@ export const en: TranslationSchema = {
       reportDescription: "Жалоба на публикацию{{title}} — выберите причину и опишите ситуацию.",
       reportSuffix: " (публикация)",
     },
-    commentsSheet: {
-      title: "Comments",
-      liked: "{{count}} liked",
-      empty: "No comments yet",
-      emptyHint: "Be the first to write",
-    },
     commentSection: {
       reply: "Reply",
       replyTo: "Reply to {{name}}…",
@@ -524,6 +518,10 @@ export const en: TranslationSchema = {
       deleteConfirm: "Delete this comment?",
       deleteFailed: "Could not delete the comment",
       sendFailed: "Couldn’t post the comment",
+      showReplies_one: "Show {{count}} more reply",
+      showReplies_few: "Show {{count}} more replies",
+      showReplies_many: "Show {{count}} more replies",
+      loadingMore: "Loading more comments",
       sortInteresting: "Most interesting first",
       sortNew: "Newest first",
       sortOld: "Oldest first",
