@@ -727,6 +727,7 @@ function MessengerPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">(chat ? "chat" : "list");
   const [tab, setTab] = useState<MessengerTab>("direct");
+  const tabsRowRef = useRef<HTMLDivElement>(null);
   const [chatSearchOpen, setChatSearchOpen] = useState(false);
   const [searchHighlightId, setSearchHighlightId] = useState<string | null>(null);
   const [searchHighlightQuery, setSearchHighlightQuery] = useState("");
@@ -1031,6 +1032,23 @@ function MessengerPage() {
       archive: sum(byTab.archive),
     };
   }, [byTab]);
+
+  /*
+   * Выбранная вкладка доезжает в видимую часть.
+   *
+   * Шесть вкладок в ряд не помещаются: на 365 видно три с половиной, на
+   * 440 — четыре. Ряд прокручивается, но за выбором не следовал: нажатие
+   * на «Звонки» из списка меняло содержимое, а сама вкладка оставалась за
+   * краем — подчёркивания не видно, и ряд выглядел нетронутым. Замерено:
+   * при окне 365 вкладка стояла на 451 при scrollLeft 0.
+   *
+   * `block: "nearest"` — чтобы не увести страницу по вертикали: двигаем
+   * только этот ряд.
+   */
+  useEffect(() => {
+    const active = tabsRowRef.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    active?.scrollIntoView({ inline: "nearest", block: "nearest" });
+  }, [tab]);
 
   const filtered = useMemo(() => {
     if (tab === "calls") return [];
@@ -1486,17 +1504,24 @@ function MessengerPage() {
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <div className="flex items-center gap-[8px]">
-              <div className="min-w-0 flex-1">
-                <SearchInput
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onClear={() => setQuery("")}
-                  placeholder={t("pages.messenger.searchDialog")}
-                  aria-label={t("pages.messenger.searchDialog")}
-                />
+            {/*
+              Поиск ищет по диалогам, поэтому на вкладке звонков его нет:
+              список звонков `query` не читает, и поле там стояло молча
+              неработающим — набранное в нём ничего не меняло.
+            */}
+            {tab !== "calls" && (
+              <div className="flex items-center gap-[8px]">
+                <div className="min-w-0 flex-1">
+                  <SearchInput
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onClear={() => setQuery("")}
+                    placeholder={t("pages.messenger.searchDialog")}
+                    aria-label={t("pages.messenger.searchDialog")}
+                  />
+                </div>
               </div>
-            </div>
+            )}
             {/*
               Шесть вкладок в один ряд с прокруткой по X, а не четыре плюс
               четыре фишки снизу. Прокрутка, а не сетка на шесть колонок:
@@ -1504,6 +1529,7 @@ function MessengerPage() {
               обрезается до «Кате…» у всех сразу.
             */}
             <div
+              ref={tabsRowRef}
               className="flex gap-[2px] overflow-x-auto px-[8px]"
               style={{ borderBottom: "1px solid var(--border)", scrollbarWidth: "none" }}
               role="tablist"
@@ -1748,7 +1774,7 @@ function MessengerPage() {
                           ? { id: active.room.slug ?? active.room.categoryId }
                           : { id: partner?.slug ?? partner?.id ?? active.userId }
                     }
-                    className="flex min-w-0 items-center gap-[12px]"
+                    className="flex min-w-0 flex-1 items-center gap-[12px]"
                   >
                     <UserAvatar
                       src={activeIdentity?.avatar ?? partner?.avatar}
@@ -1786,16 +1812,33 @@ function MessengerPage() {
                               partner,
                               { compact: true },
                             );
+                            /*
+                               Строка присутствия обрезается, а не переносится.
+                               Рядом с ней слева может стоять несжимаемый бейдж
+                               сделки, справа — три значка действий. На 365 «был
+                               сегодня, 11:01» уходил под лупу (замерено
+                               перекрытие в 35 px), на 440 переносился на вторую
+                               строку и выходил за шапку в 60.
+                            */
                             return online ? (
                               <>
                                 <span
                                   className="h-[8px] w-[8px] shrink-0 rounded-full"
                                   style={{ background: "var(--success)" }}
                                 />
-                                <span style={{ color: "var(--success)" }}>{text}</span>
+                                <span
+                                  className="min-w-0 truncate"
+                                  style={{ color: "var(--success)" }}
+                                >
+                                  {text}
+                                </span>
                               </>
                             ) : (
-                              <span title={title} style={{ color: "var(--foreground-50)" }}>
+                              <span
+                                className="min-w-0 truncate"
+                                title={title}
+                                style={{ color: "var(--foreground-50)" }}
+                              >
                                 {text}
                               </span>
                             );
@@ -1804,7 +1847,7 @@ function MessengerPage() {
                       </div>
                     </div>
                   </Link>
-                  <div className="ml-auto flex items-center gap-[4px]">
+                  <div className="ml-auto flex shrink-0 items-center gap-[4px]">
                     {partner && (
                       <ChatHeaderActions
                         partnerId={partner.id}
