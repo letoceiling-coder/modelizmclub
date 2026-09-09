@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Phone, Video, X } from "lucide-react";
 import { userById } from "@/lib/user-registry";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   open: boolean;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) {
+  const { t } = useTranslation();
   const peer = userById(peerId);
   return (
     <AnimatePresence>
@@ -47,7 +49,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
               onClick={onCancel}
               className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--background-surface)]"
               style={{ color: "var(--foreground-50)" }}
-              aria-label="Закрыть"
+              aria-label={t("components.confirmCall.close")}
             >
               <X size={16} />
             </button>
@@ -59,13 +61,13 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                 className="mt-[12px] font-display text-[17px] font-bold leading-tight"
                 style={{ color: "var(--foreground)" }}
               >
-                Позвонить {peer.name}?
+                {t("components.confirmCall.title", { name: peer.name })}
               </h3>
               <p
                 className="mt-[6px] text-[12px] leading-snug"
                 style={{ color: "var(--foreground-50)" }}
               >
-                Защищённое соединение внутри платформы
+                {t("components.confirmCall.subtitle")}
               </p>
 
               <div className="mt-[16px] flex w-full gap-[8px]">
@@ -76,7 +78,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                   style={{ background: "var(--accent)" }}
                 >
                   <Phone size={16} />
-                  Аудио
+                  {t("components.confirmCall.audio")}
                 </button>
                 <button
                   type="button"
@@ -89,7 +91,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                   }}
                 >
                   <Video size={16} />
-                  Видео
+                  {t("components.confirmCall.video")}
                 </button>
               </div>
               <button
@@ -98,7 +100,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                 className="mt-[10px] h-[36px] w-full rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[var(--background-surface)]"
                 style={{ color: "var(--foreground-50)" }}
               >
-                Отмена
+                {t("components.confirmCall.cancel")}
               </button>
             </div>
           </motion.div>

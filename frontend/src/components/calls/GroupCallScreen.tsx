@@ -2,10 +2,12 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { UserPlus } from "lucide-react";
 import { useGroupCall, groupCalls } from "@/lib/groupCall";
+import { useTranslation } from "react-i18next";
 
 const LiveKitRoomUI = lazy(() => import("./LiveKitRoomUI"));
 
 export function GroupCallScreen() {
+  const { t } = useTranslation();
   const active = useGroupCall((s) => s.active);
   const connecting = useGroupCall((s) => s.connecting);
   const [mounted, setMounted] = useState(false);
@@ -20,11 +22,11 @@ export function GroupCallScreen() {
       style={{ height: "100dvh", background: "#0b0b0f", color: "#fff" }}
       role="dialog"
       aria-modal="true"
-      aria-label="Групповой звонок"
+      aria-label={t("components.groupCall.screenLabel")}
     >
       {connecting && !active && (
         <div className="grid flex-1 place-items-center text-sm opacity-80">
-          Подключение к групповому звонку…
+          {t("components.groupCall.connecting")}
         </div>
       )}
       {active && (
@@ -40,13 +42,15 @@ export function GroupCallScreen() {
               color: "white",
               boxShadow: "0 8px 24px -6px rgba(0,0,0,0.5)",
             }}
-            aria-label="Пригласить участников"
+            aria-label={t("components.groupCall.inviteMembers")}
           >
             <UserPlus size={16} /> Пригласить
           </button>
           <Suspense
             fallback={
-              <div className="grid flex-1 place-items-center text-sm opacity-80">Загрузка…</div>
+              <div className="grid flex-1 place-items-center text-sm opacity-80">
+                {t("components.groupCall.loading")}
+              </div>
             }
           >
             <LiveKitRoomUI active={active} onLeave={() => groupCalls.leave()} />

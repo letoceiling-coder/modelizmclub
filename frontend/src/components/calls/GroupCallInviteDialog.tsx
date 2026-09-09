@@ -8,6 +8,7 @@ import type { User } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
 import { groupCalls, useGroupCall, type GroupMedia } from "@/lib/groupCall";
 import { useOnlineSet } from "@/lib/realtime/presence";
+import { useTranslation } from "react-i18next";
 
 const DIALOG_H = "min(85dvh, 560px)";
 const SKELETON_ROWS = 6;
@@ -38,6 +39,7 @@ function ParticipantSkeleton() {
 }
 
 export function GroupCallInviteDialog() {
+  const { t } = useTranslation();
   const picker = useGroupCall((s) => s.picker);
   const me = useCurrentUser();
   const [mounted, setMounted] = useState(false);
@@ -192,10 +194,14 @@ export function GroupCallInviteDialog() {
                     className="font-display text-[16px] font-bold"
                     style={{ color: "var(--foreground)" }}
                   >
-                    {isInvite ? "Пригласить в звонок" : "Групповой звонок"}
+                    {isInvite
+                      ? t("components.groupCall.inviteTitle")
+                      : t("components.groupCall.title")}
                   </div>
                   <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                    {isInvite ? "Выберите, кого добавить" : "Выберите участников"}
+                    {isInvite
+                      ? t("components.groupCall.inviteSubtitle")
+                      : t("components.groupCall.subtitle")}
                   </div>
                 </div>
               </div>
@@ -204,7 +210,7 @@ export function GroupCallInviteDialog() {
                 onClick={() => groupCalls.closePicker()}
                 className="grid h-[32px] w-[32px] place-items-center rounded-full hover:bg-[var(--background-surface)]"
                 style={{ color: "var(--foreground-50)" }}
-                aria-label="Закрыть"
+                aria-label={t("components.groupCall.close")}
               >
                 <X size={18} />
               </button>
@@ -229,18 +235,21 @@ export function GroupCallInviteDialog() {
 
             {/* Tabs + search */}
             <div className="flex shrink-0 items-center gap-[8px] px-[18px]">
-              {(["friends", "online"] as const).map((t) => (
+              {/* tabKey, а не t: имя `t` занято функцией перевода. */}
+              {(["friends", "online"] as const).map((tabKey) => (
                 <button
-                  key={t}
+                  key={tabKey}
                   type="button"
-                  onClick={() => setTab(t)}
+                  onClick={() => setTab(tabKey)}
                   className="rounded-full px-[12px] py-[5px] text-[12px] font-medium transition-colors"
                   style={{
-                    background: tab === t ? "var(--accent)" : "var(--background-surface)",
-                    color: tab === t ? "white" : "var(--foreground-70)",
+                    background: tab === tabKey ? "var(--accent)" : "var(--background-surface)",
+                    color: tab === tabKey ? "white" : "var(--foreground-70)",
                   }}
                 >
-                  {t === "friends" ? "Друзья" : "Онлайн"}
+                  {tabKey === "friends"
+                    ? t("components.groupCall.tabFriends")
+                    : t("components.groupCall.tabOnline")}
                 </button>
               ))}
             </div>
@@ -253,7 +262,7 @@ export function GroupCallInviteDialog() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Поиск людей"
+                placeholder={t("components.groupCall.searchPeople")}
                 className="w-full text-[14px] outline-none"
                 style={{
                   height: 38,
@@ -276,7 +285,7 @@ export function GroupCallInviteDialog() {
             {/* List — flex-1 fills remaining fixed dialog height */}
             <div className="mt-[10px] min-h-0 flex-1 overflow-y-auto px-[8px] pb-[8px]">
               {showSkeleton ? (
-                <div aria-busy="true" aria-label="Загрузка участников">
+                <div aria-busy="true" aria-label={t("components.groupCall.loadingMembers")}>
                   {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
                     <ParticipantSkeleton key={i} />
                   ))}
@@ -286,7 +295,7 @@ export function GroupCallInviteDialog() {
                   className="flex h-full min-h-[200px] items-center justify-center text-[13px]"
                   style={{ color: "var(--foreground-50)" }}
                 >
-                  Никого не найдено
+                  {t("components.groupCall.nobodyFound")}
                 </div>
               ) : (
                 list.map((u) => {
@@ -361,7 +370,7 @@ export function GroupCallInviteDialog() {
                       background: media === "video" ? "var(--accent)" : "transparent",
                       color: media === "video" ? "white" : "var(--foreground-50)",
                     }}
-                    aria-label="Видео"
+                    aria-label={t("components.groupCall.video")}
                   >
                     <Video size={16} />
                   </button>
@@ -373,7 +382,7 @@ export function GroupCallInviteDialog() {
                       background: media === "audio" ? "var(--accent)" : "transparent",
                       color: media === "audio" ? "white" : "var(--foreground-50)",
                     }}
-                    aria-label="Только звук"
+                    aria-label={t("components.groupCall.audioOnly")}
                   >
                     <Phone size={16} />
                   </button>

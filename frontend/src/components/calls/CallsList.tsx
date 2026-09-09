@@ -17,6 +17,7 @@ import { useCurrentUser } from "@/lib/session";
 import { useActionGate } from "@/lib/gate";
 import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/format/date";
+import { useTranslation } from "react-i18next";
 
 function formatWhen(iso: string): string {
   return formatDate(iso, "relative");
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export function CallsList({ onOpenChat }: Props) {
+  const { t } = useTranslation();
   const me = useCurrentUser();
   const { requireAction } = useActionGate();
   const navigate = useNavigate();
@@ -67,10 +69,10 @@ export function CallsList({ onOpenChat }: Props) {
           className="mt-4 font-display text-[16px] font-semibold"
           style={{ color: "var(--foreground)" }}
         >
-          Пока нет звонков
+          {t("components.callsList.emptyTitle")}
         </div>
         <div className="mt-1 text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          Совершите вызов из любого диалога
+          {t("components.callsList.emptyDesc")}
         </div>
       </div>
     );
@@ -104,9 +106,11 @@ export function CallsList({ onOpenChat }: Props) {
                   <Video size={12} style={{ color: "var(--foreground-50)" }} />
                 )}
                 <span>
-                  {rec.direction === "incoming" ? "Входящий" : "Исходящий"}
+                  {rec.direction === "incoming"
+                    ? t("components.callScreen.directionIncoming")
+                    : t("components.callScreen.directionOutgoing")}
                   {isMissed
-                    ? " · пропущен"
+                    ? ` · ${t("components.callsList.missedSuffix")}`
                     : rec.duration > 0
                       ? ` · ${fmtDuration(rec.duration)}`
                       : ""}
@@ -132,8 +136,8 @@ export function CallsList({ onOpenChat }: Props) {
                 }
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                aria-label="Перезвонить"
-                title="Перезвонить"
+                aria-label={t("components.callsList.callBack")}
+                title={t("components.callsList.callBack")}
               >
                 <Phone size={16} />
               </button>
@@ -158,14 +162,14 @@ export function CallsList({ onOpenChat }: Props) {
                         me.id,
                       );
                     } catch {
-                      toast.error("Не удалось открыть чат");
+                      toast.error(t("components.callsList.openChatFailed"));
                     }
                   });
                 }}
                 className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
                 style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
-                aria-label="Открыть чат"
-                title="Открыть чат"
+                aria-label={t("components.callsList.openChat")}
+                title={t("components.callsList.openChat")}
               >
                 <MessageSquare size={16} />
               </button>

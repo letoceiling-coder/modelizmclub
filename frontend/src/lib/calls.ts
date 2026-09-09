@@ -1,4 +1,5 @@
 import { toast } from "@/lib/toast";
+import i18n from "@/lib/i18n";
 // Exposes the same module-store API the call UI already consumes.
 
 import { useSyncExternalStore } from "react";
@@ -288,18 +289,18 @@ async function logSelectedPair(reason: string): Promise<void> {
 /** Surface the real failure instead of silently ending the call. */
 function reportCallError(where: string, err: unknown): void {
   const e = err as { name?: string; message?: string } | undefined;
-  let msg = e?.message ?? "Неизвестная ошибка";
+  let msg = e?.message ?? i18n.t("components.callErrors.unknown");
   switch (e?.name) {
     case "NotAllowedError":
     case "SecurityError":
-      msg = "Доступ к микрофону/камере запрещён. Разрешите доступ в браузере.";
+      msg = i18n.t("components.callErrors.permissionDenied");
       break;
     case "NotFoundError":
     case "OverconstrainedError":
-      msg = "Микрофон или камера не найдены.";
+      msg = i18n.t("components.callErrors.devicesNotFound");
       break;
     case "NotReadableError":
-      msg = "Микрофон/камера заняты другим приложением.";
+      msg = i18n.t("components.callErrors.devicesBusy");
       break;
   }
 
@@ -583,7 +584,7 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
           void detectMultipleCameras();
           return audioOnly;
         }
-        toast.info("Камера недоступна — вы всё равно увидите собеседника");
+        toast.info(i18n.t("components.callErrors.cameraUnavailableStillSee"));
         setState({
           localStream: audioOnly,
           muted: false,
@@ -595,7 +596,7 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
         const nameAudio = (errAudio as { name?: string })?.name ?? "";
         if (nameAudio === "NotFoundError" || name === "NotFoundError") {
           clog("getMedia: no input devices — receive-only mode");
-          toast.info("Нет микрофона/камеры — режим только приёма");
+          toast.info(i18n.t("components.callErrors.receiveOnly"));
           setState({
             localStream: null,
             muted: true,
@@ -620,7 +621,7 @@ async function getMedia(media: CallMedia): Promise<MediaStream | null> {
       const name2 = (err2 as { name?: string })?.name ?? "";
       if (name2 === "NotFoundError" || name === "NotFoundError") {
         clog("getMedia: no input devices — receive-only mode");
-        toast.info("Нет микрофона/камеры — режим только приёма");
+        toast.info(i18n.t("components.callErrors.receiveOnly"));
         setState({
           localStream: null,
           muted: true,
@@ -830,7 +831,7 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
       active: {
         id: payload.call_uuid,
         peerId: from.uuid ?? "",
-        peerName: from.name ?? "Пользователь",
+        peerName: from.name ?? i18n.t("components.callErrors.unknownPeer"),
         peerAvatar: from.avatar ?? undefined,
         direction: "incoming",
         media: payload.media === "video" ? "video" : "audio",
@@ -983,7 +984,7 @@ export const calls = {
 
   async start(
     peerUuid: string,
-    peerName = "Пользователь",
+    peerName = i18n.t("components.callErrors.unknownPeer"),
     peerAvatar?: string,
     media: CallMedia = "audio",
   ): Promise<void> {
@@ -1067,7 +1068,7 @@ export const calls = {
     try {
       await rejectCall(active.id, "declined");
     } catch {
-      toast.error("Не удалось отклонить звонок");
+      toast.error(i18n.t("components.callErrors.declineFailed"));
       // Restore ringing UI if the server never received the reject.
       if (state.active?.id === active.id && state.active.status !== "ended") {
         patchActive({ status: "ringing" });
@@ -1181,7 +1182,7 @@ async function toggleCameraAsync(): Promise<void> {
       await performRenegotiation();
     } catch (err) {
       reportCallError("toggleCamera", err);
-      toast.info("Камера недоступна");
+      toast.info(i18n.t("components.callErrors.cameraUnavailable"));
     }
     return;
   }
