@@ -66,8 +66,8 @@ export function ReviewsHero({ videos }: { videos: Video[] }) {
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="left-[8px]" />
-      <CarouselNext className="right-[8px]" />
+      <CarouselPrevious />
+      <CarouselNext />
     </Carousel>
   );
 }
