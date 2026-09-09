@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -93,7 +93,6 @@ import { VoiceBubble } from "@/components/messenger/VoiceBubble";
 import { TimeAgo } from "@/components/TimeAgo";
 import { VoiceRecorder } from "@/components/messenger/VoiceRecorder";
 import { CallsList } from "@/components/calls/CallsList";
-import { useChannels, formatCount } from "@/lib/channels";
 import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { useInsertAtCaret } from "@/lib/insert-at-caret";
@@ -155,10 +154,45 @@ function MessengerRoute() {
   return <MessengerPage />;
 }
 
-type ChatScope = "all" | "direct" | "rooms" | "deals";
+/*
+ * Шесть вкладок в один ряд, а не четыре плюс четыре фишки под ними.
+ *
+ * Было два уровня отбора: вкладки «Активные · Сообщества · Архив · Звонки»
+ * и под ними фишки «Все · Личные · Категорийные · Сделки». Один и тот же
+ * вопрос — «что я сейчас смотрю» — решался в двух местах, и ответ на него
+ * складывался из двух состояний, которые могли противоречить друг другу.
+ *
+ * Теперь состояние одно, и каждый диалог попадает ровно в одну вкладку.
+ * Из этого следует полезное свойство: сумма счётчиков по вкладкам равна
+ * счётчику в шапке, и её можно проверить.
+ */
+type MessengerTab = "direct" | "rooms" | "deals" | "communities" | "archive" | "calls";
+
+/** Вкладка, в которой живёт диалог. Архив перекрывает тип: он один на всех. */
+type DialogTab = Exclude<MessengerTab, "calls">;
+
+const MESSENGER_TABS: readonly MessengerTab[] = [
+  "direct",
+  "rooms",
+  "deals",
+  "communities",
+  "archive",
+  "calls",
+];
+
+const TAB_LABEL_KEY: Record<MessengerTab, string> = {
+  direct: "pages.messenger.tabDirect",
+  rooms: "pages.messenger.tabRooms",
+  deals: "pages.messenger.tabDeals",
+  communities: "pages.messenger.tabCommunities",
+  archive: "pages.messenger.tabArchive",
+  calls: "pages.messenger.tabCalls",
+};
 
 /** Chats split into the three sections of the left panel. */
-function dialogScope(d: Dialog): Exclude<ChatScope, "all"> {
+function dialogTab(d: Dialog, archived: boolean): DialogTab {
+  if (archived) return "archive";
+  if (d.type === "community") return "communities";
   if (d.type === "room") return "rooms";
   // Чат сделки — это отдельный тип; личный чат про объявление тоже живёт
   // во вкладке «Сделок», пока у него нет своей сделки.
@@ -479,10 +513,23 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
   );
 }
 
-function MessageBubble({
+/*
+ * Мемоизация обязательна, а не желательна.
+ *
+ * Отправка добавляет один пузырь, но перерисовывались все: список отдавал
+ * каждому пузырю весь массив сообщений (`allMessages`), и новая ссылка на
+ * массив меняла пропсы у всех разом. На переписке в двести реплик один
+ * ввод символа стоил двухсот перерисовок.
+ *
+ * Массив был нужен ровно для одного — найти сообщение, на которое отвечают.
+ * Теперь его находит список, один раз на изменение переписки, и отдаёт
+ * пузырю готовым. Остальные пропсы — обработчики, и они обёрнуты в
+ * useCallback: без этого memo не значит ничего.
+ */
+const MessageBubble = memo(function MessageBubble({
   msg,
   prev,
-  allMessages,
+  reply,
   onReply,
   onCopy,
   onForward,
@@ -496,7 +543,8 @@ function MessageBubble({
 }: {
   msg: Message;
   prev?: Message;
-  allMessages: Message[];
+  /** Сообщение, на которое отвечают, — уже найденное списком. */
+  reply?: Message;
   onReply: (m: Message) => void;
   onCopy: (m: Message) => void;
   onForward: (m: Message) => void;
@@ -514,7 +562,6 @@ function MessageBubble({
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
   const hasMedia = Boolean(msg.image || msg.file || msg.voice || msg.listing);
-  const reply = msg.replyTo ? allMessages.find((m) => m.id === msg.replyTo) : null;
   const replyAuthor = reply ? userById(reply.authorId) : null;
   const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
   const isSearchHit = searchHighlightId === msg.id;
@@ -650,7 +697,7 @@ function MessageBubble({
       </div>
     </motion.div>
   );
-}
+});
 
 function MessengerPage() {
   const { t } = useTranslation();
@@ -679,9 +726,7 @@ function MessengerPage() {
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">(chat ? "chat" : "list");
-  const [showArchived, setShowArchived] = useState(false);
-  const [listTab, setListTab] = useState<"chats" | "channels" | "calls">("chats");
-  const [chatScope, setChatScope] = useState<ChatScope>("all");
+  const [tab, setTab] = useState<MessengerTab>("direct");
   const [chatSearchOpen, setChatSearchOpen] = useState(false);
   const [searchHighlightId, setSearchHighlightId] = useState<string | null>(null);
   const [searchHighlightQuery, setSearchHighlightQuery] = useState("");
@@ -727,6 +772,9 @@ function MessengerPage() {
       if (dialogMetaMap[dialogId]?.deletedLocally) messengerCache.restoreDialog(dlg);
       setActiveId(dialogId);
       setMobileView("chat");
+      // Открытый по ссылке диалог переключает вкладку на ту, в которой он
+      // лежит: иначе он открыт, а в списке слева его нет.
+      setTab(dialogTab(dlg, dialogMetaMap[dialogId]?.archived ?? false));
       if (dlg.unread) messengerCache.markRead(dialogId);
     };
 
@@ -734,7 +782,6 @@ function MessengerPage() {
     if (byConversation) {
       openingChatRef.current = null;
       selectDialog(chat, byConversation);
-      if (byConversation.type === "community") setListTab("channels");
       return;
     }
 
@@ -948,42 +995,71 @@ function MessengerPage() {
     pendingScrollRestoreRef.current = activeId ? (recallDialogScroll(activeId) ?? null) : null;
   }, [activeId]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const base = dlgs.filter((d) => {
-      if (d.type === "community") return false;
-      if (chatScope !== "all" && dialogScope(d) !== chatScope) return false;
+  /**
+   * Разбор диалогов по вкладкам — один проход, одна раскладка.
+   *
+   * Каждый видимый диалог попадает ровно в одну вкладку, поэтому счётчики
+   * не пересекаются, и их сумма равна общему счётчику в шапке. Удалённые у
+   * себя не попадают никуда — и по той же причине не считаются в шапке
+   * (см. `unreadMessagesTotal`): открыть их нельзя, а значит нельзя и
+   * обнулить.
+   */
+  const byTab = useMemo(() => {
+    const groups: Record<DialogTab, Dialog[]> = {
+      direct: [],
+      rooms: [],
+      deals: [],
+      communities: [],
+      archive: [],
+    };
+    for (const d of dlgs) {
       const m = getMeta(d.id);
-      if (m.deletedLocally) return false;
-      return showArchived ? m.archived : !m.archived;
-    });
+      if (m.deletedLocally) continue;
+      groups[dialogTab(d, m.archived)].push(d);
+    }
+    return groups;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dlgs, dialogMetaMap]);
+
+  const unreadByTab = useMemo(() => {
+    const sum = (list: Dialog[]) => list.reduce((n, d) => n + (d.unread ?? 0), 0);
+    return {
+      direct: sum(byTab.direct),
+      rooms: sum(byTab.rooms),
+      deals: sum(byTab.deals),
+      communities: sum(byTab.communities),
+      archive: sum(byTab.archive),
+    };
+  }, [byTab]);
+
+  const filtered = useMemo(() => {
+    if (tab === "calls") return [];
+    const q = query.trim().toLowerCase();
+    const base = byTab[tab];
     const searched = !q
       ? base
       : base.filter((d) => {
           const identity = dialogIdentity(d);
           return identity.name.toLowerCase().includes(q) || d.lastMessage.toLowerCase().includes(q);
         });
-    if (showArchived) return searched;
+    if (tab === "archive") return searched;
     return [...searched].sort((a, b) => {
       const pa = a.pinned ? 1 : 0;
       const pb = b.pinned ? 1 : 0;
       return pb - pa;
     });
-  }, [dlgs, query, dialogMetaMap, showArchived, chatScope]);
+  }, [byTab, query, tab]);
 
-  const communityDialogs = useMemo(
-    () => dlgs.filter((d) => d.type === "community" && !getMeta(d.id).deletedLocally),
-    [dlgs, dialogMetaMap],
-  );
-
-  const archivedCount = useMemo(
-    () =>
-      dlgs.filter((d) => {
-        const m = getMeta(d.id);
-        return m.archived && !m.deletedLocally;
-      }).length,
-    [dlgs, dialogMetaMap],
-  );
+  /*
+   * Указатель «id сообщения → сообщение» вместо поиска по всему массиву в
+   * каждом пузыре. Строится один раз на изменение переписки, а не N раз
+   * на каждый рендер.
+   */
+  const messageById = useMemo(() => {
+    const map = new Map<string, Message>();
+    for (const m of messages) map.set(m.id, m);
+    return map;
+  }, [messages]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -1272,78 +1348,93 @@ function MessengerPage() {
 
   const insertEmoji = useInsertAtCaret(composerRef, text, setText);
 
-  const handleCopy = (m: Message) => {
-    const copyText =
-      m.text ||
-      (m.file
-        ? m.file.name
-        : m.image
-          ? t("pages.messenger.image")
-          : t("pages.messenger.attachment"));
-    navigator.clipboard.writeText(copyText).then(
-      () => toast.success(t("pages.messenger.copied")),
-      () => toast.error(t("pages.messenger.copyFailed")),
-    );
-  };
+  const handleCopy = useCallback(
+    (m: Message) => {
+      const copyText =
+        m.text ||
+        (m.file
+          ? m.file.name
+          : m.image
+            ? t("pages.messenger.image")
+            : t("pages.messenger.attachment"));
+      navigator.clipboard.writeText(copyText).then(
+        () => toast.success(t("pages.messenger.copied")),
+        () => toast.error(t("pages.messenger.copyFailed")),
+      );
+    },
+    [t],
+  );
 
-  const handlePinMessage = async (m: Message) => {
-    if (!active) return;
-    actions.pinMessage(active.id, m.id);
-    if (!isDemoMode()) {
-      try {
-        await apiPinMessage(active.id, m.id);
-      } catch {
-        toast.error(t("pages.messenger.pinFailed"));
+  const handlePinMessage = useCallback(
+    async (m: Message) => {
+      if (!active) return;
+      actions.pinMessage(active.id, m.id);
+      if (!isDemoMode()) {
+        try {
+          await apiPinMessage(active.id, m.id);
+        } catch {
+          toast.error(t("pages.messenger.pinFailed"));
+        }
       }
-    }
-  };
+    },
+    [active, t],
+  );
 
-  const handleDeleteMessage = async (m: Message) => {
-    if (!active) return;
-    actions.deleteMessageForMe(active.id, m.id);
-    if (!isDemoMode()) {
-      try {
-        await hideMessageForMe(active.id, m.id);
-      } catch {
-        toast.error(t("pages.messenger.deleteFailed"));
+  const handleDeleteMessage = useCallback(
+    async (m: Message) => {
+      if (!active) return;
+      actions.deleteMessageForMe(active.id, m.id);
+      if (!isDemoMode()) {
+        try {
+          await hideMessageForMe(active.id, m.id);
+        } catch {
+          toast.error(t("pages.messenger.deleteFailed"));
+        }
       }
-    }
-  };
+    },
+    [active, t],
+  );
 
-  const handleDeleteForEveryone = async (m: Message) => {
-    if (!active) return;
-    if (!(await askConfirm({ title: t("pages.messenger.deleteForAllConfirm") }))) return;
+  const handleDeleteForEveryone = useCallback(
+    async (m: Message) => {
+      if (!active) return;
+      if (!(await askConfirm({ title: t("pages.messenger.deleteForAllConfirm") }))) return;
 
-    const dialogId = active.id;
-    messengerCache.removeMessage(dialogId, m.id);
+      const dialogId = active.id;
+      messengerCache.removeMessage(dialogId, m.id);
 
-    if (!isDemoMode()) {
-      try {
-        await deleteMessageForEveryone(dialogId, m.id);
-      } catch {
-        toast.error(t("pages.messenger.deleteFailed"));
-        fetchMessages(dialogId)
-          .then((msgs) => messengerCache.setMessages(dialogId, msgs))
-          .catch(() => {});
+      if (!isDemoMode()) {
+        try {
+          await deleteMessageForEveryone(dialogId, m.id);
+        } catch {
+          toast.error(t("pages.messenger.deleteFailed"));
+          fetchMessages(dialogId)
+            .then((msgs) => messengerCache.setMessages(dialogId, msgs))
+            .catch(() => {});
+        }
       }
-    }
-  };
+    },
+    [active, t],
+  );
 
-  const handleReportMessage = (m: Message) => {
-    if (!partner) return;
-    const snippet =
-      m.text?.trim() ||
-      (m.voice ? t("pages.messenger.voiceMessage") : "") ||
-      (m.image ? t("pages.messenger.image") : "") ||
-      (m.file ? t("pages.messenger.filePrefix", { name: m.file.name }) : "");
-    setMessageComplaint({
-      target: partner,
-      messageId: m.id,
-      contextNote: snippet
-        ? t("pages.messenger.messageContext", { snippet: snippet.slice(0, 500) })
-        : undefined,
-    });
-  };
+  const handleReportMessage = useCallback(
+    (m: Message) => {
+      if (!partner) return;
+      const snippet =
+        m.text?.trim() ||
+        (m.voice ? t("pages.messenger.voiceMessage") : "") ||
+        (m.image ? t("pages.messenger.image") : "") ||
+        (m.file ? t("pages.messenger.filePrefix", { name: m.file.name }) : "");
+      setMessageComplaint({
+        target: partner,
+        messageId: m.id,
+        contextNote: snippet
+          ? t("pages.messenger.messageContext", { snippet: snippet.slice(0, 500) })
+          : undefined,
+      });
+    },
+    [partner, t],
+  );
 
   const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
   const [messageComplaint, setMessageComplaint] = useState<{
@@ -1392,37 +1483,28 @@ function MessengerPage() {
                 />
               </div>
             </div>
+            {/*
+              Шесть вкладок в один ряд с прокруткой по X, а не четыре плюс
+              четыре фишки снизу. Прокрутка, а не сетка на шесть колонок:
+              на 360 px колонка под «Категорийные» выходит в 44 px, и слово
+              обрезается до «Кате…» у всех сразу.
+            */}
             <div
-              className="grid w-full grid-cols-4 gap-[4px]"
-              style={{ borderBottom: "1px solid var(--border)" }}
+              className="flex gap-[2px] overflow-x-auto px-[8px]"
+              style={{ borderBottom: "1px solid var(--border)", scrollbarWidth: "none" }}
+              role="tablist"
             >
-              {[
-                { key: "chats-active" as const, label: t("pages.messenger.tabActive") },
-                { key: "channels" as const, label: t("pages.messenger.tabChannels") },
-                {
-                  key: "chats-archive" as const,
-                  label: `${t("pages.messenger.tabArchive")}${archivedCount ? ` · ${archivedCount}` : ""}`,
-                },
-                { key: "calls" as const, label: t("pages.messenger.tabCalls") },
-              ].map((tabItem) => {
-                const isActive =
-                  (tabItem.key === "calls" && listTab === "calls") ||
-                  (tabItem.key === "channels" && listTab === "channels") ||
-                  (tabItem.key === "chats-active" && listTab === "chats" && !showArchived) ||
-                  (tabItem.key === "chats-archive" && listTab === "chats" && showArchived);
+              {MESSENGER_TABS.map((key) => {
+                const isActive = tab === key;
+                const count = key === "calls" ? 0 : unreadByTab[key];
                 return (
                   <button
-                    key={tabItem.key}
-                    onClick={() => {
-                      if (tabItem.key === "calls") setListTab("calls");
-                      else if (tabItem.key === "channels") setListTab("channels");
-                      else {
-                        setListTab("chats");
-                        setShowArchived(tabItem.key === "chats-archive");
-                      }
-                    }}
-                    className={`min-w-0 px-[2px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
-                    title={tabItem.label}
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setTab(key)}
+                    className={`flex shrink-0 items-center gap-[5px] px-[8px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
                     style={{
                       height: 32,
                       fontWeight: isActive ? 600 : 500,
@@ -1430,61 +1512,32 @@ function MessengerPage() {
                       borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
-                    <span className="block truncate">{tabItem.label}</span>
+                    <span className="whitespace-nowrap">{t(TAB_LABEL_KEY[key])}</span>
+                    {/* Счётчик непрочитанного. Ноль не рисуется: «0» на пяти
+                        вкладках сообщает лишь о том, что читать нечего. */}
+                    {count > 0 && (
+                      <span
+                        className="grid min-w-[16px] place-items-center rounded-full px-[4px] text-[10px] font-semibold leading-[16px]"
+                        style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                      >
+                        {count > 99 ? "99+" : count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
-            {listTab === "chats" && (
-              <div
-                // py-3, а не py-2: прокрутка по X обрезает всё, что вылезает за
-                // высоту ряда, а 44-пиксельной хит-зоне чипов нужен запас.
-                className="flex gap-[6px] overflow-x-auto px-[12px] py-3"
-              >
-                {[
-                  { key: "all" as const, label: t("pages.messenger.scopeAll") },
-                  { key: "direct" as const, label: t("pages.messenger.scopeDirect") },
-                  { key: "rooms" as const, label: t("pages.messenger.scopeCategory") },
-                  { key: "deals" as const, label: t("pages.messenger.scopeDeal") },
-                ].map((scope) => {
-                  const on = chatScope === scope.key;
-                  return (
-                    <button
-                      key={scope.key}
-                      type="button"
-                      onClick={() => setChatScope(scope.key)}
-                      className={`shrink-0 rounded-full px-[10px] py-[4px] text-[11.5px] font-medium transition-colors ${TAP_TARGET_ROW_44}`}
-                      style={{
-                        background: on ? "var(--accent-soft)" : "transparent",
-                        color: on ? "var(--accent)" : "var(--foreground-50)",
-                        border: `1px solid ${on ? "var(--border-accent)" : "var(--border)"}`,
-                      }}
-                    >
-                      {scope.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {listTab === "calls" ? (
+            {tab === "calls" ? (
               <CallsList
                 onOpenChat={(did) => {
-                  setListTab("chats");
-                  setShowArchived(false);
+                  setTab("direct");
                   setActiveId(did);
                   setMobileView("chat");
                   messengerCache.markRead(did);
                 }}
-              />
-            ) : listTab === "channels" ? (
-              <ChannelsList
-                query={query}
-                communityDialogs={communityDialogs}
-                onSelect={handleSelect}
-                activeId={activeId}
               />
             ) : loading ? (
               <DialogListSkeleton />
@@ -1814,7 +1867,7 @@ function MessengerPage() {
                           <MessageBubble
                             msg={m}
                             prev={arr[i - 1]}
-                            allMessages={messages}
+                            reply={m.replyTo ? messageById.get(m.replyTo) : undefined}
                             onReply={setReplyTo}
                             onCopy={handleCopy}
                             onForward={setForwardMsg}
@@ -2123,151 +2176,5 @@ function EmptyDialogs() {
         <Link to="/friends">{t("pages.messenger.findFriends")}</Link>
       </Button>
     </EmptyState>
-  );
-}
-
-function ChannelsList({
-  query,
-  communityDialogs,
-  onSelect,
-  activeId,
-}: {
-  query: string;
-  communityDialogs: Dialog[];
-  onSelect: (id: string) => void;
-  activeId: string | null;
-}) {
-  const { t } = useTranslation();
-  const { channels: all } = useChannels();
-  const q = query.trim().toLowerCase();
-  const chats = q
-    ? communityDialogs.filter(
-        (d) =>
-          dialogIdentity(d).name.toLowerCase().includes(q) ||
-          d.lastMessage.toLowerCase().includes(q),
-      )
-    : communityDialogs;
-  const list = (
-    q
-      ? all.filter(
-          (c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q),
-        )
-      : all
-  )
-    .slice()
-    .sort((a, b) => {
-      const sa = a.isSubscribed ? 1 : 0;
-      const sb = b.isSubscribed ? 1 : 0;
-      if (sa !== sb) return sb - sa;
-      return b.subscribers - a.subscribers;
-    });
-
-  if (list.length === 0 && chats.length === 0) {
-    return <EmptyState icon={Radio} title={t("pages.messenger.channelsNotFound")} variant="bare" />;
-  }
-
-  return (
-    <ul>
-      {chats.map((d) => {
-        const identity = dialogIdentity(d);
-        const isActive = d.id === activeId;
-        return (
-          <li key={d.id} style={{ borderBottom: "1px solid var(--border)" }}>
-            <button
-              type="button"
-              onClick={() => onSelect(d.id)}
-              className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left"
-              style={{ background: isActive ? "var(--accent-soft)" : "transparent" }}
-            >
-              <UserAvatar src={identity.avatar} name={identity.name} size={48} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-[6px]">
-                  <span
-                    className="truncate font-display text-[14px] font-semibold"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {identity.name}
-                  </span>
-                  {d.unread ? (
-                    <span
-                      className="rounded-full px-[6px] py-[1px] text-[10px] font-bold text-white"
-                      style={{ background: "var(--accent)" }}
-                    >
-                      {d.unread}
-                    </span>
-                  ) : null}
-                </div>
-                <div
-                  className="mt-[2px] truncate text-[12px]"
-                  style={{ color: "var(--foreground-50)" }}
-                >
-                  {d.lastMessage || t("pages.communityDetail.tabChat")}
-                </div>
-              </div>
-            </button>
-          </li>
-        );
-      })}
-      {list.map((c) => {
-        const subscribed = Boolean(c.isSubscribed);
-        return (
-          <li key={c.id} style={{ borderBottom: "1px solid var(--border)" }}>
-            <Link
-              to="/channel/$id"
-              params={{ id: c.id }}
-              className="flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--background-surface-hover)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <div
-                className="grid h-[48px] w-[48px] shrink-0 place-items-center font-display text-[18px] font-bold text-white"
-                style={{ background: c.avatarColor, borderRadius: 12 }}
-              >
-                {c.name.slice(0, 1)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-[6px]">
-                  <span
-                    className="truncate font-display text-[14px] font-semibold"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {c.name}
-                  </span>
-                  {c.kind === "official" && (
-                    <BadgeCheck size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                  )}
-                </div>
-                <div
-                  className="mt-[2px] flex items-center gap-[8px] text-[12px]"
-                  style={{ color: "var(--foreground-50)" }}
-                >
-                  <span className="inline-flex items-center gap-[4px]">
-                    <Users size={11} /> {formatCount(c.subscribers)}
-                  </span>
-                  <span className="truncate">{c.description}</span>
-                </div>
-              </div>
-              {subscribed && (
-                <span
-                  className="shrink-0 inline-flex items-center gap-[4px] text-[11px] font-semibold"
-                  style={{
-                    background: "var(--accent-soft)",
-                    color: "var(--accent)",
-                    padding: "3px 8px",
-                    borderRadius: "var(--r-pill)",
-                  }}
-                >
-                  <Check size={11} /> {t("pages.messenger.channelSubscribed")}
-                </span>
-              )}
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
