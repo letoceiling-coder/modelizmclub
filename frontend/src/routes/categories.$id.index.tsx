@@ -6,7 +6,11 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import type { Category, CategoryChild } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { SubcategoryRoomPage } from "@/components/categories/SubcategoryRoomPage";
+import {
+  ROOM_TABS,
+  SubcategoryRoomPage,
+  type RoomTab,
+} from "@/components/categories/SubcategoryRoomPage";
 import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import {
   membersForSubcategory,
@@ -17,6 +21,16 @@ import {
 import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/categories/$id/")({
+  /*
+   * Вкладку комнаты держит адрес, а не состояние страницы. Иначе ссылка
+   * «открыть чат» открывала бы то, что стоит вкладкой по умолчанию, а по
+   * умолчанию теперь стоят записи.
+   *
+   * Направление вкладок не имеет, лишний параметр ему не мешает.
+   */
+  validateSearch: (search: Record<string, unknown>): { tab?: RoomTab } => ({
+    tab: ROOM_TABS.includes(search.tab as RoomTab) ? (search.tab as RoomTab) : undefined,
+  }),
   /*
    * Адрес направления — /categories/{slug}. Числовой id остаётся рабочим
    * ради старых ссылок: уведомлений, закладок, внешних переходов, — но не
@@ -69,13 +83,23 @@ export const Route = createFileRoute("/categories/$id/")({
  */
 function DirectionOrRoomPage() {
   const { id } = Route.useParams();
+  const { tab } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const categories = usePostCategories();
   const direction = categories.find((x) => x.slug === id || x.id === id);
 
-  return direction ? (
-    <CategoryRoomsPage category={direction} />
-  ) : (
-    <SubcategoryRoomPage roomKey={id} />
+  if (direction) return <CategoryRoomsPage category={direction} />;
+
+  return (
+    <SubcategoryRoomPage
+      roomKey={id}
+      tab={tab ?? "posts"}
+      // replace: переключение вкладок не должно копиться в истории — «назад»
+      // из комнаты возвращает туда, откуда в неё пришли.
+      onTabChange={(next) =>
+        navigate({ search: { tab: next === "posts" ? undefined : next }, replace: true })
+      }
+    />
   );
 }
 

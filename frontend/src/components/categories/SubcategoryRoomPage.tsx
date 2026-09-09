@@ -8,6 +8,7 @@ import {
   ChevronUp,
   Hash,
   MessageCircle,
+  Newspaper,
   Paperclip,
   Pencil,
   Reply,
@@ -47,9 +48,27 @@ import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { navigateToPartnerChat } from "@/lib/api/chat";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
+import { PostCard } from "@/components/post/PostCard";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchFeed } from "@/lib/api/feed";
+import type { Post } from "@/lib/mock";
 import i18n from "@/lib/i18n";
 
-type Tab = "chat" | "ads" | "members";
+/**
+ * «Записи» стоят первыми и открываются по умолчанию. Панель справа даёт две
+ * двери в комнату — название и значок чата, — и пока обе вели на чат, вторая
+ * ничего не добавляла. Теперь название открывает записи, значок — чат.
+ */
+export type RoomTab = "posts" | "chat" | "ads" | "members";
+
+/** Столько же, сколько берёт лента. */
+const PAGE_SIZE = 20;
+
+export const ROOM_TABS: readonly RoomTab[] = ["posts", "chat", "ads", "members"];
+
+type Tab = RoomTab;
 
 function seedFrom(s: string): number {
   return s.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
@@ -243,7 +262,16 @@ function findRoom(
  * а не длиной адреса, и второй сегмент только повторял то, что и так
  * известно из дерева.
  */
-export function SubcategoryRoomPage({ roomKey }: { roomKey: string }) {
+export function SubcategoryRoomPage({
+  roomKey,
+  tab,
+  onTabChange,
+}: {
+  roomKey: string;
+  tab: RoomTab;
+  /** Вкладку держит адрес, а не состояние: ссылка на чат должна открывать чат. */
+  onTabChange: (next: RoomTab) => void;
+}) {
   const { t } = useTranslation();
   const categories = usePostCategories();
   const room = useMemo(() => findRoom(categories, roomKey), [categories, roomKey]);
@@ -252,7 +280,7 @@ export function SubcategoryRoomPage({ roomKey }: { roomKey: string }) {
   const onlineSet = useOnlineSet();
   const me = useCurrentUser();
 
-  const [tab, setTab] = useState<Tab>("chat");
+  const setTab = onTabChange;
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   const [pool, setPool] = useState<User[]>([]);
   const [subAds, setSubAds] = useState<Ad[]>([]);
@@ -391,6 +419,12 @@ export function SubcategoryRoomPage({ roomKey }: { roomKey: string }) {
           role="tablist"
         >
           <TabBtn
+            label={t("pages.subcategoryDetail.tabPosts")}
+            icon={<Newspaper className="h-[14px] w-[14px]" />}
+            active={tab === "posts"}
+            onClick={() => setTab("posts")}
+          />
+          <TabBtn
             label={t("pages.subcategoryDetail.tabChat")}
             icon={<MessageCircle className="h-[14px] w-[14px]" />}
             active={tab === "chat"}
@@ -414,6 +448,7 @@ export function SubcategoryRoomPage({ roomKey }: { roomKey: string }) {
 
         {/* Tab content */}
         <div className="min-h-0 flex-1">
+          {tab === "posts" && <PostsTab categoryId={sub.id} categoryName={sub.name} />}
           {tab === "chat" && <ChatTab category={c} subId={sub.id} subName={sub.name} pool={pool} />}
           {tab === "ads" && <AdsTab ads={subAds} subName={sub.name} />}
           {tab === "members" && (
@@ -1306,6 +1341,119 @@ function ChatTab({
 }
 
 /* --------------------------- ADS TAB --------------------------- */
+
+/**
+ * Записи раздела, включая подкатегории.
+ *
+ * Разворачивать дерево на клиенте не нужно: `FeedService` при отборе по
+ * разделу подставляет `descendantPostIds`, то есть отдаёт записи узла вместе
+ * со всем, что под ним. Здесь мы только называем узел.
+ *
+ * Имя передаётся вместе с id ради демо-режима: там записи лежат без дерева,
+ * и `demoFeed` отбирает их по имени раздела. На боевых данных имя не
+ * смотрится вовсе.
+ *
+ * Карточка — та же `PostCard`, что в ленте и на стене сообщества. Второй
+ * такой же заводить незачем: она уже умеет и репосты, и медиа, и меню
+ * записи, и права на удаление.
+ */
+function PostsTab({ categoryId, categoryName }: { categoryId: string; categoryName: string }) {
+  const { t } = useTranslation();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setPage(1);
+    fetchFeed({ categoryId: Number(categoryId), categoryName, page: 1, perPage: PAGE_SIZE })
+      .then((res) => {
+        if (!active) return;
+        setPosts(res.posts);
+        setLastPage(res.lastPage);
+      })
+      .catch(() => active && setPosts([]))
+      .finally(() => active && setLoading(false));
+
+    return () => {
+      active = false;
+    };
+  }, [categoryId, categoryName]);
+
+  const loadMore = () => {
+    const next = page + 1;
+    setLoadingMore(true);
+    fetchFeed({ categoryId: Number(categoryId), categoryName, page: next, perPage: PAGE_SIZE })
+      .then((res) => {
+        setPosts((prev) => {
+          // Страницы приходят по времени публикации, но между двумя запросами
+          // могло появиться новое — тогда одна и та же запись придёт дважды.
+          const seen = new Set(prev.map((x) => x.id));
+
+          return [...prev, ...res.posts.filter((x) => !seen.has(x.id))];
+        });
+        setPage(next);
+        setLastPage(res.lastPage);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-2 p-[14px]">
+        <Skeleton className="h-[120px] w-full rounded-[var(--r-card)]" />
+        <Skeleton className="h-[120px] w-full rounded-[var(--r-card)]" />
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="p-[14px]">
+        <EmptyState
+          icon={Newspaper}
+          title={t("pages.subcategoryDetail.emptyPosts")}
+          description={t("pages.subcategoryDetail.emptyPostsDesc")}
+          variant="section"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full overflow-y-auto p-[14px]">
+      {/* Восемь между карточками, как на стене сообщества: подсветка при
+          наведении сама отделяет одну запись от другой. */}
+      <div className="space-y-2">
+        {posts.map((p) => (
+          <PostCard
+            key={p.id}
+            post={p}
+            onDelete={(id) => setPosts((list) => list.filter((x) => x.id !== id))}
+            onEdited={(next) => setPosts((list) => list.map((x) => (x.id === next.id ? next : x)))}
+          />
+        ))}
+      </div>
+      {page < lastPage && (
+        <div className="flex justify-center pt-[12px]">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={loadMore}
+            disabled={loadingMore}
+          >
+            {t("pages.subcategoryDetail.morePosts")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
   const { t } = useTranslation();
