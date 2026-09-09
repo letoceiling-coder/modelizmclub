@@ -1,4 +1,5 @@
 import type { Session } from "@/lib/session";
+import { isVerifiedRequiredAction } from "@/lib/feed-guest-access/routes";
 import { isPhoneVerificationRequired, isPhoneVerified, isStaffUser } from "@/lib/auth/verification";
 
 /** The access ladder. Every gate asks for exactly one rung. */
@@ -39,17 +40,51 @@ export function firstFailingStep(have: Level, need: Level): GateWindow | null {
 }
 
 /**
- * Bridge from the feed guest-access tiers (`guest | auth | subscription`,
- * configured at runtime in the admin) to a Level. `auth` maps to `verified`
- * because the old guard always demanded the SMS step right after login.
+ * Мост от тиров карты доступа (`guest | auth | subscription`, настраиваются
+ * в админке) к ступени лестницы.
+ *
+ * `auth` — это «вошёл», а не «подтвердил телефон». Раньше он молча падал в
+ * `default: "verified"` с объяснением «старый страж всегда требовал СМС
+ * сразу после входа»: причина устарела, а поведение осталось, и ветки для
+ * `auth` в коде не было вовсе.
+ *
+ * Из-за этого подтверждения телефона требовали все 34 действия тира — не
+ * только размещение объявления, но и переключение фильтра ленты, поиск в
+ * шапке, клик по имени автора и вход в настройки. Последнее — ловушка без
+ * выхода: номер подтверждают в настройках, а войти в них без
+ * подтверждённого номера было нельзя.
+ *
+ * Требование СМС живёт отдельно и всегда жило — `isVerifiedRequiredRoute`
+ * в lib/feed-guest-access/routes.ts. Тир отвечает на вопрос «нужен ли вход»,
+ * список — на вопрос «нужен ли телефон». Смешивать их в одном значении и
+ * было ошибкой.
+ *
+ * `default` остаётся строгим: неизвестное значение тира — повод потребовать
+ * больше, а не меньше. Все три существующих значения разобраны явно.
  */
 export function levelFromAccessTier(tier: string | null | undefined): Level {
   switch (tier) {
     case "guest":
       return "guest";
+    case "auth":
+      return "registered";
     case "subscription":
       return "subscriber";
     default:
       return "verified";
   }
+}
+
+/**
+ * Ступень, которую спрашивает конкретное действие.
+ *
+ * Тир из карты доступа плюс список действий, которым нужен телефон. Раньше
+ * три места считали это выражением `levelFromAccessTier(resolveMinTier(...))`
+ * каждое у себя, и добавить требование телефона можно было только в трёх
+ * местах сразу — то есть рано или поздно в двух.
+ */
+export function levelForAction(actionKey: string, tier: string | null | undefined): Level {
+  const base = levelFromAccessTier(tier);
+  if (!isVerifiedRequiredAction(actionKey)) return base;
+  return meets(base, "verified") ? base : "verified";
 }

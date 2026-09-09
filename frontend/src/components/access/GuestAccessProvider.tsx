@@ -30,7 +30,7 @@ import {
   currentPath,
   firstFailingStep,
   gateRequire,
-  levelFromAccessTier,
+  levelForAction,
   levelOf,
   openGate,
   type Level,
@@ -183,7 +183,7 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
         return;
       }
       // Admin-configured minimum for this action → the rung the gate asks for.
-      const need = levelFromAccessTier(resolveMinTier(actionKey, config));
+      const need = levelForAction(actionKey, resolveMinTier(actionKey, config));
       void runGate(need, onAllowed, { key: actionKey, returnTo });
     },
     [isAllowed, config, runGate],
