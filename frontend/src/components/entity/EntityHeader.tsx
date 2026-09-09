@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 /**
  * Действие в шапке сущности.
  *
- * Порядок в массиве — это и есть важность: первые два остаются с подписью,
- * остальные сворачиваются в значок. Страница решает, что важнее, оболочка —
- * сколько подписей помещается.
+ * Порядок в массиве — это и есть важность: первое остаётся главным, второе
+ * второстепенным с подписью, остальные сворачиваются в значок. Страница
+ * решает, что важнее, оболочка — как это показать на каждой ширине.
  */
 export interface EntityAction {
   id: string;
@@ -23,15 +23,13 @@ export interface EntityAction {
   disabled?: boolean;
 }
 
-/** Сколько действий остаётся с подписью на десктопе. */
+/** Сколько действий остаётся с подписью на широком экране. */
 const LABELLED = 2;
 
 interface Props {
-  /** Обложка. Нет обложки — вместо градиента во всю высоту остаётся полоса. */
+  /** Обложка. Нет обложки — градиент из имени той же высоты. */
   coverUrl?: string | null;
   avatarUrl?: string | null;
-  /** Чем заменить аватар, если картинки нет: у сообщества это иконка направления. */
-  avatarFallback?: ReactNode;
   name: string;
   /** Бейджи рядом с названием: тип сообщества, «официальный», роль. */
   badges?: ReactNode;
@@ -40,7 +38,7 @@ interface Props {
   description?: string | null;
   /** Действия по убыванию важности. Что именно — знает страница, не оболочка. */
   actions?: EntityAction[];
-  /** Слот для «⋯ Ещё» — рядом с действиями. */
+  /** Слот для «⋯ Ещё» — последним в строке действий. */
   menu?: ReactNode;
   /** Редактор брендинга поверх обложки (владельцу). */
   coverOverlay?: ReactNode;
@@ -58,14 +56,12 @@ interface Props {
  * страница и передаёт слотами. Флагов вида `isChannel` внутри нет — как
  * только такой понадобится, компоненты надо разводить обратно.
  *
- * Высоты обложки — 110 на телефоне, 140 на планшете, 180 на широком экране.
- * До 05.09 у сообщества под шапку уходило 576 px до вкладок, и больше
- * трёхсот из них занимал пустой градиент на месте отсутствующей обложки.
+ * Обложка: 120 на телефоне, 160 на планшете, 200 на широком экране. Скругление
+ * только сверху — снизу она переходит в карточку шапки без шва.
  */
 export function EntityHeader({
   coverUrl,
   avatarUrl,
-  avatarFallback,
   name,
   badges,
   meta,
@@ -83,23 +79,21 @@ export function EntityHeader({
   // первого кадра и ничего не двигает.
   const canExpand = (description ?? "").length > 140;
 
+  const list = actions ?? [];
+  const [primary, ...secondary] = list;
+
   return (
     <div className={cn("overflow-hidden", className)}>
       <div
-        className={cn(
-          "relative w-full overflow-hidden",
-          // Без обложки — полоса 80, а не градиент во весь блок: пустое место
-          // не должно занимать первый экран.
-          hasCover ? "h-[110px] md:h-[140px] lg:h-[180px]" : "h-[80px]",
-        )}
+        className="relative h-[120px] w-full overflow-hidden rounded-t-[12px] md:h-[160px] lg:h-[200px]"
         style={
           hasCover
             ? { background: "var(--background-surface)" }
             : {
-                // Полоса без обложки: градиент из имени и первая буква вместо
-                // ровной заливки. Данные не выдумываем — это оформление, а не
-                // подстановка несуществующей картинки, поэтому строится из
-                // самого названия и одинаково выглядит при каждом заходе.
+                // Градиент из имени вместо ровной заливки. Данные не выдумываем —
+                // это оформление, а не подстановка несуществующей картинки,
+                // поэтому строится из самого названия и одинаково выглядит при
+                // каждом заходе.
                 backgroundImage: `url("${coverPlaceholder(name)}")`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
@@ -122,39 +116,42 @@ export function EntityHeader({
         {coverOverlay}
       </div>
 
-      <div className="px-[12px] pb-[12px] md:px-[16px]">
-        <div className="flex items-end gap-[12px]">
-          {/* Аватар заходит на обложку наполовину. Когда обложки нет и вместо
-              неё полоса 80, нахлёст меньше — иначе аватар вылезает за верхний
-              край карточки и обрезается. */}
+      <div className="px-5 pb-4">
+        <div className="flex items-start gap-3">
+          {/*
+            Кольцо-отбивка вокруг аватара.
+            Без него нижний край обложки проходил ровно по кружку, и аватар
+            выглядел разрезанным линией. Обводка цветом фона карточки
+            возвращает ощущение, что он лежит на обложке, а не встроен в шов.
+
+            Нахлёст ровно наполовину: аватар 88 заходит на 44, 72 — на 36.
+            Отрицательный отступ на четыре пикселя больше, потому что его
+            считают от внешнего края кольца, а не от самого кружка.
+          */}
           <span
-            className={cn(
-              "shrink-0 rounded-full p-[3px]",
-              hasCover ? "-mt-[32px] md:-mt-[40px]" : "-mt-[20px] md:-mt-[24px]",
-            )}
+            /* inline-flex, а не inline: у инлайнового контейнера остаётся
+               разрыв строки под содержимым, и кольцо на 375 выходило 80×86 —
+               то есть овалом, а не кружком. */
+            className="-mt-10 inline-flex shrink-0 rounded-full p-1 md:-mt-12"
             style={{ background: "var(--background)" }}
           >
-            {avatarUrl || !avatarFallback ? (
-              <>
-                <span className="md:hidden">
-                  <UserAvatar src={avatarUrl} name={name} size={64} />
-                </span>
-                <span className="hidden md:inline-flex">
-                  <UserAvatar src={avatarUrl} name={name} size={80} />
-                </span>
-              </>
-            ) : (
-              <span
-                className="grid h-[64px] w-[64px] place-items-center rounded-full md:h-[80px] md:w-[80px]"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-              >
-                {avatarFallback}
-              </span>
-            )}
+            {/*
+              Заглушка — инициалы, а не значок направления. Значок одинаков у
+              всех сообществ одного направления и различать их не помогает;
+              инициалы UserAvatar строит из самого названия.
+            */}
+            <span className="inline-flex md:hidden">
+              <UserAvatar src={avatarUrl} name={name} size={72} />
+            </span>
+            <span className="hidden md:inline-flex">
+              <UserAvatar src={avatarUrl} name={name} size={88} />
+            </span>
           </span>
 
-          <div className="min-w-0 flex-1 pb-[4px]">
-            <div className="flex min-w-0 items-center gap-[8px]">
+          {/* Двенадцать сверху — от нижнего края обложки до названия. Раньше
+              текст равнялся по низу аватара и прилипал к нему. */}
+          <div className="min-w-0 flex-1 pt-3">
+            <div className="flex min-w-0 items-center gap-2">
               <h1
                 className="truncate font-display text-[20px] font-bold leading-tight"
                 style={{ color: "var(--foreground)" }}
@@ -164,10 +161,7 @@ export function EntityHeader({
               {badges}
             </div>
             {meta && (
-              <div
-                className="mt-[2px] truncate text-[13px]"
-                style={{ color: "var(--foreground-50)" }}
-              >
+              <div className="mt-1 truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>
                 {meta}
               </div>
             )}
@@ -177,7 +171,7 @@ export function EntityHeader({
         {description && (
           <p
             className={cn(
-              "mt-[8px] whitespace-pre-line text-[15px] leading-[1.4]",
+              "mt-3 whitespace-pre-line text-[15px] leading-[1.4]",
               !expanded && "line-clamp-2",
             )}
             style={{ color: "var(--foreground-70)" }}
@@ -189,45 +183,65 @@ export function EntityHeader({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="mt-[2px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+            className="hit-target mt-1 cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             style={{ color: "var(--accent)" }}
           >
             {expanded ? t("pages.shared.collapse") : t("pages.shared.showAll")}
           </button>
         )}
 
-        {(actions?.length || menu) && (
+        {(list.length > 0 || menu) && (
           /*
-           * Одна строка на десктопе. Раньше здесь стоял flex-wrap, и пять
-           * кнопок с подписями («Вы подписаны», «Управление сообществом»,
-           * «Открыть чат», «Предложить проект», «Поделиться») не влезали в
-           * 680: строка разъезжалась на три, а «⋯» уходило на свою. Перенос
-           * оставлен только ниже 1024 — на телефоне он уместен, а колонка там
-           * всё равно во всю ширину.
+           * Одна строка на десктопе, без переносов: пять кнопок с подписями
+           * («Вы подписаны», «Управление сообществом», «Открыть чат»,
+           * «Предложить проект», «Поделиться») разъезжались на три строки в
+           * 680, а «⋯» уходило на свою. Подписи остаются у первых двух,
+           * остальные — значки 36×36.
+           *
+           * До 768 главное действие занимает всю ширину: это то, ради чего
+           * страницу открыли, и на телефоне ему незачем делить строку с
+           * второстепенными. Остальные уходят под ним в ряд значками.
            */
-          <div className="mt-[12px] flex flex-wrap items-center gap-[8px] lg:flex-nowrap">
-            {(actions ?? []).map((action, i) => {
-              const Icon = action.icon;
-              const labelled = i < LABELLED;
-              return (
-                <Button
-                  key={action.id}
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                  variant={action.variant ?? "outline"}
-                  size="sm"
-                  // Подпись убирается только с 1024: ниже строка переносится,
-                  // места хватает, и значок без подписи там ничего не экономит.
-                  className={cn("shrink-0 gap-[6px]", !labelled && "lg:w-9 lg:px-0")}
-                  title={labelled ? undefined : action.label}
-                  aria-label={action.label}
-                >
-                  <Icon size={15} />
-                  <span className={cn(!labelled && "lg:hidden")}>{action.label}</span>
-                </Button>
-              );
-            })}
-            {menu}
+          <div className="mt-4 flex flex-col gap-2 md:flex-row md:flex-nowrap md:items-center">
+            {primary && (
+              <Button
+                onClick={primary.onClick}
+                disabled={primary.disabled}
+                variant={primary.variant ?? "default"}
+                size="sm"
+                className="w-full shrink-0 gap-[6px] md:w-auto"
+                aria-label={primary.label}
+              >
+                <primary.icon size={15} />
+                <span>{primary.label}</span>
+              </Button>
+            )}
+            {(secondary.length > 0 || menu) && (
+              <div className="flex items-center gap-2">
+                {secondary.map((action, i) => {
+                  const Icon = action.icon;
+                  // Второе действие с подписью — но только от 768: ниже оно
+                  // становится значком наравне с остальными.
+                  const labelled = i < LABELLED - 1;
+                  return (
+                    <Button
+                      key={action.id}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      variant={action.variant ?? "outline"}
+                      size="sm"
+                      className={cn("w-9 shrink-0 gap-[6px] px-0", labelled && "md:w-auto md:px-3")}
+                      title={action.label}
+                      aria-label={action.label}
+                    >
+                      <Icon size={15} />
+                      <span className={cn("hidden", labelled && "md:inline")}>{action.label}</span>
+                    </Button>
+                  );
+                })}
+                {menu}
+              </div>
+            )}
           </div>
         )}
       </div>
