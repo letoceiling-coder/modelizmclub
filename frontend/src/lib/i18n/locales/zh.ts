@@ -595,13 +595,6 @@ export const zh: TranslationSchema = {
     },
     createPostMenu: {
       createTitle: "创建",
-      fromDevice: "从设备选择照片或视频",
-      fromProfile: "以个人主页身份",
-      fromChannel: "以频道「{{name}}」身份",
-      postFromProfile: "以个人主页发帖",
-      postFromChannel: "以频道「{{name}}」发帖",
-      videoFromProfile: "以个人主页发视频",
-      videoFromChannel: "以频道「{{name}}」发视频",
       placeholder: "有什么新动态？",
       post: "帖子",
       video: "视频",

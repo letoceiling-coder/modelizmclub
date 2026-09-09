@@ -597,13 +597,6 @@ export const en: TranslationSchema = {
     },
     createPostMenu: {
       createTitle: "Create",
-      fromDevice: "Photo or video from device",
-      fromProfile: "From your profile",
-      fromChannel: "From channel “{{name}}”",
-      postFromProfile: "Post from profile",
-      postFromChannel: "Post from channel “{{name}}”",
-      videoFromProfile: "Video from profile",
-      videoFromChannel: "Video from channel “{{name}}”",
       placeholder: "What's new?",
       post: "Post",
       video: "Video",

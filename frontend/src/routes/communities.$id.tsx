@@ -1480,7 +1480,6 @@ function CommunityDetailPage() {
                 <CreatePostRow
                   me={me}
                   onSelectKind={() => requirePremium(() => setCreatePostOpen(true))}
-                  onCompose={() => requirePremium(() => setCreatePostOpen(true))}
                 />
               </div>
             )}
