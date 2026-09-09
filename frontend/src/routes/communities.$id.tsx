@@ -1379,7 +1379,6 @@ function CommunityDetailPage() {
           <EntityHeader
             coverUrl={community.coverImage}
             avatarUrl={community.avatarImage}
-            avatarFallback={<Icon size={30} />}
             name={community.name}
             badges={
               <>

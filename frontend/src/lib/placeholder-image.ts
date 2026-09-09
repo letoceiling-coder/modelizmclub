@@ -28,12 +28,13 @@ function hashSeed(seed: string | number): number {
  *
  * Раньше на этом месте была ровная заливка в 80 px — читалась как забытое
  * место, а не как решение. Здесь тот же приём, что у карточек объявлений:
- * детерминированный градиент из имени, без сетевых запросов. Плюс первая
- * буква водяным знаком.
+ * детерминированный градиент из имени, без сетевых запросов.
  *
- * Буква сдвинута вправо от центра: слева внизу на полосу заходит аватар, и
- * по центру они бы наложились. Прозрачность низкая — это фон, а не заголовок,
- * название и так стоит рядом.
+ * Буква была ростом в 210 при высоте блока 200 — то есть выше самого блока,
+ * обрезанная сверху и снизу. Такое читается не как оформление, а как
+ * сломавшаяся картинка. Теперь она 15% высоты, в правом нижнем углу и с
+ * непрозрачностью 8%: подпись на фоне, а не заголовок. Слева внизу на
+ * обложку заходит аватар — там буква и раньше стояла бы поперёк него.
  */
 export function coverPlaceholder(name: string): string {
   const h = hashSeed(name);
@@ -49,8 +50,8 @@ export function coverPlaceholder(name: string): string {
     `<stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>` +
     `</linearGradient></defs>` +
     `<rect width="1200" height="200" fill="url(#g)"/>` +
-    `<text x="760" y="182" font-family="system-ui,sans-serif" font-size="210" font-weight="800" ` +
-    `fill="rgba(255,255,255,0.10)" text-anchor="middle">${letter}</text>` +
+    `<text x="1164" y="176" font-family="system-ui,sans-serif" font-size="30" font-weight="800" ` +
+    `fill="rgba(255,255,255,0.08)" text-anchor="end">${letter}</text>` +
     `</svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
