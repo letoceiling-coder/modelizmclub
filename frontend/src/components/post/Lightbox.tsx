@@ -11,13 +11,23 @@ import { createPortal } from "react-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { FeedVideo } from "@/components/media/FeedVideo";
+import type { VideoDelivery } from "@/lib/media/variants";
+
+/**
+ * Слайд просмотрщика. Видео здесь наравне с фотографией: запись, у которой
+ * есть только видео, иначе открывалась без левой колонки вовсе.
+ */
+export type ViewerSlide =
+  | { type: "image"; url: string }
+  | { type: "video"; url: string; video?: VideoDelivery; width?: number; height?: number };
 
 interface Props {
   /**
-   * Фотографии записи. Пустой список — законное состояние: запись без медиа
+   * Медиа записи. Пустой список — законное состояние: запись без медиа
    * тоже открывается в просмотрщике, только без левой колонки.
    */
-  images: string[];
+  slides: ViewerSlide[];
   startIndex?: number;
   alt?: string;
   onClose: () => void;
@@ -71,8 +81,8 @@ const CONTROL_BG = { background: "rgba(255,255,255,0.14)" } as const;
  * ancestor clips it. Closes on Escape, the backdrop, or the ✕; arrows and
  * ←/→ move between images; on touch the strip itself swipes (embla).
  */
-export function Lightbox({ images, startIndex = 0, alt = "", onClose, aside }: Props) {
-  const [viewportRef, embla] = useEmblaCarousel({ loop: images.length > 1, startIndex });
+export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: Props) {
+  const [viewportRef, embla] = useEmblaCarousel({ loop: slides.length > 1, startIndex });
   const [selected, setSelected] = useState(startIndex);
   // Vertical drag-to-dismiss. Embla owns the horizontal axis (swiping between
   // photos), so this only reacts once the gesture is clearly vertical, and it
@@ -135,12 +145,12 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose, aside }: P
 
   if (typeof document === "undefined") return null;
   // Ни фотографий, ни панели — показывать нечего.
-  if (images.length === 0 && !aside) return null;
+  if (slides.length === 0 && !aside) return null;
 
   // Запись без медиа: левой колонки нет, и окно сужается до одной панели.
   // Оставить его в 1200 значило бы растянуть колонку комментариев вдвое от
   // той ширины, под которую она набрана.
-  const mediaOnly = images.length > 0;
+  const mediaOnly = slides.length > 0;
 
   return createPortal(
     <div
@@ -181,27 +191,33 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose, aside }: P
             }`}
             style={{ background: "rgba(0,0,0,0.92)" }}
           >
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Закрыть"
-              /*
-            Когда панель есть, крестик живёт в её шапке — там же, где он у VK,
-            и на любой ширине: панель показывается и на узком экране, снизу.
-            Второй крестик поверх фотографии был бы дублем. Без панели этот
-            остаётся единственным.
-          */
-              className={`${CONTROL} h-[44px] w-[44px] ${aside ? "hidden" : ""}`}
-              style={{
-                ...CONTROL_BG,
-                top: "max(12px, env(safe-area-inset-top))",
-                right: "max(12px, env(safe-area-inset-right))",
-              }}
-            >
-              <X className="h-[20px] w-[20px]" />
-            </button>
+            {/*
+              Когда панель есть, крестик живёт в её шапке — там же, где он у
+              VK, и на любой ширине: панель показывается и на узком экране,
+              снизу. Второй крестик поверх фотографии был бы дублем.
 
-            {images.length > 1 && (
+              Раньше он и был — просто спрятанный классом `hidden`. В разметке
+              оставались две кнопки «Закрыть», обе доступные поиску по
+              странице и обе видимые в дереве доступности до того, как стили
+              приедут. Прятать — не то же самое, что не рисовать.
+            */}
+            {!aside && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Закрыть"
+                className={`${CONTROL} h-[44px] w-[44px]`}
+                style={{
+                  ...CONTROL_BG,
+                  top: "max(12px, env(safe-area-inset-top))",
+                  right: "max(12px, env(safe-area-inset-right))",
+                }}
+              >
+                <X className="h-[20px] w-[20px]" />
+              </button>
+            )}
+
+            {slides.length > 1 && (
               <div
                 className="absolute left-1/2 z-[2] -translate-x-1/2 rounded-full px-[12px] py-[5px] text-[13px] font-medium text-white"
                 style={{
@@ -209,7 +225,7 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose, aside }: P
                   top: "max(20px, env(safe-area-inset-top))",
                 }}
               >
-                {selected + 1} / {images.length}
+                {selected + 1} / {slides.length}
               </div>
             )}
 
@@ -232,28 +248,43 @@ export function Lightbox({ images, startIndex = 0, alt = "", onClose, aside }: P
               }}
             >
               <div className="flex h-full">
-                {images.map((src, i) => (
+                {slides.map((slide, i) => (
                   <div
-                    key={`${src}-${i}`}
+                    key={`${slide.url}-${i}`}
                     className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]"
                   >
-                    <img
-                      src={src}
-                      width={1600}
-                      height={1200}
-                      loading={i === startIndex ? "eager" : "lazy"}
-                      decoding="async"
-                      alt={images.length > 1 ? `${alt} — фото ${i + 1}` : alt}
-                      className="max-h-full max-w-full object-contain"
-                      style={{ borderRadius: 4 }}
-                      draggable={false}
-                    />
+                    {slide.type === "video" ? (
+                      /* Тот же проигрыватель, что в ленте: он сам держит
+                         постер до нажатия и не тянет байты заранее. */
+                      <div className="flex h-full w-full items-center justify-center">
+                        <FeedVideo
+                          src={slide.url}
+                          video={slide.video}
+                          width={slide.width}
+                          height={slide.height}
+                          alt={slides.length > 1 ? `${alt} — видео ${i + 1}` : alt}
+                          priority={i === startIndex}
+                        />
+                      </div>
+                    ) : (
+                      <img
+                        src={slide.url}
+                        width={1600}
+                        height={1200}
+                        loading={i === startIndex ? "eager" : "lazy"}
+                        decoding="async"
+                        alt={slides.length > 1 ? `${alt} — фото ${i + 1}` : alt}
+                        className="max-h-full max-w-full object-contain"
+                        style={{ borderRadius: 4 }}
+                        draggable={false}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
             </div>
 
-            {images.length > 1 && (
+            {slides.length > 1 && (
               <>
                 <button
                   type="button"

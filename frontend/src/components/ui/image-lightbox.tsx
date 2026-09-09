@@ -10,5 +10,5 @@ export function ImageLightbox({
   alt?: string;
   onClose: () => void;
 }) {
-  return <Lightbox images={[src]} alt={alt} onClose={onClose} />;
+  return <Lightbox slides={[{ type: "image", url: src }]} alt={alt} onClose={onClose} />;
 }

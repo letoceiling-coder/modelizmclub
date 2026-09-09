@@ -29,6 +29,7 @@ import type { Category, CategoryChild, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { toast } from "@/lib/toast";
+import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
@@ -743,25 +744,7 @@ function ChatTab({
     setActiveMatch(0);
   }, [category.id, subId]);
 
-  const insertEmoji = useCallback(
-    (emoji: string) => {
-      const el = composerRef.current;
-      if (!el) {
-        setText((prev) => prev + emoji);
-        return;
-      }
-      const start = el.selectionStart ?? text.length;
-      const end = el.selectionEnd ?? text.length;
-      const next = text.slice(0, start) + emoji + text.slice(end);
-      setText(next);
-      requestAnimationFrame(() => {
-        el.focus();
-        const pos = start + emoji.length;
-        el.setSelectionRange(pos, pos);
-      });
-    },
-    [text],
-  );
+  const insertEmoji = useInsertAtCaret(composerRef, text, setText);
 
   const trimmedQuery = query.trim();
   const matchIds = useMemo(() => {

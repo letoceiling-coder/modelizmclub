@@ -201,17 +201,6 @@ function SingleMedia({
 }
 
 /** Mixed image/video carousel for feed and channel posts. */
-/**
- * Адреса снимков карусели для просмотрщика, в порядке их номеров. Видео
- * пропускаются: просмотрщик показывает только фотографии, и номер, который
- * приходит из `onOpenViewer`, считается по этому же списку.
- */
-export function carouselViewerUrls(items: MediaCarouselItem[]): string[] {
-  return items
-    .filter((item) => item.type === "image")
-    .map((item) => displaySrc({ url: item.url, variants: item.variants ?? undefined }, "large"));
-}
-
 export function PostMediaCarousel({
   items,
   alt,
@@ -226,9 +215,6 @@ export function PostMediaCarousel({
 }) {
   const [viewportRef, embla] = useEmblaCarousel({ loop: items.length > 1 });
   const [selected, setSelected] = useState(0);
-
-  let imageCounter = 0;
-  const imageIndexBySlide = items.map((item) => (item.type === "image" ? imageCounter++ : -1));
 
   const currentAspect = useSlideAspect(items[selected] ?? items[0]);
 
@@ -294,10 +280,10 @@ export function PostMediaCarousel({
                     width={item.width}
                     height={item.height}
                     priority={priority && i === 0}
-                    onClick={() => {
-                      const idx = imageIndexBySlide[i];
-                      if (idx >= 0) onOpenViewer?.(idx);
-                    }}
+                    /* Номер слайда, а не номер фотографии среди фотографий:
+                       просмотрщик показывает и видео, и нумерация у него
+                       теперь сплошная. */
+                    onClick={() => onOpenViewer?.(i)}
                   />
                 )}
               </div>

@@ -1,8 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import type { Post, PostMediaItem } from "@/lib/mock";
-import { PostMediaCarousel, carouselViewerUrls } from "@/components/feed/PostMediaCarousel";
-import { FeedMediaGrid, viewerUrls } from "@/components/feed/FeedMediaGrid";
+import { PostMediaCarousel } from "@/components/feed/PostMediaCarousel";
+import { FeedMediaGrid } from "@/components/feed/FeedMediaGrid";
+import { displaySrc } from "@/lib/media/variants";
+import type { ViewerSlide } from "@/components/post/Lightbox";
 
 /** Media block: VK grid for images-only; carousel when video is present. */
 function VideoProcessingFrame({ failed }: { failed: boolean }) {
@@ -49,18 +51,32 @@ export function postMediaItems(post: Post): PostMediaItem[] {
 }
 
 /**
- * Адреса снимков записи для просмотрщика — ровно в том порядке, в котором
- * их нумерует показывающий компонент: карусель, когда есть видео, и сетка
- * во всех остальных случаях.
+ * Медиа записи для просмотрщика — в том же порядке, в каком их нумерует
+ * показывающий компонент.
+ *
+ * Раньше здесь оставались одни фотографии, а видео отбрасывалось. У записи
+ * с одним лишь видео список выходил пустым, и просмотрщик открывался без
+ * левой колонки вовсе: панель комментариев на 640 и чёрное ничто вместо
+ * записи. Нашлось 09.09 на боевой записи с разбором Т-18.
+ *
+ * Видео теперь занимает своё место в ряду, поэтому и нумерация слайдов
+ * стала сплошной: номер из `onOpenViewer` указывает на элемент этого
+ * списка, а не на «фотографию номер N среди фотографий».
  */
-export function postViewerImages(post: Post): string[] {
-  const items = postMediaItems(post);
-  if (items.length === 0) return [];
-  if (items.some((item) => item.type === "video")) return carouselViewerUrls(items);
-  return viewerUrls(
-    items
-      .filter((item) => item.type === "image")
-      .map((item) => ({ url: item.url, variants: item.variants })),
+export function postViewerSlides(post: Post): ViewerSlide[] {
+  return postMediaItems(post).map((item) =>
+    item.type === "video"
+      ? {
+          type: "video" as const,
+          url: item.url,
+          video: item.video,
+          width: item.width,
+          height: item.height,
+        }
+      : {
+          type: "image" as const,
+          url: displaySrc({ url: item.url, variants: item.variants ?? undefined }, "large"),
+        },
   );
 }
 
