@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ru } from "@/lib/i18n/locales/ru";
-import { en } from "@/lib/i18n/locales/en";
-import { zh } from "@/lib/i18n/locales/zh";
 import type { GateWindow } from "./levels";
 import type { Session } from "@/lib/session";
 import type { User } from "@/lib/mock";
@@ -206,13 +204,11 @@ describe("окно каждого уровня говорит свою прич�
     expect(new Set(titles).size).toBe(3);
   });
 
-  it("en и zh несут те же ключи", () => {
-    for (const loc of [en, zh]) {
-      for (const level of ["auth", "verify", "paywall"] as const) {
-        expect(loc.gate[level].title).toBeTruthy();
-        expect(loc.gate[level].description).toBeTruthy();
-        expect(loc.gate[level].submit).toBeTruthy();
-      }
+  it("у каждой ступени заполнены все три подписи", () => {
+    for (const level of ["auth", "verify", "paywall"] as const) {
+      expect(ru.gate[level].title).toBeTruthy();
+      expect(ru.gate[level].description).toBeTruthy();
+      expect(ru.gate[level].submit).toBeTruthy();
     }
   });
 });

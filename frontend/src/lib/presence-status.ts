@@ -48,12 +48,11 @@ function pluralWeeksKey(
 }
 
 function localeTag(): string {
-  return i18n.language === "zh" ? "zh-CN" : i18n.language === "en" ? "en-US" : "ru-RU";
+  return "ru-RU";
 }
 
 function formatClock(d: Date): string {
-  const locale = i18n.language === "zh" ? "zh-CN" : i18n.language === "en" ? "en-US" : "ru-RU";
-  return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
 
 function startOfDay(d: Date): Date {

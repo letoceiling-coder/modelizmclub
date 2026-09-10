@@ -1,56 +1,20 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
 
-import i18n, { LANG_KEY, setLocale } from "@/lib/i18n";
-
-const FADE_MS = 160;
-
-export { FADE_MS };
+import i18n from "@/lib/i18n";
 
 /**
- * Brief opacity dip on `languageChanged` so switching languages fades the
- * page content instead of snapping to the new text instantly. Intentionally
- * scoped to page content only (see __root.tsx) — overlays like toasts/call
- * screens must stay unaffected.
+ * Подключает i18next к дереву React. Больше он ничего не делает.
+ *
+ * Раньше здесь при каждом запуске выставлялся русский и стирался ключ
+ * `mc_lang` — обход того, что словари английского и китайского существовали,
+ * но были недопереведены. Языков теперь один, обходить нечего: `lng` задан
+ * при инициализации, `<html lang="ru">` стоит в разметке статически.
+ *
+ * Вместе с переключением ушло и затухание содержимого на `languageChanged`:
+ * событие, которому больше нечем сработать, а обёртка вокруг `<Outlet>` ради
+ * него оставалась в каждом кадре.
  */
-export function useLocaleFade(): boolean {
-  const [fading, setFading] = useState(false);
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const handler = () => {
-      setFading(true);
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => setFading(false), FADE_MS);
-    };
-    i18n.on("languageChanged", handler);
-    return () => {
-      i18n.off("languageChanged", handler);
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
-  return fading;
-}
-
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (i18n.language !== "ru") {
-      setLocale("ru");
-    } else if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("lang", "ru");
-    }
-    try {
-      window.localStorage.removeItem(LANG_KEY);
-    } catch {
-      /* ignore */
-    }
-    setReady(true);
-  }, []);
-
-  // `ready` only forces a re-render once the stored locale is applied; the tree
-  // still renders immediately in Russian for SSR/first paint.
-  void ready;
-
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
 }

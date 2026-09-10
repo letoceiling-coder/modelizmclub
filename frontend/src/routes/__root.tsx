@@ -11,7 +11,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
 import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
-import { I18nProvider, FADE_MS, useLocaleFade } from "@/components/I18nProvider";
+import { I18nProvider } from "@/components/I18nProvider";
 import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
 import { GateHost } from "@/lib/gate";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
@@ -201,20 +201,6 @@ function useBottomToastOffset(): number {
   return offset;
 }
 
-function FadingOutlet() {
-  const fading = useLocaleFade();
-  return (
-    <div
-      style={{
-        opacity: fading ? 0.82 : 1,
-        transition: `opacity ${FADE_MS}ms ease`,
-      }}
-    >
-      <Outlet />
-    </div>
-  );
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { bootstrap } = Route.useLoaderData();
@@ -246,7 +232,7 @@ function RootComponent() {
           <GuestAccessProvider>
             <RouteAccessEnforcer />
             <AskHost />
-            <FadingOutlet />
+            <Outlet />
             <GateHost />
           </GuestAccessProvider>
           <CallScreen />

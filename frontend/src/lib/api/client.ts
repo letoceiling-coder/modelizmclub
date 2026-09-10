@@ -20,9 +20,6 @@ export const API_ORIGIN: string = (() => {
 })();
 
 const TOKEN_KEY = "mc_token";
-const LANG_KEY = "mc_lang";
-
-export type Locale = "ru" | "en" | "zh";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -59,14 +56,16 @@ export function setToken(token: string | null, remember = true): void {
   }
 }
 
-export function getLocale(): Locale {
-  if (typeof window === "undefined") return "ru";
-  try {
-    const v = window.localStorage.getItem(LANG_KEY);
-    return v === "en" || v === "zh" ? v : "ru";
-  } catch {
-    return "ru";
-  }
+/**
+ * Язык запроса. Интерфейс на русском, выбора нет — значит и заголовок
+ * постоянный.
+ *
+ * Раньше значение читалось из `mc_lang`, но записать туда что-либо было
+ * некому: переключатель отсутствовал, а провайдер ключ ещё и стирал при
+ * запуске. То есть функция обходила localStorage, чтобы всегда вернуть «ru».
+ */
+export function getLocale(): "ru" {
+  return "ru";
 }
 
 export class ApiError extends Error {
