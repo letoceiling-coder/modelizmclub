@@ -81,6 +81,85 @@ class ReconcilePendingPaymentsTest extends TestCase
         });
     }
 
+    /** Ответ ЮKassa по номеру платежа. */
+    private function yooKassaSays(array $byPaymentId): void
+    {
+        config(['billing.yookassa.shop_id' => '1', 'billing.yookassa.secret_key' => 'k']);
+        config(['billing.yookassa.api_url' => 'https://yookassa.test/v3']);
+
+        Http::fake(function ($request) use ($byPaymentId) {
+            $id = basename((string) parse_url((string) $request->url(), PHP_URL_PATH));
+
+            return array_key_exists($id, $byPaymentId)
+                ? Http::response($byPaymentId[$id])
+                : Http::response(['description' => 'Not found'], 404);
+        });
+    }
+
+    public function test_yookassa_cancelled_payment_is_closed(): void
+    {
+        $user = $this->seedUser();
+        $p = $this->pending($user, 'yk-cancelled', 30, 'yookassa');
+        $this->yooKassaSays(['yk-cancelled' => ['id' => 'yk-cancelled', 'status' => 'canceled', 'paid' => false]]);
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0')
+            ->expectsOutputToContain('отменён банком')
+            ->assertSuccessful();
+
+        $this->assertSame('failed', $p->fresh()->status);
+    }
+
+    public function test_yookassa_succeeded_payment_is_fulfilled(): void
+    {
+        $user = $this->seedUser();
+        $p = $this->pending($user, 'yk-paid', 30, 'yookassa');
+        $this->yooKassaSays(['yk-paid' => ['id' => 'yk-paid', 'status' => 'succeeded', 'paid' => true]]);
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0')
+            ->expectsOutputToContain('оплачен банком')
+            ->assertSuccessful();
+
+        $this->assertSame('paid', $p->fresh()->status);
+    }
+
+    /**
+     * Открытый и удержанный не трогаем: первый человек ещё может довести,
+     * второй — решение о захвате, а не предмет сверки.
+     */
+    public function test_yookassa_open_and_held_payments_are_left_alone(): void
+    {
+        $user = $this->seedUser();
+        $open = $this->pending($user, 'yk-open', 30, 'yookassa');
+        $held = $this->pending($user, 'yk-held', 30, 'yookassa');
+        $this->yooKassaSays([
+            'yk-open' => ['id' => 'yk-open', 'status' => 'pending', 'paid' => false],
+            'yk-held' => ['id' => 'yk-held', 'status' => 'waiting_for_capture', 'paid' => false],
+        ]);
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0')->assertSuccessful();
+
+        $this->assertSame('pending', $open->fresh()->status);
+        $this->assertSame('pending', $held->fresh()->status);
+    }
+
+    /**
+     * Отказ ЮKassa — не приговор платежу. Клиент бросает одно исключение на
+     * все коды, и закрыть по нему значило бы похоронить оплату из-за своего
+     * же сбоя.
+     */
+    public function test_yookassa_failure_leaves_the_payment_alone(): void
+    {
+        $user = $this->seedUser();
+        $p = $this->pending($user, 'yk-unknown', 30, 'yookassa');
+        $this->yooKassaSays([]);
+
+        $this->artisan('payments:reconcile-pending --apply --delay-ms=0')
+            ->expectsOutputToContain('опросить не удалось')
+            ->assertSuccessful();
+
+        $this->assertSame('pending', $p->fresh()->status);
+    }
+
     public function test_without_apply_nothing_changes(): void
     {
         $user = $this->seedUser();
