@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Modules\Catalog\Services\CatalogService;
 
 /**
  * Убирает из каталога объявлений две категории, оставшиеся от смоук-тестов
@@ -53,6 +54,16 @@ return new class extends Migration
         }
 
         DB::table('listing_categories')->whereIn('id', $ids)->delete();
+
+        /*
+         * Дерево справочников лежит в кеше, и удаление строк само по себе
+         * приложению не видно. Проверено на проде 11.09: после миграции в
+         * базе осталось ноль строк с `escrow`, а API ещё отдавал двенадцать
+         * узлов верхнего уровня вместо десяти — обе тестовые категории на
+         * месте. Правка данных мимо админки обязана сбрасывать тот же кеш,
+         * что сбрасывает админка, иначе она наполовину не состоялась.
+         */
+        CatalogService::flushCache();
     }
 
     public function down(): void
