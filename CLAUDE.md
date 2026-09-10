@@ -136,6 +136,31 @@ git branch -d <ветка>                           # ветка сама не 
 лежат чужие незакоммиченные правки — не коммитить вообще, а завести своё
 дерево.
 
+### Своё дерево — своя тестовая база
+
+`phpunit.xml` называет базу `modelizmclub_test`, и до 10.09 `TestCase`
+требовал ровно это имя. Значит два прогона из двух деревьев делили одну
+базу и роняли друг другу схему на `migrate:fresh`. Выглядело это не как
+гонка, а как поломка кода: `relation "migrations" does not exist`,
+`relation "users" already exists`, `duplicate key value violates unique
+constraint "pg_type_typname_nsp_index"`.
+
+Теперь проверка смотрит на префикс, и имя задаётся переменной. Рецепт
+печатает `worktree.sh new` при создании дерева:
+
+```bash
+DB_NAME=modelizmclub_test_<дерево> bash deploy/scripts/setup-test-db.sh
+DB_DATABASE=modelizmclub_test_<дерево> php artisan test
+```
+
+Переменная оболочки перебивает `phpunit.xml` — проверено; `<env>` там без
+`force` и существующее значение не трогает. Защита от прогона по боевой
+базе на месте: `modelizmclub` под префикс `modelizmclub_test` не подходит.
+
+Если прогон всё же столкнулся с чужим: гасить надо по `phpunit`, а не по
+`artisan test` — работает именно он, и `pkill -f "artisan test"` его не
+трогает.
+
 ### `git add -A` запрещён
 
 Всегда. Только явные пути:

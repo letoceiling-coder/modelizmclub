@@ -75,9 +75,18 @@ cmd_new() {
     fi
   fi
 
+  # Имя тестовой базы для этого дерева. Одна база на все деревья означала,
+  # что два прогона роняют друг другу схему; проверка в tests/TestCase.php
+  # теперь смотрит на префикс, и своё имя достаточно назвать.
+  local db="modelizmclub_test_$(echo "${dir##*/}" | tr '[:upper:]-' '[:lower:]_' | tr -cd 'a-z0-9_')"
+
   echo
   echo "готово: ${dir}   ветка ${branch}   база origin/master"
   echo "  cd ${dir}"
+  echo
+  echo "своя тестовая база (иначе прогоны двух деревьев столкнутся):"
+  echo "  DB_NAME=${db} bash deploy/scripts/setup-test-db.sh"
+  echo "  DB_DATABASE=${db} php artisan test"
 }
 
 cmd_list() {
