@@ -42,7 +42,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { PlanTermSelector } from "@/components/subscription/PlanTermSelector";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import type { Ad } from "@/lib/mock";
-import cover from "@/assets/cover-modelizm.jpg";
+import { HERO_COVER } from "@/lib/hero-cover";
 import { FooterContactsBlock } from "@/components/layout/FooterContactsBlock";
 import { FirstHundredBanner } from "@/components/FirstHundredBanner";
 import { useFooterContacts } from "@/lib/hooks/useFooterContacts";
@@ -58,6 +58,7 @@ import { usePostCategoriesState } from "@/lib/hooks/useCategories";
 
 import i18n from "@/lib/i18n";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
+import { derivedSrcSet, variantUrl } from "@/lib/media/variants";
 
 const POPULAR_SLOTS = 12;
 
@@ -462,7 +463,7 @@ function Hero() {
         {showVideo ? (
           <video
             ref={videoRef}
-            poster={cover}
+            poster={HERO_COVER.src}
             autoPlay
             muted
             loop
@@ -476,9 +477,11 @@ function Hero() {
           </video>
         ) : (
           <img
-            src={cover}
-            width={1920}
-            height={1080}
+            src={HERO_COVER.src}
+            srcSet={HERO_COVER.srcSet}
+            sizes={HERO_COVER.sizes}
+            width={HERO_COVER.width}
+            height={HERO_COVER.height}
             loading="eager"
             fetchPriority="high"
             decoding="async"
@@ -1007,8 +1010,21 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
         }}
       >
         {hasImages && !imgErrors[hovIdx] ? (
+          /*
+           * Вариант, а не оригинал. Карточка — полоса 150 px высотой и не
+           * шире 300 px на телефоне, а `ad.gallery` приходит голыми адресами
+           * медиа-прокси, то есть исходниками. Замер главной 11.09: четыре
+           * такие картинки весили 1 444 КБ из 2 091 КБ страницы, крупнейшая
+           * — 702 КБ на полосу в 150 пикселей. Те же кадры в `card` весят
+           * 72, 56, 20 и 65 КБ.
+           *
+           * `variantUrl` безопасен на любом адресе: у медиа без вариантов
+           * прокси отдаёт оригинал, у не-медиа адрес возвращается как есть.
+           */
           <img
-            src={gallery[hovIdx]}
+            src={variantUrl(gallery[hovIdx], "card")}
+            srcSet={derivedSrcSet(gallery[hovIdx], ["thumb", "card"])}
+            sizes="(max-width: 640px) 80vw, 300px"
             width={800}
             height={600}
             decoding="async"
