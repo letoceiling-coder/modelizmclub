@@ -131,7 +131,7 @@ php artisan media:rebuild-videos --limit=5 --force  # переснять уже 
 На сервере под root (один раз):
 
 ```bash
-bash /var/www/modelizmclub/deploy/setup/server-setup.sh
+bash /var/www/modelizmclub/deploy/scripts/server-setup.sh
 ```
 
 Скрипт устанавливает пакеты, создаёт БД, клонирует репозиторий, настраивает nginx и SSL.
@@ -145,7 +145,7 @@ bash /var/www/modelizmclub/deploy/scripts/deploy-dev.sh
 После деплоя с поддержкой загрузки обзоров (видео до 200 МБ) — один раз:
 
 ```bash
-bash /var/www/modelizmclub/deploy/setup/setup-upload-limits.sh
+bash /var/www/modelizmclub/deploy/scripts/setup-upload-limits.sh
 ```
 
 Скрипт поднимает `upload_max_filesize` / `post_max_size` в PHP-FPM и `client_max_body_size` в nginx.
@@ -173,7 +173,7 @@ UI живёт в этом же репозитории, в каталоге `fron
 Первичная настройка (один раз, **не затрагивает** dev API и другие vhost):
 
 ```bash
-bash /var/www/modelizmclub/deploy/setup/setup-frontend-vps.sh
+bash /var/www/modelizmclub/deploy/scripts/setup-frontend-vps.sh
 ```
 
 ### Обновление после push

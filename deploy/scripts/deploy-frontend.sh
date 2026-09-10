@@ -52,7 +52,7 @@ git -c safe.directory="${APP_DIR}" pull origin master
 cd "${FRONTEND_DIR}"
 
 if ! command -v bun >/dev/null 2>&1; then
-  echo "bun not found — run deploy/setup/setup-frontend-vps.sh first" >&2
+  echo "bun not found — run deploy/scripts/setup-frontend-vps.sh first" >&2
   exit 1
 fi
 
