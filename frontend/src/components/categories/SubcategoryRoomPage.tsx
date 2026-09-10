@@ -239,19 +239,27 @@ function flattenRooms(nodes: CategoryChild[], depth = 0): { node: CategoryChild;
 function findRoom(
   categories: Category[],
   key: string,
-): { parent: Category; node: CategoryChild } | null {
-  const deep = (nodes: CategoryChild[]): CategoryChild | null => {
+): { parent: Category; node: CategoryChild; trail: CategoryChild[] } | null {
+  /*
+   * `trail` — предки узла внутри направления, от верхнего к ближайшему.
+   * Нужен крошкам: с третьим уровнем цепочка «Направления → Авиация → ИЛ-6»
+   * теряет середину, а человек по ней и возвращается в «Планеры».
+   */
+  const deep = (
+    nodes: CategoryChild[],
+    trail: CategoryChild[],
+  ): { node: CategoryChild; trail: CategoryChild[] } | null => {
     for (const node of nodes) {
-      if (node.slug === key || node.id === key) return node;
-      const nested = node.children ? deep(node.children) : null;
+      if (node.slug === key || node.id === key) return { node, trail };
+      const nested = node.children ? deep(node.children, [...trail, node]) : null;
       if (nested) return nested;
     }
     return null;
   };
 
   for (const parent of categories) {
-    const node = deep(parent.subcategories);
-    if (node) return { parent, node };
+    const found = deep(parent.subcategories, []);
+    if (found) return { parent, node: found.node, trail: found.trail };
   }
 
   return null;
@@ -360,6 +368,12 @@ export function SubcategoryRoomPage({
           items={[
             { label: t("pages.subcategoryDetail.breadcrumbs"), to: "/categories" },
             { label: c.name, to: "/categories/$id", params: { id: c.slug ?? c.id } },
+            // Промежуточные уровни: «Планеры» между «Авиацией» и «ИЛ-6».
+            ...(room?.trail ?? []).map((step) => ({
+              label: step.name,
+              to: "/categories/$id" as const,
+              params: { id: step.slug ?? step.id },
+            })),
             { label: sub.name },
           ]}
         />

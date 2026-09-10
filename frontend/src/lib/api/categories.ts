@@ -198,21 +198,67 @@ export async function fetchListingCategories(): Promise<Category[]> {
  * Дерево двухуровневое, поэтому ответ плоский: узел найдётся и на верхнем
  * уровне, и среди детей, и вызывающему не нужно знать, где именно.
  */
-export async function resolveCategory(
-  key: string,
-): Promise<{ id: string; slug: string; name: string; parentSlug: string | null } | null> {
+export interface ResolvedCategory {
+  id: string;
+  slug: string;
+  name: string;
+  /** Прямой родитель. null у направления верхнего уровня. */
+  parentSlug: string | null;
+  /** Цепочка от корня до узла включительно — для хлебных крошек. */
+  chain: { id: string; slug: string; name: string }[];
+}
+
+export async function resolveCategory(key: string): Promise<ResolvedCategory | null> {
   const categories = await fetchPostCategories();
+
+  /*
+   * Обход любой глубины, а не двух уровней.
+   *
+   * До 10.09 функция перебирала верхний уровень и его детей и на этом
+   * останавливалась: дерево держали плоским нарочно. С возвращением третьего
+   * уровня («Авиация → Планеры → ИЛ-6») такой перебор перестал находить
+   * узел — а от него зависят переадресация с числового адреса и заголовок
+   * вкладки. Адрес при этом односегментный, и глубина в нём не выражена:
+   * узел опознаётся слугом, который с этой же ветки уникален во всём дереве
+   * (миграция `make_category_slugs_globally_unique`).
+   */
+  const walk = (
+    nodes: { id: string; slug?: string; name: string; children?: unknown }[],
+    trail: { id: string; slug: string; name: string }[],
+  ): ResolvedCategory | null => {
+    for (const node of nodes) {
+      const slug = node.slug ?? node.id;
+      const chain = [...trail, { id: node.id, slug, name: node.name }];
+
+      if (slug === key || node.id === key) {
+        return {
+          id: node.id,
+          slug,
+          name: node.name,
+          parentSlug: trail.length > 0 ? trail[trail.length - 1].slug : null,
+          chain,
+        };
+      }
+
+      const children = (node as { children?: typeof nodes }).children ?? [];
+      const found = walk(children, chain);
+      if (found) return found;
+    }
+
+    return null;
+  };
+
   for (const top of categories) {
     const topSlug = top.slug ?? top.id;
+    const root = { id: top.id, slug: topSlug, name: top.name };
+
     if (topSlug === key || top.id === key) {
-      return { id: top.id, slug: topSlug, name: top.name, parentSlug: null };
+      return { id: top.id, slug: topSlug, name: top.name, parentSlug: null, chain: [root] };
     }
-    for (const child of top.subcategories) {
-      const childSlug = child.slug ?? child.id;
-      if (childSlug === key || child.id === key) {
-        return { id: child.id, slug: childSlug, name: child.name, parentSlug: topSlug };
-      }
-    }
+
+    const found = walk(top.subcategories, [root]);
+    if (found) return found;
   }
+
   return null;
 }

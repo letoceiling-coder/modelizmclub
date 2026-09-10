@@ -245,12 +245,26 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
     );
   }
 
+  /*
+   * Отступ считается от уровня, а не «первый — остальные».
+   *
+   * До 10.09 всё глубже первого уровня получало один и тот же `ml-[36px]`:
+   * дерево было плоским, глубже второго уровня ничего не было, и разница
+   * не требовалась. С возвращением третьего уровня («Авиация → Планеры →
+   * ИЛ-6») одинаковый отступ склеил бы второй уровень с третьим — вложение
+   * перестало бы читаться. Шестнадцать на уровень: столько же, сколько
+   * между строкой и её значком, и вложенность видна без линейки.
+   */
+  const INDENT_PER_LEVEL = 16;
+
   const renderNodes = (nodes: RailNode[], depth: number) => (
     <ul
-      className={
-        depth === 0 ? "p-[6px]" : "mb-[4px] ml-[36px] mt-[2px] space-y-[1px] border-l pl-[10px]"
+      className={depth === 0 ? "p-[6px]" : "mb-[4px] mt-[2px] space-y-[1px] border-l pl-[10px]"}
+      style={
+        depth === 0
+          ? undefined
+          : { borderColor: "var(--border)", marginLeft: 20 + depth * INDENT_PER_LEVEL }
       }
-      style={depth === 0 ? undefined : { borderColor: "var(--border)" }}
     >
       {nodes.map((node) => {
         const open = Boolean(openIds[node.id]);
