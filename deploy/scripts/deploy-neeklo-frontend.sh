@@ -5,8 +5,29 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/var/www/modelizmclub-neeklo}"
 FRONTEND_DIR="${APP_DIR}/frontend"
 API_DOMAIN="${NEEKLO_API_DOMAIN:-neeklo-api.modelizmclub.ru}"
+GIT_BRANCH="${NEEKLO_GIT_BRANCH:-neeklo}"
 
 cd "${APP_DIR}"
+
+# Подтянуть код перед сборкой.
+#
+# До этого скрипт собирал то, что уже лежало в чекауте, и никогда не делал
+# `git pull` — его делал только бэкендовый `deploy-neeklo.sh`. Выкатка
+# правки фронта после пуша молча пересобирала **старый** код: сборка
+# проходила, служба поднималась, всё рапортовало «OK», а сайт не менялся.
+# 13.07 на этом потеряли час: правка была запушена, скрипт отработал
+# успешно, страница падала с той же ошибкой и с тем же хешем чанка, что и
+# до починки.
+#
+# Ветка та же, что у бэкендового скрипта, и переменная та же — иначе два
+# скрипта одного стенда собирали бы разный код.
+if git show-ref --verify --quiet "refs/remotes/origin/${GIT_BRANCH}"; then
+  git checkout "${GIT_BRANCH}"
+  git pull origin "${GIT_BRANCH}"
+else
+  echo "Ветки origin/${GIT_BRANCH} нет — остаюсь на $(git branch --show-current)" >&2
+  git pull origin master || true
+fi
 
 if ! command -v bun >/dev/null 2>&1; then
   echo "bun not found — install via setup-frontend-vps.sh" >&2

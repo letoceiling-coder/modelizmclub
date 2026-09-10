@@ -10,7 +10,21 @@ use Illuminate\Support\Str;
 
 abstract class TestCase extends BaseTestCase
 {
-    private const TEST_DATABASE = 'modelizmclub_test';
+    /**
+     * Имя тестовой базы начинается с этого, а не равно ему.
+     *
+     * Жёсткое равенство означало одну базу на все рабочие деревья: два
+     * прогона роняли друг другу схему, и выглядело это не как гонка, а как
+     * поломка кода — `relation "migrations" does not exist`, `relation
+     * "users" already exists`, `duplicate key value violates unique
+     * constraint "pg_type_typname_nsp_index"`. Последнее — верный признак
+     * двух одновременных `migrate:fresh`.
+     *
+     * Префикс оставляет защиту на месте: боевая база называется
+     * `modelizmclub` и под него не подходит. А `modelizmclub_test_<дерево>`
+     * подходит, и деревья перестают мешать друг другу.
+     */
+    private const TEST_DATABASE_PREFIX = 'modelizmclub_test';
 
     protected function setUp(): void
     {
@@ -23,10 +37,10 @@ abstract class TestCase extends BaseTestCase
             );
         }
 
-        $database = config('database.connections.pgsql.database');
-        if ($database !== self::TEST_DATABASE) {
+        $database = (string) config('database.connections.pgsql.database');
+        if (! str_starts_with($database, self::TEST_DATABASE_PREFIX)) {
             $this->fail(
-                'Tests must use isolated database '.self::TEST_DATABASE.', got: '.$database.'. '
+                'Tests must use an isolated database named '.self::TEST_DATABASE_PREFIX.'*, got: '.$database.'. '
                 .'Run deploy/scripts/setup-test-db.sh and php artisan config:clear before testing.'
             );
         }

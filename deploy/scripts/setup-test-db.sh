@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 # Creates an isolated PostgreSQL database for PHPUnit (CRUD tests).
 # Never run php artisan test against the production modelizmclub database.
+#
+# Своё дерево — своя база. Имя задаётся переменной DB_NAME и должно
+# начинаться с `modelizmclub_test`: проверка в tests/TestCase.php смотрит на
+# префикс, а не на точное совпадение, и всё, что под него не подходит,
+# прогон отвергает.
+#
+#   DB_NAME=modelizmclub_test_wallet bash deploy/scripts/setup-test-db.sh
+#   DB_DATABASE=modelizmclub_test_wallet php artisan test
+#
+# Без этого две сессии делят одну базу и роняют друг другу схему на
+# `migrate:fresh` — см. docs/known-issues.md.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/modelizmclub}"
