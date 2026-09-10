@@ -306,7 +306,7 @@ function CommentAttachMenu({
           <button
             type="button"
             disabled={disabled}
-            className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] transition-opacity hover:opacity-80 disabled:opacity-40"
+            className="hit-target grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] transition-opacity hover:opacity-80 disabled:opacity-40"
             style={{ color: "var(--foreground-50)" }}
             aria-label={t("components.commentSection.attachFile")}
           >
@@ -838,7 +838,7 @@ export function CommentSection({
               type="button"
               onClick={submit}
               disabled={photos.uploading || (!draft.trim() && photos.photos.length === 0)}
-              className="grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
+              className="hit-target grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
               style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               aria-label={t("components.commentSection.send")}
             >
@@ -856,7 +856,7 @@ export function CommentSection({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-[4px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+          className="hit-target inline-flex items-center gap-[4px] text-[13px] font-semibold transition-opacity hover:opacity-80"
           style={{ color: "var(--foreground-70)" }}
         >
           {sortLabel}
