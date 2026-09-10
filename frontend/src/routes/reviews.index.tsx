@@ -195,6 +195,16 @@ function ReviewsPage() {
   }, [query, activeCat, isWatchLaterTab, tagFromUrl, reloadTick]);
 
   const newest = videos.slice(0, 10);
+  /*
+   * Верхние подборки — герой и «Новинки» — приходят тем же запросом, что и
+   * сетка, но рисуются только когда данные уже есть. Пока их нет, сетка
+   * стоит вверху страницы, а потом уезжает вниз на их высоту.
+   *
+   * Замерено 10.09 на проде, переход `/messenger → /reviews`: секция сетки
+   * с `y = 196` уезжала на `y = 817`, то есть на 621 px. Это был весь CLS
+   * раздела — 0,1565 при нуле на остальных двадцати переходах меню.
+   */
+  const reserveTopBlocks = initialLoading && videos.length === 0 && !isWatchLaterTab;
 
   return (
     /*
@@ -235,6 +245,20 @@ function ReviewsPage() {
             );
           })}
         </div>
+
+        {/*
+          Место под герой и «Новинки», пока они не пришли.
+
+          Высоты — не на глаз: замерены на проде при колонке 750 px, которая
+          с 10.09 одинакова на всех маршрутах (см. `AppLayout`). Герой 298,
+          ряд новинок 273. Пока ширина колонки постоянна, постоянны и они.
+        */}
+        {activeCat === ALL && !query && !tagFromUrl && reserveTopBlocks && (
+          <>
+            <Skeleton className="w-full rounded-[var(--r-card)]" style={{ height: 298 }} />
+            <Skeleton className="w-full rounded-[var(--r-card)]" style={{ height: 273 }} />
+          </>
+        )}
 
         {activeCat === ALL && !query && !tagFromUrl && featured.length > 0 && (
           <ReviewsHero videos={featured} />
