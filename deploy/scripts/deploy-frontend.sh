@@ -155,8 +155,46 @@ mapfile -t OLD_WORKTREES < <(
     while IFS= read -r wt; do printf '%s %s\n' "$(stat -c %Y "${wt}" 2>/dev/null || echo 0)" "${wt}"; done |
     sort -rn | cut -d' ' -f2- | tail -n +3
 )
+# Живой релиз и цель отката не удаляются никогда, даже если по времени
+# изменения они не в первой паре.
+#
+# «Оставить два самых свежих» держалось на допущении, что живой релиз и
+# предыдущий — они и есть самые свежие. Провальная выкатка это допущение
+# ломает: она собирает каталог и падает на smoke, каталог остаётся на диске
+# (так и задумано — из него разбираются), и он новее живого. Двух провалов
+# подряд хватает, чтобы обе «свежие» позиции заняли именно они.
+#
+# Тогда первая же успешная выкатка сносит каталог, на который сама же только
+# что записала PREVIOUS: откат остаётся без цели и говорит «no previous
+# release to roll back to». Сайт при этом цел — теряется ровно то, ради чего
+# каталоги и держат.
+#
+# Найдено 10.09 после проверки журнала выкаток: два опыта с провалом оставили
+# по 640 МБ, и стало видно, что подрезка считает их «свежими релизами».
+PROTECTED=()
+if [[ -L "${FRONTEND_DIR}/.output" ]]; then
+  LIVE_OUTPUT="$(readlink -f "${FRONTEND_DIR}/.output" || true)"
+  [[ -n "${LIVE_OUTPUT}" ]] && PROTECTED+=("$(dirname "$(dirname "${LIVE_OUTPUT}")")")
+fi
+if [[ -s "${WORKTREES_DIR}/PREVIOUS" ]]; then
+  PROTECTED+=("${WORKTREES_DIR}/$(cat "${WORKTREES_DIR}/PREVIOUS")")
+fi
+
 for wt in "${OLD_WORKTREES[@]}"; do
   [[ -n "${wt}" ]] || continue
+
+  keep=0
+  for guarded in "${PROTECTED[@]}"; do
+    if [[ -n "${guarded}" && "${wt}" == "${guarded}" ]]; then
+      keep=1
+      break
+    fi
+  done
+  if (( keep )); then
+    echo "оставляю ${wt##*/} — это живой релиз или цель отката"
+    continue
+  fi
+
   git worktree remove --force "${wt}" 2>/dev/null || rm -rf "${wt}"
 done
 git worktree prune
