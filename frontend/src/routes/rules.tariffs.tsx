@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { fetchTariffs, type TariffsData } from "@/lib/api/rules";
 import i18n from "@/lib/i18n";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 const SITE_ORIGIN = "https://modelizmclub.ru";
 const META_DESCRIPTION =
@@ -23,6 +24,7 @@ const META_DESCRIPTION =
  * ссылки на документы.
  */
 export const Route = createFileRoute("/rules/tariffs")({
+  errorComponent: RouteErrorState,
   loader: () => fetchTariffs(),
   head: () => ({
     meta: [

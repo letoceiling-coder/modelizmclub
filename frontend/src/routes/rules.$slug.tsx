@@ -5,10 +5,12 @@ import { ApiError } from "@/lib/api/client";
 import { fetchRulePage, fetchRulesHub } from "@/lib/api/rules";
 import { RulesDocumentView, rulesJsonLd } from "@/components/legal/RulesDocumentView";
 import i18n from "@/lib/i18n";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 const SITE_ORIGIN = "https://modelizmclub.ru";
 
 export const Route = createFileRoute("/rules/$slug")({
+  errorComponent: RouteErrorState,
   loader: async ({ params }) => {
     try {
       const [page, hub] = await Promise.all([fetchRulePage(params.slug), fetchRulesHub()]);

@@ -109,6 +109,7 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
 
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
+import { ignoreFailure, reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/reviews/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.detailMetaTitle") }] }),
@@ -182,7 +183,7 @@ function WatchPageInner() {
           .then((cs) => {
             if (alive) setComments(cs);
           })
-          .catch(() => {});
+          .catch((e) => reportReadFailure(e, "комментарии к обзору"));
         loadRelatedVideos(v)
           .then((list) => {
             if (alive) setRelated(list);
@@ -223,7 +224,7 @@ function WatchPageInner() {
       });
       if (!viewedRef.current) {
         viewedRef.current = true;
-        void incrementVideoView(id).catch(() => {});
+        void incrementVideoView(id).catch(ignoreFailure("счётчик просмотров"));
       }
     });
   };

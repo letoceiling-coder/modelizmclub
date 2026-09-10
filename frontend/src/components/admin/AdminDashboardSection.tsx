@@ -12,6 +12,7 @@ import {
   type AuditEntry,
 } from "@/lib/api/admin";
 import { H, card, type AdminRole } from "@/components/admin/adminShared";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export function Dashboard({ role }: { role: AdminRole }) {
   const { t } = useTranslation();
@@ -23,10 +24,10 @@ export function Dashboard({ role }: { role: AdminRole }) {
     if (role === "admin") {
       fetchDashboard()
         .then((d) => active && setData(d))
-        .catch(() => {});
+        .catch((e) => reportReadFailure(e, "сводка админки"));
       fetchAuditLogs()
         .then((a) => active && setAudit(a))
-        .catch(() => {});
+        .catch((e) => reportReadFailure(e, "сводка админки"));
     } else {
       fetchModeratorDashboardStats()
         .then((stats) => {
@@ -42,7 +43,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
             bannersActive: 0,
           });
         })
-        .catch(() => {});
+        .catch((e) => reportReadFailure(e, "сводка админки"));
     }
     return () => {
       active = false;

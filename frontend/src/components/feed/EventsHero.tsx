@@ -15,6 +15,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { BannerHeroSlide, BANNER_HERO_HEIGHT } from "@/components/feed/BannerHeroSlide";
 import { TAP_TARGET_44 } from "@/lib/tap-target";
 import { cn } from "@/lib/utils";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 /** Ключ, под которым лежат закрытые пользователем баннеры. */
 const DISMISSED_KEY = "mc_feed_hero_dismissed";
@@ -89,7 +90,7 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
         setAutoplayMs(Math.max(3000, (carousel.autoplay_seconds ?? 10) * 1000));
         setEnabled(carousel.enabled !== false);
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "ближайшие события"))
       .finally(() => {
         if (active) setSettled(true);
       });

@@ -6,8 +6,10 @@ import {
 } from "@/components/legal/LegalDocumentPage";
 import { FeedbackForm } from "@/components/feedback/FeedbackDialog";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 export const Route = createFileRoute("/info/$slug")({
+  errorComponent: RouteErrorState,
   loader: ({ params }) => loadPublishedLegalPage(params.slug),
   head: ({ loaderData }) => legalDocumentHead(loaderData, "pages.info.metaTitle"),
   component: InfoPage,

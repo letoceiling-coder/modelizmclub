@@ -91,6 +91,7 @@ import { toast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 /**
  * Загрузчик вынесен из объекта маршрута с явным типом ответа.
@@ -119,6 +120,7 @@ async function loadCommunity({ params }: { params: { id: string } }): Promise<Co
 }
 
 export const Route = createFileRoute("/communities/$id")({
+  errorComponent: RouteErrorState,
   head: ({ loaderData }: { loaderData?: CommunityLoaderData }) => {
     // Обложка — самая большая картинка первого экрана. Без preload браузер
     // узнаёт о ней только разобрав разметку и вычислив вёрстку; с preload

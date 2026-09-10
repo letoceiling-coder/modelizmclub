@@ -57,10 +57,12 @@ import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
 import { usePostCategoriesState } from "@/lib/hooks/useCategories";
 
 import i18n from "@/lib/i18n";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 const POPULAR_SLOTS = 12;
 
 export const Route = createFileRoute("/")({
+  errorComponent: RouteErrorState,
   head: () => ({
     meta: [
       { title: i18n.t("landing.hero.metaTitle") },

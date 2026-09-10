@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatDate } from "@/lib/format/date";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 const card: CSSProperties = {
   background: "var(--background-elevated)",
@@ -360,7 +361,7 @@ function ReportsPanel() {
         }
         setPendingCounts(counts);
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "счётчики жалоб"));
     return () => {
       active = false;
     };

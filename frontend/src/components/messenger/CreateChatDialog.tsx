@@ -8,6 +8,7 @@ import { searchUsers } from "@/lib/api/social";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { presenceLabel } from "@/lib/presence-status";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 interface Props {
   open: boolean;
@@ -29,7 +30,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
     let active = true;
     searchUsers(debounced.trim())
       .then((list) => active && setCandidates(list.filter((u) => u.id !== me.id)))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "список собеседников"));
     return () => {
       active = false;
     };

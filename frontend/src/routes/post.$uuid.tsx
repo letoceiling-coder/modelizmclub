@@ -16,6 +16,7 @@ import { GC, STALE, qk } from "@/lib/queries/keys";
 import { ROUTES } from "@/lib/routes";
 import type { Post } from "@/lib/mock";
 import i18n from "@/lib/i18n";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 const SITE_ORIGIN = "https://modelizmclub.ru";
 
@@ -85,6 +86,7 @@ function postImage(post: Post): string | undefined {
 }
 
 export const Route = createFileRoute("/post/$uuid")({
+  errorComponent: RouteErrorState,
   loader: async ({ params }) => {
     await ensurePublicBootstrap();
     try {

@@ -14,6 +14,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
 import { fetchPayoutRequisites, savePayoutRequisites } from "@/lib/api/payout-requisites";
 import { fetchDocumentRequisites, saveDocumentRequisites } from "@/lib/api/account";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/settings/requisites")({
   component: RequisitesSection,
@@ -69,7 +70,7 @@ function RequisitesSection() {
           address: r.address ?? "",
         });
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "реквизиты для выплат"))
       .finally(() => {
         if (alive) setLoading(false);
       });

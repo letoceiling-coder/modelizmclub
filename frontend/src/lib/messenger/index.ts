@@ -22,6 +22,7 @@ import {
   unreadMessagesTotal,
 } from "@/lib/queries/messenger";
 import { qk } from "@/lib/queries/keys";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 export { rememberDialogScroll, recallDialogScroll, forgetDialogScroll } from "./scroll-memory";
 export { useVisualViewportInset } from "./useVisualViewportInset";
@@ -142,7 +143,9 @@ export const messengerCache = {
     if (c) markConversationReadInCache(c, conversationUuid);
     // The server owns last_read_message_id; the cache update above only keeps
     // the badge honest until the next refetch.
-    void markConversationRead(conversationUuid).catch(() => {});
+    void markConversationRead(conversationUuid).catch(
+      ignoreFailure("отметка о прочтении: приедет со следующим открытием диалога"),
+    );
   },
   markOwnStatus(conversationUuid: string, to: "delivered" | "read"): void {
     const c = qc();

@@ -30,6 +30,7 @@ import { ensureSession } from "@/lib/auth/session";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 
 import i18n from "@/lib/i18n";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/reviews/upload")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.uploadMetaTitle") }] }),
@@ -89,10 +90,10 @@ function UploadPage() {
         setCategories(c);
         if (!editUuid) setCategoryId(c[0]?.id ?? "");
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "категории обзоров"));
     fetchVideoTags()
       .then((list) => setTagSuggestions(list))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "метки обзоров"));
     return () => {
       alive = false;
     };

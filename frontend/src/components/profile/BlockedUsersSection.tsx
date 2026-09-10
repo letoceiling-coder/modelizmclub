@@ -8,6 +8,7 @@ import { fetchBlockedUsers, unblockUser } from "@/lib/api/social";
 import { isDemoMode } from "@/lib/demo-mode";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export function BlockedUsersSection() {
   const blockedUserIds = useStore((s) => s.blockedUserIds);
@@ -20,7 +21,7 @@ export function BlockedUsersSection() {
           if (!blockedUserIds.includes(u.id)) actions.blockUser(u.id);
         });
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "чёрный список"));
   }, []);
 
   if (blockedUserIds.length === 0) {

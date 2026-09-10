@@ -62,6 +62,17 @@ export default tseslint.config(
           message:
             "Используйте шкалу отступов Tailwind вместо точных px (p-[12px] → p-3). См. docs/design-system.md",
         },
+        {
+          // Пустой обработчик отказа. Здесь он подсказка в редакторе — уровень
+          // у всего правила один, и поднять его до ошибки значило бы сделать
+          // ошибками полторы тысячи предупреждений про px. Воротами служит
+          // deploy/scripts/check-empty-catch.sh, он падает на первом же
+          // вхождении.
+          selector:
+            'CallExpression[callee.property.name="catch"] > ArrowFunctionExpression > BlockStatement[body.length=0]',
+          message:
+            "Пустой catch запрещён. Возьмите reportActionFailure, reportReadFailure или ignoreFailure из @/lib/errors/handle — три ответа на три случая, см. docblock файла.",
+        },
       ],
     },
   },

@@ -5,6 +5,7 @@ import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { ROUTES } from "@/lib/routes";
 import { fetchStats } from "@/lib/api/content";
 import { isDemoMode } from "@/lib/demo-mode";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const INVITE_FRIEND_SECTION_ID = ROUTES.subscriptionInviteHash;
 
@@ -31,7 +32,7 @@ export function InviteFriendNavLink({ className, onNavigate }: Props) {
       .then((s) => {
         if (activeReq) setEnabled(s.referral?.enabled ?? true);
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "реферальная ссылка"));
     return () => {
       activeReq = false;
     };

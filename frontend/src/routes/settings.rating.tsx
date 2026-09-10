@@ -9,6 +9,7 @@ import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchUserRating, fetchUserReviews } from "@/lib/api/rating";
 import { formatDate } from "@/lib/format/date";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/settings/rating")({
   component: RatingSection,
@@ -88,7 +89,7 @@ function RatingSection() {
           })),
         );
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "отзывы о продавце"));
     return () => {
       alive = false;
     };

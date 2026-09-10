@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { fetchAdminSettings, updateAdminSettings } from "@/lib/api/admin";
 import { primaryBtn } from "@/components/admin/adminShared";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 type CardStyle = React.CSSProperties;
 
@@ -43,7 +44,7 @@ export function EscrowProviderAdminCard({ cardStyle }: { cardStyle: CardStyle })
     let active = true;
     fetchAdminSettings()
       .then((rows) => active && readRow(rows))
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "настройки эскроу"))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;

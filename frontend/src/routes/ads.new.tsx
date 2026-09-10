@@ -80,6 +80,7 @@ import { isPhoneVerified } from "@/lib/auth/verification";
 type NewAdSearch = { edit?: string; promo?: string };
 
 import i18n from "@/lib/i18n";
+import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/ads/new")({
   head: () => ({ meta: [{ title: i18n.t("pages.adsNew.metaTitle") }] }),
@@ -423,7 +424,7 @@ function NewAdPage() {
               },
         );
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "направления объявлений"));
   }, []);
 
   useEffect(() => {
@@ -503,7 +504,7 @@ function NewAdPage() {
         setCurrentUser(u);
         applyPhone(u.phone, isPhoneVerified(u));
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "профиль автора"));
     return () => {
       alive = false;
     };
@@ -1180,7 +1181,7 @@ function usePhotoGridHandlers(photoItems: PhotoItem[], setPhotoItems: (next: Pho
           );
           setPhotoItems(latest);
         })
-        .catch(() => {});
+        .catch((e) => reportActionFailure(e, "Не удалось загрузить фото"));
     },
   };
 }

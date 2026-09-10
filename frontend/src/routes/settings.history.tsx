@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getViewHistory, type ViewHistoryItem } from "@/lib/view-history";
 import { fetchViewHistory, clearViewHistoryRemote } from "@/lib/api/view-history-api";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/settings/history")({
   component: HistorySection,
@@ -28,18 +29,31 @@ function HistorySection() {
     community: t("pages.settings.historyKindCommunity"),
   };
   const [items, setItems] = useState<ViewHistoryItem[]>(getViewHistory);
+  /*
+   * Четыре состояния списка, как в избранном и сообществах: данные, отказ с
+   * «Повторить», пусто, снова данные. Раньше отказ уходил в никуда, и «не
+   * удалось загрузить» выглядело как «вы ничего не смотрели» — ответ, которого
+   * сервер не давал.
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
     fetchViewHistory()
       .then((rows) => {
-        if (alive) setItems(rows);
+        if (!alive) return;
+        setItems(rows);
+        setLoadFailed(false);
       })
-      .catch(() => {});
+      .catch((e) => {
+        if (alive) setLoadFailed(true);
+        reportReadFailure(e, "история просмотров");
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reloadTick]);
 
   const clear = async () => {
     try {
@@ -52,7 +66,15 @@ function HistorySection() {
 
   return (
     <SettingsSectionShell title={t("pages.settings.historyTitle")}>
-      {items.length === 0 ? (
+      {loadFailed && items.length === 0 ? (
+        <EmptyState
+          icon={History}
+          title={t("errors.routeTitle")}
+          description={t("errors.routeDesc")}
+          action={{ label: t("errors.retry"), onClick: () => setReloadTick((n) => n + 1) }}
+          variant="compact"
+        />
+      ) : items.length === 0 ? (
         <EmptyState
           icon={History}
           title={t("pages.settings.historyEmpty")}

@@ -15,6 +15,7 @@ import {
 import { H, card, inputStyle, IconBtn } from "@/components/admin/adminShared";
 import { SubscriptionCell } from "@/components/admin/AdminDashboardSection";
 import { askConfirm } from "@/lib/ui/ask";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export function UsersSection() {
   const { t } = useTranslation();
@@ -39,7 +40,7 @@ export function UsersSection() {
     let active = true;
     fetchAdminUsers({ role })
       .then((list) => active && setUsers(list))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "пользователи в админке"));
     return () => {
       active = false;
     };

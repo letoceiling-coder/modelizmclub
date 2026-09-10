@@ -61,6 +61,8 @@ import {
 
 import i18n from "@/lib/i18n";
 import { getToken } from "@/lib/api/client";
+import { reportReadFailure } from "@/lib/errors/handle";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 function findCategoryName(categories: Category[], id: string): string | null {
   for (const c of categories) {
@@ -87,6 +89,7 @@ const CATEGORY_CHIP_CLASS =
 const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/feed")({
+  errorComponent: RouteErrorState,
   head: ({ loaderData }) => {
     // Первый баннер — LCP-элемент страницы. Preload в head поднимает его
     // загрузку к самому началу документа: браузер начинает тянуть картинку
@@ -248,12 +251,12 @@ function FeedPage() {
     else
       fetchPostCategories()
         .then(setCategories)
-        .catch(() => {});
+        .catch((e) => reportReadFailure(e, "направления ленты"));
     if (loaded.banners.length) setBanners(loaded.banners);
     else
       fetchBannersWithSettings("feed")
         .then((pack) => setBanners(pack.banners))
-        .catch(() => {});
+        .catch((e) => reportReadFailure(e, "баннеры ленты"));
   }, [loaded.banners, loaded.categories]);
 
   useEffect(() => {

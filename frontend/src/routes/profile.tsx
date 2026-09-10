@@ -100,6 +100,7 @@ import i18n from "@/lib/i18n";
 import { ProfilePageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatDate } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: i18n.t("pages.profile.metaTitle") }] }),
@@ -1274,7 +1275,7 @@ function EditSheet({
       .then((list) => {
         if (alive) setInterestOptions(list);
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "направления для интересов"));
     return () => {
       alive = false;
     };

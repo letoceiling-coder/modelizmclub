@@ -6,6 +6,7 @@ import {
   getCachedPostCategories,
   getCachedListingCategories,
 } from "@/lib/api/categories";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export function usePostCategoriesState(): { categories: Category[]; loading: boolean } {
   const [categories, setCategories] = useState<Category[]>(() => getCachedPostCategories() ?? []);
@@ -18,7 +19,7 @@ export function usePostCategoriesState(): { categories: Category[]; loading: boo
       .then((c) => {
         if (active) setCategories(c);
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "дерево направлений"))
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -43,7 +44,7 @@ export function useListingCategoriesState(): { categories: Category[]; loading: 
       .then((c) => {
         if (active) setCategories(c);
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "дерево направлений"))
       .finally(() => {
         if (active) setLoading(false);
       });

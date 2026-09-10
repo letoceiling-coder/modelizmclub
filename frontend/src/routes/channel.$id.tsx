@@ -84,6 +84,7 @@ import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
 import { askConfirm } from "@/lib/ui/ask";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 /**
  * Вынесен из объекта маршрута с явным типом: `head` читает `loaderData`, а
@@ -103,6 +104,7 @@ async function loadChannel({ params }: { params: { id: string } }): Promise<Chan
 }
 
 export const Route = createFileRoute("/channel/$id")({
+  errorComponent: RouteErrorState,
   head: ({ loaderData }: { loaderData?: ChannelLoaderData }) => {
     // Обложка канала — та же шапка EntityHeader, что и у сообщества, и тот
     // же приём: preload в head, чтобы браузер не ждал разбора разметки.

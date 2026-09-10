@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./client";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export interface PublicPlacementPricing {
   registered_price_cents: number;
@@ -52,7 +53,7 @@ export function usePublicPlacementPricing(initial?: PublicPlacementPricing | nul
         setSubscriberRub(Math.round(data.subscriber_default_price_cents / 100));
         setPaymentEnabled(Boolean(data.payment_enabled));
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "цены размещения"))
       .finally(() => {
         if (active) setLoading(false);
       });

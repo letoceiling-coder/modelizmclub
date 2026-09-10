@@ -35,6 +35,7 @@ import { toast } from "@/lib/toast";
 import { paymentFailureCopy } from "@/lib/api/payment";
 
 import i18n from "@/lib/i18n";
+import { ignoreFailure, reportActionFailure } from "@/lib/errors/handle";
 
 type MyAdsSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
 
@@ -197,30 +198,50 @@ function MyAdsPage() {
 
   const setLocalStatus = (id: string, status: AdStatusKey) =>
     setItems((prev) => prev.map((x) => (x.ad.id === id ? { ...x, status } : x)));
+  /*
+   * Состояние меняется сразу, до ответа сервера, — так задумано: кнопка
+   * должна отзываться мгновенно. Но до 11.09 отказ сервера здесь глотался,
+   * и объявление оставалось «в архиве» на экране, оставаясь опубликованным
+   * на деле. Расхождение жило до перезагрузки страницы, а пользователь
+   * узнавал о нём от покупателя.
+   *
+   * Теперь отказ возвращает прежний статус и говорит о себе вслух.
+   */
+  const withRollback = (id: string, previous: AdStatusKey, title: string) => (error: unknown) => {
+    setLocalStatus(id, previous);
+    reportActionFailure(error, title, { listing: id });
+  };
   const doArchive = (id: string) => {
+    const previous = items.find((x) => x.ad.id === id)?.status ?? "active";
     setLocalStatus(id, "archived");
-    archiveListing(id).catch(() => {});
+    archiveListing(id).catch(withRollback(id, previous, "Не удалось убрать объявление в архив"));
   };
   const doPublish = (id: string) => {
+    const previous = items.find((x) => x.ad.id === id)?.status ?? "archived";
     setLocalStatus(id, "active");
-    publishListing(id).catch(() => {});
+    publishListing(id).catch(withRollback(id, previous, "Не удалось опубликовать объявление"));
   };
   const doDelete = (id: string) => {
     setLocalStatus(id, "deleted");
-    deleteListing(id).catch(() => {
+    deleteListing(id).catch((error) => {
+      reportActionFailure(error, "Не удалось удалить объявление", { listing: id });
       fetchMyListings()
         .then(setItems)
-        .catch(() => {});
+        .catch(ignoreFailure("перезагрузка списка объявлений после неудачного удаления"));
     });
   };
   const doRestore = (id: string) => {
     restoreListing(id)
       .then(() => fetchMyListings().then(setItems))
-      .catch(() =>
-        fetchMyListings()
+      .catch((error) => {
+        reportActionFailure(error, "Не удалось восстановить объявление", { listing: id });
+
+        // Список перечитываем, чтобы экран показывал состояние сервера, а не
+        // наше предположение о нём.
+        return fetchMyListings()
           .then(setItems)
-          .catch(() => {}),
-      );
+          .catch(ignoreFailure("перезагрузка списка объявлений после неудачного восстановления"));
+      });
   };
 
   const decorated = items;
