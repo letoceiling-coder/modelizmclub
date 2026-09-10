@@ -73,6 +73,23 @@ return [
             'replace_placeholders' => true,
         ],
 
+        /*
+         * Отчёты о нарушениях Content-Security-Policy.
+         *
+         * Отдельным файлом, а не в общий журнал: пока политика в режиме
+         * отчёта, браузеры шлют по нарушению на каждую загрузку страницы, и
+         * в общем журнале это утопит всё остальное. Держим неделю — политику
+         * настраивают по свежим отчётам, месячной давности нарушение говорит
+         * только о том, что его уже починили.
+         */
+        'csp' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/csp.log'),
+            'level' => 'info',
+            'days' => env('LOG_CSP_DAYS', 7),
+            'replace_placeholders' => false,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
