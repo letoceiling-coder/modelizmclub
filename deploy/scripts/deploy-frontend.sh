@@ -7,6 +7,45 @@ FRONTEND_DIR="${APP_DIR}/frontend"
 SERVICE="modelizmclub-frontend.service"
 HEALTH_URL="${FRONTEND_HEALTH_URL:-https://modelizmclub.ru/}"
 
+# --- Журнал выкаток -----------------------------------------------------
+#
+# До 10.09 скрипт не писал ничего. Каталогов релизов на диске держится два,
+# остальные подрезаются, и восстановить, что и когда выкатывали, можно было
+# только по reflog прода — то есть по строкам «pull origin master:
+# Fast-forward» без коммита, без длительности и без исхода. Разбор недели
+# 03–10.09 на этом и споткнулся: 110 обновлений кода, а чем каждое было,
+# видно не по журналу, а по догадке.
+#
+# Пишется одна строка на выкатку, и пишется всегда — в том числе когда
+# выкатка провалилась и откатилась. Журнал, в котором есть только удачи,
+# врёт молчанием: неудачная выкатка выглядит как её отсутствие.
+#
+# Ловушка на EXIT, а не строка в конце: при `set -e` любой сбой уводит из
+# скрипта мимо конца, и запись бы не появилась именно тогда, когда она
+# нужнее всего.
+DEPLOY_LOG="${DEPLOY_LOG:-/var/log/modelizmclub/frontend-deploys.log}"
+STARTED_AT="$(date +%s)"
+RELEASE_ID="-"
+DEPLOY_RESULT="прерван"
+
+deploy_log_line() {
+  local status="$1"
+  local commit subject elapsed
+  commit="$(git -c safe.directory="${APP_DIR}" -C "${APP_DIR}" rev-parse --short HEAD 2>/dev/null || echo '-')"
+  # Без обрезки: `cut -c` в локали C режет по байтам и рвёт многобайтовый
+  # символ — в журнале оставался «подстановки и <?>». Тема идёт последним
+  # полем, за ней ничего нет, и длина ничему не мешает.
+  subject="$(git -c safe.directory="${APP_DIR}" -C "${APP_DIR}" log -1 --format=%s 2>/dev/null || echo '-')"
+  elapsed="$(( $(date +%s) - STARTED_AT ))"
+
+  mkdir -p "$(dirname "${DEPLOY_LOG}")" 2>/dev/null || return 0
+  printf '%s\t%s\t%s\t%sс\t%s\t%s\n' \
+    "$(date -Iseconds)" "${commit}" "${RELEASE_ID}" "${elapsed}" "${status}" "${subject}" \
+    >> "${DEPLOY_LOG}" 2>/dev/null || true
+}
+
+trap 'deploy_log_line "${DEPLOY_RESULT}"' EXIT
+
 cd "${APP_DIR}"
 git -c safe.directory="${APP_DIR}" pull origin master
 
@@ -47,7 +86,7 @@ export VITE_DEMO_MODE="${VITE_DEMO_MODE:-false}"
 # untouched until the swap at the very end.
 WORKTREES_DIR="${APP_DIR}/.worktrees"
 mkdir -p "${WORKTREES_DIR}"
-RELEASE_ID="$(date +%Y%m%d%H%M%S)"
+RELEASE_ID="$(date +%Y%m%d%H%M%S)"  # для журнала он объявлен выше
 WORKTREE="${WORKTREES_DIR}/frontend-${RELEASE_ID}"
 
 # Remember what we are serving now, so a failed smoke check can go straight back.
@@ -85,9 +124,11 @@ if ! "${APP_DIR}/deploy/scripts/smoke-check.sh" --frontend "${HEALTH_URL}"; then
     mv -Tf "${FRONTEND_DIR}/.output.next" "${FRONTEND_DIR}/.output"
     systemctl restart "${SERVICE}"
     echo "Rolled back. The failed release is still at ${WORKTREE}" >&2
+    DEPLOY_RESULT="откат"
   else
     echo "No previous release to roll back to (first worktree deploy?)." >&2
     echo "Fix forward, or restore manually from ${WORKTREE}" >&2
+    DEPLOY_RESULT="провал без отката"
   fi
   exit 1
 fi
@@ -120,4 +161,5 @@ for wt in "${OLD_WORKTREES[@]}"; do
 done
 git worktree prune
 
+DEPLOY_RESULT="успех"
 echo "Frontend deploy OK: ${RELEASE_ID} $(date -Iseconds)"
