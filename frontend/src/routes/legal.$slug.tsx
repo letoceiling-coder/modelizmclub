@@ -4,6 +4,7 @@ import {
   legalDocumentHead,
   loadPublishedLegalPage,
 } from "@/components/legal/LegalDocumentPage";
+import { OperatorContacts } from "@/components/legal/OperatorContacts";
 
 export const Route = createFileRoute("/legal/$slug")({
   loader: ({ params }) => loadPublishedLegalPage(params.slug),
@@ -12,5 +13,11 @@ export const Route = createFileRoute("/legal/$slug")({
 });
 
 function LegalPage() {
-  return <LegalDocumentPage page={Route.useLoaderData()} />;
+  const { slug } = Route.useParams();
+  return (
+    <LegalDocumentPage
+      page={Route.useLoaderData()}
+      afterContent={slug === "contacts" ? <OperatorContacts /> : null}
+    />
+  );
 }
