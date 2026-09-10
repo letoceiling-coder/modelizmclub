@@ -233,6 +233,8 @@ export interface CategoryChild {
   slug?: string;
   name: string;
   usageCount?: number;
+  /** Людей в чате комнаты. */
+  members?: number;
   children?: CategoryChild[];
 }
 

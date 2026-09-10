@@ -1903,8 +1903,6 @@ export const ru = {
       title: "Направления",
       accent: "Найди своих",
       subtitle: "Выберите интересующее вас направление",
-      popularModels: "Популярные модели",
-      modelsCount: "{{count}} моделей",
       open: "Открыть",
       openCategory: "Открыть категорию {{name}}",
       membersCount_one: "{{count}} участник",

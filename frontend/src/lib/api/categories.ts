@@ -11,6 +11,8 @@ interface ApiCategoryNode {
   depth?: number;
   listings_count?: number;
   usage_count?: number;
+  /** Людей в чатах этого узла: у комнаты — свои, у направления — объединение комнат. */
+  members_count?: number;
   children?: ApiCategoryNode[];
 }
 
@@ -24,6 +26,7 @@ function mapChild(node: ApiCategoryNode): Category["subcategories"][number] {
     slug: node.slug ?? String(node.id),
     name: node.name,
     usageCount: node.usage_count ?? 0,
+    members: node.members_count ?? 0,
     children: (node.children ?? []).map(mapChild),
   };
 }
@@ -36,7 +39,15 @@ function mapCategory(node: ApiCategoryNode, includeListingsCount = false): Categ
     description: "",
     icon: node.icon || "Boxes",
     iconImageUrl: node.icon_image_url ?? null,
-    members: includeListingsCount ? (node.listings_count ?? 0) : 0,
+    /*
+     * Участники — люди в чатах направления, и приходят они с сервера.
+     *
+     * Раньше здесь стояло `includeListingsCount ? listings_count : 0`: на
+     * витрине направлений флаг не ставился, и у всех пятнадцати всегда был
+     * ноль, а со флагом в поле «участников» лежало бы число объявлений.
+     * Считалось не то и показывалось не там.
+     */
+    members: node.members_count ?? 0,
     listingsCount: node.listings_count,
     usageCount: node.usage_count ?? 0,
     subcategories: (node.children ?? []).map(mapChild),

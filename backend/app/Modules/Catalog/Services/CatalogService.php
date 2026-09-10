@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Services;
 
+use App\Enums\ConversationType;
 use App\Enums\ListingStatus;
 use App\Models\City;
 use App\Models\CommunityCategory;
@@ -11,6 +12,7 @@ use App\Models\Tag;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Modules\Catalog\Support\CategoryTreeBuilder;
 
 class CatalogService
@@ -28,6 +30,8 @@ class CatalogService
 
     private const KEY_TREE_POST_USAGE = 'catalog:tree:post:usage';
 
+    private const KEY_TREE_POST_MEMBERS = 'catalog:tree:post:members';
+
     public function __construct(
         private readonly CategoryTreeBuilder $treeBuilder,
     ) {}
@@ -42,7 +46,85 @@ class CatalogService
             return app(CategoryTaxonomyService::class)->usageCounts($flat);
         });
 
-        return $this->attachUsageCounts($tree, $counts);
+        $members = Cache::remember(self::KEY_TREE_POST_MEMBERS, 300, fn () => $this->roomMembersByCategory());
+
+        return $this->attachMemberCounts($this->attachUsageCounts($tree, $counts), $members);
+    }
+
+    /**
+     * Кто состоит в чатах направления — по узлам дерева.
+     *
+     * Комната есть у подкатегории и не бывает у направления, поэтому у самого
+     * направления участников нет: его люди — это люди его комнат. Считаются
+     * они объединением, а не суммой: человек, сидящий в двух комнатах одного
+     * направления, — один человек, а сумма посчитала бы его дважды.
+     *
+     * Вышедшие из комнаты (`left_at`) не в счёт — участник тот, кто состоит
+     * сейчас.
+     *
+     * @return array<int, list<int>> id узла → список user_id
+     */
+    private function roomMembersByCategory(): array
+    {
+        $rows = DB::table('conversation_participants as p')
+            ->join('conversations as c', 'c.id', '=', 'p.conversation_id')
+            ->where('c.type', ConversationType::Room->value)
+            ->whereNotNull('c.post_category_id')
+            ->whereNull('p.left_at')
+            ->select('c.post_category_id as category_id', 'p.user_id')
+            ->distinct()
+            ->get();
+
+        $byCategory = [];
+        foreach ($rows as $row) {
+            $byCategory[(int) $row->category_id][] = (int) $row->user_id;
+        }
+
+        return $byCategory;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $tree
+     * @param  array<int, list<int>>  $members
+     * @return list<array<string, mixed>>
+     */
+    private function attachMemberCounts(array $tree, array $members): array
+    {
+        [$tree, ] = $this->foldMemberCounts($tree, $members);
+
+        return $tree;
+    }
+
+    /**
+     * Возвращает поддерево с проставленным `members_count` и множество
+     * пользователей этого поддерева — чтобы родитель сложил детей
+     * объединением, а не сложением.
+     *
+     * @param  list<array<string, mixed>>  $nodes
+     * @param  array<int, list<int>>  $members
+     * @return array{0: list<array<string, mixed>>, 1: array<int, true>}
+     */
+    private function foldMemberCounts(array $nodes, array $members): array
+    {
+        $out = [];
+        $union = [];
+
+        foreach ($nodes as $node) {
+            [$children, $childUsers] = $this->foldMemberCounts($node['children'] ?? [], $members);
+
+            $own = [];
+            foreach ($members[$node['id'] ?? 0] ?? [] as $userId) {
+                $own[$userId] = true;
+            }
+
+            $all = $own + $childUsers;
+            $node['children'] = $children;
+            $node['members_count'] = count($all);
+            $out[] = $node;
+            $union += $all;
+        }
+
+        return [$out, $union];
     }
 
     /** @return list<array<string, mixed>> */
@@ -63,7 +145,7 @@ class CatalogService
      */
     public static function flushCache(): void
     {
-        foreach ([self::KEY_TREE_POST, self::KEY_TREE_COMMUNITY, self::KEY_TREE_LISTING, self::KEY_CITIES, self::KEY_TREE_POST_USAGE] as $key) {
+        foreach ([self::KEY_TREE_POST, self::KEY_TREE_COMMUNITY, self::KEY_TREE_LISTING, self::KEY_CITIES, self::KEY_TREE_POST_USAGE, self::KEY_TREE_POST_MEMBERS] as $key) {
             Cache::forget($key);
         }
     }
