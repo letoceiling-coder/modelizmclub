@@ -1901,7 +1901,12 @@ export const ru = {
       modelsCount: "{{count}} моделей",
       open: "Открыть",
       openCategory: "Открыть категорию {{name}}",
-      members: "{{count}} участников · {{rooms}} комнат",
+      membersCount_one: "{{count}} участник",
+      membersCount_few: "{{count}} участника",
+      membersCount_many: "{{count}} участников",
+      roomsCount_one: "{{count}} комната",
+      roomsCount_few: "{{count}} комнаты",
+      roomsCount_many: "{{count}} комнат",
     },
     categoryDetail: {
       metaTitle: "Направление — МоДелизМ",
