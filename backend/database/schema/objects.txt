@@ -14,6 +14,13 @@ COLUMN|audit_logs.new_values|json|YES
 COLUMN|audit_logs.old_values|json|YES
 COLUMN|audit_logs.user_agent|text|YES
 COLUMN|audit_logs.user_id|bigint|YES
+COLUMN|banner_event_daily.banner_id|bigint|NO
+COLUMN|banner_event_daily.count|bigint|NO
+COLUMN|banner_event_daily.created_at|timestamp without time zone|YES
+COLUMN|banner_event_daily.day|date|NO
+COLUMN|banner_event_daily.event|character varying|NO
+COLUMN|banner_event_daily.id|bigint|NO
+COLUMN|banner_event_daily.updated_at|timestamp without time zone|YES
 COLUMN|banner_events.banner_id|bigint|NO
 COLUMN|banner_events.created_at|timestamp without time zone|NO
 COLUMN|banner_events.event|character varying|NO
@@ -1343,6 +1350,7 @@ COLUMN|withdrawal_requests.uuid|uuid|NO
 COLUMN|withdrawal_requests.wallet_transaction_id|bigint|YES
 FK|admin_two_factor|admin_two_factor_user_id_foreign
 FK|audit_logs|audit_logs_user_id_foreign
+FK|banner_event_daily|banner_event_daily_banner_id_foreign
 FK|banner_events|banner_events_banner_id_foreign
 FK|banner_events|banner_events_user_id_foreign
 FK|banners|banners_image_media_id_foreign
@@ -1578,7 +1586,11 @@ INDEX|admin_two_factor|admin_two_factor_pkey
 INDEX|audit_logs|audit_logs_auditable_type_auditable_id_index
 INDEX|audit_logs|audit_logs_pkey
 INDEX|audit_logs|audit_logs_user_id_created_at_index
+INDEX|banner_event_daily|banner_event_daily_day_index
+INDEX|banner_event_daily|banner_event_daily_pkey
+INDEX|banner_event_daily|banner_event_daily_unique
 INDEX|banner_events|banner_events_banner_id_event_created_at_index
+INDEX|banner_events|banner_events_created_at_index
 INDEX|banner_events|banner_events_pkey
 INDEX|banners|banners_pkey
 INDEX|banners|banners_placement_is_active_index
@@ -1613,6 +1625,7 @@ INDEX|cities|cities_pkey
 INDEX|cities|cities_slug_unique
 INDEX|client_logs|client_logs_call_uuid_index
 INDEX|client_logs|client_logs_client_id_unique
+INDEX|client_logs|client_logs_created_at_index
 INDEX|client_logs|client_logs_level_created_at_index
 INDEX|client_logs|client_logs_pkey
 INDEX|client_logs|client_logs_session_id_index
@@ -1902,6 +1915,7 @@ INDEX|withdrawal_requests|withdrawal_requests_pkey
 INDEX|withdrawal_requests|withdrawal_requests_user_id_status_index
 INDEX|withdrawal_requests|withdrawal_requests_uuid_unique
 SEQ|audit_logs_id_seq
+SEQ|banner_event_daily_id_seq
 SEQ|banner_events_id_seq
 SEQ|banners_id_seq
 SEQ|bonus_transactions_id_seq
@@ -2016,6 +2030,7 @@ SEQ|wallets_id_seq
 SEQ|withdrawal_requests_id_seq
 TABLE|admin_two_factor
 TABLE|audit_logs
+TABLE|banner_event_daily
 TABLE|banner_events
 TABLE|banners
 TABLE|bonus_accounts

@@ -95,3 +95,17 @@ if (config('billing.auto_poll.enabled', true)) {
 Schedule::command('subscription:check-expired')->dailyAt('00:05');
 Schedule::command('communities:sync-counters')->dailyAt('03:30');
 Schedule::command('notifications:prune')->dailyAt('03:50');
+
+/*
+ * Уборка журналов, которые пишутся на каждое действие: client_logs и
+ * banner_events. До 11.09 не чистились никогда — 2217 и 800 строк за два
+ * месяца на нынешнем трафике, то есть гигабайты на тысяче пользователей.
+ * Сроки в config/retention.php, показы баннеров перед удалением
+ * сворачиваются в дневные итоги.
+ *
+ * Замок короче интервала намеренно. Интервал здесь сутки, и замок в сутки
+ * означал бы, что один упавший процесс отменяет уборку до послезавтра.
+ * Прогон занимает секунды, так что часа хватает с большим запасом, а цена
+ * мёртвого замка — час, а не день. Ср. разбор 08.09 выше.
+ */
+Schedule::command('logs:prune')->dailyAt('04:10')->withoutOverlapping(60);
