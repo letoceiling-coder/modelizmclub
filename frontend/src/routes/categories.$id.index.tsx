@@ -177,7 +177,11 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
                 {c.name}
               </h1>
               <p className="truncate text-[12.5px]" style={{ color: "var(--foreground-50)" }}>
-                {c.description} · {t("pages.shared.members", { count: c.members })}
+                {c.description} ·{" "}
+                {t("pages.shared.members", {
+                  count: c.members,
+                  formatted: c.members.toLocaleString("ru"),
+                })}
               </p>
             </div>
           </div>
