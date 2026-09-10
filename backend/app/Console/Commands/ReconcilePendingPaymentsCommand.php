@@ -7,7 +7,6 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Billing\Clients\VtbAcquiringClient;
-use Modules\Billing\Clients\YooKassaClient;
 use Modules\Billing\Exceptions\VtbApiException;
 use Modules\Billing\Services\PaymentFulfillmentService;
 use Throwable;
@@ -25,8 +24,6 @@ use Throwable;
  *
  *   vtb  — спрашивает банк. Заказ там есть, и только банк знает, чем
  *          кончилось.
- *   yookassa — спрашивает ЮKassa. Живой интеграции в коде нет, но ключи
- *          магазина рабочие, и `GET /payments/{id}` отвечает.
  *   stub — тестовый контур, заказа в банке нет по определению. Спрашивать
  *          ВТБ про такой номер бессмысленно: 08.09 команда так и делала и
  *          получала «банк не знает» на каждый. Разбирается по внутренним
@@ -46,7 +43,7 @@ class ReconcilePendingPaymentsCommand extends Command
         {--apply : применить изменения; без флага только разбор}
         {--older-than=15 : не трогать платежи моложе этого числа минут}
         {--newer-than=0 : не трогать платежи старше этого числа минут (0 — без верхней границы)}
-        {--provider= : разбирать только платежи этого провайдера (vtb, yookassa, stub)}
+        {--provider= : разбирать только платежи этого провайдера (vtb, stub)}
         {--limit=0 : ограничить число разбираемых платежей}
         {--only= : применять только к этим исходам, через запятую (см. --only=? )}
         {--delay-ms= : пауза между запросами к банку, мс (по умолчанию из billing.vtb.reconcile)}
@@ -88,11 +85,8 @@ class ReconcilePendingPaymentsCommand extends Command
      * бы их как неудавшиеся, не спросив никого.
      *
      * Отдельный исход, и он не закрывается никогда: `--only` его не
-     * принимает, `applyVerdict` не знает.
-     *
-     * 10.09 ЮKassa из этого исхода вышла: ключи магазина оказались живыми,
-     * и команда научилась её спрашивать ({@see askYooKassa}). Исход остался
-     * — для провайдера, которого заведут завтра и опрашивать будет нечем.
+     * принимает, `applyVerdict` не знает. Пока провайдера не научат
+     * опрашивать, такие платежи только видны.
      */
     private const UNKNOWN_PROVIDER = 'провайдер неизвестен, разбор невозможен';
 
@@ -120,7 +114,7 @@ class ReconcilePendingPaymentsCommand extends Command
         'test-fulfilled' => self::STUB_FULFILLED,
     ];
 
-    public function handle(VtbAcquiringClient $client, YooKassaClient $yooKassa, PaymentFulfillmentService $fulfillment): int
+    public function handle(VtbAcquiringClient $client, PaymentFulfillmentService $fulfillment): int
     {
         $apply = (bool) $this->option('apply');
         $olderThan = max(0, (int) $this->option('older-than'));
@@ -209,12 +203,6 @@ class ReconcilePendingPaymentsCommand extends Command
                 }
                 $asked++;
                 $verdict = $this->askBank($client, $payment, $retries, $backoffMs);
-            } elseif ($payment->provider === 'yookassa') {
-                if ($asked > 0 && $delayMs > 0) {
-                    usleep($delayMs * 1000);
-                }
-                $asked++;
-                $verdict = $this->askYooKassa($yooKassa, $payment);
             } elseif ($payment->provider === 'stub') {
                 $verdict = $this->askOurselves($payment);
             } else {
@@ -359,56 +347,6 @@ class ReconcilePendingPaymentsCommand extends Command
         }
 
         return self::FAILED_TO_ASK;
-    }
-
-    /**
-     * Что ЮKassa думает про этот платёж.
-     *
-     * До 10.09 таких платежей команда не разбирала вовсе: 27 висящих
-     * записей с меткой `yookassa` лежали в исходе «провайдер неизвестен»,
-     * потому что живой интеграции в коде нет — YooKassa убрана в spec v4.0,
-     * шлюза для неё не осталось. Уцелел `YooKassaClient` (им привязывают
-     * карты) и ключи магазина в конфигурации, и 10.09 выяснилось, что ключи
-     * живые: `GET /me` отвечает 200, магазин `enabled`, ИНН совпадает с
-     * компанией. Значит, спросить было чем — просто никто не спрашивал.
-     *
-     * Соответствие статусов прямое:
-     *
-     *   succeeded            — деньги у магазина;
-     *   canceled             — платёж отменён, денег нет;
-     *   pending              — человек не довёл оплату, заказ ещё жив;
-     *   waiting_for_capture  — деньги удержаны, но не списаны: трогать
-     *                          нельзя, это решение о захвате, а не сверка.
-     *
-     * Отказ любого рода — «опросить не удалось», а не «нет такого заказа».
-     * Клиент бросает одно исключение на все коды ответа, и отличить 404 от
-     * пятисотки по тексту нельзя — а гадать здесь опаснее, чем оставить
-     * платёж висеть: закрытый по ошибке `succeeded` — это неучтённая
-     * подписка. Пока клиент не научится различать коды, ошибка молчит в
-     * пользу платежа.
-     */
-    private function askYooKassa(YooKassaClient $client, Payment $payment): string
-    {
-        $paymentId = (string) ($payment->provider_payment_id ?? '');
-
-        if ($paymentId === '') {
-            return self::NEVER_SENT;
-        }
-
-        try {
-            $data = $client->getPayment($paymentId);
-        } catch (Throwable $e) {
-            $this->warn("    опрос {$paymentId}: {$e->getMessage()}");
-
-            return self::FAILED_TO_ASK;
-        }
-
-        return match ($data['status'] ?? null) {
-            'succeeded' => self::PAID,
-            'canceled' => self::CANCELLED,
-            'pending', 'waiting_for_capture' => self::ABANDONED,
-            default => self::FAILED_TO_ASK,
-        };
     }
 
     /**
