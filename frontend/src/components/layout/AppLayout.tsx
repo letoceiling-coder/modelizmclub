@@ -24,10 +24,10 @@ interface Props {
    *  open chat, Avito-style) where the section owns the whole viewport and
    *  exits via its own back arrow. Desktop is unaffected (nav is md:hidden). */
   hideBottomNav?: boolean;
-  /** Держит центральную колонку в 680 px на широком экране — ширина строки,
-   *  за которой текст перестаёт читаться, и ровно та, на которой построена
-   *  лента. Остальные разделы (каталог, админка, мессенджер) занимают всё
-   *  доступное место, как занимали. */
+  /** Держит **содержимое** центральной колонки в 680 px — ширина строки, за
+   *  которой текст перестаёт читаться. Саму колонку не сужает: до 10.09
+   *  сужал, и от этого центр прыгал между разделами (замер ниже). Теперь
+   *  колонка одна на все маршруты, а узкие разделы центруют внутри неё. */
   narrowCenter?: boolean;
 }
 
@@ -61,6 +61,23 @@ export function AppLayout({
         manage its own overflow independently. pt-4 is kept on both breakpoints
         so the top spacing is unchanged from the previous design.
       */}
+      {/*
+        Три колонки заданы дорожками сетки, а не содержимым.
+
+        До 10.09 каждый маршрут выбирал себе геометрию пропсами, и центр
+        ездил между разделами. Замерено на 1440 переходами по меню:
+
+          /feed → /messenger   центр  680 → 1135,2 px, левый край −35,2
+          /friends → /ads      центр  680 → 1311,2 px, левый край −211,2
+          /deals → /favorites  центр 1135,2 → 750,41 px
+
+        Причина не в полосе прокрутки: её нет ни на одном маршруте —
+        оболочка ограничена 100dvh, прокручивается только <main>.
+        `scrollbar-gutter` тут не лечит ничего.
+
+        Теперь ширины дорожек постоянны: пропала правая колонка — её место
+        остаётся занятым, а не раздаёт ширину центру.
+      */}
       <div
         className={cn(
           "mx-auto flex w-full max-w-[var(--container-max)] items-start gap-6 px-3 pt-4",
@@ -68,27 +85,21 @@ export function AppLayout({
           // Нижняя панель исчезает с 768 — с неё же снимается и отступ под неё.
           "md:pb-4",
           "lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0",
-          // 240 + 680 + 320 и промежутки — уже 1288 при контейнере 1560:
-          // без выравнивания по центру колонки прижались бы влево, оставив
-          // справа пустую полосу. Когда правой колонки нет, центрировать
-          // нечего: две колонки уезжали бы вправо от левого края экрана.
-          narrowCenter && rightColumn !== false && "xl:justify-center",
+          "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)_var(--rightrail-w)]",
         )}
       >
         {sidebar === false ? null : (sidebar ?? <Sidebar collapsed={navCollapsed} />)}
         {/* Center column: the only scroll zone on desktop. */}
-        <main
-          className={cn(
-            "min-w-0 flex-1 lg:overflow-y-auto",
-            narrowCenter && "xl:max-w-[680px]",
-            rightColumn === false &&
-              "lg:mr-[calc(-1*var(--container-pad))] lg:pr-[var(--container-pad)]",
-          )}
-        >
-          {children}
+        <main className="min-w-0 flex-1 lg:overflow-y-auto xl:flex-none">
+          {narrowCenter ? <div className="mx-auto w-full max-w-[680px]">{children}</div> : children}
           {footer && <AppFooter />}
         </main>
-        {rightColumn === false ? null : (rightColumn ?? <DirectionsRightRail />)}
+        {rightColumn === false ? (
+          // Пустая дорожка вместо колонки: место занято, центр не разъезжается.
+          <div className="hidden xl:block" aria-hidden />
+        ) : (
+          (rightColumn ?? <DirectionsRightRail />)
+        )}
       </div>
       {hideBottomNav ? null : <BottomNav />}
     </div>
