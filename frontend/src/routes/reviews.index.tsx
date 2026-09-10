@@ -111,6 +111,9 @@ function ReviewsPage() {
   const [activeCat, setActiveCat] = useState<string>(categoryFromUrl ?? ALL);
   const [query, setQuery] = useState(qFromUrl ?? "");
   const [initialLoading, setInitialLoading] = useState(true);
+  /* Подборки грузятся отдельным запросом от сетки. Свой флаг нужен затем,
+     что запросы приходят вразнобой: сетка первой, подборки позже. */
+  const [topBlocksLoading, setTopBlocksLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const hasLoadedOnceRef = useRef(false);
 
@@ -160,7 +163,10 @@ function ReviewsPage() {
         setCategories(cats);
         setFeatured(feat);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setTopBlocksLoading(false);
+      });
     return () => {
       alive = false;
     };
@@ -203,8 +209,15 @@ function ReviewsPage() {
    * Замерено 10.09 на проде, переход `/messenger → /reviews`: секция сетки
    * с `y = 196` уезжала на `y = 817`, то есть на 621 px. Это был весь CLS
    * раздела — 0,1565 при нуле на остальных двадцати переходах меню.
+   *
+   * Флага сетки для резерва мало, и это выяснилось только на проде.
+   * Подборки грузятся **своим** запросом (`fetchVideos({ featured: true })`),
+   * и приходит он позже сетки. Пока резерв держался на `initialLoading`,
+   * он снимался по ответу сетки — а героя ещё не было, и сетка успевала
+   * прыгнуть вверх и обратно: `y807 → y489 → y806`, CLS 0,1265. Локально
+   * этого не видно: там оба ответа приходят в одном такте.
    */
-  const reserveTopBlocks = initialLoading && videos.length === 0 && !isWatchLaterTab;
+  const reserveTopBlocks = (initialLoading || topBlocksLoading) && !isWatchLaterTab;
 
   return (
     /*
