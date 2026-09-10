@@ -211,12 +211,24 @@ class AppServiceProvider extends ServiceProvider
             ], true);
         });
 
-        Scramble::configure()
-            ->routes(fn (Route $route) => Str::startsWith($route->uri, 'api/'))
-            ->withDocumentTransformers(function (OpenApi $openApi): void {
-                $openApi->secure(
-                    SecurityScheme::http('bearer', 'Sanctum'),
-                );
-            });
+        // dedoc/scramble лежит в require-dev, а вызов стоял здесь без защиты.
+        // Значит `composer install --no-dev` — обычная боевая установка —
+        // валил приложение на каждом запросе: post-autoload-dump доходил до
+        // package:discover и падал с «Class "Dedoc\Scramble\Scramble" not
+        // found». Проверено 10.09 на проде: API отдавал 500 четыре минуты,
+        // пока не вернули полный набор зависимостей.
+        //
+        // Атрибуты Scramble в 82 контроллерах вреда не наносят: PHP не
+        // разрешает классы атрибутов, пока по ним не пройдут рефлексией, а
+        // без пакета этого не делает никто. Опасен был только этот вызов.
+        if (class_exists(Scramble::class)) {
+            Scramble::configure()
+                ->routes(fn (Route $route) => Str::startsWith($route->uri, 'api/'))
+                ->withDocumentTransformers(function (OpenApi $openApi): void {
+                    $openApi->secure(
+                        SecurityScheme::http('bearer', 'Sanctum'),
+                    );
+                });
+        }
     }
 }
