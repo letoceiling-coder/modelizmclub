@@ -254,8 +254,11 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
                   <Link
                     to="/categories/$id"
                     params={{ id: s.slug ?? s.id }}
-                    className="flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface)]"
-                    style={{ paddingLeft: 16 + depth * 20 }}
+                    className="flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    // Шестнадцать на уровень — столько же, сколько в правой
+                    // панели: один и тот же список в двух местах не должен
+                    // отступать по-разному.
+                    style={{ paddingLeft: 16 + depth * 16 }}
                   >
                     <span
                       className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[12px] text-[14px] font-semibold"
