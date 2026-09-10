@@ -1,5 +1,11 @@
 # Моделизм — план БД и API (Этап 1)
 
+> **Сверено 10.09.2026 по дереву и проду.** Из 34 пунктов отмечено 26, три
+> вычеркнуты как потерявшие смысл, пять оставлены открытыми с оговоркой.
+> Самое существенное из незакрытого: **Pint и PHPStan в воротах CI так и не
+> появились** — там четыре другие работы.
+
+
 > Версия: 1.0 · 15.06.2026  
 > Репозиторий: `git@github.com:letoceiling-coder/modelizmclub.git`  
 > Dev-сервер: `dev.modelizmclub.ru` → `31.207.75.124` (Beget VPS, Ubuntu 24.04)  
@@ -818,58 +824,58 @@ PostPolicy::publish — owner + passes ModerationRules
 
 ### Спринт 0 (3–4 дня): Фундамент
 
-- [ ] Init monorepo, Laravel 11, push на GitHub
-- [ ] Настройка VPS: `deploy/scripts/server-setup.sh`
-- [ ] GitHub repo, branch strategy: `main`, `develop`, `feature/*`
-- [ ] CI: PHPUnit, Pint, PHPStan level 6
-- [ ] `/setup-deploy` → dev.modelizmclub.ru + SSL
-- [ ] ADR-001: Media Library vs custom
-- [ ] Base models: User, Media, Category trees
+- [x] Init monorepo, Laravel 11, push на GitHub
+- [x] Настройка VPS: `deploy/scripts/server-setup.sh`
+- [ ] GitHub repo, branch strategy: `main`, `develop`, `feature/*` — **ветки `master`/`develop`/`fix|feat|docs/*` — стратегия та же, имя основной ветки другое** (10.09.2026)
+- [ ] CI: PHPUnit, Pint, PHPStan level 6 — **в CI четыре работы: гигиена, tsc+eslint, phpunit+эталон схемы, composer audit. **Pint и PHPStan не подключены**** (10.09.2026)
+- [x] `/setup-deploy` → dev.modelizmclub.ru + SSL
+- [ ] ~~ADR-001: Media Library vs custom~~ — **потеряло смысл:** документа ADR в `docs/` нет; решение принято де-факто — своя обработка вариантов (10.09.2026)
+- [x] Base models: User, Media, Category trees
 
 ### Спринт 1 (5–7 дней): Auth + Users
 
-- [ ] Миграции: users, profiles, oauth, consents, blocks, follows
-- [ ] Sanctum + email verification code
-- [ ] Socialite VK + Yandex (stub credentials)
-- [ ] Policies, Resources, Filters
-- [ ] Feature tests: register → verify → login → me
+- [x] Миграции: users, profiles, oauth, consents, blocks, follows
+- [x] Sanctum + email verification code
+- [ ] Socialite VK + Yandex (stub credentials) — **сделан только VK (`VkIdProvider`), Яндекса нет** (10.09.2026)
+- [x] Policies, Resources, Filters
+- [x] Feature tests: register → verify → login → me
 
 ### Спринт 2 (5–7 дней): Categories + Communities
 
-- [ ] 3 category trees + cities + tags
-- [ ] Communities CRUD (admin), applications, members
-- [ ] Seeders: 30+ categories из ТЗ
-- [ ] Admin API categories (drag order → `sort_order`)
+- [x] 3 category trees + cities + tags
+- [x] Communities CRUD (admin), applications, members
+- [x] Seeders: 30+ categories из ТЗ
+- [x] Admin API categories (drag order → `sort_order`)
 
 ### Спринт 3 (7–10 дней): Feed
 
-- [ ] Posts, comments (threaded), reactions, bookmarks, reposts
-- [ ] Moderation queue auto-create on publish
-- [ ] Feed filters: all / following / category
-- [ ] Media upload flow end-to-end
-- [ ] Tests: thread depth, moderation states
+- [x] Posts, comments (threaded), reactions, bookmarks, reposts
+- [x] Moderation queue auto-create on publish
+- [x] Feed filters: all / following / category
+- [x] Media upload flow end-to-end
+- [x] Tests: thread depth, moderation states
 
 ### Спринт 4 (5–7 дней): Moderation + Admin base
 
-- [ ] Reports, stop words, moderation actions
-- [ ] Admin: users, dashboard stats, audit log
-- [ ] Role middleware (moderator, admin)
-- [ ] 2FA for admins (TOTP)
+- [x] Reports, stop words, moderation actions
+- [x] Admin: users, dashboard stats, audit log
+- [x] Role middleware (moderator, admin)
+- [x] 2FA for admins (TOTP)
 
 ### Спринт 5 (3–5 дней): Billing schema + stubs
 
-- [ ] Миграции billing (без VTB интеграции)
-- [ ] Plans CRUD admin, listing_pricing_rules
-- [ ] API stubs с 501 для E2 endpoints
-- [ ] OpenAPI generation
+- [x] Миграции billing (без VTB интеграции)
+- [x] Plans CRUD admin, listing_pricing_rules
+- [ ] API stubs с 501 для E2 endpoints — **заглушек с 501 в коде не нашёл — эндпоинты сделаны настоящими** (10.09.2026)
+- [x] OpenAPI generation
 
 ### Спринт 6 (3 дня): Hardening
 
-- [ ] Rate limits, русские error messages
-- [ ] `/review` security pass
-- [ ] Backup script PG → S3
-- [ ] Postman/Insomnia collection
-- [ ] Demo на dev.modelizmclub.ru
+- [x] Rate limits, русские error messages
+- [ ] `/review` security pass — **как отдельная работа не проводилась; лимиты частоты и карта доступа проверены замерами** (10.09.2026)
+- [x] Backup script PG → S3
+- [ ] ~~Postman/Insomnia collection~~ — **потеряло смысл:** не заводилась и не нужна: OpenAPI отдаётся Scramble, Swagger живёт на `/docs/api` (10.09.2026)
+- [ ] ~~Demo на dev.modelizmclub.ru~~ — **потеряло смысл:** домен отвечает 200, но указывает на тот же прод — отдельного стенда нет (см. `CLAUDE.md`) (10.09.2026)
 
 **Итого Этап 1 API:** ~6 недель (совпадает с ТЗ)
 
