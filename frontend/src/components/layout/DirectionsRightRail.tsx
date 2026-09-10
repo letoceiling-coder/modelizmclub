@@ -252,8 +252,13 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
    * дерево было плоским, глубже второго уровня ничего не было, и разница
    * не требовалась. С возвращением третьего уровня («Авиация → Планеры →
    * ИЛ-6») одинаковый отступ склеил бы второй уровень с третьим — вложение
-   * перестало бы читаться. Шестнадцать на уровень: столько же, сколько
-   * между строкой и её значком, и вложенность видна без линейки.
+   * перестало бы читаться.
+   *
+   * Отступ **относительный**: списки вложены друг в друга, и абсолютное
+   * `20 + depth × 16` складывалось с отступом родителя. Замер на проде дал
+   * шаг 47 px между первым уровнем и вторым и 63 между вторым и третьим —
+   * вместо ровных шестнадцати. Постоянные 16 у вложенного списка дают
+   * ровно 16 на каждый уровень, сколько бы их ни было.
    */
   const INDENT_PER_LEVEL = 16;
 
@@ -261,9 +266,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
     <ul
       className={depth === 0 ? "p-[6px]" : "mb-[4px] mt-[2px] space-y-[1px] border-l pl-[10px]"}
       style={
-        depth === 0
-          ? undefined
-          : { borderColor: "var(--border)", marginLeft: 20 + depth * INDENT_PER_LEVEL }
+        depth === 0 ? undefined : { borderColor: "var(--border)", marginLeft: INDENT_PER_LEVEL }
       }
     >
       {nodes.map((node) => {
