@@ -883,7 +883,7 @@ function PopularListings() {
 
   if (!sectionLoading && !section) return null;
 
-  const priceLocale = i18n.language === "ru" ? "ru-RU" : i18n.language === "zh" ? "zh-CN" : "en-US";
+  const priceLocale = "ru-RU";
 
   return (
     <Section bg="var(--background)">
