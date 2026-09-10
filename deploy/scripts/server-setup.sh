@@ -82,6 +82,13 @@ if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
 fi
 
 php artisan config:cache
+
+# Кеш конфига — это запечённый .env: пароль базы внутри открытым текстом.
+# `config:cache` создаёт файл с умолчательными 644, то есть открывает его
+# любому пользователю сервера. Возвращаем 640 сразу, иначе следующий запуск
+# этого скрипта молча отменяет починку прав (см. deploy/README.md, «Доступ
+# к .env»).
+chmod 640 bootstrap/cache/config.php 2>/dev/null || true
 php artisan route:cache
 
 echo "==> Готово"

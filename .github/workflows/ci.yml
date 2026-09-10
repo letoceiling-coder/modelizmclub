@@ -30,6 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: deploy/scripts/check-workspace.sh
+      # Кеш конфигурации — запечённый .env с паролем базы. `config:cache`
+      # создаёт его с правами 644, и каждый вызывающий скрипт обязан вернуть
+      # 640. 08.09 в CLAUDE.md записали, что так и есть; 10.09 пересчёт
+      # показал десять скриптов без этого. Ничто не проверяло — теперь
+      # проверяет.
+      - run: deploy/scripts/check-config-cache-chmod.sh
 
   frontend:
     name: frontend · tsc + eslint
