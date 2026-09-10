@@ -306,7 +306,7 @@ function CommentAttachMenu({
           <button
             type="button"
             disabled={disabled}
-            className="hit-target grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] transition-opacity hover:opacity-80 disabled:opacity-40"
+            className="relative grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] transition-opacity hover:opacity-80 disabled:opacity-40 before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
             style={{ color: "var(--foreground-50)" }}
             aria-label={t("components.commentSection.attachFile")}
           >
@@ -838,7 +838,7 @@ export function CommentSection({
               type="button"
               onClick={submit}
               disabled={photos.uploading || (!draft.trim() && photos.photos.length === 0)}
-              className="hit-target grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
+              className="relative grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40 before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
               style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
               aria-label={t("components.commentSection.send")}
             >
