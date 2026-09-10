@@ -110,6 +110,14 @@ return [
             'enabled' => env('SAFE_DEAL_HOLD_POLL_ENABLED', true),
             'older_than_minutes' => (int) env('SAFE_DEAL_HOLD_POLL_OLDER_THAN_MINUTES', 60),
             'limit' => (int) env('SAFE_DEAL_HOLD_POLL_LIMIT', 50),
+
+            /*
+             | Через сколько минут считать, что строка холда без номера заказа
+             | — это не открытая форма оплаты, а потерянная связь с банком.
+             | Пятнадцать: чекаут живёт тридцать, и половина этого срока
+             | достаточно далеко от нормального «покупатель ещё вводит карту».
+             */
+            'recover_older_than_minutes' => (int) env('SAFE_DEAL_HOLD_RECOVER_OLDER_THAN_MINUTES', 15),
         ],
     ],
 

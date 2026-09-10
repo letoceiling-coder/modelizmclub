@@ -9,6 +9,7 @@ use App\Models\SafeDeal;
 use App\Models\SafeDealGatewayEvent;
 use App\Models\SafeDealPayout;
 use App\Models\UserPayoutRequisites;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbSbpPayoutClient;
@@ -108,8 +109,17 @@ class SafeDealPayoutService
             return $payout->fresh();
         }
 
-        $this->journal($payout, 'payout.requested', $response);
-        $this->apply($payout, $response);
+        /*
+         * План блока считал, что здесь одна запись и транзакция не нужна.
+         * Записей три: создание строки выплаты, журнал ответа банка и
+         * применение статуса, — и между первой и второй стоит обращение к
+         * банку. Проверено чтением, а не предположением.
+         *
+         * Строка создаётся до банка намеренно, как и у входящего платежа:
+         * `request_id` из неё уходит в запрос, и без строки выплату потом не
+         * найти. Две записи после ответа сведены в одну транзакцию.
+         */
+        $this->recordBankReply($payout, 'payout.requested', $response);
 
         return $payout->fresh();
     }
@@ -124,22 +134,19 @@ class SafeDealPayoutService
         try {
             if ($payout->status->canConfirm()) {
                 $confirm = $this->client->confirmTransaction($payout->request_id);
-                $this->journal($payout, 'payout.confirmed', $confirm);
-                $this->apply($payout, $confirm);
+                $this->recordBankReply($payout, 'payout.confirmed', $confirm);
 
                 return $payout->fresh();
             }
 
             $status = $this->client->statusTransaction($payout->request_id);
-            $this->journal($payout, 'payout.status', $status);
-            $this->apply($payout, $status);
+            $this->recordBankReply($payout, 'payout.status', $status);
 
             // A poll that lands on APPROVED can be confirmed straight away.
             $payout = $payout->fresh();
             if ($payout->status->canConfirm()) {
                 $confirm = $this->client->confirmTransaction($payout->request_id);
-                $this->journal($payout, 'payout.confirmed', $confirm);
-                $this->apply($payout, $confirm);
+                $this->recordBankReply($payout, 'payout.confirmed', $confirm);
             }
         } catch (Throwable $e) {
             Log::warning('SafeDeal payout: advance failed', [
@@ -200,19 +207,58 @@ class SafeDealPayoutService
             ->get();
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * Ответ банка — в журнал и в строку выплаты одной транзакцией.
+     *
+     * Порознь они означали бы, что упавший процесс оставляет либо запись о
+     * событии без изменения статуса, либо статус без следа, откуда он взялся.
+     * Второе хуже: выплатной контур разбирается по журналу событий, и статус
+     * без события — это выплата, о происхождении которой сказать нечего.
+     *
+     * Обращение к банку остаётся снаружи: сеть не держит блокировку строки.
+     *
+     * @param array<string, mixed> $response
+     */
+    private function recordBankReply(SafeDealPayout $payout, string $eventType, array $response): void
+    {
+        DB::transaction(function () use ($payout, $eventType, $response): void {
+            $locked = SafeDealPayout::query()
+                ->whereKey($payout->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->journal($locked, $eventType, $response);
+            $this->apply($locked, $response);
+        });
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * Была обычная вставка с перехватом исключения. Ключ идемпотентности
+     * собран из ответа банка, а опрос выплаты по расписанию получает один и
+     * тот же ответ, пока банк думает, — то есть повтор здесь норма, и вставка
+     * честно падала в `unique` на каждом втором опросе. Перехват это скрывал.
+     *
+     * Внутри транзакции такой отказ уже не скроешь: в PostgreSQL неудавшийся
+     * оператор ломает всю транзакцию, и запись статуса откатилась бы вместе с
+     * ним. `insertOrIgnore` разрешает конфликт внутри самого оператора и
+     * неудачи не даёт — ценой ручного приведения типов и меток времени.
+     */
     private function journal(SafeDealPayout $payout, string $eventType, array $payload): void
     {
         try {
-            SafeDealGatewayEvent::query()->create([
+            SafeDealGatewayEvent::query()->insertOrIgnore([
                 'uuid' => (string) Str::uuid(),
-                'contour' => SafeDealGatewayContour::Oe,
+                'contour' => SafeDealGatewayContour::Oe->value,
                 'event_type' => $eventType,
                 'safe_deal_id' => $payout->safe_deal_id,
                 'payout_id' => $payout->id,
                 'idempotency_key' => $eventType.':'.$payout->id.':'.md5(json_encode($payload) ?: ''),
-                'payload' => $payload,
+                'payload' => json_encode($payload),
                 'processed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         } catch (Throwable $e) {
             Log::warning('SafeDeal payout: gateway event not journalled', [

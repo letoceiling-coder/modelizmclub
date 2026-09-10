@@ -87,6 +87,25 @@ class VtbAcquiringClient
     }
 
     /**
+     * Тот же запрос, но по нашему номеру заказа, а не по банковскому.
+     *
+     * Нужен ровно для одного случая: заказ в банке зарегистрирован, а
+     * `rbs_order_id` до базы не доехал — процесс умер между ответом банка и
+     * записью. Своей стороной номера мы владеем всегда (orderNumber — это
+     * uuid строки холда), значит потерянный заказ можно найти. Без этого он
+     * не находится ничем: и опрос холдов, и захват, и возврат начинаются с
+     * проверки `rbs_order_id`.
+     *
+     * @return array<string, mixed>
+     */
+    public function getOrderStatusByNumber(string $orderNumber): array
+    {
+        return $this->post('getOrderStatusExtended.do', [
+            'orderNumber' => $orderNumber,
+        ]);
+    }
+
+    /**
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */

@@ -8,6 +8,7 @@ use App\Models\SafeDeal;
 use App\Models\SafeDealGatewayEvent;
 use App\Models\SafeDealIncomingPayment;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbAcquiringClient;
@@ -105,23 +106,55 @@ class SafeDealSettlementService
         $orderId = (string) ($register['orderId'] ?? '');
         $formUrl = $register['formUrl'] ?? null;
 
+        /*
+         * Дальше идут записи, и делить их нельзя.
+         *
+         * Строка холда создаётся до обращения в банк намеренно: банк
+         * регистрирует заказ под нашим `orderNumber`, и если строки нет, то
+         * и номера нет — заказ окажется ничьим. Но между ответом банка и
+         * записью `rbs_order_id` до 11.09 не было ничего, что удержало бы
+         * их вместе. Процесс, умерший в этом окне, оставлял заказ в банке
+         * (возможно, с деньгами, замороженными на карте покупателя) и строку
+         * без номера заказа. Такую строку не берёт ни опрос холдов — у него
+         * `whereNotNull('rbs_order_id')`, — ни захват, ни возврат: оба
+         * начинаются с той же проверки. То есть деньги зависали навсегда.
+         *
+         * Транзакция закрывает половину дела: запись номера и запись в
+         * журнал теперь либо есть обе, либо нет ни одной. Вторая половина —
+         * `recoverOrderId()` ниже: она находит заказ по `orderNumber`,
+         * которым мы владеем всегда.
+         *
+         * Обращение к банку осталось выше, вне транзакции. Сеть не должна
+         * держать блокировку строки — то же решение, что в развязке спора.
+         */
         if ($orderId === '' || ! $formUrl) {
-            $incoming->update([
-                'status' => SafeDealIncomingStatus::Failed,
-                'fail_reason' => $endpoint.' did not return orderId/formUrl',
-                'failed_at' => now(),
-            ]);
+            DB::transaction(function () use ($incoming, $endpoint, $deal, $register): void {
+                $locked = $this->lockIncoming($incoming);
+                $locked->update([
+                    'status' => SafeDealIncomingStatus::Failed,
+                    'fail_reason' => $endpoint.' did not return orderId/formUrl',
+                    'failed_at' => now(),
+                ]);
 
+                $this->journal($deal, $locked, 'payment.register_failed', $register);
+            });
+
+            // Бросаем после фиксации: исключение внутри транзакции откатило
+            // бы и отметку об отказе — платёж остался бы «в ожидании».
             throw new RuntimeException('Не удалось зарегистрировать оплату в ВТБ.');
         }
 
-        $incoming->update([
-            'rbs_order_id' => $orderId,
-            'rbs_order_number' => $incoming->uuid,
-            'checkout_url' => $formUrl,
-        ]);
+        DB::transaction(function () use ($incoming, $orderId, $formUrl, $deal, $register, $twoStage): void {
+            $locked = $this->lockIncoming($incoming);
 
-        $this->journal($deal, $incoming, $twoStage ? 'preauth.registered' : 'payment.registered', $register);
+            $locked->update([
+                'rbs_order_id' => $orderId,
+                'rbs_order_number' => $locked->uuid,
+                'checkout_url' => $formUrl,
+            ]);
+
+            $this->journal($deal, $locked, $twoStage ? 'preauth.registered' : 'payment.registered', $register);
+        });
 
         return $incoming->fresh();
     }
@@ -133,13 +166,10 @@ class SafeDealSettlementService
             return $incoming;
         }
 
+        // Сеть — до транзакции. Внутри остаются только записи.
         $status = $this->client->getOrderStatusExtended($incoming->rbs_order_id);
-        $incoming->applyRbsOrderStatus(VtbAcquiringClient::orderStatus($status));
-        $incoming->save();
 
-        $this->journal($incoming->safeDeal, $incoming, 'order.status', $status);
-
-        return $incoming->fresh();
+        return $this->applyStatus($incoming, $status, 'order.status');
     }
 
     /**
@@ -187,6 +217,58 @@ class SafeDealSettlementService
         return $this->syncHold($incoming);
     }
 
+    /**
+     * Найти в банке заказ, номер которого до нас не доехал.
+     *
+     * Случай узкий, но безвыходный: процесс умер между ответом банка и
+     * записью `rbs_order_id`. Строка холда есть, заказ в банке есть, связи
+     * между ними нет, и ни одна регулярная задача такую строку не подберёт.
+     * Спросить банк можно по `orderNumber` — это uuid самой строки, и он у
+     * нас был с самого начала.
+     *
+     * Возвращает строку как есть, если восстанавливать нечего или банк
+     * такого заказа не знает: заказ мог и не зарегистрироваться, если
+     * процесс умер раньше ответа.
+     */
+    public function recoverOrderId(SafeDealIncomingPayment $incoming): SafeDealIncomingPayment
+    {
+        if ($incoming->rbs_order_id || $incoming->status !== SafeDealIncomingStatus::Pending) {
+            return $incoming;
+        }
+
+        $status = $this->client->getOrderStatusByNumber((string) $incoming->uuid);
+        $orderId = (string) ($status['attributes']['orderId'] ?? $status['orderId'] ?? '');
+
+        if ($orderId === '') {
+            return $incoming;
+        }
+
+        return DB::transaction(function () use ($incoming, $orderId, $status): SafeDealIncomingPayment {
+            $locked = $this->lockIncoming($incoming);
+
+            $locked->rbs_order_id = $orderId;
+            $locked->rbs_order_number = (string) $locked->uuid;
+            $locked->applyRbsOrderStatus(VtbAcquiringClient::orderStatus($status));
+            $locked->save();
+
+            $this->journal($locked->safeDeal, $locked, 'order.recovered', $status);
+
+            return $locked->fresh();
+        });
+    }
+
+    /** Холды, у которых заказ в банке мог остаться без номера у нас. */
+    public function pendingWithoutOrderId(int $olderThanMinutes, int $limit): \Illuminate\Support\Collection
+    {
+        return SafeDealIncomingPayment::query()
+            ->whereNull('rbs_order_id')
+            ->where('status', SafeDealIncomingStatus::Pending)
+            ->where('created_at', '<=', now()->subMinutes(max(0, $olderThanMinutes)))
+            ->orderBy('id')
+            ->limit(max(1, $limit))
+            ->get();
+    }
+
     public function findByRbsOrderId(string $orderId): ?SafeDealIncomingPayment
     {
         return SafeDealIncomingPayment::query()
@@ -207,6 +289,41 @@ class SafeDealSettlementService
     }
 
     /**
+     * Строка холда под блокировкой — то, с чем можно работать дальше.
+     *
+     * Вызывать только внутри транзакции: вне её блокировка снимается тем же
+     * запросом, что её взял, и смысла не имеет. Объект, пришедший
+     * аргументом, к этому моменту уже может врать — соседний опрос холда
+     * или колбэк банка успели записать своё.
+     */
+    private function lockIncoming(SafeDealIncomingPayment $incoming): SafeDealIncomingPayment
+    {
+        return SafeDealIncomingPayment::query()
+            ->whereKey($incoming->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    /**
+     * Применить ответ банка к строке холда: статус и журнал одной записью.
+     *
+     * @param array<string, mixed> $status
+     */
+    private function applyStatus(SafeDealIncomingPayment $incoming, array $status, string $eventType): SafeDealIncomingPayment
+    {
+        return DB::transaction(function () use ($incoming, $status, $eventType): SafeDealIncomingPayment {
+            $locked = $this->lockIncoming($incoming);
+
+            $locked->applyRbsOrderStatus(VtbAcquiringClient::orderStatus($status));
+            $locked->save();
+
+            $this->journal($locked->safeDeal, $locked, $eventType, $status);
+
+            return $locked->fresh();
+        });
+    }
+
+    /**
      * Запись события шлюза в журнал.
      *
      * Ключ идемпотентности собран из типа события и содержимого ответа,
@@ -218,26 +335,37 @@ class SafeDealSettlementService
      * почти не случалось; автоопрос спрашивает банк по расписанию и получает
      * один и тот же ответ, пока холд держится, — то есть повтор стал нормой.
      *
-     * `firstOrCreate` вместо вставки: то же событие второй раз не пишется и
-     * ничего не ломает. Перехват оставлен на гонку двух опросов.
+     * Затем стоял `firstOrCreate`, и его хватало, пока журнал писался вне
+     * транзакции. Теперь записи после ответа банка идут внутри неё, и
+     * `firstOrCreate` снова опасен: между его SELECT и INSERT успевает
+     * вставить соседний опрос, INSERT падает в `unique` — и роняет всю
+     * транзакцию, включая запись статуса. Перехват здесь не спасает: в
+     * PostgreSQL транзакцию ломает сам факт неудавшегося оператора, а не
+     * непойманное исключение.
+     *
+     * `insertOrIgnore` — единственная форма, которая не может испортить
+     * транзакцию: конфликт разрешается в самом операторе (ON CONFLICT DO
+     * NOTHING), неудачи нет. Ценой того, что модельные события и приведение
+     * типов приходится делать руками — отсюда json_encode и явные метки
+     * времени.
      *
      * @param array<string, mixed> $payload
      */
     private function journal(?SafeDeal $deal, SafeDealIncomingPayment $incoming, string $eventType, array $payload): void
     {
         try {
-            SafeDealGatewayEvent::query()->firstOrCreate(
-                ['idempotency_key' => $eventType.':'.$incoming->id.':'.md5(json_encode($payload) ?: '')],
-                [
-                    'uuid' => (string) Str::uuid(),
-                    'contour' => SafeDealGatewayContour::Ie,
-                    'event_type' => $eventType,
-                    'safe_deal_id' => $deal?->id ?? $incoming->safe_deal_id,
-                    'incoming_payment_id' => $incoming->id,
-                    'payload' => $payload,
-                    'processed_at' => now(),
-                ],
-            );
+            SafeDealGatewayEvent::query()->insertOrIgnore([
+                'uuid' => (string) Str::uuid(),
+                'contour' => SafeDealGatewayContour::Ie->value,
+                'event_type' => $eventType,
+                'safe_deal_id' => $deal?->id ?? $incoming->safe_deal_id,
+                'incoming_payment_id' => $incoming->id,
+                'idempotency_key' => $eventType.':'.$incoming->id.':'.md5(json_encode($payload) ?: ''),
+                'payload' => json_encode($payload),
+                'processed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         } catch (Throwable $e) {
             Log::warning('SafeDeal: gateway event not journalled', [
                 'incoming' => $incoming->id,

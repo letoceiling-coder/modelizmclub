@@ -155,6 +155,70 @@ class SafeDealHoldSyncService
     }
 
     /**
+     * Подобрать заказы, номер которых до нас не доехал.
+     *
+     * Опрос холдов выше берёт только строки с `rbs_order_id` — иначе спрашивать
+     * банк не о чем. Значит строка, потерявшая номер между ответом банка и
+     * записью, не попадает ни под один регулярный проход: ни под опрос, ни под
+     * захват, ни под возврат. Деньги на карте покупателя при этом могут быть
+     * заморожены.
+     *
+     * Транзакция в `openHold` закрывает окно на будущее, но не помогает тем
+     * строкам, что уже есть, и не помогает при падении между ответом банка и
+     * началом транзакции — окно сузилось, но не исчезло. Здесь оно
+     * закрывается с другой стороны: у банка спрашивают по `orderNumber`,
+     * которым мы владеем всегда.
+     *
+     * Отбор по возрасту: строка младше окна может быть просто открытой формой
+     * оплаты, где покупатель ещё вводит карту.
+     *
+     * @return array{checked: int, recovered: int, failed: int}
+     */
+    public function recoverLostOrderIds(?int $olderThanMinutes = null, ?int $limit = null): array
+    {
+        $result = ['checked' => 0, 'recovered' => 0, 'failed' => 0];
+
+        if (! $this->settlement->vtbConfigured()) {
+            return $result;
+        }
+
+        $olderThan = max(1, $olderThanMinutes ?? (int) config('billing.auto_poll.holds.recover_older_than_minutes', 15));
+        $limit = max(1, $limit ?? (int) config('billing.auto_poll.holds.limit', 50));
+        $delayMs = max(0, (int) config('billing.vtb.reconcile.delay_ms', 1000));
+
+        foreach ($this->settlement->pendingWithoutOrderId($olderThan, $limit) as $index => $incoming) {
+            if ($index > 0 && $delayMs > 0) {
+                usleep($delayMs * 1000);
+            }
+
+            $result['checked']++;
+
+            try {
+                $fresh = $this->settlement->recoverOrderId($incoming);
+            } catch (Throwable $e) {
+                $result['failed']++;
+                Log::warning('SafeDeal: order id recovery failed', [
+                    'incoming' => $incoming->uuid,
+                    'exception' => $e->getMessage(),
+                ]);
+
+                continue;
+            }
+
+            if ($fresh->rbs_order_id) {
+                $result['recovered']++;
+                Log::error('SafeDeal: order id recovered from the bank by orderNumber', [
+                    'incoming' => $fresh->uuid,
+                    'deal' => $fresh->safe_deal_id,
+                    'rbs_order_id' => $fresh->rbs_order_id,
+                ]);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Sweeps deals whose buyer never finished the card form.
      *
      * @return int Number of deals released
