@@ -12,13 +12,7 @@ export type ReportType =
   | "channel";
 
 export type ReportReason =
-  | "spam"
-  | "offensive"
-  | "adult"
-  | "fraud"
-  | "violence"
-  | "copyright"
-  | "other";
+  "spam" | "offensive" | "adult" | "fraud" | "violence" | "copyright" | "other";
 
 export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   spam: "Спам",

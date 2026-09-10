@@ -53,8 +53,7 @@ let adminBundle: Promise<void> | null = null;
 
 export function loadAdminLocale(): Promise<void> {
   const existing = i18n.getResourceBundle(LOCALE, "translation") as
-    | { pages?: Record<string, unknown> }
-    | undefined;
+    { pages?: Record<string, unknown> } | undefined;
   if (existing?.pages?.adminShell) return Promise.resolve();
 
   if (adminBundle) return adminBundle;

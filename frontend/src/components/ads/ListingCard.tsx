@@ -10,14 +10,7 @@ import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia } from "@/lib/media/variants";
 
 export type ListingStatus =
-  | "active"
-  | "sold"
-  | "archived"
-  | "moderation"
-  | "rejected"
-  | "draft"
-  | "unpublished"
-  | "deleted";
+  "active" | "sold" | "archived" | "moderation" | "rejected" | "draft" | "unpublished" | "deleted";
 
 type StatusVariant = "published" | "draft" | "moderation" | "warning" | "outline" | "destructive";
 

@@ -24,14 +24,7 @@ import { getSessionUserId, setSessionUser } from "@/lib/session/cache";
 export { GUEST_USER };
 
 export type AdStatusKey =
-  | "active"
-  | "sold"
-  | "archived"
-  | "moderation"
-  | "rejected"
-  | "deleted"
-  | "draft"
-  | "unpublished";
+  "active" | "sold" | "archived" | "moderation" | "rejected" | "deleted" | "draft" | "unpublished";
 
 export interface Friendship {
   id: string;

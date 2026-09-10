@@ -49,14 +49,7 @@ export const Route = createFileRoute("/my-ads")({
 });
 
 type TabKey =
-  | "active"
-  | "sold"
-  | "moderation"
-  | "rejected"
-  | "unpublished"
-  | "archived"
-  | "deleted"
-  | "draft";
+  "active" | "sold" | "moderation" | "rejected" | "unpublished" | "archived" | "deleted" | "draft";
 
 const TAB_KEYS: { key: TabKey; labelKey: string }[] = [
   { key: "active", labelKey: "pages.myAds.tabActive" },

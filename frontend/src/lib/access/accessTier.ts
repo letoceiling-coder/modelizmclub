@@ -11,11 +11,7 @@ import {
 export type AccessTier = "guest" | "registered" | "verified" | "subscriber";
 
 export type AccessCapability =
-  | "browseListings"
-  | "browseFeed"
-  | "viewReviews"
-  | "createContent"
-  | "paidListing";
+  "browseListings" | "browseFeed" | "viewReviews" | "createContent" | "paidListing";
 
 const CAPABILITIES: Record<AccessCapability, AccessTier[]> = {
   browseListings: ["guest", "registered", "verified", "subscriber"],
