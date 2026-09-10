@@ -597,7 +597,7 @@ export function PostCard({
               type="button"
               onClick={() => setAsideExpanded((v) => !v)}
               className={cn(
-                "mt-1 min-h-[32px] cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80",
+                "hit-target mt-1 min-h-[32px] cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80",
                 text.length > CLAMP_ASIDE_WIDE_CHARS ? "" : "lg:hidden",
               )}
               style={{ color: "var(--accent)" }}
@@ -921,7 +921,7 @@ export function PostCard({
                   setExpanded((v) => !v);
                 }}
                 className={cn(
-                  "mt-[4px] text-[12px] font-semibold transition-opacity hover:opacity-80",
+                  "hit-target mt-[4px] text-[12px] font-semibold transition-opacity hover:opacity-80",
                   // На широком экране помещается четыре строки: текст, который
                   // на телефоне обрезан, здесь виден целиком — и кнопка не нужна.
                   canExpandDesktop ? "" : "md:hidden",
