@@ -173,6 +173,7 @@ class RulePageService
                 'items' => [
                     ['title' => 'Как работает платформа', 'kind' => 'route', 'href' => '/how-it-works', 'legal_slug' => 'how-it-works'],
                     ['title' => 'Реквизиты и контакты', 'legal_slug' => 'contacts'],
+                    ['title' => 'Служба поддержки', 'legal_slug' => 'support'],
                     ['title' => 'Обратная связь', 'legal_slug' => 'feedback'],
                 ],
             ],

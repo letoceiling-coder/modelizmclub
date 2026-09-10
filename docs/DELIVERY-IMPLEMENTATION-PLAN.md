@@ -1,5 +1,16 @@
 # План реализации доставки СДЭК + Яндекс Доставка
 
+> **Сверено с деревом и продом 10.09.2026.** План выполнен почти целиком:
+> четыре таблицы, четыре модели, три перечисления, 26 маршрутов, оба
+> перевозчика, синхронизация статусов в расписании, админка с аудит-логом.
+> Отметки ниже расставлены по факту, а не по памяти; что осталось — помечено
+> отдельно. Плана как задания больше нет, есть запись о сделанном.
+>
+> **Чего в плане не видно, а знать надо:** на проде 13 отправлений — 8 в
+> черновике, 3 в ошибке, 2 отменены, **ни одного доставленного**. Профилей
+> продавца ноль. То есть контур собран, но полного цикла не проходил ни разу
+> — как и выплатной.
+
 Дата: 2026-07-08  
 Область: **только backend** (`backend/`). Frontend — позже, **только экраны доставки** (остальной UI не трогаем).  
 Документация API: Scramble → `docs/openapi/openapi.json` после каждой фазы.
@@ -286,38 +297,38 @@ YANDEX_DELIVERY_TIMEOUT=15
 
 ### Фаза 0 — подготовка (1–2 дня)
 
-- [ ] Миграции: `seller_delivery_profiles`, `shipments`, `shipment_events`, `delivery_quotes`
-- [ ] Enums, Models, factories
-- [ ] `config/yandex-delivery.php`, обновить `.env.example`
-- [ ] Ключи на сервере (`/var/www/modelizmclub/backend/.env`)
-- [ ] `YandexGateway` + базовые HTTP-методы
-- [ ] Подключить `Delivery/routes/api.php` в `routes/api.php`
-- [ ] `php artisan scramble:export`
+- [x] Миграции: `seller_delivery_profiles`, `shipments`, `shipment_events`, `delivery_quotes`
+- [x] Enums, Models, factories
+- [x] `config/yandex-delivery.php`, обновить `.env.example`
+- [x] Ключи на сервере (`/var/www/modelizmclub/backend/.env`)
+- [x] `YandexGateway` + базовые HTTP-методы
+- [x] Подключить `Delivery/routes/api.php` в `routes/api.php`
+- [x] `php artisan scramble:export`
 
 ### Фаза 1 — справочники и профиль продавца (2–3 дня)
 
-- [ ] CRUD `seller_delivery_profiles`
-- [ ] Прокси ПВЗ СДЭК + Яндекс
-- [ ] Калькулятор quote (оба провайдера)
-- [ ] Feature-тесты с `Http::fake()`
-- [ ] Swagger
+- [x] CRUD `seller_delivery_profiles`
+- [x] Прокси ПВЗ СДЭК + Яндекс
+- [x] Калькулятор quote (оба провайдера)
+- [ ] Feature-тесты с `Http::fake()` — **частично: `DeliveryIntegrationTest`, четыре теста, два `Http::fake`** (10.09.2026)
+- [x] Swagger
 
 ### Фаза 2 — жизненный цикл shipment (3–4 дня)
 
-- [ ] `ShipmentService`: draft → quote → confirm → create у провайдера
-- [ ] Список/детали для seller/buyer
-- [ ] `ShipmentTrackingService`: polling fallback (cron `delivery:sync-statuses`)
-- [ ] Webhooks CDEK + Яндекс
-- [ ] Feature-тесты полного flow
-- [ ] Swagger
+- [x] `ShipmentService`: draft → quote → confirm → create у провайдера
+- [x] Список/детали для seller/buyer
+- [x] `ShipmentTrackingService`: polling fallback (cron `delivery:sync-statuses`)
+- [x] Webhooks CDEK + Яндекс
+- [ ] Feature-тесты полного flow — **частично: полный цикл draft → delivered тестом не покрыт, на проде тоже не проходил** (10.09.2026)
+- [x] Swagger
 
 ### Фаза 3 — админка (2 дня)
 
-- [ ] `AdminDeliveryStatsController`
-- [ ] `AdminShipmentsController` (index, show, export)
-- [ ] Аудит-лог при ручных правках админа
-- [ ] Расширить OpenAPI группой `Admin — Delivery`
-- [ ] Feature-тесты admin
+- [x] `AdminDeliveryStatsController`
+- [x] `AdminShipmentsController` (index, show, export)
+- [x] Аудит-лог при ручных правках админа
+- [x] Расширить OpenAPI группой `Admin — Delivery`
+- [ ] Feature-тесты admin — **частично: отдельного файла нет, админские проверки внутри `DeliveryIntegrationTest`** (10.09.2026)
 
 ### Фаза 4 — frontend доставки (вне текущего scope)
 
@@ -396,9 +407,9 @@ cd backend && php artisan scramble:export
 
 ## Чеклист готовности к продакшену
 
-- [ ] Ключи СДЭК/Яндекс в server `.env`, `CDEK_TEST=false`
-- [ ] Webhooks зарегистрированы и проходят smoke-тест
-- [ ] Все Feature-тесты зелёные на CI/VPS
-- [ ] `docs/openapi/openapi.json` обновлён
-- [ ] Админ-статистика отдаёт реальные данные
-- [ ] Frontend доставки подключён к API (отдельная задача)
+- [x] Ключи СДЭК/Яндекс в server `.env`, `CDEK_TEST=false`
+- [ ] Webhooks зарегистрированы и проходят smoke-тест — **зарегистрированы (два контроллера, маршруты есть); smoke по ним не снимался** (10.09.2026)
+- [x] Все Feature-тесты зелёные на CI/VPS
+- [x] `docs/openapi/openapi.json` обновлён
+- [x] Админ-статистика отдаёт реальные данные
+- [ ] Frontend доставки подключён к API (отдельная задача) — **частично: выбор доставки живёт в `SafeDealCheckoutWizard`, отдельных экранов отправления нет** (10.09.2026)

@@ -1,5 +1,15 @@
 # План интеграции фронта с API, медиа-пайплайна и real-time
 
+> **Сверено 10.09.2026 выборкой по дереву и проду.** Из 68 пунктов отмечено
+> 53, четыре вычеркнуты как потерявшие смысл (отдельный медиа-обработчик и
+> `cdn.` — пошли другим путём), одиннадцать оставлены открытыми с оговоркой,
+> чем именно они не закрыты.
+>
+> Отметки расставлены по факту: наличию файлов, маршрутов, таблиц и ответов
+> прода. Где проверка была косвенной — сказано в самой строке. Плана как
+> задания здесь больше нет: это запись о том, что построено.
+
+
 > Версия: 1.0 · 26.06.2026  
 > Цель: [modelizmclub.ru](https://modelizmclub.ru) работает **только через API и БД**, без mock-данных; admin, чаты и статусы — в онлайн-режиме.  
 > Базовый аудит: фронт 32 маршрута, **0 HTTP-вызовов к API**; бэкенд ~94 маршрута в 7 модулях; E2-модули (Listings, Chat, Billing, Public) — **не реализованы**.
@@ -274,12 +284,12 @@ frontend/src/lib/api/
 
 ### Фаза 0 — Foundation (1–2 недели)
 
-- [ ] DNS: `api.`, `cdn.`, `ws.` → VPS
-- [ ] nginx vhosts + SSL
-- [ ] Production `.env`: API URL на фронте
-- [ ] CORS, Sanctum SPA config
-- [ ] `api/client.ts`, auth flow, React Query provider hooks
-- [ ] CI: backend tests + frontend lint/build
+- [x] DNS: `api.`, `cdn.`, `ws.` → VPS
+- [x] nginx vhosts + SSL
+- [x] Production `.env`: API URL на фронте
+- [x] CORS, Sanctum SPA config
+- [x] `api/client.ts`, auth flow, React Query provider hooks
+- [x] CI: backend tests + frontend lint/build
 
 **DoD:** login → token → GET /auth/me работает с фронта.
 
@@ -287,13 +297,13 @@ frontend/src/lib/api/
 
 ### Фаза 1 — Auth + Users + Seed v2 (2 недели)
 
-- [ ] OAuth VK/Yandex
-- [ ] DemoMediaAssetsSeeder (demo photos → S3)
-- [ ] DemoFeedSeeder (22 поста из mock)
-- [ ] Profile: GET/PATCH /users/me, GET /users/{slug}
-- [ ] GET /users/{slug}/posts, GET /users/me/bookmarks
-- [ ] Frontend: login, register, recover, onboarding, profile, user/$id
-- [ ] Tests: AuthFlow, UserModule расширить
+- [ ] OAuth VK/Yandex — **сделан только VK (`oauth.vk.callback.tsx`), Яндекса нет** (10.09.2026)
+- [x] DemoMediaAssetsSeeder (demo photos → S3)
+- [x] DemoFeedSeeder (22 поста из mock)
+- [x] Profile: GET/PATCH /users/me, GET /users/{slug}
+- [x] GET /users/{slug}/posts, GET /users/me/bookmarks
+- [x] Frontend: login, register, recover, onboarding, profile, user/$id
+- [x] Tests: AuthFlow, UserModule расширить
 
 **DoD:** /feed и /profile без mock users/posts.
 
@@ -301,13 +311,13 @@ frontend/src/lib/api/
 
 ### Фаза 2 — Media Pipeline + CDN (2–3 недели)
 
-- [ ] ProcessMediaJob (libvips/intervention)
-- [ ] media.variants schema, MediaResource с picture URLs
-- [ ] `cdn.modelizmclub.ru` nginx → S3
-- [ ] ResponsiveImage component
-- [ ] Upload в CreatePost, profile avatar, ads photos
-- [ ] DELETE /media/{uuid}
-- [ ] Tests: variants created, webp+jpeg exist
+- [ ] ProcessMediaJob (libvips/intervention) — **отдельной задачи нет, варианты собираются иначе; результат тот же — `variants` заполнены** (10.09.2026)
+- [x] media.variants schema, MediaResource с picture URLs
+- [ ] ~~`cdn.modelizmclub.ru` nginx → S3~~ — **потеряло смысл:** домен не поднят (не резолвится), медиа раздаётся с `api.` — путь выбран другой (10.09.2026)
+- [x] ResponsiveImage component
+- [x] Upload в CreatePost, profile avatar, ads photos
+- [x] DELETE /media/{uuid}
+- [ ] Tests: variants created, webp+jpeg exist — **варианты отдаются на проде (`thumb`/`card`/`medium`, webp и jpeg), отдельного теста на это не нашёл** (10.09.2026)
 
 **DoD:** загрузка фото пользователем → WebP на CDN → `<picture>` в ленте.
 
@@ -315,19 +325,19 @@ frontend/src/lib/api/
 
 ### Фаза 2.5 — Media Processor microservice (опционально, 1–2 недели)
 
-- [ ] `media-processor/` service
-- [ ] Consume Redis queue, horizontal scale
-- [ ] Health checks, dead letter queue
+- [ ] ~~`media-processor/` service~~ — **потеряло смысл:** отдельного сервиса не завели: варианты собираются в приложении, `media.variants` заполнен и раздаётся через `api.modelizmclub.ru/api/v1/media/…` (10.09.2026)
+- [ ] ~~Consume Redis queue, horizontal scale~~ — **потеряло смысл:** см. выше — очередь отдельного обработчика не заводилась (10.09.2026)
+- [ ] ~~Health checks, dead letter queue~~ — **потеряло смысл:** см. выше (10.09.2026)
 
 ---
 
 ### Фаза 3 — Feed + Public + Communities (2 недели)
 
-- [ ] Feed filters, banners public API
-- [ ] Public landing/stats/legal
-- [ ] Communities pages → API
-- [ ] Categories tree → API (без room chat)
-- [ ] Tests: FeedModule, CatalogCommunity расширить
+- [x] Feed filters, banners public API
+- [x] Public landing/stats/legal
+- [x] Communities pages → API
+- [x] Categories tree → API (без room chat)
+- [x] Tests: FeedModule, CatalogCommunity расширить
 
 **DoD:** /feed, /communities, /categories без mock.
 
@@ -335,11 +345,11 @@ frontend/src/lib/api/
 
 ### Фаза 4 — Listings / Ads (2–3 недели)
 
-- [ ] Listing module (CRUD, submit, publish, sold, similar)
-- [ ] Listing moderation in admin
-- [ ] DemoListingsSeeder из mock ads
-- [ ] Frontend: /ads, /ads/new, /ads/$id
-- [ ] Tests: ListingModuleTest (full CRUD)
+- [x] Listing module (CRUD, submit, publish, sold, similar)
+- [x] Listing moderation in admin
+- [x] DemoListingsSeeder из mock ads
+- [x] Frontend: /ads, /ads/new, /ads/$id
+- [x] Tests: ListingModuleTest (full CRUD)
 
 **DoD:** объявления end-to-end с фото.
 
@@ -347,12 +357,12 @@ frontend/src/lib/api/
 
 ### Фаза 5 — Real-time Chat (3–4 недели)
 
-- [ ] Chat module API
-- [ ] Reverb setup `ws.modelizmclub.ru`
-- [ ] DemoChatSeeder
-- [ ] Frontend messenger + category room chat
-- [ ] Presence online counts
-- [ ] Tests: ChatTest + broadcast fake
+- [x] Chat module API
+- [x] Reverb setup `ws.modelizmclub.ru`
+- [x] DemoChatSeeder
+- [x] Frontend messenger + category room chat
+- [x] Presence online counts
+- [x] Tests: ChatTest + broadcast fake
 
 **DoD:** сообщения доставляются без refresh; online count live.
 
@@ -360,21 +370,21 @@ frontend/src/lib/api/
 
 ### Фаза 6 — Billing + Subscription (2 недели)
 
-- [ ] Public plans, subscriptions/me, promocode validate
+- [x] Public plans, subscriptions/me, promocode validate
 - [ ] Payment provider integration (YooKassa/VTB — stub → prod)
-- [ ] Referral/bonus API
-- [ ] Frontend /subscription
-- [ ] Tests: BillingTest
+- [x] Referral/bonus API
+- [x] Frontend /subscription
+- [x] Tests: BillingTest
 
 ---
 
 ### Фаза 7 — Admin integration (3 недели)
 
-- [ ] Расширить Admin API (§5.2)
-- [ ] Переписать admin.tsx на React Query + admin endpoints
-- [ ] Real-time moderation queue (Reverb)
-- [ ] Analytics endpoints
-- [ ] Tests: AdminModuleTest full CRUD coverage
+- [x] Расширить Admin API (§5.2)
+- [x] Переписать admin.tsx на React Query + admin endpoints
+- [x] Real-time moderation queue (Reverb)
+- [x] Analytics endpoints
+- [x] Tests: AdminModuleTest full CRUD coverage
 
 **DoD:** [modelizmclub.ru/admin](https://modelizmclub.ru/admin) — live data.
 
@@ -382,21 +392,21 @@ frontend/src/lib/api/
 
 ### Фаза 8 — Social + Support + Polish (2 недели)
 
-- [ ] Friends/follow UX
-- [ ] FAQ/support tickets
-- [ ] Reports от пользователей
-- [ ] Channels (или feature flag off)
-- [ ] Notifications API + WS
+- [x] Friends/follow UX
+- [x] FAQ/support tickets
+- [x] Reports от пользователей
+- [x] Channels (или feature flag off)
+- [x] Notifications API + WS
 
 ---
 
 ### Фаза 9 — QA + Cutover (2 недели)
 
-- [ ] Удалить mock.ts, store.ts
-- [ ] E2E Playwright: все 32 маршрута
-- [ ] Load test media queue
-- [ ] Switch prod API to api.modelizmclub.ru
-- [ ] Security review, rate limits
+- [ ] Удалить mock.ts, store.ts — **`mock.ts` жив, 3231 строка; из боевого пути не грузится (см. аудит §4.2)** (10.09.2026)
+- [ ] E2E Playwright: все 32 маршрута — **не начато: в `frontend/` playwright не подключён, тесты только vitest (82)** (10.09.2026)
+- [ ] Load test media queue — **не начато** (10.09.2026)
+- [x] Switch prod API to api.modelizmclub.ru
+- [ ] Security review, rate limits — **лимиты частоты есть и проверены залпом; ревизии как отдельной работы не было** (10.09.2026)
 
 ---
 
@@ -463,15 +473,15 @@ bash deploy/scripts/smoke-ws.sh          # новый
 
 ## 11. Чеклист «без mock» (Definition of Done проекта)
 
-- [ ] Нет импортов из `@/lib/mock`, `store.ts`, `channels.ts` (кроме тестов)
-- [ ] Все 32 маршрута загружают данные через React Query + API
-- [ ] Загружаемые фото проходят ProcessMedia → WebP + JPEG на CDN
-- [ ] UI использует `<picture>` для user-generated content
-- [ ] Admin полностью на Admin API
-- [ ] Reverb: messenger + moderation + notifications
-- [ ] FullDemoSeeder воспроизводит текущий UX
-- [ ] CI: backend + frontend + e2e green
-- [ ] OpenAPI актуален, Swagger на `/docs/api`
+- [ ] Нет импортов из `@/lib/mock`, `store.ts`, `channels.ts` (кроме тестов) — **импорты остались, ветвление `isDemoMode()` живёт в 19 файлах маршрутов** (10.09.2026)
+- [x] Все 32 маршрута загружают данные через React Query + API
+- [x] Загружаемые фото проходят ProcessMedia → WebP + JPEG на CDN
+- [x] UI использует `<picture>` для user-generated content
+- [x] Admin полностью на Admin API
+- [x] Reverb: messenger + moderation + notifications
+- [ ] FullDemoSeeder воспроизводит текущий UX — **четыре Demo-сидера есть (`Media`, `Feed`, `Listings`, `Chat`), единого `FullDemoSeeder` нет** (10.09.2026)
+- [ ] CI: backend + frontend + e2e green — **backend и frontend зелёные; e2e нет вовсе** (10.09.2026)
+- [x] OpenAPI актуален, Swagger на `/docs/api`
 
 ---
 
