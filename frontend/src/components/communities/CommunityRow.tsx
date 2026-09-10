@@ -41,7 +41,7 @@ export function CommunityRow({ c, onChanged }: { c: Community; onChanged?: () =>
   const meta = [
     c.category,
     c.members > 0
-      ? t("pages.shared.members", { count: c.members.toLocaleString("ru") })
+      ? t("pages.shared.members", { count: c.members, formatted: c.members.toLocaleString("ru") })
       : t("pages.shared.membersNew"),
   ]
     .filter(Boolean)

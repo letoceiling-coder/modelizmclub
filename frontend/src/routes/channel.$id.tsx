@@ -424,7 +424,11 @@ function ChannelPage() {
             meta={
               <>
                 {t("pages.channelDetail.subscribersCount", {
-                  count: formatCount(channel.subscribers),
+                  // Форму выбирает число, показывается сокращённая запись:
+                  // `formatCount` отдаёт строку вида «1,2 тыс.», и по ней
+                  // i18next форму подобрать не может.
+                  count: channel.subscribers,
+                  formatted: formatCount(channel.subscribers),
                 })}
                 {channel.category ? ` \u00b7 ${channel.category}` : ""}
                 {` \u00b7 ${t("pages.channelDetail.ownerOnlyPublish")}`}

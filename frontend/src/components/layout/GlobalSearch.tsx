@@ -146,7 +146,10 @@ export function GlobalSearch() {
                       avatar={c.avatarImage}
                       fallbackIcon={Users2}
                       title={c.name}
-                      subtitle={t("pages.shared.members", { count: c.members })}
+                      subtitle={t("pages.shared.members", {
+                        count: c.members,
+                        formatted: c.members.toLocaleString("ru"),
+                      })}
                       onNavigate={() => setOpen(false)}
                     />
                   ))}
