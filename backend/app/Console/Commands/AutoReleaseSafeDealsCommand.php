@@ -36,8 +36,12 @@ class AutoReleaseSafeDealsCommand extends Command
         // сторож холдов, что гасит брошенные чекауты, и лимит частоты у
         // банка на них общий.
         $polled = ['polled' => 0, 'held' => 0, 'lost' => 0, 'failed' => 0];
+        $recovered = ['checked' => 0, 'recovered' => 0, 'failed' => 0];
         if (config('billing.auto_poll.holds.enabled', true)) {
             $polled = $holds->syncActiveHolds();
+            // Строки, потерявшие номер заказа между ответом банка и записью.
+            // Опрос выше их не видит — у него whereNotNull('rbs_order_id').
+            $recovered = $holds->recoverLostOrderIds();
         }
 
         // SBP payouts move APPROVED → CONFIRMED → PAID out of band; callbacks
@@ -58,6 +62,15 @@ class AutoReleaseSafeDealsCommand extends Command
             $polled['lost'],
             $polled['failed'],
         ));
+
+        if ($recovered['checked'] > 0) {
+            $this->info(sprintf(
+                'Проверено холдов без номера заказа: %d (восстановлено %d, опрос не удался %d).',
+                $recovered['checked'],
+                $recovered['recovered'],
+                $recovered['failed'],
+            ));
+        }
 
         if ($polled['lost'] > 0) {
             $this->warn(
