@@ -887,7 +887,10 @@ export function ProfileView({
                               {c.name}
                             </div>
                             <div className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                              {t("pages.shared.members", { count: c.members.toLocaleString("ru") })}
+                              {t("pages.shared.members", {
+                                count: c.members,
+                                formatted: c.members.toLocaleString("ru"),
+                              })}
                             </div>
                           </div>
                         </Link>
