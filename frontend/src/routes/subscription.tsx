@@ -33,6 +33,7 @@ import {
 
 import i18n from "@/lib/i18n";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
+import { Appear } from "@/components/ui/Appear";
 
 export const Route = createFileRoute("/subscription")({
   errorComponent: RouteErrorState,
@@ -239,7 +240,15 @@ function SubscriptionPage() {
     <AppLayout rightColumn={false}>
       <div className="mx-auto w-full max-w-[960px] px-[4px] sm:px-0">
         <VerificationBanner />
-        <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
+        {/*
+          Первый экран не прячем. framer-motion пишет `initial` инлайн-стилем
+          прямо в серверную разметку, и заголовок страницы приезжал готовым, но
+          с `opacity: 0` — до конца гидрации его не было видно. Замер 11.09,
+          Slow 4G и CPU ×4: FCP 2,6 с, LCP 5,1 с при том, что сеть заканчивала
+          работу на 2,2 с. Разрыв — ровно ожидание гидрации.
+          `Appear` не задаёт начальное состояние на первом рендере.
+        */}
+        <Appear y={24}>
           <span
             className="inline-block uppercase"
             style={{
@@ -278,7 +287,7 @@ function SubscriptionPage() {
           >
             {t("pages.subscription.subtitle")}
           </p>
-        </motion.div>
+        </Appear>
 
         {sub?.is_active && (
           <motion.div
