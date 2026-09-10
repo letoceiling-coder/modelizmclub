@@ -40,8 +40,10 @@ import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityD
 
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 export const Route = createFileRoute("/communities/")({
+  errorComponent: RouteErrorState,
   head: () => ({ meta: [{ title: i18n.t("pages.communities.metaTitle") }] }),
   validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),

@@ -19,8 +19,10 @@ import {
 } from "@/lib/hooks/useCategoryRoomStats";
 
 import i18n from "@/lib/i18n";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 export const Route = createFileRoute("/categories/$id/")({
+  errorComponent: RouteErrorState,
   /*
    * Вкладку комнаты держит адрес, а не состояние страницы. Иначе ссылка
    * «открыть чат» открывала бы то, что стоит вкладкой по умолчанию, а по

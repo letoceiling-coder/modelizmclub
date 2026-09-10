@@ -1,6 +1,7 @@
 import type { Banner } from "@/lib/mock";
 import { api } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 export interface BannerCarouselSettings {
   enabled: boolean;
@@ -131,5 +132,5 @@ export async function recordBannerEvent(
     method: "POST",
     json: { event },
     auth: false,
-  }).catch(() => {});
+  }).catch(ignoreFailure("учёт показа баннера — статистика, а не действие пользователя"));
 }

@@ -28,12 +28,14 @@ import { cn } from "@/lib/utils";
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import { AdsPageSkeleton } from "@/components/boot/PageSkeletons";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 // Fetched in batches via per_page/page instead of all at once — keeps the
 // initial catalog payload light (perf, especially on weak mobile networks).
 const PAGE_SIZE = 24;
 
 export const Route = createFileRoute("/ads/")({
+  errorComponent: RouteErrorState,
   head: () => ({
     meta: [
       { title: i18n.t("pages.ads.metaTitle") },

@@ -23,6 +23,7 @@ import { toast } from "@/lib/toast";
 
 import i18n from "@/lib/i18n";
 import { useActionGate } from "@/lib/gate";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/user/$id")({
   head: () => ({ meta: [{ title: i18n.t("pages.user.metaTitle") }] }),
@@ -82,7 +83,7 @@ function UserPage() {
             setUserPosts(posts);
             setUserAds(ads.map((ad) => ({ ad, status: "active" as const })));
           })
-          .catch(() => {})
+          .catch((e) => reportReadFailure(e, "профиль пользователя"))
           .finally(() => {
             if (active) setContentLoading(false);
           });

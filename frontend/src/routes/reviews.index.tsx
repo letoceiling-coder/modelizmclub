@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/reviews/")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.metaTitle") }] }),
@@ -163,7 +164,7 @@ function ReviewsPage() {
         setCategories(cats);
         setFeatured(feat);
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "обзоры"))
       .finally(() => {
         if (alive) setTopBlocksLoading(false);
       });

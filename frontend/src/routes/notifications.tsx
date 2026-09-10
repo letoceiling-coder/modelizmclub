@@ -29,6 +29,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({ meta: [{ title: i18n.t("pages.notifications.metaTitle") }] }),
@@ -147,7 +148,7 @@ function NotificationsPage() {
         clearTimeout(timer);
         pendingDeletes.current.delete(id);
         void deleteNotification(id)
-          .catch(() => {})
+          .catch(ignoreFailure("отложенное удаление при уходе со страницы"))
           .finally(() => clearPendingDelete(id));
       }
     };
@@ -195,7 +196,7 @@ function NotificationsPage() {
   const open = async (n: AppNotification) => {
     if (!n.read) {
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-      markNotificationRead(n.id).catch(() => {});
+      markNotificationRead(n.id).catch(ignoreFailure("отметка о прочтении уведомления"));
     }
     if (n.link) {
       const url = n.link.startsWith("/") ? n.link : `/${n.link}`;

@@ -1,3 +1,4 @@
+import { ignoreFailure } from "@/lib/errors/handle";
 const STORAGE_KEY = "mc:pending-notification-deletes";
 
 export interface PendingNotificationDelete {
@@ -45,5 +46,11 @@ export async function flushPendingDeletes(deleteFn: (id: string) => Promise<void
   const pending = readAll();
   if (pending.length === 0) return;
   writeAll([]);
-  await Promise.all(pending.map((p) => deleteFn(p.id).catch(() => {})));
+  await Promise.all(
+    pending.map((p) =>
+      deleteFn(p.id).catch(
+        ignoreFailure("отложенное удаление уведомления повторится при следующем заходе"),
+      ),
+    ),
+  );
 }

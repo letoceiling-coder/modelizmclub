@@ -32,8 +32,10 @@ import {
 } from "@/lib/api/payment";
 
 import i18n from "@/lib/i18n";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 export const Route = createFileRoute("/subscription")({
+  errorComponent: RouteErrorState,
   // Where the gate brings the user back after they subscribe (lib/gate).
   validateSearch: (s: Record<string, unknown>): { returnTo?: string } => ({
     returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") ? s.returnTo : undefined,

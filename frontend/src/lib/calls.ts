@@ -44,6 +44,7 @@ import {
   playBusy,
   playRejected,
 } from "./callAudio";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 export type CallStatus = "ringing" | "connecting" | "connected" | "reconnecting" | "ended";
 export type CallDirection = "outgoing" | "incoming";
@@ -198,7 +199,7 @@ function pollIncomingOnce(): void {
     .then((offer) => {
       if (offer) void handleSignal(offer);
     })
-    .catch(() => {});
+    .catch(ignoreFailure("опрос входящих звонков повторится через секунду"));
 }
 
 /** One-shot HTTP check for a ringing call (after reconnect / tab wake). */
@@ -325,7 +326,9 @@ async function buildPc(): Promise<RTCPeerConnection> {
     const cand = ev.candidate.toJSON();
     const callId = state.active?.id;
     if (callId && !callId.startsWith("pending_")) {
-      void sendIce(callId, cand).catch(() => {});
+      void sendIce(callId, cand).catch(
+        ignoreFailure("ICE-кандидат: потеря одного не рвёт соединение"),
+      );
     } else {
       pendingLocalCandidates.push(cand);
     }
@@ -731,7 +734,7 @@ function teardownMedia(): void {
 function flushPendingLocalIce(callId: string): void {
   if (!callId || callId.startsWith("pending_")) return;
   for (const c of pendingLocalCandidates) {
-    void sendIce(callId, c).catch(() => {});
+    void sendIce(callId, c).catch(ignoreFailure("ICE-кандидат: потеря одного не рвёт соединение"));
   }
   pendingLocalCandidates = [];
 }
@@ -821,7 +824,9 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
     }
     // Busy with another active call — signal busy to the new caller.
     if (state.active && state.active.status !== "ended") {
-      void rejectCall(payload.call_uuid, "busy").catch(() => {});
+      void rejectCall(payload.call_uuid, "busy").catch(
+        ignoreFailure("отказ занятому звонящему — вежливость, а не обязательство"),
+      );
       return;
     }
     clearTimers();
@@ -908,7 +913,7 @@ async function handleSignal(payload: { type: string; [k: string]: any }): Promis
       if (pc.signalingState !== "stable") {
         await pc
           .setLocalDescription({ type: "rollback" } as RTCLocalSessionDescriptionInit)
-          .catch(() => {});
+          .catch(ignoreFailure("откат локального описания при пересогласовании"));
       }
       await setRemote(payload.sdp as RTCSessionDescriptionInit);
       remoteDescSet = true;
@@ -1083,7 +1088,7 @@ export const calls = {
   end(): void {
     const active = state.active;
     if (!active || active.status === "ended") return;
-    void hangupCall(active.id).catch(() => {});
+    void hangupCall(active.id).catch(ignoreFailure("завершение звонка при уходе со страницы"));
     finish(active.status === "connected" ? "answered" : "ended");
   },
 

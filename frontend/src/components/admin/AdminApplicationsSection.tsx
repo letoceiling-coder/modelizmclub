@@ -11,6 +11,7 @@ import {
   type RequestStatus,
   type EntityKind,
 } from "@/lib/api/entity-requests";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export function ApplicationsSection() {
   const { t } = useTranslation();
@@ -61,7 +62,7 @@ export function ApplicationsSection() {
       // на реальном бэке при ошибке перезагрузим список
       fetchEntityRequests(status)
         .then(setItems)
-        .catch(() => {});
+        .catch((e) => reportReadFailure(e, "заявки в админке"));
     }
   };
 

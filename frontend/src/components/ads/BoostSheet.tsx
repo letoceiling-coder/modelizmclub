@@ -7,6 +7,7 @@ import { BOOST_PACKAGES } from "@/lib/config/boost";
 import { fetchBoostPackages } from "@/lib/api/listings";
 import { createListingBoostPayment } from "@/lib/api/payment";
 import { ApiError } from "@/lib/api/client";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 /**
  * Boost (продвижение) picker for one listing. Pick a package → checkout via
@@ -45,7 +46,7 @@ export function BoostSheet({
         setPackages(mapped);
         setSelected(mapped[1]?.id ?? mapped[0].id);
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "тарифы продвижения"));
     return () => {
       alive = false;
     };

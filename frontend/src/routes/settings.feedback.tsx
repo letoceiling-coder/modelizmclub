@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format/date";
 import { fetchMyFeedback, type MyFeedbackItem } from "@/lib/api/feedback";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 /**
  * «Мои обращения» — обращения человека и ответы на них.
@@ -36,7 +37,7 @@ function MyFeedbackSection() {
     let alive = true;
     fetchMyFeedback()
       .then((rows) => alive && setItems(rows))
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "обращения в поддержку"))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;

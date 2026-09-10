@@ -25,6 +25,7 @@ import {
 } from "@/lib/calls";
 import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 function useCallLabels() {
   const { t } = useTranslation();
@@ -158,7 +159,7 @@ function VideoLayer() {
     if (!el || !remoteStream) return;
     const bind = () => {
       el.srcObject = remoteStream;
-      void el.play().catch(() => {});
+      void el.play().catch(ignoreFailure("браузер не даёт запустить звук без жеста пользователя"));
     };
     bind();
     const onTrackChange = () => bind();
@@ -238,7 +239,7 @@ function RemoteAudio() {
     const el = ref.current;
     if (!el || !remoteStream) return;
     el.srcObject = remoteStream;
-    void el.play().catch(() => {});
+    void el.play().catch(ignoreFailure("браузер не даёт запустить звук без жеста пользователя"));
   }, [remoteStream]);
 
   if (!active || active.media !== "audio") return null;

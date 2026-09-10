@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Mic, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { TAP_TARGET_44 } from "@/lib/tap-target";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 const MAX_SECONDS = 180;
 const CANCEL_THRESHOLD = 72;
@@ -48,7 +49,9 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
     }
     analyserRef.current = null;
     if (audioCtxRef.current) {
-      void audioCtxRef.current.close().catch(() => {});
+      void audioCtxRef.current
+        .close()
+        .catch(ignoreFailure("закрытие звукового контекста при размонтировании"));
       audioCtxRef.current = null;
     }
   };

@@ -22,6 +22,7 @@ import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCar
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { EscrowProviderAdminCard } from "@/components/admin/EscrowProviderAdminCard";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export function MonetizationSection() {
   const { t } = useTranslation();
@@ -36,16 +37,16 @@ export function MonetizationSection() {
   const reloadPromos = () =>
     fetchAdminPromocodes()
       .then(setPromos)
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "монетизация"));
 
   useEffect(() => {
     let active = true;
     fetchAdminPlansDetailed()
       .then((p) => active && setPlans(p))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "монетизация"));
     fetchAdminPromocodes()
       .then((p) => active && setPromos(p))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "монетизация"));
     fetchAdminSettings()
       .then((s) => {
         if (!active) return;
@@ -61,7 +62,7 @@ export function MonetizationSection() {
         const subCents = (subRow?.value as { cents?: number | null } | undefined)?.cents;
         setSubscriberPlacementRub(typeof subCents === "number" ? Math.round(subCents / 100) : 20);
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "монетизация"));
     return () => {
       active = false;
     };

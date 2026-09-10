@@ -19,6 +19,7 @@ import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_NAME_MAX } from "@/lib/community-limits";
 import { CHANNEL_NAME_MAX, CHANNEL_SLUG_MAX, kindLabel, type ChannelKind } from "@/lib/channels";
 import { usePostCategories } from "@/lib/hooks/useCategories";
+import { reportReadFailure } from "@/lib/errors/handle";
 const OTHER_DIRECTION = "Другое";
 const CHANNEL_KINDS: ChannelKind[] = ["brand", "shop", "author", "expert"];
 
@@ -76,7 +77,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
         setCats(list);
         if (list.length > 0) setCategoryId(list[0].id);
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "категории сообществ"));
   }, [kind]);
 
   useEffect(() => {

@@ -7,6 +7,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { wasChatWithPartnerDeleted } from "@/lib/store";
 import type { MediaVariantSet } from "@/lib/media/variants";
 import { messengerCache } from "@/lib/messenger";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 function seedFromId(id: string): number {
   let h = 0;
@@ -472,7 +473,11 @@ export async function openConversation(
   const reopening = wasChatWithPartnerDeleted(partnerUuid);
   const dialog = await createConversation(userId, meUuid, listingUuid);
   if (reopening && !isDemoMode()) {
-    await clearConversationHistory(dialog.id).catch(() => {});
+    await clearConversationHistory(dialog.id).catch(
+      ignoreFailure(
+        "диалог создан в любом случае; неудачная очистка лишь оставит старые сообщения видимыми",
+      ),
+    );
   }
   messengerCache.restoreDialog(dialog);
   return dialog;

@@ -18,6 +18,7 @@ import type {
 
 import { GUEST_USER } from "@/lib/session/guest";
 import { getSessionUserId, setSessionUser } from "@/lib/session/cache";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 // The signed-in user lives in the ['session'] query (lib/session), not here.
 // GUEST_USER is re-exported so existing importers keep working.
@@ -563,7 +564,9 @@ export const actions = {
     dispatch({ type: "MARK_READ", dialogId });
     if (typeof window !== "undefined") {
       void import("./api/chat").then(({ markConversationRead }) => {
-        markConversationRead(dialogId).catch(() => {});
+        markConversationRead(dialogId).catch(
+          ignoreFailure("отметка о прочтении: приедет со следующим открытием диалога"),
+        );
       });
     }
   },
@@ -759,7 +762,7 @@ function hydrateDialogForIncoming(dialogId: ID, message: Message, incrementUnrea
       import("./api/chat")
         .then(({ fetchConversations }) => fetchConversations(meId))
         .then(setDialogs)
-        .catch(() => {}),
+        .catch(ignoreFailure("запасная перезагрузка диалогов после сбоя обновления")),
     )
     .finally(() => {
       pendingDialogHydrations.delete(dialogId);

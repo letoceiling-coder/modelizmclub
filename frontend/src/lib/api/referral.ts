@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { publicOrigin } from "@/lib/referral";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export type ReferralInviteStatus = "pending" | "completed";
 
@@ -148,7 +149,7 @@ export function useReferral(): { data: ReferralData | null; loading: boolean } {
     let active = true;
     fetchReferral()
       .then((d) => active && setData(d))
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "реферальная программа"))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;

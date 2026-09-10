@@ -59,8 +59,10 @@ import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 export const Route = createFileRoute("/channels/")({
+  errorComponent: RouteErrorState,
   head: () => ({
     meta: [
       { title: i18n.t("pages.channels.metaTitle") },

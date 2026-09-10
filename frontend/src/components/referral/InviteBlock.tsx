@@ -10,6 +10,7 @@ import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { ROUTES } from "@/lib/routes";
 import { fetchStats } from "@/lib/api/content";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 const sectionStyle = {
   background: "var(--background-elevated)",
@@ -67,7 +68,7 @@ function InviteGuestCta() {
           maxBonus: s.referral?.maxBonus ?? REFERRAL_MAX_BONUS,
         });
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "реферальная статистика"))
       .finally(() => {
         if (active) setReady(true);
       });

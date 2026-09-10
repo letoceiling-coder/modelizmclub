@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, HelpCircle, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { fetchFaq } from "@/lib/api/content";
@@ -22,6 +22,8 @@ interface FaqEntry {
 }
 
 import i18n from "@/lib/i18n";
+import { reportReadFailure } from "@/lib/errors/handle";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/help")({
   head: () => ({ meta: [{ title: i18n.t("pages.help.metaTitle") }] }),
@@ -51,6 +53,13 @@ function HelpPage() {
     { id: "all", label: t("pages.help.all") },
   ]);
   const [faqItems, setFaqItems] = useState<FaqEntry[]>([]);
+  /*
+   * Отказ загрузки и «ничего не найдено» — разные ответы, и до 11.09 они
+   * выглядели одинаково: пустая справка вместо сообщения о том, что статьи
+   * не приехали.
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -73,11 +82,14 @@ function HelpPage() {
           ),
         );
       })
-      .catch(() => {});
+      .catch((e) => {
+        if (active) setLoadFailed(true);
+        reportReadFailure(e, "справочные статьи");
+      });
     return () => {
       active = false;
     };
-  }, [t]);
+  }, [t, reloadTick]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -277,7 +289,22 @@ function HelpPage() {
               );
             })}
           </AnimatePresence>
-          {filtered.length === 0 && (
+          {loadFailed && faqItems.length === 0 ? (
+            <EmptyState
+              icon={HelpCircle}
+              title={t("errors.routeTitle")}
+              description={t("errors.routeDesc")}
+              action={{
+                label: t("errors.retry"),
+                onClick: () => {
+                  setLoadFailed(false);
+                  setReloadTick((n) => n + 1);
+                },
+              }}
+              variant="compact"
+            />
+          ) : null}
+          {!loadFailed && filtered.length === 0 && (
             <div
               style={{
                 padding: "48px 24px",

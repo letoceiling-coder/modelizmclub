@@ -56,6 +56,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchFeed } from "@/lib/api/feed";
 import type { Post } from "@/lib/mock";
 import i18n from "@/lib/i18n";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 /**
  * «Записи» стоят первыми и открываются по умолчанию. Панель справа даёт две
@@ -300,7 +301,7 @@ export function SubcategoryRoomPage({
     let active = true;
     searchUsers("")
       .then((u) => active && setPool(u.slice(0, 12)))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "участники комнаты"));
     return () => {
       active = false;
     };
@@ -332,7 +333,7 @@ export function SubcategoryRoomPage({
           active &&
           setSubAds(all.filter((a) => a.category === c.name && a.subcategory === sub.name)),
       )
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "объявления подкатегории"));
     return () => {
       active = false;
     };
@@ -1395,7 +1396,7 @@ function PostsTab({ categoryId, categoryName }: { categoryId: string; categoryNa
         setPage(next);
         setLastPage(res.lastPage);
       })
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "следующая страница записей комнаты"))
       .finally(() => setLoadingMore(false));
   };
 

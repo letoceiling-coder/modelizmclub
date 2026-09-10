@@ -45,6 +45,7 @@ import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog"
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
+import { ignoreFailure, reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: i18n.t("pages.friends.metaTitle") }] }),
@@ -251,7 +252,7 @@ function FriendsPage() {
         .then((fr) => {
           if (active) setFriends(fr);
         })
-        .catch(() => {});
+        .catch((e) => reportReadFailure(e, "список друзей"));
     };
     refresh();
     const interval = window.setInterval(refresh, 45_000);
@@ -392,7 +393,7 @@ function FriendsPage() {
           setPending((p) => new Map(p).set(u.id, p.get(u.id) ?? 0));
           void fetchOutgoingRequests()
             .then((out) => setPending(new Map(out.map((r) => [r.to.id, r.id]))))
-            .catch(() => {});
+            .catch(ignoreFailure("обновление списка отправленных заявок после отказа сервера"));
           toast.success(t("pages.friends.requestAlreadySent"));
           return;
         }

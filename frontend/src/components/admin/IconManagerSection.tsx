@@ -41,6 +41,7 @@ import { MediaPickerDialog } from "@/components/admin/MediaManagerCard";
 import { IconSlotPreview } from "@/components/admin/IconSlotPreview";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { Link } from "@tanstack/react-router";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 const card: CSSProperties = {
   background: "var(--background-elevated)",
@@ -88,13 +89,13 @@ export function IconManagerSection() {
     let alive = true;
     fetchIconAssets()
       .then((a) => alive && setAssets(a))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "значки"));
     fetchLastPublishedIconOverrides()
       .then((prev) => alive && setCanRollback(prev !== null))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "прошлая публикация значков"));
     fetchAdminLandingBlocks()
       .then(({ cards }) => alive && setLandingCards(cards))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "карточки лендинга"));
     return () => {
       alive = false;
     };

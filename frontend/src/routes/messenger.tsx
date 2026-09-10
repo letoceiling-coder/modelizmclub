@@ -109,6 +109,7 @@ import i18n from "@/lib/i18n";
 import { MessengerPageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
@@ -1442,7 +1443,7 @@ function MessengerPage() {
           toast.error(t("pages.messenger.deleteFailed"));
           fetchMessages(dialogId)
             .then((msgs) => messengerCache.setMessages(dialogId, msgs))
-            .catch(() => {});
+            .catch(ignoreFailure("перезагрузка сообщений после уже показанной ошибки удаления"));
         }
       }
     },

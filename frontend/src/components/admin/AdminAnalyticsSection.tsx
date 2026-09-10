@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { BarChart3 } from "lucide-react";
 import { fetchDashboard } from "@/lib/api/admin";
 import { H, card } from "@/components/admin/adminShared";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export function AnalyticsSection() {
   const { t } = useTranslation();
@@ -13,7 +14,7 @@ export function AnalyticsSection() {
     let active = true;
     fetchDashboard()
       .then((d) => active && setData(d))
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "аналитика админки"));
     return () => {
       active = false;
     };

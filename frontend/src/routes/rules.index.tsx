@@ -4,12 +4,14 @@ import { Logo } from "@/components/Logo";
 import { fetchRulesHub } from "@/lib/api/rules";
 import { formatRevisionDate } from "@/components/legal/RulesDocumentView";
 import i18n from "@/lib/i18n";
+import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 const SITE_ORIGIN = "https://modelizmclub.ru";
 const META_DESCRIPTION =
   "Правила платформы Моделизм: условия пользования, размещение объявлений, оферта на платные услуги и безопасная сделка.";
 
 export const Route = createFileRoute("/rules/")({
+  errorComponent: RouteErrorState,
   loader: () => fetchRulesHub(),
   head: ({ loaderData }) => ({
     meta: [

@@ -38,6 +38,7 @@ import {
   type DraftPhoto,
   type PersistedPostDraft,
 } from "@/lib/post-draft";
+import { reportActionFailure } from "@/lib/errors/handle";
 
 const MAX_PHOTOS = 10;
 
@@ -249,7 +250,9 @@ export function CreatePostForm({
     setPhotos((p) => [...p, ...urls]);
     setPhotoFiles((f) => [...f, ...next]);
     for (const file of next) {
-      void uploadMediaDeduped(file, "post").catch(() => {});
+      void uploadMediaDeduped(file, "post").catch((e) =>
+        reportActionFailure(e, "Не удалось загрузить фото"),
+      );
     }
   };
   const removePhoto = (i: number) => {
@@ -272,7 +275,9 @@ export function CreatePostForm({
     setPhotos((p) => p.map((u, idx) => (idx === i ? newUrl : u)));
     setPhotoFiles((f) => f.map((file, idx) => (idx === i ? newFile : file)));
     if (oldUrl?.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
-    void uploadMediaDeduped(newFile, "post").catch(() => {});
+    void uploadMediaDeduped(newFile, "post").catch((e) =>
+      reportActionFailure(e, "Не удалось загрузить фото"),
+    );
   };
 
   const publish = async () => {

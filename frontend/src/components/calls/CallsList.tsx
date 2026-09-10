@@ -18,6 +18,7 @@ import { useActionGate } from "@/lib/gate";
 import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/format/date";
 import { useTranslation } from "react-i18next";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 function formatWhen(iso: string): string {
   return formatDate(iso, "relative");
@@ -52,7 +53,7 @@ export function CallsList({ onOpenChat }: Props) {
   useEffect(() => {
     fetchCallHistory()
       .then(setHistory)
-      .catch(() => {})
+      .catch((e) => reportReadFailure(e, "история звонков"))
       .finally(() => setLoading(false));
   }, []);
 

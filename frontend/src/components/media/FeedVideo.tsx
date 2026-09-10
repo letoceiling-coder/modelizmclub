@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Play, Loader2, VideoOff } from "lucide-react";
 import { Img } from "@/components/ui/Img";
 import type { VideoDelivery } from "@/lib/media/variants";
+import { ignoreFailure } from "@/lib/errors/handle";
 
 interface Props {
   /** Первая карточка ленты: постер грузится сразу и с высоким приоритетом. */
@@ -94,7 +95,10 @@ export function FeedVideo({ src, video, width, height, alt, priority = false }: 
       const playing = !el.paused;
       el.src = target;
       el.currentTime = at;
-      if (playing) void el.play().catch(() => {});
+      if (playing)
+        void el
+          .play()
+          .catch(ignoreFailure("автовоспроизведение может быть запрещено настройками браузера"));
     };
 
     document.addEventListener("fullscreenchange", onChange);

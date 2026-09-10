@@ -36,6 +36,7 @@ import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
 import { notifyBillingChanged } from "@/lib/billing-events";
 import { formatDate } from "@/lib/format/date";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 type WalletSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
 
@@ -165,7 +166,7 @@ function WalletSection() {
         setHeldKopecks(b.held_kopecks);
         setOperations(ops);
       })
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "баланс кошелька"));
 
     /*
      * Платежи грузятся своим запросом, а не вместе с балансом.
@@ -176,7 +177,7 @@ function WalletSection() {
      */
     fetchMyPayments()
       .then(setPayments)
-      .catch(() => {});
+      .catch((e) => reportReadFailure(e, "история платежей"));
   };
 
   /*
