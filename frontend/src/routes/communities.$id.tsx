@@ -1420,7 +1420,10 @@ function CommunityDetailPage() {
             }
             meta={
               <>
-                {t("pages.communityDetail.members", { count: members })}
+                {t("pages.communityDetail.members", {
+                  count: members,
+                  formatted: members.toLocaleString("ru"),
+                })}
                 {community.category ? ` \u00b7 ${community.category}` : ""}
                 {community.city?.name ? ` \u00b7 ${community.city.name}` : ""}
               </>

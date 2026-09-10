@@ -55,7 +55,10 @@ export function SimilarCommunitiesList({ items }: { items: Community[] }) {
               {c.name}
             </span>
             <span className="block truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              {t("pages.shared.members", { count: c.members.toLocaleString("ru") })}
+              {t("pages.shared.members", {
+                count: c.members,
+                formatted: c.members.toLocaleString("ru"),
+              })}
             </span>
           </span>
         </Link>

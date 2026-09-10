@@ -78,7 +78,10 @@ export function CommunityDetailsDialog({
 
       <div className="space-y-[10px]">
         <Row icon={Users}>
-          {t("pages.communityDetail.members", { count: community.members })}
+          {t("pages.communityDetail.members", {
+            count: community.members,
+            formatted: community.members.toLocaleString("ru"),
+          })}
           {(community.postsCount ?? 0) > 0 && (
             <> · {t("pages.communityDetail.postsCount", { count: community.postsCount })}</>
           )}

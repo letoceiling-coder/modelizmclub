@@ -20,10 +20,18 @@ export function CategoryCard({ c }: { c: Category }) {
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-semibold">{c.name}</h3>
           <p className="text-xs text-muted-foreground">
-            {t("pages.categories.members", {
-              count: c.members.toLocaleString(),
-              rooms: c.subcategories.length,
-            })}
+            {/*
+              Два числа — два ключа со своими формами.
+              Раньше подпись была одной строкой с жёстким «участников ·
+              комнат», и любое число получало родительный падеж: «1 комнат»,
+              «3 комнат». Плюс `count` приходил строкой после
+              `toLocaleString()` — i18next выбирает форму по числу, а строку
+              молча принимает за единственную, так что форма не менялась бы
+              и с правильными ключами.
+            */}
+            {t("pages.categories.membersCount", { count: c.members })}
+            {" · "}
+            {t("pages.categories.roomsCount", { count: c.subcategories.length })}
           </p>
         </div>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />

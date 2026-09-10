@@ -25,7 +25,10 @@ export function ChannelRow({ channel, onChanged }: { channel: Channel; onChanged
   const meta = [
     channel.category,
     channel.subscribers > 0
-      ? t("pages.channelDetail.subscribersCount", { count: channel.subscribers })
+      ? t("pages.channelDetail.subscribersCount", {
+          count: channel.subscribers,
+          formatted: channel.subscribers.toLocaleString("ru"),
+        })
       : t("pages.channels.noSubscribersYet"),
   ]
     .filter(Boolean)
