@@ -78,30 +78,53 @@ class NormalizeCategoriesCommand extends Command
 
         $dry = (bool) $this->option('dry-run');
 
+        /*
+         * Холостой прогон делает всё по-настоящему и откатывает транзакцию.
+         *
+         * Первая версия просто не писала, и вышло враньё наполовину:
+         * перевесы печатались, а нормализация считалась по непереве́шенным
+         * данным — переехавшие узлы в списке не появлялись вовсе. Показывать
+         * половину последствий у команды, которая правит боевое дерево,
+         * хуже, чем не показывать ничего: страховка выглядит на месте.
+         *
+         * Внутри транзакции запись настоящая, поэтому и вывод настоящий, и
+         * проверка в конце считает то состояние, которое получится.
+         */
+        if ($dry) {
+            DB::beginTransaction();
+        }
+
         /** @var list<string> $moves */
         $moves = (array) $this->option('move');
 
         if ($moves !== []) {
             $this->line('=== перевесы');
-            if (! $this->applyMoves($moves, $dry)) {
+            if (! $this->applyMoves($moves, false)) {
+                if ($dry) {
+                    DB::rollBack();
+                }
+
                 return self::FAILURE;
             }
         }
 
         foreach (self::TREES as [$model, $table]) {
             $this->line("=== {$table}");
-            $this->normalize($model, $table, $dry);
+            $this->normalize($model, $table, false);
         }
 
         if ($this->option('link')) {
             $this->line('=== связь направлений с каталогом');
-            $this->link($dry);
+            $this->link(false);
         }
 
         if ($dry) {
-            $this->warn('Это был холостой прогон — ничего не записано.');
+            $this->line('=== проверка того состояния, которое получилось бы');
+            $code = $this->verify();
+            DB::rollBack();
+            $this->warn('Это был холостой прогон — всё откачено, в базе ничего не изменилось.');
 
-            return self::SUCCESS;
+            return $code;
         }
 
         /*

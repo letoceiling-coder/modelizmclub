@@ -100,6 +100,27 @@ class NormalizeCategoriesCommandTest extends TestCase
         $this->assertSame('ерунда', $leaf->path);
     }
 
+    /**
+     * Холостой прогон обязан показывать последствия перевеса, а не только
+     * сам перевес: первая версия печатала «il-6 → planery» и считала
+     * нормализацию по старому родителю, то есть переехавший узел в выводе
+     * не появлялся.
+     */
+    public function test_холостой_прогон_показывает_последствия_перевеса(): void
+    {
+        [$root, , $leaf] = $this->threeLevels();
+        $leaf->forceFill(['parent_id' => $root->id, 'depth' => 1, 'path' => 'aviation-t/il-6-t'])->save();
+
+        $this->artisan('categories:normalize', ['--dry-run' => true, '--move' => ['il-6-t:planery-t']])
+            ->expectsOutputToContain('aviation-t/planery-t/il-6-t')
+            ->assertExitCode(0);
+
+        // И при этом ничего не записал.
+        $leaf->refresh();
+        $this->assertSame($root->id, $leaf->parent_id);
+        $this->assertSame('aviation-t/il-6-t', $leaf->path);
+    }
+
     public function test_повторный_прогон_идемпотентен(): void
     {
         $this->threeLevels();
