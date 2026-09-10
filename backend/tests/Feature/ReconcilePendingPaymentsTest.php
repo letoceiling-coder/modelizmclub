@@ -294,8 +294,13 @@ class ReconcilePendingPaymentsTest extends TestCase
         // заказов боевого вида, ВТБ о них не знает, шлюза в коде нет. Они
         // лежали в корзине тестового контура, и --apply закрыл бы их как
         // неудавшиеся, не спросив никого.
+        //
+        // 10.09 ЮKassa перестала быть чужой: ключи магазина оказались
+        // живыми, и команда научилась её спрашивать. Поэтому пример здесь
+        // заменён на провайдера, которого в коде нет вовсе, — проверяется
+        // правило, а не конкретное имя.
         $user = $this->seedUser();
-        $alien = $this->pending($user, '31edfe1f-000f-5001-9000-173311369be8', 3, 'yookassa');
+        $alien = $this->pending($user, 'sber-0001', 3, 'sberbank');
         config(['billing.vtb.api_url' => 'https://bank.test/', 'billing.vtb.token' => 'test-token']);
         Http::fake(fn () => Http::response(['errorCode' => '0', 'orderStatus' => 3]));
 
