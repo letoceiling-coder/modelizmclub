@@ -110,6 +110,7 @@ import { MessengerPageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
 import { ignoreFailure } from "@/lib/errors/handle";
+import { variantUrl } from "@/lib/media/variants";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
@@ -435,7 +436,7 @@ function ListingMessageCard({ listing }: { listing: NonNullable<Message["listing
       <div className="flex items-center gap-[10px] p-[10px]">
         {listing.image ? (
           <img
-            src={listing.image}
+            src={variantUrl(listing.image, "thumb")}
             width={52}
             height={52}
             loading="lazy"
@@ -479,7 +480,7 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
       <div className="flex items-center gap-[10px] p-[10px]">
         {post.image ? (
           <img
-            src={post.image}
+            src={variantUrl(post.image, "thumb")}
             width={52}
             height={52}
             loading="lazy"

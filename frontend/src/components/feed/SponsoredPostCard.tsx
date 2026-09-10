@@ -5,6 +5,7 @@ import { toast } from "@/lib/toast";
 import { recordBannerEvent } from "@/lib/api/banners";
 import { Appear } from "@/components/ui/Appear";
 import type { Banner } from "@/lib/mock";
+import { derivedSrcSet, variantUrl } from "@/lib/media/variants";
 
 interface Props {
   banner: Banner;
@@ -121,7 +122,10 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
       >
         {banner.image ? (
           <img
-            src={banner.image}
+            /* Баннер во всю ширину ленты — `medium`, дальше `large`. */
+            src={variantUrl(banner.image, "medium")}
+            srcSet={derivedSrcSet(banner.image, ["card", "medium", "large"])}
+            sizes="(max-width: 768px) 100vw, 680px"
             width={1600}
             height={900}
             loading="lazy"

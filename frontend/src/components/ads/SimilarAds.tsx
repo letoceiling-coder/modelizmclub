@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { Ad } from "@/lib/mock";
 import { ChevronLeft, ChevronRight, MapPin, Tag } from "lucide-react";
 import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
+import { derivedSrcSet, variantUrl } from "@/lib/media/variants";
 
 const CARD_WIDTH = 220;
 const CARD_GAP = 12;
@@ -96,7 +97,10 @@ export function SimilarAds({ items }: { items: Ad[] }) {
                 style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}
               >
                 <img
-                  src={a.image}
+                  /* Карточка 440×330 — вариант `card`, а не исходник. */
+                  src={variantUrl(a.image, "card")}
+                  srcSet={derivedSrcSet(a.image, ["thumb", "card"])}
+                  sizes="(max-width: 640px) 45vw, 220px"
                   decoding="async"
                   alt={a.title}
                   width={440}
