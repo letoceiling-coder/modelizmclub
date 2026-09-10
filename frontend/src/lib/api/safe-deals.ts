@@ -23,11 +23,7 @@ export type SafeDealStatus =
   | "cancelled";
 
 export type SafeDealDeliveryStatus =
-  | "pending"
-  | "handed_to_cdek"
-  | "in_transit"
-  | "at_pickup"
-  | "received";
+  "pending" | "handed_to_cdek" | "in_transit" | "at_pickup" | "received";
 
 export interface SafeDealDestination {
   city_code?: number;

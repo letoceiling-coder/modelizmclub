@@ -1,5 +1,6 @@
 import i18n from "@/lib/i18n";
 import { Outlet, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -65,7 +66,10 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+// Роутер 1.170 объявил error в ErrorComponentProps как unknown: раньше
+// здесь стоял Error, и после обновления подпись перестала подходить.
+// reportLovableError и так принимает unknown.
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const { t } = useTranslation();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });

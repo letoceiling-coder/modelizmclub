@@ -33,8 +33,7 @@ export function EscrowProviderAdminCard({ cardStyle }: { cardStyle: CardStyle })
 
   const readRow = (rows: Awaited<ReturnType<typeof fetchAdminSettings>>) => {
     const value = rows.find((r) => r.key === SETTING_KEY)?.value as
-      | { provider?: Provider | null; effective?: Provider | null }
-      | undefined;
+      { provider?: Provider | null; effective?: Provider | null } | undefined;
     setSaved(value?.provider ?? null);
     setEffective(value?.effective ?? null);
     setChoice(value?.provider ?? null);

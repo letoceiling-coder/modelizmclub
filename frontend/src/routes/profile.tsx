@@ -261,14 +261,7 @@ function ProfilePage() {
 }
 
 type TabKey =
-  | "posts"
-  | "reposts"
-  | "ads"
-  | "reviews"
-  | "communities"
-  | "invited"
-  | "blocked"
-  | "about";
+  "posts" | "reposts" | "ads" | "reviews" | "communities" | "invited" | "blocked" | "about";
 
 const TAB_LABEL_KEYS: Record<TabKey, string> = {
   posts: "pages.profile.tabPosts",
