@@ -1,10 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CspReportController;
 use App\Http\Controllers\Api\V1\HealthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class);
+
+    // Отчёты браузера о нарушениях CSP. Без авторизации — токена у браузера
+    // нет; ограничитель частоты вместо неё.
+    Route::post('/csp-report', CspReportController::class)->middleware('throttle:60,1');
 
     require base_path('app/Modules/Auth/routes/api.php');
     require base_path('app/Modules/Account/routes/api.php');
