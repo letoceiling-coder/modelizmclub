@@ -231,6 +231,51 @@ jobs:
             exit 1
           fi
 
+  prod-install:
+    name: backend · установка без dev-зависимостей
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, pgsql, bcmath, gd, intl
+          coverage: none
+
+      - name: Composer cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      # Боевая установка ставит только require, а тесты и локальная разработка
+      # — весь набор. Значит ссылка из app/ на пакет из require-dev проходит
+      # все остальные ворота и ломается ровно один раз: на проде.
+      #
+      # Так и вышло 10.09. `composer install --no-dev` дошёл до
+      # package:discover, тот позвал AppServiceProvider, а тот — Scramble из
+      # require-dev. API отдавал 500 четыре минуты. Ни один шаг CI этого не
+      # видел, потому что ни один не ставил зависимости так, как их ставят на
+      # боевом сервере.
+      #
+      # Отдельный php artisan не нужен: package:discover уже поднимает
+      # приложение внутри composer install и роняет установку кодом 1.
+      # route:list добавлен вторым слоем — он проходит по всем маршрутам и
+      # ловит то, что до провайдеров не доходит.
+      - name: composer install --no-dev
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+
+      - name: Приложение поднимается без dev-зависимостей
+        run: |
+          cp .env.testing.example .env
+          php artisan key:generate --force
+          php artisan route:list --json > /dev/null
+
   audit:
     name: backend · composer audit
     runs-on: ubuntu-latest
