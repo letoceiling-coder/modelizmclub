@@ -47,6 +47,8 @@ export const ru = {
     inviteFriend: "Пригласи друга",
     wallet: "Баланс и история",
     messagesTab: "Сообщения",
+    expandMenu: "Развернуть меню",
+    collapseMenu: "Свернуть меню",
   },
   auth: {
     login: "Войти",

@@ -68,15 +68,13 @@ export function CatalogCard({
             alt={ad.title}
             variants={["thumb", "card"]}
             /*
-             * Ширины замерены на /ads, а не взяты на глаз: 175 при 390,
-             * 195 при 640, 209 при 768, 253 при 900 — и 111…146 начиная с
-             * 1024, где десктопная оболочка добавляет колонки и карточка
-             * схлопывается. Стояло `280px`, не совпадающее ни с одной из
-             * этих величин: браузер считал, что нужно 560 px при dpr 2, и
-             * брал вариант card в 640 px — 67 КБ там, где хватает thumb в
-             * 320 px и 24 КБ. На экране каталога это два десятка картинок.
+             * Ширины — по сетке каталога (components/ads/catalogGrid.ts),
+             * замер 11.09: 170 при 375, 211 при 768, 288 при 1024, 234 при
+             * 1440. Шире 300 карточка не бывает, поэтому от 1024 — 300px:
+             * при dpr 2 браузер берёт card в 640 px. Раньше стояло 150px —
+             * под прежнюю узкую колонку, где карточки были по 111…146.
              */
-            sizes="(max-width: 640px) 50vw, (max-width: 1023px) 28vw, 150px"
+            sizes="(max-width: 640px) 50vw, (max-width: 1023px) 28vw, 300px"
             width={640}
             height={480}
             loading={priority ? "eager" : "lazy"}
@@ -128,15 +126,21 @@ export function CatalogCard({
         </button>
       </Link>
 
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-[4px] p-[10px] sm:p-[12px]">
+      {/*
+        Тело — плотное, как у Авито: цена, название в две строки, город.
+        Классы — типографика из docs/design-system.md: цена text-body
+        полужирным, название text-meta, город text-caption.
+
+        Высота считана, а не на глаз: 8 + 24 (цена) + 4 + 39,2 (две строки
+        названия) + 15,6 (город) + 8 = 98,8 px. С картинкой 4:3 и рамкой
+        карточка на самой широкой колонке каталога (288 px, 1024) выходит
+        317 px — под потолок в 320. Название держит две строки даже если
+        короткое: ряды сетки одной высоты, заглушка совпадает с карточкой.
+      */}
+      <div className="flex flex-1 flex-col p-[8px]">
         <div
-          className="text-[18px] font-bold leading-none sm:text-[20px]"
-          style={{
-            fontFamily: "var(--font-display)",
-            color: "var(--foreground)",
-            letterSpacing: "-0.01em",
-          }}
+          className="text-body font-semibold tabular-nums"
+          style={{ color: "var(--foreground)" }}
         >
           {ad.price.toLocaleString("ru")} ₽
         </div>
@@ -144,20 +148,18 @@ export function CatalogCard({
         <Link
           to="/ads/$id"
           params={{ id: ad.id }}
-          className="line-clamp-2 text-[13px] font-medium leading-[1.35] sm:text-[13.5px]"
+          className="mt-[4px] line-clamp-2 min-h-[2lh] text-meta"
           style={{ color: "var(--foreground-70)" }}
         >
           {ad.title}
         </Link>
 
         <div
-          className="mt-auto flex items-center gap-[8px] pt-[4px] text-[11.5px]"
+          className="mt-auto flex min-w-0 items-center gap-[4px] text-caption"
           style={{ color: "var(--foreground-50)" }}
         >
-          <span className="inline-flex min-w-0 items-center gap-[4px]">
-            <MapPin size={12} className="shrink-0" />
-            <span className="truncate">{ad.city}</span>
-          </span>
+          <MapPin size={12} className="shrink-0" />
+          <span className="truncate">{ad.city}</span>
           {ad.condition && <span className="shrink-0 truncate">· {ad.condition}</span>}
         </div>
       </div>

@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useMatch } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { hasDirectionsRail } from "@/lib/layout/rails";
+import { loadNavExpanded, selectNavExpanded, useStore } from "@/lib/store";
 import { Sidebar } from "./Sidebar";
 import { DirectionsRightRail } from "./DirectionsRightRail";
 import { BottomNav } from "./BottomNav";
@@ -55,6 +56,17 @@ export function AppLayout({
   */
   const pathname = useMatch({ strict: false, select: (m) => m.pathname });
   const withRail = rail ?? hasDirectionsRail(pathname);
+
+  /*
+    Свёрнутое меню (каталог, объявление): значки 64 на всех ширинах, пока
+    человек не развернул его сам. Выбор хранится в lib/store, но читается
+    после гидрации — серверная разметка всегда со свёрнутым меню.
+  */
+  const navExpanded = useStore(selectNavExpanded);
+  useEffect(() => {
+    if (navCollapsed) loadNavExpanded();
+  }, [navCollapsed]);
+  const narrowNav = Boolean(navCollapsed) && !navExpanded;
 
   /*
     С панелью центр держит строку в 680 — ширина, за которой лента перестаёт
@@ -116,7 +128,9 @@ export function AppLayout({
           */
           withRail
             ? "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)_auto]"
-            : "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]",
+            : narrowNav
+              ? "xl:grid xl:grid-cols-[4rem_minmax(0,1fr)]"
+              : "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]",
         )}
       >
         {sidebar === false ? null : (sidebar ?? <Sidebar collapsed={navCollapsed} />)}

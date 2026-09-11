@@ -15,6 +15,8 @@ import {
   Settings,
   ShieldCheck,
   Wallet,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
@@ -28,6 +30,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { useUnreadMessagesTotal } from "@/lib/messenger";
+import { actions, selectNavExpanded, useStore } from "@/lib/store";
 
 interface Item {
   to:
@@ -119,6 +122,31 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const { sub } = useMySubscription();
   const { isGuest } = useGuestAccess();
   const unreadMessages = useUnreadMessagesTotal();
+  // Развёрнуто ли свёрнутое меню (каталог, объявление) — выбор человека.
+  const expanded = useStore(selectNavExpanded);
+
+  // Переключатель — как у правой панели (DirectionsRightRail): 36×36, рамка,
+  // значок 18 px. Подпись и значок — по действию, которое кнопка сделает.
+  const toggle = (next: boolean) => (
+    <button
+      type="button"
+      onClick={() => actions.setNavExpanded(next)}
+      aria-label={t(next ? "nav.expandMenu" : "nav.collapseMenu")}
+      aria-expanded={!next}
+      className="grid h-9 w-9 place-items-center rounded-[10px] border transition-colors hover:bg-[var(--background-surface)]"
+      style={{
+        background: "var(--background-elevated)",
+        borderColor: "var(--border)",
+        color: "var(--foreground-70)",
+      }}
+    >
+      {next ? (
+        <PanelLeftOpen className="h-[18px] w-[18px]" />
+      ) : (
+        <PanelLeftClose className="h-[18px] w-[18px]" />
+      )}
+    </button>
+  );
 
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
@@ -330,6 +358,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
         <InstallAppNavRow />
         <FeedbackDialog />
       </div>
+
+      {/* Свернуть обратно — только там, где меню сворачиваемое и развёрнуто,
+          и только от 1280: ниже полной колонки нет, меню и так значками. */}
+      {collapsed && expanded && <div className="mt-4 hidden px-3 xl:block">{toggle(false)}</div>}
     </div>
   );
 
@@ -372,7 +404,48 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     );
   }
 
-  // Свёрнутый режим просили страницы с широкой сеткой (каталог): там значки
-  // нужны на всех ширинах, включая самые большие.
-  return iconRail("w-16 md:flex");
+  /*
+    Свёрнутый режим — каталог и объявление, как у Авито: значки 64, чтобы
+    сетке досталось место. Активный раздел виден и в значках: фон
+    accent-soft и цвет accent (renderNavLink, compact).
+
+    Наведение разворачивает полное меню ПОВЕРХ содержимого — слой
+    --z-dropdown, раскладка не двигается. Задержка на показ, чтобы меню не
+    вспыхивало, когда курсор просто пересекает колонку. С клавиатуры по
+    фокусу не открывается: слой накрыл бы значок, на котором стоит фокус, —
+    для клавиатуры и для «развернуть насовсем» есть кнопка внизу колонки.
+
+    Кнопка — только от 1280. Ниже полной колонки нет и на остальных
+    страницах, меню там всегда значками; «развернуть насовсем» на 768 не
+    меняло бы ничего, а наведение после него пропадало (замер 11.09).
+  */
+  const hoverRail = (widthClasses: string) => (
+    <aside className={`group/nav sticky top-0 hidden w-16 shrink-0 flex-col ${widthClasses}`}>
+      {iconNav}
+      <div className="mt-auto hidden justify-center pb-4 xl:flex">{toggle(true)}</div>
+      <div
+        className="invisible absolute left-0 top-0 z-[var(--z-dropdown)] h-full w-60 opacity-0 transition-[opacity,visibility] duration-150 group-hover/nav:visible group-hover/nav:opacity-100 group-hover/nav:delay-150"
+        style={{
+          background: "var(--background)",
+          borderRight: "1px solid var(--border)",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        {fullInner}
+      </div>
+    </aside>
+  );
+
+  // Развёрнуто человеком — с 1280 полная колонка, как на остальных страницах;
+  // ниже — те же значки с разворотом по наведению. Выбор запоминается (lib/store).
+  if (expanded) {
+    return (
+      <>
+        {hoverRail("md:flex xl:hidden")}
+        <aside className="hidden w-60 shrink-0 xl:block">{fullInner}</aside>
+      </>
+    );
+  }
+
+  return hoverRail("md:flex");
 }
