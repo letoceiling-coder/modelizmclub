@@ -9,7 +9,8 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   test: {
-    include: ["src/**/*.test.{ts,tsx}"],
+    // eslint-rules — локальные правила линта; тесты на них идут тем же прогоном.
+    include: ["src/**/*.test.{ts,tsx}", "eslint-rules/**/*.test.js"],
     environment: "node",
   },
 });
