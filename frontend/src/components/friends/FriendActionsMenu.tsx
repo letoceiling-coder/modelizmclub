@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { User as UserIcon, UserMinus, EyeOff, Flag, Ban, MoreHorizontal } from "lucide-react";
 
 interface Props {
@@ -61,7 +61,7 @@ export function FriendActionsMenu({
       {!isMobile && (
         <AnimatePresence>
           {open && (
-            <motion.div
+            <m.div
               role="menu"
               initial={{ opacity: 0, y: -6, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -82,7 +82,7 @@ export function FriendActionsMenu({
                 onReport={run(onReport)}
                 onBlock={run(onBlock)}
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       )}
@@ -93,7 +93,7 @@ export function FriendActionsMenu({
           <AnimatePresence>
             {open && (
               <>
-                <motion.div
+                <m.div
                   key="overlay"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -103,7 +103,7 @@ export function FriendActionsMenu({
                   style={{ background: "rgba(0,0,0,0.4)" }}
                   onClick={() => setOpen(false)}
                 />
-                <motion.div
+                <m.div
                   role="menu"
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -124,7 +124,7 @@ export function FriendActionsMenu({
                     onReport={run(onReport)}
                     onBlock={run(onBlock)}
                   />
-                </motion.div>
+                </m.div>
               </>
             )}
           </AnimatePresence>,

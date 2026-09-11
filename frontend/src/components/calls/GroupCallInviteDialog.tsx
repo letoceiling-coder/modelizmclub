@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Search, X, Check, Video, Phone, Users } from "lucide-react";
 import { fetchFriends, searchUsers } from "@/lib/api/social";
 import type { User } from "@/lib/mock";
@@ -152,7 +152,7 @@ export function GroupCallInviteDialog() {
   return createPortal(
     <AnimatePresence>
       {picker && (
-        <motion.div
+        <m.div
           key="gc-picker-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -162,7 +162,7 @@ export function GroupCallInviteDialog() {
           style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
           onClick={() => groupCalls.closePicker()}
         >
-          <motion.div
+          <m.div
             key="gc-picker-panel"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -404,8 +404,8 @@ export function GroupCallInviteDialog() {
                   : `Начать звонок${selected.size ? ` (${selected.size})` : ""}`}
               </button>
             </div>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>,
     document.body,

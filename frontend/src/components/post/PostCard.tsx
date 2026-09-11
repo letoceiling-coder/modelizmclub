@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { variantUrl } from "@/lib/media/variants";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Clock, Check, Radio, Repeat2 } from "lucide-react";
 import type { Post, Comment, Community } from "@/lib/mock";

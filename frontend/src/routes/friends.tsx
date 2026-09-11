@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { MapPin, UserPlus, MessageSquare, Check, X, Clock, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -539,7 +539,7 @@ function FriendsPage() {
                 </button>
               );
             })}
-            <motion.div
+            <m.div
               className="absolute bottom-0 h-[3px]"
               style={{ background: "var(--accent)", borderRadius: "3px 3px 0 0" }}
               animate={{ x: indicator.x, width: indicator.w }}

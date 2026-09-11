@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Bell, CheckCheck, Trash2, UserPlus, Megaphone, MessageSquare, Phone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -392,14 +392,14 @@ function NotificationsPage() {
         ) : (
           <div className="space-y-[8px]">
             {items.map((n, i) => (
-              <motion.div
+              <m.div
                 key={n.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.3) }}
               >
                 <NotificationItem n={n} onOpen={() => open(n)} onDelete={() => removeOne(n.id)} />
-              </motion.div>
+              </m.div>
             ))}
           </div>
         )}

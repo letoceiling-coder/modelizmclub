@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -327,7 +327,7 @@ export function ChatHeaderActions({
 
         <AnimatePresence>
           {open && (
-            <motion.div
+            <m.div
               role="menu"
               initial={{ opacity: 0, y: -6, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -418,7 +418,7 @@ export function ChatHeaderActions({
                 onClick={reportUser}
                 danger
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

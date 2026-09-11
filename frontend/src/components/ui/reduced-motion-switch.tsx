@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion, type Transition } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion, type Transition } from "framer-motion";
 import { useEffect, useRef, type ReactNode } from "react";
 
 interface Props {
@@ -61,7 +61,7 @@ export function ReducedMotionSwitch({
     firstRender.current = false;
   }, []);
   const Plain = as;
-  const Motion = as === "span" ? motion.span : motion.div;
+  const Motion = as === "span" ? m.span : m.div;
 
   if (reduce) {
     return (

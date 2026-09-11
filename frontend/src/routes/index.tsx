@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { m, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
@@ -281,7 +281,7 @@ function TopNav() {
       {/* mobile menu sheet */}
       <AnimatePresence>
         {menuOpen && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -348,7 +348,7 @@ function TopNav() {
                 <ThemeToggle size={32} alwaysVisible />
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </header>
@@ -510,13 +510,13 @@ function Hero() {
       >
         <AnimatePresence>
           {ready && !heroLoading && (
-            <motion.div
+            <m.div
               variants={stagger}
               initial={reduce ? "visible" : "hidden"}
               animate="visible"
               className="w-full max-w-[720px] py-20"
             >
-              <motion.h1
+              <m.h1
                 variants={fadeUp}
                 style={{
                   fontFamily: "var(--font-display)",
@@ -529,10 +529,10 @@ function Hero() {
                 }}
               >
                 {brand}
-              </motion.h1>
+              </m.h1>
 
               {tagline ? (
-                <motion.p
+                <m.p
                   variants={fadeUp}
                   className="landing-hero-tagline mt-4"
                   style={{
@@ -544,11 +544,11 @@ function Hero() {
                   }}
                 >
                   {tagline}
-                </motion.p>
+                </m.p>
               ) : null}
 
               {subtitle ? (
-                <motion.p
+                <m.p
                   variants={fadeUp}
                   className="landing-hero-subtitle mt-4"
                   style={{
@@ -559,11 +559,11 @@ function Hero() {
                   }}
                 >
                   {subtitle}
-                </motion.p>
+                </m.p>
               ) : null}
 
               {(section?.cards.length ?? 0) > 0 && (
-                <motion.div
+                <m.div
                   variants={fadeUp}
                   className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
                 >
@@ -577,11 +577,11 @@ function Hero() {
                       {i === 0 ? <Search size={18} /> : null} {card.title}
                     </LandingBlockLink>
                   ))}
-                </motion.div>
+                </m.div>
               )}
 
               {statsReady ? (
-                <motion.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
+                <m.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
                   {[
                     { n: formatLandingStat(stats.users), l: t("landing.hero.stats.modelers") },
                     {
@@ -619,9 +619,9 @@ function Hero() {
                       </div>
                     </div>
                   ))}
-                </motion.div>
+                </m.div>
               ) : null}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>
@@ -641,12 +641,12 @@ function Hero() {
         >
           {t("landing.hero.scroll")}
         </span>
-        <motion.div
+        <m.div
           animate={{ y: [0, 7, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
           <ChevronDown size={20} />
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );
@@ -1299,7 +1299,7 @@ function StepsTimeline() {
               "linear-gradient(90deg, transparent, var(--border) 12%, var(--border) 88%, transparent)",
           }}
         />
-        <motion.ol
+        <m.ol
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.14 } } }}
           initial={reduce ? "visible" : "hidden"}
           whileInView="visible"
@@ -1307,7 +1307,7 @@ function StepsTimeline() {
           className="grid gap-8 md:grid-cols-3 md:gap-6"
         >
           {cards.map((card, i) => (
-            <motion.li
+            <m.li
               key={card.id}
               variants={{
                 hidden: { opacity: 0, y: 20 },
@@ -1371,9 +1371,9 @@ function StepsTimeline() {
                   {card.description}
                 </p>
               ) : null}
-            </motion.li>
+            </m.li>
           ))}
-        </motion.ol>
+        </m.ol>
       </div>
     </Section>
   );
@@ -1533,7 +1533,7 @@ function FaqSection() {
               </button>
               <AnimatePresence initial={false}>
                 {isOpen && (
-                  <motion.div
+                  <m.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
@@ -1545,7 +1545,7 @@ function FaqSection() {
                     >
                       {item.answer}
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </div>

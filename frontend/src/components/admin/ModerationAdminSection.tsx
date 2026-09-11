@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ExternalLink, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -150,7 +150,7 @@ function ModerationDetailCard({
   const submitted = item.submittedAt ? formatDate(item.submittedAt, "absolute") : null;
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }}
@@ -282,7 +282,7 @@ function ModerationDetailCard({
           </Link>
         ) : null}
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

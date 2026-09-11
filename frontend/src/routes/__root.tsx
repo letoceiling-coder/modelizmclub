@@ -20,6 +20,7 @@ import { AskHost } from "@/components/ui/ask";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { PwaUpdatePrompt } from "@/components/pwa/PwaUpdatePrompt";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
+import { MotionProvider } from "@/components/motion/MotionProvider";
 import { restoreSession } from "@/lib/auth/session";
 import { captureReferralFromLocation } from "@/lib/referral-cookie";
 import { requireGuestRouteAccess } from "@/lib/auth/requireGuestRouteAccess";
@@ -230,30 +231,32 @@ function RootComponent() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <ThemeProvider>
-          <GuestAccessProvider>
-            <RouteAccessEnforcer />
-            <AskHost />
-            <Outlet />
-            <GateHost />
-          </GuestAccessProvider>
-          <CallScreen />
-          <GroupCallScreen />
-          <GroupCallInviteDialog />
-          <CookieBanner />
-          <PwaUpdatePrompt />
-          <Toaster
-            position="bottom-right"
-            closeButton
-            duration={3500}
-            visibleToasts={3}
-            offset={{ bottom: 16, right: 16 }}
-            mobileOffset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
-          />
-        </ThemeProvider>
-      </I18nProvider>
-    </QueryClientProvider>
+    <MotionProvider>
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <ThemeProvider>
+            <GuestAccessProvider>
+              <RouteAccessEnforcer />
+              <AskHost />
+              <Outlet />
+              <GateHost />
+            </GuestAccessProvider>
+            <CallScreen />
+            <GroupCallScreen />
+            <GroupCallInviteDialog />
+            <CookieBanner />
+            <PwaUpdatePrompt />
+            <Toaster
+              position="bottom-right"
+              closeButton
+              duration={3500}
+              visibleToasts={3}
+              offset={{ bottom: 16, right: 16 }}
+              mobileOffset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
+            />
+          </ThemeProvider>
+        </I18nProvider>
+      </QueryClientProvider>
+    </MotionProvider>
   );
 }

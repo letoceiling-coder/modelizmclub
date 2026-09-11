@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   ArrowLeft,
   Check,
@@ -581,7 +581,7 @@ const MessageBubble = memo(function MessageBubble({
   };
 
   return (
-    <motion.div
+    <m.div
       initial={hasMedia ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: hasMedia ? 0.18 : 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -697,7 +697,7 @@ const MessageBubble = memo(function MessageBubble({
           </div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 });
 
@@ -1951,7 +1951,7 @@ function MessengerPage() {
               >
                 <AnimatePresence>
                   {replyTo && (
-                    <motion.div
+                    <m.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
@@ -1988,7 +1988,7 @@ function MessengerPage() {
                           <X size={14} />
                         </button>
                       </div>
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
                 {/* Composer: attach · emoji · input · mic/send — one optical

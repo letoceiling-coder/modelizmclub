@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ChevronDown, HelpCircle, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -223,7 +223,7 @@ function HelpPage() {
             {filtered.map((item) => {
               const isOpen = openId === item.id;
               return (
-                <motion.div
+                <m.div
                   key={item.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -253,19 +253,16 @@ function HelpPage() {
                     >
                       {item.question}
                     </span>
-                    <motion.div
-                      animate={{ rotate: isOpen ? 180 : 0 }}
-                      transition={{ duration: 0.25 }}
-                    >
+                    <m.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.25 }}>
                       <ChevronDown
                         size={18}
                         style={{ color: isOpen ? "var(--accent)" : "var(--foreground-30)" }}
                       />
-                    </motion.div>
+                    </m.div>
                   </button>
                   <AnimatePresence initial={false}>
                     {isOpen && (
-                      <motion.div
+                      <m.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -282,10 +279,10 @@ function HelpPage() {
                         >
                           {item.answer}
                         </p>
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
+                </m.div>
               );
             })}
           </AnimatePresence>

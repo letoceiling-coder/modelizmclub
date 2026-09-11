@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { forwardMessage } from "@/lib/api/chat";
@@ -64,7 +64,7 @@ export function ForwardDialog({ message, onClose }: Props) {
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -74,7 +74,7 @@ export function ForwardDialog({ message, onClose }: Props) {
             style={{ background: "rgba(0,0,0,0.4)" }}
             onClick={onClose}
           />
-          <motion.div
+          <m.div
             key="dialog"
             ref={ref}
             initial={{ opacity: 0, y: 12, scale: 0.97 }}
@@ -139,7 +139,7 @@ export function ForwardDialog({ message, onClose }: Props) {
                 })
               )}
             </ul>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

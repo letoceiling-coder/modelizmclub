@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   BellOff,
   Bell,
@@ -100,7 +100,7 @@ export function DialogContextMenu({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           ref={menuRef}
           role="menu"
           initial={{ opacity: 0, scale: 0.96 }}
@@ -175,7 +175,7 @@ export function DialogContextMenu({
             onClick={run(onToggleBlock)}
             danger={!blocked}
           />
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>,
     document.body,

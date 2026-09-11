@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { BarChart3 } from "lucide-react";
 import { fetchDashboard } from "@/lib/api/admin";
 import { H, card } from "@/components/admin/adminShared";
@@ -43,7 +43,7 @@ export function AnalyticsSection() {
   return (
     <div>
       <H>{t("pages.adminAnalytics.title")}</H>
-      <motion.div
+      <m.div
         initial="hidden"
         animate="visible"
         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
@@ -51,7 +51,7 @@ export function AnalyticsSection() {
         style={{ gap: "12px", marginBottom: "20px" }}
       >
         {kpiStats.map((s, i) => (
-          <motion.div
+          <m.div
             key={i}
             variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
             style={{ ...card, padding: "14px" }}
@@ -77,12 +77,12 @@ export function AnalyticsSection() {
             >
               {s.l}
             </div>
-          </motion.div>
+          </m.div>
         ))}
-      </motion.div>
+      </m.div>
       <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "16px" }}>
         {chartKeys.map((key, i) => (
-          <motion.div
+          <m.div
             key={key}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -121,7 +121,7 @@ export function AnalyticsSection() {
                 {t("pages.adminAnalytics.chartPlaceholder")}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         ))}
       </div>
     </div>

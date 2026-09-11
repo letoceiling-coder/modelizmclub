@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { useTranslation } from "react-i18next";
 import { Heart, MessageCircle, Bookmark, Eye } from "lucide-react";
@@ -81,14 +81,14 @@ export function PostActions({
             aria-label={t("components.postCard.likeAria")}
             aria-disabled={!canInteract}
           >
-            <motion.span
+            <m.span
               key={liked ? "on" : "off"}
               whileTap={{ scale: 1.5 }}
               animate={liked ? { scale: [1, 1.35, 1] } : { scale: 1 }}
               transition={{ type: "spring", stiffness: 480, damping: 14 }}
             >
               <Heart className="h-[20px] w-[20px]" fill={liked ? "currentColor" : "none"} />
-            </motion.span>
+            </m.span>
             {/*
               Смена цифры идёт через общий переключатель, а не через голый
               AnimatePresence. При системной настройке «уменьшить движение»
@@ -146,12 +146,12 @@ export function PostActions({
           aria-label={t("components.postCard.saveAria")}
           aria-disabled={!canInteract}
         >
-          <motion.span
+          <m.span
             whileTap={{ scale: 1.3 }}
             transition={{ type: "spring", stiffness: 500, damping: 14 }}
           >
             <Bookmark className="h-[20px] w-[20px]" fill={saved ? "currentColor" : "none"} />
-          </motion.span>
+          </m.span>
           {saves > 0 && <span className="tabular-nums">{saves}</span>}
         </button>
       </Gated>

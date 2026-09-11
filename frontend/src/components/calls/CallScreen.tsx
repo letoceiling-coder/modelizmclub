@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { variantUrl } from "@/lib/media/variants";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   PhoneOff,
   Phone,
@@ -111,7 +111,7 @@ export function CallScreen() {
   return createPortal(
     <AnimatePresence>
       {active && (
-        <motion.div
+        <m.div
           key={active.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -134,7 +134,7 @@ export function CallScreen() {
           <RemoteAudio />
           <CallBody elapsed={elapsed} />
           <CallControls />
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>,
     document.body,
@@ -291,7 +291,7 @@ function CallBody({ elapsed }: { elapsed: number }) {
         {active.media === "video" ? t("components.callScreen.videoSuffix") : ""}
       </div>
 
-      <motion.div
+      <m.div
         className="relative mt-3 sm:mt-4"
         animate={
           active.status === "ringing" || active.status === "connecting"
@@ -308,7 +308,7 @@ function CallBody({ elapsed }: { elapsed: number }) {
           }}
         />
         <PeerAvatar avatar={active.peerAvatar} name={active.peerName} initial={initial} />
-      </motion.div>
+      </m.div>
 
       <h2 className="mt-4 sm:mt-6 font-display text-[22px] sm:text-[26px] font-bold leading-tight">
         {active.peerName}

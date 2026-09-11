@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import {
   Bell,
   BadgeCheck,
@@ -1172,7 +1172,7 @@ function EditSheet({
   if (!mounted) return null;
 
   return createPortal(
-    <motion.div
+    <m.div
       className="fixed inset-0 z-[var(--z-popover)]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -1185,7 +1185,7 @@ function EditSheet({
         onClick={onClose}
         aria-hidden
       />
-      <motion.div
+      <m.div
         initial={panelInitial}
         animate={panelAnimate}
         exit={panelExit}
@@ -1315,8 +1315,8 @@ function EditSheet({
             {t("pages.profile.save")}
           </Button>
         </div>
-      </motion.div>
-    </motion.div>,
+      </m.div>
+    </m.div>,
     document.body,
   );
 }

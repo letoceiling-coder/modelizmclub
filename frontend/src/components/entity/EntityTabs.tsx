@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export interface EntityTab<K extends string> {
   key: K;
@@ -80,7 +80,7 @@ export function EntityTabs<K extends string>({ tabs, active, onChange, layoutId 
               </span>
             )}
             {isActive && (
-              <motion.span
+              <m.span
                 layoutId={layoutId}
                 className="absolute bottom-[-1px] left-0 right-0"
                 style={{ height: 2, background: "var(--accent)" }}

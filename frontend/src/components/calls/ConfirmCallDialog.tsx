@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Phone, Video, X } from "lucide-react";
 import { userById } from "@/lib/user-registry";
@@ -18,7 +18,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="ov"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -28,7 +28,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
             style={{ background: "rgba(0,0,0,0.45)" }}
             onClick={onCancel}
           />
-          <motion.div
+          <m.div
             key="sheet"
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
@@ -103,7 +103,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                 {t("components.confirmCall.cancel")}
               </button>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

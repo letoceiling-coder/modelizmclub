@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Variants } from "framer-motion";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Zap, CalendarClock } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
@@ -290,7 +290,7 @@ function SubscriptionPage() {
         </Appear>
 
         {sub?.is_active && (
-          <motion.div
+          <m.div
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
@@ -367,7 +367,7 @@ function SubscriptionPage() {
                 />
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[960px]">

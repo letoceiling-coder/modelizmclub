@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { CitySelect } from "@/components/ads/CitySelect";
@@ -184,7 +184,7 @@ export function AdFiltersSheet({
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -193,7 +193,7 @@ export function AdFiltersSheet({
             className="fixed inset-0 z-[var(--z-modal)]"
             style={{ background: "rgba(0,0,0,0.5)" }}
           />
-          <motion.div
+          <m.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -237,7 +237,7 @@ export function AdFiltersSheet({
             <div className="max-h-[calc(88vh-64px)] overflow-y-auto px-[20px] pb-[24px]">
               <Body {...props} />
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

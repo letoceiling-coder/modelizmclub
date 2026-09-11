@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Search, X, ChevronUp, ChevronDown, CalendarDays } from "lucide-react";
 import type { Message } from "@/lib/mock";
 import { userById } from "@/lib/user-registry";
@@ -154,7 +154,7 @@ export function ChatMessageSearch({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           key="chat-search"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -164,7 +164,7 @@ export function ChatMessageSearch({
           style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)" }}
           onClick={onClose}
         >
-          <motion.div
+          <m.div
             initial={{ y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 12, opacity: 0 }}
@@ -389,8 +389,8 @@ export function ChatMessageSearch({
                 </ul>
               )}
             </div>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>,
     document.body,
