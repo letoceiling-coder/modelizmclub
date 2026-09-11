@@ -1,12 +1,18 @@
-import { Fragment } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Category, CategoryChild } from "@/lib/mock";
 import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 
+/**
+ * Пункт списка — всегда одна строка (`block truncate`). Иначе число строк
+ * зависит от шрифта: пока грузится веб-шрифт, запасной шире, длинная строка
+ * третьего уровня переносилась, а после подмены сжималась в одну — и всё
+ * ниже подпрыгивало на 20 px. CLS 0,018–0,031 при прямой загрузке на 1440
+ * и 768, замер на проде 12.09.
+ */
 const childLinkCls =
-  "rounded-[4px] transition-colors hover:text-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]";
+  "block truncate rounded-[4px] transition-colors hover:text-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]";
 
 /** Адрес узла любой глубины — один сегмент: `/categories/{slug}`. */
 function nodeParam(node: CategoryChild): string {
@@ -15,9 +21,9 @@ function nodeParam(node: CategoryChild): string {
 
 /**
  * Направление на странице «Все направления» (`/categories`): шапка ведёт
- * в само направление, ниже — его подкатегории, а у подкатегории третий
- * уровень той же строкой через точку. Как общий список категорий у Авито:
- * до нужного раздела — один щелчок со страницы.
+ * в само направление, ниже — его подкатегории, под подкатегорией третий
+ * уровень отдельными строками с отступом. Как общий список категорий у
+ * Авито: до нужного раздела — один щелчок со страницы.
  *
  * Раньше вся карточка была одной ссылкой с описанием и кнопкой «Открыть»:
  * подкатегорий на странице не было, до них добирались только через
@@ -61,25 +67,28 @@ export function CategoryCard({ c }: { c: Category }) {
       {c.subcategories.length > 0 && (
         <ul className="mt-3 space-y-[4px] border-t pt-3" style={{ borderColor: "var(--border)" }}>
           {c.subcategories.map((s) => (
-            <li key={s.id} className="text-[14px] leading-[20px]">
-              <Link to="/categories/$id" params={{ id: nodeParam(s) }} className={childLinkCls}>
+            <li key={s.id}>
+              <Link
+                to="/categories/$id"
+                params={{ id: nodeParam(s) }}
+                className={`${childLinkCls} text-[14px] leading-[20px]`}
+              >
                 {s.name}
               </Link>
               {s.children && s.children.length > 0 && (
-                <span className="text-[13px] text-muted-foreground">
+                <ul className="mt-[4px] space-y-[4px] pl-[12px]">
                   {s.children.map((leaf) => (
-                    <Fragment key={leaf.id}>
-                      {" · "}
+                    <li key={leaf.id}>
                       <Link
                         to="/categories/$id"
                         params={{ id: nodeParam(leaf) }}
-                        className={childLinkCls}
+                        className={`${childLinkCls} text-[13px] leading-[20px] text-muted-foreground`}
                       >
                         {leaf.name}
                       </Link>
-                    </Fragment>
+                    </li>
                   ))}
-                </span>
+                </ul>
               )}
             </li>
           ))}
