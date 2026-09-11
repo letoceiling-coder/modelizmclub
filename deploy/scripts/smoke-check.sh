@@ -145,6 +145,17 @@ if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_MODERATION_GATES:-0}" != "1" ]]; then
   fi
 fi
 
+# Кодирует ли очередь медиа AVIF. Предупреждение, не приговор: без AVIF сайт
+# работает, просто тяжелее. До 11.09 формат два месяца пропускался молча —
+# кодировщика не было, а флаг в .env стоял выключенным.
+if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_AVIF:-0}" != "1" ]]; then
+  AVIF_CHECK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-avif-encoder.sh"
+  if [[ -x "${AVIF_CHECK}" ]]; then
+    echo ""
+    "${AVIF_CHECK}" || true
+  fi
+fi
+
 if [[ "${FAILED}" != "0" ]]; then
   echo "smoke check FAILED" >&2
   exit 1

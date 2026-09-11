@@ -18,6 +18,11 @@ apt-get install -y nginx postgresql postgresql-contrib redis-server \
   php8.3-xml php8.3-curl php8.3-zip php8.3-gd php8.3-intl php8.3-bcmath \
   certbot python3-certbot-nginx git unzip supervisor curl
 
+# AVIF для вариантов медиа. libgd3 в Ubuntu собран без libavif, и `imageavif`
+# в PHP нет — очередь кодирует бинарником avifenc. Без пакета AVIF молча не
+# появится ни у одной новой загрузки. См. config/media.php, variants.avif.
+apt-get install -y --no-install-recommends libavif-bin
+
 if ! command -v composer >/dev/null 2>&1; then
   curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 fi
