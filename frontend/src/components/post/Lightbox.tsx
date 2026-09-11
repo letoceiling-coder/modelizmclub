@@ -347,7 +347,17 @@ export function Lightbox({
                         loading={i === startIndex ? "eager" : "lazy"}
                         decoding="async"
                         alt={slides.length > 1 ? `${alt} — фото ${i + 1}` : alt}
-                        className="max-h-full max-w-full object-contain transition-transform duration-200 motion-reduce:transition-none"
+                        /*
+                          Рамка — вся ячейка слайда, фото вписано в неё
+                          (object-contain). Не max-h/max-w по размеру снимка:
+                          до загрузки рамка берёт пропорцию из width/height
+                          (4:3), а после — настоящую, и на узком экране
+                          портретное фото раздувало её с 343×257 до 343×710,
+                          сдвигая по центру. Приходит оно позже, чем через
+                          полсекунды после нажатия, — CLS 0,223 на 375 при
+                          медленной сети (замер на проде 11.09).
+                        */
+                        className="h-full w-full object-contain transition-transform duration-200 motion-reduce:transition-none"
                         style={{
                           borderRadius: 4,
                           transform: i === selected && zoomed ? `scale(${zoom.scale})` : undefined,
