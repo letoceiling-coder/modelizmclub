@@ -16,6 +16,7 @@ import { AdFoundCount, AdSortBar, type SortKey } from "@/components/ads/AdSortBa
 import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { CatalogCardSkeleton } from "@/components/ads/CatalogCardSkeleton";
+import { CATALOG_GRID } from "@/components/ads/catalogGrid";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
@@ -278,7 +279,8 @@ function CatalogPage() {
       расходятся в поведении — панель уводила на /ads?taxonomy_id=, фильтр
       менял состояние на месте, — и это два разных ответа на один вопрос.
     */
-    <AppLayout footer>
+    // Левое меню свёрнуто в значки 64, как у Авито: сетке — всё место.
+    <AppLayout footer navCollapsed>
       <div className="space-y-[16px] pb-[24px]">
         {/* Header */}
         <div className="flex items-start justify-between gap-[12px]">
@@ -409,7 +411,7 @@ function CatalogPage() {
               )}
 
               {loadState === "loading" && !hasLoadedOnce.current && (
-                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
+                <div className={CATALOG_GRID}>
                   {Array.from({ length: 12 }).map((_, i) => (
                     <CatalogCardSkeleton key={i} />
                   ))}
@@ -464,7 +466,7 @@ function CatalogPage() {
                 )}
 
               {isFilterBusy && ads.length === 0 && (
-                <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
+                <div className={CATALOG_GRID}>
                   {Array.from({ length: 8 }).map((_, i) => (
                     <CatalogCardSkeleton key={i} />
                   ))}
@@ -476,7 +478,7 @@ function CatalogPage() {
                   <div
                     key={resultGen}
                     className={cn(
-                      "grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]",
+                      CATALOG_GRID,
                       "transition-opacity duration-200",
                       isFilterBusy && "pointer-events-none opacity-[0.72]",
                     )}

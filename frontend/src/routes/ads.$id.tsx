@@ -223,7 +223,7 @@ function AdDetailPage() {
 
   if (state === "loading") {
     return (
-      <AppLayout footer>
+      <AppLayout footer navCollapsed>
         <AdDetailSkeleton />
       </AppLayout>
     );
@@ -231,7 +231,7 @@ function AdDetailPage() {
 
   if (state === "notFound") {
     return (
-      <AppLayout footer>
+      <AppLayout footer navCollapsed>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <EmptyState
             icon={SearchX}
@@ -246,7 +246,7 @@ function AdDetailPage() {
 
   if (state === "error" || !ad) {
     return (
-      <AppLayout footer>
+      <AppLayout footer navCollapsed>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <Alert variant="error">
             <AlertTitle>{t("pages.adDetail.loadFailedTitle")}</AlertTitle>
@@ -341,7 +341,9 @@ function AdDetailPage() {
   };
 
   return (
-    <AppLayout footer>
+    // Меню свёрнуто, как в каталоге: из каталога в объявление и обратно
+    // левая колонка не меняет ширину. Во всех четырёх состояниях страницы.
+    <AppLayout footer navCollapsed>
       <div className="pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0">
         {/* Breadcrumbs */}
         <nav

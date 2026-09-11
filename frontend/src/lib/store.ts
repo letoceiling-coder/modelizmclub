@@ -75,9 +75,32 @@ export interface AppState {
   revealedPhones: Record<ID, string>;
   /** Partner user ids whose chat the current user deleted — used to clear stale history on reopen. */
   deletedChatPartnerIds: ID[];
+  /** Левое меню развёрнуто на страницах, где оно по умолчанию свёрнуто
+   *  (каталог, объявление). false — свёрнуто в значки 64, как у Авито.
+   *  Хранится в localStorage, но читается ПОСЛЕ гидрации (`loadNavExpanded`),
+   *  а не в createInitialState: иначе серверная и клиентская разметка
+   *  разошлись бы классами ширины, а React такие расхождения не чинит. */
+  navExpanded: boolean;
 }
 
 const FAVORITES_KEY = "modelizm:favorites";
+const NAV_EXPANDED_KEY = "modelizm:leftnav:expanded";
+
+let navLoaded = false;
+/** Прочитать сохранённое состояние левого меню — один раз, после гидрации. */
+export function loadNavExpanded(): void {
+  if (navLoaded || typeof window === "undefined") return;
+  navLoaded = true;
+  try {
+    if (window.localStorage.getItem(NAV_EXPANDED_KEY) === "1") {
+      dispatch({ type: "SET_NAV_EXPANDED", expanded: true });
+    }
+  } catch {
+    /* хранилище недоступно — меню остаётся свёрнутым */
+  }
+}
+
+export const selectNavExpanded = (s: AppState): boolean => s.navExpanded;
 
 function readPersistedFavorites(): ID[] {
   if (typeof window === "undefined") return [];
@@ -112,6 +135,7 @@ export function createInitialState(): AppState {
     pendingDialogMessages: {},
     revealedPhones: {},
     deletedChatPartnerIds: [],
+    navExpanded: false,
   };
 }
 
@@ -183,7 +207,8 @@ type Action =
   | { type: "SET_DIALOG_AD"; dialogId: ID; ref: DialogAdRef }
   | { type: "QUEUE_PENDING_MESSAGE"; dialogId: ID; text: string }
   | { type: "CLEAR_PENDING_MESSAGE"; dialogId: ID }
-  | { type: "SET_REVEALED_PHONE"; adId: ID; phone: string };
+  | { type: "SET_REVEALED_PHONE"; adId: ID; phone: string }
+  | { type: "SET_NAV_EXPANDED"; expanded: boolean };
 
 function dedupeMessages(messages: Message[]): Message[] {
   const seen = new Set<string>();
@@ -534,6 +559,8 @@ function reducer(s: AppState, a: Action): AppState {
     }
     case "SET_REVEALED_PHONE":
       return { ...s, revealedPhones: { ...s.revealedPhones, [a.adId]: a.phone } };
+    case "SET_NAV_EXPANDED":
+      return s.navExpanded === a.expanded ? s : { ...s, navExpanded: a.expanded };
     default:
       return s;
   }
@@ -610,6 +637,16 @@ export const actions = {
   clearPendingMessage: (dialogId: ID) => dispatch({ type: "CLEAR_PENDING_MESSAGE", dialogId }),
   setRevealedPhone: (adId: ID, phone: string) =>
     dispatch({ type: "SET_REVEALED_PHONE", adId, phone }),
+  /** Развернуть или свернуть левое меню на каталоге и объявлении; запоминается. */
+  setNavExpanded: (expanded: boolean) => {
+    dispatch({ type: "SET_NAV_EXPANDED", expanded });
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(NAV_EXPANDED_KEY, expanded ? "1" : "0");
+    } catch {
+      /* quota/full — игнор */
+    }
+  },
 };
 
 /**

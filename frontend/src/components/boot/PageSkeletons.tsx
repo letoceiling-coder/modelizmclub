@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { CatalogCardSkeleton } from "@/components/ads/CatalogCardSkeleton";
+import { CATALOG_GRID } from "@/components/ads/catalogGrid";
 
 const fade = {
   initial: { opacity: 0.45 },
@@ -39,14 +40,17 @@ export function FeedPageSkeleton() {
 }
 
 export function AdsPageSkeleton() {
+  // Та же оболочка и та же сетка, что у самого каталога: свёрнутое меню и
+  // карточки по ширине сетки, иначе переход «заглушка → каталог» менял бы
+  // ширину колонок.
   return (
-    <AppLayout>
+    <AppLayout navCollapsed>
       <Fade>
         <div className="mb-[14px] flex items-center justify-between gap-[12px]">
           <Skeleton className="h-[22px] w-[140px] rounded-[8px]" />
           <Skeleton className="h-[36px] w-[120px] rounded-[10px]" />
         </div>
-        <div className="grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:grid-cols-3">
+        <div className={CATALOG_GRID}>
           {Array.from({ length: 6 }).map((_, i) => (
             <CatalogCardSkeleton key={i} />
           ))}

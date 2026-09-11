@@ -1,6 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Matches {@link CatalogCard} layout so the catalog grid keeps stable height while loading. */
+/**
+ * Matches {@link CatalogCard} layout so the catalog grid keeps stable height while loading.
+ *
+ * Строки заглушки стоят внутри тех же текстовых классов, что и у карточки:
+ * высоту каждой задаёт интерлиньяж класса (24 / 2 × 19,6 / 15,6), а не
+ * число на глаз, — поэтому заглушка и карточка совпадают до пикселя.
+ */
 export function CatalogCardSkeleton() {
   return (
     <div
@@ -13,11 +19,18 @@ export function CatalogCardSkeleton() {
       }}
     >
       <Skeleton className="aspect-[4/3] w-full shrink-0 rounded-none" />
-      <div className="flex flex-col gap-[8px] p-[10px] sm:p-[12px]">
-        <Skeleton className="h-[20px] w-[45%]" />
-        <Skeleton className="h-[14px] w-[92%]" />
-        <Skeleton className="h-[14px] w-[72%]" />
-        <Skeleton className="mt-[4px] h-[11px] w-[58%]" />
+      <div className="flex flex-col p-[8px]">
+        <div className="text-body">
+          <Skeleton className="inline-block h-[0.8em] w-[45%] align-middle" />
+        </div>
+        <div className="mt-[4px] text-meta">
+          <Skeleton className="inline-block h-[0.8em] w-[92%] align-middle" />
+          <br />
+          <Skeleton className="inline-block h-[0.8em] w-[72%] align-middle" />
+        </div>
+        <div className="text-caption">
+          <Skeleton className="inline-block h-[0.8em] w-[58%] align-middle" />
+        </div>
       </div>
     </div>
   );
