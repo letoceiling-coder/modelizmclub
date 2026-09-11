@@ -39,6 +39,33 @@ export function firstFailingStep(have: Level, need: Level): GateWindow | null {
   return "paywall";
 }
 
+/** Что делать с кнопкой действия, на которое у сервера есть свой вердикт. */
+export type ServerVerdictControl = "show" | "verify" | "hide";
+
+/**
+ * Кнопка при `can[action] === false` от сервера.
+ *
+ * Сервер говорит «нельзя» разным людям по разным причинам, и прятать кнопку
+ * можно только в одном случае из трёх.
+ *
+ * - Гостю — потому что не знает, кто он. Кнопка видна, клик откроет вход.
+ * - Вошедшему без SMS — потому что реакции требуют подтверждённого номера.
+ *   До 11.09 кнопка у него просто не рисовалась: человек не узнавал, что
+ *   реакция вообще существует, и не получал предложения подтвердить номер.
+ *   Теперь кнопка видна, а клик открывает окно подтверждения — ровно то,
+ *   что снимает отказ.
+ * - Подтвердившему номер «нельзя» значит нельзя по существу. Там кнопки нет.
+ */
+export function controlForServerVerdict(
+  viewer: Level,
+  serverAllows: boolean | undefined,
+): ServerVerdictControl {
+  if (serverAllows !== false) return "show";
+  if (viewer === "guest") return "show";
+  if (viewer === "registered") return "verify";
+  return "hide";
+}
+
 /**
  * Мост от тиров карты доступа (`guest | auth | subscription`, настраиваются
  * в админке) к ступени лестницы.
