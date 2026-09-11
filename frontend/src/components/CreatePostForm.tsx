@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { EmojiPicker } from "@/components/messenger/EmojiPicker";
+import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, X, Newspaper, Star, Megaphone, Tag, FileText } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -117,6 +119,8 @@ export function CreatePostForm({
   const { requirePremium } = useGuestAccess();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const insertEmoji = useInsertAtCaret(textRef, text, setText);
   const [catId, setCatId] = useState("");
   const [subId, setSubId] = useState<string>("");
   const [channelKind, setChannelKind] = useState<PostKind>("news");
@@ -509,19 +513,25 @@ export function CreatePostForm({
           </div>
         )}
 
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={
-            sel.source === "channel"
-              ? t("components.createPostForm.channelTextPlaceholder", {
-                  kind: POST_KIND_LABEL[channelKind].toLowerCase(),
-                })
-              : t("components.createPostForm.profileTextPlaceholder")
-          }
-          className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed"
-          style={{ color: "var(--foreground)" }}
-        />
+        <div className="flex flex-col gap-1">
+          <textarea
+            ref={textRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={
+              sel.source === "channel"
+                ? t("components.createPostForm.channelTextPlaceholder", {
+                    kind: POST_KIND_LABEL[channelKind].toLowerCase(),
+                  })
+                : t("components.createPostForm.profileTextPlaceholder")
+            }
+            className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed"
+            style={{ color: "var(--foreground)" }}
+          />
+          <div className="flex justify-end">
+            <EmojiPicker onPick={insertEmoji} align="end" compact />
+          </div>
+        </div>
 
         {sel.source === "profile" ? (
           <div className="flex flex-col gap-[8px]">

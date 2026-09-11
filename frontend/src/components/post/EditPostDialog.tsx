@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Post } from "@/lib/mock";
 import { updatePost } from "@/lib/api/feed";
@@ -13,6 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { EmojiPicker } from "@/components/messenger/EmojiPicker";
+import { useInsertAtCaret } from "@/lib/insert-at-caret";
 
 interface Props {
   post: Post;
@@ -27,6 +29,9 @@ export function EditPostDialog({ post, open, onOpenChange, onSaved }: Props) {
   const [title, setTitle] = useState(post.title);
   const [body, setBody] = useState(post.text);
   const [busy, setBusy] = useState(false);
+  // Эмодзи — тот же выбор, что в сообщениях и комментариях, в позицию курсора.
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const insertEmoji = useInsertAtCaret(bodyRef, body, setBody);
 
   useEffect(() => {
     if (open) {
@@ -59,7 +64,10 @@ export function EditPostDialog({ post, open, onOpenChange, onSaved }: Props) {
         </DialogHeader>
         <div className="space-y-[10px]">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
-          <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} />
+          <Textarea ref={bodyRef} value={body} onChange={(e) => setBody(e.target.value)} rows={6} />
+          <div className="flex justify-end">
+            <EmojiPicker onPick={insertEmoji} align="end" compact />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" size="lg" onClick={() => onOpenChange(false)} disabled={busy}>

@@ -3,6 +3,7 @@ import type { Dialog, Message } from "@/lib/mock";
 import { fetchConversations, fetchMessages } from "@/lib/api/chat";
 import { isEchoConnected } from "@/lib/realtime/echo";
 import { qk, STALE, GC } from "./keys";
+import { getSessionUserId } from "@/lib/session/cache";
 
 /**
  * The dialog list: one request, fresh for 30 s, re-polled while the page is
@@ -184,6 +185,7 @@ export function addMessageToCache(
     const updated: Dialog = {
       ...cur,
       lastMessage: preview(message),
+      lastFromMe: message.authorId === opts.meUuid,
       time: message.time,
       unread: shouldUnread ? (cur.unread ?? 0) + 1 : cur.unread,
     };
@@ -229,7 +231,14 @@ export function removeMessageFromCache(
   qc.setQueryData<Dialog[]>(qk.conversations, (prev) =>
     prev?.map((d) =>
       d.id === conversationUuid
-        ? { ...d, lastMessage: last ? preview(last) : "", time: last?.time ?? d.time }
+        ? {
+            ...d,
+            lastMessage: last ? preview(last) : "",
+            // Вместе с превью — и пометка «Вы: »: удалили своё последнее —
+            // в превью чужое, и пометка с ним не остаётся.
+            lastFromMe: last ? last.authorId === getSessionUserId() : false,
+            time: last?.time ?? d.time,
+          }
         : d,
     ),
   );
