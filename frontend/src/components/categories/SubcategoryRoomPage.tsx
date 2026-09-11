@@ -35,6 +35,7 @@ import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { searchUsers } from "@/lib/api/social";
 import { fetchListings } from "@/lib/api/listings";
+import { parseTaxonomyId } from "@/lib/taxonomy";
 import {
   fetchRoomMessages,
   fetchRoomMembers,
@@ -316,15 +317,34 @@ export function SubcategoryRoomPage({
     };
   }, [c, sub, me.id]);
 
+  /*
+   * Объявления комнаты — запросом по узлу (`taxonomy_id`), а не выборкой
+   * из общей ленты. Сервер сам переводит узел направления в категории
+   * каталога, вместе с потомками.
+   *
+   * Раньше здесь брали первую страницу всех объявлений (20 штук) и
+   * оставляли те, у которых имена категории и подкатегории совпали с
+   * комнатой. Пока объявлений на сайте было шесть, это работало случайно;
+   * со ста двадцатью большинство комнат показывало бы пусто. А в комнате
+   * третьего уровня имя родителя — подкатегория, у объявления же в
+   * категории стоит корень, и совпадения не было никогда.
+   *
+   * Сравнение имён осталось только для демо-дерева: у него идентификаторы
+   * не числовые, и узел в запрос не передать.
+   */
   useEffect(() => {
     if (!c || !sub) return;
     let active = true;
-    fetchListings()
-      .then(
-        (all) =>
-          active &&
-          setSubAds(all.filter((a) => a.category === c.name && a.subcategory === sub.name)),
-      )
+    const taxonomyId = parseTaxonomyId(sub.id);
+    fetchListings(taxonomyId ? { taxonomyId } : {})
+      .then((found) => {
+        if (!active) return;
+        setSubAds(
+          taxonomyId
+            ? found
+            : found.filter((a) => a.category === c.name && a.subcategory === sub.name),
+        );
+      })
       .catch((e) => reportReadFailure(e, "объявления подкатегории"));
     return () => {
       active = false;
