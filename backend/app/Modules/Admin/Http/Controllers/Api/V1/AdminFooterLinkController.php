@@ -68,6 +68,9 @@ class AdminFooterLinkController extends Controller
             FooterLink::query()->whereKey($row['id'])->update(['sort' => $row['sort']]);
         }
 
+        // Массовый update() мимо событий модели — сброс bootstrap руками.
+        \Modules\PublicContent\Services\PublicBootstrapService::forget();
+
         $audit->log($request->user(), 'admin.footer_links.reorder', null, null, $validated, $request);
 
         return response()->json(['data' => ['message' => 'Порядок обновлён.']]);

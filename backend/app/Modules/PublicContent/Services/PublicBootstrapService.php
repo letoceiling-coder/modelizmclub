@@ -14,6 +14,7 @@ use App\Support\FirstHundredPromo;
 use App\Support\FooterContacts;
 use App\Support\ReferralProgramConfig;
 use App\Support\SiteBranding;
+use Illuminate\Support\Facades\Cache;
 use Modules\Catalog\Services\CatalogService;
 
 class PublicBootstrapService
@@ -24,8 +25,55 @@ class PublicBootstrapService
         private readonly CatalogService $catalog,
     ) {}
 
-    /** @return array<string, mixed> */
+    /**
+     * Ключ в Redis. Номер в конце — чтобы смена формы ответа при выкатке не
+     * отдала старую форму из кеша: поменял структуру — поменяй номер.
+     */
+    public const CACHE_KEY = 'public.bootstrap.v1';
+
+    /**
+     * Сколько держать. Столько же, сколько уже обещано клиентам: контроллер
+     * отдаёт `max-age=15`, и Nitro держит ответ в памяти процесса те же
+     * 15 секунд (BOOTSTRAP_TTL_MS во фронтенде).
+     */
+    public const CACHE_TTL = 15;
+
+    /**
+     * Ответ целиком, из Redis.
+     *
+     * Сборка стоит ~19 мс и 29 запросов к базе — замер на проде 11.09. В
+     * аудите стояло «55–64 мс и −50 мс на SSR каждой страницы», и обе цифры
+     * неверны: 55–64 — это весь HTTP-ответ с TLS и FPM (пустой /health
+     * стоит ~27 мс), а SSR и так берёт bootstrap раз в 15 секунд из памяти
+     * процесса. Выигрыш — 29 запросов к базе на каждом обращении к PHP, а не
+     * время первого экрана.
+     *
+     * Без сброса Redis добавил бы к 15 с Nitro и 15 с браузера ещё 15 с
+     * устаревания после сохранения в админке. Поэтому кеш сбрасывается при
+     * любой записи в данные, из которых он собран, — см. forget() и его
+     * вызовы. Счётчики (пользователи, первая сотня) меняются сами по себе и
+     * устаревают не дольше TTL.
+     *
+     * @return array<string, mixed>
+     */
     public function payload(): array
+    {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn (): array => $this->build());
+    }
+
+    /**
+     * Сбросить кеш. Вызывается из событий моделей, из которых собирается
+     * ответ (AppServiceProvider), из CatalogService::flushCache() и явно из
+     * трёх перестановок порядка в админке — они пишут массовым `update()`,
+     * мимо событий модели.
+     */
+    public static function forget(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /** @return array<string, mixed> */
+    private function build(): array
     {
         $brandingRaw = SystemSetting::query()
             ->where('key', SiteBranding::SETTING_KEY)

@@ -211,6 +211,24 @@ class AppServiceProvider extends ServiceProvider
             ], true);
         });
 
+        /*
+         * Сброс кеша bootstrap при записи в данные, из которых он собран.
+         * События моделей ловят обычные save/delete из любого места — админки,
+         * команд, tinker. Не ловят массовый query()->update(): три такие
+         * перестановки порядка сбрасывают кеш сами, см. PublicBootstrapService.
+         */
+        foreach ([
+            \App\Models\SystemSetting::class,
+            \App\Models\FooterLink::class,
+            \App\Models\FaqCategory::class,
+            \App\Models\FaqArticle::class,
+            \App\Models\LandingSection::class,
+            \App\Models\LandingCard::class,
+        ] as $model) {
+            $model::saved(static fn () => \Modules\PublicContent\Services\PublicBootstrapService::forget());
+            $model::deleted(static fn () => \Modules\PublicContent\Services\PublicBootstrapService::forget());
+        }
+
         // dedoc/scramble лежит в require-dev, а вызов стоял здесь без защиты.
         // Значит `composer install --no-dev` — обычная боевая установка —
         // валил приложение на каждом запросе: post-autoload-dump доходил до

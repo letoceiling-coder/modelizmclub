@@ -109,6 +109,9 @@ class AdminFaqController extends Controller
             FaqArticle::query()->whereKey($row['id'])->update(['sort_order' => $row['sort_order']]);
         }
 
+        // Массовый update() мимо событий модели — сброс bootstrap руками.
+        \Modules\PublicContent\Services\PublicBootstrapService::forget();
+
         $audit->log($request->user(), 'admin.faq.article.reorder', null, null, $validated, $request);
 
         return response()->json(['data' => ['message' => 'Порядок обновлён.']]);

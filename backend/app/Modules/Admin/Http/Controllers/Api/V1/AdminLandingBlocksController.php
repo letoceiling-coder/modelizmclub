@@ -104,6 +104,9 @@ class AdminLandingBlocksController extends Controller
             }
         });
 
+        // Массовый update() мимо событий модели — сброс bootstrap руками.
+        \Modules\PublicContent\Services\PublicBootstrapService::forget();
+
         $audit->log($request->user(), 'admin.landing.cards.reorder', null, null, $data, $request);
 
         return response()->json(['data' => ['message' => 'Порядок сохранён.']]);

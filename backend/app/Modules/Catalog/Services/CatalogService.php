@@ -148,6 +148,10 @@ class CatalogService
         foreach ([self::KEY_TREE_POST, self::KEY_TREE_COMMUNITY, self::KEY_TREE_LISTING, self::KEY_CITIES, self::KEY_TREE_POST_USAGE, self::KEY_TREE_POST_MEMBERS] as $key) {
             Cache::forget($key);
         }
+
+        // Деревья категорий входят и в bootstrap: без этого правка в админке
+        // доехала бы до лендинга и ленты только по истечении его TTL.
+        \Modules\PublicContent\Services\PublicBootstrapService::forget();
     }
 
     /** @return Collection<int, City> */
