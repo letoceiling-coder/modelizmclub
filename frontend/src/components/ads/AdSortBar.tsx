@@ -19,21 +19,10 @@ interface Props {
   sort: SortKey;
   onSort: (v: SortKey) => void;
   onOpenFilters: () => void;
-  count: number;
   filterCount?: number;
-  refreshing?: boolean;
 }
 
-export function AdSortBar({
-  query,
-  onQuery,
-  sort,
-  onSort,
-  onOpenFilters,
-  count,
-  filterCount = 0,
-  refreshing = false,
-}: Props) {
+export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, filterCount = 0 }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -94,17 +83,7 @@ export function AdSortBar({
         </button>
       </div>
 
-      <div className="flex items-center justify-between gap-[8px]">
-        <div className="min-w-0 truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
-          {refreshing ? (
-            <>{t("components.adsCatalog.refreshing")}</>
-          ) : (
-            <>
-              {t("components.adsCatalog.found")}{" "}
-              <span style={{ color: "var(--foreground)" }}>{count}</span> {pluralListings(count, t)}
-            </>
-          )}
-        </div>
+      <div className="flex items-center justify-end gap-[8px]">
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as SortKey)}
@@ -127,6 +106,46 @@ export function AdSortBar({
         </select>
       </div>
     </div>
+  );
+}
+
+/*
+ * «Найдено: N объявлений».
+ *
+ * Стоит первым в ряду фишек под поиском (routes/ads.index.tsx), а не в
+ * строке сортировки: ряд фишек держит высоту от сдвига раскладки и без
+ * фильтров оставался пустой полосой в 57 px между строкой «Найдено» и
+ * сеткой. Теперь в нём итог, а фишки встают следом. aria-live — чтобы
+ * новое число после смены фильтра прозвучало и в экранном дикторе.
+ *
+ * Ширина постоянная: «Найдено: 6 объявлений» и «Найдено: 1 объявление»
+ * разной длины, и фишка фильтра, стоящая следом, уезжала вбок ровно в
+ * момент, когда появлялась. Замер 11.09 — +0,004 к CLS на 375 поверх
+ * давнего сдвига подвала. 9,5rem вмещают «Найдено: 1234 объявления».
+ */
+export function AdFoundCount({
+  count,
+  refreshing = false,
+}: {
+  count: number;
+  refreshing?: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className="inline-block min-w-[9.5rem] shrink-0 text-[12px]"
+      style={{ color: "var(--foreground-50)" }}
+      aria-live="polite"
+    >
+      {refreshing ? (
+        t("components.adsCatalog.refreshing")
+      ) : (
+        <>
+          {t("components.adsCatalog.found")}{" "}
+          <span style={{ color: "var(--foreground)" }}>{count}</span> {pluralListings(count, t)}
+        </>
+      )}
+    </span>
   );
 }
 
