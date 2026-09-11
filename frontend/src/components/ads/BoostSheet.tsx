@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { X, Zap, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -52,7 +53,7 @@ export function BoostSheet({
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const pay = async () => {
     if (isDemoMode()) {
@@ -81,7 +82,14 @@ export function BoostSheet({
     }
   };
 
-  return (
+  /*
+   * Окно — в body, а не там, где его вызвали. В «Моих объявлениях» оно жило
+   * внутри карточки `<m.div layout>`: framer-motion двигает её transform'ом,
+   * а fixed внутри предка с transform считается от этого предка, не от
+   * окна. Затемнение ложилось на карточку со сдвигом, и страница выглядела
+   * съехавшей. Тот же приём, что у просмотрщика (`Lightbox`).
+   */
+  return createPortal(
     <div
       className="fixed inset-0 z-[var(--z-modal)] flex items-end justify-center sm:items-center"
       style={{ background: "rgba(0,0,0,0.5)" }}
@@ -173,6 +181,7 @@ export function BoostSheet({
           Оплатить
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
