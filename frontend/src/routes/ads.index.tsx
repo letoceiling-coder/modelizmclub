@@ -122,6 +122,22 @@ function CatalogPage() {
   const [resultsMinHeight, setResultsMinHeight] = useState<number | undefined>(undefined);
   const resultsWrapRef = useRef<HTMLDivElement>(null);
   const hasLoadedOnce = useRef(true);
+  /*
+   * Поколение выдачи — ключ сетки.
+   *
+   * Карточки шли с key={ad.id}, и после фильтра подходящая карточка
+   * оставалась тем же элементом и ехала вверх на место выпавших: Δy −241 и
+   * −483 на 375. Ответ приходит через ~730 мс после ввода — позже 500 мс,
+   * которые браузер прощает после действия, — и сдвиг считался: CLS 0,26 на
+   * 375 и 0,063 на 1440 (замер 11.09 на боевых данных).
+   *
+   * Новая выдача — новое поколение: сетка монтируется заново, карточки
+   * вставляются, а не сдвигаются, и вставка в CLS не входит. Ключ растёт по
+   * ответу, а не по вводу: иначе сетка пересобиралась бы на каждой букве
+   * ещё со старыми карточками. «Показать ещё» поколение не меняет —
+   * догруженное дописывается к показанному.
+   */
+  const [resultGen, setResultGen] = useState(0);
 
   useEffect(() => {
     setQ(search.q ?? "");
@@ -169,6 +185,7 @@ function CatalogPage() {
       const params = buildParams(q, filters, sort, taxonomyId, categoryId, subcategoryId);
       const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: 1 });
       setAds(result);
+      setResultGen((g) => g + 1);
       setPage(1);
       setHasMore(result.length === PAGE_SIZE);
       setLoadState("ok");
@@ -457,6 +474,7 @@ function CatalogPage() {
               {ads.length > 0 && (
                 <>
                   <div
+                    key={resultGen}
                     className={cn(
                       "grid grid-cols-2 gap-[12px] sm:grid-cols-3 lg:[grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]",
                       "transition-opacity duration-200",
