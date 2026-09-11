@@ -14,6 +14,12 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { Ad } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ListingCard, type ListingStatus } from "@/components/ads/ListingCard";
 import { BoostSheet } from "@/components/ads/BoostSheet";
 
@@ -42,7 +48,6 @@ export function MyAdCard({
   onRestore,
 }: Props) {
   const { t } = useTranslation();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
   const archived = status !== "active" && status !== "moderation";
   const deleted = status === "deleted";
@@ -61,90 +66,84 @@ export function MyAdCard({
         selected={selected}
         onSelect={onSelect}
         actions={
-          <div className="relative">
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              onBlur={() => setTimeout(() => setMenuOpen(false), 120)}
-              aria-label="Действия"
-              className="h-[32px] w-[32px] rounded-full p-0 text-[var(--foreground-50)]"
+          /*
+           * Меню — тот же Radix DropdownMenu, что у записи (`PostActionMenu`).
+           * Раньше оно было самодельным: затемнение `fixed inset-0 z-[15]` и
+           * список `absolute z-20` жили внутри карточки `<m.div layout>`. Пока
+           * framer-motion двигает карточку transform'ом, fixed считается от
+           * неё, а не от окна: затемнение ложилось на карточку со сдвигом.
+           * Radix выносит список в портал, закрывает по щелчку мимо, касанию
+           * и Esc — без затемнения, как у остальных меню сайта.
+           */
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                type="button"
+                aria-label="Действия"
+                className="h-[32px] w-[32px] rounded-full p-0 text-[var(--foreground-50)]"
+              >
+                <MoreHorizontal size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              sideOffset={4}
+              className="z-[var(--z-popover)] min-w-[180px] overflow-hidden rounded-[var(--r-card-sm)] border p-0 py-[4px]"
+              style={{
+                background: "var(--background-elevated)",
+                borderColor: "var(--border)",
+                boxShadow: "var(--shadow-float)",
+              }}
             >
-              <MoreHorizontal size={18} />
-            </Button>
-
-            {menuOpen && (
-              <>
-                {/* Backdrop scrim — dims the page while the menu is open, matching
-                    the app's other sheets/menus; tap anywhere to dismiss. */}
-                <div
-                  className="fixed inset-0 z-[15]"
-                  style={{ background: "rgba(0,0,0,0.4)" }}
-                  onClick={() => setMenuOpen(false)}
+              {deleted ? (
+                <MenuItem
+                  onClick={() => onRestore?.(ad.id)}
+                  icon={<RotateCcw size={14} />}
+                  label="Восстановить"
+                  color="var(--success)"
                 />
-                <div
-                  className="absolute right-0 top-[36px] z-20 flex flex-col py-[6px]"
-                  style={{
-                    minWidth: 180,
-                    background: "var(--background-elevated)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--r-card-sm)",
-                    boxShadow: "var(--shadow-float)",
-                  }}
-                >
-                  {deleted ? (
+              ) : (
+                <>
+                  <MenuItem
+                    to="/ads/new"
+                    search={{ edit: ad.id }}
+                    icon={<Pencil size={14} />}
+                    label="Редактировать"
+                  />
+                  {status === "active" && !ad.promoted && (
                     <MenuItem
-                      onClick={() => onRestore?.(ad.id)}
-                      icon={<RotateCcw size={14} />}
-                      label="Восстановить"
+                      onClick={() => setBoostOpen(true)}
+                      icon={<Zap size={14} />}
+                      label="Продвинуть"
+                      color="var(--accent)"
+                    />
+                  )}
+                  {archived ? (
+                    <MenuItem
+                      onClick={() => onPublish?.(ad.id)}
+                      icon={<Upload size={14} />}
+                      label="Опубликовать"
                       color="var(--success)"
                     />
                   ) : (
-                    <>
-                      <MenuItem
-                        to="/ads/new"
-                        search={{ edit: ad.id }}
-                        icon={<Pencil size={14} />}
-                        label="Редактировать"
-                      />
-                      {status === "active" && !ad.promoted && (
-                        <MenuItem
-                          onClick={() => {
-                            setMenuOpen(false);
-                            setBoostOpen(true);
-                          }}
-                          icon={<Zap size={14} />}
-                          label="Продвинуть"
-                          color="var(--accent)"
-                        />
-                      )}
-                      {archived ? (
-                        <MenuItem
-                          onClick={() => onPublish?.(ad.id)}
-                          icon={<Upload size={14} />}
-                          label="Опубликовать"
-                          color="var(--success)"
-                        />
-                      ) : (
-                        <MenuItem
-                          onClick={() => onArchive?.(ad.id)}
-                          icon={<Archive size={14} />}
-                          label="В архив"
-                          color="var(--warning)"
-                        />
-                      )}
-                      <MenuItem
-                        onClick={() => onDelete?.(ad.id)}
-                        icon={<Trash2 size={14} />}
-                        label="Удалить"
-                        color="var(--error)"
-                      />
-                    </>
+                    <MenuItem
+                      onClick={() => onArchive?.(ad.id)}
+                      icon={<Archive size={14} />}
+                      label="В архив"
+                      color="var(--warning)"
+                    />
                   )}
-                </div>
-              </>
-            )}
-          </div>
+                  <MenuItem
+                    onClick={() => onDelete?.(ad.id)}
+                    icon={<Trash2 size={14} />}
+                    label="Удалить"
+                    color="var(--error)"
+                  />
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
       />
       {/*
@@ -202,52 +201,34 @@ function MenuItem({
   search?: { edit: string };
   color?: string;
 }) {
+  // Пункт — DropdownMenuItem: подсветку, клавиши и закрытие меню после
+  // выбора даёт Radix. Раньше подсветка шла через onMouseEnter/Leave, а
+  // действие — по onMouseDown, чтобы успеть до onBlur кнопки.
   const cls =
-    "flex items-center gap-[10px] px-[14px] py-[8px] text-left text-[13px] font-medium transition-colors";
+    "flex cursor-pointer items-center gap-[8px] rounded-none px-[16px] py-[8px] text-[13px] font-medium focus:bg-[var(--background-surface)]";
   const style: React.CSSProperties = { color: color ?? "var(--foreground)" };
-  const onEnter = (e: React.MouseEvent<HTMLElement>) =>
-    (e.currentTarget.style.background = "var(--background-surface)");
-  const onLeave = (e: React.MouseEvent<HTMLElement>) =>
-    (e.currentTarget.style.background = "transparent");
 
   if (to && params) {
     return (
-      <Link
-        to={to}
-        params={params}
-        className={cls}
-        style={style}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-      >
-        {icon} {label}
-      </Link>
+      <DropdownMenuItem asChild className={cls} style={style}>
+        <Link to={to} params={params}>
+          {icon} {label}
+        </Link>
+      </DropdownMenuItem>
     );
   }
   if (to && search) {
     return (
-      <Link
-        to={to}
-        search={search}
-        className={cls}
-        style={style}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-      >
-        {icon} {label}
-      </Link>
+      <DropdownMenuItem asChild className={cls} style={style}>
+        <Link to={to} search={search}>
+          {icon} {label}
+        </Link>
+      </DropdownMenuItem>
     );
   }
   return (
-    <button
-      type="button"
-      onMouseDown={onClick}
-      className={cls}
-      style={style}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-    >
+    <DropdownMenuItem onSelect={onClick} className={cls} style={style}>
       {icon} {label}
-    </button>
+    </DropdownMenuItem>
   );
 }

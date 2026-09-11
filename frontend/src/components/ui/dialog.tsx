@@ -89,7 +89,25 @@ Dialog.displayName = "Dialog";
 
 const DialogTrigger = DialogPrimitive.Trigger;
 
-const DialogClose = DialogPrimitive.Close;
+/*
+ * Заголовок, описание и «закрыть» тоже переключаются на vaul.
+ *
+ * Radix-примитив ищет контекст своего Dialog.Root, а в режиме шторки корень
+ * — DrawerPrimitive.Root: контекста нет, и `DialogTitle` падает с «must be
+ * used within Dialog». На проде 12.09 это ломало «Пожаловаться» на 375 —
+ * окно не появлялось вовсе, в консоли ошибка. Ниже 768 у vaul свои Title,
+ * Description и Close поверх тех же примитивов.
+ */
+const DialogClose = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Close>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Close>
+>((props, ref) => {
+  const sheet = useSheetMode();
+  const Close = sheet ? DrawerPrimitive.Close : DialogPrimitive.Close;
+
+  return <Close ref={ref} {...props} />;
+});
+DialogClose.displayName = DialogPrimitive.Close.displayName;
 
 function DialogPortal(props: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Portal>) {
   const sheet = useSheetMode();
@@ -166,10 +184,10 @@ const DialogContent = React.forwardRef<
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(var(--safe-bottom)+16px)] pt-4">
             {children}
           </div>
-          <DialogPrimitive.Close className={closeButtonClass}>
+          <DrawerPrimitive.Close className={closeButtonClass}>
             <X className="h-4 w-4" />
             <span className="sr-only">Закрыть</span>
-          </DialogPrimitive.Close>
+          </DrawerPrimitive.Close>
         </DrawerPrimitive.Content>
       </DialogPortal>
     );
@@ -215,25 +233,31 @@ DialogFooter.displayName = "DialogFooter";
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
-    ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const sheet = useSheetMode();
+  const Title = sheet ? DrawerPrimitive.Title : DialogPrimitive.Title;
+
+  return (
+    <Title
+      ref={ref}
+      className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+      {...props}
+    />
+  );
+});
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
 const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const sheet = useSheetMode();
+  const Description = sheet ? DrawerPrimitive.Description : DialogPrimitive.Description;
+
+  return (
+    <Description ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+  );
+});
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {

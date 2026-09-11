@@ -261,10 +261,11 @@ export function Lightbox({
 
               Ниже 1024 окно — весь экран, «вокруг» у него нет. Прозрачная
               колонка там показывала ленту сквозь затемнение по бокам
-              снимка, поэтому фон остаётся — тот же, что у затемнения, но
-              плотный: экран просмотра, а не рамка вокруг фото.
+              снимка, поэтому фон нужен плотный — но фон панели, а не
+              чёрный. Чёрный блок над комментариями и был той «чёрной
+              подложкой», что появлялась при их открытии.
             */
-            className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black lg:bg-transparent ${
+            className={`relative flex min-h-0 min-w-0 items-center justify-center bg-[var(--background)] lg:bg-transparent ${
               aside ? "max-h-[32vh] flex-1 lg:max-h-none" : "flex-1"
             }`}
           >
