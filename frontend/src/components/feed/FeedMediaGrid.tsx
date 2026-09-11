@@ -1,19 +1,32 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { ImageOff } from "lucide-react";
 import { getMediaAspect, rememberMediaAspect } from "@/lib/media/aspectCache";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { displaySrc, toDisplayMedia, variantUrl, type DisplayMedia } from "@/lib/media/variants";
 
-const MAX_HEIGHT_DESKTOP = 480;
-const MAX_HEIGHT_MOBILE = 420;
-const GRID_GAP = 2;
-/** Reference width used to turn a measured aspect ratio into width/height attrs. */
-const SINGLE_BASE_WIDTH = 680;
+/**
+ * Снимок сетки: адрес, варианты и пропорция, если её знает API
+ * (`media.width / media.height`). С пропорцией одиночное фото встаёт в
+ * свой размер с первого кадра, а не после отдельного замера картинки.
+ */
+export type GridMedia = DisplayMedia & { aspect?: number };
 
-function useImageAspect(url: string): number | null {
-  const [aspect, setAspect] = useState<number | null>(() => getMediaAspect(url) ?? null);
+/** Зазор между плитками — 4, по шкале отступов. Было 2. */
+const GRID_GAP = 4;
+/**
+ * Потолок высоты всего блока: 400 на телефоне, 512 от 768. Задан классами,
+ * чтобы брейкпоинт считал браузер, а не скрипт после гидрации.
+ */
+const MAX_H = "max-h-[400px] md:max-h-[512px]";
+
+function useImageAspect(url: string, known?: number): number | null {
+  const [aspect, setAspect] = useState<number | null>(() => known ?? getMediaAspect(url) ?? null);
 
   useEffect(() => {
+    if (known) {
+      setAspect(known);
+      return;
+    }
     const cached = getMediaAspect(url);
     if (cached != null) {
       setAspect(cached);
@@ -34,7 +47,7 @@ function useImageAspect(url: string): number | null {
     return () => {
       active = false;
     };
-  }, [url]);
+  }, [url, known]);
 
   return aspect;
 }
@@ -42,31 +55,24 @@ function useImageAspect(url: string): number | null {
 function GridImage({
   media,
   alt,
-  onClick,
-  className = "",
   priority = false,
-  width = 680,
-  height = 680,
+  sizes,
 }: {
   media: DisplayMedia;
   alt: string;
-  onClick?: () => void;
-  className?: string;
   /** LCP candidate (first image of the first feed card). */
   priority?: boolean;
-  /** Intrinsic box the grid cell reserves — square by default. */
-  width?: number;
-  height?: number;
+  sizes: string;
 }) {
   const [err, setErr] = useState(false);
   if (err) {
     return (
-      <div
-        className={`flex h-full w-full items-center justify-center ${className}`}
+      <span
+        className="flex h-full w-full items-center justify-center"
         style={{ background: "var(--background-surface)", color: "var(--foreground-30)" }}
       >
         <ImageOff className="h-[18px] w-[18px]" />
-      </div>
+      </span>
     );
   }
   return (
@@ -74,55 +80,100 @@ function GridImage({
       media={media}
       alt={alt}
       variants={["card", "medium"]}
-      sizes="(max-width:768px) 100vw, 680px"
-      width={width}
-      height={height}
+      sizes={sizes}
+      width={680}
+      height={680}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}
-      className={`h-full w-full cursor-zoom-in object-cover ${className}`}
-      onClick={onClick}
+      // Плитка — cover: заполняет свою клетку без растягивания.
+      className="h-full w-full object-cover"
       onError={() => setErr(true)}
     />
   );
 }
 
+/**
+ * Плитка — кнопка: открывает просмотрщик на своём снимке и доступна с
+ * клавиатуры. Раньше щелчок висел на самой картинке, и Tab её не находил.
+ */
+function Tile({
+  media,
+  index,
+  total,
+  alt,
+  priority,
+  sizes,
+  extra = 0,
+  onOpen,
+  style,
+}: {
+  media: DisplayMedia;
+  index: number;
+  total: number;
+  alt: string;
+  priority?: boolean;
+  sizes: string;
+  /** Сколько снимков не поместилось — «+N» на последней плитке. */
+  extra?: number;
+  onOpen?: (index: number) => void;
+  style?: CSSProperties;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen?.(index)}
+      aria-label={
+        extra > 0 ? `Ещё ${extra} фото — открыть` : `Открыть фото ${index + 1} из ${total}`
+      }
+      className="relative block min-h-0 min-w-0 cursor-zoom-in overflow-hidden"
+      style={{ background: "var(--background-surface)", ...style }}
+    >
+      <GridImage media={media} alt={`${alt} — ${index + 1}`} priority={priority} sizes={sizes} />
+      {extra > 0 && (
+        // Как во ВКонтакте: плитка затемнена, поверх — «+N» серым.
+        <span
+          aria-hidden
+          className="absolute inset-0 grid place-items-center text-[24px] font-semibold"
+          style={{ background: "rgba(0,0,0,0.5)", color: "rgba(255,255,255,0.8)" }}
+        >
+          +{extra}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * Одно фото — во всю ширину, пропорции сохранены, высота не больше 512
+ * (400 на телефоне). Высокий снимок не обрезается: рамка сужается до его
+ * пропорции и встаёт по центру.
+ */
 function SingleImage({
   media,
   alt,
   onOpen,
   priority = false,
 }: {
-  media: DisplayMedia;
+  media: GridMedia;
   alt: string;
-  onOpen: () => void;
+  onOpen?: (index: number) => void;
   priority?: boolean;
 }) {
-  const aspect = useImageAspect(media.url) ?? 1;
-  const isPortrait = aspect < 0.95;
-  const isWide = aspect >= 1.6;
-
-  const style: React.CSSProperties = isPortrait
-    ? { maxHeight: MAX_HEIGHT_MOBILE, width: "100%", aspectRatio: aspect, margin: "0 auto" }
-    : isWide
-      ? { width: "100%", aspectRatio: aspect, maxHeight: MAX_HEIGHT_DESKTOP }
-      : { width: "100%", aspectRatio: Math.min(aspect, 1.2), maxHeight: MAX_HEIGHT_DESKTOP };
-
+  const aspect = useImageAspect(media.url, media.aspect) ?? 4 / 3;
   return (
     <div
-      // Медиа идёт от края до края карточки: своего скругления у него нет,
-      // углы обрезает сама карточка (overflow-hidden). Двойное скругление —
-      // рамка внутри рамки — было заметно на всех трёх ширинах.
-      className="overflow-hidden bg-[var(--background-surface)] sm:max-h-[480px]"
-      style={style}
+      data-media-count={1}
+      className={`mx-auto grid ${MAX_H} [--media-max:400px] md:[--media-max:512px]`}
+      style={{ aspectRatio: aspect, width: `min(100%, calc(var(--media-max) * ${aspect}))` }}
     >
-      <GridImage
+      <Tile
         media={media}
+        index={0}
+        total={1}
         alt={alt}
-        onClick={onOpen}
         priority={priority}
-        width={SINGLE_BASE_WIDTH}
-        height={Math.max(1, Math.round(SINGLE_BASE_WIDTH / aspect))}
-        className="!object-contain sm:!object-cover"
+        sizes="(max-width:768px) 100vw, 680px"
+        onOpen={onOpen}
       />
     </div>
   );
@@ -140,149 +191,120 @@ export function viewerUrls(images: Array<string | DisplayMedia>): string[] {
     .map((item) => displaySrc(item, "large"));
 }
 
-/** VK-style image grid for feed posts (images only). */
+const BIG = "(max-width:768px) 100vw, 680px";
+const SMALL = "(max-width:768px) 34vw, 240px";
+
+/**
+ * Сетка фото ленты — по образцу ВКонтакте.
+ *
+ * | фото | раскладка                                          | блок   |
+ * |------|----------------------------------------------------|--------|
+ * | 1    | во всю ширину, пропорции снимка                     | ≤ 512  |
+ * | 2    | в ряд, равные половины 1:1                          | 2 : 1  |
+ * | 3    | большое слева, два в столбик справа                 | 3 : 2  |
+ * | 4    | 2 × 2                                              | 4 : 3  |
+ * | 5–6  | большое сверху, остальные в ряд снизу               | ≈ 4:3  |
+ * | 7–10 | 3 × 3, на девятой плитке затемнение и «+N»          | 4 : 3  |
+ *
+ * Высота блока задана пропорцией от ширины и потолком — 512 от 768, 400
+ * ниже, — поэтому известна с первого кадра: ничего не сдвигается, когда
+ * приходят картинки. Каждая плитка — cover. До 11.09 от четырёх снимков
+ * всё сводилось к 2 × 2 с «+N», а десять фото растягивались по высоте.
+ */
 export function FeedMediaGrid({
   images,
   alt,
   priority = false,
   onOpenViewer,
 }: {
-  images: Array<string | DisplayMedia>;
+  images: Array<string | GridMedia>;
   alt: string;
   priority?: boolean;
   /**
    * Открыть просмотрщик на снимке с этим номером.
    *
-   * Сам просмотрщик сетка больше не рисует. Четыре её ветки держали по
-   * своему экземпляру Lightbox — четыре одинаковых окна с одинаковой
-   * панелью, и ни одно из них нельзя было открыть иначе как щелчком по
-   * фотографии. Теперь окно одно и живёт в карточке: его открывает и
-   * счётчик комментариев тоже.
+   * Сам просмотрщик сетка не рисует: окно одно и живёт в карточке — его
+   * открывает и счётчик комментариев тоже.
    */
   onOpenViewer?: (index: number) => void;
 }) {
   const items = images
-    .map((item) => (typeof item === "string" ? toDisplayMedia(item) : item))
-    .filter((item): item is DisplayMedia => Boolean(item?.url));
+    .map((item) => (typeof item === "string" ? (toDisplayMedia(item) as GridMedia) : item))
+    .filter((item): item is GridMedia => Boolean(item?.url));
 
-  if (items.length === 0) return null;
-
-  if (items.length === 1) {
-    return (
-      <>
-        <SingleImage
-          media={items[0]}
-          alt={alt}
-          onOpen={() => onOpenViewer?.(0)}
-          priority={priority}
-        />
-      </>
-    );
+  const n = items.length;
+  if (n === 0) return null;
+  if (n === 1) {
+    return <SingleImage media={items[0]} alt={alt} onOpen={onOpenViewer} priority={priority} />;
   }
 
-  if (items.length === 2) {
-    return (
-      <>
-        <div
-          className="grid grid-cols-2 overflow-hidden"
-          style={{ gap: GRID_GAP, maxHeight: MAX_HEIGHT_DESKTOP }}
-        >
-          {items.map((item, i) => (
-            <div
-              key={item.url}
-              className="relative min-h-[140px] overflow-hidden"
-              style={{ aspectRatio: "1" }}
-            >
-              <GridImage
-                media={item}
-                alt={`${alt} — ${i + 1}`}
-                priority={priority && i === 0}
-                onClick={() => onOpenViewer?.(i)}
-              />
-            </div>
-          ))}
-        </div>
-      </>
-    );
-  }
+  const tile = (i: number, sizes: string, style?: CSSProperties, extra = 0) => (
+    <Tile
+      key={`${i}-${items[i].url}`}
+      media={items[i]}
+      index={i}
+      total={n}
+      alt={alt}
+      priority={priority && i === 0}
+      sizes={sizes}
+      extra={extra}
+      onOpen={onOpenViewer}
+      style={style}
+    />
+  );
 
-  if (items.length === 3) {
-    return (
-      <>
-        <div
-          className="grid overflow-hidden"
-          style={{
-            gap: GRID_GAP,
-            gridTemplateColumns: "2fr 1fr",
-            gridTemplateRows: "1fr 1fr",
-            maxHeight: MAX_HEIGHT_DESKTOP,
-            aspectRatio: "16/9",
-          }}
-        >
-          <div className="relative row-span-2 min-h-0 overflow-hidden">
-            <GridImage
-              media={items[0]}
-              alt={`${alt} — 1`}
-              priority={priority}
-              width={640}
-              height={720}
-              onClick={() => onOpenViewer?.(0)}
-            />
-          </div>
-          <div className="relative min-h-0 overflow-hidden">
-            <GridImage
-              media={items[1]}
-              alt={`${alt} — 2`}
-              width={320}
-              height={360}
-              onClick={() => onOpenViewer?.(1)}
-            />
-          </div>
-          <div className="relative min-h-0 overflow-hidden">
-            <GridImage
-              media={items[2]}
-              alt={`${alt} — 3`}
-              width={320}
-              height={360}
-              onClick={() => onOpenViewer?.(2)}
-            />
-          </div>
-        </div>
-      </>
-    );
-  }
+  let layout: CSSProperties;
+  let cells: ReactNode[];
 
-  const visible = items.slice(0, 4);
-  const extra = items.length - 4;
+  if (n === 2) {
+    layout = { aspectRatio: "2 / 1", gridTemplateColumns: "1fr 1fr" };
+    cells = [tile(0, SMALL), tile(1, SMALL)];
+  } else if (n === 3) {
+    layout = {
+      aspectRatio: "3 / 2",
+      gridTemplateColumns: "2fr 1fr",
+      gridTemplateRows: "1fr 1fr",
+    };
+    cells = [tile(0, BIG, { gridRow: "1 / 3" }), tile(1, SMALL), tile(2, SMALL)];
+  } else if (n === 4) {
+    layout = { aspectRatio: "4 / 3", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr" };
+    cells = items.map((_, i) => tile(i, SMALL));
+  } else if (n <= 6) {
+    // Верхнее — 2 : 1 во всю ширину, нижние — квадраты: высоты рядов k : 2.
+    const k = n - 1;
+    layout = {
+      aspectRatio: `${2 * k} / ${k + 2}`,
+      gridTemplateColumns: `repeat(${k}, 1fr)`,
+      gridTemplateRows: `${k}fr 2fr`,
+    };
+    cells = [
+      tile(0, BIG, { gridColumn: "1 / -1" }),
+      ...items.slice(1).map((_, j) => tile(j + 1, SMALL)),
+    ];
+  } else {
+    // 3 × 3 из шести колонок: плитка занимает две, а в неполном последнем
+    // ряду (7 и 8 снимков) оставшиеся делят ширину поровну.
+    const shown = Math.min(n, 9);
+    const extra = n - shown;
+    const lastRow = shown - 6;
+    layout = {
+      aspectRatio: "4 / 3",
+      gridTemplateColumns: "repeat(6, 1fr)",
+      gridTemplateRows: "repeat(3, 1fr)",
+    };
+    cells = items.slice(0, shown).map((_, i) => {
+      const span = i >= 6 ? 6 / lastRow : 2;
+      return tile(i, SMALL, { gridColumn: `span ${span}` }, i === 8 ? extra : 0);
+    });
+  }
 
   return (
-    <>
-      <div
-        className="grid grid-cols-2 overflow-hidden"
-        style={{ gap: GRID_GAP, maxHeight: MAX_HEIGHT_DESKTOP }}
-      >
-        {visible.map((item, i) => (
-          <div key={item.url} className="relative aspect-square min-h-[100px] overflow-hidden">
-            <GridImage
-              media={item}
-              alt={`${alt} — ${i + 1}`}
-              priority={priority && i === 0}
-              onClick={() => onOpenViewer?.(i)}
-            />
-            {i === 3 && extra > 0 && (
-              <button
-                type="button"
-                onClick={() => onOpenViewer?.(3)}
-                className="absolute inset-0 flex items-center justify-center text-[22px] font-bold text-white"
-                style={{ background: "rgba(0,0,0,0.55)" }}
-                aria-label={`Ещё ${extra} фото`}
-              >
-                +{extra}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
+    <div
+      data-media-count={n}
+      className={`grid w-full overflow-hidden ${MAX_H}`}
+      style={{ gap: GRID_GAP, ...layout }}
+    >
+      {cells}
+    </div>
   );
 }

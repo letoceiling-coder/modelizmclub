@@ -581,6 +581,7 @@ export function PostCard({
 
       <div className="shrink-0 border-b px-[8px]" style={{ borderColor: "var(--border)" }}>
         <PostActions
+          variant="viewer"
           post={post}
           liked={liked}
           likes={likes}

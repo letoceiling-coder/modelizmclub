@@ -788,11 +788,25 @@ export function CommentSection({
   const isLoading = Boolean(loading) && comments.length === 0;
 
   const composer = readOnly ? null : (
-    <div className="flex items-start gap-[10px]">
-      <CommentAvatar author={me} name={me.name} actionKey={authorActionKey(guest)} />
+    <div className="flex items-start gap-[12px]">
+      {/*
+        Аватар — по центру строки ввода, а не по верху поля. Колонка аватара
+        высотой в первую строку поля: рамка 1 + поля 4 + строка 36 (её
+        задаёт кнопка смайлов, h-9) + 4 + 1 = 46, аватар в ней по центру.
+        Не items-center у всего композера: под строкой может появиться
+        лента фото, и аватар уехал бы в середину всего поля.
+
+        Было items-start с полями 6: аватар 32 стоял по верху поля 50 — на
+        9 px выше середины строки. Обёртка аватара (ссылка на профиль) тоже
+        flex: иначе вокруг строчного аватара собиралась строчная коробка 38,
+        и он стоял у её верха — ещё 3 px вверх.
+      */}
+      <div className="flex h-[46px] shrink-0 items-center [&>*]:flex">
+        <CommentAvatar author={me} name={me.name} actionKey={authorActionKey(guest)} />
+      </div>
       <div className="min-w-0 flex-1">
         <div
-          className="rounded-[12px] border px-[10px] py-[6px]"
+          className="rounded-[12px] border px-[12px] py-[4px]"
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div className="flex min-w-0 items-center gap-[6px]">
