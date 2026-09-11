@@ -91,7 +91,12 @@ fi
 
 # --- off-box copy ---
 if "$(dirname "$0")/backup-db-upload.sh" "${DEST}" "${S3_PREFIX}/$(basename "${DEST_DIR}")/${NAME}" >>"${LOG_FILE}" 2>&1; then
-  log "uploaded to s3://${S3_PREFIX}/$(basename "${DEST_DIR}")/${NAME}"
+  # Имя бакета — из .env, как у загрузчика. До 11.09 здесь печатался
+  # префикс ключа вместо бакета («s3://backups/…»), а загрузчик рядом писал
+  # настоящий путь «s3://knowledge-raw/backups/…» — журнал противоречил сам
+  # себе, хотя копия одна и лежит в knowledge-raw.
+  bucket="$(grep -E '^AWS_BUCKET=' "${APP_DIR}/backend/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'"'' | xargs)"
+  log "uploaded to s3://${bucket:-?}/${S3_PREFIX}/$(basename "${DEST_DIR}")/${NAME}"
 else
   fail "S3 upload failed — the local copy exists but is not off-box"
 fi
