@@ -22,6 +22,7 @@ import { MobileStickyActionBar } from "@/components/ads/MobileStickyActionBar";
 import { DELIVERY_METHODS } from "@/lib/config/deliveryMethods";
 import { AdDetailSkeleton } from "@/components/ads/AdDetailSkeleton";
 import { Card } from "@/components/ui/card";
+import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -309,6 +310,8 @@ function AdDetailPage() {
       (ad.seller?.numericId != null && me.numericId === ad.seller.numericId)),
   );
   const showBuyerUi = !isOwner || previewAsBuyer;
+  // Правая колонка второй полосы: доставка, продавец, «Спросите у продавца».
+  const hasSideColumn = hasDelivery || showBuyerUi;
 
   const goEdit = () => navigate({ to: "/ads/new", search: { edit: ad.id } });
 
@@ -370,67 +373,88 @@ function AdDetailPage() {
           )}
         </nav>
 
-        {/* Avito-style structure via named grid areas — the actual fix for
-            "правый блок не закреплён при скролле": the old markup put the
-            sticky wrapper inside a grid row that ended right after the
-            gallery, so it released the moment that row scrolled past.
-            Named areas let "actions" span the full height of the page
-            (sticky the whole way through description/delivery/seller/
-            similar) while still reordering naturally on mobile: gallery,
-            then price/actions/ask-seller, then the rest — matching where
-            Avito puts title+price on its mobile listing page, just above
-            the description, rather than only in the fixed bottom bar. */}
-        <div className="grid gap-[16px] lg:grid-cols-[1fr_360px] lg:items-start lg:gap-[24px] [grid-template-areas:'gallery'_'actions'_'content'] lg:[grid-template-areas:'gallery_actions'_'content_actions']">
-          <div className="min-w-0 [grid-area:gallery]">
-            <AdGallery images={images} alt={ad.title} reserved={ad.reserved} />
-          </div>
+        {/*
+          Компоновка как у Авито: две полосы и лента.
 
-          <div className="flex flex-col gap-[16px] [grid-area:actions] lg:sticky lg:top-[16px]">
-            {previewAsBuyer && (
-              <Alert variant="info" className="rounded-[var(--r-card)]">
-                <AlertTitle>{t("pages.adDetail.previewModeTitle")}</AlertTitle>
-                <AlertDescription className="flex flex-col gap-[8px]">
-                  <span>{t("pages.adDetail.previewModeDesc")}</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-fit"
-                    onClick={() => setPreviewAsBuyer(false)}
-                  >
-                    {t("pages.adDetail.previewModeExit")}
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-            {showBuyerUi ? (
-              <div ref={actionPanelRef}>
-                <AdActionPanel
+          Верх — галерея и цена с действиями, 1fr · 360. Ниже — не узкая
+          колонка под галереей, а тоже две: слева описание и характеристики,
+          справа доставка, продавец и «Спросите у продавца». Правая колонка
+          той же ширины, что панель действий, — колонки стоят друг под
+          другом. Похожие — во всю ширину, каруселью.
+
+          До 11.09 всё ниже галереи шло одной колонкой в 1fr, а панель
+          действий липла справа на всю высоту страницы: справа от описания,
+          продавца и похожих оставалась пустая полоса в 360. Теперь панель
+          липнет в пределах верхней полосы, а ниже справа — свой ряд блоков.
+
+          Зазоры между блоками — 16 на телефоне, 24 от 1024 (было 16–48).
+          На телефоне порядок прежний: галерея, цена и действия, описание,
+          доставка, продавец, «Спросите», похожие.
+        */}
+        <div className="flex flex-col gap-[16px] lg:gap-[24px]">
+          <div className="grid gap-[16px] lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-[24px]">
+            <div className="min-w-0">
+              <AdGallery images={images} alt={ad.title} reserved={ad.reserved} />
+            </div>
+
+            <div className="flex flex-col gap-[16px] lg:sticky lg:top-[16px]">
+              {previewAsBuyer && (
+                <Alert variant="info" className="rounded-[var(--r-card)]">
+                  <AlertTitle>{t("pages.adDetail.previewModeTitle")}</AlertTitle>
+                  <AlertDescription className="flex flex-col gap-[8px]">
+                    <span>{t("pages.adDetail.previewModeDesc")}</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-fit"
+                      onClick={() => setPreviewAsBuyer(false)}
+                    >
+                      {t("pages.adDetail.previewModeExit")}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+              {showBuyerUi ? (
+                <div ref={actionPanelRef}>
+                  <AdActionPanel
+                    ad={ad}
+                    saved={saved}
+                    onWrite={writeToSeller}
+                    onToggleSave={toggleSave}
+                    onShare={share}
+                    onSafeDeal={() => void startSafeDeal()}
+                    safeDealBusy={safeDealBusy}
+                  />
+                </div>
+              ) : (
+                <AdOwnerActionPanel
                   ad={ad}
-                  saved={saved}
-                  onWrite={writeToSeller}
-                  onToggleSave={toggleSave}
+                  busy={ownerBusy}
+                  onEdit={goEdit}
+                  onUnpublish={() => void handleOwnerUnpublish()}
+                  onDelete={() => void handleOwnerDelete()}
                   onShare={share}
-                  onSafeDeal={() => void startSafeDeal()}
-                  safeDealBusy={safeDealBusy}
+                  onPreviewAsBuyer={() => setPreviewAsBuyer(true)}
                 />
-              </div>
-            ) : (
-              <AdOwnerActionPanel
-                ad={ad}
-                busy={ownerBusy}
-                onEdit={goEdit}
-                onUnpublish={() => void handleOwnerUnpublish()}
-                onDelete={() => void handleOwnerDelete()}
-                onShare={share}
-                onPreviewAsBuyer={() => setPreviewAsBuyer(true)}
-              />
-            )}
+              )}
+            </div>
           </div>
 
-          <div className="flex min-w-0 flex-col gap-[16px] [grid-area:content] lg:gap-[20px]">
+          {/*
+            Вторая полоса. Правая колонка — только если в ней есть что
+            показать: у владельца без доставки её нет, и описание занимает
+            всю ширину, а не оставляет справа пустые 360.
+          */}
+          <div
+            className={
+              hasSideColumn
+                ? "grid gap-[16px] lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-[24px]"
+                : "grid gap-[16px]"
+            }
+          >
             {/* Description */}
             <Card
-              className="p-[16px] sm:p-[20px]"
+              className="min-w-0 p-[16px]"
               style={{
                 background: "var(--background-elevated)",
                 borderColor: "var(--border)",
@@ -444,16 +468,22 @@ function AdDetailPage() {
               >
                 {t("pages.adDetail.descriptionHeading")}
               </h2>
-              <p
-                className="mt-[8px] whitespace-pre-line text-[14px] leading-[1.55]"
-                style={{ color: "var(--foreground-90)" }}
-              >
-                {ad.description ?? t("pages.adDetail.noDescription")}
-              </p>
+              {/*
+                Длинное описание свёрнуто, как у ВКонтакте: 6 строк на
+                телефоне, 16 от 1024 — примерно высота правой колонки рядом.
+                Развернуть — «Показать полностью». До 11.09 описание в 2000
+                знаков занимало 1100–1800 px и было самым высоким блоком.
+              */}
+              <CollapsibleText
+                className="mt-[8px]"
+                text={ad.description ?? t("pages.adDetail.noDescription")}
+                maxLines={6}
+                maxLinesLg={16}
+              />
 
               <div
-                className="mt-[14px] grid gap-[10px] sm:grid-cols-3"
-                style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}
+                className="mt-[12px] grid gap-[8px] sm:grid-cols-3"
+                style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}
               >
                 <Spec
                   label={t("pages.adDetail.specCategory")}
@@ -464,59 +494,61 @@ function AdDetailPage() {
               </div>
             </Card>
 
-            {/* Delivery — only when the listing declares options */}
-            {hasDelivery && (
-              <Card
-                className="p-[16px] sm:p-[20px]"
-                style={{
-                  background: "var(--background-elevated)",
-                  borderColor: "var(--border)",
-                  borderRadius: "var(--r-card)",
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <h2
-                  className="font-display text-[16px] font-bold"
-                  style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
-                >
-                  {t("pages.adDetail.deliveryHeading")}
-                </h2>
-                <div className="mt-[8px] flex flex-wrap gap-[6px]">
-                  {ad.delivery.map((d) => (
-                    <span
-                      key={d}
-                      className="inline-flex items-center gap-[6px] px-[10px] py-[5px] text-[12px] font-medium"
-                      style={{
-                        background: "var(--background-surface)",
-                        color: "var(--foreground)",
-                        borderRadius: "var(--r-tag)",
-                      }}
-                    >
-                      <Truck size={12} /> {d}
-                    </span>
-                  ))}
-                </div>
-                {ad.deliveryDetails && (
-                  <p
-                    className="mt-[10px] text-[13px] leading-[1.55]"
-                    style={{ color: "var(--foreground-70)" }}
+            {hasSideColumn && (
+              <div className="flex min-w-0 flex-col gap-[16px]">
+                {/* Delivery — only when the listing declares options */}
+                {hasDelivery && (
+                  <Card
+                    className="p-[16px]"
+                    style={{
+                      background: "var(--background-elevated)",
+                      borderColor: "var(--border)",
+                      borderRadius: "var(--r-card)",
+                      boxShadow: "var(--shadow-card)",
+                    }}
                   >
-                    {ad.deliveryDetails}
-                  </p>
+                    <h2
+                      className="font-display text-[16px] font-bold"
+                      style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+                    >
+                      {t("pages.adDetail.deliveryHeading")}
+                    </h2>
+                    <div className="mt-[8px] flex flex-wrap gap-[8px]">
+                      {ad.delivery.map((d) => (
+                        <span
+                          key={d}
+                          className="inline-flex items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium"
+                          style={{
+                            background: "var(--background-surface)",
+                            color: "var(--foreground)",
+                            borderRadius: "var(--r-tag)",
+                          }}
+                        >
+                          <Truck size={12} /> {d}
+                        </span>
+                      ))}
+                    </div>
+                    {ad.deliveryDetails && (
+                      <p
+                        className="mt-[8px] text-[13px] leading-[1.55]"
+                        style={{ color: "var(--foreground-70)" }}
+                      >
+                        {ad.deliveryDetails}
+                      </p>
+                    )}
+                  </Card>
                 )}
-              </Card>
+
+                {/* Продавец, под ним — «Спросите у продавца»: сначала кто, потом
+                    как с ним связаться, как у Авито. */}
+                {showBuyerUi && ad.seller && <SellerCard seller={ad.seller} />}
+
+                {showBuyerUi && <AskSellerWidget onAsk={(q) => void askSeller(q)} />}
+              </div>
             )}
-
-            {/* Seller, then the "ask the seller" quick-question widget directly
-                beneath it — Avito-style placement: seller info first, then the
-                way to contact them, in the main content column rather than the
-                right rail. */}
-            {showBuyerUi && ad.seller && <SellerCard seller={ad.seller} />}
-
-            {showBuyerUi && <AskSellerWidget onAsk={(q) => void askSeller(q)} />}
-
-            <SimilarAds items={similar} />
           </div>
+
+          <SimilarAds items={similar} />
         </div>
       </div>
 
