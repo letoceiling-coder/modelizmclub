@@ -154,12 +154,13 @@ function chatHrefFor(node: RailNode): string {
   return `/categories/${node.slug ?? node.id}?tab=chat`;
 }
 
-function allHref(variant: RailVariant): string {
-  if (variant === "ads") return "/ads";
-  if (variant === "communities") return "/communities";
-  if (variant === "channels") return "/channels";
-  return "/feed";
-}
+/**
+ * «Все направления» — список всех направлений с подкатегориями, на любой
+ * странице. Раньше ссылка вела в корень текущего раздела (`/feed`, `/ads`,
+ * `/communities`, `/channels`), то есть на ту же страницу, где стоит панель:
+ * нажатие ничего не меняло.
+ */
+const ALL_DIRECTIONS_HREF = "/categories";
 
 export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Props) {
   const { t } = useTranslation();
@@ -446,7 +447,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               </div>
               <div className="flex shrink-0 items-center gap-[2px]">
                 <RailLink
-                  to={allHref(variant)}
+                  to={ALL_DIRECTIONS_HREF}
                   guestGuard={guestGuard}
                   actionKey="feed.rail.all_categories"
                   className="flex items-center gap-[2px] px-[4px] py-[2px] text-[12px] font-medium transition-colors hover:opacity-80"
@@ -554,7 +555,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               )}
             </div>
             <RailLink
-              to={allHref(variant)}
+              to={ALL_DIRECTIONS_HREF}
               guestGuard={guestGuard}
               actionKey="feed.rail.all_categories"
               className="flex w-full items-center justify-center rounded-[8px] px-[10px] py-[8px] text-[12px] font-semibold transition-colors hover:bg-[var(--background-elevated)]"
