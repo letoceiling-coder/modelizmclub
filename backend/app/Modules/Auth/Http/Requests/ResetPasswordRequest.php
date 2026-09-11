@@ -2,6 +2,7 @@
 
 namespace Modules\Auth\Http\Requests;
 
+use App\Rules\SafeEmail;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -24,7 +25,7 @@ class ResetPasswordRequest extends FormRequest
     {
         return [
             'token' => ['required', 'string'],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', new SafeEmail, 'max:255'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ];
     }
