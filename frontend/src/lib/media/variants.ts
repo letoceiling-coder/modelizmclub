@@ -66,10 +66,12 @@ export function pictureSrcSet(
   names: Array<keyof MediaVariantSet>,
 ): { sources: Array<{ format: PictureFormat; type: string; srcSet: string }>; src: string } {
   const parts: Record<PictureFormat, string[]> = { avif: [], webp: [], jpeg: [] };
+  let covered = 0;
 
   for (const name of names) {
     const slot = media.variants?.[name];
     if (!slot) continue;
+    covered += 1;
     for (const format of PICTURE_FORMATS) {
       const url = slot[format];
       if (url) parts[format].push(`${url} ${WIDTH[name]}w`);
@@ -84,12 +86,26 @@ export function pictureSrcSet(
     media.variants?.[names[0]]?.webp ??
     media.url;
 
+  /*
+   * Формат предлагается, только если он есть у каждого размера.
+   *
+   * Браузер берёт первый `<source>`, тип которого понимает, и выбирает уже
+   * только из его srcset — к следующему он не переходит, даже если там есть
+   * ширина получше. Бэкенд намеренно не отдаёт AVIF у размера, где тот
+   * тяжелее WebP (`MediaVariantProcessor::publicUrls`), и частичный AVIF
+   * бывает у медиа посреди дозаписи. Раньше такой AVIF-источник всё равно
+   * выставлялся первым, и браузер с поддержкой AVIF получал единственную
+   * ширину, какая в нём была, — например 320 px на карточку в 640.
+   * Пока AVIF не было ни у одного медиа, дефект спал.
+   */
   return {
-    sources: PICTURE_FORMATS.filter((f) => parts[f].length > 0).map((format) => ({
-      format,
-      type: PICTURE_MIME[format],
-      srcSet: parts[format].join(", "),
-    })),
+    sources: PICTURE_FORMATS.filter((f) => parts[f].length > 0 && parts[f].length === covered).map(
+      (format) => ({
+        format,
+        type: PICTURE_MIME[format],
+        srcSet: parts[format].join(", "),
+      }),
+    ),
     src,
   };
 }
