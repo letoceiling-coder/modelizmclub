@@ -29,6 +29,7 @@ import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
 import { markBooted } from "@/lib/boot/bootState";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import { installKeepFocusInView } from "@/lib/a11y/keep-focus-in-view";
+import { warmMonoFont } from "@/lib/fonts/warm-mono";
 import { isAlwaysPublicRoute, isPublicGuestRoute } from "@/lib/feed-guest-access/routes";
 import { API_ORIGIN } from "@/lib/api/client";
 
@@ -226,6 +227,8 @@ function RootComponent() {
     bindCallAudioUnlock();
     // Фокус с клавиатуры докручивает горизонтальный ряд до элемента целиком.
     const uninstallFocusInView = installKeepFocusInView();
+    // Моноширинный шрифт — в простое, до первого перехода, где он нужен.
+    warmMonoFont();
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) void restoreSession();
     };
