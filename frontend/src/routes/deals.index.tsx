@@ -38,7 +38,7 @@ function DealsRoute() {
   }, [guestBlocked, requireLogin]);
   if (guestBlocked) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={ShieldCheck}
@@ -76,8 +76,8 @@ function DealsPage() {
   }, [role]);
 
   return (
-    <AppLayout rightColumn={false}>
-      <div className="mx-auto w-full max-w-[760px]">
+    <AppLayout>
+      <div className="w-full">
         <div className="flex items-center gap-[10px]">
           <ShieldCheck size={24} style={{ color: "var(--accent)" }} />
           <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>

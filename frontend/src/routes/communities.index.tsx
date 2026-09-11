@@ -58,6 +58,15 @@ export const Route = createFileRoute("/communities/")({
     return { communities };
   },
   staleTime: 30_000,
+  /*
+    Не хранить список после ухода со страницы. На сервере загрузчик идёт без
+    токена, и роли вошедшего в ответе пусты: все сообщества — «рекомендованные».
+    Роутер держал этот ответ, и возврат в течение 30 с рисовал его первым, а
+    повторный запрос вставлял сверху «Мои» и «Подписки» — секция уезжала на
+    303 px (CLS 0,063 на 1440 и 0,100 на 1024, замер 11.09 на всех парах).
+    Без кеша возврат идёт через загрузчик уже на клиенте, с токеном.
+  */
+  gcTime: 0,
   component: CommunitiesPage,
 });
 
@@ -246,7 +255,7 @@ function CommunitiesPage() {
   const noneJoined = mine.length === 0 && subscriptions.length === 0;
 
   return (
-    <AppLayout narrowCenter rightColumn={<DirectionsRightRail variant="communities" />} footer>
+    <AppLayout rightColumn={<DirectionsRightRail variant="communities" />} footer>
       <div className="space-y-[24px]">
         {/* Заголовок и действие — одной строкой; пояснение уходит под
             заголовок в caption, а не занимает отдельную строку крупным

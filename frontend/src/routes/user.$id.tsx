@@ -102,7 +102,7 @@ function UserPage() {
 
   if (loading) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div
           className="flex items-center justify-center py-[120px] text-[14px]"
           style={{ color: "var(--foreground-50)" }}
@@ -115,7 +115,7 @@ function UserPage() {
 
   if (notFound || !profile) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="flex flex-col items-center justify-center py-[120px] text-center">
           <div
             className="font-display text-[24px] font-bold"

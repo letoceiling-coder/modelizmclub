@@ -342,7 +342,7 @@ export function SubcategoryRoomPage({
 
   if (!c || !sub) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <p className="text-sm" style={{ color: "var(--foreground-50)" }}>
           {categories.length === 0
             ? t("pages.subcategoryDetail.loading")
@@ -355,7 +355,7 @@ export function SubcategoryRoomPage({
   const Icon = resolveLucideIcon(c.icon, Hash);
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <div className="mb-[10px]">
         <Breadcrumbs
           items={[

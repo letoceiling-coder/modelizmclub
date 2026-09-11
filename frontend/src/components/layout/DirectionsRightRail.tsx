@@ -287,19 +287,25 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                 У Avito списки категорий без иконок вовсе — текст, счётчик и
                 шеврон; у VK иконка своя у каждого пункта. Худший из вариантов —
                 один глиф, повторённый одиннадцать раз. */}
-            <span className="min-w-0 flex-1 text-left">
+            <span className="flex min-w-0 flex-1 items-center gap-[8px] text-left">
               <span
-                className={`block truncate ${depth === 0 ? "text-[13.5px] font-medium" : "text-[12.5px]"}`}
+                className={`min-w-0 truncate ${depth === 0 ? "text-[13.5px] font-medium" : "text-[12.5px]"}`}
                 style={{ color: depth === 0 ? "var(--foreground)" : "var(--foreground-70)" }}
               >
                 {node.name}
               </span>
               {/* «0 онлайн» под каждым направлением — не сведение о разделе, а
                   сообщение о том, что там пусто, повторённое двадцать раз.
-                  Строка появляется, когда в направлении кто-то есть. */}
+                  Счётчик появляется, когда в направлении кто-то есть.
+
+                  В той же строке, что и название, а не второй строкой под ним.
+                  Статистика комнат приходит позже списка, и вторая строка
+                  добавляла строке направления 18 px: всё ниже неё съезжало,
+                  подвал панели — на 35 (CLS 0,004 на ленте и друзьях, замер
+                  11.09). В строке счётчик только сужает название. */}
               {depth === 0 && !catalog && onlineForCategory(roomStats, node.id) > 0 && (
                 <span
-                  className="mt-[1px] flex items-center gap-[5px] text-[11px]"
+                  className="flex shrink-0 items-center gap-[4px] text-[11px]"
                   style={{ color: "var(--foreground-50)" }}
                 >
                   <span

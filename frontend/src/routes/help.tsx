@@ -102,8 +102,8 @@ function HelpPage() {
   }, [query, cat, faqItems]);
 
   return (
-    <AppLayout rightColumn={false}>
-      <div className="mx-auto w-full max-w-[900px]">
+    <AppLayout>
+      <div className="w-full">
         <span
           className="inline-block uppercase"
           style={{

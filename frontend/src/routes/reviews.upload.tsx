@@ -218,7 +218,7 @@ function UploadPage() {
   };
   if (access === "checking" || loadingEdit) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div
           className="py-[60px] text-center text-[14px]"
           style={{ color: "var(--foreground-50)" }}
@@ -230,7 +230,7 @@ function UploadPage() {
   }
   if (access === "forbidden") {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto max-w-[480px] py-[60px] text-center">
           <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--foreground)" }}>
             {t("pages.reviews.accessDenied")}
@@ -244,7 +244,7 @@ function UploadPage() {
   }
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <div className="mx-auto flex max-w-[720px] flex-col gap-[16px] py-[8px]">
         <h1
           className="font-display text-[24px] font-bold"

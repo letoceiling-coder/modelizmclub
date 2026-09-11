@@ -223,7 +223,7 @@ function AdDetailPage() {
 
   if (state === "loading") {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <AdDetailSkeleton />
       </AppLayout>
     );
@@ -231,7 +231,7 @@ function AdDetailPage() {
 
   if (state === "notFound") {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <EmptyState
             icon={SearchX}
@@ -246,7 +246,7 @@ function AdDetailPage() {
 
   if (state === "error" || !ad) {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <Alert variant="error">
             <AlertTitle>{t("pages.adDetail.loadFailedTitle")}</AlertTitle>
@@ -341,8 +341,8 @@ function AdDetailPage() {
   };
 
   return (
-    <AppLayout rightColumn={false} footer>
-      <div className="mx-auto max-w-[1100px] pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0">
+    <AppLayout footer>
+      <div className="pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0">
         {/* Breadcrumbs */}
         <nav
           className="mb-[16px] flex flex-wrap items-center gap-[6px] text-[12px]"

@@ -417,7 +417,7 @@ function FeedPage() {
   const clearTag = () => navigate({ to: "/feed", search: (prev) => ({ ...prev, tag: undefined }) });
 
   return (
-    <AppLayout footer narrowCenter rightColumn={<FeedRightRail />}>
+    <AppLayout footer rightColumn={<FeedRightRail />}>
       <div className="space-y-[16px]">
         <VerificationBanner />
         <EventsHero initial={loaded.hero} />

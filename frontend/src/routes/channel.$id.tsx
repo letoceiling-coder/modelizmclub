@@ -188,7 +188,7 @@ const POST_KINDS: PostKind[] = ["news", "review", "announce", "promo"];
 function NotFoundView() {
   const { t } = useTranslation();
   return (
-    <AppLayout rightColumn={false} footer>
+    <AppLayout footer>
       <div className="py-[40px]">
         <EmptyState
           icon={Radio}
@@ -240,7 +240,7 @@ function ChannelPage() {
 
   if (loading) {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="space-y-4 pb-8">
           <Card
             className="overflow-hidden shadow-none"
@@ -386,7 +386,7 @@ function ChannelPage() {
     // Колонка направлений — та же, что в ленте: заказчик просит держать
     // категории на виду постоянно, а страница канала была единственной, где
     // правой колонки не было вовсе, а не просто не хватало ширины.
-    <AppLayout narrowCenter rightColumn={<FeedRightRail />} footer>
+    <AppLayout rightColumn={<FeedRightRail />} footer>
       <div className="space-y-4 pb-8">
         {/* back */}
         <Link

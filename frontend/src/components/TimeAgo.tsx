@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { formatDate } from "@/lib/format/date";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 /**
- * Hydration-safe relative-time label. Renders a stable placeholder until the
- * client has mounted, then shows the relative form.
+ * Hydration-safe relative-time label. Renders a stable placeholder while the
+ * server markup is being hydrated, then shows the relative form.
+ *
+ * Метка, смонтированная уже в работающем приложении (сообщение, пришедшее
+ * после загрузки, новая страница ленты), сразу показывает окончательный
+ * текст. До 11.09 заглушка «17:14» стояла первым кадром у всех: пузырь
+ * мессенджера рос с 73 до 131 px, а свои пузыри прижаты вправо — они
+ * уезжали влево на 58 px (CLS 0,001–0,003 на каждом переходе в мессенджер).
  */
 export function TimeAgo({
   iso,
@@ -14,11 +21,10 @@ export function TimeAgo({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const [text, setText] = useState<string>(() => placeholder(iso));
-  const [mounted, setMounted] = useState(false);
+  const hydrated = useHydrated();
+  const [text, setText] = useState<string>(() => formatDate(iso, "relative"));
 
   useEffect(() => {
-    setMounted(true);
     setText(formatDate(iso, "relative"));
     const id = window.setInterval(() => setText(formatDate(iso, "relative")), 60_000);
     return () => window.clearInterval(id);
@@ -26,7 +32,7 @@ export function TimeAgo({
 
   return (
     <span className={className} style={style} suppressHydrationWarning>
-      {mounted ? text : placeholder(iso)}
+      {hydrated ? text : placeholder(iso)}
     </span>
   );
 }

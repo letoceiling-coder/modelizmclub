@@ -463,7 +463,7 @@ function FriendsPage() {
 
   if (guestBlocked) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={Users}
@@ -476,7 +476,7 @@ function FriendsPage() {
   }
 
   return (
-    <AppLayout narrowCenter>
+    <AppLayout>
       <div className="space-y-[16px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -527,7 +527,11 @@ function FriendsPage() {
                 >
                   {t.label}
                   <span
-                    className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
+                    // Счётчики приходят после вкладок: «0» → «8» и «9» → «12»
+                    // расширяли пилюлю на 3 и 6 px, соседние вкладки ехали
+                    // вправо (замер 11.09, переходы на /friends). tabular-nums
+                    // уравнивает цифры, min-w-[32px] держит место под три.
+                    className="inline-flex h-[20px] min-w-[32px] items-center justify-center px-[6px] text-[11px] font-bold tabular-nums"
                     style={{
                       background: active ? "var(--accent-soft)" : "var(--background-surface)",
                       color: active ? "var(--accent)" : "var(--foreground-50)",

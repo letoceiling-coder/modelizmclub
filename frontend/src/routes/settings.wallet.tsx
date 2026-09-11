@@ -7,6 +7,7 @@ import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
@@ -150,7 +151,10 @@ function WalletSection() {
   const demo = isDemoMode();
   const navigate = useNavigate();
   const { payment, uuid, reason } = Route.useSearch();
-  const [balanceKopecks, setBalanceKopecks] = useState(0);
+  // null — баланс ещё не пришёл. Раньше до ответа стояло «0 ₽», и когда
+  // приходило настоящее число, знак рубля уезжал вправо (CLS 0,002–0,004 на
+  // каждом переходе в баланс, замер 11.09).
+  const [balanceKopecks, setBalanceKopecks] = useState<number | null>(null);
   const [heldKopecks, setHeldKopecks] = useState(0);
   const [operations, setOperations] = useState<WalletTransaction[]>([]);
 
@@ -166,7 +170,10 @@ function WalletSection() {
         setHeldKopecks(b.held_kopecks);
         setOperations(ops);
       })
-      .catch((e) => reportReadFailure(e, "баланс кошелька"));
+      .catch((e) => {
+        setBalanceKopecks((v) => v ?? 0);
+        reportReadFailure(e, "баланс кошелька");
+      });
 
     /*
      * Платежи грузятся своим запросом, а не вместе с балансом.
@@ -275,7 +282,13 @@ function WalletSection() {
           className="mt-[4px] font-display text-[32px] font-bold"
           style={{ color: "var(--foreground)" }}
         >
-          {formatRub(balanceKopecks)} ₽
+          {/* Заглушка — внутри той же строки: высоту блока задаёт строка
+              в 32 px, а не содержимое, и кнопки ниже не двигаются. */}
+          {balanceKopecks === null ? (
+            <Skeleton className="inline-block h-[0.8em] w-[4em] align-middle" />
+          ) : (
+            `${formatRub(balanceKopecks)} ₽`
+          )}
         </div>
         {heldKopecks > 0 && (
           <div className="mt-[6px] text-[12px]" style={{ color: "var(--foreground-50)" }}>

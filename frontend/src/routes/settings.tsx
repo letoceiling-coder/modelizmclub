@@ -14,8 +14,8 @@ function SettingsLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const atIndex = pathname === "/settings";
   return (
-    <AppLayout rightColumn={false} sidebar={<SettingsDesktopRail activePath={pathname} />}>
-      <div className="mx-auto w-full max-w-[720px]">
+    <AppLayout sidebar={<SettingsDesktopRail activePath={pathname} />}>
+      <div className="w-full">
         {/* Section rail: mobile only, and only at the index — desktop uses
             the takeover rail in AppLayout's sidebar slot instead. */}
         <div className={atIndex ? "block lg:hidden" : "hidden"}>
