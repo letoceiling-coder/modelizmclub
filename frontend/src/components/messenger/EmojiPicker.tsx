@@ -192,6 +192,13 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
      * Перехват (`capture`) идёт до обработчиков, повешенных на всплытии, —
      * поэтому здесь и останавливается: верхний слой закрывается первым и
      * событие дальше не пускает.
+     *
+     * Слушаем `window`, а не `document`. Окно Radix тоже ловит Escape на
+     * `document` в фазе перехвата, и его обработчик повешен раньше — окно
+     * открылось до панели. На одном узле `stopPropagation` соседа не
+     * останавливает: Esc в окне репоста закрывал и панель, и само окно
+     * (замер 11.09). До `document` событие доходит через `window`, так что
+     * здесь панель успевает первой, а дальше событие не идёт.
      */
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -199,10 +206,10 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
       closeRef.current(true);
     };
     document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey, true);
+    window.addEventListener("keydown", onKey, true);
     return () => {
       document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
 
