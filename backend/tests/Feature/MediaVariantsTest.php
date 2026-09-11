@@ -285,6 +285,152 @@ class MediaVariantsTest extends TestCase
         Queue::assertPushed(ProcessMediaVariantsJob::class, fn (ProcessMediaVariantsJob $job) => $job->mediaId === $media->id);
     }
 
+    /** Медиа с вариантами, собранными без AVIF, — ровно как 322 на проде. */
+    private function mediaWithoutAvif(int $w = 700, int $h = 500): Media
+    {
+        $user = User::factory()->create();
+        $path = 'media/listing/2026/09/'.Str::uuid().'.jpg';
+        Storage::disk('s3')->put($path, $this->jpegBytes($w, $h));
+
+        $media = Media::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'disk' => 's3',
+            'path' => $path,
+            'filename' => 'lot.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 20_000,
+            'width' => $w,
+            'height' => $h,
+            'uploaded_by' => $user->id,
+            'status' => MediaStatus::Ready,
+        ]);
+
+        config(['media.variants.avif.enabled' => false]);
+        app(MediaVariantProcessor::class)->process($media->fresh());
+        config(['media.variants.avif.enabled' => true]);
+
+        $media->refresh();
+        $this->assertArrayNotHasKey('avif', $media->variants['card']);
+
+        return $media;
+    }
+
+    private function avifencAvailable(): bool
+    {
+        return trim((string) @shell_exec('command -v avifenc 2>/dev/null')) !== '';
+    }
+
+    /*
+     * Путь прода: libgd3 в Ubuntu собран без libavif, `imageavif` в PHP нет,
+     * и кодирует бинарник avifenc. Проверяется, что на выходе настоящий AVIF
+     * (контейнер ISOBMFF с брендом avif), а не пустышка или копия JPEG.
+     */
+    public function test_cli_encoder_writes_real_avif(): void
+    {
+        if (! $this->avifencAvailable()) {
+            $this->markTestSkipped('avifenc не установлен');
+        }
+
+        config(['media.variants.avif.prefer' => 'avifenc']);
+        $processor = app(MediaVariantProcessor::class);
+        $this->assertSame('avifenc', $processor->avifEncoder());
+
+        $media = $this->mediaWithoutAvif();
+        $this->assertSame('added', $processor->addAvif($media->fresh()));
+        $media->refresh();
+
+        $body = Storage::disk('s3')->get($media->variants['card']['avif']['path']);
+        $this->assertSame('ftyp', substr($body, 4, 4));
+        $this->assertStringContainsString('avif', substr($body, 8, 16));
+    }
+
+    /*
+     * Дозапись не должна трогать WebP и JPEG: их адреса отдаются с
+     * `immutable` на год, и перезапись под тем же адресом разошлась бы с тем,
+     * что уже лежит в кешах браузеров и nginx.
+     */
+    public function test_add_avif_backfills_every_size_without_touching_webp_and_jpeg(): void
+    {
+        $processor = app(MediaVariantProcessor::class);
+
+        if (! $processor->avifSupported()) {
+            $this->markTestSkipped('нет кодировщика AVIF');
+        }
+
+        $media = $this->mediaWithoutAvif();
+        $before = [];
+        foreach ($media->variants as $name => $slot) {
+            foreach (['webp', 'jpeg'] as $format) {
+                if (! empty($slot[$format]['path'])) {
+                    $before[$name][$format] = Storage::disk('s3')->get($slot[$format]['path']);
+                }
+            }
+        }
+
+        $this->assertSame('added', $processor->addAvif($media->fresh()));
+        $media->refresh();
+
+        foreach ($media->variants as $name => $slot) {
+            $this->assertNotEmpty($slot['avif']['path'] ?? null, "у {$name} нет AVIF");
+            Storage::disk('s3')->assertExists($slot['avif']['path']);
+
+            foreach ($before[$name] ?? [] as $format => $bytes) {
+                $this->assertSame($bytes, Storage::disk('s3')->get($slot[$format]['path']), "{$name}.{$format} перезаписан");
+            }
+        }
+
+        // Второй проход ничего не делает.
+        $this->assertSame('skipped', $processor->addAvif($media->fresh()));
+    }
+
+    public function test_add_avif_command_dry_run_changes_nothing_and_second_run_is_a_no_op(): void
+    {
+        if (! app(MediaVariantProcessor::class)->avifSupported()) {
+            $this->markTestSkipped('нет кодировщика AVIF');
+        }
+
+        $media = $this->mediaWithoutAvif();
+
+        $this->artisan('media:add-avif', ['--dry-run' => true, '--sleep' => 0])
+            ->expectsOutputToContain('Медиа без AVIF: 1')
+            ->assertSuccessful();
+        $this->assertArrayNotHasKey('avif', $media->fresh()->variants['card']);
+
+        $this->artisan('media:add-avif', ['--sleep' => 0])
+            ->expectsOutputToContain('добавлено 1')
+            ->assertSuccessful();
+        $this->assertArrayHasKey('avif', $media->fresh()->variants['card']);
+
+        $this->artisan('media:add-avif', ['--sleep' => 0])
+            ->expectsOutputToContain('Догонять нечего')
+            ->assertSuccessful();
+    }
+
+    /*
+     * Без кодировщика команда обязана отказать вслух, а не пройти «успешно»,
+     * ничего не сделав: именно так AVIF два месяца молча пропускался в очереди.
+     */
+    public function test_add_avif_command_refuses_without_an_encoder(): void
+    {
+        $this->mediaWithoutAvif();
+        config([
+            'media.variants.avif.enabled' => true,
+            'media.variants.avif.prefer' => 'avifenc',
+            'media.variants.avif.avifenc' => '/nonexistent/avifenc',
+        ]);
+
+        if (function_exists('imageavif')) {
+            // Встроенный кодировщик есть — выключить его можно только целиком.
+            config(['media.variants.avif.enabled' => false]);
+        }
+
+        $this->app->forgetInstance(MediaVariantProcessor::class);
+
+        $this->artisan('media:add-avif', ['--sleep' => 0])
+            ->expectsOutputToContain('Кодировать AVIF нечем')
+            ->assertFailed();
+    }
+
     private function jpegBytes(int $width, int $height): string
     {
         $image = imagecreatetruecolor($width, $height);

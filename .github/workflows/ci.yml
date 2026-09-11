@@ -179,6 +179,14 @@ jobs:
       - name: Install
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      # Запасной кодировщик AVIF — тот же пакет, что на проде. Ubuntu-шный
+      # libgd3 собран без libavif, и `imageavif` в PHP может не быть; тогда
+      # варианты кодирует avifenc. Без этого шага тесты этого пути в CI
+      # пропускались бы, и проверялся бы только тот кодировщик, которого на
+      # проде нет.
+      - name: libavif-bin
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends libavif-bin
+
       - name: Testing env
         run: |
           cp .env.testing.example .env.testing

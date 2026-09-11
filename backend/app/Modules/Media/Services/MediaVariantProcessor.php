@@ -6,6 +6,7 @@ use App\Models\Media;
 use GdImage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 class MediaVariantProcessor
@@ -87,6 +88,121 @@ class MediaVariantProcessor
                 'media_uuid' => $media->uuid,
                 'exception' => $e->getMessage(),
             ]);
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    /**
+     * Дописать AVIF к уже готовым вариантам, не трогая WebP и JPEG.
+     *
+     * Для 322 медиа, которые получили варианты раньше, чем появился
+     * кодировщик. Полная пересборка через `process()` тоже дала бы AVIF, но
+     * заново перекодировала бы WebP и JPEG — втрое больше работы процессора
+     * и перезапись файлов, которые браузеры держат в кеше как `immutable`
+     * на год. Здесь существующие файлы не открываются вовсе: скачивается
+     * исходник, режется в те же размеры той же функцией и сжимается только
+     * в AVIF.
+     *
+     * Возвращает `added`, `skipped` (AVIF уже есть или медиа не картинка),
+     * `failed` или `unsupported` (кодировщика нет).
+     */
+    public function addAvif(Media $media): string
+    {
+        if (! $this->avifSupported()) {
+            return 'unsupported';
+        }
+
+        $stored = $media->variants;
+
+        if (! is_array($stored) || $stored === [] || ! $this->shouldProcess($media)) {
+            return 'skipped';
+        }
+
+        $missing = [];
+
+        foreach (config('media.variants.sizes', []) as $name => $maxSide) {
+            if (is_array($stored[$name] ?? null) && empty($stored[$name]['avif']['path'])) {
+                $missing[(string) $name] = (int) $maxSide;
+            }
+        }
+
+        if ($missing === []) {
+            return 'skipped';
+        }
+
+        $tmp = $this->downloadToTemp($media);
+
+        if ($tmp === null) {
+            return 'failed';
+        }
+
+        try {
+            $info = @getimagesize($tmp);
+
+            if (! is_array($info) || ($info[0] ?? 0) < 1 || ($info[1] ?? 0) < 1) {
+                return 'failed';
+            }
+
+            if (((int) $info[0] * (int) $info[1]) > ((int) config('media.variants.max_megapixels', 40) * 1_000_000)) {
+                return 'skipped';
+            }
+
+            $source = $this->loadGd($tmp, (string) ($info['mime'] ?? $media->mime_type));
+
+            if ($source === null) {
+                return 'failed';
+            }
+
+            $oriented = $this->applyOrientation($source, $tmp);
+            if ($oriented !== $source) {
+                imagedestroy($source);
+                $source = $oriented;
+            }
+
+            $srcW = imagesx($source);
+            $srcH = imagesy($source);
+            $dir = $this->variantDirectory($media);
+            $added = [];
+
+            foreach ($missing as $name => $maxSide) {
+                $frame = $this->resize($source, $srcW, $srcH, $maxSide);
+                $avif = $this->encodeFormat($media, $dir, $name, 'avif', $frame);
+                imagedestroy($frame);
+
+                if ($avif !== null) {
+                    $added[$name] = $avif;
+                }
+            }
+
+            imagedestroy($source);
+
+            if ($added === []) {
+                return 'failed';
+            }
+
+            // Перечитываем перед записью: пока кодировали, очередь могла
+            // пересобрать варианты целиком. Дописываем только свои ключи.
+            $fresh = $media->fresh();
+            $variants = is_array($fresh?->variants) ? $fresh->variants : $stored;
+
+            foreach ($added as $name => $avif) {
+                if (is_array($variants[$name] ?? null)) {
+                    $variants[$name]['avif'] = $avif;
+                }
+            }
+
+            $media->variants = $variants;
+            $media->save();
+
+            return 'added';
+        } catch (Throwable $e) {
+            Log::error('media_avif_backfill_failed', [
+                'media_uuid' => $media->uuid,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return 'failed';
         } finally {
             @unlink($tmp);
         }
@@ -353,7 +469,15 @@ class MediaVariantProcessor
         if ($format === 'webp') {
             $ok = imagewebp($frame, null, $quality);
         } elseif ($format === 'avif') {
-            $ok = imageavif($frame, null, $quality, (int) config('media.variants.avif.speed', 7));
+            // Кодировщик выбирается здесь, а не в очереди: у задачи один вход
+            // — кадр GD, — и ей всё равно, кто его сожмёт.
+            if ($this->avifEncoder() === 'gd') {
+                $ok = imageavif($frame, null, $quality, (int) config('media.variants.avif.speed', 7));
+            } else {
+                ob_end_clean();
+
+                return $this->encodeAvifWithCli($frame, $quality);
+            }
         } else {
             $jpeg = $this->flattenForJpeg($frame);
             $ok = imagejpeg($jpeg, null, $quality);
@@ -371,9 +495,134 @@ class MediaVariantProcessor
         return $body;
     }
 
-    private function avifSupported(): bool
+    /**
+     * Есть ли чем кодировать AVIF.
+     *
+     * Два пути, и первый — встроенный. `imageavif` появляется, только если
+     * libgd собрана с libavif, а Ubuntu-шный libgd3 (2.3.3-9ubuntu5) собран с
+     * libheif и без неё: на проде 11.09 `function_exists('imageavif')` —
+     * false, `gd_info()['AVIF Support']` — false, и за два месяца ни одно из
+     * 322 медиа не получило AVIF-вариант. Код при этом молча пропускал формат,
+     * так что снаружи это выглядело как «AVIF есть, просто не нужен».
+     *
+     * Второй путь — `avifenc` из пакета libavif-bin. Кадр уходит ему через
+     * временный PNG. Качество и скорость те же, что у встроенного: оба —
+     * libavif, и выигрыш −27 % к WebP измерен именно этим бинарником при
+     * `-q 58`.
+     */
+    public function avifSupported(): bool
     {
-        return (bool) config('media.variants.avif.enabled', true) && function_exists('imageavif');
+        if (! (bool) config('media.variants.avif.enabled', true)) {
+            return false;
+        }
+
+        return function_exists('imageavif') || $this->avifencBinary() !== null;
+    }
+
+    /** Какой кодировщик сработает — для команды и журналов. */
+    public function avifEncoder(): ?string
+    {
+        if (! $this->avifSupported()) {
+            return null;
+        }
+
+        $prefer = (string) config('media.variants.avif.prefer', 'auto');
+
+        if ($prefer === 'avifenc' && $this->avifencBinary() !== null) {
+            return 'avifenc';
+        }
+
+        return function_exists('imageavif') ? 'gd' : 'avifenc';
+    }
+
+    private ?string $avifenc = null;
+
+    private bool $avifencResolved = false;
+
+    private function avifencBinary(): ?string
+    {
+        if ($this->avifencResolved) {
+            return $this->avifenc;
+        }
+
+        $this->avifencResolved = true;
+        $configured = (string) config('media.variants.avif.avifenc', 'avifenc');
+
+        if ($configured === '') {
+            return $this->avifenc = null;
+        }
+
+        if (str_contains($configured, '/')) {
+            return $this->avifenc = is_executable($configured) ? $configured : null;
+        }
+
+        $found = trim((string) @shell_exec('command -v '.escapeshellarg($configured).' 2>/dev/null'));
+
+        return $this->avifenc = ($found !== '' && is_executable($found)) ? $found : null;
+    }
+
+    /**
+     * Кадр → временный PNG → avifenc → байты AVIF.
+     *
+     * PNG, а не JPEG: промежуточный файл не должен терять качество до того,
+     * как его сожмут, и должен сохранить прозрачность. Один поток (`-j 1`) —
+     * воркер медиа и так работает с `Nice=10`, и занимать все четыре ядра
+     * сервера ради фоновой задачи незачем.
+     */
+    private function encodeAvifWithCli(GdImage $frame, int $quality): ?string
+    {
+        $binary = $this->avifencBinary();
+
+        if ($binary === null) {
+            return null;
+        }
+
+        $in = tempnam(sys_get_temp_dir(), 'avif-in-');
+        $out = tempnam(sys_get_temp_dir(), 'avif-out-');
+
+        if ($in === false || $out === false) {
+            return null;
+        }
+
+        $png = $in.'.png';
+        $avif = $out.'.avif';
+        @unlink($in);
+        @unlink($out);
+
+        try {
+            imagesavealpha($frame, true);
+
+            if (! imagepng($frame, $png, 1)) {
+                return null;
+            }
+
+            $process = new Process([
+                $binary,
+                '-q', (string) $quality,
+                '--speed', (string) (int) config('media.variants.avif.speed', 7),
+                '-j', (string) max(1, (int) config('media.variants.avif.threads', 1)),
+                $png,
+                $avif,
+            ]);
+            $process->setTimeout((int) config('media.variants.avif.timeout', 60));
+            $process->run();
+
+            if (! $process->isSuccessful() || ! is_file($avif)) {
+                Log::warning('media_avif_encode_failed', [
+                    'exit' => $process->getExitCode(),
+                    'stderr' => mb_substr($process->getErrorOutput(), 0, 300),
+                ]);
+
+                return null;
+            }
+
+            $body = file_get_contents($avif);
+
+            return is_string($body) && $body !== '' ? $body : null;
+        } finally {
+            @unlink($png);
+            @unlink($avif);
+        }
     }
 
     private function flattenForJpeg(GdImage $frame): GdImage

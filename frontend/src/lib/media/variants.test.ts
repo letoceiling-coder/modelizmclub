@@ -6,6 +6,15 @@ const media: DisplayMedia = {
   url: "https://cdn.test/original.png",
   variants: {
     thumb: { avif: "t.avif", webp: "t.webp", jpeg: "t.jpg" },
+    card: { avif: "c.avif", webp: "c.webp", jpeg: "c.jpg" },
+  },
+};
+
+/** AVIF есть не у всех размеров: у карточки он тяжелее WebP и не отдан. */
+const partialAvif: DisplayMedia = {
+  url: "https://cdn.test/original.png",
+  variants: {
+    thumb: { avif: "t.avif", webp: "t.webp", jpeg: "t.jpg" },
     card: { webp: "c.webp", jpeg: "c.jpg" },
   },
 };
@@ -14,7 +23,17 @@ describe("pictureSrcSet", () => {
   it("offers avif before webp before jpeg", () => {
     const { sources } = pictureSrcSet(media, ["thumb", "card"]);
     expect(sources.map((s) => s.format)).toEqual(["avif", "webp", "jpeg"]);
-    expect(sources[0]).toMatchObject({ type: "image/avif", srcSet: "t.avif 320w" });
+    expect(sources[0]).toMatchObject({ type: "image/avif", srcSet: "t.avif 320w, c.avif 640w" });
+  });
+
+  /*
+   * Браузер выбирает из первого понятного ему `<source>` и дальше не идёт.
+   * AVIF-источник с одной шириной 320w заставил бы его растянуть thumb на
+   * карточку в 640, поэтому неполный формат не предлагается вовсе.
+   */
+  it("drops a format that does not cover every size", () => {
+    const { sources } = pictureSrcSet(partialAvif, ["thumb", "card"]);
+    expect(sources.map((s) => s.format)).toEqual(["webp", "jpeg"]);
   });
 
   it("keeps width descriptors per variant", () => {

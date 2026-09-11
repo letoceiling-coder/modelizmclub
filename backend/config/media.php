@@ -41,6 +41,17 @@ return [
             'enabled' => (bool) env('MEDIA_VARIANTS_AVIF', true),
             'quality' => (int) env('MEDIA_VARIANTS_AVIF_QUALITY', 58),
             'speed' => (int) env('MEDIA_VARIANTS_AVIF_SPEED', 7),
+
+            /*
+            | Запасной кодировщик — `avifenc` из libavif-bin. Нужен, потому что
+            | Ubuntu-шный libgd3 собран без libavif и `imageavif` в PHP нет.
+            | `auto` берёт встроенный, если он есть, иначе бинарник; `avifenc`
+            | — всегда бинарник. Один поток: воркер медиа фоновый.
+            */
+            'prefer' => env('MEDIA_VARIANTS_AVIF_ENCODER', 'auto'),
+            'avifenc' => env('MEDIA_AVIFENC', 'avifenc'),
+            'threads' => (int) env('MEDIA_AVIFENC_THREADS', 1),
+            'timeout' => (int) env('MEDIA_AVIFENC_TIMEOUT', 60),
         ],
         'skip_purposes' => ['icon', 'post_video', 'review_video', 'voice'],
     ],
