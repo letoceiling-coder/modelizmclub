@@ -83,7 +83,7 @@ const REPLY_PREVIEW = 3;
  * размеры остаются прежними.
  */
 const META_ACTION =
-  "hit-target inline-flex min-h-[32px] cursor-pointer items-center transition-colors hover:text-[var(--foreground-90)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
+  "hit-target inline-flex min-h-[32px] cursor-pointer items-center transition-colors hover:text-[var(--foreground-90)]";
 
 function commentTime(c: Comment): number {
   const t = Date.parse(c.time);
@@ -573,7 +573,7 @@ function CommentItem({
                       onChange={(e) => setDraft(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
                       placeholder={t("components.commentSection.replyTo", { name: author.name })}
-                      className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[13px] outline-none"
+                      className="flex-1 rounded-[10px] border px-[12px] py-[8px] text-[13px]"
                       style={{
                         background: "var(--background)",
                         borderColor: "var(--border)",
@@ -805,7 +805,7 @@ export function CommentSection({
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
               placeholder={t("components.commentSection.placeholder")}
-              className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px] outline-none"
+              className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px]"
               style={{ color: "var(--foreground)" }}
             />
             <CommentAttachMenu

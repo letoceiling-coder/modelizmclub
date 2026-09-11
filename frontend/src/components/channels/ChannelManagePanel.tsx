@@ -164,7 +164,7 @@ export function ChannelManagePanel({ channel, onUpdated, onDeleted }: Props) {
               onChange={(e) => setCustomCategory(e.target.value)}
               maxLength={120}
               placeholder={t("components.channelManage.customThemePlaceholder")}
-              className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+              className="h-11 rounded-[10px] border px-3 text-[14px]"
               style={inputStyle}
             />
           </label>

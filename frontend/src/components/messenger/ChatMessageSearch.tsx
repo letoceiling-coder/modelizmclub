@@ -208,7 +208,7 @@ export function ChatMessageSearch({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Поиск по истории сообщений"
-                    className="w-full text-[14px] outline-none"
+                    className="w-full text-[14px]"
                     style={{
                       height: 42,
                       paddingLeft: 36,
@@ -253,7 +253,7 @@ export function ChatMessageSearch({
                       type="date"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
-                      className="w-full text-[13px] outline-none"
+                      className="w-full text-[13px]"
                       style={{
                         height: 36,
                         padding: "0 10px",
@@ -275,7 +275,7 @@ export function ChatMessageSearch({
                       type="date"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
-                      className="w-full text-[13px] outline-none"
+                      className="w-full text-[13px]"
                       style={{
                         height: 36,
                         padding: "0 10px",

@@ -239,7 +239,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 }}
                 maxLength={kind === "community" ? COMMUNITY_NAME_MAX : CHANNEL_NAME_MAX}
                 placeholder={kind === "channel" ? "Название канала" : "Название сообщества"}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                className="h-11 rounded-[10px] border px-3 text-[14px]"
                 style={inputStyle}
               />
             </label>
@@ -267,7 +267,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 maxLength={kind === "community" ? COMMUNITY_DESCRIPTION_MAX : 5000}
                 rows={3}
                 placeholder="Коротко о теме"
-                className="resize-none rounded-[10px] border px-3 py-2 text-[14px] outline-none break-words"
+                className="resize-none rounded-[10px] border px-3 py-2 text-[14px] break-words"
                 style={inputStyle}
               />
             </label>
@@ -280,7 +280,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(Number(e.target.value))}
-                  className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                  className="h-11 rounded-[10px] border px-3 text-[14px]"
                   style={inputStyle}
                 >
                   {cats.map((c) => (
@@ -302,7 +302,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                    className="h-11 rounded-[10px] border px-3 text-[14px]"
                     style={inputStyle}
                   >
                     <option value="">Выберите направление</option>
@@ -327,7 +327,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                       onChange={(e) => setCustomCategory(e.target.value)}
                       maxLength={120}
                       placeholder="Например: Стендовые модели"
-                      className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                      className="h-11 rounded-[10px] border px-3 text-[14px]"
                       style={inputStyle}
                     />
                   </label>
@@ -367,7 +367,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                       }}
                       maxLength={CHANNEL_SLUG_MAX}
                       placeholder="my-channel"
-                      className="h-11 min-w-0 flex-1 bg-transparent text-[14px] outline-none"
+                      className="h-11 min-w-0 flex-1 bg-transparent text-[14px]"
                       style={{ color: "var(--foreground)" }}
                     />
                   </div>
@@ -382,7 +382,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                   <select
                     value={channelKind}
                     onChange={(e) => setChannelKind(e.target.value as ChannelKind)}
-                    className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                    className="h-11 rounded-[10px] border px-3 text-[14px]"
                     style={inputStyle}
                   >
                     {CHANNEL_KINDS.map((k) => (

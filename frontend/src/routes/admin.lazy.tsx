@@ -555,7 +555,7 @@ function AdminPage() {
             <select
               value={section}
               onChange={(e) => setSection(e.target.value as Section)}
-              className="w-full outline-none"
+              className="w-full"
               style={{
                 height: "44px",
                 background: "var(--background-elevated)",

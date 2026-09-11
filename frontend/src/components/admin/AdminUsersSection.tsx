@@ -196,13 +196,11 @@ export function UsersSection() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("pages.adminUsers.searchPlaceholder")}
-          className="outline-none"
           style={{ ...inputStyle, width: "320px", maxWidth: "100%" }}
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as "all" | AdminUserRow["role"])}
-          className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
           <option value="all">{t("pages.adminUsers.allRoles")}</option>
@@ -285,7 +283,6 @@ export function UsersSection() {
                         value={u.role}
                         disabled={me.id === u.uuid || savingRole === u.uuid}
                         onChange={(e) => changeRole(u.uuid, e.target.value as AdminUserRow["role"])}
-                        className="outline-none"
                         title={
                           me.id === u.uuid
                             ? t("pages.adminUsers.cannotChangeOwnRole")

@@ -65,7 +65,7 @@ export function LightboxCloseButton() {
       type="button"
       onClick={close}
       aria-label={t("common.close")}
-      className="hit-target grid h-[32px] w-[32px] shrink-0 cursor-pointer place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      className="hit-target grid h-[32px] w-[32px] shrink-0 cursor-pointer place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]"
       style={{ color: "var(--foreground-70)" }}
     >
       <X className="h-[20px] w-[20px]" />

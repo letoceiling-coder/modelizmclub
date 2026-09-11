@@ -157,7 +157,7 @@ function HelpPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("pages.help.searchPlaceholder")}
-            className="w-full outline-none"
+            className="w-full"
             style={{
               height: "56px",
               background: "var(--background-elevated)",
@@ -372,7 +372,6 @@ function HelpPage() {
             <select
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              className="outline-none"
               style={{
                 height: "48px",
                 background: "var(--background-elevated)",
@@ -395,7 +394,6 @@ function HelpPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("pages.help.emailPlaceholder")}
-              className="outline-none"
               style={{
                 height: "48px",
                 background: "var(--background-elevated)",
@@ -410,7 +408,6 @@ function HelpPage() {
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
               placeholder={t("pages.help.messagePlaceholder")}
-              className="outline-none"
               style={{
                 height: "140px",
                 background: "var(--background-elevated)",

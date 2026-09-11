@@ -132,7 +132,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                   }
                 }}
                 placeholder="Поиск по имени"
-                className="w-full text-[14px] outline-none"
+                className="w-full text-[14px]"
                 style={{
                   height: 40,
                   paddingLeft: 36,

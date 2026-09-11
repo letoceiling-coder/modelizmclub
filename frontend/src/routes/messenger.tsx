@@ -2021,7 +2021,7 @@ function MessengerPage() {
                       }}
                       placeholder={t("pages.messenger.messagePlaceholder")}
                       rows={1}
-                      className="min-w-0 flex-1 resize-none bg-transparent text-[14px] outline-none"
+                      className="min-w-0 flex-1 resize-none bg-transparent text-[14px]"
                       style={{
                         minHeight: 24,
                         maxHeight: 120,

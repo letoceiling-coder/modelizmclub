@@ -98,7 +98,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="text"
               value={draft.tagline}
               onChange={(e) => setField("tagline", e.target.value)}
-              className="outline-none"
               style={inputStyle}
             />
           </label>
@@ -110,7 +109,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="email"
               value={draft.email}
               onChange={(e) => setField("email", e.target.value)}
-              className="outline-none"
               style={inputStyle}
               placeholder="support@modelizmclub.ru"
             />
@@ -123,7 +121,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="text"
               value={draft.phone}
               onChange={(e) => setField("phone", e.target.value)}
-              className="outline-none"
               style={inputStyle}
               placeholder="8 800 000-00-00"
             />
@@ -136,7 +133,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="text"
               value={draft.hours}
               onChange={(e) => setField("hours", e.target.value)}
-              className="outline-none"
               style={inputStyle}
               placeholder={t("pages.adminFooterContacts.hoursPlaceholder")}
             />
@@ -160,7 +156,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="text"
               value={draft.legal_name}
               onChange={(e) => setField("legal_name", e.target.value)}
-              className="outline-none"
               style={inputStyle}
             />
           </label>
@@ -172,7 +167,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="text"
               value={draft.inn}
               onChange={(e) => setField("inn", e.target.value)}
-              className="outline-none"
               style={inputStyle}
             />
           </label>
@@ -184,7 +178,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="text"
               value={draft.ogrn}
               onChange={(e) => setField("ogrn", e.target.value)}
-              className="outline-none"
               style={inputStyle}
             />
           </label>
@@ -196,7 +189,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
               type="text"
               value={draft.address}
               onChange={(e) => setField("address", e.target.value)}
-              className="outline-none"
               style={inputStyle}
             />
           </label>
@@ -214,7 +206,6 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
                   type="url"
                   value={s.url}
                   onChange={(e) => setSocialUrl(s.label, e.target.value)}
-                  className="outline-none"
                   style={inputStyle}
                   placeholder="https://"
                 />

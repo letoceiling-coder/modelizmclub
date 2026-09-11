@@ -376,6 +376,51 @@ body {
        picker sheet opens. Custom active: states below replace it. */
     -webkit-tap-highlight-color: transparent;
   }
+  /*
+   * Кольцо фокуса по умолчанию — у всего, до чего доходит Tab.
+   *
+   * До 11.09 общего правила не было: каждый элемент включал кольцо сам, и
+   * где забывали, а заодно ставили outline-none, фокус пропадал с экрана —
+   * поле поиска и аватар в шапке, фильтры каталога, поиск в мессенджере.
+   *
+   * Правило в слое base: утилиты старше, поэтому явный outline-none его
+   * снимает — так и нужно там, где элемент рисует свой признак фокуса
+   * (ring, фон, рамка). Снять и не заменить не даёт линт
+   * eslint-rules/no-bare-outline-none.js.
+   *
+   * :where() держит вес ровно на :focus-visible — любой класс с вариантом
+   * фокуса его перебивает. tabindex="-1" исключён: такие контейнеры получают
+   * фокус программно (окна, области прокрутки), кольцо вокруг них — шум.
+   *
+   * Кольцо внутри элемента, а не снаружи. Снаружи (offset 2px) его срезал
+   * любой предок с overflow: фишки в прокручиваемом ряду, строки диалогов,
+   * картинка-ссылка в карточке, нижняя навигация — 169 шагов Tab из 420
+   * с обрезанным кольцом. Внутреннее кольцо предок не режет. Светлая полоса
+   * под ним нужна кнопкам с акцентным фоном: без неё акцентное кольцо на
+   * акцентной кнопке не видно вовсе.
+   */
+  :where(
+      a[href],
+      button,
+      input:not([type="hidden"]),
+      select,
+      textarea,
+      summary,
+      [tabindex]:not([tabindex="-1"]),
+      [contenteditable="true"],
+      [role="button"],
+      [role="link"],
+      [role="tab"],
+      [role="menuitem"],
+      [role="option"],
+      [role="checkbox"],
+      [role="radio"],
+      [role="switch"]
+    ):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    box-shadow: inset 0 0 0 4px var(--background);
+  }
   html,
   body {
     overflow-x: hidden;

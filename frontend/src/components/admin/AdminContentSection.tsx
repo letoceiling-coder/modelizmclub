@@ -115,13 +115,11 @@ export function ContentSection() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("pages.adminCommon.searchPlaceholder")}
-          className="outline-none"
           style={{ ...inputStyle, width: "320px", maxWidth: "100%" }}
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
           <option value="all">{t("pages.adminCommon.allStatuses")}</option>

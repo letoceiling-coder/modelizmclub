@@ -222,7 +222,6 @@ export function SettingsSection() {
             type="number"
             value={value}
             onChange={(e) => setDraftField(key, field, Number(e.target.value))}
-            className="outline-none"
             style={{ ...inputStyle, maxWidth: 180 }}
           />
         </label>
@@ -238,7 +237,6 @@ export function SettingsSection() {
             type="text"
             value={value}
             onChange={(e) => setDraftField(key, field, e.target.value)}
-            className="outline-none"
             style={inputStyle}
           />
         </label>
@@ -299,7 +297,6 @@ export function SettingsSection() {
             onChange={(e) =>
               setDraft(s.key, typeof value === "number" ? Number(e.target.value) : e.target.value)
             }
-            className="outline-none"
             style={{ ...inputStyle, maxWidth: typeof value === "number" ? 180 : undefined }}
           />
         </label>

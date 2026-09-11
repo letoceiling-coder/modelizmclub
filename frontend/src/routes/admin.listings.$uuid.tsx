@@ -243,7 +243,6 @@ function AdminListingPage() {
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="outline-none"
                   style={inputStyle}
                 />
               </div>
@@ -254,7 +253,6 @@ function AdminListingPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={6}
-                  className="outline-none"
                   style={{ ...inputStyle, minHeight: "140px", resize: "vertical" }}
                 />
               </div>
@@ -265,7 +263,6 @@ function AdminListingPage() {
                   <input
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    className="outline-none"
                     style={inputStyle}
                     inputMode="numeric"
                   />
@@ -275,7 +272,6 @@ function AdminListingPage() {
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="outline-none"
                     style={{ ...inputStyle, height: "42px" }}
                   >
                     {STATUS_OPTIONS.map((o) => (
@@ -294,7 +290,6 @@ function AdminListingPage() {
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     rows={3}
-                    className="outline-none"
                     style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }}
                   />
                 </div>

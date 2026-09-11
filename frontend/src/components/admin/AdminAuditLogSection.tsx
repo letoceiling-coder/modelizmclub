@@ -94,7 +94,6 @@ export function AuditLogSection() {
         <select
           value={userFilter}
           onChange={(e) => setUserFilter(e.target.value)}
-          className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
           <option value="all">{t("pages.adminAuditLog.allUsers")}</option>
@@ -107,7 +106,6 @@ export function AuditLogSection() {
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
           <option value="all">{t("pages.adminAuditLog.allActions")}</option>

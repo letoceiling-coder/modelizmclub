@@ -26,7 +26,7 @@ export function AuthLogoLink({ size = 40 }: { size?: number }) {
   return (
     <Link
       to={to}
-      className="inline-flex w-fit rounded-[var(--r-button)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      className="inline-flex w-fit rounded-[var(--r-button)]"
       aria-label={isGuest ? t("pages.homeLink") : t("nav.feed")}
     >
       <Logo size={size} />
@@ -169,7 +169,6 @@ export const inputStyle: React.CSSProperties = {
   padding: "12px 14px",
   fontSize: "var(--fs-sm)",
   color: "var(--foreground)",
-  outline: "none",
 };
 
 export const primaryBtn: React.CSSProperties = {

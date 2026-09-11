@@ -87,7 +87,7 @@ export function TagInput({ tags, onChange, suggestions = [], disabled }: Props) 
               if (draft.trim()) addTag(draft);
             }}
             placeholder={tags.length === 0 ? t("components.tagInput.placeholder") : ""}
-            className="min-w-[120px] flex-1 bg-transparent text-[14px] outline-none"
+            className="min-w-[120px] flex-1 bg-transparent text-[14px]"
             style={{ color: "var(--foreground)" }}
           />
         )}

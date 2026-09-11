@@ -1381,7 +1381,7 @@ function CommunityDetailPage() {
         */}
         <Link
           to="/communities"
-          className="hit-target -mb-1 inline-flex items-center gap-1 text-[13px] transition-colors hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="hit-target -mb-1 inline-flex items-center gap-1 text-[13px] transition-colors hover:opacity-80"
           style={{ color: "var(--foreground-50)" }}
         >
           <ArrowLeft size={14} /> {t("pages.communityDetail.allCommunities")}

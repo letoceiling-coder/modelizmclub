@@ -28,6 +28,7 @@ import { applyPublicBootstrap, ensurePublicBootstrap } from "@/lib/boot/applyPub
 import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
 import { markBooted } from "@/lib/boot/bootState";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
+import { installKeepFocusInView } from "@/lib/a11y/keep-focus-in-view";
 import { isAlwaysPublicRoute, isPublicGuestRoute } from "@/lib/feed-guest-access/routes";
 import { API_ORIGIN } from "@/lib/api/client";
 
@@ -223,11 +224,16 @@ function RootComponent() {
     captureReferralFromLocation();
     markBooted();
     bindCallAudioUnlock();
+    // Фокус с клавиатуры докручивает горизонтальный ряд до элемента целиком.
+    const uninstallFocusInView = installKeepFocusInView();
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) void restoreSession();
     };
     window.addEventListener("pageshow", onPageShow);
-    return () => window.removeEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      uninstallFocusInView();
+    };
   }, []);
 
   return (

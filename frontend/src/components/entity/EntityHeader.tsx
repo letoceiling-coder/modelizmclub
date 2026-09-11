@@ -183,7 +183,7 @@ export function EntityHeader({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="hit-target mt-1 cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="hit-target mt-1 cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80"
             style={{ color: "var(--accent)" }}
           >
             {expanded ? t("pages.shared.collapse") : t("pages.shared.showAll")}

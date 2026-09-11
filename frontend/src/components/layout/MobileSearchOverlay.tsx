@@ -125,7 +125,7 @@ export function MobileSearchOverlay({ open, onClose }: Props) {
                 placeholder={t("search.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full text-[14px] outline-none transition-colors"
+                className="w-full text-[14px] transition-colors"
                 style={{
                   background: "var(--background-elevated)",
                   color: "var(--foreground)",

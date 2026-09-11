@@ -4,6 +4,7 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import noBareOutlineNone from "./eslint-rules/no-bare-outline-none.js";
 
 export default tseslint.config(
   { ignores: ["dist", ".output", ".vinxi"] },
@@ -17,9 +18,13 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      local: { rules: { "no-bare-outline-none": noBareOutlineNone } },
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Снять кольцо фокуса можно только вместе с заменой. Кольцо по
+      // умолчанию — общее правило :focus-visible в src/styles.css.
+      "local/no-bare-outline-none": "error",
       "no-restricted-imports": [
         "error",
         {

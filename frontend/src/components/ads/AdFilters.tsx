@@ -128,7 +128,7 @@ function Select({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full cursor-pointer text-[13px] outline-none disabled:cursor-not-allowed disabled:opacity-50"
+      className="w-full cursor-pointer text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         background: "var(--background-elevated)",
         color: "var(--foreground)",
@@ -162,7 +162,7 @@ function NumInput({
       value={value || ""}
       placeholder={placeholder}
       onChange={(e) => onChange(+e.target.value || 0)}
-      className="w-full text-[13px] outline-none"
+      className="w-full text-[13px]"
       style={{
         background: "var(--background-elevated)",
         color: "var(--foreground)",
