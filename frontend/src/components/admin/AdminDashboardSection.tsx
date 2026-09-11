@@ -330,7 +330,6 @@ export function SubscriptionCell({
           max={3650}
           value={days}
           onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 1))}
-          className="outline-none"
           style={{ ...actionStyle, width: "60px", padding: "0 6px" }}
           aria-label="Дней"
         />

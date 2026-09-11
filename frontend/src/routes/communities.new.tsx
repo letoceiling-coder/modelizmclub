@@ -248,7 +248,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={COMMUNITY_NAME_MAX}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                className="h-11 rounded-[10px] border px-3 text-[14px]"
                 style={inputStyle}
               />
             </label>
@@ -267,7 +267,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={COMMUNITY_DESCRIPTION_MAX}
                 rows={4}
-                className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none"
+                className="rounded-[10px] border px-3 py-2.5 text-[14px]"
                 style={inputStyle}
               />
             </label>
@@ -420,7 +420,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
                 maxLength={120}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                className="h-11 rounded-[10px] border px-3 text-[14px]"
                 style={inputStyle}
                 placeholder={t("pages.communityWizard.customCategoryPlaceholder")}
               />
@@ -451,7 +451,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
                 onChange={(e) => setRules(e.target.value)}
                 maxLength={COMMUNITY_RULES_MAX}
                 rows={6}
-                className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none"
+                className="rounded-[10px] border px-3 py-2.5 text-[14px]"
                 style={inputStyle}
               />
             </label>
@@ -499,7 +499,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
               <input
                 value={telegram}
                 onChange={(e) => setTelegram(e.target.value)}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                className="h-11 rounded-[10px] border px-3 text-[14px]"
                 style={inputStyle}
                 placeholder="https://t.me/…"
               />
@@ -511,7 +511,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
               <input
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                className="h-11 rounded-[10px] border px-3 text-[14px]"
                 style={inputStyle}
                 placeholder="https://"
               />
@@ -523,7 +523,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+                className="h-11 rounded-[10px] border px-3 text-[14px]"
                 style={inputStyle}
               />
             </label>

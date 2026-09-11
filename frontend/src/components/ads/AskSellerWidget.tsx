@@ -88,7 +88,7 @@ export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
             }
           }}
           placeholder="Ваш вопрос…"
-          className="h-[36px] flex-1 min-w-0 text-[13px] outline-none"
+          className="h-[36px] flex-1 min-w-0 text-[13px]"
           style={{
             background: "var(--background-surface)",
             color: "var(--foreground)",

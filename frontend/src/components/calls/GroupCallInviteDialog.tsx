@@ -263,7 +263,7 @@ export function GroupCallInviteDialog() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t("components.groupCall.searchPeople")}
-                className="w-full text-[14px] outline-none"
+                className="w-full text-[14px]"
                 style={{
                   height: 38,
                   paddingLeft: 30,

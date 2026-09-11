@@ -49,7 +49,7 @@ export function AdSortBar({
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             placeholder={t("search.adsPlaceholder")}
-            className="w-full text-[14px] outline-none transition-colors"
+            className="w-full text-[14px] transition-colors"
             style={{
               background: "var(--background-elevated)",
               color: "var(--foreground)",
@@ -109,7 +109,7 @@ export function AdSortBar({
           value={sort}
           onChange={(e) => onSort(e.target.value as SortKey)}
           aria-label={t("components.adsCatalog.sortAria")}
-          className="shrink-0 cursor-pointer text-[13px] font-medium outline-none"
+          className="shrink-0 cursor-pointer text-[13px] font-medium"
           style={{
             background: "var(--background-elevated)",
             color: "var(--foreground)",

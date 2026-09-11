@@ -209,7 +209,6 @@ export function DeliverySection() {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
           <option value="all">{t("pages.adminCommon.allStatuses")}</option>
@@ -222,7 +221,6 @@ export function DeliverySection() {
         <select
           value={provider}
           onChange={(e) => setProvider(e.target.value)}
-          className="outline-none"
           style={{ ...inputStyle, padding: "0 12px" }}
         >
           <option value="all">{t("pages.adminDelivery.allProviders")}</option>
@@ -440,7 +438,7 @@ export function DeliverySection() {
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
               rows={3}
-              className="w-full outline-none resize-y"
+              className="w-full  resize-y"
               style={{
                 ...inputStyle,
                 height: "auto",

@@ -302,7 +302,7 @@ function UploadPage() {
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full text-[14px] outline-none"
+          className="w-full text-[14px]"
           style={{
             background: "var(--background-elevated)",
             color: "var(--foreground)",

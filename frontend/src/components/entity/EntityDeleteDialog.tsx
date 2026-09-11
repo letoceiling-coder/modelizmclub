@@ -121,7 +121,7 @@ export function EntityDeleteDialog({
           value={confirmName}
           onChange={(e) => setConfirmName(e.target.value)}
           placeholder={name}
-          className="mt-4 h-11 w-full rounded-[10px] border px-3 text-[14px] outline-none"
+          className="mt-4 h-11 w-full rounded-[10px] border px-3 text-[14px]"
           style={{
             borderColor: "var(--border)",
             background: "var(--background-surface)",

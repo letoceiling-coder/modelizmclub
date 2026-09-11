@@ -41,7 +41,6 @@ export function SubmitPostSheet({ open, onOpenChange, communityName }: Props) {
     padding: "12px 14px",
     fontSize: 14,
     color: "var(--foreground)",
-    outline: "none",
   };
 
   return (

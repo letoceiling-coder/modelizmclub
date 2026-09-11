@@ -1060,7 +1060,7 @@ function Composer({
         placeholder={t("pages.channelDetail.postTextPlaceholder", {
           kind: postKindLabel(t, kind).toLowerCase(),
         })}
-        className="mt-3 w-full resize-y text-[14px] outline-none"
+        className="mt-3 w-full resize-y text-[14px]"
         style={{
           minHeight: 96,
           padding: "10px 12px",

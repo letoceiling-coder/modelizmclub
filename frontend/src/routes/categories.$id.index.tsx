@@ -203,7 +203,7 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("pages.categoryDetail.searchPlaceholder")}
-              className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-[var(--foreground-50)]"
+              className="min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-[var(--foreground-50)]"
               style={{ color: "var(--foreground)" }}
             />
             {query && (
@@ -253,7 +253,7 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
                   <Link
                     to="/categories/$id"
                     params={{ id: s.slug ?? s.id }}
-                    className="flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent)]"
+                    className="flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface)]"
                     // Шестнадцать на уровень — столько же, сколько в правой
                     // панели: один и тот же список в двух местах не должен
                     // отступать по-разному.

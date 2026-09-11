@@ -519,7 +519,7 @@ export function CreatePostForm({
                 })
               : t("components.createPostForm.profileTextPlaceholder")
           }
-          className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none"
+          className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed"
           style={{ color: "var(--foreground)" }}
         />
 

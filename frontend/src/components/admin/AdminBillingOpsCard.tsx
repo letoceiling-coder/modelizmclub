@@ -111,7 +111,6 @@ function WalletsBlock({ cardStyle }: { cardStyle: CardStyle }) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Поиск по имени / email"
-        className="outline-none"
         style={{
           marginTop: 12,
           height: 36,
@@ -389,7 +388,6 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="outline-none"
           style={{
             height: 36,
             padding: "0 10px",
@@ -410,7 +408,6 @@ function DealsBlock({ cardStyle }: { cardStyle: CardStyle }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="UUID, трек-номер, email"
-          className="outline-none"
           style={{
             height: 36,
             padding: "0 10px",

@@ -87,7 +87,7 @@ export function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         maxLength={max}
-        className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+        className="h-11 rounded-[10px] border px-3 text-[14px]"
         style={inputStyle}
       />
     </label>
@@ -118,7 +118,7 @@ export function TextAreaField({
         onChange={(e) => onChange(e.target.value)}
         maxLength={max}
         rows={rows}
-        className="rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-y break-words"
+        className="rounded-[10px] border px-3 py-2.5 text-[14px] resize-y break-words"
         style={{ ...inputStyle, minHeight }}
       />
     </label>
@@ -142,7 +142,7 @@ export function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 rounded-[10px] border px-3 text-[14px] outline-none"
+        className="h-11 rounded-[10px] border px-3 text-[14px]"
         style={inputStyle}
       >
         {children}

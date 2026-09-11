@@ -21,7 +21,7 @@ export function DesktopTopBar() {
   // как в макете, а попасть в него можно с запасом. Соседние значки стоят через
   // gap-1, и зоны сходятся ровно встык — накладок нет.
   const iconClass =
-    "hit-target relative grid h-10 w-10 cursor-pointer place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
+    "hit-target relative grid h-10 w-10 cursor-pointer place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)]";
   const iconStyle = { color: "var(--foreground-70)" };
 
   const NavIcon = ({

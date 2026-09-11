@@ -62,7 +62,6 @@ export function NotificationsSection() {
               onChange={(e) => setTitle(e.target.value)}
               maxLength={160}
               placeholder={t("pages.adminNotifications.titlePlaceholder")}
-              className="outline-none"
               style={{ ...inputStyle, width: "100%", marginTop: 4 }}
             />
           </div>
@@ -76,7 +75,6 @@ export function NotificationsSection() {
               maxLength={1000}
               rows={3}
               placeholder={t("pages.adminNotifications.bodyPlaceholder")}
-              className="outline-none"
               style={{
                 ...inputStyle,
                 width: "100%",
@@ -96,7 +94,6 @@ export function NotificationsSection() {
               onChange={(e) => setLink(e.target.value)}
               maxLength={255}
               placeholder={t("pages.adminNotifications.linkPlaceholder")}
-              className="outline-none"
               style={{ ...inputStyle, width: "100%", marginTop: 4 }}
             />
           </div>

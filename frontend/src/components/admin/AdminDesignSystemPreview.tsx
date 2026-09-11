@@ -221,7 +221,6 @@ export function PreviewArea() {
               border: "1.5px solid var(--accent)",
               color: "var(--foreground)",
               fontSize: 13,
-              outline: "none",
             }}
           />
           <textarea

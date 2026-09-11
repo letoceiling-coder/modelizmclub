@@ -223,7 +223,7 @@ export function MonetizationSection() {
                 onChange={(e) =>
                   setPlans((p) => p.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
                 }
-                className="w-full outline-none"
+                className="w-full"
                 style={{
                   fontSize: "13px",
                   fontWeight: 600,
@@ -243,7 +243,7 @@ export function MonetizationSection() {
                     ),
                   )
                 }
-                className="w-full outline-none"
+                className="w-full"
                 style={{
                   fontSize: "20px",
                   fontWeight: 700,
@@ -486,7 +486,6 @@ function PromoCodesBlock({
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
                     placeholder="SUMMER2026"
-                    className="outline-none"
                     style={inputStyle}
                   />
                 </label>
@@ -521,7 +520,6 @@ function PromoCodesBlock({
                     value={form.discount}
                     disabled={form.type !== "percent"}
                     onChange={(e) => setForm({ ...form, discount: +e.target.value })}
-                    className="outline-none"
                     style={inputStyle}
                   />
                 </label>
@@ -537,7 +535,6 @@ function PromoCodesBlock({
                     value={form.expiresAt}
                     min={today}
                     onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-                    className="outline-none"
                     style={inputStyle}
                   />
                 </label>
@@ -552,7 +549,6 @@ function PromoCodesBlock({
                     min={1}
                     value={form.limit}
                     onChange={(e) => setForm({ ...form, limit: +e.target.value })}
-                    className="outline-none"
                     style={inputStyle}
                   />
                 </label>
@@ -660,7 +656,7 @@ function PromoCodesBlock({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("pages.adminPromocodes.searchPlaceholder")}
-            className="w-full outline-none"
+            className="w-full"
             style={{ ...inputStyle, paddingLeft: "34px" }}
           />
         </div>

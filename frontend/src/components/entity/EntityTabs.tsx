@@ -62,7 +62,7 @@ export function EntityTabs<K extends string>({ tabs, active, onChange, layoutId 
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(tab.key)}
-            className="relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 text-[15px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 text-[15px] font-semibold transition-colors"
             style={{ color: isActive ? "var(--foreground)" : "var(--foreground-50)" }}
           >
             {tab.label}

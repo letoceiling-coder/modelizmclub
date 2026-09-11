@@ -15,7 +15,7 @@ import { RepostMenu } from "@/components/feed/RepostMenu";
  *  скруглениями. Прямоугольник с радиусом 10 выглядел чужеродно рядом с
  *  круглым аватаром и круглыми кнопками просмотрщика. */
 const actionCls =
-  "inline-flex min-h-[48px] min-w-[44px] cursor-pointer items-center justify-center gap-[6px] rounded-full px-[10px] py-[7px] text-[12px] font-medium transition-colors hover:bg-[var(--accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:pointer-events-none disabled:opacity-45 md:min-h-[44px]";
+  "inline-flex min-h-[48px] min-w-[44px] cursor-pointer items-center justify-center gap-[6px] rounded-full px-[10px] py-[7px] text-[12px] font-medium transition-colors hover:bg-[var(--accent-soft)] disabled:pointer-events-none disabled:opacity-45 md:min-h-[44px]";
 
 interface Props {
   post: Post;

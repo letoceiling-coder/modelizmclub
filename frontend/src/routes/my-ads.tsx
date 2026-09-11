@@ -490,7 +490,7 @@ function MyAdsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("pages.myAds.searchPlaceholder")}
-              className="w-full text-[13.5px] outline-none transition-colors"
+              className="w-full text-[13.5px] transition-colors"
               style={{
                 height: 40,
                 padding: "0 36px 0 36px",
@@ -850,7 +850,6 @@ const selectStyle: React.CSSProperties = {
   border: "1px solid var(--border)",
   borderRadius: 10,
   color: "var(--foreground)",
-  outline: "none",
 };
 
 function statusToMyAdStatus(s: AdStatusKey): MyAdStatus {
