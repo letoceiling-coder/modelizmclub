@@ -55,6 +55,7 @@ class AdminPaymentsController extends Controller
                 'Провайдер',
                 'ID провайдера',
                 'Описание',
+                'Тест (заглушка, не деньги)',
             ], ';');
 
             $this->query($request)
@@ -73,6 +74,7 @@ class AdminPaymentsController extends Controller
                             $row['provider'] ?? '',
                             $row['provider_payment_id'] ?? '',
                             $row['description'],
+                            $row['is_test'] ? 'да' : '',
                         ], ';');
                     }
                 });
@@ -138,6 +140,9 @@ class AdminPaymentsController extends Controller
             'type' => $type,
             'type_label' => PaymentAccountingType::label($type),
             'provider' => $payment->provider,
+            // Заглушка ставит «оплачен» без банка. Строку не прячем — помечаем:
+            // она нужна для разбора, но деньгами не является.
+            'is_test' => $payment->isTest(),
             'provider_payment_id' => $payment->provider_payment_id,
             'paid_at' => $payment->paid_at?->toIso8601String(),
             'created_at' => $payment->created_at?->toIso8601String(),

@@ -1304,6 +1304,8 @@ export interface AdminPaymentRow {
   type: AdminPaymentType;
   type_label: string;
   provider: string | null;
+  /** Платёж через заглушку: «оплачен» без банка, деньгами не является. */
+  is_test: boolean;
   provider_payment_id: string | null;
   paid_at: string | null;
   created_at: string | null;
@@ -1345,6 +1347,7 @@ interface ApiAdminPayment {
   type: AdminPaymentType;
   type_label: string;
   provider?: string | null;
+  is_test?: boolean;
   provider_payment_id?: string | null;
   paid_at?: string | null;
   created_at?: string | null;
@@ -1359,6 +1362,8 @@ function mapAdminPayment(row: ApiAdminPayment): AdminPaymentRow {
     user_email: row.user_email ?? null,
     amount_cents: row.amount_cents,
     amount_rub: row.amount_rub,
+    // Старый ответ без поля — судим по провайдеру, как сервер.
+    is_test: row.is_test ?? row.provider === "stub",
     currency: row.currency,
     status: row.status,
     type: row.type,

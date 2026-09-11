@@ -68,6 +68,42 @@ class AdminPaymentsTest extends TestCase
         $this->assertStringContainsString('Размещение объявления', $response->streamedContent());
     }
 
+    public function test_stub_payment_is_marked_in_list_and_export_not_hidden(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+
+        foreach (['stub' => 9900, 'vtb' => 59900] as $provider => $cents) {
+            Payment::query()->create([
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'amount_cents' => $cents,
+                'currency' => 'RUB',
+                'status' => 'paid',
+                'provider' => $provider,
+                'paid_at' => now(),
+                'metadata' => ['payable_type' => 'subscription', 'plan_slug' => 'month', 'plan_id' => 1],
+            ]);
+        }
+
+        $rows = collect($this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/payments')
+            ->assertOk()
+            ->json('data'))->keyBy('provider');
+
+        $this->assertCount(2, $rows, 'Платёж через заглушку в списке виден, а не скрыт.');
+        $this->assertTrue($rows['stub']['is_test']);
+        $this->assertFalse($rows['vtb']['is_test']);
+
+        $lines = collect(explode("\n", trim($this->actingAs($admin, 'sanctum')
+            ->get('/api/v1/admin/payments/export')
+            ->streamedContent())));
+
+        $this->assertStringContainsString('Тест (заглушка, не деньги)', $lines->first());
+        $this->assertStringEndsWith(';да', trim((string) $lines->first(fn ($l) => str_contains($l, ';stub;'))));
+        $this->assertStringEndsWith(';', trim((string) $lines->first(fn ($l) => str_contains($l, ';vtb;'))));
+    }
+
     public function test_moderator_cannot_access_payments(): void
     {
         $moderator = User::factory()->create(['role' => UserRole::Moderator, 'status' => UserStatus::Active]);
