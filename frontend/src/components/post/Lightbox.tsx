@@ -40,6 +40,8 @@ interface Props {
    * отдельным окном разговор уезжает от записи, к которой относится.
    */
   aside?: ReactNode;
+  /** Какое фото сейчас на экране — чтобы галерея после закрытия встала на него же. */
+  onIndexChange?: (index: number) => void;
 }
 
 /**
@@ -77,13 +79,60 @@ const CONTROL = "absolute z-[2] grid place-items-center rounded-full text-white"
 const CONTROL_BG = { background: "rgba(255,255,255,0.14)" } as const;
 
 /**
+ * Зум фото: масштаб и точка, к которой он приложен (проценты от
+ * несжатого размера картинки). Точка идёт за указателем — увеличенное
+ * фото «просматривается» движением мыши или пальца, без отдельного
+ * перетаскивания: под указателем всегда та часть снимка, над которой он.
+ */
+type Zoom = { scale: number; ox: number; oy: number };
+const NO_ZOOM: Zoom = { scale: 1, ox: 50, oy: 50 };
+const ZOOM_CLICK = 2;
+const ZOOM_MAX = 4;
+
+function pointOnImage(e: React.MouseEvent<HTMLImageElement>): { ox: number; oy: number } {
+  // Картинка стоит по центру своей ячейки; её несжатый прямоугольник
+  // считаем от ячейки, а не от getBoundingClientRect самой картинки —
+  // тот уже увеличен и дал бы не ту точку.
+  const img = e.currentTarget;
+  const cell = img.parentElement?.getBoundingClientRect();
+  if (!cell || !img.offsetWidth || !img.offsetHeight) return { ox: 50, oy: 50 };
+  const left = cell.left + (cell.width - img.offsetWidth) / 2;
+  const top = cell.top + (cell.height - img.offsetHeight) / 2;
+  const clamp = (v: number) => Math.min(100, Math.max(0, v));
+  return {
+    ox: clamp(((e.clientX - left) / img.offsetWidth) * 100),
+    oy: clamp(((e.clientY - top) / img.offsetHeight) * 100),
+  };
+}
+
+/**
  * The one full-screen image viewer. Portaled to document.body so no animated
  * ancestor clips it. Closes on Escape, the backdrop, or the ✕; arrows and
  * ←/→ move between images; on touch the strip itself swipes (embla).
  */
-export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: Props) {
-  const [viewportRef, embla] = useEmblaCarousel({ loop: slides.length > 1, startIndex });
+export function Lightbox({
+  slides,
+  startIndex = 0,
+  alt = "",
+  onClose,
+  aside,
+  onIndexChange,
+}: Props) {
+  const [zoom, setZoom] = useState<Zoom>(NO_ZOOM);
+  const zoomed = zoom.scale > 1;
+  // Пока фото увеличено, жест двигает его, а не листает ленту: embla
+  // спрашивает разрешение на перетаскивание у каждого жеста.
+  const zoomedRef = useRef(false);
+  useEffect(() => {
+    zoomedRef.current = zoomed;
+  }, [zoomed]);
+  const [viewportRef, embla] = useEmblaCarousel({
+    loop: slides.length > 1,
+    startIndex,
+    watchDrag: () => !zoomedRef.current,
+  });
   const [selected, setSelected] = useState(startIndex);
+  const dialogRef = useRef<HTMLDivElement>(null);
   // Vertical drag-to-dismiss. Embla owns the horizontal axis (swiping between
   // photos), so this only reacts once the gesture is clearly vertical, and it
   // follows the finger so the dismiss is visible before it commits.
@@ -91,7 +140,8 @@ export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: P
   const [dragY, setDragY] = useState(0);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.pointerType === "mouse") return;
+    // В зуме вертикальный жест просматривает фото, а не закрывает окно.
+    if (e.pointerType === "mouse" || zoomedRef.current) return;
     drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
   };
 
@@ -116,8 +166,13 @@ export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: P
   };
 
   const onSelect = useCallback(() => {
-    if (embla) setSelected(embla.selectedScrollSnap());
-  }, [embla]);
+    if (!embla) return;
+    const i = embla.selectedScrollSnap();
+    setSelected(i);
+    // Новое фото — без зума: увеличение относится к тому, что рассматривали.
+    setZoom(NO_ZOOM);
+    onIndexChange?.(i);
+  }, [embla, onIndexChange]);
 
   useEffect(() => {
     if (!embla) return;
@@ -143,6 +198,16 @@ export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: P
     };
   }, [embla, onClose]);
 
+  // Фокус — на «Закрыть» (или в окно, если крестик у панели) при открытии и
+  // обратно туда, откуда открыли, при закрытии: миниатюра, фото, карточка.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const root = dialogRef.current;
+    const close = root?.querySelector<HTMLButtonElement>('button[aria-label="Закрыть"]');
+    (close ?? root)?.focus();
+    return () => opener?.focus();
+  }, []);
+
   if (typeof document === "undefined") return null;
   // Ни фотографий, ни панели — показывать нечего.
   if (slides.length === 0 && !aside) return null;
@@ -156,6 +221,8 @@ export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: P
     <div
       className="fixed inset-0 z-[var(--z-overlay)] flex items-center justify-center lg:p-6"
       style={{ background: "rgba(0,0,0,0.7)" }}
+      ref={dialogRef}
+      tabIndex={-1}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -267,6 +334,12 @@ export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: P
                         />
                       </div>
                     ) : (
+                      /*
+                        Зум: клик — ×2 в точку клика, повторный — обратно;
+                        колесо — от 1 до 4 к курсору. Увеличенное фото
+                        просматривается движением указателя. Клик по фото
+                        окно не закрывает — это делает клик по затемнению.
+                      */
                       <img
                         src={slide.url}
                         width={1600}
@@ -274,9 +347,33 @@ export function Lightbox({ slides, startIndex = 0, alt = "", onClose, aside }: P
                         loading={i === startIndex ? "eager" : "lazy"}
                         decoding="async"
                         alt={slides.length > 1 ? `${alt} — фото ${i + 1}` : alt}
-                        className="max-h-full max-w-full object-contain"
-                        style={{ borderRadius: 4 }}
+                        className="max-h-full max-w-full object-contain transition-transform duration-200 motion-reduce:transition-none"
+                        style={{
+                          borderRadius: 4,
+                          transform: i === selected && zoomed ? `scale(${zoom.scale})` : undefined,
+                          transformOrigin: i === selected ? `${zoom.ox}% ${zoom.oy}%` : undefined,
+                          cursor: i === selected && zoomed ? "zoom-out" : "zoom-in",
+                        }}
                         draggable={false}
+                        onClick={(e) => {
+                          if (i !== selected) return;
+                          if (zoomed) setZoom(NO_ZOOM);
+                          else setZoom({ scale: ZOOM_CLICK, ...pointOnImage(e) });
+                        }}
+                        onWheel={(e) => {
+                          if (i !== selected) return;
+                          const at = pointOnImage(e);
+                          const step = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+                          setZoom((z) => {
+                            const scale = Math.min(ZOOM_MAX, Math.max(1, z.scale * step));
+                            return scale <= 1.01 ? NO_ZOOM : { scale, ...at };
+                          });
+                        }}
+                        onPointerMove={(e) => {
+                          if (i !== selected || !zoomedRef.current) return;
+                          const at = pointOnImage(e);
+                          setZoom((z) => ({ ...z, ...at }));
+                        }}
                       />
                     )}
                   </div>

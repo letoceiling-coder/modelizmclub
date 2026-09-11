@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { m } from "framer-motion";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
-import { toDisplayMedia, type DisplayMedia } from "@/lib/media/variants";
+import { toDisplayMedia, variantUrl, type DisplayMedia } from "@/lib/media/variants";
+import { Lightbox, type ViewerSlide } from "@/components/post/Lightbox";
 
 /** Square fallback tile — used for a broken/empty single image. */
 function GalleryFallback() {
   return (
     <div
-      className="grid w-full place-items-center"
+      className="grid w-full place-items-center md:max-h-[400px] lg:max-h-[480px]"
       style={{
         aspectRatio: "4 / 3",
         background: "var(--background-surface)",
@@ -57,6 +58,38 @@ export function AdGallery({
   const [selected, setSelected] = useState(0);
   const [broken, setBroken] = useState<Record<number, boolean>>({});
 
+  /*
+    Полноэкранный просмотр — тот же просмотрщик, что в ленте
+    (components/post/Lightbox), второй не заводим. До 11.09 клик по фото
+    не делал ничего: смотреть можно было только в маленьком блоке.
+
+    Открывается с основного фото и с любой миниатюры, на том снимке, по
+    которому кликнули. Слайды — вариант large (1600 px): на весь экран
+    medium уже мыльный. После закрытия галерея стоит на том фото, на котором
+    закончили смотреть.
+  */
+  const [viewerAt, setViewerAt] = useState<number | null>(null);
+  const viewerIndex = useRef(0);
+  const slides = useMemo<ViewerSlide[]>(
+    () =>
+      items.map((m) => ({
+        type: "image" as const,
+        url: m.variants?.large?.webp ?? m.variants?.large?.jpeg ?? variantUrl(m.url, "large"),
+      })),
+    [items],
+  );
+  const openViewer = (i: number) => {
+    viewerIndex.current = i;
+    setViewerAt(i);
+  };
+  const onViewerIndex = useCallback((i: number) => {
+    viewerIndex.current = i;
+  }, []);
+  const closeViewer = useCallback(() => {
+    emblaApi?.scrollTo(viewerIndex.current, true);
+    setViewerAt(null);
+  }, [emblaApi]);
+
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
     const i = emblaApi.selectedScrollSnap();
@@ -82,8 +115,15 @@ export function AdGallery({
 
   return (
     <div className="flex flex-col gap-[12px]">
+      {/*
+        Кадр не выше 400 с 768 и 480 с 1024. Колонка галереи там 656 и
+        504–886 px, и 4:3 давали до 664 px одной картинки — половину высоты
+        страницы. Фото вписывается целиком (contain) на нейтральном фоне, как
+        у Авито: снимок в полный рост больше не обрезается по краям. Смотреть
+        крупно — в просмотрщике.
+      */}
       <div
-        className="relative overflow-hidden"
+        className="relative overflow-hidden md:max-h-[400px] lg:max-h-[480px]"
         style={{
           aspectRatio: "4 / 3",
           background: "var(--background-surface)",
@@ -110,18 +150,27 @@ export function AdGallery({
                     <ImageOff size={40} />
                   </div>
                 ) : (
-                  <ResponsiveImage
-                    media={item}
-                    alt={`${alt} — фото ${i + 1}`}
-                    variants={["medium", "large"]}
-                    sizes="(max-width: 768px) 100vw, 900px"
-                    width={1200}
-                    height={900}
-                    draggable={false}
-                    className="h-full w-full object-cover"
-                    loading={i === 0 ? "eager" : "lazy"}
-                    onError={() => setBroken((b) => ({ ...b, [i]: true }))}
-                  />
+                  // Клик после перетаскивания embla гасит сама — листание
+                  // пальцем просмотрщик не открывает.
+                  <button
+                    type="button"
+                    onClick={() => openViewer(i)}
+                    aria-label={`Открыть фото ${i + 1} из ${items.length}`}
+                    className="block h-full w-full cursor-zoom-in"
+                  >
+                    <ResponsiveImage
+                      media={item}
+                      alt={`${alt} — фото ${i + 1}`}
+                      variants={["medium", "large"]}
+                      sizes="(max-width: 768px) 100vw, 900px"
+                      width={1200}
+                      height={900}
+                      draggable={false}
+                      className="h-full w-full object-contain"
+                      loading={i === 0 ? "eager" : "lazy"}
+                      onError={() => setBroken((b) => ({ ...b, [i]: true }))}
+                    />
+                  </button>
                 )}
               </div>
             ))}
@@ -183,9 +232,12 @@ export function AdGallery({
               <m.button
                 key={item.url + i}
                 type="button"
-                onClick={() => onThumb(i)}
+                onClick={() => {
+                  onThumb(i);
+                  openViewer(i);
+                }}
                 whileTap={{ scale: 0.95 }}
-                aria-label={`Фото ${i + 1}`}
+                aria-label={`Открыть фото ${i + 1} из ${items.length}`}
                 className="grid place-items-center overflow-hidden"
                 style={{
                   flex: "0 0 88px",
@@ -216,6 +268,16 @@ export function AdGallery({
             ))}
           </div>
         </div>
+      )}
+
+      {viewerAt !== null && (
+        <Lightbox
+          slides={slides}
+          startIndex={viewerAt}
+          alt={alt}
+          onClose={closeViewer}
+          onIndexChange={onViewerIndex}
+        />
       )}
     </div>
   );
