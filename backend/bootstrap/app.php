@@ -34,6 +34,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Apply the named "api" rate limiter to every API route.
         $middleware->throttleApi('api');
+
+        // ETag на JSON-ответы 200 и 304 на повторный запрос. Подробности —
+        // в докблоке класса: почему вся группа, а не список публичных маршрутов.
+        $middleware->appendToGroup('api', \App\Http\Middleware\JsonEtag::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, Request $request) {
