@@ -382,7 +382,7 @@ function MyAdsPage() {
 
   return (
     <AppLayout footer>
-      <div className="mx-auto flex w-full max-w-[960px] flex-col gap-[20px]">
+      <div className="flex w-full flex-col gap-[20px]">
         {/* Header */}
         <header className="flex flex-wrap items-end justify-between gap-[12px]">
           <div className="min-w-0">

@@ -109,8 +109,13 @@ export function AppLayout({
           // Нижняя панель исчезает с 768 — с неё же снимается и отступ под неё.
           "md:pb-4",
           "lg:flex-1 lg:items-stretch lg:overflow-hidden lg:px-[var(--container-pad)] lg:pb-0",
+          /*
+            Дорожка панели — по её ширине (auto), а не 320 жёстко: развёрнутая
+            панель и так w-80 = --rightrail-w, а свёрнутая — w-11, и в дорожке
+            в 320 справа от неё оставалось 276 px пустоты.
+          */
           withRail
-            ? "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)_var(--rightrail-w)]"
+            ? "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)_auto]"
             : "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]",
         )}
       >

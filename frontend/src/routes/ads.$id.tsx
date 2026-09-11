@@ -342,7 +342,7 @@ function AdDetailPage() {
 
   return (
     <AppLayout footer>
-      <div className="mx-auto max-w-[1100px] pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0">
+      <div className="pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0">
         {/* Breadcrumbs */}
         <nav
           className="mb-[16px] flex flex-wrap items-center gap-[6px] text-[12px]"
