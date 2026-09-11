@@ -1554,12 +1554,38 @@ function MessengerPage() {
                       borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
-                    <span className="whitespace-nowrap">{t(TAB_LABEL_KEY[key])}</span>
-                    {/* Счётчик непрочитанного. Ноль не рисуется: «0» на пяти
-                        вкладках сообщает лишь о том, что читать нечего. */}
-                    {count > 0 && (
+                    {/*
+                      Ширина вкладки не зависит от данных.
+
+                      Вкладки стоят одним рядом, и любая перемена ширины одной
+                      двигает соседей. Менялась она дважды: счётчик непрочитанного
+                      появлялся и пропадал (он приходит отдельными запросами по
+                      комнатам и сообществам, а открытие чата его гасит), и
+                      активная вкладка переключалась с 500 на 600 без клика — по
+                      открытому диалогу. Замер 11.09, /feed → /messenger на 768:
+                      вкладки ±23 и 42 px, CLS 0,0004 в каждом пятом переходе.
+
+                      Подпись держит ширину полужирной: невидимая копия в той же
+                      клетке сетки. Место под счётчик есть всегда, ноль просто
+                      невидим — как и раньше, «0» не показывается.
+                    */}
+                    <span className="inline-grid">
+                      <span className="whitespace-nowrap [grid-area:1/1]">
+                        {t(TAB_LABEL_KEY[key])}
+                      </span>
                       <span
-                        className="grid min-w-[16px] place-items-center rounded-full px-[4px] text-[10px] font-semibold leading-[16px]"
+                        aria-hidden="true"
+                        className="invisible whitespace-nowrap font-semibold [grid-area:1/1]"
+                      >
+                        {t(TAB_LABEL_KEY[key])}
+                      </span>
+                    </span>
+                    {key !== "calls" && (
+                      <span
+                        aria-hidden={count > 0 ? undefined : true}
+                        // min-w-[24px] — место под две цифры: «9» → «12» иначе
+                        // тоже расширяло бы вкладку.
+                        className={`grid min-w-[24px] place-items-center rounded-full px-[4px] text-[10px] font-semibold leading-[16px] tabular-nums ${count > 0 ? "" : "invisible"}`}
                         style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
                       >
                         {count > 99 ? "99+" : count}
