@@ -76,7 +76,11 @@ export function GlobalSearch() {
           if (e.key === "Enter") goToCatalog();
           if (e.key === "Escape") setOpen(false);
         }}
-        className="w-full text-[14px] outline-none transition-colors"
+        // Фокус тем же кольцом, что у значков шапки (DesktopTopBar). Здесь
+        // стоял `outline-none` без замены: браузерное кольцо снято, своего
+        // нет — с клавиатуры поле терялось. Рамка задана инлайн-стилем и
+        // классом не перебивается, поэтому кольцо — через outline.
+        className="w-full text-[14px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--accent)]"
         style={{
           background: "var(--background-elevated)",
           color: "var(--foreground)",
