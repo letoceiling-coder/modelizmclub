@@ -4,8 +4,52 @@ import type { Ad } from "@/lib/mock";
 import { ChevronLeft, ChevronRight, MapPin, Tag } from "lucide-react";
 import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 import { derivedSrcSet, variantUrl } from "@/lib/media/variants";
+import { categoryPlaceholder } from "@/lib/placeholder-image";
 
 const CARD_WIDTH = 220;
+
+const IMAGE_CLASS =
+  "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105";
+
+/*
+ * Фото карточки или заглушка, как в каталоге (CatalogCard).
+ *
+ * У лота без фото `a.image` пустой, `<img>` уходил без `src` и рисовался
+ * битой картинкой — у всех ступеней, на всех ширинах. Каталог в том же
+ * случае показывает градиент категории; здесь теперь то же самое, и то же
+ * при ошибке загрузки.
+ */
+function SimilarAdImage({ ad }: { ad: Ad }) {
+  const [broken, setBroken] = useState(false);
+  if (!ad.image || broken) {
+    return (
+      <img
+        src={categoryPlaceholder(ad.id, ad.category)}
+        alt={ad.title}
+        width={440}
+        height={330}
+        decoding="async"
+        loading="lazy"
+        className={IMAGE_CLASS}
+      />
+    );
+  }
+  return (
+    <img
+      /* Карточка 440×330 — вариант `card`, а не исходник. */
+      src={variantUrl(ad.image, "card")}
+      srcSet={derivedSrcSet(ad.image, ["thumb", "card"])}
+      sizes="(max-width: 640px) 45vw, 220px"
+      decoding="async"
+      alt={ad.title}
+      width={440}
+      height={330}
+      loading="lazy"
+      onError={() => setBroken(true)}
+      className={IMAGE_CLASS}
+    />
+  );
+}
 const CARD_GAP = 12;
 
 /** Сколько похожих объявлений имеет смысл искать: страница набирает до
@@ -96,18 +140,7 @@ export function SimilarAds({ items }: { items: Ad[] }) {
                 className="overflow-hidden"
                 style={{ aspectRatio: "4 / 3", background: "var(--background-surface)" }}
               >
-                <img
-                  /* Карточка 440×330 — вариант `card`, а не исходник. */
-                  src={variantUrl(a.image, "card")}
-                  srcSet={derivedSrcSet(a.image, ["thumb", "card"])}
-                  sizes="(max-width: 640px) 45vw, 220px"
-                  decoding="async"
-                  alt={a.title}
-                  width={440}
-                  height={330}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                <SimilarAdImage ad={a} />
               </div>
               <div className="flex flex-col gap-[6px] p-[12px]">
                 <h3

@@ -77,7 +77,7 @@ export function UserMenu() {
           <button
             type="button"
             aria-label={t("nav.profile")}
-            className="grid place-items-center rounded-full outline-none transition-colors"
+            className="grid place-items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             style={{ width: 40, height: 40 }}
           >
             <Avatar className="h-9 w-9">

@@ -4,7 +4,7 @@ import type { ViewHistoryItem } from "@/lib/view-history";
 
 interface ApiViewHistoryRow {
   id: string;
-  kind: "ad" | "profile" | "review";
+  kind: ViewHistoryItem["kind"];
   title: string;
   thumb?: string | null;
   viewed_at: string;

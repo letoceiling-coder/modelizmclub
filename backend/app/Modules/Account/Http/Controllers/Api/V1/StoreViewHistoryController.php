@@ -14,7 +14,10 @@ class StoreViewHistoryController extends Controller
     {
         $data = $request->validate([
             'id' => ['required', 'string', 'max:36'],
-            'kind' => ['required', 'string', Rule::in(['ad', 'profile', 'review'])],
+            // `community` пишет страница сообщества (routes/communities.$id.tsx)
+            // с тех пор, как история научилась их показывать. Правило о нём
+            // не знало, и каждый заход вошедшего в сообщество давал 422.
+            'kind' => ['required', 'string', Rule::in(['ad', 'profile', 'review', 'community'])],
             'title' => ['nullable', 'string', 'max:255'],
             'thumb' => ['nullable', 'string', 'max:2048'],
         ]);
