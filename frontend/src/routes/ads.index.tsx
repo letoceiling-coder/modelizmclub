@@ -12,7 +12,7 @@ import {
   AdFiltersSheet,
   AdFiltersPanel,
 } from "@/components/ads/AdFilters";
-import { AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
+import { AdFoundCount, AdSortBar, type SortKey } from "@/components/ads/AdSortBar";
 import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { CatalogCardSkeleton } from "@/components/ads/CatalogCardSkeleton";
@@ -311,9 +311,7 @@ function CatalogPage() {
               sort={sort}
               onSort={setSort}
               onOpenFilters={() => setSheetOpen(true)}
-              count={ads.length}
               filterCount={activeFilterCount}
-              refreshing={isFilterBusy}
             />
 
             {/*
@@ -325,8 +323,13 @@ function CatalogPage() {
               38 px, и запись сдвига приходила с hadRecentInput = false, то
               есть считалась. Тридцать два пикселя пустоты стоят меньше, чем
               прыжок карточек под курсором при каждом выборе фильтра.
+
+              С 11.09 пустым он не бывает: первым в нём стоит «Найдено: N»,
+              фишки встают следом. Без фильтров полоса была пустой — 57 px
+              между строкой сортировки и сеткой.
             */}
             <div className="flex min-h-[32px] flex-wrap items-center gap-[6px]">
+              <AdFoundCount count={ads.length} refreshing={isFilterBusy} />
               {hasAnyFilter && (
                 <>
                   {q && <FilterTag label={`«${q}»`} onRemove={() => setQ("")} />}
