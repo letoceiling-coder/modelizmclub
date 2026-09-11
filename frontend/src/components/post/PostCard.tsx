@@ -21,9 +21,13 @@ import { formatScheduledAt, defaultScheduleTimezone } from "@/lib/post-schedule"
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import {
+  appendCommentPage,
   appendToCommentThread,
+  hasComment,
+  mergePendingComments,
   replaceInCommentThread,
   removeFromCommentThread,
+  type PendingComment,
 } from "@/lib/comment-thread";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -227,6 +231,13 @@ export function PostCard({
   const [commentTotal, setCommentTotal] = useState<number | null>(null);
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
   const commentsReq = useRef(0);
+  // Отправленное, чего ответ сервера мог ещё не знать, — см. mergePendingComments.
+  const pendingComments = useRef(new Map<string, PendingComment>());
+  // Страница записи не передаёт onTogglePost: списка ленты, где живёт
+  // счётчик, там нет, и число под записью не росло после отправки.
+  // Поправку держим сами; новое число с сервера её обнуляет.
+  const [ownCommentDelta, setOwnCommentDelta] = useState(0);
+  useEffect(() => setOwnCommentDelta(0), [post.comments]);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [repostComposerOpen, setRepostComposerOpen] = useState(false);
   const { requirePremium, isAllowed, config: accessConfig } = useGuestAccess();
@@ -317,7 +328,17 @@ export function PostCard({
       fetchPostCommentsPage(post.id, { sort, perPage: COMMENTS_PER_PAGE, page })
         .then(({ comments, lastPage, total }) => {
           if (n !== commentsReq.current) return;
-          setCommentList((prev) => (page === 1 ? comments : [...prev, ...comments]));
+          // Что сервер уже знает, из ожидающих убираем; остальное сливаем с
+          // ответом, а не теряем под ним.
+          for (const id of [...pendingComments.current.keys()]) {
+            if (hasComment(comments, id)) pendingComments.current.delete(id);
+          }
+          const pending = [...pendingComments.current.values()];
+          setCommentList((prev) =>
+            page === 1
+              ? mergePendingComments(comments, pending)
+              : appendCommentPage(prev, comments),
+          );
           setCommentPage(page);
           setCommentLastPage(lastPage);
           setCommentTotal(total);
@@ -366,7 +387,7 @@ export function PostCard({
    * Оптимистичные добавление и удаление правят `post.comments` через
    * `onTogglePost`, так что число остаётся живым.
    */
-  const commentsCount = post.comments ?? 0;
+  const commentsCount = Math.max(0, (post.comments ?? 0) + ownCommentDelta);
 
   // Reading comments is a gated action of its own: when the admin config puts
   // `feed.post.comment` above the guest rung, tapping «Комментарии» opens the
@@ -494,18 +515,30 @@ export function PostCard({
         replies: [],
         images: photos?.urls ?? [],
       };
+      pendingComments.current.set(tempId, { parentId, comment: newC });
       setCommentList((list) => {
         if (!parentId) return [...list, newC];
         return appendToCommentThread(list, parentId, newC);
       });
-      onTogglePost?.(post.id, { comments: (post.comments ?? 0) + 1 });
+      if (onTogglePost) onTogglePost(post.id, { comments: (post.comments ?? 0) + 1 });
+      else setOwnCommentDelta((d) => d + 1);
       createComment(post.id, text, parentId, photos?.mediaIds)
         .then((saved) => {
-          setCommentList((list) => replaceInCommentThread(list, parentId, tempId, saved));
+          pendingComments.current.delete(tempId);
+          pendingComments.current.set(saved.id, { parentId, comment: saved });
+          // Ответ ветки мог принести сохранённый раньше, чем вернулся POST:
+          // тогда временную строку убираем, а не превращаем во второй экземпляр.
+          setCommentList((list) =>
+            hasComment(list, saved.id)
+              ? removeFromCommentThread(list, tempId)
+              : replaceInCommentThread(list, parentId, tempId, saved),
+          );
         })
         .catch(() => {
+          pendingComments.current.delete(tempId);
           setCommentList((list) => removeFromCommentThread(list, tempId));
-          onTogglePost?.(post.id, { comments: post.comments ?? 0 });
+          if (onTogglePost) onTogglePost(post.id, { comments: post.comments ?? 0 });
+          else setOwnCommentDelta((d) => d - 1);
           toast.error(t("components.commentSection.sendFailed"));
         });
     });
@@ -630,9 +663,12 @@ export function PostCard({
             loadingMore={commentsLoadingMore}
             hasMore={commentPage > 0 && commentPage < commentLastPage}
             onDeleted={(id) => {
+              pendingComments.current.delete(id);
               setCommentList((prev) => removeFromCommentThread(prev, id));
               setCommentTotal((n) => (n === null ? n : Math.max(0, n - 1)));
-              onTogglePost?.(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
+              if (onTogglePost)
+                onTogglePost(post.id, { comments: Math.max(0, (post.comments ?? 0) - 1) });
+              else setOwnCommentDelta((d) => d - 1);
             }}
             onSortChange={(next) => {
               setCommentSort(next);
