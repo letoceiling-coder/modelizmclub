@@ -254,6 +254,18 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
                   </td>
                   <td className="py-2" style={{ color: "var(--foreground-50)" }}>
                     {row.provider ?? "—"}
+                    {row.is_test && (
+                      <span
+                        className="ml-2 inline-block whitespace-nowrap rounded-full px-2 py-[1px] text-[11px] font-medium"
+                        style={{
+                          background: "var(--warning-soft, #fff4e5)",
+                          color: "var(--warning, #b45309)",
+                        }}
+                        title="Платёж прошёл через заглушку: статус «оплачен» поставлен без банка"
+                      >
+                        заглушка · не деньги
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
