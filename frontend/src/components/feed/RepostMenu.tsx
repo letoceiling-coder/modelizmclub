@@ -3,7 +3,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "react-i18next";
 import { m, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft } from "lucide-react";
+import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft, Forward } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { actions } from "@/lib/store";
 import { userById } from "@/lib/user-registry";
@@ -21,6 +21,9 @@ interface Props {
   /** Класс кнопки — приходит из строки действий, чтобы репост выглядел
    *  и вёл себя ровно как соседи. */
   className: string;
+  /** Значок кнопки. `share` — простая стрелка «Поделиться», для панели
+   *  просмотрщика; меню за ней то же. */
+  icon?: "repost" | "share";
 }
 
 type View = "main" | "chats" | "share";
@@ -32,6 +35,7 @@ export function RepostMenu({
   onRepost,
   disabled = false,
   className,
+  icon = "repost",
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
@@ -137,7 +141,11 @@ export function RepostMenu({
         aria-expanded={open}
         aria-disabled={disabled}
       >
-        <Repeat2 className="h-[20px] w-[20px]" />
+        {icon === "share" ? (
+          <Forward className="h-[20px] w-[20px]" />
+        ) : (
+          <Repeat2 className="h-[20px] w-[20px]" />
+        )}
         {count > 0 && <span className="tabular-nums">{count}</span>}
       </button>
 

@@ -36,6 +36,11 @@ interface Props {
   onSave: () => void;
   onComments: () => void;
   onRepost: () => void;
+  /**
+   * `viewer` — панель в просмотрщике. Кнопки комментариев там нет:
+   * комментарии уже открыты под ней. «Поделиться» — простой стрелкой.
+   */
+  variant?: "card" | "viewer";
 }
 
 /**
@@ -64,6 +69,7 @@ export function PostActions({
   onSave,
   onComments,
   onRepost,
+  variant = "card",
 }: Props) {
   const { t } = useTranslation();
   return (
@@ -113,7 +119,7 @@ export function PostActions({
         </Gated>
       )}
 
-      {commentsEnabled && (
+      {commentsEnabled && variant === "card" && (
         <button
           type="button"
           onClick={onComments}
@@ -135,6 +141,7 @@ export function PostActions({
         count={reposts}
         onRepost={onRepost}
         disabled={!canInteract}
+        icon={variant === "viewer" ? "share" : "repost"}
       />
 
       <Gated level={levelFor("feed.post.save")} action={onSave} entity={post}>

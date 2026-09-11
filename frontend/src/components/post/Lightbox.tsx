@@ -253,10 +253,20 @@ export function Lightbox({
               сортировка съедают панель раньше, чем очередь доходит до
               самих комментариев, ради которых окно и открывали.
             */
-            className={`relative flex min-h-0 min-w-0 items-center justify-center ${
+            /*
+              От 1024 своего фона у колонки нет: фото лежит прямо на
+              затемнении, как у VK. Здесь была чёрная подложка 0,92 — поверх
+              затемнения 0,7 она давала вокруг снимка отдельную чёрную
+              плашку рядом с белой панелью.
+
+              Ниже 1024 окно — весь экран, «вокруг» у него нет. Прозрачная
+              колонка там показывала ленту сквозь затемнение по бокам
+              снимка, поэтому фон остаётся — тот же, что у затемнения, но
+              плотный: экран просмотра, а не рамка вокруг фото.
+            */
+            className={`relative flex min-h-0 min-w-0 items-center justify-center bg-black lg:bg-transparent ${
               aside ? "max-h-[32vh] flex-1 lg:max-h-none" : "flex-1"
             }`}
-            style={{ background: "rgba(0,0,0,0.92)" }}
           >
             {/*
               Когда панель есть, крестик живёт в её шапке — там же, где он у
@@ -318,7 +328,9 @@ export function Lightbox({
                 {slides.map((slide, i) => (
                   <div
                     key={`${slide.url}-${i}`}
-                    className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center p-[16px]"
+                    // Без полей: фото занимает весь медиаблок, а не
+                    // вписывается в рамку с отступом 16 и скруглением.
+                    className="flex h-full min-w-0 flex-[0_0_100%] items-center justify-center"
                   >
                     {slide.type === "video" ? (
                       /* Тот же проигрыватель, что в ленте: он сам держит
@@ -359,7 +371,6 @@ export function Lightbox({
                         */
                         className="h-full w-full object-contain transition-transform duration-200 motion-reduce:transition-none"
                         style={{
-                          borderRadius: 4,
                           transform: i === selected && zoomed ? `scale(${zoom.scale})` : undefined,
                           transformOrigin: i === selected ? `${zoom.ox}% ${zoom.oy}%` : undefined,
                           cursor: i === selected && zoomed ? "zoom-out" : "zoom-in",

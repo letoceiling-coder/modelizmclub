@@ -114,9 +114,14 @@ export function PostMedia({
     );
   }
 
+  // Пропорция из API — одиночное фото встаёт в свой размер с первого кадра.
   const imageItems = items
     .filter((item) => item.type === "image")
-    .map((item) => ({ url: item.url, variants: item.variants }));
+    .map((item) => ({
+      url: item.url,
+      variants: item.variants,
+      aspect: item.width && item.height ? item.width / item.height : undefined,
+    }));
   return (
     <FeedMediaGrid
       images={imageItems}
