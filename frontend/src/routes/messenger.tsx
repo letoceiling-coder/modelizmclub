@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { Appear } from "@/components/ui/Appear";
 import { userById } from "@/lib/user-registry";
 import { makeMockWaveform } from "@/lib/media/waveform";
 import type { Dialog, Message } from "@/lib/mock";
@@ -531,6 +532,8 @@ function PostMessageCard({ post }: { post: NonNullable<Message["post"]> }) {
 const MessageBubble = memo(function MessageBubble({
   msg,
   prev,
+  next,
+  showName,
   reply,
   onReply,
   onCopy,
@@ -545,6 +548,10 @@ const MessageBubble = memo(function MessageBubble({
 }: {
   msg: Message;
   prev?: Message;
+  /** Следующее сообщение — чтобы знать, последний ли это пузырь серии. */
+  next?: Message;
+  /** Групповой чат: у первого пузыря серии — имя автора. */
+  showName?: boolean;
   /** Сообщение, на которое отвечают, — уже найденное списком. */
   reply?: Message;
   onReply: (m: Message) => void;
@@ -563,6 +570,13 @@ const MessageBubble = memo(function MessageBubble({
   const isMe = msg.authorId === meId;
   const author = userById(msg.authorId);
   const isFirstInGroup = !prev || prev.authorId !== msg.authorId;
+  const isLastInGroup = !next || next.authorId !== msg.authorId;
+  /*
+    Пузырь как в Telegram и VK: радиус 16, у последнего в серии угол со
+    стороны отправителя — 4, «хвостик». До 11.09 угол 4 стоял у каждого
+    пузыря, и серия читалась не столбиком, а лесенкой.
+  */
+  const radius = isLastInGroup ? (isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px") : "16px";
   const hasMedia = Boolean(msg.image || msg.file || msg.voice || msg.listing);
   const replyAuthor = reply ? userById(reply.authorId) : null;
   const forwardedAuthor = msg.forwardedFrom ? userById(msg.forwardedFrom) : null;
@@ -581,10 +595,15 @@ const MessageBubble = memo(function MessageBubble({
   };
 
   return (
-    <m.div
-      initial={hasMedia ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: hasMedia ? 0.18 : 0.3, ease: [0.22, 1, 0.36, 1] }}
+    /*
+      Appear, а не motion.div с initial: переписка — первый экран чата, и
+      initial прятал бы уже пришедшие сообщения до конца гидрации (правило
+      в CLAUDE.md). Appear анимирует только смонтированное позже — новое
+      сообщение, догрузку истории.
+    */
+    <Appear
+      y={hasMedia ? 0 : 8}
+      durationMs={hasMedia ? 180 : 300}
       className={`group flex items-end gap-[8px] ${isMe ? "justify-end" : "justify-start"}`}
       style={{ marginTop: isFirstInGroup ? 16 : 4 }}
     >
@@ -594,7 +613,8 @@ const MessageBubble = memo(function MessageBubble({
         </div>
       )}
       <div
-        className="relative max-w-[82%] sm:max-w-[70%]"
+        // 70 % колонки переписки на любой ширине — как в Telegram и VK.
+        className="relative max-w-[70%]"
         data-msg-id={msg.id}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -625,16 +645,25 @@ const MessageBubble = memo(function MessageBubble({
           />
         </div>
         <div
-          className="px-[14px] py-[10px] transition-shadow duration-300"
+          className="px-[12px] py-[8px] transition-shadow duration-300"
           style={{
             background: isMe ? "var(--accent)" : "var(--background-surface)",
             color: isMe ? "white" : "var(--foreground)",
-            borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+            borderRadius: radius,
             boxShadow: isSearchHit
               ? "0 0 0 2px var(--accent), 0 0 0 6px color-mix(in oklab, var(--accent) 25%, transparent)"
               : undefined,
           }}
         >
+          {/* В групповом чате имя — у первого пузыря серии, как и аватар. */}
+          {showName && !isMe && isFirstInGroup && (
+            <div
+              className="mb-[4px] truncate text-caption font-semibold"
+              style={{ color: "var(--accent)" }}
+            >
+              {author.name}
+            </div>
+          )}
           {forwardedAuthor && (
             <div
               className="mb-[6px] text-[11px] font-semibold italic"
@@ -688,16 +717,168 @@ const MessageBubble = memo(function MessageBubble({
               )}
             </div>
           )}
+          {/* Время — caption обычным шрифтом, приглушённое, в правом нижнем
+              углу; галочки доставки рядом. Было моноширинным 10 px. */}
           <div
-            className="mt-[4px] flex items-center justify-end gap-[4px] font-mono text-[10px]"
-            style={{ color: isMe ? "rgba(255,255,255,0.6)" : "var(--foreground-30)" }}
+            className="mt-[4px] flex items-center justify-end gap-[4px] text-caption"
+            style={{ color: isMe ? "rgba(255,255,255,0.7)" : "var(--foreground-50)" }}
           >
             <TimeAgo iso={msg.time} />
             {isMe && <StatusIcon status={msg.status} />}
           </div>
         </div>
       </div>
-    </m.div>
+    </Appear>
+  );
+});
+
+/**
+ * Строка списка диалогов.
+ *
+ * memo, и все пропсы — примитивы или устойчивые ссылки: объект диалога
+ * при новом сообщении меняется только у того, в котором оно пришло
+ * (addMessageToCache), обработчики обёрнуты в useCallback. Диалог
+ * поднимается наверх — React переносит его узел, остальные строки не
+ * перерисовываются.
+ *
+ * Имя — из dialogIdentity для любого типа. До 11.09 так было только у
+ * чатов направлений, а у сообществ userId пустой, и строка показывала
+ * «Пользователь» с пустым аватаром.
+ */
+const DialogRow = memo(function DialogRow({
+  d,
+  name,
+  avatar,
+  online,
+  isActive,
+  isUnread,
+  muted,
+  blocked,
+  archived,
+  onSelect,
+  onMenu,
+  onLongPressStart,
+  onLongPressCancel,
+}: {
+  d: Dialog;
+  name: string;
+  avatar?: string;
+  online: boolean;
+  isActive: boolean;
+  isUnread: boolean;
+  muted: boolean;
+  blocked: boolean;
+  archived: boolean;
+  onSelect: (id: string) => void;
+  onMenu: (dialogId: string, point: { x: number; y: number }) => void;
+  onLongPressStart: (id: string, x: number, y: number) => void;
+  onLongPressCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <li>
+      <button
+        onClick={() => onSelect(d.id)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onMenu(d.id, { x: e.clientX, y: e.clientY });
+        }}
+        onTouchStart={(e) => {
+          const touch = e.touches[0];
+          onLongPressStart(d.id, touch.clientX, touch.clientY);
+        }}
+        onTouchEnd={onLongPressCancel}
+        onTouchMove={onLongPressCancel}
+        className="group flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
+        style={{
+          background: isActive ? "var(--accent-soft)" : "transparent",
+          borderBottom: "1px solid var(--border)",
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) e.currentTarget.style.background = "var(--background-surface-hover)";
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) e.currentTarget.style.background = "transparent";
+        }}
+      >
+        <UserAvatar src={avatar} name={name} size={48} online={online} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-[8px]">
+            {/* Flex row of [pin?] name [muted?/blocked?/archived?].
+                The name must carry BOTH `truncate` and `min-w-0`
+                — a flex child's default `min-width:auto` otherwise
+                refuses to shrink below its text's intrinsic width,
+                so once a pin/mute icon takes space the name gets
+                clipped (or hidden entirely) instead of ellipsizing.
+                `truncate` on the flex *container* is a no-op, so it
+                lives only on the text span. */}
+            <span
+              className="flex min-w-0 flex-1 items-center gap-[4px] font-display text-[14px]"
+              // Непрочитанное — жирным, прочитанное — обычным весом.
+              style={{ color: "var(--foreground)", fontWeight: isUnread ? 700 : 400 }}
+            >
+              {d.pinned && <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />}
+              <span className="min-w-0 flex-1 truncate" title={name}>
+                {name}
+              </span>
+              {muted && (
+                <BellOff size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />
+              )}
+              {blocked && <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />}
+              {archived && (
+                <Archive size={12} style={{ color: "var(--foreground-50)", flexShrink: 0 }} />
+              )}
+            </span>
+            {/*
+              Время — caption обычным шрифтом одного веса: метка прижата
+              вправо, и смена начертания при прочтении меняла бы её ширину
+              и двигала левый край. Непрочитанное — цветом, счётчиком и
+              жирным именем.
+            */}
+            <TimeAgo
+              iso={d.time}
+              className="shrink-0 text-caption"
+              style={{ color: isUnread ? "var(--accent)" : "var(--foreground-50)" }}
+            />
+          </div>
+          <div
+            className="truncate text-[13px]"
+            style={{
+              color: isUnread ? "var(--foreground)" : "var(--foreground-50)",
+              fontWeight: isUnread ? 600 : 400,
+            }}
+          >
+            {/* Своё последнее сообщение — с пометкой, как в VK и Telegram. */}
+            {d.lastFromMe && d.lastMessage ? `${t("pages.shared.you")}: ` : ""}
+            {d.lastMessage}
+          </div>
+        </div>
+        {isUnread && (
+          <Badge
+            variant="default"
+            withIcon={false}
+            className="h-[20px] min-w-[20px] shrink-0 justify-center rounded-full px-[4px] py-0 text-[11px] leading-none tabular-nums"
+          >
+            {(d.unread ?? 0) > 99 ? "99+" : d.unread}
+          </Badge>
+        )}
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={t("pages.messenger.chatActions")}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            onMenu(d.id, { x: r.left, y: r.bottom });
+          }}
+          className={`grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${TAP_TARGET_44}`}
+          style={{ color: "var(--foreground-50)" }}
+        >
+          <MoreHorizontal size={16} />
+        </span>
+      </button>
+    </li>
   );
 });
 
@@ -1209,6 +1390,44 @@ function MessengerPage() {
     }
   };
 
+  /*
+    Обработчики строк списка — одни и те же между рендерами.
+
+    Строка — memo-компонент (DialogRow): диалог, поднявшийся наверх после
+    нового сообщения, не должен перерисовывать остальные, и таймер
+    присутствия раз в 30 с — тоже. Функции выше пересоздаются на каждом
+    рендере, поэтому строки получают устойчивые обёртки, а свежие версии
+    лежат в ref.
+  */
+  const rowHandlers = useRef({
+    select: handleSelect,
+    startLongPress: startDialogLongPress,
+    cancelLongPress: cancelDialogLongPress,
+  });
+  useEffect(() => {
+    rowHandlers.current = {
+      select: handleSelect,
+      startLongPress: startDialogLongPress,
+      cancelLongPress: cancelDialogLongPress,
+    };
+  });
+  const onRowSelect = useCallback((id: string) => {
+    if (suppressNextDialogClick.current) {
+      suppressNextDialogClick.current = false;
+      return;
+    }
+    rowHandlers.current.select(id);
+  }, []);
+  const onRowLongPressStart = useCallback(
+    (id: string, x: number, y: number) => rowHandlers.current.startLongPress(id, x, y),
+    [],
+  );
+  const onRowLongPressCancel = useCallback(() => rowHandlers.current.cancelLongPress(), []);
+  const onRowMenu = useCallback(
+    (dialogId: string, point: { x: number; y: number }) => setDialogCtxMenu({ dialogId, point }),
+    [],
+  );
+
   const send = async () => {
     if (!text.trim() || !active || sendingRef.current) return;
     let allowed = false;
@@ -1484,7 +1703,7 @@ function MessengerPage() {
           mobileView === "chat"
             ? "h-[calc(100dvh-var(--safe-top)-var(--safe-bottom)-24px)]"
             : "h-[calc(100dvh-var(--safe-top)-var(--bottom-nav-space)-28px)]"
-        } md:grid-cols-[380px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] lg:grid-cols-[400px_1fr]`}
+        } md:grid-cols-[320px_1fr] lg:h-[calc(100vh-var(--desktop-topbar-h)-var(--mobile-header-h)-28px)] xl:grid-cols-[360px_1fr]`}
         style={{
           background: "var(--background)",
           border: "1px solid var(--border)",
@@ -1532,7 +1751,7 @@ function MessengerPage() {
             */}
             <div
               ref={tabsRowRef}
-              className="flex gap-[2px] overflow-x-auto px-[8px]"
+              className="flex gap-[4px] overflow-x-auto px-[8px]"
               style={{ borderBottom: "1px solid var(--border)", scrollbarWidth: "none" }}
               role="tablist"
             >
@@ -1546,7 +1765,7 @@ function MessengerPage() {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setTab(key)}
-                    className={`flex shrink-0 items-center gap-[5px] px-[8px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                    className={`flex shrink-0 items-center gap-[4px] px-[8px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
                     style={{
                       height: 32,
                       fontWeight: isActive ? 600 : 500,
@@ -1622,144 +1841,26 @@ function MessengerPage() {
             ) : (
               <ul>
                 {filtered.map((d) => {
-                  const u =
-                    d.type === "room"
-                      ? { ...userById(d.userId), name: dialogIdentity(d).name, avatar: undefined }
-                      : userById(d.userId);
-                  const isActive = d.id === activeId;
-                  const isUnread = !!d.unread && !getMeta(d.id).muted;
+                  const identity = dialogIdentity(d);
+                  const meta = getMeta(d.id);
+                  const isDirect = d.type !== "community" && d.type !== "room";
                   return (
-                    <li key={d.id}>
-                      <button
-                        onClick={() => {
-                          if (suppressNextDialogClick.current) {
-                            suppressNextDialogClick.current = false;
-                            return;
-                          }
-                          handleSelect(d.id);
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          setDialogCtxMenu({
-                            dialogId: d.id,
-                            point: { x: e.clientX, y: e.clientY },
-                          });
-                        }}
-                        onTouchStart={(e) => {
-                          const t = e.touches[0];
-                          startDialogLongPress(d.id, t.clientX, t.clientY);
-                        }}
-                        onTouchEnd={cancelDialogLongPress}
-                        onTouchMove={cancelDialogLongPress}
-                        className="group flex w-full items-center gap-[12px] px-[16px] py-[12px] text-left transition-colors duration-150"
-                        style={{
-                          background: isActive ? "var(--accent-soft)" : "transparent",
-                          borderBottom: "1px solid var(--border)",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isActive)
-                            e.currentTarget.style.background = "var(--background-surface-hover)";
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) e.currentTarget.style.background = "transparent";
-                        }}
-                      >
-                        <UserAvatar
-                          src={u.avatar}
-                          name={u.name}
-                          size={48}
-                          online={isUserOnline(d.userId, onlineSet, u)}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline justify-between gap-[8px]">
-                            {/* Flex row of [pin?] name [muted?/blocked?/archived?].
-                                The name must carry BOTH `truncate` and `min-w-0`
-                                — a flex child's default `min-width:auto` otherwise
-                                refuses to shrink below its text's intrinsic width,
-                                so once a pin/mute icon takes space the name gets
-                                clipped (or hidden entirely) instead of ellipsizing.
-                                `truncate` on the flex *container* is a no-op, so it
-                                lives only on the text span. */}
-                            <span
-                              className="flex min-w-0 flex-1 items-center gap-[6px] font-display text-[14px] font-semibold"
-                              style={{ color: "var(--foreground)" }}
-                            >
-                              {d.pinned && (
-                                <Pin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                              )}
-                              <span className="min-w-0 flex-1 truncate" title={u.name}>
-                                {u.name}
-                              </span>
-                              {getMeta(d.id).muted && (
-                                <BellOff
-                                  size={12}
-                                  style={{ color: "var(--foreground-50)", flexShrink: 0 }}
-                                />
-                              )}
-                              {isPartnerBlocked(d.userId) && (
-                                <Ban size={12} style={{ color: "var(--error)", flexShrink: 0 }} />
-                              )}
-                              {getMeta(d.id).archived && (
-                                <Archive
-                                  size={12}
-                                  style={{ color: "var(--foreground-50)", flexShrink: 0 }}
-                                />
-                              )}
-                            </span>
-                            {/*
-                              Непрочитанное — только цветом, без полужирного.
-                              Метка прижата вправо, а полужирный в IBM Plex Mono
-                              другой ширины (89 против 99 px у «сегодня в 17:14»):
-                              когда диалог становится прочитанным, метка меняла
-                              бы ширину и сдвигала свой левый край.
-                              Непрочитанность и так видна — счётчик и имя.
-
-                              Сдвиг, замеренный 11.09 на переходе в мессенджер,
-                              был другим — подменой шрифта; он закрыт в
-                              lib/fonts/warm-mono.ts.
-                            */}
-                            <TimeAgo
-                              iso={d.time}
-                              className="shrink-0 font-mono text-[11px]"
-                              style={{ color: isUnread ? "var(--accent)" : "var(--foreground-50)" }}
-                            />
-                          </div>
-                          <div
-                            className="truncate text-[13px]"
-                            style={{
-                              color: isUnread ? "var(--foreground)" : "var(--foreground-50)",
-                              fontWeight: isUnread ? 600 : 400,
-                            }}
-                          >
-                            {d.lastMessage}
-                          </div>
-                        </div>
-                        {!!d.unread && !getMeta(d.id).muted && (
-                          <Badge
-                            variant="default"
-                            withIcon={false}
-                            className="h-[20px] min-w-[20px] shrink-0 justify-center rounded-full px-[6px] py-0 text-[11px] leading-none tabular-nums"
-                          >
-                            {d.unread}
-                          </Badge>
-                        )}
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          aria-label={t("pages.messenger.chatActions")}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                            setDialogCtxMenu({ dialogId: d.id, point: { x: r.left, y: r.bottom } });
-                          }}
-                          className={`grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${TAP_TARGET_44}`}
-                          style={{ color: "var(--foreground-50)" }}
-                        >
-                          <MoreHorizontal size={16} />
-                        </span>
-                      </button>
-                    </li>
+                    <DialogRow
+                      key={d.id}
+                      d={d}
+                      name={identity.name}
+                      avatar={identity.avatar}
+                      online={isDirect && isUserOnline(d.userId, onlineSet, userById(d.userId))}
+                      isActive={d.id === activeId}
+                      isUnread={!!d.unread && !meta.muted}
+                      muted={Boolean(meta.muted)}
+                      blocked={isDirect && isPartnerBlocked(d.userId)}
+                      archived={Boolean(meta.archived)}
+                      onSelect={onRowSelect}
+                      onMenu={onRowMenu}
+                      onLongPressStart={onRowLongPressStart}
+                      onLongPressCancel={onRowLongPressCancel}
+                    />
                   );
                 })}
               </ul>
@@ -1960,7 +2061,15 @@ function MessengerPage() {
                           {m.id === firstUnreadId && <NewMessagesDivider />}
                           <MessageBubble
                             msg={m}
-                            prev={arr[i - 1]}
+                            // Разделитель «Новые сообщения» рвёт серию: у пузыря
+                            // над ним — хвостик, у пузыря под ним — аватар и имя.
+                            prev={m.id === firstUnreadId ? undefined : arr[i - 1]}
+                            next={arr[i + 1]?.id === firstUnreadId ? undefined : arr[i + 1]}
+                            showName={
+                              active.type === "community" ||
+                              active.type === "room" ||
+                              active.type === "group"
+                            }
                             reply={m.replyTo ? messageById.get(m.replyTo) : undefined}
                             onReply={setReplyTo}
                             onCopy={handleCopy}

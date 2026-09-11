@@ -433,6 +433,8 @@ export interface Dialog {
   lastReadMessageId?: string;
   /** Чат безопасной сделки — статус показываем прямо в шапке диалога. */
   deal?: DialogDealRef;
+  /** Последнее сообщение — своё: в превью списка перед ним «Вы: ». */
+  lastFromMe?: boolean;
 }
 
 export interface DialogDealRef {

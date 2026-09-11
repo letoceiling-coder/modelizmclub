@@ -68,6 +68,8 @@ import { VideoUploadField } from "@/components/reviews/VideoUploadField";
 import { uploadMedia, uploadMediaDeduped } from "@/lib/api/media";
 import { EntityRequestForm } from "@/components/entity-requests/EntityRequestForm";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { EmojiPicker } from "@/components/messenger/EmojiPicker";
+import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { EntityHeader, type EntityAction } from "@/components/entity/EntityHeader";
 import { EntityTabs } from "@/components/entity/EntityTabs";
 import { EntityMoreMenu, type MoreMenuItem } from "@/components/entity/EntityMoreMenu";
@@ -873,6 +875,9 @@ function Composer({
   const [expanded, setExpanded] = useState(false);
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
+  // Эмодзи — тот же выбор, что в сообщениях и комментариях; длина — в пределах MAX.
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const insertEmoji = useInsertAtCaret(textRef, text, (next) => setText(next.slice(0, MAX)));
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const photosRef = useRef(photos);
@@ -1054,6 +1059,7 @@ function Composer({
       </div>
 
       <textarea
+        ref={textRef}
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, MAX))}
         rows={4}
@@ -1076,6 +1082,9 @@ function Composer({
           e.currentTarget.style.borderColor = "transparent";
         }}
       />
+      <div className="mt-[4px] flex justify-end">
+        <EmojiPicker onPick={insertEmoji} align="end" compact />
+      </div>
 
       <div className="mt-3">
         <ImageUploadGrid

@@ -1,5 +1,6 @@
 import { m, type MotionProps } from "framer-motion";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 interface Props extends Omit<MotionProps, "initial" | "animate"> {
   children: ReactNode;
@@ -20,22 +21,29 @@ interface Props extends Omit<MotionProps, "initial" | "animate"> {
  * баннера ленты по той же причине держался на 6,7 с при готовой к 3,1 с
  * картинке.
  *
- * Здесь `initial` не задаётся вовсе на первом рендере — ни на сервере, ни при
- * гидрации, — поэтому элемент виден сразу. Анимация включается со второго
- * рендера: то, что смонтировано позже (переключение вкладки, догрузка
- * страницы ленты, ответ на действие), появляется с движением, как и задумано.
+ * Поэтому то, что пришло с сервера и гидрируется, `initial` не получает —
+ * видно сразу. То, что смонтировано позже (новое сообщение, догрузка
+ * страницы ленты, переключение вкладки, ответ на действие), появляется с
+ * движением.
+ *
+ * Решение принимается один раз, при монтировании: framer-motion читает
+ * `initial` только тогда. До 11.09 здесь было состояние «смонтирован»,
+ * которое у каждого нового элемента начиналось с false, — и `initial={false}`
+ * получали все, в том числе появившиеся позже: анимации не было нигде.
+ * `useHydrated` отвечает false только при гидрации серверной разметки и true
+ * для всего, что смонтировано после.
  *
  * Для входа по скроллу это не нужно: `whileInView` у блоков ниже сгиба
  * скрывает то, чего пользователь ещё не видит, и вреда не приносит.
  */
 export function Appear({ children, className, y = 8, durationMs = 300, ...rest }: Props) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const hydrated = useHydrated();
+  const [animateIn] = useState(hydrated);
 
   return (
     <m.div
       className={className}
-      initial={mounted ? { opacity: 0, y } : false}
+      initial={animateIn ? { opacity: 0, y } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: durationMs / 1000, ease: [0.22, 1, 0.36, 1] }}
       {...rest}

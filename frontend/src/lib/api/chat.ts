@@ -247,6 +247,8 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
     id: c.uuid,
     userId: isCommunity || isRoom ? "" : (partner?.id ?? ""),
     lastMessage: c.last_message?.body ?? "",
+    // Своё последнее сообщение — в превью списка перед ним «Вы: ».
+    lastFromMe: Boolean(meUuid) && c.last_message?.author?.uuid === meUuid,
     time: c.last_message_at ?? c.last_message?.created_at ?? "",
     unread: Math.max(0, c.unread_count ?? 0),
     messages: [],
