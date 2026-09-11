@@ -6,11 +6,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import type { Category, CategoryChild } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import {
-  ROOM_TABS,
-  SubcategoryRoomPage,
-  type RoomTab,
-} from "@/components/categories/SubcategoryRoomPage";
+import { SubcategoryRoomPage } from "@/components/categories/SubcategoryRoomPage";
+import { ROOM_TABS, type RoomTab } from "@/components/categories/room-tabs";
 import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import {
   membersForSubcategory,

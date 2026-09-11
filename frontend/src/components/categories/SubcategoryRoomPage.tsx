@@ -57,18 +57,10 @@ import { fetchFeed } from "@/lib/api/feed";
 import type { Post } from "@/lib/mock";
 import i18n from "@/lib/i18n";
 import { reportReadFailure } from "@/lib/errors/handle";
-
-/**
- * «Записи» стоят первыми и открываются по умолчанию. Панель справа даёт две
- * двери в комнату — название и значок чата, — и пока обе вели на чат, вторая
- * ничего не добавляла. Теперь название открывает записи, значок — чат.
- */
-export type RoomTab = "posts" | "chat" | "ads" | "members";
+import { ROOM_TABS, type RoomTab } from "@/components/categories/room-tabs";
 
 /** Столько же, сколько берёт лента. */
 const PAGE_SIZE = 20;
-
-export const ROOM_TABS: readonly RoomTab[] = ["posts", "chat", "ads", "members"];
 
 type Tab = RoomTab;
 
