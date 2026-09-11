@@ -527,7 +527,10 @@ function FriendsPage() {
                 >
                   {t.label}
                   <span
-                    className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold"
+                    // tabular-nums: цифры одной ширины. Счётчики приходят после
+                    // вкладок, и «0» → «8» расширяло пилюлю на 3 px — соседние
+                    // вкладки ехали вправо (замер 11.09, переходы на /friends).
+                    className="inline-flex h-[20px] min-w-[20px] items-center justify-center px-[6px] text-[11px] font-bold tabular-nums"
                     style={{
                       background: active ? "var(--accent-soft)" : "var(--background-surface)",
                       color: active ? "var(--accent)" : "var(--foreground-50)",
