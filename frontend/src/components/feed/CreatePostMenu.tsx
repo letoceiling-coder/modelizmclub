@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, Plus, Send } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -164,7 +164,7 @@ function ComposerActions({
           сверху: зона нажатия кнопки внутри срезалась до 37px. Паддинг
           с равным отрицательным полем растит область обрезки, не двигая
           строку. */}
-      <motion.div
+      <m.div
         className="-mx-1 -my-1 flex shrink-0 justify-end overflow-hidden px-1 py-1"
         initial={false}
         // Ширина анимируется по border-box, а паддинг ниже — часть зоны
@@ -177,7 +177,7 @@ function ComposerActions({
           style={{ width: sendable ? ACTIONS_WIDTH_EXPANDED : BTN_SIZE }}
         >
           {sendable && (
-            <motion.button
+            <m.button
               type="button"
               aria-label={t("components.createPostMenu.sendAria")}
               onPointerDown={(e) => e.preventDefault()}
@@ -203,7 +203,7 @@ function ComposerActions({
               }}
             >
               <Send size={17} className="-translate-x-px translate-y-px" />
-            </motion.button>
+            </m.button>
           )}
 
           <button
@@ -231,7 +231,7 @@ function ComposerActions({
             )}
           </button>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Outside overflow-hidden so the hover panel is not clipped */}
       {!isMobile && open && (

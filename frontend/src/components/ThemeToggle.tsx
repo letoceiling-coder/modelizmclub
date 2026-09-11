@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/components/ThemeProvider";
@@ -38,7 +38,7 @@ export function ThemeToggle({
       onMouseLeave={(e) => (e.currentTarget.style.background = "var(--background-surface)")}
     >
       <AnimatePresence mode="wait" initial={false}>
-        <motion.span
+        <m.span
           key={isDark ? "moon" : "sun"}
           initial={{ opacity: 0, rotate: -90 }}
           animate={{ opacity: 1, rotate: 0 }}
@@ -51,7 +51,7 @@ export function ThemeToggle({
           ) : (
             <Moon size={20} color="var(--foreground-70)" />
           )}
-        </motion.span>
+        </m.span>
       </AnimatePresence>
     </button>
   );

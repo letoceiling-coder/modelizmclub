@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Users, Megaphone, Newspaper, ShieldCheck, UserPlus } from "lucide-react";
 import { formatDate } from "@/lib/format/date";
 import {
@@ -108,7 +108,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
   return (
     <div>
       <H>{t("pages.adminDashboard.title")}</H>
-      <motion.div
+      <m.div
         initial="hidden"
         animate="visible"
         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
@@ -116,7 +116,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
         style={{ gap: "12px" }}
       >
         {stats.map((s, i) => (
-          <motion.div
+          <m.div
             key={i}
             variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
             style={{ ...card, padding: "16px" }}
@@ -167,9 +167,9 @@ export function Dashboard({ role }: { role: AdminRole }) {
                 {s.ch} ↑
               </div>
             )}
-          </motion.div>
+          </m.div>
         ))}
-      </motion.div>
+      </m.div>
 
       {role === "admin" && (
         <>
@@ -207,7 +207,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
                   }}
                 >
                   <div style={{ flex: 1, display: "flex", alignItems: "flex-end" }}>
-                    <motion.div
+                    <m.div
                       initial={{ height: 0 }}
                       animate={{ height: `${h}%` }}
                       transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { X, Search } from "lucide-react";
 import type { User } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
@@ -64,7 +64,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -74,7 +74,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
             style={{ background: "rgba(0,0,0,0.4)" }}
             onClick={onClose}
           />
-          <motion.div
+          <m.div
             key="dialog"
             initial={{ opacity: 0, y: 12, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -191,7 +191,7 @@ export function CreateChatDialog({ open, onClose, onPick }: Props) {
                 })
               )}
             </ul>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

@@ -135,6 +135,10 @@ export default defineConfig({
   nitro: { preset: "node-server" },
   vite: {
     build: {
+      // Карта исходников только для разбора состава чанков:
+      //   NODE_OPTIONS=--max-old-space-size=8192 BUNDLE_ANALYZE=1 bun run build
+      // В обычной сборке её нет — .map не должен уехать на прод.
+      sourcemap: process.env.BUNDLE_ANALYZE === "1",
       rollupOptions: {
         output: {
           manualChunks(id: string) {

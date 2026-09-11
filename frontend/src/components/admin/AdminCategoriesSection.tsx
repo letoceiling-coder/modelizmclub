@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Plus, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
@@ -394,7 +394,7 @@ export function CategoriesSection() {
                     onClick={() => setOpen((p) => ({ ...p, [c.id]: !p[c.id] }))}
                     className="flex items-center gap-[8px] flex-1"
                   >
-                    <motion.span
+                    <m.span
                       animate={{ rotate: open[c.id] ? 90 : 0 }}
                       style={{
                         display: "inline-block",
@@ -403,7 +403,7 @@ export function CategoriesSection() {
                       }}
                     >
                       ▶
-                    </motion.span>
+                    </m.span>
                     <span style={{ fontWeight: 600, fontSize: "15px", color: "var(--foreground)" }}>
                       {c.name}
                     </span>
@@ -436,7 +436,7 @@ export function CategoriesSection() {
                 {listingPriceFields(c)}
                 <AnimatePresence>
                   {open[c.id] && subs.length > 0 && (
-                    <motion.div
+                    <m.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -532,7 +532,7 @@ export function CategoriesSection() {
                           </div>
                         );
                       })}
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </div>

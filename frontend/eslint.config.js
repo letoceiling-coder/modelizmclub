@@ -29,6 +29,16 @@ export default tseslint.config(
               message:
                 "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
             },
+            {
+              // Полный `motion` тянет движок framer-motion в тот чанк, где стоит.
+              // Везде — только `m` под LazyMotion (components/motion/MotionProvider.tsx).
+              // Один случайный `motion.div` на первом экране молча вернул бы движок
+              // в главный чанк. Исключения — два админских файла ниже.
+              name: "framer-motion",
+              importNames: ["motion"],
+              message:
+                "Импортируйте `m` вместо `motion`: движок анимаций грузится лениво через MotionProvider. См. src/components/motion/MotionProvider.tsx.",
+            },
           ],
         },
       ],
@@ -72,6 +82,30 @@ export default tseslint.config(
             'CallExpression[callee.property.name="catch"] > ArrowFunctionExpression > BlockStatement[body.length=0]',
           message:
             "Пустой catch запрещён. Возьмите reportActionFailure, reportReadFailure или ignoreFailure из @/lib/errors/handle — три ответа на три случая, см. docblock файла.",
+        },
+      ],
+    },
+  },
+  {
+    // Reorder и useDragControls работают только с полным `motion`. Оба файла —
+    // в ленивом чанке админки, до первого экрана не доходят. Правило
+    // переобъявлено целиком: в плоском конфиге поздний блок заменяет его, а не
+    // дополняет, поэтому запрет на `server-only` повторён.
+    files: [
+      "src/components/admin/ReviewCategoriesAdminSection.tsx",
+      "src/components/admin/LandingBlocksAdminCard.tsx",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "server-only",
+              message:
+                "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
+            },
+          ],
         },
       ],
     },

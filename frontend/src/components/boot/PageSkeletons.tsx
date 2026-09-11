@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostCardSkeleton } from "@/components/feed/Skeleton";
@@ -13,9 +13,9 @@ const fade = {
 
 function Fade({ children }: { children: ReactNode }) {
   return (
-    <motion.div {...fade} role="status" aria-busy="true" aria-live="polite">
+    <m.div {...fade} role="status" aria-busy="true" aria-live="polite">
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 

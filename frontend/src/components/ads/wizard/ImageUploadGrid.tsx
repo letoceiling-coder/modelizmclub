@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { motion, LayoutGroup } from "framer-motion";
+import { m, LayoutGroup } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   ImagePlus,
@@ -223,7 +223,7 @@ function PreviewTile({
   };
 
   return (
-    <motion.div
+    <m.div
       layout="position"
       transition={{ layout: LAYOUT_TRANSITION }}
       data-tile-index={index}
@@ -280,7 +280,7 @@ function PreviewTile({
           <GripVertical size={14} />
         </button>
       )}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -294,7 +294,7 @@ function DragPlaceholder({
   compact?: boolean;
 }) {
   return (
-    <motion.div
+    <m.div
       layout="position"
       transition={{ layout: LAYOUT_TRANSITION }}
       aria-hidden

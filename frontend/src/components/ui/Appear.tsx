@@ -1,4 +1,4 @@
-import { motion, type MotionProps } from "framer-motion";
+import { m, type MotionProps } from "framer-motion";
 import { useEffect, useState, type ReactNode } from "react";
 
 interface Props extends Omit<MotionProps, "initial" | "animate"> {
@@ -33,7 +33,7 @@ export function Appear({ children, className, y = 8, durationMs = 300, ...rest }
   useEffect(() => setMounted(true), []);
 
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={mounted ? { opacity: 0, y } : false}
       animate={{ opacity: 1, y: 0 }}
@@ -41,6 +41,6 @@ export function Appear({ children, className, y = 8, durationMs = 300, ...rest }
       {...rest}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

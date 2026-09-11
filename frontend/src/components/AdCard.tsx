@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { MapPin, Clock, Heart, ImageOff, Package, Truck, BoxSelect, Store } from "lucide-react";
 import type { Ad } from "@/lib/mock";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
@@ -61,7 +61,7 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
   };
 
   return (
-    <motion.div
+    <m.div
       whileHover={{ scale: compact ? 1 : 1.02 }}
       transition={{ duration: 0.25, ease: [0.19, 1, 0.22, 1] }}
       className="group relative h-full"
@@ -127,7 +127,7 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
 
           {/* Heart */}
           {!compact && (
-            <motion.button
+            <m.button
               type="button"
               onClick={handleLike}
               aria-label={liked ? "Убрать из избранного" : "В избранное"}
@@ -143,7 +143,7 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
               }}
             >
               <Heart size={16} fill={liked ? "currentColor" : "none"} strokeWidth={2} />
-            </motion.button>
+            </m.button>
           )}
 
           {/* Moderation overlay banner */}
@@ -255,6 +255,6 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
           )}
         </div>
       </Link>
-    </motion.div>
+    </m.div>
   );
 }

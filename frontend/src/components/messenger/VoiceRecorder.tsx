@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { ChevronLeft, Mic, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { TAP_TARGET_44 } from "@/lib/tap-target";
@@ -266,7 +266,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
     <>
       <AnimatePresence>
         {recording && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{
               opacity: canceling ? 0 : 1,
@@ -382,7 +382,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
               <Trash2 size={14} className="shrink-0" />
               <span className="text-[11px] font-medium">{cancelReady ? "Отмена" : "Отмена"}</span>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

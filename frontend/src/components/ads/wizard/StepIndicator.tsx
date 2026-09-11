@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Check } from "lucide-react";
 
 interface Props {
@@ -16,7 +16,7 @@ export function StepIndicator({ current, labels }: Props) {
         return (
           <div key={label} className="flex flex-1 items-center gap-[8px]">
             <div className="flex flex-col items-center gap-[6px]">
-              <motion.div
+              <m.div
                 animate={{ scale: active ? 1.05 : 1 }}
                 className="grid h-[36px] w-[36px] place-items-center text-[13px] font-semibold"
                 style={{
@@ -28,7 +28,7 @@ export function StepIndicator({ current, labels }: Props) {
                 }}
               >
                 {done ? <Check size={16} strokeWidth={3} /> : n}
-              </motion.div>
+              </m.div>
               <div
                 className="hidden whitespace-nowrap text-[11px] font-medium sm:block"
                 style={{ color: done || active ? "var(--foreground)" : "var(--foreground-50)" }}
@@ -41,7 +41,7 @@ export function StepIndicator({ current, labels }: Props) {
                 className="relative h-[2px] flex-1 overflow-hidden"
                 style={{ background: "var(--background-surface)" }}
               >
-                <motion.div
+                <m.div
                   initial={false}
                   animate={{ scaleX: done ? 1 : 0 }}
                   transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}

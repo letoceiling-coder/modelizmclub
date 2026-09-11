@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { variantUrl } from "@/lib/media/variants";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   Car,
   Plane,
@@ -774,7 +774,7 @@ function EventSignupModal({
   return (
     <AnimatePresence>
       {event && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -783,7 +783,7 @@ function EventSignupModal({
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={onClose}
         >
-          <motion.div
+          <m.div
             initial={{ y: 30, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 30, opacity: 0, scale: 0.98 }}
@@ -821,8 +821,8 @@ function EventSignupModal({
             >
               {t("pages.communityDetail.gotIt")}
             </button>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

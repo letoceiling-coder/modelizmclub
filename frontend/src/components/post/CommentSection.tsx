@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Heart, Send, ChevronDown, Paperclip, X } from "lucide-react";
 import type { Comment, User } from "@/lib/mock";
 import { userById } from "@/lib/user-registry";
@@ -546,19 +546,19 @@ function CommentItem({
               className={cn(META_ACTION, "ml-auto flex items-center gap-1")}
               style={{ color: liked ? "var(--accent)" : "var(--foreground-50)" }}
             >
-              <motion.span
+              <m.span
                 whileTap={{ scale: 1.4 }}
                 transition={{ type: "spring", stiffness: 500, damping: 12 }}
               >
                 <Heart className="h-[14px] w-[14px]" fill={liked ? "currentColor" : "none"} />
-              </motion.span>
+              </m.span>
               {likes > 0 && <span className="tabular-nums">{likes}</span>}
             </button>
           </div>
 
           <AnimatePresence>
             {!readOnly && replying && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
@@ -595,7 +595,7 @@ function CommentItem({
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 

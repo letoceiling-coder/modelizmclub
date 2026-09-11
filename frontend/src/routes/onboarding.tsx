@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Check } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Logo } from "@/components/Logo";
@@ -122,7 +122,7 @@ function OnboardingPage() {
             const active = selected.includes(id);
             const keys = INTEREST_KEY[id];
             return (
-              <motion.button
+              <m.button
                 key={id}
                 onClick={() => toggle(id)}
                 whileTap={{ scale: 0.98 }}
@@ -167,7 +167,7 @@ function OnboardingPage() {
                 >
                   {t(`pages.onboarding.${keys.desc}`)}
                 </div>
-              </motion.button>
+              </m.button>
             );
           })}
         </div>

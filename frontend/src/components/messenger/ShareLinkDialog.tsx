@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { CreateChatDialog } from "@/components/messenger/CreateChatDialog";
 import { getToken } from "@/lib/api/client";
@@ -122,7 +122,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
       <AnimatePresence>
         {open && payload && (
           <>
-            <motion.div
+            <m.div
               key="overlay"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -132,7 +132,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
               style={{ background: "rgba(0,0,0,0.4)" }}
               onClick={onClose}
             />
-            <motion.div
+            <m.div
               key="dialog"
               ref={ref}
               initial={{ opacity: 0, y: 12, scale: 0.97 }}
@@ -228,7 +228,7 @@ export function ShareLinkDialog({ payload, onClose, onSent }: Props) {
                   })
                 )}
               </ul>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

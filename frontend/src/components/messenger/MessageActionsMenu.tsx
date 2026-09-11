@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   CornerUpLeft,
   Copy,
@@ -166,7 +166,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(
           createPortal(
             <AnimatePresence>
               {open && desktopPos && (
-                <motion.div
+                <m.div
                   ref={menuElRef}
                   role="menu"
                   initial={{ opacity: 0, y: opensAbove ? 6 : -6, scale: 0.96 }}
@@ -195,7 +195,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(
                     onDeleteForEveryone={run(onDeleteForEveryone)}
                     onReport={run(onReport)}
                   />
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>,
             document.body,
@@ -207,7 +207,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(
             <AnimatePresence>
               {open && (
                 <>
-                  <motion.div
+                  <m.div
                     key="overlay"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -217,7 +217,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(
                     style={{ background: "rgba(0,0,0,0.4)" }}
                     onClick={() => setOpen(false)}
                   />
-                  <motion.div
+                  <m.div
                     role="menu"
                     initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -241,7 +241,7 @@ export const MessageActionsMenu = forwardRef<MessageActionsMenuHandle, Props>(
                       onDeleteForEveryone={run(onDeleteForEveryone)}
                       onReport={run(onReport)}
                     />
-                  </motion.div>
+                  </m.div>
                 </>
               )}
             </AnimatePresence>,

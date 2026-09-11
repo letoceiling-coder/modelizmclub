@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia, type DisplayMedia } from "@/lib/media/variants";
@@ -180,7 +180,7 @@ export function AdGallery({
         <div ref={thumbRef} className="overflow-hidden">
           <div className="flex gap-[8px]">
             {items.map((item, i) => (
-              <motion.button
+              <m.button
                 key={item.url + i}
                 type="button"
                 onClick={() => onThumb(i)}
@@ -212,7 +212,7 @@ export function AdGallery({
                     onError={() => setBroken((b) => ({ ...b, [i]: true }))}
                   />
                 )}
-              </motion.button>
+              </m.button>
             ))}
           </div>
         </div>

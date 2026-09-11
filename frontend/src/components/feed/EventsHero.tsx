@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, CalendarDays, X } from "lucide-react";
 import type { Banner } from "@/lib/mock";
@@ -301,7 +301,7 @@ function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose:
   return (
     <AnimatePresence>
       {banner && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -310,7 +310,7 @@ function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose:
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={onClose}
         >
-          <motion.div
+          <m.div
             initial={{ y: 30, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 30, opacity: 0, scale: 0.98 }}
@@ -348,8 +348,8 @@ function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose:
             >
               Понятно
             </button>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

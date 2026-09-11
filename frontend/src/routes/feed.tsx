@@ -2,7 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Loader2,
   Newspaper,
@@ -586,12 +586,12 @@ function FeedPage() {
             <div ref={sentinelRef} className="flex items-center justify-center py-[24px]">
               {isFetchingNextPage && (
                 <>
-                  <motion.div
+                  <m.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
                   >
                     <Loader2 className="h-[20px] w-[20px]" style={{ color: "var(--accent)" }} />
-                  </motion.div>
+                  </m.div>
                   <span className="ml-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
                     {t("pages.feed.loadingMore")}
                   </span>

@@ -18,7 +18,7 @@ import { getToken } from "@/lib/api/client";
 import { fetchFeed } from "@/lib/api/feed";
 import { fetchUserListings } from "@/lib/api/listings";
 import { recordView } from "@/lib/view-history";
-import { ProfileView } from "./profile";
+import { ProfileView } from "@/components/profile/ProfileView";
 import { toast } from "@/lib/toast";
 
 import i18n from "@/lib/i18n";

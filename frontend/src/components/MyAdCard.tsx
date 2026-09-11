@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Pencil,
   Archive,
@@ -48,7 +48,7 @@ export function MyAdCard({
   const deleted = status === "deleted";
 
   return (
-    <motion.div
+    <m.div
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
@@ -181,7 +181,7 @@ export function MyAdCard({
         listingId={ad.id}
         listingTitle={ad.title}
       />
-    </motion.div>
+    </m.div>
   );
 }
 
