@@ -218,7 +218,19 @@ function ReviewsPage() {
    * прыгнуть вверх и обратно: `y807 → y489 → y806`, CLS 0,1265. Локально
    * этого не видно: там оба ответа приходят в одном такте.
    */
-  const reserveTopBlocks = (initialLoading || topBlocksLoading) && !isWatchLaterTab;
+  /*
+   * Каждая заглушка держит место своего блока и снимается по своему запросу.
+   *
+   * До 11.09 обе держались на общем `initialLoading || topBlocksLoading`. Но
+   * «Новинки» — это `videos.slice(0, 10)`, то есть ответ сетки, а не
+   * подборок. Сетка приходила первой, «Новинки» рисовались, а заглушка под
+   * них ещё стояла — место было занято дважды. Ход на проде 11.09, подборки
+   * опоздали на 1,5 с: сетка y807 → y1100 (+293, секция «Новинок» с
+   * отступом) → y806, CLS 0,053–0,098 на переходе `/ads → /reviews`.
+   */
+  const topBlocksVisible = activeCat === ALL && !query && !tagFromUrl && !isWatchLaterTab;
+  const reserveHero = topBlocksVisible && topBlocksLoading;
+  const reserveNewest = topBlocksVisible && initialLoading;
 
   return (
     /*
@@ -266,37 +278,40 @@ function ReviewsPage() {
           Высоты — не на глаз: замерены на проде при колонке 750 px, которая
           с 10.09 одинакова на всех маршрутах (см. `AppLayout`). Герой 298,
           ряд новинок 273. Пока ширина колонки постоянна, постоянны и они.
+
+          Каждая заглушка стоит на месте своего блока и уходит по ответу
+          своего запроса: герой — по подборкам, «Новинки» — по сетке.
         */}
-        {activeCat === ALL && !query && !tagFromUrl && reserveTopBlocks && (
-          <>
-            <Skeleton className="w-full rounded-[var(--r-card)]" style={{ height: 298 }} />
-            <Skeleton className="w-full rounded-[var(--r-card)]" style={{ height: 273 }} />
-          </>
+        {reserveHero ? (
+          <Skeleton className="w-full rounded-[var(--r-card)]" style={{ height: 298 }} />
+        ) : (
+          topBlocksVisible && featured.length > 0 && <ReviewsHero videos={featured} />
         )}
 
-        {activeCat === ALL && !query && !tagFromUrl && featured.length > 0 && (
-          <ReviewsHero videos={featured} />
-        )}
-
-        {activeCat === ALL && !query && !tagFromUrl && newest.length > 0 && (
-          <section className="space-y-[12px]">
-            <h2
-              className="font-display text-[20px] font-bold"
-              style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
-            >
-              {t("pages.reviews.newReleases")}
-            </h2>
-            <div
-              className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0"
-              style={{ scrollbarWidth: "thin" }}
-            >
-              {newest.map((v) => (
-                <div key={v.id} className="snap-start" style={{ flex: "0 0 240px" }}>
-                  <VideoCard video={v} />
-                </div>
-              ))}
-            </div>
-          </section>
+        {reserveNewest ? (
+          <Skeleton className="w-full rounded-[var(--r-card)]" style={{ height: 273 }} />
+        ) : (
+          topBlocksVisible &&
+          newest.length > 0 && (
+            <section className="space-y-[12px]">
+              <h2
+                className="font-display text-[20px] font-bold"
+                style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+              >
+                {t("pages.reviews.newReleases")}
+              </h2>
+              <div
+                className="-mx-[16px] flex snap-x snap-mandatory gap-[12px] overflow-x-auto px-[16px] pb-[8px] sm:mx-0 sm:px-0"
+                style={{ scrollbarWidth: "thin" }}
+              >
+                {newest.map((v) => (
+                  <div key={v.id} className="snap-start" style={{ flex: "0 0 240px" }}>
+                    <VideoCard video={v} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
         )}
 
         <section className="relative space-y-[12px]">
