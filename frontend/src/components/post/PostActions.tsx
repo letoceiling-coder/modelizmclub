@@ -38,7 +38,7 @@ interface Props {
   onRepost: () => void;
   /**
    * `viewer` — панель в просмотрщике. Кнопки комментариев там нет:
-   * комментарии уже открыты под ней. «Поделиться» — простой стрелкой.
+   * комментарии уже открыты под ней.
    */
   variant?: "card" | "viewer";
 }
@@ -141,7 +141,6 @@ export function PostActions({
         count={reposts}
         onRepost={onRepost}
         disabled={!canInteract}
-        icon={variant === "viewer" ? "share" : "repost"}
       />
 
       <Gated level={levelFor("feed.post.save")} action={onSave} entity={post}>
