@@ -3,6 +3,7 @@
 namespace Modules\Auth\Http\Requests;
 
 use App\Enums\RegistrationTrack;
+use App\Rules\SafeEmail;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -30,7 +31,7 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email:rfc', 'max:255'],
+            'email' => ['required', 'email:rfc', new SafeEmail, 'max:255'],
             'password' => ['required', 'confirmed', Password::min(8)],
             'registration_track' => ['required', Rule::enum(RegistrationTrack::class)],
             'display_name' => [

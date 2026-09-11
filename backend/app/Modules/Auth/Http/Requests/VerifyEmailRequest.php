@@ -2,6 +2,7 @@
 
 namespace Modules\Auth\Http\Requests;
 
+use App\Rules\SafeEmail;
 use Illuminate\Foundation\Http\FormRequest;
 
 class VerifyEmailRequest extends FormRequest
@@ -14,7 +15,7 @@ class VerifyEmailRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', new SafeEmail, 'max:255'],
             'code' => ['required', 'string', 'size:6'],
         ];
     }

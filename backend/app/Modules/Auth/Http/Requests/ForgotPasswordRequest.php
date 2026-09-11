@@ -2,6 +2,7 @@
 
 namespace Modules\Auth\Http\Requests;
 
+use App\Rules\SafeEmail;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 
@@ -22,7 +23,7 @@ class ForgotPasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', new SafeEmail, 'max:255'],
         ];
     }
 }
