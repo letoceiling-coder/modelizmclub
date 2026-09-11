@@ -1680,13 +1680,19 @@ function MessengerPage() {
                                 />
                               )}
                             </span>
+                            {/*
+                              Непрочитанное — только цветом, без полужирного.
+                              Метка прижата вправо, а полужирный в IBM Plex Mono
+                              другой ширины (89 против 99 px у «сегодня в 17:14»):
+                              при открытии чата он становился прочитанным, метка
+                              меняла ширину и сдвигала свой левый край (CLS на
+                              каждом переходе в мессенджер, замер 11.09).
+                              Непрочитанность и так видна — счётчик и имя.
+                            */}
                             <TimeAgo
                               iso={d.time}
                               className="shrink-0 font-mono text-[11px]"
-                              style={{
-                                color: isUnread ? "var(--accent)" : "var(--foreground-50)",
-                                fontWeight: isUnread ? 700 : 400,
-                              }}
+                              style={{ color: isUnread ? "var(--accent)" : "var(--foreground-50)" }}
                             />
                           </div>
                           <div
