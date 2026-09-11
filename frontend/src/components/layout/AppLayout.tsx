@@ -91,7 +91,41 @@ export function AppLayout({
         {sidebar === false ? null : (sidebar ?? <Sidebar collapsed={navCollapsed} />)}
         {/* Center column: the only scroll zone on desktop. */}
         <main className="min-w-0 flex-1 lg:overflow-y-auto xl:flex-none">
-          {narrowCenter ? <div className="mx-auto w-full max-w-[680px]">{children}</div> : children}
+          {/*
+            Подвал не заходит в первый экран, пока грузится содержимое.
+
+            Страница рисуется раньше своих данных: скелетон или пустое место,
+            под ними — подвал. Потом приходят данные, высота содержимого
+            меняется, и подвал едет — вверх, если карточек меньше, чем
+            заглушек, вниз, если больше. Этот сдвиг и был CLS переходов,
+            замер 11.09 на проде:
+
+              /friends → /favorites  375   0,112  подвал Δy −142
+              /deals → /my-ads       1440  0,073  подвал Δy +630
+              /ads после фильтра     375   0,088  подвал Δy +701
+
+            Подогнать заглушку под ответ нельзя — число карточек заранее
+            неизвестно. Поэтому содержимое держит высоту не меньше экрана:
+            подвал начинается ниже сгиба, а сдвиги за пределами видимого
+            в CLS не считаются. На desktop прокручивается <main> ниже шапки,
+            на телефоне — документ ниже мобильной шапки; в обоих случаях
+            100dvh — с запасом. Цена: на короткой странице подвал виден
+            после прокрутки. Только там, где подвал есть: полноэкранным
+            разделам (мессенджер) лишняя обёртка ни к чему.
+          */}
+          {footer ? (
+            <div className="min-h-[100dvh]">
+              {narrowCenter ? (
+                <div className="mx-auto w-full max-w-[680px]">{children}</div>
+              ) : (
+                children
+              )}
+            </div>
+          ) : narrowCenter ? (
+            <div className="mx-auto w-full max-w-[680px]">{children}</div>
+          ) : (
+            children
+          )}
           {footer && <AppFooter />}
         </main>
         {rightColumn === false ? (
