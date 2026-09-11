@@ -21,9 +21,6 @@ interface Props {
   /** Класс кнопки — приходит из строки действий, чтобы репост выглядел
    *  и вёл себя ровно как соседи. */
   className: string;
-  /** Значок кнопки. `share` — простая стрелка «Поделиться», для панели
-   *  просмотрщика; меню за ней то же. */
-  icon?: "repost" | "share";
 }
 
 type View = "main" | "chats" | "share";
@@ -35,7 +32,6 @@ export function RepostMenu({
   onRepost,
   disabled = false,
   className,
-  icon = "repost",
 }: Props) {
   const { t } = useTranslation();
   const guest = useGuestAccessOptional();
@@ -141,11 +137,10 @@ export function RepostMenu({
         aria-expanded={open}
         aria-disabled={disabled}
       >
-        {icon === "share" ? (
-          <Forward className="h-[20px] w-[20px]" />
-        ) : (
-          <Repeat2 className="h-[20px] w-[20px]" />
-        )}
+        {/* Простая стрелка «Поделиться», как у VK, — и в ленте, и в
+            просмотрщике. Две петли Repeat2 остаются за пунктом «Репост» в
+            меню: это одно из действий за кнопкой, а не сама кнопка. */}
+        <Forward className="h-[20px] w-[20px]" />
         {count > 0 && <span className="tabular-nums">{count}</span>}
       </button>
 
