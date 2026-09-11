@@ -33,7 +33,7 @@ function ChannelNewPage() {
 
   if (isGuest || subLoading) {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="py-10 text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>
           {t("common.loading")}
         </div>
@@ -43,7 +43,7 @@ function ChannelNewPage() {
 
   if (!eligible) {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="py-10">
           <EmptyState
             icon={Radio}
@@ -63,7 +63,7 @@ function ChannelNewPage() {
   }
 
   return (
-    <AppLayout rightColumn={false} footer>
+    <AppLayout footer>
       <EntityRequestForm
         kind="channel"
         onClose={() => void navigate({ to: "/channels" })}

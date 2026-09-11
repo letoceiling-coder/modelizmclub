@@ -241,7 +241,7 @@ function ChannelsPage() {
   const hasQuery = q.trim().length > 0;
 
   return (
-    <AppLayout narrowCenter rightColumn={<DirectionsRightRail variant="channels" />} footer>
+    <AppLayout rightColumn={<DirectionsRightRail variant="channels" />} footer>
       <div className="space-y-[24px]">
         <header className="flex items-start justify-between gap-[12px]">
           <div className="min-w-0">

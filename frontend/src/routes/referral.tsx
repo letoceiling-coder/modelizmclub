@@ -28,7 +28,7 @@ function ReferralPage() {
   const isGuest = me.id === GUEST_USER.id && !isAuthenticated() && !isDemoMode();
 
   return (
-    <AppLayout narrowCenter>
+    <AppLayout>
       <div className="mx-auto w-full max-w-[720px] px-[16px] py-[28px]">
         {isGuest ? <GuestCard /> : <Dashboard meId={me.id} />}
       </div>

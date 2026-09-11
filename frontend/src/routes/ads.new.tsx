@@ -927,8 +927,8 @@ function NewAdPage() {
   const paymentGatePending = !editId && (!flagsHydrated || (listingPaymentEnabled && quoteLoading));
 
   return (
-    <AppLayout rightColumn={false}>
-      <div className="mx-auto flex max-w-[760px] flex-col gap-[24px] pb-[calc(var(--bottom-nav-space)+88px)] lg:pb-[96px]">
+    <AppLayout>
+      <div className="flex flex-col gap-[24px] pb-[calc(var(--bottom-nav-space)+88px)] lg:pb-[96px]">
         <header className="space-y-[6px]">
           <Link
             to="/ads"

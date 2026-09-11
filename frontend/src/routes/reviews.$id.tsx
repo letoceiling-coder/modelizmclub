@@ -340,8 +340,8 @@ function WatchPageInner() {
 
   if (state === "loading") {
     return (
-      <AppLayout rightColumn={false} footer>
-        <div className="mx-auto max-w-[900px] py-[40px]">
+      <AppLayout footer>
+        <div className="py-[40px]">
           <div
             className="w-full animate-pulse"
             style={{
@@ -400,7 +400,7 @@ function WatchPageInner() {
   }
   if (state === "notFound" || state === "error" || !video) {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="mx-auto max-w-[560px] py-[40px]">
           <EmptyState
             icon={SearchX}
@@ -447,8 +447,8 @@ function WatchPageInner() {
   );
 
   return (
-    <AppLayout rightColumn={false} footer>
-      <div className="mx-auto flex max-w-[1000px] flex-col gap-[20px]">
+    <AppLayout footer>
+      <div className="flex flex-col gap-[20px]">
         <Link
           to="/reviews"
           className="inline-flex items-center gap-[4px] text-[12px]"

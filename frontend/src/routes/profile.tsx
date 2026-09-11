@@ -159,7 +159,7 @@ function ProfilePage() {
 
   if (guestBlocked) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={UserIcon}

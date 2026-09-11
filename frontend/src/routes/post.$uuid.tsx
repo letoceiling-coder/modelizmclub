@@ -191,7 +191,7 @@ function PostView({ uuid, initial }: { uuid: string; initial: Post | null }) {
   const backToFeed = () => navigate({ to: ROUTES.feed });
 
   return (
-    <AppLayout rightColumn={false} narrowCenter>
+    <AppLayout>
       <div className="px-0 py-3 sm:px-4">
         <div className="px-4 sm:px-0">
           <Button variant="ghost" className="mb-2 h-9 gap-1.5 px-2 text-sm" onClick={backToFeed}>

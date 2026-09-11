@@ -58,7 +58,7 @@ function CommunityNewPage() {
 
   if (isGuest || subLoading) {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="py-10 text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>
           {t("common.loading")}
         </div>
@@ -68,7 +68,7 @@ function CommunityNewPage() {
 
   if (!eligible) {
     return (
-      <AppLayout rightColumn={false} footer>
+      <AppLayout footer>
         <div className="py-10">
           <EmptyState
             icon={Users}
@@ -88,7 +88,7 @@ function CommunityNewPage() {
   }
 
   return (
-    <AppLayout rightColumn={false} footer>
+    <AppLayout footer>
       <CommunityWizard onCancel={() => void navigate({ to: "/communities" })} />
     </AppLayout>
   );
@@ -193,7 +193,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
   const goPrev = () => setStep((s) => Math.max(0, s - 1));
 
   return (
-    <div className="mx-auto max-w-[640px] space-y-[16px] pb-[24px]">
+    <div className="space-y-[16px] pb-[24px]">
       <div>
         <h1 className="font-display text-[24px] font-bold" style={{ color: "var(--foreground)" }}>
           {t("pages.communityWizard.title")}

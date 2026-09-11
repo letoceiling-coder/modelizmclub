@@ -288,7 +288,7 @@ function ContactsBlock({ contacts, compact }: { contacts?: CommunityContacts; co
 
 function LoadingSkeleton() {
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <div className="space-y-[16px]">
         <Card
           className="overflow-hidden shadow-none"
@@ -580,7 +580,7 @@ function CommunityRightRail({
   const online = (onlineFirst.length > 0 ? onlineFirst : members).slice(0, 8);
 
   return (
-    <aside ref={containerRef} className="hidden w-72 shrink-0 lg:block">
+    <aside ref={containerRef} className="hidden w-80 shrink-0 lg:block">
       <div
         className="flex h-full flex-col gap-[14px] overflow-y-auto py-[2px] pr-[2px]"
         style={{ scrollbarWidth: "thin" }}
@@ -1044,7 +1044,7 @@ function CommunityDetailPage() {
 
   if (!community) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="py-[40px]">
           <EmptyState
             icon={Users}
@@ -1371,7 +1371,7 @@ function CommunityDetailPage() {
   );
 
   return (
-    <AppLayout narrowCenter rightColumn={rail}>
+    <AppLayout rightColumn={rail}>
       <div className="space-y-[16px]">
         {/*
           Хлебная крошка над обложкой. Раньше «Все сообщества» стояли под

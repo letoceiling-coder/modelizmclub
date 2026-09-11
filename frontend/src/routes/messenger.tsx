@@ -142,7 +142,7 @@ function MessengerRoute() {
   const { t } = useTranslation();
   if (guestBlocked) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={MessageSquare}
@@ -1478,7 +1478,7 @@ function MessengerPage() {
   } | null>(null);
 
   return (
-    <AppLayout rightColumn={false} hideMobileHeader hideBottomNav={mobileView === "chat"}>
+    <AppLayout hideMobileHeader hideBottomNav={mobileView === "chat"}>
       <div
         className={`grid overflow-hidden ${
           mobileView === "chat"

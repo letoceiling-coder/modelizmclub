@@ -278,7 +278,7 @@ function CatalogPage() {
       расходятся в поведении — панель уводила на /ads?taxonomy_id=, фильтр
       менял состояние на месте, — и это два разных ответа на один вопрос.
     */
-    <AppLayout rightColumn={false} footer>
+    <AppLayout footer>
       <div className="space-y-[16px] pb-[24px]">
         {/* Header */}
         <div className="flex items-start justify-between gap-[12px]">

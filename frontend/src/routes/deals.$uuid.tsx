@@ -70,7 +70,7 @@ function DealDetailRoute() {
   }, [guestBlocked, requireLogin]);
   if (guestBlocked) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={ShieldCheck}
@@ -148,7 +148,7 @@ function DealDetailPage() {
 
   if (loading) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[640px] py-[40px]">
           <div
             className="flex items-center gap-[8px] text-[14px]"
@@ -163,7 +163,7 @@ function DealDetailPage() {
 
   if (!deal) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[640px] py-[40px] text-center">
           <p className="text-[15px]" style={{ color: "var(--foreground-70)" }}>
             Сделка не найдена
@@ -191,7 +191,7 @@ function DealDetailPage() {
   const canDispute = (s === "paid" || s === "shipped" || s === "delivered") && holdOpen;
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <div className="mx-auto w-full max-w-[640px]">
         <Link
           to="/deals"

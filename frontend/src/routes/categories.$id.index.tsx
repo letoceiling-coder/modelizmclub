@@ -140,7 +140,7 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
   }, [c, query]);
 
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <div className="space-y-[14px]">
         <Breadcrumbs
           items={[

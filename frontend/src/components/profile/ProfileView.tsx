@@ -256,7 +256,7 @@ export function ProfileView({
     .filter(Boolean);
 
   return (
-    <AppLayout narrowCenter footer>
+    <AppLayout footer>
       <div
         className="overflow-hidden"
         style={{

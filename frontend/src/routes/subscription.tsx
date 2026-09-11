@@ -237,8 +237,8 @@ function SubscriptionPage() {
   }, []);
 
   return (
-    <AppLayout rightColumn={false}>
-      <div className="mx-auto w-full max-w-[960px] px-[4px] sm:px-0">
+    <AppLayout>
+      <div className="w-full px-[4px] sm:px-0">
         <VerificationBanner />
         {/*
           Первый экран не прячем. framer-motion пишет `initial` инлайн-стилем
@@ -370,7 +370,7 @@ function SubscriptionPage() {
           </m.div>
         )}
 
-        <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-[960px]">
+        <div className="mx-auto mt-[24px] max-w-[420px] md:max-w-none">
           <PlanTermSelector
             renderCta={(plan) => (
               <button

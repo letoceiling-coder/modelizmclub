@@ -463,7 +463,7 @@ function FriendsPage() {
 
   if (guestBlocked) {
     return (
-      <AppLayout rightColumn={false}>
+      <AppLayout>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={Users}
@@ -476,7 +476,7 @@ function FriendsPage() {
   }
 
   return (
-    <AppLayout narrowCenter>
+    <AppLayout>
       <div className="space-y-[16px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>

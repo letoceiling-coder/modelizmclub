@@ -58,7 +58,7 @@ export function AdsPageSkeleton() {
 
 export function DealsPageSkeleton() {
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <Fade>
         <div className="mx-auto w-full max-w-[760px] space-y-[12px]">
           <Skeleton className="h-[28px] w-[240px] rounded-[8px]" />
@@ -90,7 +90,7 @@ export function DealsPageSkeleton() {
 
 export function MessengerPageSkeleton() {
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <Fade>
         <div
           className="flex min-h-[60vh] overflow-hidden rounded-[var(--r-card)]"

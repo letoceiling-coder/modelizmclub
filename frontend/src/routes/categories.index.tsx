@@ -15,7 +15,7 @@ function CategoriesPage() {
   const { t } = useTranslation();
   const categories = usePostCategories();
   return (
-    <AppLayout rightColumn={false}>
+    <AppLayout>
       <div className="space-y-5">
         <header>
           <h1 className="font-display text-2xl font-bold">{t("pages.categories.title")}</h1>
