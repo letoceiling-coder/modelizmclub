@@ -23,10 +23,11 @@ Route::prefix('auth')->group(function (): void {
 
     Route::get('oauth/{provider}/redirect', [OAuthController::class, 'redirect']);
     Route::get('oauth/{provider}/callback', [OAuthController::class, 'callback']);
-    Route::middleware('throttle:auth-max-start')->group(function (): void {
-        Route::post('oauth/max/start', [MaxAuthController::class, 'start']);
-        Route::get('oauth/max/status', [MaxAuthController::class, 'status']);
-    });
+    Route::middleware('throttle:auth-max-start')->post('oauth/max/start', [MaxAuthController::class, 'start']);
+    // Статус опрашивается, а старт нажимается человеком — лимиты у них разные.
+    // Пока они были общими (10 в минуту с IP), опрос раз в 1,5 с выбирал бюджет
+    // за пятнадцать секунд, отвечал 429 и заодно не давал перезапустить вход.
+    Route::middleware('throttle:auth-max-status')->get('oauth/max/status', [MaxAuthController::class, 'status']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('logout', LogoutController::class);
