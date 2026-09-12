@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/lib/toast";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
+import { rememberTopup, takeRememberedTopup } from "@/lib/payments/pending-topup";
+import { CardNumberInput } from "@/components/ui/card-number-input";
 import {
   fetchWalletBalance,
   fetchWalletTransactions,
@@ -155,6 +157,7 @@ function WalletSection() {
   // приходило настоящее число, знак рубля уезжал вправо (CLS 0,002–0,004 на
   // каждом переходе в баланс, замер 11.09).
   const [balanceKopecks, setBalanceKopecks] = useState<number | null>(null);
+  const [balanceFailed, setBalanceFailed] = useState(false);
   const [heldKopecks, setHeldKopecks] = useState(0);
   const [operations, setOperations] = useState<WalletTransaction[]>([]);
 
@@ -164,6 +167,7 @@ function WalletSection() {
   const [historyTab, setHistoryTab] = useState<"wallet" | "payments">("wallet");
 
   const load = () => {
+    setBalanceFailed(false);
     Promise.all([fetchWalletBalance(), fetchWalletTransactions()])
       .then(([b, ops]) => {
         setBalanceKopecks(b.balance_kopecks);
@@ -171,7 +175,12 @@ function WalletSection() {
         setOperations(ops);
       })
       .catch((e) => {
-        setBalanceKopecks((v) => v ?? 0);
+        /*
+         * Ноль — это ответ сервера «на счету пусто», а не «сервер не ответил».
+         * Раньше отказ подставлял ноль, и пустой кошелёк было не отличить от
+         * несработавшей загрузки (аудит 12.09).
+         */
+        setBalanceFailed(true);
         reportReadFailure(e, "баланс кошелька");
       });
 
@@ -235,8 +244,15 @@ function WalletSection() {
         alive = false;
       };
     }
-    if (!uuid) {
-      toast.success(t("pages.settings.walletTopupSuccess"));
+    // Идентификатор из адреса, а если его там нет — запомненный перед уходом.
+    const paymentUuid = uuid || takeRememberedTopup();
+    if (!paymentUuid) {
+      /*
+       * Спросить не о чем: платёж начат не в этой вкладке, хранилище
+       * очищено или адрес открыли руками. Успех в таком случае не объявляем —
+       * перечитываем кошелёк и говорим, что состояние уточняется.
+       */
+      toast(t("pages.settings.walletTopupUnknown"));
       notifyBillingChanged();
       load();
       finish();
@@ -244,7 +260,7 @@ function WalletSection() {
         alive = false;
       };
     }
-    void syncPayment(uuid)
+    void syncPayment(paymentUuid)
       .then((res) => {
         if (!alive) return;
         if (res.status === "paid") {
@@ -284,7 +300,19 @@ function WalletSection() {
         >
           {/* Заглушка — внутри той же строки: высоту блока задаёт строка
               в 32 px, а не содержимое, и кнопки ниже не двигаются. */}
-          {balanceKopecks === null ? (
+          {balanceFailed ? (
+            <span className="inline-flex items-center gap-[10px] align-middle">
+              <span style={{ color: "var(--foreground-50)" }}>—</span>
+              <button
+                type="button"
+                onClick={load}
+                className="hit-target rounded-[8px] text-[14px] font-semibold underline underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                style={{ color: "var(--accent)" }}
+              >
+                {t("errors.retry")}
+              </button>
+            </span>
+          ) : balanceKopecks === null ? (
             <Skeleton className="inline-block h-[0.8em] w-[4em] align-middle" />
           ) : (
             `${formatRub(balanceKopecks)} ₽`
@@ -513,6 +541,14 @@ function TopupDialog({
         toast.error(t("pages.settings.walletTopupVtbMissing"));
         return;
       }
+      /*
+       * Запоминаем платёж до ухода на банк. Собственный возвратный адрес
+       * сервера — `/settings/wallet?payment=success`, без идентификатора: он
+       * строится раньше, чем платёж создан. Без этой записи страница на
+       * возврате не знала, что именно спрашивать, и объявляла успех по одному
+       * лишь виду адреса.
+       */
+      rememberTopup(checkout.payment_uuid);
       window.location.href = checkout.checkout_url;
     } catch (err) {
       toast.error(formatApiErrorMessage(err, t("pages.settings.walletError")));
@@ -583,7 +619,27 @@ function WithdrawDialog({
       toast.error(t("pages.settings.walletMinAmount"));
       return;
     }
-    if (!destination.trim()) {
+    /*
+     * Получателя проверяем по способу вывода. Раньше поле было свободным
+     * текстом с единственной проверкой «не пусто», и при выводе на карту в
+     * заявку уходило что угодно: сервер держит `destination` просто строкой
+     * до 255 знаков, а разбираться с ней потом человеку.
+     */
+    const dest = destination.trim();
+    const digits = dest.replace(/\D/g, "");
+    if (method === "card" && digits.length !== 16) {
+      toast.error(t("pages.settings.walletDestinationCardInvalid"));
+      return;
+    }
+    if (method === "account" && digits.length !== 20) {
+      toast.error(t("pages.settings.walletDestinationAccountInvalid"));
+      return;
+    }
+    if (method === "sbp" && digits.length < 10) {
+      toast.error(t("pages.settings.walletDestinationSbpInvalid"));
+      return;
+    }
+    if (!dest) {
       toast.error(t("pages.settings.walletError"));
       return;
     }
@@ -636,7 +692,10 @@ function WithdrawDialog({
             </label>
             <NativeSelect
               value={method}
-              onChange={(v) => setMethod(v as WithdrawMethod)}
+              onChange={(v) => {
+                setMethod(v as WithdrawMethod);
+                setDestination("");
+              }}
               options={[
                 { value: "card", label: t("pages.settings.walletMethodCard") },
                 { value: "sbp", label: t("pages.settings.walletMethodSbp") },
@@ -648,11 +707,28 @@ function WithdrawDialog({
             <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
               {t("pages.settings.walletDestination")}
             </label>
-            <Input
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              placeholder={t("pages.settings.walletDestinationPlaceholder")}
-            />
+            {method === "card" ? (
+              // Тот же ввод карты, что в реквизитах: группировка по 4 и предел
+              // в 16 цифр. Своего второго заводить незачем.
+              <CardNumberInput value={destination} onValueChange={setDestination} />
+            ) : (
+              <Input
+                value={destination}
+                onChange={(e) =>
+                  setDestination(
+                    method === "account"
+                      ? e.target.value.replace(/\D/g, "").slice(0, 20)
+                      : e.target.value,
+                  )
+                }
+                inputMode={method === "account" ? "numeric" : "tel"}
+                placeholder={
+                  method === "account"
+                    ? t("pages.settings.walletDestinationAccount")
+                    : t("pages.settings.walletDestinationSbp")
+                }
+              />
+            )}
           </div>
         </div>
         <DialogFooter>

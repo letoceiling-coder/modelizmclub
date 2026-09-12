@@ -2,6 +2,7 @@
 
 namespace Modules\Auth\Http\Resources;
 
+use App\Models\PendingEmailChange;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,6 +24,25 @@ class UserResource extends JsonResource
             'locale' => $this->locale,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
             'email_verified' => ! $this->requiresEmailVerification(),
+            /*
+             * Незавершённая смена адреса. Смена в два шага: `change-email`
+             * кладёт строку в `pending_email_changes` и шлёт код на новый
+             * адрес, `confirm-email` его подтверждает. До 12.09 наружу это не
+             * отдавалось, и после перезагрузки страница настроек не знала, что
+             * смена начата: показывала прежний адрес, а пользователь считал,
+             * что уже сменил.
+             *
+             * Только себе: ресурс общий с админским списком пользователей, и
+             * чужой ожидающий адрес там не нужен. `when` заодно не даёт запросу
+             * выполниться на каждой строке списка.
+             */
+            'pending_email' => $this->when(
+                $request->user()?->id === $this->id,
+                fn () => PendingEmailChange::query()
+                    ->where('user_id', $this->id)
+                    ->where('expires_at', '>', now())
+                    ->value('new_email'),
+            ),
             'oauth_providers' => $this->oauthProviderNames(),
             'phone' => $this->phone,
             'phone_verified_at' => $this->phone_verified_at?->toIso8601String(),

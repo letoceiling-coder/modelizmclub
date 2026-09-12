@@ -38,11 +38,41 @@ let cache: MySubscription | null | undefined;
 let inflight: Promise<MySubscription | null> | null = null;
 const listeners = new Set<() => void>();
 
+/*
+ * Подсказка «в прошлый раз подписка была активна». Нужна не для прав — права
+ * решает сервер, — а для места под карточку статуса на `/subscription`.
+ *
+ * Серверная разметка анонимна: токен лежит в localStorage, загрузчику его не
+ * достать. Карточка появляется после ответа `fetchMySubscription()` и уносит
+ * вниз всё, что под ней: измерено 12.09 на проде — 0,1309 при 375, 0,0825 при
+ * 768, 0,0454 при 1440, по три прогона. У гостя и у вошедшего без подписки
+ * сдвиг ~0,0004: карточки у них нет вовсе.
+ *
+ * Поэтому подсказка, а не «зарезервировать всем вошедшим»: последнее сломало
+ * бы как раз тех, у кого сейчас чисто. Флаг читается скриптом до первой
+ * отрисовки (`routes/__root.tsx`) и ставит `data-sub` на `<html>`; разметка
+ * при этом одна и та же в обоих случаях, поэтому гидрация не расходится.
+ */
+const SUB_HINT_KEY = "mc_sub_active";
+
+function rememberSubscriptionHint(active: boolean): void {
+  if (typeof document === "undefined") return;
+  try {
+    if (active) localStorage.setItem(SUB_HINT_KEY, "1");
+    else localStorage.removeItem(SUB_HINT_KEY);
+  } catch {
+    // Приватный режим: подсказки не будет, останется прежний сдвиг — не ошибка.
+  }
+  if (active) document.documentElement.setAttribute("data-sub", "1");
+  else document.documentElement.removeAttribute("data-sub");
+}
+
 /** Current subscription (module-level cache, one request per SPA session). */
 export async function getMySubscription(force = false): Promise<MySubscription | null> {
   if (isDemoMode()) return demoSubscription();
   if (!isAuthenticated()) {
     cache = null;
+    rememberSubscriptionHint(false);
     return null;
   }
   if (!force && cache !== undefined) return cache;
@@ -50,6 +80,7 @@ export async function getMySubscription(force = false): Promise<MySubscription |
     inflight = fetchMySubscription()
       .then((sub) => {
         cache = sub?.is_active ? sub : null;
+        rememberSubscriptionHint(cache !== null);
         return cache;
       })
       .catch(() => {

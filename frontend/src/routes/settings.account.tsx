@@ -15,7 +15,9 @@ import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
 import {
+  confirmEmailChange,
   requestEmailChange,
+  resendEmailChangeVerification,
   resendVerificationEmail,
   sendPhoneVerificationCode,
   verifyPhoneCode,
@@ -62,6 +64,10 @@ function AccountSection() {
   const [serverEmailVerified, setServerEmailVerified] = useState<boolean | null>(null);
   const [serverPhoneVerified, setServerPhoneVerified] = useState<boolean | null>(null);
   const [verifySent, setVerifySent] = useState(false);
+  // Незавершённая смена email: адрес из ответа сервера и введённый код.
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [emailCode, setEmailCode] = useState("");
+  const [emailConfirming, setEmailConfirming] = useState(false);
   const [smsCode, setSmsCode] = useState("");
   const [smsSending, setSmsSending] = useState(false);
   const [smsVerifying, setSmsVerifying] = useState(false);
@@ -93,6 +99,7 @@ function AccountSection() {
         setVerifiedPhone(u.phone_verified ? (u.phone ?? null) : null);
         setServerEmailVerified(u.email_verified === true);
         setServerPhoneVerified(u.phone_verified === true);
+        setPendingEmail(u.pendingEmail ?? null);
       })
       .catch(() => {
         toast.error(t("pages.settings.loadFailed"));
@@ -123,6 +130,47 @@ function AccountSection() {
     }
   }, [loading, afterVerify]);
 
+  /** Подтверждение кода: адрес меняется только здесь и только сервером. */
+  const confirmEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = emailCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      toast.error(t("pages.settings.emailConfirmFailed"));
+      return;
+    }
+    setEmailConfirming(true);
+    try {
+      await confirmEmailChange(code);
+      const confirmed = pendingEmail ?? "";
+      setPendingEmail(null);
+      setEmailCode("");
+      setVerifySent(false);
+      // Состояние берём заново с сервера, а не додумываем на клиенте.
+      const u = await fetchMe();
+      if (u) {
+        setCurrentUser(u);
+        setAccountEmail(displayEmail(u) ?? confirmed);
+        setServerEmailVerified(u.email_verified === true);
+        setPendingEmail(u.pendingEmail ?? null);
+      }
+      toast.success(t("pages.settings.emailConfirmed", { email: confirmed }));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("pages.settings.emailConfirmFailed"));
+    } finally {
+      setEmailConfirming(false);
+    }
+  };
+
+  /** Повторная отправка кода — на ожидающий адрес, а не на текущий. */
+  const resendEmailCode = async () => {
+    try {
+      await resendEmailChangeVerification();
+      toast.success(t("pages.settings.emailCodeResent"));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("pages.settings.emailChangeFailed"));
+    }
+  };
+
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
@@ -130,19 +178,23 @@ function AccountSection() {
       return;
     }
     if (isDemoMode()) {
-      setAccountEmail(newEmail);
-      setServerEmailVerified(false);
+      setPendingEmail(newEmail);
       setNewEmail("");
-      toast.success(t("pages.settings.emailUpdated"));
+      toast.success(t("pages.settings.emailCodeSent", { email: newEmail }));
       return;
     }
+    /*
+     * Смена в два шага. Сервер кладёт новый адрес в ожидание и шлёт на него
+     * код; адрес учётной записи до подтверждения прежний. До 12.09 страница
+     * подменяла адрес у себя и говорила «обновлён» — после перезагрузки
+     * возвращался старый, а поля для кода не было вовсе.
+     */
     try {
       await requestEmailChange(newEmail);
-      setAccountEmail(newEmail);
-      setServerEmailVerified(false);
+      setPendingEmail(newEmail);
+      setEmailCode("");
       setNewEmail("");
-      setVerifySent(false);
-      toast.success(t("pages.settings.emailUpdated"));
+      toast.success(t("pages.settings.emailCodeSent", { email: newEmail }));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("pages.settings.emailChangeFailed"));
     }
@@ -354,18 +406,57 @@ function AccountSection() {
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
           {t("pages.settings.changeEmail")}
         </h2>
-        <form onSubmit={submitEmail} className="space-y-[12px]">
-          <Field label={t("pages.settings.newEmail")}>
-            <Input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-            />
-          </Field>
-          <Button type="submit">{t("pages.settings.changeEmailBtn")}</Button>
-        </form>
+        {pendingEmail ? (
+          /*
+           * Смена начата: сервер держит адрес в ожидании и ждёт код. Форму
+           * нового адреса здесь не показываем — иначе непонятно, какой из двух
+           * адресов сейчас в деле.
+           */
+          <form onSubmit={confirmEmail} className="space-y-[12px]">
+            <div className="flex flex-wrap items-center gap-[8px]">
+              <p className="text-[14px] font-medium" style={{ color: "var(--foreground)" }}>
+                {pendingEmail}
+              </p>
+              <Badge variant="draft" withIcon={false}>
+                {t("pages.settings.emailPendingTitle")}
+              </Badge>
+            </div>
+            <p className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
+              {t("pages.settings.emailPendingText", { email: pendingEmail })}
+            </p>
+            <Field label={t("pages.settings.emailCodeLabel")}>
+              <Input
+                value={emailCode}
+                onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="000000"
+                maxLength={6}
+              />
+            </Field>
+            <div className="flex flex-wrap gap-[8px]">
+              <Button type="submit" disabled={emailCode.length !== 6 || emailConfirming}>
+                {t("pages.settings.emailConfirmBtn")}
+              </Button>
+              <Button type="button" variant="outline" onClick={resendEmailCode}>
+                {t("pages.settings.emailResendCodeBtn")}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={submitEmail} className="space-y-[12px]">
+            <Field label={t("pages.settings.newEmail")}>
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </Field>
+            <Button type="submit">{t("pages.settings.changeEmailBtn")}</Button>
+          </form>
+        )}
       </Card>
 
       <Card

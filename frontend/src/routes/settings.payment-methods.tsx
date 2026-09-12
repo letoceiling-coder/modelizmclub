@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CreditCard, Plus, Loader2 } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
+import { LoadFailed } from "@/components/ui/load-failed";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -37,11 +38,18 @@ function PaymentMethodsSection() {
   const [adding, setAdding] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
+  // Отказ загрузки — не «карт нет». Раньше `catch` подставлял пустой список,
+  // и не отвечающий сервер выглядел как пустой кошелёк карт.
+  const [loadFailed, setLoadFailed] = useState(false);
+
   const load = () => {
     setLoading(true);
     fetchPaymentMethods()
-      .then(setCards)
-      .catch(() => setCards([]))
+      .then((rows) => {
+        setCards(rows);
+        setLoadFailed(false);
+      })
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false));
   };
 
@@ -122,7 +130,9 @@ function PaymentMethodsSection() {
         </div>
       ) : (
         <>
-          {cards.length === 0 ? (
+          {loadFailed && cards.length === 0 ? (
+            <LoadFailed icon={CreditCard} onRetry={load} />
+          ) : cards.length === 0 ? (
             <Card
               className="p-[20px] text-center"
               style={{

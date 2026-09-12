@@ -5,9 +5,10 @@ import { History } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getViewHistory, type ViewHistoryItem } from "@/lib/view-history";
+import { clearViewHistory, getViewHistory, type ViewHistoryItem } from "@/lib/view-history";
 import { fetchViewHistory, clearViewHistoryRemote } from "@/lib/api/view-history-api";
-import { reportReadFailure } from "@/lib/errors/handle";
+import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/settings/history")({
   component: HistorySection,
@@ -37,6 +38,7 @@ function HistorySection() {
    */
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -55,12 +57,23 @@ function HistorySection() {
     };
   }, [reloadTick]);
 
+  /*
+   * Очистка — действие сервера, и список пустеет только после его ответа.
+   * До 12.09 `catch` очищал список так же, как `try`: страница показывала
+   * пустую историю, хотя сервер ничего не удалил, и после перезагрузки всё
+   * возвращалось.
+   */
   const clear = async () => {
+    setClearing(true);
     try {
       await clearViewHistoryRemote();
+      clearViewHistory();
       setItems([]);
-    } catch {
-      setItems([]);
+      toast.success(t("pages.settings.historyClearedToast"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.settings.historyClearFailed"));
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -84,7 +97,13 @@ function HistorySection() {
       ) : (
         <>
           <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={clear} className="rounded-[8px]">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clear}
+              disabled={clearing}
+              className="rounded-[8px]"
+            >
               {t("pages.settings.historyClear")}
             </Button>
           </div>

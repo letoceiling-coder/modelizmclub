@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InnInput } from "@/components/ui/inn-input";
 import { CardNumberInput } from "@/components/ui/card-number-input";
+import { LoadFailed } from "@/components/ui/load-failed";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -174,6 +175,8 @@ function RequisitesSection() {
 function PayoutCard() {
   const { t } = useTranslation();
   const [last4, setLast4] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const [cardNumber, setCardNumber] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -182,10 +185,13 @@ function PayoutCard() {
     let alive = true;
     fetchPayoutRequisites()
       .then((r) => {
-        if (alive) setLast4(r.last4);
+        if (!alive) return;
+        setLast4(r.last4);
+        setLoadFailed(false);
       })
       .catch(() => {
-        if (alive) setLast4(null);
+        // Сохранённая карта не пропала — её не удалось прочитать. Разные вещи.
+        if (alive) setLoadFailed(true);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -193,7 +199,7 @@ function PayoutCard() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reloadTick]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +244,8 @@ function PayoutCard() {
         >
           <Loader2 size={14} className="animate-spin" /> {t("pages.settings.loading")}
         </div>
+      ) : loadFailed ? (
+        <LoadFailed icon={CreditCard} onRetry={() => setReloadTick((n) => n + 1)} />
       ) : (
         <>
           {last4 && (

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TrendingUp, Eye, Heart, ClipboardList, Loader2, LineChart } from "lucide-react";
+import { LoadFailed } from "@/components/ui/load-failed";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import type { AdStatusKey } from "@/lib/store";
@@ -30,9 +31,12 @@ function DashboardSection() {
     favorites: number;
     byStatus: Map<AdStatusKey, number>;
   } | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    setLoadFailed(false);
     fetchMyStats()
       .then((s) => {
         if (!alive) return;
@@ -49,12 +53,22 @@ function DashboardSection() {
         });
       })
       .catch(() => {
-        if (alive) setStats({ active: 0, total: 0, views: 0, favorites: 0, byStatus: new Map() });
+        // Нули — это ответ сервера «ничего нет», а не «сервер не ответил».
+        // Раньше отказ подставлял нули, и отличить одно от другого было нельзя.
+        if (alive) setLoadFailed(true);
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reloadTick]);
+
+  if (loadFailed) {
+    return (
+      <SettingsSectionShell title={t("pages.settings.dashboardTitle")}>
+        <LoadFailed icon={LineChart} onRetry={() => setReloadTick((n) => n + 1)} />
+      </SettingsSectionShell>
+    );
+  }
 
   if (stats === null) {
     return (
