@@ -11,6 +11,14 @@ use App\Models\Listing;
 use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Support\Demo\DemoChannelsSection;
+use App\Support\Demo\DemoChatsSection;
+use App\Support\Demo\DemoCommunitiesSection;
+use App\Support\Demo\DemoCoverageSection;
+use App\Support\Demo\DemoFriendsSection;
+use App\Support\Demo\DemoPostsSection;
+use App\Support\Demo\DemoSection;
+use App\Support\Demo\DemoUsersSection;
 use App\Support\DemoImageFactory;
 use App\Support\DemoListingCatalog;
 use Illuminate\Console\Command;
@@ -53,10 +61,19 @@ class DemoListingsCommand extends Command
 {
     protected $signature = 'listings:demo
         {--dry-run : показать план, ничего не писать}
-        {--purge : удалить демо-продавцов и все их объявления}
-        {--only=* : только эти узлы направлений (slug)}';
+        {--purge : удалить демо-данные целиком}
+        {--only=* : только эти узлы направлений (slug), для раздела объявлений}
+        {--section=* : только эти разделы: '.self::SECTION_LIST.'}
+        {--batch=25 : сколько единиц подряд без паузы}
+        {--pause=2 : пауза между порциями, секунд}
+        {--force : при --purge удалить, даже если внутри демо-данных есть чужое}';
 
-    protected $description = 'Тестовые объявления в подкатегориях направлений; продавцы @demo.modelizmclub.ru';
+    protected $description = 'Демо-набор: люди, дружба, записи, сообщества, каналы, переписка, объявления, полнота дерева';
+
+    /** Порядок важен: следующий раздел опирается на созданное предыдущим. */
+    public const SECTIONS = ['users', 'friends', 'posts', 'communities', 'channels', 'chats', 'listings', 'coverage'];
+
+    private const SECTION_LIST = 'users, friends, posts, communities, channels, chats, listings, coverage';
 
     public const EMAIL_DOMAIN = 'demo.modelizmclub.ru';
 
@@ -79,9 +96,145 @@ class DemoListingsCommand extends Command
 
     public function handle(ListingService $listings, MediaUploadService $uploads, UserFullDeletionService $deletion): int
     {
-        return $this->option('purge')
-            ? $this->purge($deletion)
-            : $this->seed($listings, $uploads);
+        if ($this->option('purge')) {
+            return $this->purge($deletion);
+        }
+
+        $chosen = $this->chosenSections();
+        if ($chosen === null) {
+            return self::FAILURE;
+        }
+
+        $dryRun = (bool) $this->option('dry-run');
+        $started = microtime(true);
+        $totals = ['создать' => 0, 'создано' => 0];
+
+        foreach ($chosen as $key) {
+            if ($key === 'listings') {
+                $code = $this->seed($listings, $uploads);
+                if ($code !== self::SUCCESS) {
+                    return $code;
+                }
+
+                continue;
+            }
+
+            $section = $this->section($key);
+            $plan = $section->plan();
+
+            $this->newLine();
+            $this->line("<options=bold>{$section->title()}</>");
+            $this->table($section->columns(), $plan['rows']);
+            $this->line("  создать: {$plan['create']}, уже есть: {$plan['exists']}".
+                (isset($plan['photos']) ? ", картинок: {$plan['photos']}" : ''));
+
+            foreach ($section->warnings() as $warning) {
+                $this->warn("  ! {$warning}");
+            }
+            $totals['создать'] += $plan['create'];
+
+            if ($dryRun) {
+                continue;
+            }
+
+            $totals['создано'] += $this->runSection($section);
+        }
+
+        $this->newLine();
+        if ($dryRun) {
+            $this->info("Сухой прогон: будет создано единиц {$totals['создать']}. В базу ничего не записано.");
+
+            return self::SUCCESS;
+        }
+
+        $this->info(sprintf('Создано единиц %d за %s.', $totals['создано'], $this->human(microtime(true) - $started)));
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Создание порциями с паузами.
+     *
+     * ПОЧЕМУ НЕ РАЗОМ. Каждая картинка проходит конвейер медиа, а тот собирает
+     * четыре размера в трёх форматах. Сотня картинок подряд занимает все ядра,
+     * и это те же ядра, на которых сервер отвечает живым людям. Пауза между
+     * порциями возвращает процессор сайту.
+     */
+    private function runSection(DemoSection $section): int
+    {
+        $batch = max(1, (int) $this->option('batch'));
+        $pause = max(0, (int) $this->option('pause'));
+        $done = 0;
+        $started = microtime(true);
+
+        $made = $section->create(function (string $what) use (&$done, $batch, $pause, $started): void {
+            $done++;
+            if ($done % 10 === 0) {
+                $this->line(sprintf('    %4d · %s · %s', $done, $this->human(microtime(true) - $started), mb_substr($what, 0, 48)));
+            }
+            if ($pause > 0 && $done % $batch === 0) {
+                sleep($pause);
+            }
+        });
+
+        $this->line(sprintf('  готово: %d за %s', $made, $this->human(microtime(true) - $started)));
+
+        return $made;
+    }
+
+    /** @return list<string>|null */
+    private function chosenSections(): ?array
+    {
+        $asked = array_values(array_filter((array) $this->option('section')));
+
+        /*
+         * `--only` называет узлы дерева и относится только к объявлениям.
+         * Раньше команда умела одни объявления, и вызов с `--only` означал
+         * «сделай объявления вот в этих узлах». Значение сохраняем: без явного
+         * `--section` такой вызов по-прежнему делает только объявления, а не
+         * весь набор.
+         */
+        if ($asked === [] && array_values(array_filter((array) $this->option('only'))) !== []) {
+            return ['listings'];
+        }
+
+        if ($asked === []) {
+            return self::SECTIONS;
+        }
+
+        $unknown = array_diff($asked, self::SECTIONS);
+        if ($unknown !== []) {
+            $this->error('Неизвестные разделы: '.implode(', ', $unknown));
+            $this->line('Известные: '.implode(', ', self::SECTIONS));
+
+            return null;
+        }
+
+        // Порядок всегда свой, а не тот, в котором их назвали: разделы зависят
+        // друг от друга, и «chats,users» без пересортировки создаст переписку
+        // между несуществующими людьми.
+        return array_values(array_filter(self::SECTIONS, fn (string $k): bool => in_array($k, $asked, true)));
+    }
+
+    private function section(string $key): DemoSection
+    {
+        return app(match ($key) {
+            'users' => DemoUsersSection::class,
+            'friends' => DemoFriendsSection::class,
+            'posts' => DemoPostsSection::class,
+            'communities' => DemoCommunitiesSection::class,
+            'channels' => DemoChannelsSection::class,
+            'chats' => DemoChatsSection::class,
+            'coverage' => DemoCoverageSection::class,
+            default => throw new \InvalidArgumentException("Неизвестный раздел {$key}"),
+        });
+    }
+
+    private function human(float $seconds): string
+    {
+        return $seconds < 60
+            ? sprintf('%.0f с', $seconds)
+            : sprintf('%d мин %02d с', (int) ($seconds / 60), (int) $seconds % 60);
     }
 
     private function seed(ListingService $listings, MediaUploadService $uploads): int
@@ -319,27 +472,80 @@ class DemoListingsCommand extends Command
         return $failures === [];
     }
 
+    /**
+     * Удаление всего набора.
+     *
+     * ЧТО УХОДИТ КАСКАДОМ. `UserFullDeletionService::purge` сам сносит каналы,
+     * где демо-человек владелец, и сообщества, где он создатель или владелец в
+     * сводной таблице. Поэтому команде достаточно удалить людей — записи,
+     * объявления, комментарии, реакции и участие уходят вместе с ними.
+     *
+     * ЗАЩИТА. Демо-сообщество мог найти живой человек: вступить, написать на
+     * стену, оставить комментарий под демо-записью. Снос владельца удалит и
+     * это. По умолчанию команда в таком случае отказывается и печатает, что
+     * именно нашла; продолжить можно `--force`, но уже осознанно.
+     *
+     * Безопасные сделки остаются отдельным, более жёстким случаем: их не
+     * разрешает даже `--force` — там деньги живого покупателя.
+     */
     private function purge(UserFullDeletionService $deletion): int
     {
         $dryRun = (bool) $this->option('dry-run');
+        $force = (bool) $this->option('force');
+
         $users = User::withTrashed()->where('email', 'like', '%@'.self::EMAIL_DOMAIN)->get();
         $userIds = $users->pluck('id')->all();
+
+        if ($userIds === []) {
+            $this->info('Демо-данных нет: ни одной учётной записи на '.self::EMAIL_DOMAIN.'.');
+
+            return self::SUCCESS;
+        }
+
         $listingIds = Listing::withTrashed()->whereIn('user_id', $userIds)->pluck('id')->all();
+        $postIds = DB::table('posts')->whereIn('user_id', $userIds)->pluck('id')->all();
+        $communityIds = DB::table('communities')->whereIn('created_by', $userIds)->pluck('id')->all();
+        $channelIds = DB::table('channels')->whereIn('owner_id', $userIds)->pluck('id')->all();
+
+        $this->table(['что', 'сколько'], [
+            ['люди', count($userIds)],
+            ['объявления', count($listingIds)],
+            ['записи', count($postIds)],
+            ['сообщества', count($communityIds)],
+            ['каналы', count($channelIds)],
+            ['фото объявлений', DB::table('listing_media')->whereIn('listing_id', $listingIds)->count()],
+            ['личные диалоги', $this->demoDirectConversations($userIds)->count()],
+        ]);
 
         $deals = DB::table('safe_deals')
             ->where(fn ($q) => $q->whereIn('listing_id', $listingIds)
                 ->orWhereIn('seller_id', $userIds)
                 ->orWhereIn('buyer_id', $userIds))
             ->count();
-        $favorites = DB::table('listing_favorites')->whereIn('listing_id', $listingIds)->count();
-        $media = DB::table('listing_media')->whereIn('listing_id', $listingIds)->count();
-
-        $this->line("Демо-продавцов: {$users->count()}, объявлений: ".count($listingIds).", фото: {$media}, в избранном у людей: {$favorites}.");
 
         if ($deals > 0) {
             $this->error("По демо-объявлениям есть безопасные сделки: {$deals}. Удаление продавца сотрёт их каскадом — разберите сделки вручную. Ничего не удалено.");
 
             return self::FAILURE;
+        }
+
+        $foreign = $this->foreignContent($userIds, $communityIds, $channelIds, $postIds);
+        $foreignTotal = array_sum($foreign);
+
+        if ($foreignTotal > 0) {
+            $this->newLine();
+            $this->warn('Внутри демо-данных есть чужое — оно тоже будет удалено:');
+            foreach ($foreign as $what => $count) {
+                if ($count > 0) {
+                    $this->line("  {$what}: {$count}");
+                }
+            }
+
+            if (! $force) {
+                $this->error('Ничего не удалено. Разберите найденное или повторите с --force, если это действительно можно терять.');
+
+                return self::FAILURE;
+            }
         }
 
         if ($dryRun) {
@@ -348,17 +554,31 @@ class DemoListingsCommand extends Command
             return self::SUCCESS;
         }
 
+        $conversationIds = $this->demoDirectConversations($userIds)->pluck('id')->all();
+
         foreach ($users as $user) {
             $deletion->purge($user);
         }
+
+        // Личные диалоги, где обе стороны — демо-люди: участники ушли вместе с
+        // людьми, но сама беседа осталась бы пустой строкой в списке.
+        if ($conversationIds !== []) {
+            DB::table('messages')->whereIn('conversation_id', $conversationIds)->delete();
+            DB::table('conversation_participants')->whereIn('conversation_id', $conversationIds)->delete();
+            DB::table('conversations')->whereIn('id', $conversationIds)->delete();
+        }
+
         CatalogService::flushCache();
 
         $leftUsers = User::withTrashed()->where('email', 'like', '%@'.self::EMAIL_DOMAIN)->count();
         $leftListings = Listing::withTrashed()->whereIn('id', $listingIds)->count();
-        $leftMedia = DB::table('listing_media')->whereIn('listing_id', $listingIds)->count();
+        $leftPosts = DB::table('posts')->whereIn('id', $postIds)->count();
+        $leftCommunities = DB::table('communities')->whereIn('id', $communityIds)->count();
+        $leftChannels = DB::table('channels')->whereIn('id', $channelIds)->count();
 
-        $this->line("Проверка: продавцов {$leftUsers}, объявлений {$leftListings}, привязок фото {$leftMedia}.");
-        if ($leftUsers + $leftListings + $leftMedia > 0) {
+        $this->line("Проверка: людей {$leftUsers}, объявлений {$leftListings}, записей {$leftPosts}, сообществ {$leftCommunities}, каналов {$leftChannels}.");
+
+        if ($leftUsers + $leftListings + $leftPosts + $leftCommunities + $leftChannels > 0) {
             $this->error('Удалено не всё.');
 
             return self::FAILURE;
@@ -367,5 +587,60 @@ class DemoListingsCommand extends Command
         $this->info('Удалено. Файлы картинок в хранилище остаются, как при любом полном удалении пользователя.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Чужое внутри демо-данных.
+     *
+     * @param  list<int>  $userIds
+     * @param  list<int>  $communityIds
+     * @param  list<int>  $channelIds
+     * @param  list<int>  $postIds
+     * @return array<string, int>
+     */
+    private function foreignContent(array $userIds, array $communityIds, array $channelIds, array $postIds): array
+    {
+        $notDemo = fn ($q) => $q->whereNotIn('user_id', $userIds);
+
+        return [
+            'записи живых людей в демо-сообществах' => $communityIds === [] ? 0 : DB::table('posts')
+                ->whereIn('community_id', $communityIds)
+                ->whereNotIn('user_id', $userIds)
+                ->whereNull('deleted_at')
+                ->count(),
+            'участники демо-сообществ со стороны' => $communityIds === [] ? 0 : DB::table('community_members')
+                ->whereIn('community_id', $communityIds)
+                ->whereNotIn('user_id', $userIds)
+                ->count(),
+            'подписчики демо-каналов со стороны' => $channelIds === [] ? 0 : DB::table('channel_subscriptions')
+                ->whereIn('channel_id', $channelIds)
+                ->whereNotIn('user_id', $userIds)
+                ->count(),
+            'комментарии живых людей под демо-записями' => $postIds === [] ? 0 : DB::table('comments')
+                ->where('commentable_type', \App\Models\Post::class)
+                ->whereIn('commentable_id', $postIds)
+                ->whereNotIn('user_id', $userIds)
+                ->whereNull('deleted_at')
+                ->count(),
+        ];
+    }
+
+    /**
+     * Личные диалоги, в которых нет никого, кроме демо-людей.
+     *
+     * @param  list<int>  $userIds
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function demoDirectConversations(array $userIds)
+    {
+        return DB::table('conversations as c')
+            ->where('c.type', 'direct')
+            ->whereExists(fn ($q) => $q->from('conversation_participants as p')
+                ->whereColumn('p.conversation_id', 'c.id')
+                ->whereIn('p.user_id', $userIds))
+            ->whereNotExists(fn ($q) => $q->from('conversation_participants as p2')
+                ->whereColumn('p2.conversation_id', 'c.id')
+                ->whereNotIn('p2.user_id', $userIds))
+            ->get(['c.id']);
     }
 }
