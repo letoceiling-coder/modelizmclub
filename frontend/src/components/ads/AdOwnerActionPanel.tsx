@@ -74,6 +74,27 @@ function StatTile({
   );
 }
 
+/** Широкая кнопка блока: переносит подпись, высота не меньше 44. */
+const WRAP_LG =
+  "h-auto min-h-[44px] w-full whitespace-normal rounded-[var(--r-button)] px-[16px] py-[10px] text-center leading-snug";
+
+/** Кнопка в ряду во всю ширину — «Удалить». */
+const WRAP_ROW =
+  "inline-flex h-auto min-h-[44px] w-full min-w-0 items-center justify-center gap-[8px] whitespace-normal rounded-[var(--r-button)] px-[12px] py-[10px] text-center text-[13px] leading-snug";
+
+/**
+ * Кнопка пары. Основа ширины — подпись в одну строку (`flex-basis:
+ * max-content`): по ней `flex-wrap` решает, помещаются ли обе рядом. Не
+ * помещаются — вторая уходит на новую строку и растягивается во всю ширину.
+ * Подпись длиннее целого ряда сжимается (`min-w-0`) и переносится внутри.
+ *
+ * Первая версия ставила `min-width: min(100%, max-content)` — и не работала:
+ * математические функции CSS не принимают `max-content`, браузер молча
+ * выбрасывал правило, и пара оставалась рядом с подписью в две строки.
+ */
+const WRAP_PAIR =
+  "inline-flex h-auto min-h-[44px] min-w-0 flex-[1_1_max-content] items-center justify-center gap-[8px] whitespace-normal rounded-[var(--r-button)] px-[12px] py-[10px] text-center text-[13px] leading-snug";
+
 export function AdOwnerActionPanel({
   ad,
   busy,
@@ -170,20 +191,29 @@ export function AdOwnerActionPanel({
           />
         </div>
 
+        {/*
+          Кнопки блока переносят подпись, а не выталкивают её наружу.
+
+          У базовой кнопки `whitespace-nowrap` и фиксированная высота: пока
+          подпись короче кнопки, это незаметно. «Поднять объявление» на
+          половине панели в 360 уже не помещалась — на 375, 1024 и 1440 текст
+          вылезал на 15–19 px и ложился на соседнюю «Поделиться» (замер 13.09).
+          С подписью в полтора раза длиннее — а переводы длиннее русского
+          именно так — вылезали все шесть кнопок, до 164 px.
+
+          Поэтому здесь `whitespace-normal` и высота «не меньше 44»: короткая
+          подпись даёт ту же кнопку, длинная — кнопку в две строки, но никогда
+          не текст поверх соседа.
+        */}
         <div className="flex flex-col gap-[8px]">
-          <Button
-            onClick={onEdit}
-            size="lg"
-            className="w-full rounded-[var(--r-button)]"
-            disabled={busy}
-          >
+          <Button onClick={onEdit} size="lg" className={WRAP_LG} disabled={busy}>
             <Pencil size={16} /> {t("pages.adDetail.ownerEdit")}
           </Button>
           <Button
             variant="outline"
             size="lg"
             onClick={onUnpublish}
-            className="w-full rounded-[var(--r-button)]"
+            className={WRAP_LG}
             disabled={busy}
           >
             <Archive size={16} /> {t("pages.adDetail.ownerUnpublish")}
@@ -192,7 +222,7 @@ export function AdOwnerActionPanel({
             variant="ghost"
             size="lg"
             onClick={onPreviewAsBuyer}
-            className="w-full rounded-[var(--r-button)]"
+            className={WRAP_LG}
             disabled={busy}
           >
             <UserRound size={16} /> {t("pages.adDetail.ownerPreviewAsBuyer")}
@@ -200,27 +230,25 @@ export function AdOwnerActionPanel({
         </div>
 
         <div className="flex flex-col gap-[8px]">
-          <div className="grid grid-cols-2 gap-[8px]">
+          {/*
+            Пара рядом, пока обе подписи помещаются в строку, иначе — друг под
+            другом. Решает не брейкпоинт, а сама подпись: `flex-wrap` и
+            минимальная ширина «по содержимому, но не шире ряда». Сетка в две
+            колонки делила ряд пополам независимо от текста — отсюда и вылет.
+          */}
+          <div className="flex flex-wrap gap-[8px]">
             {!ad.promoted && (
               <Button
                 variant="outline"
                 onClick={() => setBoostOpen(true)}
-                className="inline-flex h-[44px] min-w-0 w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] px-[12px] text-[13px] leading-snug"
+                className={WRAP_PAIR}
                 disabled={busy}
               >
                 <Zap size={16} className="shrink-0" />
                 <span className="min-w-0 text-center">{t("pages.adDetail.ownerBoost")}</span>
               </Button>
             )}
-            <Button
-              variant="outline"
-              onClick={onShare}
-              className={cn(
-                "inline-flex h-[44px] min-w-0 w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] px-[12px] text-[13px] leading-snug",
-                ad.promoted && "col-span-2",
-              )}
-              disabled={busy}
-            >
+            <Button variant="outline" onClick={onShare} className={WRAP_PAIR} disabled={busy}>
               <Share2 size={16} className="shrink-0" />
               <span className="min-w-0 text-center">{t("pages.adDetail.ownerShare")}</span>
             </Button>
@@ -228,7 +256,7 @@ export function AdOwnerActionPanel({
           <Button
             variant="outline"
             onClick={onDelete}
-            className="inline-flex h-[44px] min-w-0 w-full items-center justify-center gap-[8px] rounded-[var(--r-button)] px-[12px] text-[13px] leading-snug"
+            className={WRAP_ROW}
             disabled={busy}
             style={{
               color: "var(--error)",
