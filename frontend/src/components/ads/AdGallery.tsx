@@ -168,6 +168,15 @@ export function AdGallery({
                       draggable={false}
                       className="h-full w-full object-contain"
                       loading={i === 0 ? "eager" : "lazy"}
+                      /*
+                       * Первое фото — кандидат в LCP, и с загрузчиком маршрута
+                       * оно есть уже в серверной разметке. Приоритет поднимаем
+                       * явно: рядом в разметке лежит полоса миниатюр и прочие
+                       * картинки, и без подсказки браузер ставит их в общую
+                       * очередь. В ленте тот же приём давно применён к первой
+                       * карточке (`PostCard priority`).
+                       */
+                      fetchPriority={i === 0 ? "high" : undefined}
                       onError={() => setBroken((b) => ({ ...b, [i]: true }))}
                     />
                   </button>
