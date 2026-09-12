@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/lib/toast";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
+import { rememberTopup, takeRememberedTopup } from "@/lib/payments/pending-topup";
 import {
   fetchWalletBalance,
   fetchWalletTransactions,
@@ -235,8 +236,15 @@ function WalletSection() {
         alive = false;
       };
     }
-    if (!uuid) {
-      toast.success(t("pages.settings.walletTopupSuccess"));
+    // Идентификатор из адреса, а если его там нет — запомненный перед уходом.
+    const paymentUuid = uuid || takeRememberedTopup();
+    if (!paymentUuid) {
+      /*
+       * Спросить не о чем: платёж начат не в этой вкладке, хранилище
+       * очищено или адрес открыли руками. Успех в таком случае не объявляем —
+       * перечитываем кошелёк и говорим, что состояние уточняется.
+       */
+      toast(t("pages.settings.walletTopupUnknown"));
       notifyBillingChanged();
       load();
       finish();
@@ -244,7 +252,7 @@ function WalletSection() {
         alive = false;
       };
     }
-    void syncPayment(uuid)
+    void syncPayment(paymentUuid)
       .then((res) => {
         if (!alive) return;
         if (res.status === "paid") {
@@ -513,6 +521,14 @@ function TopupDialog({
         toast.error(t("pages.settings.walletTopupVtbMissing"));
         return;
       }
+      /*
+       * Запоминаем платёж до ухода на банк. Собственный возвратный адрес
+       * сервера — `/settings/wallet?payment=success`, без идентификатора: он
+       * строится раньше, чем платёж создан. Без этой записи страница на
+       * возврате не знала, что именно спрашивать, и объявляла успех по одному
+       * лишь виду адреса.
+       */
+      rememberTopup(checkout.payment_uuid);
       window.location.href = checkout.checkout_url;
     } catch (err) {
       toast.error(formatApiErrorMessage(err, t("pages.settings.walletError")));

@@ -2196,6 +2196,7 @@ export const ru = {
       walletTopupSubmit: "Перейти к оплате",
       walletWithdrawSubmit: "Создать заявку",
       walletCancel: "Отмена",
+      walletTopupUnknown: "Проверяем платёж у банка. Баланс обновится, как только придёт ответ.",
       walletTopupSuccess: "Баланс пополнен",
       walletTopupFailed: "Оплата не прошла. Средства не зачислены.",
       walletTopupFailedNoFunds: "Недостаточно средств на карте. Баланс не пополнен.",
