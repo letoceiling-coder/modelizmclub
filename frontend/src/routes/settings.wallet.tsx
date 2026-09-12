@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Wallet as WalletIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,9 +57,16 @@ export const Route = createFileRoute("/settings/wallet")({
    * выдуман: сервер не сказал «ноль», он отказался отвечать. Замер прода
    * 07.09 после закрытия группы Billing.
    *
-   * Уровень берётся из карты доступа, как у /messenger: `route.settings`
-   * объявлен там `auth`, а `levelFromAccessTier` переводит его в `verified`.
-   * Карта не меняется — она наконец применяется.
+   * Уровень берётся из карты доступа, как у /messenger. Важно, чего этот
+   * страж НЕ делает: `route.settings` объявлен в карте `auth`, а
+   * `levelFromAccessTier("auth")` возвращает `registered` — не `verified`.
+   * То есть на страницу пускают зарегистрированного без подтверждённого
+   * телефона, и до 12.09 здесь стояло обратное утверждение (аудит 12.09).
+   *
+   * Поднять весь `/settings` до `verified` нельзя: телефон подтверждают на
+   * этой же странице настроек, и человек заперся бы снаружи. Поэтому
+   * предупреждение показываем сразу — `VerificationBanner` ниже, — а не
+   * после нажатия «Пополнить» или «Вывести».
    */
   beforeLoad: async ({ location }) => {
     const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] =
@@ -292,6 +300,16 @@ function WalletSection() {
 
   return (
     <SettingsSectionShell title={t("pages.settings.walletTitle")}>
+      {/*
+       * Предупреждение до действия, а не после отказа. Раздел открывается
+       * зарегистрированному без подтверждённого телефона (`route.settings` в
+       * карте доступа — `auth`), а записи и денежные операции сервер держит
+       * за ступенью `verified`. Раньше человек узнавал об этом только когда
+       * действие падало. Баннер сам решает, показываться ли: подтверждённому
+       * и гостю он не рисуется.
+       */}
+      <VerificationBanner />
+
       <Card
         className="p-[20px]"
         style={{

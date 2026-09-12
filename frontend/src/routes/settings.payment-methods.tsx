@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CreditCard, Plus, Loader2 } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { Card } from "@/components/ui/card";
 import { LoadFailed } from "@/components/ui/load-failed";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,16 @@ function PaymentMethodsSection() {
 
   return (
     <SettingsSectionShell title={t("pages.settings.paymentTitle")}>
+      {/*
+       * Предупреждение до действия, а не после отказа. Раздел открывается
+       * зарегистрированному без подтверждённого телефона (`route.settings` в
+       * карте доступа — `auth`), а записи и денежные операции сервер держит
+       * за ступенью `verified`. Раньше человек узнавал об этом только когда
+       * действие падало. Баннер сам решает, показываться ли: подтверждённому
+       * и гостю он не рисуется.
+       */}
+      <VerificationBanner />
+
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
         {t("pages.settings.paymentDesc")}
       </p>
