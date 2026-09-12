@@ -5,7 +5,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
@@ -296,7 +296,19 @@ function AdminPage() {
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [localeReady, setLocaleReady] = useState(false);
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
-  const [section, setSection] = useState<Section>(sectionFromUrl ?? "dashboard");
+
+  // Раздел живёт в адресе, а не в состоянии рядом с ним. Пока это был
+  // `useState`, ссылку на раздел нельзя было дать, перезагрузка возвращала в
+  // дашборд, а «назад» не работал вовсе. Второго источника правды здесь быть
+  // не должно: `?section=` — единственный.
+  const section: Section = sectionFromUrl ?? "dashboard";
+
+  const goToSection = useCallback(
+    (next: Section, replace = false) => {
+      void navigate({ to: "/admin", search: { section: next }, replace });
+    },
+    [navigate],
+  );
 
   /*
    * Словарь админки — по той же причине, что и проверка доступа ниже.
@@ -365,16 +377,14 @@ function AdminPage() {
   // previous render" once access resolves past "checking".
   const visibleNavItems = navItems.filter((n) => adminRole !== null && n.roles.includes(adminRole));
 
-  useEffect(() => {
-    if (sectionFromUrl) setSection(sectionFromUrl);
-  }, [sectionFromUrl]);
-
+  // Раздел из адреса роли не виден — уводим на первый доступный и правим
+  // адрес подменой записи, чтобы «назад» не возвращал в запрещённый раздел.
   useEffect(() => {
     if (adminRole === null) return;
     if (!visibleNavItems.some((n) => n.id === section)) {
-      setSection(visibleNavItems[0]?.id ?? "dashboard");
+      goToSection(visibleNavItems[0]?.id ?? "dashboard", true);
     }
-  }, [adminRole, section, visibleNavItems]);
+  }, [adminRole, section, visibleNavItems, goToSection]);
 
   if (isNestedAdminRoute) {
     return <Outlet />;
@@ -520,7 +530,7 @@ function AdminPage() {
               return (
                 <button
                   key={n.id}
-                  onClick={() => setSection(n.id)}
+                  onClick={() => goToSection(n.id)}
                   className="flex w-full items-center"
                   style={{
                     gap: "10px",
@@ -554,7 +564,7 @@ function AdminPage() {
           <div className="md:hidden" style={{ marginBottom: "16px" }}>
             <select
               value={section}
-              onChange={(e) => setSection(e.target.value as Section)}
+              onChange={(e) => goToSection(e.target.value as Section)}
               className="w-full"
               style={{
                 height: "44px",
