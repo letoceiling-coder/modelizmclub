@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Ban, ShieldOff } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -12,11 +12,25 @@ import { reportReadFailure } from "@/lib/errors/handle";
 
 export function BlockedUsersSection() {
   const blockedUserIds = useStore((s) => s.blockedUserIds);
+  /*
+   * Числовые идентификаторы из ответа сервера. Снятие блокировки идёт по ним
+   * (`DELETE /users/{id}/block`), а в хранилище лежат только строковые: если
+   * запись в реестре пользователей не завелась, `userById` отдаёт заглушку без
+   * `numericId`. До 12.09 в этом случае запрос молча не отправлялся, а тост
+   * «разблокирован» показывался — блокировка оставалась на сервере и
+   * возвращалась после перезагрузки.
+   */
+  const [numericIds, setNumericIds] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (isDemoMode()) return;
     fetchBlockedUsers()
       .then((users) => {
+        setNumericIds((prev) => {
+          const next = { ...prev };
+          for (const u of users) if (u.numericId) next[u.id] = u.numericId;
+          return next;
+        });
         users.forEach((u) => {
           if (!blockedUserIds.includes(u.id)) actions.blockUser(u.id);
         });
@@ -49,9 +63,15 @@ export function BlockedUsersSection() {
               variant="outline"
               size="sm"
               onClick={async () => {
-                if (!isDemoMode() && u.numericId) {
+                if (!isDemoMode()) {
+                  const numericId = u.numericId ?? numericIds[id];
+                  if (!numericId) {
+                    // Спросить сервер нечем — значит и снимать нечего.
+                    toast.error("Не удалось разблокировать: сервер не ответил, кто это");
+                    return;
+                  }
                   try {
-                    await unblockUser(u.numericId);
+                    await unblockUser(numericId);
                   } catch {
                     toast.error("Не удалось разблокировать");
                     return;
