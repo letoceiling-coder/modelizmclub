@@ -1,0 +1,110 @@
+{
+  "base": "https://modelizmclub.ru",
+  "at": "2026-09-12T10:43:36.595800+00:00",
+  "task": "приёмка v4.0.0-release",
+  "commit": "e8fa1c00",
+  "tag": "v4.0.0-release",
+  "matrix": {
+    "cells": 684,
+    "by_state": {
+      "guest": 152,
+      "registered": 148,
+      "verified": 176,
+      "subscriber": 180,
+      "admin": 28
+    },
+    "sections": 13,
+    "routes": 50,
+    "widths": [
+      375,
+      768,
+      1024,
+      1440
+    ],
+    "confirmed_defects": 0,
+    "flagged_then_cleared": 4,
+    "note": "четыре ячейки отмечены автоматикой при выдержке 3 с; при 12 с все чисты"
+  },
+  "lighthouse_mobile_median5": {
+    "/": 97,
+    "/feed": 69,
+    "/ads": 97,
+    "/ads/{uuid}": 93,
+    "/categories": 98,
+    "/communities": 97,
+    "/channels": 98,
+    "/profile": 96
+  },
+  "lighthouse_baseline_11_09": {
+    "/": 96,
+    "/feed": 70,
+    "/ads": 98,
+    "/ads/{uuid}": 61,
+    "/categories": 89,
+    "/communities": 98,
+    "/channels": 99,
+    "/profile": 95
+  },
+  "cls": {
+    "pages": 0.0,
+    "transitions": 0.0,
+    "transitions_measured": 50,
+    "known_load_peaks": {
+      "/ @375": 0.0397,
+      "/notifications @375": 0.0423
+    }
+  },
+  "hit_targets_under_44": {
+    "/": 46,
+    "/ads": 25,
+    "/feed": {
+      "375": 6,
+      "768": 3
+    },
+    "/channels": 2,
+    "note": "самостоятельные элементы; аватар 40x40 ложный — у него after:-inset-[2px]"
+  },
+  "gates": {
+    "build": 0,
+    "tsc": 0,
+    "eslint_errors": 0,
+    "frontend_tests": "124/124",
+    "backend_tests": "801/801",
+    "ci": "green"
+  },
+  "drift": {
+    "schema": "none, 2174 objects",
+    "access_map": "reporting only",
+    "category_tree": "consistent",
+    "config_access": "ok"
+  },
+  "billing_provider": "vtb/vtb",
+  "open_items": [
+    {
+      "id": "feed-perf",
+      "priority": "P2",
+      "what": "лента 69 при цели 85",
+      "hours": "4-8"
+    },
+    {
+      "id": "hit-targets",
+      "priority": "P3",
+      "what": "зоны нажатия <44 на 375/768",
+      "hours": "2-3"
+    },
+    {
+      "id": "cls-peaks",
+      "priority": "P3",
+      "what": "два пика сдвига при загрузке",
+      "hours": "3"
+    },
+    {
+      "id": "chunk-split",
+      "priority": "P4",
+      "what": "вынос чанка поднял суммарный JS на ~10 КБ",
+      "hours": "0.25"
+    }
+  ],
+  "artifacts": "полный прогон (684 снимка, отчёты Lighthouse) — /Users/neeklo/Documents/Project/САЙТЫ/qa-run-2026-09-12",
+  "verdict": "публичную часть и кабинет открывать можно; открытых работ 9-14 ч, блокирующих нет"
+}
