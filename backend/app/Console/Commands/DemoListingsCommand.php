@@ -66,7 +66,8 @@ class DemoListingsCommand extends Command
         {--section=* : только эти разделы: '.self::SECTION_LIST.'}
         {--batch=25 : сколько единиц подряд без паузы}
         {--pause=2 : пауза между порциями, секунд}
-        {--force : при --purge удалить, даже если внутри демо-данных есть чужое}';
+        {--force : при --purge удалить, даже если внутри демо-данных есть чужое}
+        {--fill-listings-everywhere : добирать объявления и в неторговых узлах дерева}';
 
     protected $description = 'Демо-набор: люди, дружба, записи, сообщества, каналы, переписка, объявления, полнота дерева';
 
@@ -218,6 +219,13 @@ class DemoListingsCommand extends Command
 
     private function section(string $key): DemoSection
     {
+        if ($key === 'coverage') {
+            $coverage = app(DemoCoverageSection::class);
+            $coverage->fillListingsEverywhere((bool) $this->option('fill-listings-everywhere'));
+
+            return $coverage;
+        }
+
         return app(match ($key) {
             'users' => DemoUsersSection::class,
             'friends' => DemoFriendsSection::class,

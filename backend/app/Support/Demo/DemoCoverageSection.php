@@ -4,6 +4,7 @@ namespace App\Support\Demo;
 
 use App\Enums\ListingStatus;
 use App\Models\PostCategory;
+use App\Support\DemoListingCatalog;
 use App\Models\User;
 use App\Models\City;
 use Illuminate\Support\Facades\DB;
@@ -21,10 +22,20 @@ use Modules\Media\Services\MediaUploadService;
  * а дотягивает пустые.
  *
  * ЧЕГО ДОБИРАЕМ. В каждом узле дерева — две опубликованные записи. В каждой
- * подкатегории — ещё два объявления и три участника комнаты обсуждения.
- * Комнаты в этой системе существуют только у узлов с родителем
- * (`ChatService::findOrCreateCategoryRoom` требует предка), поэтому у корневых
- * направлений комнат нет и требовать их нечего.
+ * подкатегории — ещё три участника комнаты обсуждения. Комнаты в этой системе
+ * существуют только у узлов с родителем (`ChatService::findOrCreateCategoryRoom`
+ * требует предка), поэтому у корневых направлений комнат нет и требовать их
+ * нечего.
+ *
+ * ОБЪЯВЛЕНИЯ — НЕ ВЕЗДЕ. Торговых узлов меньше, чем узлов дерева: в выставках,
+ * обзоров и техниках продавать нечего, и это решение принято раньше — список
+ * торговых узлов лежит в `DemoListingCatalog::ITEMS`. Добор объявлений идёт
+ * только по ним. Иначе полнота лезла бы ровно в те шестнадцать узлов, куда
+ * лоты сознательно не ставили: `events/*`, `reviews/*`, `techniques/*`,
+ * `rybalka/trofei`, `rybalka/vodoemy`, `aviation/planery/il-6`.
+ *
+ * Поведение переключается: `--fill-listings-everywhere` добирает лоты во всех
+ * подкатегориях. По умолчанию выключено — согласовано 12.09.
  *
  * ЦЕНА. Каждая запись и каждое объявление тянут по одной картинке через
  * конвейер медиа. На дереве из семидесяти девяти узлов это сотни изображений;
@@ -37,6 +48,14 @@ class DemoCoverageSection extends DemoSection
     private const LISTINGS_PER_SUB = 2;
 
     private const ROOM_MEMBERS = 3;
+
+    /** Добирать ли объявления в неторговых узлах. По умолчанию — нет. */
+    private bool $listingsEverywhere = false;
+
+    public function fillListingsEverywhere(bool $value): void
+    {
+        $this->listingsEverywhere = $value;
+    }
 
     public function __construct(
         private readonly PostService $posts,
@@ -181,11 +200,13 @@ class DemoCoverageSection extends DemoSection
             $hasParent = $node->parent_id !== null;
             $mirrorId = $mirrorByPath[$node->path] ?? null;
 
+            $trades = $this->listingsEverywhere || isset(DemoListingCatalog::ITEMS[$node->slug]);
+
             $out[] = [
                 'node' => $node,
                 'path' => (string) $node->path,
                 'posts' => max(0, self::POSTS_PER_NODE - (int) ($postCounts[$node->id] ?? 0)),
-                'listings' => $hasParent
+                'listings' => $hasParent && $trades
                     ? max(0, self::LISTINGS_PER_SUB - (int) ($mirrorId ? ($listingCounts[$mirrorId] ?? 0) : 0))
                     : 0,
                 'members' => $hasParent
