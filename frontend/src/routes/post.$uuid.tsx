@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, SearchX } from "lucide-react";
@@ -190,6 +190,10 @@ function PostView({ uuid, initial }: { uuid: string; initial: Post | null }) {
   const post = query.data ?? null;
   const backToFeed = () => navigate({ to: ROUTES.feed });
 
+  // Правка своей записи: кладём ответ прямо в кеш этого запроса, чтобы
+  // страница обновилась без повторного похода за той же записью.
+  const queryClient = useQueryClient();
+
   return (
     <AppLayout>
       <div className="px-0 py-3 sm:px-4">
@@ -201,7 +205,11 @@ function PostView({ uuid, initial }: { uuid: string; initial: Post | null }) {
         </div>
 
         {post ? (
-          <PostCard post={post} variant="post" />
+          <PostCard
+            post={post}
+            variant="post"
+            onEdited={(next) => queryClient.setQueryData(qk.post(uuid), next)}
+          />
         ) : retrying && !query.isError ? (
           <PostCardSkeleton />
         ) : (

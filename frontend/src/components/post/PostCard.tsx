@@ -147,6 +147,12 @@ export function PostCard({
   const canDelete =
     variant === "embedded" ? false : post.canDelete || post.authorId === me.id || isStaff;
 
+  // Править можно только свою запись. До 12.09 показ «Редактировать» зависел
+  // только от того, передала ли страница `onEdited`, — а передаётся он на весь
+  // список сразу, поэтому в комнатах направлений и в сообществах пункт стоял и
+  // на чужих записях. Удаление своё ограничение имело, правка — нет.
+  const canEdit = variant !== "embedded" && post.authorId === me.id;
+
   const [liked, setLiked] = useState(!!post.isLiked);
   const [savedInner, setSavedInner] = useState(!!post.isSaved);
   const saved = isSavedExternal ?? savedInner;
@@ -749,7 +755,7 @@ export function PostCard({
             author={author}
             isOwn={post.authorId === me.id}
             onDeleted={() => onDelete?.(post.id)}
-            onEdit={onEdited ? () => setEditOpen(true) : undefined}
+            onEdit={onEdited && canEdit ? () => setEditOpen(true) : undefined}
             removeOverride={overrides?.remove}
             onApproved={() => onTogglePost?.(post.id, { status: "published" })}
             onToggleSave={toggleSave}
@@ -1033,7 +1039,7 @@ export function PostCard({
         </Appear>
       )}
       {viewerLayer}
-      {onEdited && (
+      {onEdited && canEdit && (
         <EditPostDialog
           post={post}
           open={editOpen}
