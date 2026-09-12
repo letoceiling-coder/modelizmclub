@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
+import { askConfirm } from "@/lib/ui/ask";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 import {
@@ -271,6 +272,15 @@ function NotificationsPage() {
   };
 
   const clearAll = async () => {
+    if (
+      !(await askConfirm({
+        title: t("pages.notifications.clearAllConfirm"),
+        description: t("pages.notifications.clearAllConfirmDesc"),
+        confirmLabel: t("pages.notifications.clearAll"),
+        danger: true,
+      }))
+    )
+      return;
     const prev = items;
     for (const timer of pendingDeletes.current.values()) clearTimeout(timer);
     pendingDeletes.current.clear();

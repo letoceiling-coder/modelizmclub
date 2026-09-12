@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
+import { askConfirm } from "@/lib/ui/ask";
 import { Loader2, LogOut } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
@@ -81,10 +82,25 @@ function SecuritySection() {
       toast(t("pages.settings.demoUnavailable"));
       return;
     }
+    // Действие необратимо и затрагивает другие устройства — спрашиваем.
+    if (
+      !(await askConfirm({
+        title: t("pages.settings.logoutOthersConfirm"),
+        description: t("pages.settings.logoutOthersConfirmDesc"),
+        confirmLabel: t("pages.settings.logoutOtherDevices"),
+        danger: true,
+      }))
+    )
+      return;
     setLoggingOut(true);
     try {
-      await logoutOtherDevices();
-      toast.success(t("pages.settings.loggedOutOtherDevices"));
+      const ended = await logoutOtherDevices();
+      // Говорим то, что сделал сервер, а не то, что мы попросили.
+      toast.success(
+        ended > 0
+          ? t("pages.settings.loggedOutOtherDevicesCount", { count: ended })
+          : t("pages.settings.loggedOutNoOtherDevices"),
+      );
     } catch {
       toast.error(t("pages.settings.logoutOthersFailed"));
     } finally {
