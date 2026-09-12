@@ -356,8 +356,19 @@ function AdDetailPage() {
       (ad.seller?.numericId != null && me.numericId === ad.seller.numericId)),
   );
   const showBuyerUi = !isOwner || previewAsBuyer;
-  // Правая колонка второй полосы: доставка, продавец, «Спросите у продавца».
-  const hasSideColumn = hasDelivery || showBuyerUi;
+  /*
+   * Правая колонка второй полосы: доставка и продавец.
+   *
+   * «Спросите у продавца» уехал в левую колонку, под описание. Раньше он
+   * стоял здесь, и на объявлении с коротким описанием правая колонка была
+   * втрое выше левой: замер 12.09 на всех четырёх ширинах — левая 155 px,
+   * правая 409, то есть 271 px пустоты шириной от 504 до 968.
+   *
+   * Условие теперь считает только то, что в колонке осталось. Со старым
+   * (`hasDelivery || showBuyerUi`) у объявления без доставки покупатель
+   * получил бы пустые 360 px справа.
+   */
+  const hasSideColumn = hasDelivery || Boolean(showBuyerUi && ad.seller);
 
   const goEdit = () => navigate({ to: "/ads/new", search: { edit: ad.id } });
 
@@ -498,54 +509,71 @@ function AdDetailPage() {
                 : "grid gap-[16px]"
             }
           >
-            {/* Description */}
-            <Card
-              className="min-w-0 p-[16px]"
-              style={{
-                background: "var(--background-elevated)",
-                borderColor: "var(--border)",
-                borderRadius: "var(--r-card)",
-                boxShadow: "var(--shadow-card)",
-              }}
-            >
-              <h2
-                className="font-display text-[16px] font-bold"
-                style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+            {/*
+              Обёртки — `contents` на телефоне и колонки от 1024.
+
+              Так порядок на телефоне остаётся прежним (описание, доставка,
+              продавец, «Спросите»), а на широком экране «Спросите» встаёт под
+              описание. Без `contents` пришлось бы либо менять порядок на
+              телефоне, либо рисовать виджет дважды — а это две формы с двумя
+              состояниями вместо одной.
+            */}
+            <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-[16px]">
+              {/* Description */}
+              <Card
+                className="min-w-0 p-[16px] max-lg:order-1"
+                style={{
+                  background: "var(--background-elevated)",
+                  borderColor: "var(--border)",
+                  borderRadius: "var(--r-card)",
+                  boxShadow: "var(--shadow-card)",
+                }}
               >
-                {t("pages.adDetail.descriptionHeading")}
-              </h2>
-              {/*
+                <h2
+                  className="font-display text-[16px] font-bold"
+                  style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+                >
+                  {t("pages.adDetail.descriptionHeading")}
+                </h2>
+                {/*
                 Длинное описание свёрнуто, как у ВКонтакте: 6 строк на
                 телефоне, 16 от 1024 — примерно высота правой колонки рядом.
                 Развернуть — «Показать полностью». До 11.09 описание в 2000
                 знаков занимало 1100–1800 px и было самым высоким блоком.
               */}
-              <CollapsibleText
-                className="mt-[8px]"
-                text={ad.description ?? t("pages.adDetail.noDescription")}
-                maxLines={6}
-                maxLinesLg={16}
-              />
-
-              <div
-                className="mt-[12px] grid gap-[8px] sm:grid-cols-3"
-                style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}
-              >
-                <Spec
-                  label={t("pages.adDetail.specCategory")}
-                  value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"}
+                <CollapsibleText
+                  className="mt-[8px]"
+                  text={ad.description ?? t("pages.adDetail.noDescription")}
+                  maxLines={6}
+                  maxLinesLg={16}
                 />
-                <Spec label={t("pages.adDetail.specCondition")} value={ad.condition ?? "—"} />
-                <Spec label={t("pages.adDetail.specCity")} value={ad.city || "—"} />
-              </div>
-            </Card>
+
+                <div
+                  className="mt-[12px] grid gap-[8px] sm:grid-cols-3"
+                  style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}
+                >
+                  <Spec
+                    label={t("pages.adDetail.specCategory")}
+                    value={[ad.category, ad.subcategory].filter(Boolean).join(" · ") || "—"}
+                  />
+                  <Spec label={t("pages.adDetail.specCondition")} value={ad.condition ?? "—"} />
+                  <Spec label={t("pages.adDetail.specCity")} value={ad.city || "—"} />
+                </div>
+              </Card>
+
+              {showBuyerUi && (
+                <div className="max-lg:order-4">
+                  <AskSellerWidget onAsk={(q) => void askSeller(q)} />
+                </div>
+              )}
+            </div>
 
             {hasSideColumn && (
-              <div className="flex min-w-0 flex-col gap-[16px]">
+              <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-[16px]">
                 {/* Delivery — only when the listing declares options */}
                 {hasDelivery && (
                   <Card
-                    className="p-[16px]"
+                    className="p-[16px] max-lg:order-2"
                     style={{
                       background: "var(--background-elevated)",
                       borderColor: "var(--border)",
@@ -585,11 +613,13 @@ function AdDetailPage() {
                   </Card>
                 )}
 
-                {/* Продавец, под ним — «Спросите у продавца»: сначала кто, потом
-                    как с ним связаться, как у Авито. */}
-                {showBuyerUi && ad.seller && <SellerCard seller={ad.seller} />}
-
-                {showBuyerUi && <AskSellerWidget onAsk={(q) => void askSeller(q)} />}
+                {/* Продавец. «Спросите у продавца» — в левой колонке, под
+                    описанием; на телефоне он по-прежнему последний. */}
+                {showBuyerUi && ad.seller && (
+                  <div className="max-lg:order-3">
+                    <SellerCard seller={ad.seller} />
+                  </div>
+                )}
               </div>
             )}
           </div>
