@@ -88,7 +88,6 @@ const CATEGORY_CHIP_CLASS =
 
 const PAGE_SIZE = 20;
 
-
 export const Route = createFileRoute("/feed")({
   errorComponent: RouteErrorState,
   head: ({ loaderData }) => {
@@ -412,6 +411,15 @@ function FeedPage() {
     );
   };
 
+  /*
+   * Есть ли баннер-герой в первом кадре. Тот же расчёт, что в `head` для
+   * `<link rel=preload>`: считаем по серверным данным, а не по состоянию,
+   * которое доедет позже.
+   */
+  const hasHeroBanner = Boolean(
+    loaded.hero && sortBanners(loaded.hero.banners.filter((b) => b.active !== false))[0]?.image,
+  );
+
   const initialLoading = feedQuery.isPending && filterAllowed && !needsCategoryPick;
   const loadFailed = feedQuery.isError && filtered.length === 0;
   const activeTag = tag ?? null;
@@ -567,16 +575,20 @@ function FeedPage() {
                   key={post.id}
                   post={post}
                   /*
-                   * Высший приоритет — одной картинке, и только той, что
-                   * действительно становится LCP. Когда баннер событий есть,
-                   * LCP — он (замер 12.09: `ef6d4467…`, 54040 px², самый
-                   * верх), а первая запись лежит ниже сгиба на 622 px. Две
-                   * картинки с `fetchpriority=high` на канале 1,6 Мбит/с
-                   * делили полосу, и LCP-картинка весом 30 КБ качалась
-                   * 2258 мс. Без баннера первой становится запись — тогда
-                   * приоритет её.
+                   * Высший приоритет — ровно одной картинке, самой верхней.
+                   *
+                   * Когда баннер событий есть, LCP — он (замер 12.09:
+                   * `ef6d4467…`, 54040 px², верх страницы), а первая запись
+                   * лежит на 622 px ниже. Две картинки с `fetchpriority=high`
+                   * на канале 1,6 Мбит/с делят полосу: LCP-картинка весом
+                   * 30 КБ качалась 2258 мс.
+                   *
+                   * Признак берём от героя, а не от `banners`: это разные
+                   * размещения — `banners` это «feed» (рекламные карточки в
+                   * ленте), а герой приходит из «events». 12.09 я перепутал
+                   * их, и приоритет остался на обеих картинках.
                    */
-                  priority={idx === 0 && banners.length === 0}
+                  priority={idx === 0 && !hasHeroBanner}
                   isSavedExternal={post.isSaved}
                   onOptimistic={applyOptimistic}
                   onDelete={removePost}
