@@ -571,6 +571,7 @@ function FeedPage() {
                   onDelete={removePost}
                   onHide={hideFeedPost}
                   onTogglePost={patchPost}
+                  onEdited={(next) => patchPost(next.id, next)}
                 />,
               ];
               // Каждые 4 поста — нативный рекламный пост (не в «Запланированные»)

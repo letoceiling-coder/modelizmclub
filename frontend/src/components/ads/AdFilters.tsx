@@ -1,5 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { CitySelect } from "@/components/ads/CitySelect";
 
@@ -30,7 +32,27 @@ interface Props {
 }
 
 function Body({ value, onChange, onReset }: Props) {
-  const categories = useListingCategories();
+  const allCategories = useListingCategories();
+
+  /*
+   * В фильтре — только те направления, по которым есть что найти. Зеркало из
+   * админки заводит в каталоге узел на каждое направление, включая
+   * содержательные («Выставки и события», «Обзоры наборов», «Техники и
+   * мастер-классы»), где объявлений не бывает по смыслу. Выбор такого пункта
+   * — тупик: список всегда пуст.
+   *
+   * Считаем по `listingsCount` корня: на бэке это `withCount` по `category_id`
+   * (CatalogService::categoryTree), то есть у корня число покрывает все его
+   * объявления, включая лежащие в подкатегориях. У самих подкатегорий оно
+   * всегда ноль — их по этому числу фильтровать нельзя, иначе исчезнут все.
+   *
+   * Поле не прячем, если оно уже выбрано: иначе значение фильтра осталось бы
+   * в состоянии, а в списке его не было. И не трогаем форму подачи
+   * объявления — там пустое направление выбрать как раз нужно.
+   */
+  const categories = allCategories.filter(
+    (c) => c.listingsCount === undefined || c.listingsCount > 0 || c.name === value.category,
+  );
   const cat = categories.find((c) => c.name === value.category);
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) =>
     onChange({ ...value, [k]: v });
@@ -180,7 +202,24 @@ export function AdFiltersSheet({
   onClose,
   ...props
 }: Props & { open: boolean; onClose: () => void }) {
-  return (
+  /*
+   * Окно — в body, а не там, где его вызвали. Шторка жила прямо в колонке
+   * фильтров, у которой стоит `space-y-[16px]`; утилита вешает отступ на
+   * каждого ребёнка, кроме последнего, и он доставался затемнению. При
+   * `inset: 0` это давало `margin-bottom: 16px`, то есть высоту 784 вместо
+   * 800: снизу оставалась незатемнённая полоса ровно в 16 px (замерено на
+   * проде 12.09 при 375×800 и 375×812). Тот же приём, что у `BoostSheet`.
+   *
+   * `mounted` вместо проверки `document` — чтобы первый кадр клиента совпал
+   * с серверной разметкой: на сервере окна нет, и до монтирования его нет
+   * тоже. Анимация закрытия при этом сохраняется: `AnimatePresence` живёт
+   * внутри портала и не размонтируется вместе с окном.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -240,7 +279,8 @@ export function AdFiltersSheet({
           </m.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
