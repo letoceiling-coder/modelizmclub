@@ -94,6 +94,12 @@ function GridImage({
       height={680}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}
+      /*
+       * Всё, кроме кандидата LCP, ждёт подхода к экрану. Плитки первого
+       * экрана от этого тоже выигрывают: они перестают конкурировать с
+       * LCP-картинкой за канал и уходят в сеть после гидрации.
+       */
+      defer={!priority}
       // Плитка — cover: заполняет свою клетку без растягивания.
       className="h-full w-full object-cover"
       onError={() => setErr(true)}

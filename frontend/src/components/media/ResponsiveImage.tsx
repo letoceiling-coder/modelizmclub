@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Img } from "@/components/ui/Img";
 import { pictureSrcSet, type DisplayMedia } from "@/lib/media/variants";
 
@@ -25,6 +25,20 @@ interface Props {
   /** LCP candidate: pair with loading="eager". */
   fetchPriority?: "high" | "low" | "auto";
   decoding?: "async" | "auto" | "sync";
+  /**
+   * Не запрашивать байты, пока картинка не подойдёт к экрану.
+   *
+   * `loading="lazy"` для этого недостаточно: порог у Chrome измеряется
+   * тысячами пикселей и зависит от скорости соединения. Замер ленты 12.09 при
+   * 1,6 Мбит/с: семь картинок ниже сгиба — от 8 до 850 px под ним — ушли в
+   * сеть до всякой прокрутки и разделили канал с кандидатом LCP.
+   *
+   * Здесь до пересечения не рисуется ни `src`, ни `srcset`: вместо `<picture>`
+   * стоит пустая коробка тех же размеров. Серверная разметка и первый кадр
+   * гидрации совпадают — на сервере наблюдателя нет, и обе стороны одинаково
+   * считают картинку ещё не нужной.
+   */
+  defer?: boolean;
   draggable?: boolean;
   onError?: () => void;
   onClick?: () => void;
@@ -47,11 +61,45 @@ export function ResponsiveImage({
   loading = "lazy",
   fetchPriority,
   decoding = "async",
+  defer = false,
   draggable,
   onError,
   onClick,
 }: Props) {
   const [failed, setFailed] = useState(false);
+  /*
+   * `near` начинается с `!defer` — тогда отложенная картинка на сервере и в
+   * первом клиентском кадре одинаково пуста, и гидрация не расходится.
+   */
+  const [near, setNear] = useState(!defer);
+  const box = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    if (near) return;
+    const el = box.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      // Браузер без наблюдателя ничего не откладывает — это лучше пустого места.
+      setNear(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        setNear(true);
+        io.disconnect();
+      },
+      // Запас в пол-экрана: байты успевают приехать до того, как плитка видна.
+      { rootMargin: "400px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near]);
+
+  if (!near) {
+    return <span ref={box} className={className} style={{ display: "block" }} aria-hidden="true" />;
+  }
+
   const picture = pictureSrcSet(media, variants);
   const src = failed ? media.url : picture.src;
 
