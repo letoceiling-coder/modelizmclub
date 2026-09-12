@@ -236,6 +236,33 @@ class DemoListingsCommandTest extends TestCase
         }
     }
 
+    /**
+     * Полнота не должна лезть с объявлениями в узлы, где продавать нечего.
+     * Торговые узлы перечислены в `DemoListingCatalog`; узел вне списка
+     * получает записи и участников комнаты, но не лоты — пока не попросят
+     * прямо `--fill-listings-everywhere`.
+     */
+    public function test_полнота_не_добирает_объявления_в_неторговых_узлах(): void
+    {
+        $trading = PostCategory::query()->where('slug', 'armor-spg')->firstOrFail();
+        $quiet = PostCategory::query()->create([
+            'name' => 'Выставки', 'slug' => 'events-exhibitions',
+            'parent_id' => $trading->parent_id, 'depth' => 1,
+            'path' => 'armor/events-exhibitions', 'is_active' => true,
+        ]);
+
+        $this->artisan('listings:demo', ['--section' => ['users', 'coverage']])->assertExitCode(0);
+
+        $sellerIds = User::query()->where('email', 'like', '%@'.DemoListingsCommand::EMAIL_DOMAIN)->pluck('id');
+        $quietMirror = ListingCategory::query()->where('path', $quiet->path)->value('id');
+
+        $this->assertSame(0, Listing::query()->whereIn('user_id', $sellerIds)->where('subcategory_id', $quietMirror)->count());
+        $this->assertGreaterThan(0, DB::table('posts')->where('category_id', $quiet->id)->count());
+
+        $tradingMirror = ListingCategory::query()->where('path', $trading->path)->value('id');
+        $this->assertGreaterThan(0, Listing::query()->whereIn('user_id', $sellerIds)->where('subcategory_id', $tradingMirror)->count());
+    }
+
     public function test_удаление_отказывается_если_внутри_есть_чужое(): void
     {
         $this->artisan('listings:demo', ['--section' => ['users', 'posts']])->assertExitCode(0);
