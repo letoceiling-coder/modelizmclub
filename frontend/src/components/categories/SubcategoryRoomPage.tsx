@@ -15,7 +15,6 @@ import {
   Search,
   Send,
   Tag,
-  Users,
   X,
 } from "lucide-react";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
@@ -59,6 +58,7 @@ import type { Post } from "@/lib/mock";
 import i18n from "@/lib/i18n";
 import { reportReadFailure } from "@/lib/errors/handle";
 import { ROOM_TABS, type RoomTab } from "@/components/categories/room-tabs";
+import { EntityTabs } from "@/components/entity/EntityTabs";
 
 /** Столько же, сколько берёт лента. */
 const PAGE_SIZE = 20;
@@ -440,37 +440,38 @@ export function SubcategoryRoomPage({
           </button>
         </header>
 
-        {/* Tabs */}
-        <div
-          className="flex shrink-0 border-b"
-          style={{ borderColor: "var(--border)" }}
-          role="tablist"
-        >
-          <TabBtn
-            label={t("pages.subcategoryDetail.tabPosts")}
-            icon={<Newspaper className="h-[14px] w-[14px]" />}
-            active={tab === "posts"}
-            onClick={() => setTab("posts")}
-          />
-          <TabBtn
-            label={t("pages.subcategoryDetail.tabChat")}
-            icon={<MessageCircle className="h-[14px] w-[14px]" />}
-            active={tab === "chat"}
-            onClick={() => setTab("chat")}
-          />
-          <TabBtn
-            label={t("pages.subcategoryDetail.tabAds")}
-            icon={<Tag className="h-[14px] w-[14px]" />}
-            active={tab === "ads"}
-            onClick={() => setTab("ads")}
-            badge={subAds.length || undefined}
-          />
-          <TabBtn
-            label={t("pages.subcategoryDetail.tabMembers")}
-            icon={<Users className="h-[14px] w-[14px]" />}
-            active={tab === "members"}
-            onClick={() => setTab("members")}
-            badge={roomMembers.length || undefined}
+        {/*
+          Вкладки — тот же ряд, что у сообщества и канала.
+
+          Здесь был свой `TabBtn`: `flex-1`, значок перед названием, текст 13,
+          счётчик пилюлей. Четыре растянутые на всю ширину вкладки читались
+          как сегментированный переключатель, а не как навигация по разделу, —
+          и не совпадали ни с сообществом, ни с каналом, где ряд прижат влево.
+          Общий компонент один, поэтому расхождение чинится не подгонкой
+          значений, а его применением.
+
+          Значки ушли вместе с `TabBtn`: у сообщества и канала их нет, а
+          «одинаково» значит одинаково.
+        */}
+        <div className="shrink-0">
+          <EntityTabs
+            layoutId="room-tab-underline"
+            active={tab}
+            onChange={setTab}
+            tabs={[
+              { key: "posts" as RoomTab, label: t("pages.subcategoryDetail.tabPosts") },
+              { key: "chat" as RoomTab, label: t("pages.subcategoryDetail.tabChat") },
+              {
+                key: "ads" as RoomTab,
+                label: t("pages.subcategoryDetail.tabAds"),
+                count: subAds.length,
+              },
+              {
+                key: "members" as RoomTab,
+                label: t("pages.subcategoryDetail.tabMembers"),
+                count: roomMembers.length,
+              },
+            ]}
           />
         </div>
 
@@ -559,48 +560,6 @@ export function SubcategoryRoomPage({
         </div>
       )}
     </AppLayout>
-  );
-}
-
-function TabBtn({
-  label,
-  icon,
-  active,
-  onClick,
-  badge,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-  badge?: number;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className="flex flex-1 items-center justify-center gap-[6px] py-[11px] text-[13px] font-medium transition-colors"
-      style={{
-        color: active ? "var(--accent)" : "var(--foreground-70)",
-        borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
-      }}
-    >
-      <span style={{ color: active ? "var(--accent)" : "var(--foreground-50)" }}>{icon}</span>
-      {label}
-      {typeof badge === "number" && (
-        <span
-          className="ml-[2px] inline-flex min-w-[18px] items-center justify-center rounded-[var(--r-pill)] px-[6px] py-[1px] text-[10.5px]"
-          style={{
-            background: active ? "var(--accent)" : "var(--background-surface)",
-            color: active ? "#fff" : "var(--foreground-70)",
-          }}
-        >
-          {badge}
-        </span>
-      )}
-    </button>
   );
 }
 
