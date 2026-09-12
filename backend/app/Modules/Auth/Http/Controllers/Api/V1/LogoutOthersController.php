@@ -11,8 +11,8 @@ class LogoutOthersController extends Controller
 {
     public function __invoke(Request $request, AccountSecurityService $security): JsonResponse
     {
-        $security->logoutOtherDevices($request->user());
+        $ended = $security->logoutOtherDevices($request->user());
 
-        return response()->json(['message' => 'ok']);
+        return response()->json(['message' => 'ok', 'ended_sessions' => $ended]);
     }
 }

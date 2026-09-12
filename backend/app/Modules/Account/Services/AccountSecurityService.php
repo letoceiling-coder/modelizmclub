@@ -19,14 +19,23 @@ class AccountSecurityService
         $user->forceFill(['password' => $newPassword])->save();
     }
 
-    public function logoutOtherDevices(User $user): void
+    /**
+     * Завершает все сеансы, кроме текущего, и возвращает их число.
+     *
+     * Возвращаемое число — не украшение. Раньше метод молча выходил, если
+     * текущего токена нет, а контроллер в обоих случаях отвечал `ok`, и
+     * страница показывала «Другие сеансы завершены», хотя сервер не тронул
+     * ничего (аудит 12.09). Теперь вызывающий видит, что произошло: сколько
+     * сеансов закрыто и было ли что закрывать.
+     */
+    public function logoutOtherDevices(User $user): int
     {
         $current = $user->currentAccessToken();
 
         if (! $current) {
-            return;
+            return 0;
         }
 
-        $user->tokens()->where('id', '!=', $current->id)->delete();
+        return $user->tokens()->where('id', '!=', $current->id)->delete();
     }
 }

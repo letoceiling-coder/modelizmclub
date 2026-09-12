@@ -225,6 +225,9 @@ export async function changePassword(currentPassword: string, newPassword: strin
  * user is NOT logged out here). Backend endpoint documented in
  * docs/backend-endpoints-needed.md (POST /auth/logout-others).
  */
-export async function logoutOtherDevices(): Promise<void> {
-  await api("/auth/logout-others", { method: "POST" });
+export async function logoutOtherDevices(): Promise<number> {
+  // Сервер отвечает числом завершённых сеансов: «ok» без него не отличал
+  // «закрыли три» от «закрывать было нечего».
+  const res = await api<{ ended_sessions?: number }>("/auth/logout-others", { method: "POST" });
+  return Math.max(0, Number(res?.ended_sessions ?? 0));
 }

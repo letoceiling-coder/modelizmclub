@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +19,6 @@ import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { fetchMe } from "@/lib/api/auth";
 import { pollMaxAuth, startMaxLink, unlinkMax } from "@/lib/api/oauth";
-import { fetchNotifPrefs, saveMaxChannelPref } from "@/lib/api/notification-prefs";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ApiError } from "@/lib/api/client";
 import { canUnlinkMax, isMaxOAuthUser } from "@/lib/auth/verification";
@@ -56,7 +55,6 @@ export function MaxAccountCard() {
 
   const [waiting, setWaiting] = useState(false);
   const [botUrl, setBotUrl] = useState<string | null>(null);
-  const [maxEnabled, setMaxEnabled] = useState(true);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const pollRef = useRef<number | null>(null);
@@ -77,21 +75,6 @@ export function MaxAccountCard() {
 
   useEffect(() => () => stopPoll(), []);
 
-  useEffect(() => {
-    if (!linked) return;
-    let alive = true;
-    void fetchNotifPrefs()
-      .then((state) => {
-        if (alive) setMaxEnabled(state.maxEnabled);
-      })
-      .catch(() => {
-        /* keep default on */
-      });
-    return () => {
-      alive = false;
-    };
-  }, [linked]);
-
   const beginPoll = (session: string, expiresAt: number) => {
     stopPoll();
     pollRef.current = window.setInterval(() => {
@@ -110,7 +93,6 @@ export function MaxAccountCard() {
             if (user) setCurrentUser(user);
             setWaiting(false);
             setBotUrl(null);
-            setMaxEnabled(true);
             toast.success(t("pages.settings.maxLinked"));
             return;
           }
@@ -153,7 +135,6 @@ export function MaxAccountCard() {
           oauth_providers: [...new Set([...(currentUser.oauth_providers ?? []), "max"])],
         });
       }
-      setMaxEnabled(true);
       toast.success(t("pages.settings.maxLinked"));
       return;
     }
@@ -189,14 +170,6 @@ export function MaxAccountCard() {
       return;
     }
     void startLink();
-  };
-
-  const onToggle = (value: boolean) => {
-    setMaxEnabled(value);
-    void saveMaxChannelPref(value).catch(() => {
-      setMaxEnabled(!value);
-      toast.error(t("pages.settings.notificationsSaveFailed"));
-    });
   };
 
   const onUnlink = async () => {
@@ -273,17 +246,25 @@ export function MaxAccountCard() {
               ? t("pages.settings.maxConnectedDesc")
               : t("pages.settings.maxDisconnectedDesc")}
           </p>
+          {/*
+           * Переключатель «Дублировать уведомления в MAX» здесь был вторым:
+           * такой же стоит в «Уведомлениях», и оба писали одну настройку
+           * (`saveMaxChannelPref`). Два места для одного значения расходятся
+           * на глазах — открытые в соседних вкладках, они показывали разное.
+           * Настройка живёт там, где живут остальные переключатели
+           * уведомлений; этой карточке остаются привязка и отвязка.
+           */}
           {linked && (
-            <div className="mt-[14px] flex items-center justify-between gap-[12px]">
-              <span className="text-[15px]" style={{ color: "var(--foreground)" }}>
-                {t("pages.settings.maxNotifyToggle")}
-              </span>
-              <Switch
-                checked={maxEnabled}
-                onCheckedChange={onToggle}
-                aria-label={t("pages.settings.maxNotifyToggle")}
-              />
-            </div>
+            <p className="mt-[14px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+              {t("pages.settings.maxNotifyMovedHint")}{" "}
+              <Link
+                to="/settings/notifications"
+                className="underline underline-offset-4"
+                style={{ color: "var(--accent)" }}
+              >
+                {t("pages.settings.notificationsTitle")}
+              </Link>
+            </p>
           )}
           <div className="mt-[14px] flex flex-wrap gap-[8px]">
             <Button type="button" onClick={onConnectClick}>

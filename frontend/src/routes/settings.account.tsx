@@ -16,6 +16,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { fetchMe } from "@/lib/api/auth";
 import {
   confirmEmailChange,
+  readSmsRefusal,
   requestEmailChange,
   resendEmailChangeVerification,
   resendVerificationEmail,
@@ -221,11 +222,25 @@ function AccountSection() {
     }
     setSmsSending(true);
     try {
-      await sendPhoneVerificationCode(normalized);
+      /*
+       * Паузу до повтора называет сервер, а не клиент. Зашитые 60 секунд
+       * расходились с его сроком в обе стороны: кнопка оживала раньше, чем
+       * сервер был готов принять повтор, и наоборот — держалась, когда он
+       * разрешал раньше (аудит 12.09). Клиент теперь только показывает.
+       */
+      const { resend_after } = await sendPhoneVerificationCode(normalized);
       setSmsSent(true);
-      setSmsCooldown(60);
+      setSmsCooldown(resend_after);
       toast.success(t("pages.settings.smsSent"));
     } catch (err) {
+      /*
+       * Отказ бывает трёх видов, и разбор для них уже написан
+       * (`readSmsRefusal`), но здесь не вызывался. У предела есть срок — его
+       * и ставим на кнопку; у отказа оператора срока нет, кнопку не держим:
+       * ждать бесполезно, нужно исправить номер.
+       */
+      const refusal = readSmsRefusal(err);
+      if (refusal.retryAfter > 0) setSmsCooldown(refusal.retryAfter);
       toast.error(err instanceof ApiError ? err.message : t("pages.settings.smsSendFailed"));
     } finally {
       setSmsSending(false);

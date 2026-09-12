@@ -9,6 +9,7 @@ import { clearViewHistory, getViewHistory, type ViewHistoryItem } from "@/lib/vi
 import { fetchViewHistory, clearViewHistoryRemote } from "@/lib/api/view-history-api";
 import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
 import { toast } from "@/lib/toast";
+import { askConfirm } from "@/lib/ui/ask";
 
 export const Route = createFileRoute("/settings/history")({
   component: HistorySection,
@@ -64,6 +65,15 @@ function HistorySection() {
    * возвращалось.
    */
   const clear = async () => {
+    if (
+      !(await askConfirm({
+        title: t("pages.settings.historyClearConfirm"),
+        description: t("pages.settings.historyClearConfirmDesc"),
+        confirmLabel: t("pages.settings.historyClear"),
+        danger: true,
+      }))
+    )
+      return;
     setClearing(true);
     try {
       await clearViewHistoryRemote();
