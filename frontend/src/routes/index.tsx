@@ -210,7 +210,7 @@ function TopNav() {
               )}
               <Link
                 to="/feed"
-                className="inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
+                className="hit-target inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
                 style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
               >
                 {t("landing.nav.cabinet")}
@@ -232,7 +232,7 @@ function TopNav() {
               </Link>
               <Link
                 to={enter.register}
-                className="landing-nav-cta-primary inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:px-[18px] sm:text-sm"
+                className="hit-target landing-nav-cta-primary inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:px-[18px] sm:text-sm"
                 style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
               >
                 {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
@@ -245,7 +245,7 @@ function TopNav() {
             type="button"
             aria-label={t("landing.nav.menu")}
             onClick={() => setMenuOpen((v) => !v)}
-            className="grid h-[40px] w-[40px] place-items-center rounded-full lg:hidden"
+            className="hit-target grid h-[40px] w-[40px] place-items-center rounded-full lg:hidden"
             style={{ border: "1px solid var(--border)", background: "var(--background-surface)" }}
           >
             <span className="flex flex-col gap-[3px]">
@@ -899,7 +899,7 @@ function PopularListings() {
         </div>
         <Link
           to="/ads"
-          className="hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
+          className="hit-target hidden shrink-0 items-center gap-1.5 rounded-[var(--r-pill)] px-4 py-2.5 text-sm font-semibold sm:inline-flex"
           style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
         >
           {t("landing.listings.all")} <ArrowRight size={15} />
@@ -929,7 +929,7 @@ function PopularListings() {
       <div className="mt-6 text-center sm:hidden">
         <Link
           to="/ads"
-          className="inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-5 py-2.5 text-sm font-semibold"
+          className="hit-target inline-flex items-center gap-1.5 rounded-[var(--r-pill)] px-5 py-2.5 text-sm font-semibold"
           style={{ border: "1px solid var(--border)", color: "var(--foreground)" }}
         >
           {t("landing.listings.all")} <ArrowRight size={15} />
@@ -1086,7 +1086,7 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
             })();
           });
         }}
-        className="absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
+        className="hit-target absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
         style={{
           width: 32,
           height: 32,
@@ -1104,7 +1104,7 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
         <button
           aria-label={t("landing.card.adMenu")}
           onClick={() => setMenuOpen((v) => !v)}
-          className="grid place-items-center"
+          className="hit-target grid place-items-center"
           style={{
             width: 32,
             height: 32,
@@ -1610,7 +1610,7 @@ function Footer() {
                     {l.target_type === "external" ? (
                       <a
                         href={href}
-                        className="text-sm transition-colors"
+                        className="flex min-h-[44px] items-center text-sm transition-colors"
                         style={{ color: "var(--foreground-50)" }}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -1620,7 +1620,7 @@ function Footer() {
                     ) : (
                       <Link
                         to={href}
-                        className="text-sm transition-colors"
+                        className="flex min-h-[44px] items-center text-sm transition-colors"
                         style={{ color: "var(--foreground-50)" }}
                       >
                         {label}

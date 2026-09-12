@@ -11,8 +11,13 @@ import { CategoryIcon, IconBox } from "@/components/ui/Icon";
  * ниже подпрыгивало на 20 px. CLS 0,018–0,031 при прямой загрузке на 1440
  * и 768, замер на проде 12.09.
  */
+/*
+ * На телефоне строка списка — зона нажатия 44 (поля 12 сверху и снизу к
+ * строке 20). От 1024 список плотный: там указатель, и 44 съедали
+ * бы высоту карточки без нужды. Планшет считается пальцем.
+ */
 const childLinkCls =
-  "block truncate rounded-[4px] transition-colors hover:text-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]";
+  "block truncate rounded-[4px] py-[12px] transition-colors hover:text-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] lg:py-0";
 
 /** Адрес узла любой глубины — один сегмент: `/categories/{slug}`. */
 function nodeParam(node: CategoryChild): string {
@@ -36,7 +41,7 @@ export function CategoryCard({ c }: { c: Category }) {
       <Link
         to="/categories/$id"
         params={{ id: c.slug ?? c.id }}
-        className="group flex items-center gap-3 rounded-[8px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="group flex min-h-[44px] items-center gap-3 rounded-[8px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         aria-label={t("pages.categories.openCategory", { name: c.name })}
       >
         <IconBox size="md" variant="elevated" className="h-11 w-11 shrink-0">

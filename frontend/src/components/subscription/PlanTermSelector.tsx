@@ -107,7 +107,7 @@ export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTe
                 role="radio"
                 aria-checked={active}
                 onClick={() => setTermId(p.id)}
-                className="relative flex min-h-[44px] items-center justify-center rounded-[var(--r-pill)] px-[6px] text-[14px] font-semibold transition-colors"
+                className="hit-target relative flex min-h-[44px] items-center justify-center rounded-[var(--r-pill)] px-[6px] text-[14px] font-semibold transition-colors"
                 style={{
                   background: active ? "var(--accent)" : "transparent",
                   color: active ? "var(--accent-foreground)" : "var(--foreground-70)",
