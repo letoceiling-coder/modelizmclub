@@ -1,5 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
 import { X, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useListingCategories } from "@/lib/hooks/useCategories";
 import { CitySelect } from "@/components/ads/CitySelect";
 
@@ -180,7 +182,24 @@ export function AdFiltersSheet({
   onClose,
   ...props
 }: Props & { open: boolean; onClose: () => void }) {
-  return (
+  /*
+   * Окно — в body, а не там, где его вызвали. Шторка жила прямо в колонке
+   * фильтров, у которой стоит `space-y-[16px]`; утилита вешает отступ на
+   * каждого ребёнка, кроме последнего, и он доставался затемнению. При
+   * `inset: 0` это давало `margin-bottom: 16px`, то есть высоту 784 вместо
+   * 800: снизу оставалась незатемнённая полоса ровно в 16 px (замерено на
+   * проде 12.09 при 375×800 и 375×812). Тот же приём, что у `BoostSheet`.
+   *
+   * `mounted` вместо проверки `document` — чтобы первый кадр клиента совпал
+   * с серверной разметкой: на сервере окна нет, и до монтирования его нет
+   * тоже. Анимация закрытия при этом сохраняется: `AnimatePresence` живёт
+   * внутри портала и не размонтируется вместе с окном.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -240,7 +259,8 @@ export function AdFiltersSheet({
           </m.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
