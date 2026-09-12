@@ -87,17 +87,7 @@ const CATEGORY_CHIP_CLASS =
   'relative h-[32px] shrink-0 rounded-[var(--r-pill)] border px-[14px] text-[13px] leading-none transition-colors after:absolute after:inset-x-0 after:-inset-y-[6px] after:content-[""]';
 
 const PAGE_SIZE = 20;
-/*
- * Первая страница меньше остальных — она едет в серверной разметке.
- *
- * При двадцати записях документ весил 190 КБ, а браузер находил в нём 15
- * картинок на 238 КБ и начинал качать их все сразу. На канале 1,6 Мбит/с
- * LCP-картинка весом 30 КБ ждала своей очереди 2258 мс (замер 12.09): до её
- * завершения стартовало 42 запроса на 743 КБ. Шесть записей закрывают первый
- * экран с запасом, остальные догружает та же бесконечная прокрутка, что и
- * раньше, — страницей в PAGE_SIZE.
- */
-const FIRST_PAGE_SIZE = 6;
+
 
 export const Route = createFileRoute("/feed")({
   errorComponent: RouteErrorState,
@@ -179,7 +169,7 @@ export const Route = createFileRoute("/feed")({
   loader: async () => {
     await ensurePublicBootstrap();
     const [feed, inline, categories, hero] = await Promise.all([
-      fetchFeed({ filter: "all", perPage: FIRST_PAGE_SIZE }).catch(() => EMPTY_FEED),
+      fetchFeed({ filter: "all", perPage: PAGE_SIZE }).catch(() => EMPTY_FEED),
       fetchBannersWithSettings("feed").catch(() => null),
       fetchPostCategories().catch(() => getCachedPostCategories() ?? []),
       // Пак героя — отдельное размещение («events»), и до 04.09 его тянул сам
@@ -311,8 +301,7 @@ function FeedPage() {
                   categoryName: activeCategory ?? undefined,
                 }
               : { filter: "all" };
-      // Первая страница — короткая, дальше обычными порциями.
-      return { ...base, hashtag: tag, page, perPage: page <= 1 ? FIRST_PAGE_SIZE : PAGE_SIZE };
+      return { ...base, hashtag: tag, page, perPage: PAGE_SIZE };
     },
     [filter, activeCategory, taxonomyFromUrl, tag],
   );
