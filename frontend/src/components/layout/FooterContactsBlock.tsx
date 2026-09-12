@@ -27,14 +27,22 @@ export function FooterContactsBlock({
       <ul className={listClassName} style={{ color: "var(--foreground-50)" }}>
         {contacts?.email && (
           <li>
-            <a href={`mailto:${contacts.email}`} style={{ color: "inherit" }}>
+            <a
+              href={`mailto:${contacts.email}`}
+              className="inline-flex min-h-[44px] items-center"
+              style={{ color: "inherit" }}
+            >
               {contacts.email}
             </a>
           </li>
         )}
         {contacts?.phone && (
           <li>
-            <a href={phoneTelHref(contacts.phone)} style={{ color: "inherit" }}>
+            <a
+              href={phoneTelHref(contacts.phone)}
+              className="inline-flex min-h-[44px] items-center"
+              style={{ color: "inherit" }}
+            >
               {contacts.phone}
             </a>
           </li>

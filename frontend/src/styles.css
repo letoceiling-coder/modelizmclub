@@ -863,7 +863,10 @@ body[data-scroll-locked] [data-cookie-banner] {
    Псевдоэлемент растягивает только область попадания пальца: размеры,
    отступы и поток вёрстки остаются прежними. Применяется к компактным
    размерам кнопок (см. buttonVariants: size="sm" / "icon"). */
-.hit-target {
+/* Зона нажатия 44×44 без изменения вида. `position: relative` — только
+   тем, кто ещё не спозиционирован: у кнопки с `absolute` в углу карточки
+   relative сбросил бы её на место в потоке. */
+.hit-target:not(.absolute):not(.fixed):not(.sticky) {
   position: relative;
 }
 

@@ -23,7 +23,10 @@ export function LegalRequisites() {
       {contacts?.address ? <div>{contacts.address}</div> : null}
       {email ? (
         <div>
-          <a href={`mailto:${email}`} className="underline hover:opacity-80">
+          <a
+            href={`mailto:${email}`}
+            className="inline-flex min-h-[44px] items-center underline hover:opacity-80"
+          >
             {email}
           </a>
         </div>

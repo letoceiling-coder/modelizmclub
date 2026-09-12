@@ -16,7 +16,7 @@ export function SettingsSectionShell({
     <section className="space-y-[16px]">
       <Link
         to="/settings"
-        className="lg:hidden inline-flex items-center gap-[4px] text-[13px]"
+        className="hit-target lg:hidden inline-flex items-center gap-[4px] text-[13px]"
         style={{ color: "var(--foreground-50)" }}
       >
         <ChevronLeft size={16} /> {t("pages.settings.navBack")}

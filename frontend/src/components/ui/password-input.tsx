@@ -20,7 +20,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, Omit<InputProps, "type"
           onClick={() => setVisible((v) => !v)}
           tabIndex={-1}
           aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
-          className="absolute right-[10px] top-1/2 grid h-[28px] w-[28px] -translate-y-1/2 place-items-center rounded-full transition-colors"
+          className="hit-target absolute right-[10px] top-1/2 grid h-[28px] w-[28px] -translate-y-1/2 place-items-center rounded-full transition-colors"
           style={{ color: "var(--foreground-50)" }}
         >
           {visible ? <EyeOff size={16} /> : <Eye size={16} />}

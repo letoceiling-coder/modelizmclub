@@ -22,7 +22,7 @@ export function ThemeToggle({
       // Theme switching is desktop-only by default — hidden below lg across
       // most surfaces (auth, onboarding, admin). Callers that need it on
       // mobile too (landing footer, landing burger menu) pass alwaysVisible.
-      className={alwaysVisible ? "inline-flex" : "hidden lg:inline-flex"}
+      className={alwaysVisible ? "hit-target inline-flex" : "hit-target hidden lg:inline-flex"}
       style={{
         width: size,
         height: size,

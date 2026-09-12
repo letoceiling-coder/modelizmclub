@@ -121,7 +121,7 @@ function NotificationItem({
           e.stopPropagation();
           onDelete();
         }}
-        className="mt-[2px] grid h-[32px] w-[32px] shrink-0 place-items-center rounded-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+        className="hit-target mt-[2px] grid h-[32px] w-[32px] shrink-0 place-items-center rounded-[8px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
         style={{
           color: "var(--error)",
           background: "color-mix(in oklab, var(--error) 12%, transparent)",

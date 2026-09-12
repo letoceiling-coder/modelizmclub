@@ -120,6 +120,16 @@ export function CreatePostForm({
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const textRef = useRef<HTMLTextAreaElement>(null);
+  /*
+   * Отказ по заголовку виден у самого поля, а не только тостом.
+   *
+   * Тост «Введите заголовок» был и раньше, но он держится пару секунд и
+   * уходит: на приёмке 12.09 отказ на 375 и 1440 выглядел как «кнопка не
+   * работает» — окно открыто, поле пустое, причина уже исчезла. Теперь
+   * фокус возвращается в заголовок, а поле помечено aria-invalid.
+   */
+  const titleRef = useRef<HTMLInputElement>(null);
+  const [titleInvalid, setTitleInvalid] = useState(false);
   const insertEmoji = useInsertAtCaret(textRef, text, setText);
   const [catId, setCatId] = useState("");
   const [subId, setSubId] = useState<string>("");
@@ -287,10 +297,14 @@ export function CreatePostForm({
   const publish = async () => {
     if (sel.source === "profile" && !title.trim()) {
       toast.error(t("components.createPostForm.titleRequired"));
+      setTitleInvalid(true);
+      titleRef.current?.focus();
       return;
     }
     if (sel.source === "profile" && title.trim().length > POST_TITLE_MAX_LENGTH) {
       toast.error(t("components.createPostForm.titleTooLong", { max: POST_TITLE_MAX_LENGTH }));
+      setTitleInvalid(true);
+      titleRef.current?.focus();
       return;
     }
     if (!text.trim()) {
@@ -477,9 +491,14 @@ export function CreatePostForm({
             <div className="flex items-start gap-[12px]">
               <UserAvatar src={me.avatar} name={me.name} size={40} />
               <input
+                ref={titleRef}
+                aria-invalid={titleInvalid || undefined}
                 value={title}
                 maxLength={POST_TITLE_MAX_LENGTH}
-                onChange={(e) => setTitle(clampPostTitle(e.target.value))}
+                onChange={(e) => {
+                  setTitleInvalid(false);
+                  setTitle(clampPostTitle(e.target.value));
+                }}
                 onPaste={(e) => {
                   e.preventDefault();
                   const pasted = e.clipboardData.getData("text");
@@ -490,8 +509,11 @@ export function CreatePostForm({
                 }}
                 placeholder={t("components.createPostForm.titlePlaceholder")}
                 aria-describedby="post-title-counter"
-                className="min-w-0 flex-1 bg-transparent pt-[8px] text-[16px] font-semibold outline-none placeholder:font-medium focus-visible:ring-0"
-                style={{ color: "var(--foreground)" }}
+                className="min-w-0 flex-1 rounded-[8px] bg-transparent px-[4px] pt-[8px] text-[16px] font-semibold outline-none placeholder:font-medium focus-visible:ring-0"
+                style={{
+                  color: "var(--foreground)",
+                  boxShadow: titleInvalid ? "inset 0 0 0 1px var(--error)" : undefined,
+                }}
               />
             </div>
             <p

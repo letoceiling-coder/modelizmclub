@@ -30,7 +30,7 @@ export function AppFooter() {
             <div className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
               {groupTitle(group, t)}
             </div>
-            <ul className="mt-[10px] flex flex-col gap-[8px]">
+            <ul className="mt-[10px] flex flex-col gap-[4px]">
               {links.map((l) => {
                 const href = resolveFooterHref(l);
                 const label = footerLinkLabel(l.label, t);
@@ -39,7 +39,7 @@ export function AppFooter() {
                     {l.target_type === "external" ? (
                       <a
                         href={href}
-                        className="text-[13px] transition-colors"
+                        className="flex min-h-[44px] items-center text-[13px] transition-colors"
                         style={{ color: "var(--foreground-50)" }}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -49,7 +49,7 @@ export function AppFooter() {
                     ) : (
                       <Link
                         to={href}
-                        className="text-[13px] transition-colors"
+                        className="flex min-h-[44px] items-center text-[13px] transition-colors"
                         style={{ color: "var(--foreground-50)" }}
                       >
                         {label}
