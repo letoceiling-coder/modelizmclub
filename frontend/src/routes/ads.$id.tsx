@@ -44,6 +44,42 @@ import { useActionGate } from "@/lib/gate";
 import { askConfirm } from "@/lib/ui/ask";
 
 export const Route = createFileRoute("/ads/$id")({
+  /*
+   * Объявление грузится на сервере, а не в эффекте после гидрации.
+   *
+   * Без загрузчика главная фотография попадала в разметку только после того,
+   * как отработал JS и ответил `/listings/{uuid}`: браузер узнавал её адрес
+   * на 2822 мс, картинка приходила к 4289, LCP выходил 7,1 с. В разбивке
+   * Lighthouse это 4413 мс «задержки обнаружения» из 7,1 с — больше половины.
+   * С загрузчиком `img` есть в первом HTML, и предсканер находит её сразу
+   * после документа. Тот же приём уже применён на `/post/{uuid}`.
+   */
+  loader: async ({ params }) => {
+    /*
+     * Со сроком: документ не должен ждать медленный API. Замер на сборке —
+     * загрузчик добавляет к TTFB столько, сколько отвечает `/listings/{uuid}`
+     * (локально 191 → 919 мс). Просроченный ответ не ломает страницу: она
+     * рисуется как раньше, а объявление дотягивает клиент. Тот же приём и тот
+     * же срок, что у загрузчика `/subscription`.
+     */
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), 1500);
+    });
+    try {
+      const ad = await Promise.race([fetchListing(params.id), deadline]);
+      return { ad: (ad as Ad | null) ?? null };
+    } catch {
+      /*
+       * Отказ не делает страницу пустой: объявление может быть доступно с
+       * токеном, которого на сервере нет. Компонент дотянет его на клиенте —
+       * как было до этой правки.
+       */
+      return { ad: null as Ad | null };
+    } finally {
+      clearTimeout(timer);
+    }
+  },
   head: () => ({ meta: [{ title: i18n.t("pages.adDetail.metaTitle") }] }),
   component: AdDetailPage,
 });
@@ -108,14 +144,22 @@ function AdDetailPage() {
   const me = useCurrentUser();
   const { requireAccount } = useGuestAccess();
   const { requireAction } = useActionGate();
-  const [ad, setAd] = useState<Ad | null>(null);
+  // Объявление с сервера — первый кадр уже с фотографией.
+  const { ad: adFromServer } = Route.useLoaderData();
+  const [ad, setAd] = useState<Ad | null>(adFromServer);
   const [similar, setSimilar] = useState<Ad[]>([]);
-  const [state, setState] = useState<LoadState>("loading");
+  const [state, setState] = useState<LoadState>(adFromServer ? "ok" : "loading");
   const saved = useStore(selectors.isAdFavorite(id));
 
   useEffect(() => {
     let alive = true;
-    setState("loading");
+    /*
+     * Серверный ответ анонимен, поэтому запрос повторяется с токеном: права
+     * зрителя (своё объявление, скрытое) сервер при отрисовке не знает.
+     * Но состояние `loading` при этом не выставляем — иначе готовая с сервера
+     * страница на миг схлопнулась бы в скелет и LCP снова уехал бы.
+     */
+    if (!adFromServer) setState("loading");
     fetchListing(id)
       .then((a) => {
         if (!alive) return;
@@ -128,13 +172,15 @@ function AdDetailPage() {
       })
       .catch((err) => {
         if (!alive) return;
+        // Серверная копия уже показана — не затираем её отказом клиента.
+        if (adFromServer) return;
         setAd(null);
         setState(err instanceof ApiError && err.status === 404 ? "notFound" : "error");
       });
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, adFromServer]);
 
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
   const [ownerBusy, setOwnerBusy] = useState(false);
