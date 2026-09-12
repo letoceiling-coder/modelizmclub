@@ -22,6 +22,7 @@ class UserResource extends JsonResource
             'status' => $this->status?->value ?? $this->status,
             'registration_track' => $this->registration_track?->value,
             'locale' => $this->locale,
+            'theme_preference' => $this->theme_preference,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
             'email_verified' => ! $this->requiresEmailVerification(),
             /*

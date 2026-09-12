@@ -243,6 +243,18 @@ export async function updateOwnProfile(input: {
   return res.data ?? {};
 }
 
+/**
+ * Тема оформления — на сервер, чтобы переезжала между устройствами.
+ *
+ * Отдельной функцией, а не полем в `updateProfile`: вызывается по щелчку
+ * переключателя, и молчаливый отказ здесь допустим — местный выбор уже
+ * применён, синхронизация лишь догоняет.
+ */
+export async function saveThemePreference(pref: "light" | "dark" | "system"): Promise<void> {
+  if (isDemoMode()) return;
+  await api("/users/me", { method: "PATCH", json: { theme_preference: pref } });
+}
+
 export interface ApiOwnProfile {
   display_name?: string | null;
   slug?: string | null;
