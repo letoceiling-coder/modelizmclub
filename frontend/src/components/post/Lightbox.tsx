@@ -8,9 +8,10 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { MediaArrow } from "@/components/ui/MediaArrow";
 import useEmblaCarousel from "embla-carousel-react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { FeedVideo } from "@/components/media/FeedVideo";
 import type { VideoDelivery } from "@/lib/media/variants";
 
@@ -76,7 +77,13 @@ export function LightboxCloseButton() {
 }
 
 const CONTROL = "absolute z-[2] grid place-items-center rounded-full text-white";
-const CONTROL_BG = { background: "rgba(255,255,255,0.14)" } as const;
+/*
+ * Подложка кнопок просмотрщика. Была белой на 14 %: поверх белого кадра это
+ * ровно тот же белый, отношение 1,00 : 1, кнопки пропадали. Тёмная на 50 %
+ * даёт 3,95 : 1 на белом кадре и работает одинаково на белом, чёрном и
+ * пёстром — тот же расчёт, что у `MediaArrow`.
+ */
+const CONTROL_BG = { background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" } as const;
 
 /**
  * Зум фото: масштаб и точка, к которой он приложен (проценты от
@@ -405,30 +412,24 @@ export function Lightbox({
 
             {slides.length > 1 && (
               <>
-                <button
-                  type="button"
+                <MediaArrow
+                  direction="prev"
+                  label="Предыдущее фото"
+                  className="absolute left-[12px] top-1/2 z-[2] -translate-y-1/2"
                   onClick={(e) => {
                     e.stopPropagation();
                     embla?.scrollPrev();
                   }}
-                  aria-label="Предыдущее фото"
-                  className={`${CONTROL} left-[12px] top-1/2 h-[44px] w-[44px] -translate-y-1/2`}
-                  style={CONTROL_BG}
-                >
-                  <ChevronLeft className="h-[22px] w-[22px]" />
-                </button>
-                <button
-                  type="button"
+                />
+                <MediaArrow
+                  direction="next"
+                  label="Следующее фото"
+                  className="absolute right-[12px] top-1/2 z-[2] -translate-y-1/2"
                   onClick={(e) => {
                     e.stopPropagation();
                     embla?.scrollNext();
                   }}
-                  aria-label="Следующее фото"
-                  className={`${CONTROL} right-[12px] top-1/2 h-[44px] w-[44px] -translate-y-1/2`}
-                  style={CONTROL_BG}
-                >
-                  <ChevronRight className="h-[22px] w-[22px]" />
-                </button>
+                />
               </>
             )}
           </div>
