@@ -5,11 +5,11 @@ import { toast } from "@/lib/toast";
 import { completeOAuthLogin } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
 import { resetSessionCache, syncFavoritesFromServer } from "@/lib/auth/session";
+import { startMaxPoll } from "@/lib/auth/maxPoll";
 import {
   oauthRedirectUrl,
   oauthProviderLabel,
   startMaxAuth,
-  pollMaxAuth,
   type OAuthProvider,
 } from "@/lib/api/oauth";
 
@@ -58,14 +58,13 @@ export function OAuthButtons({ className, redirect }: { className?: string; redi
   const nav = useNavigate();
   const [maxWaiting, setMaxWaiting] = useState(false);
   const [botUrl, setBotUrl] = useState<string | null>(null);
-  const pollRef = useRef<number | null>(null);
+  /* Остановка текущего опроса; сам опрос — `startMaxPoll`, общий с привязкой. */
+  const pollRef = useRef<(() => void) | null>(null);
   const finishingRef = useRef(false);
 
   const stopPoll = () => {
-    if (pollRef.current !== null) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
+    pollRef.current?.();
+    pollRef.current = null;
   };
 
   const clearMaxAuth = () => {
@@ -94,34 +93,30 @@ export function OAuthButtons({ className, redirect }: { className?: string; redi
 
   const beginPoll = (session: string, expiresAt: number) => {
     stopPoll();
-    pollRef.current = window.setInterval(() => {
-      void (async () => {
-        if (Date.now() > expiresAt) {
+    pollRef.current = startMaxPoll(session, expiresAt, {
+      onExpired: () => {
+        clearMaxAuth();
+        toast.error("Время входа через MAX истекло. Нажмите MAX ещё раз.");
+      },
+      onStatus: async (status) => {
+        if (status.status === "ready" && status.token) {
+          stopPoll();
+          await finish(status.token);
+          return true;
+        }
+        if (status.status === "denied") {
           clearMaxAuth();
-          toast.error("Время входа через MAX истекло. Нажмите MAX ещё раз.");
-          return;
+          toast.error("Вход через MAX отменён");
+          return true;
         }
-        try {
-          const status = await pollMaxAuth(session);
-          if (status.status === "ready" && status.token) {
-            stopPoll();
-            await finish(status.token);
-            return;
-          }
-          if (status.status === "denied") {
-            clearMaxAuth();
-            toast.error("Вход через MAX отменён");
-            return;
-          }
-          if (status.status === "expired") {
-            clearMaxAuth();
-            toast.error("Сессия MAX истекла. Нажмите MAX ещё раз.");
-          }
-        } catch {
-          /* keep polling */
+        if (status.status === "expired") {
+          clearMaxAuth();
+          toast.error("Сессия MAX истекла. Нажмите MAX ещё раз.");
+          return true;
         }
-      })();
-    }, 1500);
+        return false;
+      },
+    });
   };
 
   useEffect(() => {
