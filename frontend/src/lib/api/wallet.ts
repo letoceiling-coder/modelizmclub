@@ -115,7 +115,10 @@ export async function topupWallet(
 export async function withdrawFromWallet(input: {
   amount: number;
   method: WithdrawMethod;
-  destination: string;
+  /** Пусто, когда выводим на сохранённую карту: номер подставит сервер. */
+  destination?: string;
+  /** Взять получателя из сохранённых реквизитов выплат (только для карты). */
+  use_saved_card?: boolean;
 }): Promise<WithdrawalResult> {
   const res = await api<{ data: WithdrawalResult }>("/wallet/withdraw", {
     method: "POST",

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TrendingUp, Eye, Heart, ClipboardList, Loader2, LineChart } from "lucide-react";
 import { LoadFailed } from "@/components/ui/load-failed";
+import { ViewsDailyChart } from "@/components/settings/ViewsDailyChart";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
 import type { AdStatusKey } from "@/lib/store";
@@ -136,21 +137,7 @@ function DashboardSection() {
         </Card>
       )}
 
-      <Card
-        className="flex flex-col items-center gap-[8px] p-[24px] text-center"
-        style={{
-          borderColor: "var(--border)",
-          borderRadius: "var(--r-card)",
-        }}
-      >
-        <LineChart size={24} style={{ color: "var(--foreground-30)" }} />
-        <div className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
-          {t("pages.settings.dashboardDynamics")}
-        </div>
-        <p className="max-w-[360px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-          {t("pages.settings.dashboardDynamicsSoon")}
-        </p>
-      </Card>
+      <ViewsDailyChart />
     </SettingsSectionShell>
   );
 }

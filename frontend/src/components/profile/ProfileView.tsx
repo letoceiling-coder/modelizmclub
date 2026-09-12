@@ -100,6 +100,17 @@ import { reportReadFailure } from "@/lib/errors/handle";
 type TabKey =
   "posts" | "reposts" | "ads" | "reviews" | "communities" | "invited" | "blocked" | "about";
 
+const TAB_KEYS: readonly TabKey[] = [
+  "posts",
+  "reposts",
+  "ads",
+  "reviews",
+  "communities",
+  "invited",
+  "blocked",
+  "about",
+];
+
 const TAB_LABEL_KEYS: Record<TabKey, string> = {
   posts: "pages.profile.tabPosts",
   reposts: "pages.profile.tabReposts",
@@ -194,7 +205,20 @@ export function ProfileView({
   const { t } = useTranslation();
   const { requireAccount, requirePremium: requireSubscription } = useGuestAccess();
   const { requireAction } = useActionGate();
+  /*
+   * Вкладка может быть задана хешем: `/profile#reviews` открывает отзывы.
+   * Тот же приём, что в настройках (`#sms-verify`, `#max-account`), и он тут
+   * нужен по делу: ответить на отзыв можно только на этой вкладке, а из
+   * раздела «Рейтинг и отзывы» в настройках на неё вела бы ссылка в никуда.
+   * Разбор — после монтирования: на сервере хеша нет, и первый кадр клиента
+   * обязан совпасть с серверной разметкой.
+   */
   const [tab, setTab] = useState<TabKey>("posts");
+
+  useEffect(() => {
+    const hash = typeof window === "undefined" ? "" : window.location.hash.replace("#", "");
+    if (TAB_KEYS.includes(hash as TabKey)) setTab(hash as TabKey);
+  }, []);
   const [adFilter, setAdFilter] = useState<AdStatus | "all">("all");
   const [editOpen, setEditOpen] = useState(false);
   const [friendPromptOpen, setFriendPromptOpen] = useState(false);

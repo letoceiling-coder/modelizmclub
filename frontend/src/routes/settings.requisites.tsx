@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, CreditCard } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InnInput } from "@/components/ui/inn-input";
@@ -99,6 +100,16 @@ function RequisitesSection() {
 
   return (
     <SettingsSectionShell title={t("pages.settings.requisitesTitle")}>
+      {/*
+       * Предупреждение до действия, а не после отказа. Раздел открывается
+       * зарегистрированному без подтверждённого телефона (`route.settings` в
+       * карте доступа — `auth`), а записи и денежные операции сервер держит
+       * за ступенью `verified`. Раньше человек узнавал об этом только когда
+       * действие падало. Баннер сам решает, показываться ли: подтверждённому
+       * и гостю он не рисуется.
+       */}
+      <VerificationBanner />
+
       <p className="text-[13px]" style={{ color: "var(--foreground-50)" }}>
         {t("pages.settings.requisitesDesc")}{" "}
         <Link

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Wallet as WalletIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ import { toast } from "@/lib/toast";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { rememberTopup, takeRememberedTopup } from "@/lib/payments/pending-topup";
 import { CardNumberInput } from "@/components/ui/card-number-input";
+import { askConfirm } from "@/lib/ui/ask";
+import { fetchPayoutRequisites } from "@/lib/api/payout-requisites";
 import {
   fetchWalletBalance,
   fetchWalletTransactions,
@@ -54,9 +57,16 @@ export const Route = createFileRoute("/settings/wallet")({
    * выдуман: сервер не сказал «ноль», он отказался отвечать. Замер прода
    * 07.09 после закрытия группы Billing.
    *
-   * Уровень берётся из карты доступа, как у /messenger: `route.settings`
-   * объявлен там `auth`, а `levelFromAccessTier` переводит его в `verified`.
-   * Карта не меняется — она наконец применяется.
+   * Уровень берётся из карты доступа, как у /messenger. Важно, чего этот
+   * страж НЕ делает: `route.settings` объявлен в карте `auth`, а
+   * `levelFromAccessTier("auth")` возвращает `registered` — не `verified`.
+   * То есть на страницу пускают зарегистрированного без подтверждённого
+   * телефона, и до 12.09 здесь стояло обратное утверждение (аудит 12.09).
+   *
+   * Поднять весь `/settings` до `verified` нельзя: телефон подтверждают на
+   * этой же странице настроек, и человек заперся бы снаружи. Поэтому
+   * предупреждение показываем сразу — `VerificationBanner` ниже, — а не
+   * после нажатия «Пополнить» или «Вывести».
    */
   beforeLoad: async ({ location }) => {
     const [{ routeGuard, levelFromAccessTier }, { loadFeedGuestAccess, resolveMinTier }] =
@@ -78,6 +88,13 @@ function formatRub(kopecks: number): string {
     maximumFractionDigits: 2,
   });
 }
+
+/** Подписи способов вывода — нужны и в списке, и в окне подтверждения. */
+const METHOD_LABEL_KEYS: Record<WithdrawMethod, string> = {
+  card: "pages.settings.walletMethodCard",
+  sbp: "pages.settings.walletMethodSbp",
+  account: "pages.settings.walletMethodAccount",
+};
 
 const WALLET_KIND_KEYS: Record<string, string> = {
   topup: "pages.settings.walletKindTopup",
@@ -283,6 +300,16 @@ function WalletSection() {
 
   return (
     <SettingsSectionShell title={t("pages.settings.walletTitle")}>
+      {/*
+       * Предупреждение до действия, а не после отказа. Раздел открывается
+       * зарегистрированному без подтверждённого телефона (`route.settings` в
+       * карте доступа — `auth`), а записи и денежные операции сервер держит
+       * за ступенью `verified`. Раньше человек узнавал об этом только когда
+       * действие падало. Баннер сам решает, показываться ли: подтверждённому
+       * и гостю он не рисуется.
+       */}
+      <VerificationBanner />
+
       <Card
         className="p-[20px]"
         style={{
@@ -612,6 +639,31 @@ function WithdrawDialog({
   const [method, setMethod] = useState<WithdrawMethod>("card");
   const [destination, setDestination] = useState("");
   const [busy, setBusy] = useState(false);
+  /*
+   * Сохранённая карта из «Реквизитов». Полного номера у клиента нет и быть не
+   * должно — сервер отдаёт только последние четыре, — поэтому выбор её
+   * означает флаг `use_saved_card`, а номер подставляет сервер.
+   */
+  const [savedLast4, setSavedLast4] = useState<string | null>(null);
+  const [useSaved, setUseSaved] = useState(true);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    fetchPayoutRequisites()
+      .then((r) => {
+        if (!alive) return;
+        setSavedLast4(r.last4);
+        setUseSaved(Boolean(r.last4));
+      })
+      .catch((e) => reportReadFailure(e, "реквизиты для выплат"));
+    return () => {
+      alive = false;
+    };
+  }, [open]);
+
+  const savedAvailable = method === "card" && Boolean(savedLast4);
+  const sendingSaved = savedAvailable && useSaved;
 
   const submit = async () => {
     const rub = Math.round(Number(amount));
@@ -627,25 +679,53 @@ function WithdrawDialog({
      */
     const dest = destination.trim();
     const digits = dest.replace(/\D/g, "");
-    if (method === "card" && digits.length !== 16) {
-      toast.error(t("pages.settings.walletDestinationCardInvalid"));
-      return;
+    if (!sendingSaved) {
+      if (method === "card" && digits.length !== 16) {
+        toast.error(t("pages.settings.walletDestinationCardInvalid"));
+        return;
+      }
+      if (method === "account" && digits.length !== 20) {
+        toast.error(t("pages.settings.walletDestinationAccountInvalid"));
+        return;
+      }
+      if (method === "sbp" && digits.length < 10) {
+        toast.error(t("pages.settings.walletDestinationSbpInvalid"));
+        return;
+      }
+      if (!dest) {
+        toast.error(t("pages.settings.walletError"));
+        return;
+      }
     }
-    if (method === "account" && digits.length !== 20) {
-      toast.error(t("pages.settings.walletDestinationAccountInvalid"));
+
+    /*
+     * Шаг подтверждения. Сервер списывает деньги сразу и заводит заявку —
+     * отменить её пользователь не может, только просить администратора.
+     * Показываем, что именно уйдёт: сумму, способ и получателя.
+     */
+    const shownDestination = sendingSaved
+      ? t("pages.settings.walletSavedCardMasked", { last4: savedLast4 })
+      : dest;
+    if (
+      !(await askConfirm({
+        title: t("pages.settings.walletWithdrawConfirm", { amount: rub }),
+        description: t("pages.settings.walletWithdrawConfirmDesc", {
+          method: METHOD_LABEL_KEYS[method] ? t(METHOD_LABEL_KEYS[method]) : method,
+          destination: shownDestination,
+        }),
+        confirmLabel: t("pages.settings.walletWithdrawSubmit"),
+        danger: true,
+      }))
+    )
       return;
-    }
-    if (method === "sbp" && digits.length < 10) {
-      toast.error(t("pages.settings.walletDestinationSbpInvalid"));
-      return;
-    }
-    if (!dest) {
-      toast.error(t("pages.settings.walletError"));
-      return;
-    }
+
     setBusy(true);
     try {
-      await withdrawFromWallet({ amount: rub, method, destination: destination.trim() });
+      await withdrawFromWallet(
+        sendingSaved
+          ? { amount: rub, method, use_saved_card: true }
+          : { amount: rub, method, destination: dest },
+      );
       toast.success(t("pages.settings.walletWithdrawSuccess"));
       onOpenChange(false);
       setDestination("");
@@ -693,8 +773,10 @@ function WithdrawDialog({
             <NativeSelect
               value={method}
               onChange={(v) => {
-                setMethod(v as WithdrawMethod);
+                const next = v as WithdrawMethod;
+                setMethod(next);
                 setDestination("");
+                setUseSaved(next === "card" && Boolean(savedLast4));
               }}
               options={[
                 { value: "card", label: t("pages.settings.walletMethodCard") },
@@ -707,7 +789,34 @@ function WithdrawDialog({
             <label className="text-[13px] font-medium" style={{ color: "var(--foreground-70)" }}>
               {t("pages.settings.walletDestination")}
             </label>
-            {method === "card" ? (
+            {savedAvailable && (
+              /*
+               * Выбор между сохранённой картой и другой. Полного номера у
+               * клиента нет — при выборе сохранённой уходит флаг, а номер
+               * подставляет сервер из реквизитов.
+               */
+              <div className="mb-[10px] flex flex-col gap-[8px]">
+                <label className="flex items-center gap-[8px] text-[13px]">
+                  <input
+                    type="radio"
+                    name="withdraw-destination"
+                    checked={useSaved}
+                    onChange={() => setUseSaved(true)}
+                  />
+                  {t("pages.settings.walletSavedCardMasked", { last4: savedLast4 })}
+                </label>
+                <label className="flex items-center gap-[8px] text-[13px]">
+                  <input
+                    type="radio"
+                    name="withdraw-destination"
+                    checked={!useSaved}
+                    onChange={() => setUseSaved(false)}
+                  />
+                  {t("pages.settings.walletOtherCard")}
+                </label>
+              </div>
+            )}
+            {sendingSaved ? null : method === "card" ? (
               // Тот же ввод карты, что в реквизитах: группировка по 4 и предел
               // в 16 цифр. Своего второго заводить незачем.
               <CardNumberInput value={destination} onValueChange={setDestination} />

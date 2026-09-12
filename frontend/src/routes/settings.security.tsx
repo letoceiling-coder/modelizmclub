@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { BlockedUsersSection } from "@/components/profile/BlockedUsersSection";
+import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { isDemoMode } from "@/lib/demo-mode";
 import { changePassword, logoutOtherDevices } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
@@ -177,6 +178,14 @@ function SecuritySection() {
         <h2 className="mb-[14px] text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
           {t("pages.settings.blockedUsersTitle")}
         </h2>
+        {/*
+         * Список читается с `auth`, а снятие блокировки сервер держит за
+         * `verified` (`DELETE /users/{id}/block` — в группе с `verified`).
+         * Предупреждаем до нажатия, а не отказом после него.
+         */}
+        <div className="mb-[14px]">
+          <VerificationBanner />
+        </div>
         <BlockedUsersSection />
       </Card>
     </SettingsSectionShell>

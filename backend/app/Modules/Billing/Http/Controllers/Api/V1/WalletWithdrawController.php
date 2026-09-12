@@ -9,21 +9,61 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Modules\Account\Services\PayoutRequisitesService;
 use Modules\Billing\Exceptions\InsufficientFundsException;
 use Modules\Billing\Services\WalletService;
 
 class WalletWithdrawController extends Controller
 {
-    public function __invoke(Request $request, WalletService $wallet): JsonResponse
+    public function __invoke(
+        Request $request,
+        WalletService $wallet,
+        PayoutRequisitesService $requisites,
+    ): JsonResponse
     {
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:100', 'max:1000000'],
             'method' => ['required', Rule::in(['card', 'sbp', 'account'])],
-            'destination' => ['required', 'string', 'max:255'],
+            /*
+             * Получателя можно не диктовать, если у пользователя уже сохранена
+             * карта для выплат: полный номер лежит на сервере
+             * (`user_payout_requisites.payout_card_number`), наружу отдаются
+             * только последние четыре. До 12.09 подставить её было нечем — в
+             * окне вывода номер набирали заново, хотя он уже сохранён.
+             */
+            'use_saved_card' => ['sometimes', 'boolean'],
+            'destination' => ['required_without:use_saved_card', 'nullable', 'string', 'max:255'],
         ]);
 
         $user = $request->user();
         $amountKopecks = (int) round(((float) $data['amount']) * 100);
+
+        if ($data['use_saved_card'] ?? false) {
+            if ($data['method'] !== 'card') {
+                return response()->json([
+                    'message' => 'Сохранённая карта подходит только для вывода на карту.',
+                    'code' => 'saved_card_wrong_method',
+                ], 422);
+            }
+
+            $saved = $requisites->cardNumber($user);
+
+            if ($saved === null) {
+                return response()->json([
+                    'message' => 'Сохранённой карты нет. Укажите номер или сохраните карту в реквизитах.',
+                    'code' => 'saved_card_missing',
+                ], 422);
+            }
+
+            $data['destination'] = $saved;
+        }
+
+        if (! filled($data['destination'] ?? null)) {
+            return response()->json([
+                'message' => 'Укажите получателя.',
+                'code' => 'destination_required',
+            ], 422);
+        }
 
         try {
             $withdrawal = DB::transaction(function () use ($wallet, $user, $amountKopecks, $data): WithdrawalRequest {
