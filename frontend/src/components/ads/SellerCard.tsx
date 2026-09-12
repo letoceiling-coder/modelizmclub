@@ -90,9 +90,16 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
         <SellerAvatar seller={seller} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-[6px]">
+            {/*
+              Имя продавца — до двух строк. Раньше `truncate` без `min-w-0`:
+              элемент ряда не сжимается ниже своего содержимого, и имя в 60
+              знаков на 375 уезжало за правый край экрана на 192 px, вместо
+              того чтобы обрезаться (замер 13.09).
+            */}
             <span
-              className="truncate text-[14px] font-semibold"
+              className="line-clamp-2 min-w-0 text-[14px] font-semibold [overflow-wrap:anywhere]"
               style={{ color: "var(--foreground)" }}
+              title={seller.name}
             >
               {seller.name}
             </span>

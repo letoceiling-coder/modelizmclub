@@ -302,18 +302,49 @@ export function ProfileView({
         </div>
 
         {/* Identity */}
-        <div className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:items-end md:gap-[24px] md:px-[32px]">
+        {/*
+          Кнопки уходят под имя, когда им вдвоём тесно в одном ряду.
+
+          Ряд «аватар · имя · кнопки» на широком экране не переносился, кнопки
+          не сжимаются — и колонке имени оставалось то, что они не заняли.
+          Замер 13.09: 0 px на 1024 в своём профиле, 40 px в чужом, 99 на 768.
+          Перенос текста такое не лечит — одна буква в строке тоже перенос.
+
+          Теперь у колонки имени основа 260 px (`flex-[1_1_260px]`), а ряд
+          переносится (`md:flex-wrap`): если аватару, имени и кнопкам вместе
+          не хватает ширины, кнопки встают строкой ниже, а имя получает весь
+          остаток.
+        */}
+        <div className="flex flex-col gap-[12px] px-[16px] pb-[16px] md:flex-row md:flex-wrap md:items-end md:gap-x-[24px] md:gap-y-[12px] md:px-[32px]">
           <div
             className="relative shrink-0 overflow-visible"
             style={{ marginTop: "clamp(-44px, -10vw, -56px)", zIndex: 2 }}
           >
             <ProfileAvatar src={user.avatar} name={user.name} editable={isOwn} />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 md:flex-[1_1_260px]">
             <div className="flex flex-wrap items-center gap-[6px]">
+              {/*
+                Имя переносится на вторую строку, а не режется многоточием.
+
+                Здесь стоял `truncate` в одном ряду с плашками «Pro» и «Первая
+                сотня», а кнопки справа на широком экране не сжимаются. Места
+                имени оставалось столько, сколько не заняли соседи: даже
+                «TEST ADMIN» из десяти знаков превращалось в «TEST AD…» на 768,
+                1024 и 1440 (замер 13.09), «Павел Гордеев (демо)» — тоже.
+
+                Потолка по строкам нет, и это решение, а не недосмотр. Поле
+                профиля разрешает 40 знаков — это две строки даже на 375. Но
+                админка разрешает имя до 120, и 60 знаков на 1024 занимают три
+                строки. С потолком в две такое имя снова резалось многоточием —
+                ровно то, на что была жалоба. В шапке профиля имя главное, ему
+                можно дать третью строку. Одно слово без пробелов рвётся
+                `overflow-wrap: anywhere`.
+              */}
               <h1
-                className="min-w-0 truncate font-display text-[18px] font-bold md:text-[24px]"
+                className="min-w-0 max-w-full font-display text-[18px] font-bold [overflow-wrap:anywhere] md:text-[24px]"
                 style={{ color: "var(--foreground)", letterSpacing: "-0.01em" }}
+                title={user.name}
               >
                 {user.name}
               </h1>
@@ -412,7 +443,8 @@ export function ProfileView({
             строку, а первую целиком занимает главное действие. От 768 обе
             умещаются в ряд, и перенос там выключен.
           */}
-          <div className="flex w-full flex-wrap gap-[8px] md:w-auto md:flex-nowrap">
+          {/* Кнопки не сжимаются: сжимается колонка имени, а имя переносится. */}
+          <div className="flex w-full flex-wrap gap-[8px] md:w-auto md:shrink-0 md:flex-nowrap">
             {isOwn ? (
               <>
                 <Button
