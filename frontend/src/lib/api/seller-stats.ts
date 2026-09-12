@@ -41,8 +41,17 @@ export async function fetchMyStats(): Promise<SellerStats> {
 
 export async function fetchViewsDaily(range = "30d"): Promise<ViewsDailyPoint[]> {
   if (isDemoMode()) return [];
-  const res = await api<{ data: ViewsDailyPoint[] }>("/users/me/stats/views-daily", {
-    query: { range },
-  });
-  return res.data ?? [];
+  /*
+   * Этот маршрут отдаёт голый массив, а не `{ data: [...] }` — проверено на
+   * проде 12.09: `[{"date":"2026-08-14","count":0}, …]`. Прежний разбор брал
+   * `res.data` и всегда получал пустоту; заметить это было негде, потому что
+   * функцию никто не вызывал. Принимаем обе формы: массив как есть и обёртку,
+   * если маршрут когда-нибудь приведут к общему виду.
+   */
+  const res = await api<ViewsDailyPoint[] | { data?: ViewsDailyPoint[] }>(
+    "/users/me/stats/views-daily",
+    { query: { range } },
+  );
+  if (Array.isArray(res)) return res;
+  return res?.data ?? [];
 }

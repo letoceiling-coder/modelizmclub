@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Star } from "lucide-react";
@@ -97,6 +97,23 @@ function RatingSection() {
 
   return (
     <SettingsSectionShell title={t("pages.settings.ratingTitle")}>
+      {/*
+       * Ответить на отзыв можно в профиле, на вкладке «Отзывы» — там это
+       * давно работает (`replyToUserReview` в `ProfileView`). Второй такой же
+       * экран здесь заводить незачем; вместо него — ссылка ровно на ту
+       * вкладку.
+       */}
+      <p className="mb-[16px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
+        {t("pages.settings.ratingReplyHint")}{" "}
+        <Link
+          to="/profile"
+          hash="reviews"
+          className="underline underline-offset-4"
+          style={{ color: "var(--accent)" }}
+        >
+          {t("pages.settings.ratingReplyLink")}
+        </Link>
+      </p>
       <Card
         className="flex items-center gap-[16px] p-[20px]"
         style={{
