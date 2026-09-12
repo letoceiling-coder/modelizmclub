@@ -193,6 +193,12 @@ class UserService
             unset($data['phone']);
         }
 
+        // Тема лежит у пользователя, а не в профиле, — как `locale`.
+        if (array_key_exists('theme_preference', $data)) {
+            $user->forceFill(['theme_preference' => $data['theme_preference']])->save();
+            unset($data['theme_preference']);
+        }
+
         $profile->fill($data)->save();
 
         return $profile->fresh(['city', 'avatar', 'cover', 'user']);

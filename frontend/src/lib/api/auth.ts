@@ -27,6 +27,8 @@ export interface ApiUser {
   email_verified?: boolean;
   /** Адрес, на который начата смена и ждёт подтверждения кодом. */
   pending_email?: string | null;
+  /** Выбранная тема оформления: light | dark | system. */
+  theme_preference?: string | null;
   phone_verified?: boolean;
   phone_verified_at?: string | null;
   is_first_hundred?: boolean;
@@ -75,6 +77,7 @@ export function mapApiUser(u: ApiUser): User {
       : undefined,
     email_verified: u.email_verified,
     pendingEmail: u.pending_email ?? undefined,
+    themePreference: (u.theme_preference as User["themePreference"]) ?? undefined,
     phone_verified: u.phone_verified,
     firstHundred: u.is_first_hundred === true,
     oauth_providers: u.oauth_providers ?? undefined,

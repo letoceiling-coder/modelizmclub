@@ -23,6 +23,10 @@ class UpdateProfileRequest extends FormRequest
             'telegram_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],
             'website_url' => ['sometimes', 'nullable', 'string', 'max:512', 'url'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            // Тема оформления: хранится у пользователя, чтобы переезжала
+            // между устройствами. `null` — «не выбирал», тогда действует
+            // системная.
+            'theme_preference' => ['sometimes', 'nullable', Rule::in(['light', 'dark', 'system'])],
             'avatar_media_id' => ['sometimes', 'nullable'],
             'avatar_media_uuid' => ['sometimes', 'nullable', 'string', Rule::exists('media', 'uuid')],
             'cover_media_id' => ['sometimes', 'nullable'],

@@ -1274,6 +1274,7 @@ COLUMN|users.registration_track|character varying|YES
 COLUMN|users.remember_token|character varying|YES
 COLUMN|users.role|character varying|NO
 COLUMN|users.status|character varying|NO
+COLUMN|users.theme_preference|character varying|YES
 COLUMN|users.updated_at|timestamp without time zone|YES
 COLUMN|users.uuid|uuid|NO
 COLUMN|video_categories.created_at|timestamp without time zone|YES

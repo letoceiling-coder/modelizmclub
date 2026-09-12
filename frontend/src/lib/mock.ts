@@ -36,6 +36,8 @@ export interface User {
   email_verified?: boolean;
   /** Адрес из незавершённой смены email: код отправлен, подтверждения нет. */
   pendingEmail?: string;
+  /** Тема оформления, выбранная пользователем и сохранённая на сервере. */
+  themePreference?: "light" | "dark" | "system";
   phone_verified?: boolean;
   /** Linked OAuth providers from the server — e.g. ["vk", "yandex"]. */
   oauth_providers?: string[];
