@@ -7,6 +7,7 @@ import { useStore, actions } from "@/lib/store";
 import { fetchBlockedUsers, unblockUser } from "@/lib/api/social";
 import { isDemoMode } from "@/lib/demo-mode";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LoadFailed } from "@/components/ui/load-failed";
 import { Button } from "@/components/ui/button";
 import { reportReadFailure } from "@/lib/errors/handle";
 
@@ -21,6 +22,10 @@ export function BlockedUsersSection() {
    * возвращалась после перезагрузки.
    */
   const [numericIds, setNumericIds] = useState<Record<string, number>>({});
+  // Отказ загрузки отделён от пустого списка: «Никто не заблокирован» — ответ
+  // сервера, а не то, что он не ответил.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     if (isDemoMode()) return;
@@ -34,9 +39,17 @@ export function BlockedUsersSection() {
         users.forEach((u) => {
           if (!blockedUserIds.includes(u.id)) actions.blockUser(u.id);
         });
+        setLoadFailed(false);
       })
-      .catch((e) => reportReadFailure(e, "чёрный список"));
-  }, []);
+      .catch((e) => {
+        setLoadFailed(true);
+        reportReadFailure(e, "чёрный список");
+      });
+  }, [reloadTick]);
+
+  if (loadFailed && blockedUserIds.length === 0) {
+    return <LoadFailed icon={Ban} onRetry={() => setReloadTick((n) => n + 1)} />;
+  }
 
   if (blockedUserIds.length === 0) {
     return <EmptyState icon={Ban} title="Никто не заблокирован" variant="compact" />;

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { MessagesSquare } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LoadFailed } from "@/components/ui/load-failed";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format/date";
 import { fetchMyFeedback, type MyFeedbackItem } from "@/lib/api/feedback";
@@ -32,21 +33,35 @@ function MyFeedbackSection() {
   const { t } = useTranslation();
   const [items, setItems] = useState<MyFeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Отказ загрузки — своё состояние: пустой список и «сервер не ответил» это
+  // разные ответы, а выглядели одинаково.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
     fetchMyFeedback()
-      .then((rows) => alive && setItems(rows))
-      .catch((e) => reportReadFailure(e, "обращения в поддержку"))
+      .then((rows) => {
+        if (!alive) return;
+        setItems(rows);
+        setLoadFailed(false);
+      })
+      .catch((e) => {
+        if (alive) setLoadFailed(true);
+        reportReadFailure(e, "обращения в поддержку");
+      })
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reloadTick]);
 
   return (
     <SettingsSectionShell title={t("pages.settings.feedbackTitle")}>
-      {loading ? null : items.length === 0 ? (
+      {loading ? null : loadFailed && items.length === 0 ? (
+        <LoadFailed icon={MessagesSquare} onRetry={() => setReloadTick((n) => n + 1)} />
+      ) : items.length === 0 ? (
         <EmptyState
           icon={MessagesSquare}
           title={t("pages.settings.feedbackEmpty")}
