@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { MediaArrow } from "@/components/ui/MediaArrow";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ImageOff } from "lucide-react";
 import { Img } from "@/components/ui/Img";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import {
@@ -299,24 +300,18 @@ export function PostMediaCarousel({
         {selected + 1}/{items.length}
       </div>
 
-      <button
-        type="button"
+      <MediaArrow
+        direction="prev"
+        label="Предыдущий слайд"
+        className="absolute left-[8px] top-1/2 hidden -translate-y-1/2 sm:grid"
         onClick={() => embla?.scrollPrev()}
-        aria-label="Предыдущий слайд"
-        className="absolute left-[8px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
-        style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
-      >
-        <ChevronLeft className="h-[16px] w-[16px]" />
-      </button>
-      <button
-        type="button"
+      />
+      <MediaArrow
+        direction="next"
+        label="Следующий слайд"
+        className="absolute right-[8px] top-1/2 hidden -translate-y-1/2 sm:grid"
         onClick={() => embla?.scrollNext()}
-        aria-label="Следующий слайд"
-        className="absolute right-[8px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
-        style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
-      >
-        <ChevronRight className="h-[16px] w-[16px]" />
-      </button>
+      />
 
       <div className="absolute inset-x-0 bottom-[8px] flex items-center justify-center gap-[6px]">
         {items.map((_, i) => (

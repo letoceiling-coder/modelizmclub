@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MediaArrow } from "@/components/ui/MediaArrow";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, m } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, CalendarDays, X } from "lucide-react";
+import { CalendarDays, X } from "lucide-react";
 import type { Banner } from "@/lib/mock";
 import {
   fetchBannersWithSettings,
@@ -239,24 +240,20 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
 
           {list.length > 1 && (
             <>
-              <button
+              <MediaArrow
+                direction="prev"
+                label={t("components.eventsHero.prev")}
+                className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 sm:grid"
                 onClick={prev}
                 {...stopPointerPropagation}
-                aria-label={t("components.eventsHero.prev")}
-                className="absolute left-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
-                style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
-              >
-                <ChevronLeft className="h-[16px] w-[16px]" />
-              </button>
-              <button
+              />
+              <MediaArrow
+                direction="next"
+                label={t("components.eventsHero.next")}
+                className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 sm:grid"
                 onClick={next}
                 {...stopPointerPropagation}
-                aria-label={t("components.eventsHero.next")}
-                className="absolute right-[10px] top-1/2 hidden -translate-y-1/2 place-items-center rounded-full text-white sm:grid h-[32px] w-[32px]"
-                style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(6px)" }}
-              >
-                <ChevronRight className="h-[16px] w-[16px]" />
-              </button>
+              />
             </>
           )}
         </div>

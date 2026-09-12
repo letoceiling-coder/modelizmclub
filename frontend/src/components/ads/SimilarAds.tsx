@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MediaArrow } from "@/components/ui/MediaArrow";
 import { Link } from "@tanstack/react-router";
 import type { Ad } from "@/lib/mock";
-import { ChevronLeft, ChevronRight, MapPin, Tag } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { HorizontalScrollNav } from "@/components/ui/HorizontalScrollNav";
 import { derivedSrcSet, variantUrl } from "@/lib/media/variants";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
@@ -176,22 +177,21 @@ export function SimilarAds({ items }: { items: Ad[] }) {
   );
 }
 
+/*
+ * Стрелки полки — та же подложка, что у стрелок поверх фотографий.
+ *
+ * Полка прокручивается впритык к карточкам, и стрелка нередко стоит поверх
+ * снимка соседнего лота. Светлый круг на светлом снимке пропадал так же, как
+ * в галерее объявления, поэтому подложка здесь общая — `MediaArrow`.
+ */
 function ScrollArrow({ direction, onClick }: { direction: "left" | "right"; onClick: () => void }) {
-  const Icon = direction === "left" ? ChevronLeft : ChevronRight;
   return (
-    <button
-      type="button"
-      aria-label={direction === "left" ? "Прокрутить влево" : "Прокрутить вправо"}
+    <MediaArrow
+      direction={direction === "left" ? "prev" : "next"}
+      label={direction === "left" ? "Прокрутить влево" : "Прокрутить вправо"}
+      className="absolute top-1/2 z-[2] hidden -translate-y-1/2 sm:grid"
+      style={{ [direction]: "-6px" }}
       onClick={onClick}
-      className="absolute top-1/2 z-[2] hidden h-[36px] w-[36px] -translate-y-1/2 place-items-center rounded-full border shadow-[var(--shadow-card)] transition-opacity hover:opacity-90 sm:grid"
-      style={{
-        [direction]: "-6px",
-        background: "var(--background-elevated)",
-        borderColor: "var(--border)",
-        color: "var(--foreground-70)",
-      }}
-    >
-      <Icon size={18} />
-    </button>
+    />
   );
 }

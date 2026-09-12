@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MediaArrow } from "@/components/ui/MediaArrow";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ImageOff } from "lucide-react";
 import { m } from "framer-motion";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
@@ -188,34 +189,23 @@ export function AdGallery({
 
         {items.length > 1 && (
           <>
-            <button
-              type="button"
+            {/*
+              Подложка тёмная, а не `--background-elevated`: светлый круг на
+              светлой фотографии сливался с ней. Поведение общее для всех
+              стрелок поверх изображений — см. `MediaArrow`.
+            */}
+            <MediaArrow
+              direction="prev"
+              label="Назад"
+              className="absolute left-[12px] top-1/2 hidden -translate-y-1/2 md:grid"
               onClick={() => emblaApi?.scrollPrev()}
-              aria-label="Назад"
-              className="absolute left-[12px] top-1/2 hidden h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105 md:grid"
-              style={{
-                background: "var(--background-elevated)",
-                color: "var(--foreground)",
-                borderRadius: "var(--r-pill)",
-                boxShadow: "var(--shadow-float)",
-              }}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              type="button"
+            />
+            <MediaArrow
+              direction="next"
+              label="Вперёд"
+              className="absolute right-[12px] top-1/2 hidden -translate-y-1/2 md:grid"
               onClick={() => emblaApi?.scrollNext()}
-              aria-label="Вперёд"
-              className="absolute right-[12px] top-1/2 hidden h-[44px] w-[44px] -translate-y-1/2 place-items-center transition-transform hover:scale-105 md:grid"
-              style={{
-                background: "var(--background-elevated)",
-                color: "var(--foreground)",
-                borderRadius: "var(--r-pill)",
-                boxShadow: "var(--shadow-float)",
-              }}
-            >
-              <ChevronRight size={20} />
-            </button>
+            />
 
             <div
               className="absolute bottom-[12px] left-1/2 -translate-x-1/2 px-[10px] py-[4px] text-[11px] font-medium"
