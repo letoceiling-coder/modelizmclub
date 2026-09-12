@@ -88,6 +88,7 @@ const CATEGORY_CHIP_CLASS =
 
 const PAGE_SIZE = 20;
 
+
 export const Route = createFileRoute("/feed")({
   errorComponent: RouteErrorState,
   head: ({ loaderData }) => {
