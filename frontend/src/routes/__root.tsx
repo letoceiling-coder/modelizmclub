@@ -255,10 +255,15 @@ function RootComponent() {
             <GroupCallInviteDialog />
             <CookieBanner />
             <PwaUpdatePrompt />
+            {/*
+              Тосты: справа снизу на широком экране, снизу во всю ширину минус
+              отступы на телефоне — над нижней навигацией (`bottomToastOffset`).
+              Автоскрытие 4 секунды, в стопке не больше трёх, новые сверху.
+            */}
             <Toaster
               position="bottom-right"
               closeButton
-              duration={3500}
+              duration={4000}
               visibleToasts={3}
               offset={{ bottom: 16, right: 16 }}
               mobileOffset={{ bottom: bottomToastOffset, right: 16, left: 16 }}

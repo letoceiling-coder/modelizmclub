@@ -217,7 +217,7 @@ export function LandingCardIconField({ icon, iconUrl, onChange }: Props) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("pages.adminLandingIcon.searchPlaceholder")}
-                className="min-w-0 flex-1 bg-transparent text-[13px]"
+                className="field-bare min-w-0 flex-1 bg-transparent text-[13px]"
                 style={{ color: "var(--foreground)" }}
               />
             </div>

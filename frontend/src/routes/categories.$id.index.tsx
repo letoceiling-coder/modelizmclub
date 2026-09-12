@@ -203,7 +203,7 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("pages.categoryDetail.searchPlaceholder")}
-              className="min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-[var(--foreground-50)]"
+              className="field-bare min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-[var(--foreground-50)]"
               style={{ color: "var(--foreground)" }}
             />
             {query && (

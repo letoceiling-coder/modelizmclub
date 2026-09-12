@@ -547,7 +547,7 @@ export function CreatePostForm({
                   })
                 : t("components.createPostForm.profileTextPlaceholder")
             }
-            className="min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed"
+            className="field-bare min-h-[120px] w-full resize-none bg-transparent text-[15px] leading-relaxed"
             style={{ color: "var(--foreground)" }}
           />
           <div className="flex justify-end">

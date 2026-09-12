@@ -398,7 +398,7 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
               enterKeyHint="search"
               autoComplete="off"
               spellCheck={false}
-              className="h-full min-w-0 flex-1 bg-transparent text-[16px] sm:text-[14px]"
+              className="field-bare h-full min-w-0 flex-1 bg-transparent text-[16px] sm:text-[14px]"
               style={{ color: "var(--foreground)" }}
             />
           </label>
