@@ -819,7 +819,7 @@ export function CommentSection({
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && submit()}
               placeholder={t("components.commentSection.placeholder")}
-              className="min-w-0 flex-1 bg-transparent py-[4px] text-[14px]"
+              className="field-bare min-w-0 flex-1 bg-transparent py-[4px] text-[14px]"
               style={{ color: "var(--foreground)" }}
             />
             <CommentAttachMenu

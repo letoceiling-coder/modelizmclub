@@ -523,8 +523,16 @@ function FeedPage() {
                 title={t("pages.feed.emptyFollowingTitle")}
                 description={t("pages.feed.emptyFollowingDesc")}
                 action={{
+                  /*
+                   * Кнопка называется «Найти авторов» и до 13.09 делала
+                   * `setFilter("all")` — то есть возвращала в общую ленту.
+                   * Человеку, у которого нет подписок, это не помогает: он
+                   * оказывался там же, откуда пришёл, а подписаться по-прежнему
+                   * не на кого. Ведём на страницу людей.
+                   */
                   label: t("pages.feed.findAuthors"),
-                  onClick: () => guardAction("feed.empty.action", () => setFilter("all")),
+                  onClick: () =>
+                    guardAction("feed.empty.action", () => void navigate({ to: "/friends" })),
                 }}
               />
             ) : needsCategoryPick ? (

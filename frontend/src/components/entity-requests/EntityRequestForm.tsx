@@ -367,7 +367,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
                       }}
                       maxLength={CHANNEL_SLUG_MAX}
                       placeholder="my-channel"
-                      className="h-11 min-w-0 flex-1 bg-transparent text-[14px]"
+                      className="field-bare h-11 min-w-0 flex-1 bg-transparent text-[14px]"
                       style={{ color: "var(--foreground)" }}
                     />
                   </div>

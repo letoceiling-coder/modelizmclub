@@ -421,6 +421,52 @@ body {
     outline-offset: -2px;
     box-shadow: inset 0 0 0 4px var(--background);
   }
+
+  /*
+   * Текстовые поля — исключение: у них своя рамка, и кольцо ложилось поверх.
+   *
+   * Общее правило рисует кольцо и светлую полосу шириной 4 px внутри. Кнопке
+   * это нужно — без полосы акцентное кольцо на акцентной кнопке не видно.
+   * Полю не нужно: полоса съедает четыре пикселя вокруг текста, кольцо встаёт
+   * вторым контуром рядом с собственной рамкой, и фокус выглядит неровным.
+   *
+   * Здесь остаётся только кольцо, ровно по границе поля: `outline` следует
+   * скруглению элемента, поэтому у поля с радиусом ринг тоже скруглён.
+   * Рамка при этом красится акцентом — как в ВКонтакте и Телеграме.
+   */
+  :where(
+      input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+      textarea,
+      [contenteditable="true"]
+    ):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    box-shadow: none;
+    border-color: var(--accent);
+  }
+
+  /*
+   * Поле без собственной рамки, лежащее в оболочке.
+   *
+   * Композер сообщения, строка поиска, ввод тегов: видимое поле — это
+   * скруглённая оболочка, а сам `input` прозрачный и без радиуса. Кольцо
+   * вокруг него было прямоугольником внутри скруглённой оболочки — ровно то,
+   * что видно в мессенджере.
+   *
+   * Признак ставится на поле (`field-bare`), а подсвечивается оболочка —
+   * родитель. Так подсветка совпадает и с формой, и с рамкой того, что человек
+   * считает полем.
+   */
+  :where(input, textarea).field-bare:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border-color: inherit;
+  }
+
+  :where(div, label, form, span):has(> .field-bare:focus-visible) {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
   html,
   body {
     overflow-x: hidden;
@@ -643,35 +689,71 @@ summary {
   height: 14px !important;
 }
 
-/* Global compact toasts — bottom-right, do not cover cards or header chrome. */
+/*
+ * Тосты по дизайн-системе.
+ *
+ * Здесь стоял блок «компактных» тостов: `width: fit-content`, потолок 280,
+ * заголовок 12, пояснение 11, значок 16 — и всё с `!important`. Из-за него
+ * тосты были мельче всего остального на экране и не слушались классов
+ * компонента: любые размеры, заданные в `components/ui/sonner.tsx`, этот блок
+ * перебивал. Отсюда и «чужеродный» вид.
+ *
+ * `!important` остаётся: своя таблица стилей у библиотеки, и без него она
+ * возвращает собственные размеры. Но значения теперь те же, что у карточек:
+ * скругление 12, тень карточки, текст 14 и 13, значок 20, крестик 24.
+ *
+ * Ширина: на широком экране по содержимому, но не шире 380 — тост не должен
+ * закрывать половину карточки. На телефоне во всю ширину минус отступы: там
+ * он стоит снизу над нижней навигацией, и узкая плашка у края читается хуже,
+ * чем полоса во всю ширину.
+ */
 [data-sonner-toast]:not(.lang-switch-toast) {
   width: fit-content !important;
-  max-width: min(280px, calc(100vw - 32px)) !important;
+  max-width: min(380px, calc(100vw - 32px)) !important;
   min-height: 0 !important;
-  padding: 8px 12px !important;
-  gap: 8px !important;
+  padding: 12px 14px !important;
+  gap: 10px !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+@media (max-width: 640px) {
+  /*
+   * Ширину задаём контейнеру, а не тосту: у библиотеки контейнер шириной
+   * `--width` (356), и `width: 100%` у тоста считался от неё — на экране 375
+   * тост при отступе 16 вылезал за правый край на 16 px (замер 13.09).
+   */
+  [data-sonner-toaster] {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  [data-sonner-toast]:not(.lang-switch-toast) {
+    width: 100% !important;
+    max-width: none !important;
+  }
 }
 
 [data-sonner-toast]:not(.lang-switch-toast) [data-title] {
-  font-size: 12px !important;
-  line-height: 1.3 !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
   font-weight: 600 !important;
 }
 
 [data-sonner-toast]:not(.lang-switch-toast) [data-description] {
-  font-size: 11px !important;
-  line-height: 1.35 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
 }
 
 [data-sonner-toast]:not(.lang-switch-toast) [data-icon] {
-  width: 16px !important;
-  height: 16px !important;
+  width: 20px !important;
+  height: 20px !important;
 }
 
 [data-sonner-toast]:not(.lang-switch-toast) [data-close-button] {
-  width: 20px !important;
-  height: 20px !important;
-  transform: scale(0.9);
+  width: 24px !important;
+  height: 24px !important;
+  transform: none;
 }
 
 /* Toasts above shell chrome but below full-screen call UI (QA Task 13). */

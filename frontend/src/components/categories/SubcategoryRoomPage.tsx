@@ -926,7 +926,7 @@ function ChatTab({
                 }
               }}
               placeholder={t("pages.subcategoryDetail.searchInMessages")}
-              className="min-w-0 flex-1 bg-transparent text-[13px]"
+              className="field-bare min-w-0 flex-1 bg-transparent text-[13px]"
               style={{ color: "var(--foreground)" }}
             />
             <button

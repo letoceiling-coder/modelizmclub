@@ -161,7 +161,7 @@ export function CitySelect({
           value={query}
           onChange={(e) => handleInput(e.target.value)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-[13px]"
+          className="field-bare flex-1 bg-transparent text-[13px]"
           style={{ color: "var(--foreground)" }}
           onFocus={openDropdown}
         />
