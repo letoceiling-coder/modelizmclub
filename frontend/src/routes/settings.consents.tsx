@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Button } from "@/components/ui/button";
@@ -25,13 +26,14 @@ export const Route = createFileRoute("/settings/consents")({
 });
 
 const TYPE_LABELS: Record<string, string> = {
-  terms: "Пользовательское соглашение",
-  privacy: "Обработка персональных данных",
-  ads: "Рекламные материалы",
+  terms: "pages.settings.consentsTypeTerms",
+  privacy: "pages.settings.consentsTypePrivacy",
+  ads: "pages.settings.consentsTypeAds",
   cookies: "Cookie",
 };
 
 function ConsentsSettingsPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const qc = useQueryClient();
   const { data: consents = [], isLoading } = useQuery({
@@ -41,14 +43,14 @@ function ConsentsSettingsPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   async function onRevoke(type: string) {
-    if (!(await askConfirm({ title: "Отозвать это согласие?" }))) return;
+    if (!(await askConfirm({ title: t("pages.settings.consentsRevokeConfirm") }))) return;
     setBusy(type);
     try {
       await revokeConsent(type);
       await qc.invalidateQueries({ queryKey: ["my-consents"] });
-      toast.success("Согласие отозвано");
+      toast.success(t("pages.settings.consentsRevoked_toast"));
     } catch (e) {
-      toast.error(formatApiErrorMessage(e, "Не удалось отозвать"));
+      toast.error(formatApiErrorMessage(e, t("pages.settings.consentsRevokeFailed")));
     } finally {
       setBusy(null);
     }
@@ -77,53 +79,55 @@ function ConsentsSettingsPage() {
       a.remove();
       // Адрес живёт до конца текущей задачи — скачивание к этому моменту начато.
       setTimeout(() => URL.revokeObjectURL(url), 0);
-      toast.success("Файл с данными подготовлен — проверьте загрузки");
+      toast.success(t("pages.settings.consentsExportDone"));
     } catch (e) {
-      toast.error(formatApiErrorMessage(e, "Не удалось экспортировать данные"));
+      toast.error(formatApiErrorMessage(e, t("pages.settings.consentsExportFailed")));
     } finally {
       setBusy(null);
     }
   }
 
   async function onDeleteAccount() {
-    if (
-      !(await askConfirm({ title: "Удалить аккаунт и все данные без возможности восстановления?" }))
-    )
-      return;
-    if (!(await askConfirm({ title: "Это действие необратимо. Подтвердите ещё раз." }))) return;
+    if (!(await askConfirm({ title: t("pages.settings.consentsDeleteConfirm") }))) return;
+    if (!(await askConfirm({ title: t("pages.settings.consentsDeleteConfirmAgain") }))) return;
     setBusy("delete");
     try {
       await deleteMyAccount();
       setToken(null);
-      toast.success("Аккаунт удалён");
+      toast.success(t("pages.settings.consentsDeleteDone"));
       nav({ to: "/" });
     } catch (e) {
-      toast.error(formatApiErrorMessage(e, "Не удалось удалить аккаунт"));
+      toast.error(formatApiErrorMessage(e, t("pages.settings.consentsDeleteFailed")));
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <SettingsSectionShell title="Мои согласия">
+    <SettingsSectionShell title={t("pages.settings.consentsTitle")}>
       <p className="mb-4 text-sm text-muted-foreground">
-        Управление согласиями в соответствии с 152-ФЗ.{" "}
+        {t("pages.settings.consentsIntro")}{" "}
         <Link to="/legal/$slug" params={{ slug: "privacy" }} className="text-primary underline">
-          Политика конфиденциальности
+          {t("pages.settings.consentsPrivacyLink")}
         </Link>
       </p>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Загрузка…</p>
+        <p className="text-sm text-muted-foreground">{t("pages.settings.consentsLoading")}</p>
       ) : consents.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Записей о согласиях пока нет.</p>
+        <p className="text-sm text-muted-foreground">{t("pages.settings.consentsEmpty")}</p>
       ) : (
         <ul className="space-y-3">
           {consents.map((c: ConsentRecord) => (
             <li key={c.type} className="rounded-lg border p-4">
-              <div className="font-medium">{TYPE_LABELS[c.type] ?? c.type}</div>
+              <div className="font-medium">
+                {TYPE_LABELS[c.type] ? t(TYPE_LABELS[c.type]) : c.type}
+              </div>
               <div className="mt-1 text-xs text-muted-foreground">
-                Версия: {c.doc_version} · {c.status === "granted" ? "Дано" : "Отозвано"}
+                {t("pages.settings.consentsVersion")}: {c.doc_version} ·{" "}
+                {c.status === "granted"
+                  ? t("pages.settings.consentsGranted")
+                  : t("pages.settings.consentsRevoked")}
                 {c.created_at ? ` · ${formatDate(c.created_at, "absolute")}` : ""}
               </div>
               {c.status === "granted" && (c.type === "ads" || c.type === "cookies") && (
@@ -135,7 +139,7 @@ function ConsentsSettingsPage() {
                   disabled={busy === c.type}
                   onClick={() => onRevoke(c.type)}
                 >
-                  Отозвать согласие
+                  {t("pages.settings.consentsRevokeBtn")}
                 </Button>
               )}
             </li>
@@ -145,7 +149,7 @@ function ConsentsSettingsPage() {
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Button type="button" variant="outline" disabled={busy === "export"} onClick={onExport}>
-          Экспорт моих данных
+          {t("pages.settings.consentsExportBtn")}
         </Button>
         <Button
           type="button"
@@ -153,7 +157,7 @@ function ConsentsSettingsPage() {
           disabled={busy === "delete"}
           onClick={onDeleteAccount}
         >
-          Удалить аккаунт
+          {t("pages.settings.consentsDeleteBtn")}
         </Button>
       </div>
     </SettingsSectionShell>

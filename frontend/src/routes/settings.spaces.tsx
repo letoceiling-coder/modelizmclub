@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Radio, Users2, Plus, ChevronRight } from "lucide-react";
 import { useChannels, isChannelOwner } from "@/lib/channels";
 import { useOwnedCommunities } from "@/lib/api/communities";
+import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useCurrentUser } from "@/lib/session";
 import type { EntityKind } from "@/lib/api/entity-requests";
@@ -31,15 +32,15 @@ function SettingsSpacesPage() {
     void navigate({ to: "/communities/new" });
   };
 
+  /*
+   * Общая оболочка раздела, а не свой заголовок. Она же даёт ссылку
+   * «Настройки» назад ниже 1024 — на телефоне выйти из этого раздела было
+   * нечем, потому что боковой колонки там нет, а оболочку раздел не
+   * использовал (аудит 12.09).
+   */
   return (
-    <div className="flex flex-col gap-[16px]">
+    <SettingsSectionShell title={t("pages.settings.spacesTitle")}>
       <VerificationBanner />
-      <h1
-        className="text-[20px] font-bold"
-        style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-      >
-        {t("pages.settings.spacesTitle")}
-      </h1>
 
       <SpaceCard
         icon={<Radio size={20} />}
@@ -94,7 +95,7 @@ function SettingsSpacesPage() {
           )
         }
       />
-    </div>
+    </SettingsSectionShell>
   );
 }
 
