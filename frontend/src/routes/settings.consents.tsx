@@ -63,9 +63,21 @@ function ConsentsSettingsPage() {
       const a = document.createElement("a");
       a.href = url;
       a.download = `modelizm-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      /*
+       * Ссылку надо внести в документ и отозвать адрес не сразу.
+       *
+       * Firefox не открывает `a.click()` у элемента, которого нет в дереве, а
+       * `revokeObjectURL` сразу после щелчка успевает отобрать адрес раньше,
+       * чем браузер начнёт скачивание: файл молча не сохранялся, при этом
+       * тост обещал, что сохранился (аудит 12.09).
+       */
+      a.style.display = "none";
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Файл с данными загружен");
+      a.remove();
+      // Адрес живёт до конца текущей задачи — скачивание к этому моменту начато.
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      toast.success("Файл с данными подготовлен — проверьте загрузки");
     } catch (e) {
       toast.error(formatApiErrorMessage(e, "Не удалось экспортировать данные"));
     } finally {
