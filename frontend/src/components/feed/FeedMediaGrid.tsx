@@ -79,12 +79,27 @@ function GridImage({
     <ResponsiveImage
       media={media}
       alt={alt}
-      variants={["card", "medium"]}
+      /*
+       * `thumb` в списке обязателен, иначе плитки качают лишнее.
+       *
+       * `sizes` для мелкой плитки объявляет 34vw — при 412 px это ~140 CSS px,
+       * то есть ~245 device px. Но в `srcset` предлагались только 640 и
+       * 1080 px, и браузер честно брал наименьшее доступное — `card` на 18 КБ
+       * вместо `thumb` на 8 КБ. На первом экране ленты таких плиток восемь
+       * (замер 12.09: 15 изображений на 238 КБ стартуют вместе с LCP-картинкой).
+       */
+      variants={["thumb", "card", "medium"]}
       sizes={sizes}
       width={680}
       height={680}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}
+      /*
+       * Всё, кроме кандидата LCP, ждёт подхода к экрану. Плитки первого
+       * экрана от этого тоже выигрывают: они перестают конкурировать с
+       * LCP-картинкой за канал и уходят в сеть после гидрации.
+       */
+      defer={!priority}
       // Плитка — cover: заполняет свою клетку без растягивания.
       className="h-full w-full object-cover"
       onError={() => setErr(true)}

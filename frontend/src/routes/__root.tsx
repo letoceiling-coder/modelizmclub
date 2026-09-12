@@ -9,14 +9,14 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
-
+import { CallScreen } from "@/components/calls/CallScreen";
+import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
+import { GroupCallInviteDialog } from "@/components/calls/GroupCallInviteDialog";
 import { I18nProvider } from "@/components/I18nProvider";
 import { GuestAccessProvider } from "@/components/access/GuestAccessProvider";
 import { GateHost } from "@/lib/gate";
 import { RouteAccessEnforcer } from "@/components/access/RouteAccessEnforcer";
 import { AskHost } from "@/components/ui/ask";
-import { CallHost } from "@/components/calls/CallHost";
-
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { PwaUpdatePrompt } from "@/components/pwa/PwaUpdatePrompt";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
@@ -250,7 +250,9 @@ function RootComponent() {
               <Outlet />
               <GateHost />
             </GuestAccessProvider>
-            <CallHost />
+            <CallScreen />
+            <GroupCallScreen />
+            <GroupCallInviteDialog />
             <CookieBanner />
             <PwaUpdatePrompt />
             <Toaster
