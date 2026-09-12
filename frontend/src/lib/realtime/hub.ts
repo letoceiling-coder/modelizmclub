@@ -1,7 +1,21 @@
 import type { Message } from "@/lib/mock";
 import { getToken } from "@/lib/api/client";
 import { GUEST_USER } from "@/lib/store";
-import { calls, syncIncomingOffer } from "@/lib/calls";
+/*
+ * Звонковый стек — динамическим импортом.
+ *
+ * `lib/calls.ts` вместе с экранами звонка весит ~40 КБ до сжатия и лежал в
+ * главном чанке: его качал и разбирал каждый посетитель ленты и каталога,
+ * хотя звонок — действие из мессенджера. Статический импорт был здесь
+ * единственной причиной, по которой модуль туда попадал.
+ *
+ * Подписку на входящие это не откладывает по смыслу: хаб и так поднимается
+ * после готовности сессии, то есть уже за первым кадром. Импорт разрешается
+ * один раз и кешируется движком модулей.
+ */
+type CallsModule = typeof import("@/lib/calls");
+let callsModule: Promise<CallsModule> | null = null;
+const loadCalls = (): Promise<CallsModule> => (callsModule ??= import("@/lib/calls"));
 import { initUserRealtime, resetUserRealtime } from "@/lib/realtime/user";
 import { initPresence, resetPresence } from "@/lib/realtime/presence";
 import { startPresenceHeartbeat, stopPresenceHeartbeat } from "@/lib/presence-heartbeat";
@@ -47,13 +61,14 @@ async function bindConversation(): Promise<void> {
 export async function resubscribeRealtime(): Promise<void> {
   if (!hubUser || hubUser === GUEST_USER.id || !getToken()) return;
   await getEcho();
+  const { calls } = await loadCalls();
   await calls.init(hubUser);
   await initUserRealtime(hubUser);
   resetPresence();
   await initPresence(hubUser);
   startPresenceHeartbeat();
   await bindConversation();
-  syncIncomingOffer();
+  (await loadCalls()).syncIncomingOffer();
 }
 
 async function ensureConnection(): Promise<void> {
@@ -69,7 +84,7 @@ function bindLifecycle(): void {
   lifecycleBound = true;
 
   const wake = (): void => {
-    void ensureConnection().then(() => syncIncomingOffer());
+    void ensureConnection().then(async () => (await loadCalls()).syncIncomingOffer());
   };
 
   window.addEventListener("online", wake);
