@@ -2208,6 +2208,11 @@ export const ru = {
       walletDestination: "Реквизиты для вывода",
       walletDestinationPlaceholder: "Номер карты, телефона или счёта",
       walletDestinationSbp: "Телефон, привязанный к СБП",
+      walletSavedCardMasked: "Сохранённая карта •••• {{last4}}",
+      walletOtherCard: "Другая карта",
+      walletWithdrawConfirm: "Вывести {{amount}} ₽?",
+      walletWithdrawConfirmDesc:
+        "Способ: {{method}}. Получатель: {{destination}}. Деньги спишутся сразу, отменить заявку самостоятельно нельзя.",
       walletDestinationAccount: "20 цифр расчётного счёта",
       walletDestinationCardInvalid: "Номер карты — ровно 16 цифр",
       walletDestinationAccountInvalid: "Номер счёта — ровно 20 цифр",

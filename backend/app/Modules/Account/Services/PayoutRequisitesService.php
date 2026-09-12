@@ -23,6 +23,20 @@ class PayoutRequisitesService
         ];
     }
 
+    /**
+     * Полный номер сохранённой карты — только для серверного использования.
+     *
+     * Наружу (`show`) уходят лишь последние четыре цифры, и так и должно
+     * остаться: метод нужен, чтобы подставить получателя в заявку на вывод,
+     * не заставляя набирать уже сохранённый номер заново.
+     */
+    public function cardNumber(User $user): ?string
+    {
+        $digits = UserPayoutRequisites::query()->find($user->id)?->payout_card_number;
+
+        return filled($digits) ? $digits : null;
+    }
+
     public function update(User $user, string $cardNumber): void
     {
         $digits = preg_replace('/\D/', '', $cardNumber) ?? '';
