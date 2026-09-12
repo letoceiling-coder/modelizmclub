@@ -18,7 +18,8 @@ import {
 import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { fetchMe } from "@/lib/api/auth";
-import { pollMaxAuth, startMaxLink, unlinkMax } from "@/lib/api/oauth";
+import { startMaxLink, unlinkMax } from "@/lib/api/oauth";
+import { startMaxPoll } from "@/lib/auth/maxPoll";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ApiError } from "@/lib/api/client";
 import { canUnlinkMax, isMaxOAuthUser } from "@/lib/auth/verification";
@@ -57,13 +58,11 @@ export function MaxAccountCard() {
   const [botUrl, setBotUrl] = useState<string | null>(null);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
-  const pollRef = useRef<number | null>(null);
+  const pollRef = useRef<(() => void) | null>(null);
 
   const stopPoll = () => {
-    if (pollRef.current !== null) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
+    pollRef.current?.();
+    pollRef.current = null;
   };
 
   const clearWaiting = () => {
@@ -75,46 +74,44 @@ export function MaxAccountCard() {
 
   useEffect(() => () => stopPoll(), []);
 
+  // Опрос общий со входом — `startMaxPoll`: шаг 3 с, отступ на ошибках,
+  // пауза в скрытой вкладке. Здесь только разбор ответов привязки.
   const beginPoll = (session: string, expiresAt: number) => {
     stopPoll();
-    pollRef.current = window.setInterval(() => {
-      void (async () => {
-        if (Date.now() > expiresAt) {
+    pollRef.current = startMaxPoll(session, expiresAt, {
+      onExpired: () => {
+        clearWaiting();
+        toast.error(t("pages.settings.maxLinkExpired"));
+      },
+      onStatus: async (status) => {
+        if (status.status === "ready") {
+          stopPoll();
+          sessionStorage.removeItem(STORAGE_KEY);
+          const user = await fetchMe();
+          if (user) setCurrentUser(user);
+          setWaiting(false);
+          setBotUrl(null);
+          toast.success(t("pages.settings.maxLinked"));
+          return true;
+        }
+        if (status.status === "denied") {
+          clearWaiting();
+          toast.error(t("pages.settings.maxLinkDenied"));
+          return true;
+        }
+        if (status.status === "conflict") {
+          clearWaiting();
+          toast.error(status.message || t("pages.settings.maxLinkConflict"));
+          return true;
+        }
+        if (status.status === "expired") {
           clearWaiting();
           toast.error(t("pages.settings.maxLinkExpired"));
-          return;
+          return true;
         }
-        try {
-          const status = await pollMaxAuth(session);
-          if (status.status === "ready") {
-            stopPoll();
-            sessionStorage.removeItem(STORAGE_KEY);
-            const user = await fetchMe();
-            if (user) setCurrentUser(user);
-            setWaiting(false);
-            setBotUrl(null);
-            toast.success(t("pages.settings.maxLinked"));
-            return;
-          }
-          if (status.status === "denied") {
-            clearWaiting();
-            toast.error(t("pages.settings.maxLinkDenied"));
-            return;
-          }
-          if (status.status === "conflict") {
-            clearWaiting();
-            toast.error(status.message || t("pages.settings.maxLinkConflict"));
-            return;
-          }
-          if (status.status === "expired") {
-            clearWaiting();
-            toast.error(t("pages.settings.maxLinkExpired"));
-          }
-        } catch {
-          /* keep polling */
-        }
-      })();
-    }, 1500);
+        return false;
+      },
+    });
   };
 
   useEffect(() => {

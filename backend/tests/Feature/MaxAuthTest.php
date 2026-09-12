@@ -49,6 +49,38 @@ class MaxAuthTest extends TestCase
             ->assertJsonPath('data.status', 'pending');
     }
 
+    /**
+     * Опрос статуса не должен выбирать бюджет старта.
+     *
+     * До 13.09 статус и старт жили под одним лимитом `auth-max-start` — 10 в
+     * минуту с IP. Клиент опрашивал раз в 1,5 с, получал 429 через пятнадцать
+     * секунд и заодно не давал человеку перезапустить вход. Теперь двадцать
+     * опросов — столько клиент делает за минуту — проходят, и после них старт
+     * по-прежнему доступен.
+     */
+    public function test_status_polling_does_not_exhaust_start_budget(): void
+    {
+        $session = $this->postJson('/api/v1/auth/oauth/max/start')->assertOk()->json('data.session');
+
+        for ($i = 0; $i < 20; $i++) {
+            $this->getJson('/api/v1/auth/oauth/max/status?session='.$session)->assertOk();
+        }
+
+        $this->postJson('/api/v1/auth/oauth/max/start')->assertOk();
+    }
+
+    /** Лимит у статуса всё же есть: бесконечно опрашивать одну сессию нельзя. */
+    public function test_status_polling_is_still_limited_per_session(): void
+    {
+        $session = $this->postJson('/api/v1/auth/oauth/max/start')->assertOk()->json('data.session');
+
+        for ($i = 0; $i < 30; $i++) {
+            $this->getJson('/api/v1/auth/oauth/max/status?session='.$session)->assertOk();
+        }
+
+        $this->getJson('/api/v1/auth/oauth/max/status?session='.$session)->assertStatus(429);
+    }
+
     public function test_redirect_sends_browser_to_bot(): void
     {
         $response = $this->get('/api/v1/auth/oauth/max/redirect');

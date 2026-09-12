@@ -160,6 +160,18 @@ class AppServiceProvider extends ServiceProvider
             ($request->user()?->id ?? 'guest').'|'.$request->ip()
         ));
         RateLimiter::for('auth-max-start', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        /*
+         * Опрос статуса входа через MAX. Клиент ходит раз в 3 с — 20 в минуту,
+         * и лимит в 30 на сессию оставляет запас на повтор после сбоя сети.
+         * Второй лимит — на IP целиком: в офисе за одним адресом входят сразу
+         * несколько человек, но перебирать чужие сессии с одного адреса нельзя.
+         * Ключи с приставками: оба лимита живут в одном хранилище и не должны
+         * делить счётчик.
+         */
+        RateLimiter::for('auth-max-status', fn (Request $request) => [
+            Limit::perMinute(30)->by('max-status:'.$request->ip().'|'.(string) $request->query('session', '')),
+            Limit::perMinute(90)->by('max-status-ip:'.$request->ip()),
+        ]);
 
         // Global API limiter. The media proxy (image loads) and payment webhooks
         // are exempt so normal browsing and provider callbacks are never throttled.
