@@ -37,7 +37,7 @@ import { API_ORIGIN } from "@/lib/api/client";
 // "theme" key holds the resolved value from the old binary toggle). "system"
 // or unset resolves via prefers-color-scheme — matches ThemeProvider's
 // runtime logic so there's no flash-of-wrong-theme on first paint.
-const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('theme-preference');var t;if(p==='dark'||p==='light'){t=p;}else{var legacy=localStorage.getItem('theme');if((legacy==='dark'||legacy==='light')&&p!=='system'){t=legacy;}else{t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}}document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('theme-preference');var t;if(p==='dark'||p==='light'){t=p;}else{var legacy=localStorage.getItem('theme');if((legacy==='dark'||legacy==='light')&&p!=='system'){t=legacy;}else{t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}}document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}try{if(localStorage.getItem('mc_sub_active')==='1')document.documentElement.setAttribute('data-sub','1');}catch(e){}})();`;
 
 function NotFoundComponent() {
   const { t } = useTranslation();

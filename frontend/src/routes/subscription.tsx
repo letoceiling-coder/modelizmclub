@@ -1,6 +1,6 @@
 import { openRouteGate } from "@/lib/gate";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { Variants } from "framer-motion";
 import { m } from "framer-motion";
@@ -137,6 +137,44 @@ async function startPlacementCheckout(source: PayWith, idempotencyKey: string, o
   } catch {
     toast.error(i18n.t("pages.subscription.payCreateFailed"));
   }
+}
+
+/**
+ * Полоска заглушки, повторяющая строку настоящей карточки.
+ *
+ * Размер задаёт невидимый текст с теми же начертанием и кеглем, а не число:
+ * высота строки у `font-size: 15` — не 15 пикселей, и первая попытка,
+ * посчитанная по кеглям, дала при 375 заглушку 157 против карточки 179.
+ * С настоящим текстом строка считается браузером, и высоты сходятся на любой
+ * ширине сами.
+ */
+function SlotBar({
+  children,
+  style,
+  className = "",
+}: {
+  children: ReactNode;
+  style?: CSSProperties;
+  className?: string;
+}) {
+  /*
+   * Блок, а не `inline-block`: строчный бокс добавляет под собой место под
+   * выносные элементы родительского шрифта, и заглушка вырастала на ~5 px на
+   * каждой строке — при 375 выходило 199 против 179 у карточки. У блока
+   * строчного бокса нет, высоту задаёт только сам текст. `w-fit` — чтобы
+   * полоска была по ширине строки, а не во всю колонку.
+   */
+  return (
+    <span className={`relative block w-fit ${className}`}>
+      <span className="block" style={{ ...style, visibility: "hidden" }}>
+        {children}
+      </span>
+      <span
+        className="absolute inset-0 rounded-[4px]"
+        style={{ background: "var(--background-surface)" }}
+      />
+    </span>
+  );
 }
 
 type PendingCheckout =
@@ -288,6 +326,78 @@ function SubscriptionPage() {
             {t("pages.subscription.subtitle")}
           </p>
         </Appear>
+
+        {/*
+         * Место под карточку статуса. В разметке оно есть всегда — и на
+         * сервере, и в первом кадре клиента, — поэтому гидрация не
+         * расходится. Видно его только при `data-sub` на `<html>`: признак
+         * ставит скрипт до первой отрисовки (`__root.tsx`) по подсказке из
+         * `lib/subscription.ts`. У гостя и у вошедшего без подписки признака
+         * нет, слот сложен `display: none`, и страница у них прежняя —
+         * замер 12.09 давал у них ~0,0004, ломать это было нельзя.
+         *
+         * Заглушка повторяет строение карточки, а не задаёт число: высота
+         * совпадает сама на любой ширине. Ср. `PlanTermSkeleton`.
+         */}
+        {!sub?.is_active && (
+          <div
+            data-subscription-slot
+            aria-hidden="true"
+            className="mt-[24px] flex animate-pulse flex-col gap-[14px] sm:flex-row sm:items-center sm:justify-between"
+            style={{
+              background: "var(--background-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-card)",
+              padding: "18px 20px",
+            }}
+          >
+            <div className="flex items-start gap-[14px]">
+              <div
+                className="h-[44px] w-[44px] shrink-0 rounded-full"
+                style={{ background: "var(--background-surface)" }}
+              />
+              <div>
+                <div className="flex items-center gap-[8px]">
+                  <SlotBar style={{ fontSize: 15, fontWeight: 700 }}>
+                    {t("pages.subscription.activePlan", { name: planName })}
+                  </SlotBar>
+                  <SlotBar style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px" }}>
+                    {t("pages.subscription.active")}
+                  </SlotBar>
+                </div>
+                <div className="mt-[4px]">
+                  <SlotBar style={{ fontSize: 13 }}>
+                    {t("pages.subscription.validUntil", { date: "00.00.0000" })}
+                  </SlotBar>
+                </div>
+              </div>
+            </div>
+            <div className="sm:text-right">
+              <div>
+                <SlotBar
+                  className="sm:ml-auto"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 800,
+                    fontSize: 24,
+                    lineHeight: 1,
+                  }}
+                >
+                  {`000 ${t("pages.subscription.days5")}`}
+                </SlotBar>
+              </div>
+              <div className="mt-[2px]">
+                <SlotBar className="sm:ml-auto" style={{ fontSize: 12 }}>
+                  {t("pages.subscription.daysLeft")}
+                </SlotBar>
+              </div>
+              <div
+                className="mt-[8px] w-full sm:w-[160px]"
+                style={{ height: 6, background: "var(--background-surface)", borderRadius: 3 }}
+              />
+            </div>
+          </div>
+        )}
 
         {sub?.is_active && (
           <m.div
