@@ -119,8 +119,14 @@ function FriendCard({
           <Link
             to="/user/$id"
             params={{ id: user.slug ?? user.id }}
-            className="block truncate font-semibold text-[15px]"
+            /*
+              Имя друга — до двух строк. Кнопки «В друзьях» и «Написать»
+              справа не сжимаются, и на 1024, где рядом ещё правая колонка,
+              обычное имя уже резалось многоточием (замер 13.09).
+            */
+            className="line-clamp-2 font-semibold text-[15px] [overflow-wrap:anywhere]"
             style={{ color: "var(--foreground)" }}
+            title={user.name}
           >
             {user.name}
           </Link>
@@ -627,7 +633,7 @@ function FriendsPage() {
                           <Link
                             to="/user/$id"
                             params={{ id: u.slug ?? u.id }}
-                            className="block truncate font-semibold text-[15px]"
+                            className="line-clamp-2 font-semibold text-[15px] [overflow-wrap:anywhere]"
                             style={{ color: "var(--foreground)" }}
                           >
                             {u.name}
