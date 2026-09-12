@@ -2144,6 +2144,8 @@ export const ru = {
       historyEmpty: "Пока пусто",
       historyEmptyDesc: "Просмотренные объявления и профили появятся здесь",
       historyClear: "Очистить историю",
+      historyClearedToast: "История просмотров очищена",
+      historyClearFailed: "Не удалось очистить историю",
       feedbackTitle: "Мои обращения",
       feedbackEmpty: "Обращений пока нет",
       feedbackEmptyDesc: "Напишите нам через «Обратную связь» — ответ появится здесь.",
