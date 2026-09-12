@@ -242,9 +242,26 @@ export function Lightbox({
         Ниже 1024 окно во весь экран и складывается в столбец: медиа сверху,
         панель снизу. Рядом друг с другом они там не помещаются.
       */}
+      {/*
+        Отступ между медиа и панелью — зазор самого окна, а не поле снимка.
+
+        Колонки стояли вплотную: широкий снимок упирался краем в панель, и окно
+        выглядело сжатым. Замер 13.09 — ноль на всех ширинах и пропорциях.
+
+        Зазор задан окну (`gap`), а не колонке с фото: у снимка `object-contain`,
+        и поле внутри колонки зависело бы от пропорции — у высокого фото сбоку и
+        так пусто, у широкого пусто не было. Зазор между колонками одинаков по
+        всей высоте и от фото не зависит.
+
+        12 на планшете, 16 на десктопе. Ниже 1024 окно — столбец, и тот же `gap`
+        становится вертикальным. Там окно на весь экран, поэтому фон у него
+        плотный: иначе в зазоре просвечивало бы затемнение тёмной полосой.
+        От 1024 фона нет — фото лежит на затемнении, а панель становится
+        отдельной карточкой со своим скруглением.
+      */}
       <div
-        className={`z-[var(--z-modal)] flex h-full w-full flex-col overflow-hidden lg:h-[88vh] lg:flex-row lg:rounded-[var(--r-card)] ${
-          mediaOnly ? "lg:max-w-[1200px]" : "lg:max-w-[640px]"
+        className={`z-[var(--z-modal)] flex h-full w-full flex-col gap-[12px] overflow-hidden bg-[var(--background)] lg:h-[88vh] lg:flex-row lg:bg-transparent xl:gap-[16px] ${
+          mediaOnly ? "lg:max-w-[1200px]" : "lg:max-w-[640px] lg:rounded-[var(--r-card)]"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -442,7 +459,9 @@ export function Lightbox({
               высота без него. От 1024 — колонка сбоку.
             */
             className={`flex min-h-0 flex-1 flex-col lg:flex-none ${
-              mediaOnly ? "lg:w-[380px]" : "lg:w-[640px]"
+              mediaOnly
+                ? "lg:w-[380px] lg:overflow-hidden lg:rounded-[var(--r-card)]"
+                : "lg:w-[640px]"
             }`}
             style={{
               background: "var(--background)",
