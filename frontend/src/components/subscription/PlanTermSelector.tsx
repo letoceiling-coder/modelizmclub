@@ -44,7 +44,12 @@ function PlanTermSkeleton({ className }: { className?: string }) {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-[238px] rounded-[var(--r-card)] border"
+              // 289 — настоящая высота карточки в трёх колонках при 768: там
+              // столбец узкий и список возможностей переносится. С 1024 он
+              // укладывается, и карточка снова 238. Замерено на проде 12.09:
+              // 768 → 289, 1024/1280/1440 → 238. Одно число на все ширины
+              // давало прирост блока на 51 px после загрузки и сдвиг 0,0204.
+              className="h-[289px] rounded-[var(--r-card)] border lg:h-[238px]"
               style={{ borderColor: "var(--border)", background: "var(--background-elevated)" }}
             />
           ))}
