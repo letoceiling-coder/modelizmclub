@@ -47,6 +47,12 @@ export async function resendVerificationEmail(): Promise<void> {
   await api("/account/resend-verification-email", { method: "POST" });
 }
 
+/** Подтверждение смены email кодом из письма. Сервер ждёт ровно 6 знаков. */
+export async function confirmEmailChange(code: string): Promise<void> {
+  if (isDemoMode()) return;
+  await api("/account/confirm-email", { method: "POST", json: { code } });
+}
+
 export async function resendEmailChangeVerification(): Promise<void> {
   if (isDemoMode()) return;
   await api("/account/email/verify/resend", { method: "POST" });

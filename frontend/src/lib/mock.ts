@@ -34,6 +34,8 @@ export interface User {
     website_url?: string | null;
   } | null;
   email_verified?: boolean;
+  /** Адрес из незавершённой смены email: код отправлен, подтверждения нет. */
+  pendingEmail?: string;
   phone_verified?: boolean;
   /** Linked OAuth providers from the server — e.g. ["vk", "yandex"]. */
   oauth_providers?: string[];
