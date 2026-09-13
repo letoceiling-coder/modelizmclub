@@ -73,7 +73,7 @@ class Community extends Model
 
     public function events(): HasMany
     {
-        return $this->hasMany(CommunityEvent::class);
+        return $this->hasMany(ClubEvent::class, 'community_id');
     }
 
     public function joinRequests(): HasMany

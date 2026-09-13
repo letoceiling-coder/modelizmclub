@@ -22,6 +22,8 @@ class UpsertBannerRequest extends FormRequest
             'image_media_id' => ['nullable', 'integer', 'exists:media,id'],
             'image_media_uuid' => ['nullable', 'uuid', 'exists:media,uuid'],
             'link_url' => ['nullable', 'string', 'max:500'],
+            // Баннер мероприятия: только событие площадки — события сообществ в ленту не выносятся.
+            'event_uuid' => ['nullable', 'uuid', Rule::exists('club_events', 'uuid')->where('scope', 'platform')->whereNull('deleted_at')],
             'text' => ['nullable', 'string', 'max:2000'],
             'cta_text' => ['nullable', 'string', 'max:100'],
             'kind' => ['nullable', 'string', 'max:16', Rule::in(['event', 'news', 'promo'])],

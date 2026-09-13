@@ -1,49 +1,51 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryMethodController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryStatsController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminIndexShipmentsController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminAuditLogController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminBannerController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminChannelApplicationsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityApplicationsController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminIconAssetController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminIconMediaController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryMethodController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminDeliveryStatsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDiagnosticsController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminFeedbackController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDisputeController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminWalletController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminWithdrawalController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminFeedGuestAccessController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminEventsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFaqController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminFeedbackController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminFeedGuestAccessController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminFooterLinkController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminLegalPageController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminRulePageController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminIconAssetController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminIconMediaController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminIndexShipmentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLandingBlocksController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminLegalPageController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationPolicyController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminPaymentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPlanController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminReferralController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminPaymentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromocodeController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminReferralController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminRulePageController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
-use Modules\Admin\Http\Controllers\Api\V1\AdminVideoController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserSubscriptionController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminVideoController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminWalletController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminWithdrawalController;
 use Modules\Admin\Http\Controllers\Api\V1\ApproveModerationController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexModerationQueueController;
 use Modules\Admin\Http\Controllers\Api\V1\IndexReportsController;
@@ -110,18 +112,25 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
         Route::apiResource('promocodes', AdminPromocodeController::class)->parameters(['promocodes' => 'code']);
         Route::get('referrals', [AdminReferralController::class, 'index']);
-        Route::get('promo-pools', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'index']);
-        Route::post('promo-pools', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'store']);
-        Route::post('promo-pools/{uuid}/pause', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'pause'])
+        Route::get('promo-pools', [AdminPromoPoolController::class, 'index']);
+        Route::post('promo-pools', [AdminPromoPoolController::class, 'store']);
+        Route::post('promo-pools/{uuid}/pause', [AdminPromoPoolController::class, 'pause'])
             ->where('uuid', '[0-9a-f-]{36}');
-        Route::post('promo-pools/{uuid}/resume', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'resume'])
+        Route::post('promo-pools/{uuid}/resume', [AdminPromoPoolController::class, 'resume'])
             ->where('uuid', '[0-9a-f-]{36}');
-        Route::post('promo-pools/{uuid}/complete', [\Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController::class, 'complete'])
+        Route::post('promo-pools/{uuid}/complete', [AdminPromoPoolController::class, 'complete'])
             ->where('uuid', '[0-9a-f-]{36}');
         Route::get('payments', [AdminPaymentsController::class, 'index']);
         Route::get('payments/export', [AdminPaymentsController::class, 'export']);
         Route::patch('banners/carousel/settings', [AdminBannerController::class, 'updateCarousel']);
         Route::apiResource('banners', AdminBannerController::class);
+
+        Route::get('events', [AdminEventsController::class, 'index']);
+        Route::post('events', [AdminEventsController::class, 'store']);
+        Route::patch('events/{uuid}', [AdminEventsController::class, 'update'])->whereUuid('uuid');
+        Route::delete('events/{uuid}', [AdminEventsController::class, 'destroy'])->whereUuid('uuid');
+        Route::post('events/{uuid}/cancel', [AdminEventsController::class, 'cancel'])->whereUuid('uuid');
+        Route::get('events/{uuid}/attendees', [AdminEventsController::class, 'attendees'])->whereUuid('uuid');
 
         Route::get('landing/blocks', [AdminLandingBlocksController::class, 'index']);
         Route::patch('landing/sections/{slug}', [AdminLandingBlocksController::class, 'updateSection']);

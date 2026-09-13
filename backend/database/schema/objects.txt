@@ -31,6 +31,7 @@ COLUMN|banners.clicks_count|bigint|NO
 COLUMN|banners.created_at|timestamp without time zone|YES
 COLUMN|banners.cta_text|character varying|NO
 COLUMN|banners.ends_at|timestamp without time zone|YES
+COLUMN|banners.event_id|bigint|YES
 COLUMN|banners.force_visible|boolean|NO
 COLUMN|banners.id|bigint|NO
 COLUMN|banners.image_media_id|bigint|YES
@@ -184,6 +185,28 @@ COLUMN|client_logs.session_id|character varying|YES
 COLUMN|client_logs.tag|character varying|NO
 COLUMN|client_logs.user_agent|text|YES
 COLUMN|client_logs.user_id|bigint|YES
+COLUMN|club_event_attendees.created_at|timestamp without time zone|NO
+COLUMN|club_event_attendees.event_id|bigint|NO
+COLUMN|club_event_attendees.user_id|bigint|NO
+COLUMN|club_events.cancel_reason|character varying|YES
+COLUMN|club_events.cancelled_at|timestamp without time zone|YES
+COLUMN|club_events.community_id|bigint|YES
+COLUMN|club_events.cover_media_id|bigint|YES
+COLUMN|club_events.created_at|timestamp without time zone|YES
+COLUMN|club_events.created_by|bigint|YES
+COLUMN|club_events.deleted_at|timestamp without time zone|YES
+COLUMN|club_events.description|text|YES
+COLUMN|club_events.id|bigint|NO
+COLUMN|club_events.latitude|numeric|YES
+COLUMN|club_events.location_name|character varying|YES
+COLUMN|club_events.longitude|numeric|YES
+COLUMN|club_events.reminder_sent_at|timestamp without time zone|YES
+COLUMN|club_events.scope|character varying|NO
+COLUMN|club_events.starts_at|timestamp without time zone|NO
+COLUMN|club_events.status|character varying|NO
+COLUMN|club_events.title|character varying|NO
+COLUMN|club_events.updated_at|timestamp without time zone|YES
+COLUMN|club_events.uuid|uuid|NO
 COLUMN|comment_media.comment_id|bigint|NO
 COLUMN|comment_media.created_at|timestamp without time zone|YES
 COLUMN|comment_media.id|bigint|NO
@@ -257,22 +280,6 @@ COLUMN|community_categories.path|character varying|YES
 COLUMN|community_categories.slug|character varying|NO
 COLUMN|community_categories.sort_order|integer|NO
 COLUMN|community_categories.updated_at|timestamp without time zone|YES
-COLUMN|community_event_attendees.created_at|timestamp without time zone|NO
-COLUMN|community_event_attendees.event_id|bigint|NO
-COLUMN|community_event_attendees.user_id|bigint|NO
-COLUMN|community_events.community_id|bigint|NO
-COLUMN|community_events.cover_media_id|bigint|YES
-COLUMN|community_events.created_at|timestamp without time zone|YES
-COLUMN|community_events.created_by|bigint|YES
-COLUMN|community_events.description|text|YES
-COLUMN|community_events.id|bigint|NO
-COLUMN|community_events.latitude|numeric|YES
-COLUMN|community_events.location_name|character varying|YES
-COLUMN|community_events.longitude|numeric|YES
-COLUMN|community_events.starts_at|timestamp without time zone|NO
-COLUMN|community_events.title|character varying|NO
-COLUMN|community_events.updated_at|timestamp without time zone|YES
-COLUMN|community_events.uuid|uuid|NO
 COLUMN|community_favorites.community_id|bigint|NO
 COLUMN|community_favorites.created_at|timestamp without time zone|NO
 COLUMN|community_favorites.user_id|bigint|NO
@@ -1354,6 +1361,7 @@ FK|audit_logs|audit_logs_user_id_foreign
 FK|banner_event_daily|banner_event_daily_banner_id_foreign
 FK|banner_events|banner_events_banner_id_foreign
 FK|banner_events|banner_events_user_id_foreign
+FK|banners|banners_event_id_foreign
 FK|banners|banners_image_media_id_foreign
 FK|bonus_accounts|bonus_accounts_user_id_foreign
 FK|bonus_transactions|bonus_transactions_account_user_id_foreign
@@ -1379,6 +1387,11 @@ FK|channels|channels_avatar_media_id_foreign
 FK|channels|channels_banner_media_id_foreign
 FK|channels|channels_owner_id_foreign
 FK|client_logs|client_logs_user_id_foreign
+FK|club_event_attendees|community_event_attendees_event_id_foreign
+FK|club_event_attendees|community_event_attendees_user_id_foreign
+FK|club_events|community_events_community_id_foreign
+FK|club_events|community_events_cover_media_id_foreign
+FK|club_events|community_events_created_by_foreign
 FK|comment_media|comment_media_comment_id_foreign
 FK|comment_media|comment_media_media_id_foreign
 FK|comment_reactions|comment_reactions_comment_id_foreign
@@ -1395,11 +1408,6 @@ FK|community_applications|community_applications_category_id_foreign
 FK|community_applications|community_applications_reviewed_by_foreign
 FK|community_applications|community_applications_user_id_foreign
 FK|community_categories|community_categories_parent_id_foreign
-FK|community_event_attendees|community_event_attendees_event_id_foreign
-FK|community_event_attendees|community_event_attendees_user_id_foreign
-FK|community_events|community_events_community_id_foreign
-FK|community_events|community_events_cover_media_id_foreign
-FK|community_events|community_events_created_by_foreign
 FK|community_favorites|community_favorites_community_id_foreign
 FK|community_favorites|community_favorites_user_id_foreign
 FK|community_join_requests|community_join_requests_community_id_foreign
@@ -1631,6 +1639,12 @@ INDEX|client_logs|client_logs_level_created_at_index
 INDEX|client_logs|client_logs_pkey
 INDEX|client_logs|client_logs_session_id_index
 INDEX|client_logs|client_logs_user_id_created_at_index
+INDEX|club_event_attendees|club_event_attendees_user_id_event_id_index
+INDEX|club_event_attendees|community_event_attendees_pkey
+INDEX|club_events|club_events_scope_status_starts_at_index
+INDEX|club_events|community_events_community_id_starts_at_index
+INDEX|club_events|community_events_pkey
+INDEX|club_events|community_events_uuid_unique
 INDEX|comment_media|comment_media_comment_id_media_id_unique
 INDEX|comment_media|comment_media_pkey
 INDEX|comment_reactions|comment_reactions_comment_id_user_id_unique
@@ -1648,10 +1662,6 @@ INDEX|community_applications|community_applications_pkey
 INDEX|community_categories|community_categories_is_active_sort_order_index
 INDEX|community_categories|community_categories_parent_id_slug_unique
 INDEX|community_categories|community_categories_pkey
-INDEX|community_event_attendees|community_event_attendees_pkey
-INDEX|community_events|community_events_community_id_starts_at_index
-INDEX|community_events|community_events_pkey
-INDEX|community_events|community_events_uuid_unique
 INDEX|community_favorites|community_favorites_community_id_index
 INDEX|community_favorites|community_favorites_pkey
 INDEX|community_join_requests|community_join_requests_community_id_user_id_unique
@@ -2049,14 +2059,14 @@ TABLE|channel_subscriptions
 TABLE|channels
 TABLE|cities
 TABLE|client_logs
+TABLE|club_event_attendees
+TABLE|club_events
 TABLE|comment_media
 TABLE|comment_reactions
 TABLE|comments
 TABLE|communities
 TABLE|community_applications
 TABLE|community_categories
-TABLE|community_event_attendees
-TABLE|community_events
 TABLE|community_favorites
 TABLE|community_join_requests
 TABLE|community_members

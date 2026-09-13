@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Schedule;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -94,6 +94,9 @@ if (config('billing.auto_poll.enabled', true)) {
 
 Schedule::command('subscription:check-expired')->dailyAt('00:05');
 Schedule::command('communities:sync-counters')->dailyAt('03:30');
+// Мероприятия: напоминание за сутки — раз в час; отмена событий удалённых сообществ — ночью.
+Schedule::command('events:send-reminders')->hourly()->withoutOverlapping(30);
+Schedule::command('events:cancel-orphaned')->dailyAt('03:40')->withoutOverlapping(30);
 Schedule::command('notifications:prune')->dailyAt('03:50');
 
 /*

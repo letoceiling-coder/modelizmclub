@@ -4,6 +4,7 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Models\ClubEvent;
 use App\Models\Media;
 use App\Support\BannerCarouselConfig;
 use App\Support\SwaggerFixtures;
@@ -24,7 +25,7 @@ class AdminBannerController extends Controller
     public function index(): JsonResponse
     {
         $items = Banner::query()
-            ->with('image')
+            ->with(['image', 'event'])
             ->orderByDesc('is_pinned')
             ->orderByDesc('priority')
             ->orderBy('sort_order')
@@ -56,7 +57,7 @@ class AdminBannerController extends Controller
     #[PathParameter('id', description: 'ID баннера после seed', example: 1)]
     public function show(int $id): JsonResponse
     {
-        $banner = Banner::query()->with('image')->find($id);
+        $banner = Banner::query()->with(['image', 'event'])->find($id);
 
         if (! $banner) {
             throw new NotFoundHttpException('Баннер не найден.');
@@ -125,6 +126,8 @@ class AdminBannerController extends Controller
             'kind' => $b->kind,
             'until_label' => $b->until_label,
             'link_url' => $b->link_url,
+            'event_uuid' => $b->event?->uuid,
+            'event_title' => $b->event?->title,
             'image_media_id' => $b->image_media_id,
             'image_url' => $b->image?->url,
             'starts_at' => $b->starts_at?->toIso8601String(),
@@ -152,6 +155,13 @@ class AdminBannerController extends Controller
         }
 
         unset($data['image_media_uuid']);
+
+        if ($request->has('event_uuid')) {
+            $data['event_id'] = filled($data['event_uuid'] ?? null)
+                ? ClubEvent::query()->where('uuid', $data['event_uuid'])->value('id')
+                : null;
+        }
+        unset($data['event_uuid']);
 
         if (array_key_exists('starts_at', $data)) {
             $data['starts_at'] = filled($data['starts_at'])

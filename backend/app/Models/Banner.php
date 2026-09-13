@@ -12,6 +12,7 @@ class Banner extends Model
         'title',
         'image_media_id',
         'link_url',
+        'event_id',
         'text',
         'cta_text',
         'kind',
@@ -35,6 +36,12 @@ class Banner extends Model
             'is_active' => 'boolean',
             'force_visible' => 'boolean',
         ];
+    }
+
+    /** Событие площадки, на которое ведёт баннер: регистрация прямо из ленты. */
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(ClubEvent::class, 'event_id');
     }
 
     public function image(): BelongsTo
