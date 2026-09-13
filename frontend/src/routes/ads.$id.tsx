@@ -321,30 +321,34 @@ function AdDetailPage() {
   const share = () => setShareOpen(true);
 
   const toggleSave = () => {
-    requireAccount(() => {
-      void (async () => {
-        actions.toggleFavoriteAd(id);
-        if (!isDemoMode()) {
-          try {
-            let favoritesCount = ad.likes ?? 0;
-            if (saved) {
-              favoritesCount = await removeFavoriteListing(id);
-            } else {
-              favoritesCount = await addFavoriteListing(id);
+    requireAccount(
+      () => {
+        void (async () => {
+          actions.toggleFavoriteAd(id);
+          if (!isDemoMode()) {
+            try {
+              let favoritesCount = ad.likes ?? 0;
+              if (saved) {
+                favoritesCount = await removeFavoriteListing(id);
+              } else {
+                favoritesCount = await addFavoriteListing(id);
+              }
+              setAd((prev) => (prev ? { ...prev, likes: favoritesCount } : prev));
+            } catch {
+              actions.toggleFavoriteAd(id);
+              toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
+              return;
             }
-            setAd((prev) => (prev ? { ...prev, likes: favoritesCount } : prev));
-          } catch {
-            actions.toggleFavoriteAd(id);
-            toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
-            return;
           }
-        }
-        toast.success(
-          saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"),
-          { id: "favorite-toggle" },
-        );
-      })();
-    });
+          toast.success(
+            saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"),
+            { id: "favorite-toggle" },
+          );
+        })();
+      },
+      undefined,
+      saved ? undefined : { key: "listing.favorite", params: { uuid: id } },
+    );
   };
 
   const hasDelivery = ad.delivery.length > 0;

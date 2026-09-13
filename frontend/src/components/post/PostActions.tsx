@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Heart, MessageCircle, Bookmark, Eye } from "lucide-react";
 import type { Post } from "@/lib/mock";
 import { Gated, type Level } from "@/lib/gate";
+import { resumeIntentKey } from "@/lib/gate/resumable";
 import { RepostMenu } from "@/components/feed/RepostMenu";
 
 /** Shared class for footer action buttons — ghost-style, accent hover.
@@ -78,7 +79,15 @@ export function PostActions({
       style={{ color: "var(--foreground-70)" }}
     >
       {reactionsEnabled && (
-        <Gated level={levelFor("feed.post.like")} action={onLike} entity={post} actionName="react">
+        <Gated
+          level={levelFor("feed.post.like")}
+          action={onLike}
+          entity={post}
+          actionName="react"
+          intent={
+            liked ? undefined : { key: resumeIntentKey("post.like"), params: { uuid: post.id } }
+          }
+        >
           <button
             type="button"
             disabled={!canInteract}
@@ -143,7 +152,14 @@ export function PostActions({
         disabled={!canInteract}
       />
 
-      <Gated level={levelFor("feed.post.save")} action={onSave} entity={post}>
+      <Gated
+        level={levelFor("feed.post.save")}
+        action={onSave}
+        entity={post}
+        intent={
+          saved ? undefined : { key: resumeIntentKey("post.save"), params: { uuid: post.id } }
+        }
+      >
         <button
           type="button"
           disabled={!canInteract}

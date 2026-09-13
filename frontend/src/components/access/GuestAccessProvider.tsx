@@ -35,8 +35,25 @@ import {
   openGate,
   type Level,
 } from "@/lib/gate";
+import { resumeIntentKey, type ResumableKey } from "@/lib/gate/resumable";
 
 export const ACCESS_GATE_EVENT = "modelizm:access-gate";
+
+/**
+ * Повторяемое после перезагрузки описание действия — см. lib/gate/resumable.ts.
+ * Без него после входа через OAuth повторить нечего: замыкание осталось в
+ * памяти прежней страницы.
+ */
+export interface ResumeRef {
+  key: ResumableKey;
+  params: Record<string, unknown>;
+}
+
+function resumeIntentFor(resume: ResumeRef | undefined, returnTo: string | undefined) {
+  return resume
+    ? { key: resumeIntentKey(resume.key), params: resume.params, returnTo }
+    : { key: "action", returnTo };
+}
 
 interface GuestAccessContextValue {
   config: FeedGuestAccessConfig | null;
@@ -49,11 +66,11 @@ interface GuestAccessContextValue {
   isAllowed: (actionKey: string) => boolean;
   guardAction: (actionKey: string, onAllowed: () => void, returnTo?: string) => void;
   /** Guest → login window. Logged-in without SMS → verify window. */
-  requireAccount: (onAllowed: () => void, returnTo?: string) => void;
+  requireAccount: (onAllowed: () => void, returnTo?: string, resume?: ResumeRef) => void;
   /** Guest → login window. Does not require phone verification or a subscription. */
   requireLogin: (onAllowed: () => void) => void;
   /** Account gate, then the subscription window for premium actions. */
-  requirePremium: (onAllowed: () => void, returnTo?: string) => void;
+  requirePremium: (onAllowed: () => void, returnTo?: string, resume?: ResumeRef) => void;
 }
 
 const GuestAccessContext = createContext<GuestAccessContextValue | null>(null);
@@ -144,7 +161,11 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
    * one window; `resumeIntent` replays it after the window succeeds.
    */
   const runGate = useCallback(
-    async (need: Level, onAllowed: () => void, intent?: { key: string; returnTo?: string }) => {
+    async (
+      need: Level,
+      onAllowed: () => void,
+      intent?: { key: string; returnTo?: string; params?: Record<string, unknown> },
+    ) => {
       if (isDemoMode()) {
         onAllowed();
         return;
@@ -153,7 +174,9 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
       // gate would read "guest" and show the login window to a signed-in user.
       if (getToken() && !getSession()) await ensureSession();
       await gateRequire(need, onAllowed, {
-        intent: intent ? { key: intent.key, returnTo: intent.returnTo } : undefined,
+        intent: intent
+          ? { key: intent.key, returnTo: intent.returnTo, params: intent.params }
+          : undefined,
       });
     },
     [],
@@ -165,14 +188,14 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
   );
 
   const requireAccount = useCallback(
-    (onAllowed: () => void, returnTo?: string) =>
-      void runGate("verified", onAllowed, { key: "action", returnTo }),
+    (onAllowed: () => void, returnTo?: string, resume?: ResumeRef) =>
+      void runGate("verified", onAllowed, resumeIntentFor(resume, returnTo)),
     [runGate],
   );
 
   const requirePremium = useCallback(
-    (onAllowed: () => void, returnTo?: string) =>
-      void runGate("subscriber", onAllowed, { key: "action", returnTo }),
+    (onAllowed: () => void, returnTo?: string, resume?: ResumeRef) =>
+      void runGate("subscriber", onAllowed, resumeIntentFor(resume, returnTo)),
     [runGate],
   );
 

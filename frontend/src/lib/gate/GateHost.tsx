@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useSession } from "@/lib/session";
 import { AuthDialog } from "./AuthDialog";
 import { PaywallDialog } from "./PaywallDialog";
@@ -18,6 +18,7 @@ import { resumeIntent } from "./resume";
 export function GateHost() {
   const { open, returnTo } = useGateState();
   const navigate = useNavigate();
+  const router = useRouter();
   const session = useSession();
   const resumed = useRef(false);
 
@@ -56,7 +57,9 @@ export function GateHost() {
     if (!meets(level, stored.level)) return;
     if (resumed.current) return;
     resumed.current = true;
-    void resumeIntent(go);
+    // Повтор после перезагрузки меняет данные уже загруженной страницы —
+    // её загрузчики надо перечитать, иначе избранное появится только после F5.
+    void resumeIntent(go, () => router.invalidate());
     // Намерение с непройденным уровнем остаётся лежать: пользователь откроет
     // окно сам, повторив действие. Ничего не всплывает без спроса.
     // eslint-disable-next-line react-hooks/exhaustive-deps
