@@ -11,6 +11,7 @@ import { login, completeOAuthLogin } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
 import { resetSessionCache, syncFavoritesFromServer, ensureSession } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
+import { readIntent } from "@/lib/gate/intent";
 import { ApiError } from "@/lib/api/client";
 
 type LoginSearch = {
@@ -37,6 +38,24 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+/*
+ * Куда вести после входа, если адрес возврата не передан.
+ *
+ * Гость, нажавший закрытое действие, уходит на вход через OAuth или по
+ * ссылке и возвращается без `redirect` — раньше в ленту. Если уровня после
+ * входа хватает, хост гейта потом сам возвращал на место; если нет (гость
+ * жал «Вступить», а вошёл подтвердившим номер без подписки) — не возвращал
+ * никто, и человек терял страницу, с которой начал (приёмка 13.09, D3).
+ * Намерение знает эту страницу — берём адрес у него.
+ */
+function afterLoginTarget(redirectTo: string | undefined): string {
+  if (redirectTo?.startsWith("/")) return redirectTo;
+  const back = readIntent()?.returnTo;
+  if (back?.startsWith("/") && !back.startsWith("/login") && !back.startsWith("/register"))
+    return back;
+  return "/feed";
+}
+
 function LoginPage() {
   const { t } = useTranslation();
   const nav = useNavigate();
@@ -55,8 +74,7 @@ function LoginPage() {
       .then((ok) => {
         if (!alive) return;
         if (ok) {
-          const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
-          nav({ to: target as "/feed", replace: true });
+          nav({ to: afterLoginTarget(redirectTo) as "/feed", replace: true });
           return;
         }
         setCheckingSession(false);
@@ -87,8 +105,7 @@ function LoginPage() {
         setCurrentUser(user);
         void syncFavoritesFromServer();
         toast.success(t("authPages.loginSuccess"));
-        const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
-        nav({ to: target as "/feed", replace: true });
+        nav({ to: afterLoginTarget(redirectTo) as "/feed", replace: true });
       })
       .catch(() => {
         if (!alive) return;
@@ -119,8 +136,7 @@ function LoginPage() {
       setCurrentUser(user);
       void syncFavoritesFromServer();
       toast.success(t("authPages.loginSuccess"));
-      const target = redirectTo?.startsWith("/") ? redirectTo : "/feed";
-      nav({ to: target as "/feed", replace: true });
+      nav({ to: afterLoginTarget(redirectTo) as "/feed", replace: true });
     } catch (err) {
       setFieldError(true);
       const msg =

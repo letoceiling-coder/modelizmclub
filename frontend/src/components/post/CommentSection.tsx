@@ -14,6 +14,8 @@ import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { useGate } from "@/lib/gate";
+import { controlForServerVerdict } from "@/lib/gate/levels";
 import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
@@ -703,17 +705,54 @@ export function CommentSection({
 
   const commentBlocked = guest ? !guest.isAllowed("feed.post.comment") : false;
 
+  /*
+   * Отказ сервера значит разное для разных людей — см. controlForServerVerdict.
+   *
+   * Карта доступа пускает к комментарию любого вошедшего, а сервер требует
+   * подтверждённый номер и отвечает can.comment=false. Раньше вошедший без
+   * SMS попадал в режим чтения вместе с тем, кому писать нельзя по существу:
+   * ни поля, ни кнопки, ни окна — пути к комментарию не было вовсе (приёмка
+   * 13.09, D1). Теперь у него поле видно, но заперто, и нажатие открывает
+   * окно подтверждения номера.
+   *
+   * Вердикт приходит вместе с записью и после подтверждения не обновляется,
+   * поэтому однажды показанное через подтверждение поле дальше не прячем —
+   * иначе оно исчезло бы ровно в момент, ради которого номер подтверждали.
+   */
+  const { level: viewerLevel, require: requireLevel } = useGate();
+  const verdictControl = commentBlocked
+    ? "show"
+    : controlForServerVerdict(viewerLevel, can?.comment);
+  const shownForVerification = useRef(false);
+  if (verdictControl === "verify") shownForVerification.current = true;
+  const needsVerification = verdictControl === "verify";
+  const composerLocked = commentBlocked || needsVerification;
+
   // Сервер честно отвечает can.comment=false и авторизованному без права
   // писать, и гостю — но для гостя это «войдите», а не «нельзя». Раньше оба
   // случая сворачивались в режим чтения, и гость не видел ни поля, ни кнопки
   // ответа: точки входа в окно не существовало, хотя карта доступа обещает
-  // popup. Теперь только первый случай прячет композер.
-  const readOnly = readOnlyProp || (can?.comment === false && !commentBlocked);
+  // popup. Теперь режим чтения — только для того, кому нельзя по существу.
+  const readOnly =
+    readOnlyProp ||
+    (can?.comment === false &&
+      !commentBlocked &&
+      verdictControl === "hide" &&
+      !shownForVerification.current);
+
+  /** Открыть окно, которое снимает запрет на поле: вход гостю, номер — без SMS. */
+  const openComposerGate = () => {
+    if (commentBlocked) {
+      guest?.guardAction("feed.post.comment", () => {});
+      return;
+    }
+    void requireLevel("verified", () => draftRef.current?.focus());
+  };
 
   const promptComposerAuth = (e: { preventDefault: () => void }) => {
-    if (!commentBlocked) return;
+    if (!composerLocked) return;
     e.preventDefault();
-    guest?.guardAction("feed.post.comment", () => {});
+    openComposerGate();
   };
 
   const applySort = (next: CommentSort) => {
@@ -813,7 +852,7 @@ export function CommentSection({
             <input
               ref={draftRef}
               value={draft}
-              readOnly={commentBlocked}
+              readOnly={composerLocked}
               onPointerDown={promptComposerAuth}
               onFocus={promptComposerAuth}
               onChange={(e) => setDraft(e.target.value)}
@@ -824,8 +863,8 @@ export function CommentSection({
             />
             <CommentAttachMenu
               onPick={(files) => {
-                if (commentBlocked) {
-                  guest?.guardAction("feed.post.comment", () => {});
+                if (composerLocked) {
+                  openComposerGate();
                   return;
                 }
                 photos.pick(files);
@@ -834,13 +873,13 @@ export function CommentSection({
             />
             <EmojiPicker
               onBeforeOpen={() => {
-                if (!commentBlocked) return true;
-                guest?.guardAction("feed.post.comment", () => {});
+                if (!composerLocked) return true;
+                openComposerGate();
                 return false;
               }}
               onPick={(emoji) => {
-                if (commentBlocked) {
-                  guest?.guardAction("feed.post.comment", () => {});
+                if (composerLocked) {
+                  openComposerGate();
                   return;
                 }
                 insertEmoji(emoji);
