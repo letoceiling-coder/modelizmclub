@@ -5,7 +5,6 @@ namespace Modules\Community\Services;
 use App\Enums\CommunityMemberRole;
 use App\Enums\ConversationType;
 use App\Models\Community;
-use App\Models\CommunityEvent;
 use App\Models\CommunityJoinRequest;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
@@ -313,36 +312,6 @@ class CommunityHubService
                 ->where('status', CommunityJoinRequest::STATUS_PENDING)
                 ->exists());
         }
-    }
-
-    public function createEvent(Community $community, User $actor, array $data): CommunityEvent
-    {
-        $coverId = $this->mediaIdFromUuid($data['cover_media_uuid'] ?? null);
-
-        return CommunityEvent::create([
-            'community_id' => $community->id,
-            'created_by' => $actor->id,
-            'title' => trim((string) $data['title']),
-            'description' => $this->nullableString($data['description'] ?? null, 4000),
-            'starts_at' => $data['starts_at'],
-            'location_name' => $this->nullableString($data['location_name'] ?? null, 255),
-            'latitude' => isset($data['latitude']) ? (float) $data['latitude'] : null,
-            'longitude' => isset($data['longitude']) ? (float) $data['longitude'] : null,
-            'cover_media_id' => $coverId,
-        ]);
-    }
-
-    public function toggleAttendance(CommunityEvent $event, User $user): bool
-    {
-        $exists = $event->attendees()->where('users.id', $user->id)->exists();
-        if ($exists) {
-            $event->attendees()->detach($user->id);
-
-            return false;
-        }
-        $event->attendees()->attach($user->id);
-
-        return true;
     }
 
     private function mediaIdFromUuid(mixed $uuid): ?int

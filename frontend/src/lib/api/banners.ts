@@ -23,6 +23,13 @@ interface ApiBanner {
   is_pinned?: boolean;
   priority?: number;
   is_active?: boolean;
+  event?: {
+    uuid: string;
+    title: string;
+    starts_at?: string | null;
+    status?: string;
+    location_name?: string | null;
+  } | null;
 }
 
 interface BannersResponse {
@@ -59,6 +66,15 @@ function mapBanner(b: ApiBanner): Banner {
     pinned: b.is_pinned ?? false,
     priority: b.priority ?? 0,
     active: b.is_active !== false,
+    event: b.event
+      ? {
+          uuid: b.event.uuid,
+          title: b.event.title,
+          startsAt: b.event.starts_at ?? null,
+          status: b.event.status ?? "published",
+          locationName: b.event.location_name ?? null,
+        }
+      : null,
   };
 }
 

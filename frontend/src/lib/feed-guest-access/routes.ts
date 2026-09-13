@@ -57,6 +57,9 @@ export function isPublicGuestRoute(pathname: string): boolean {
   // показывать форму или окно входа.
   if (pathname === ROUTES.communities) return true;
   if (pathname.startsWith("/communities/") && pathname !== "/communities/new") return true;
+  // Страница мероприятия открыта так же, как сообщества: ссылку на встречу
+  // присылают тем, у кого аккаунта ещё нет.
+  if (pathname.startsWith("/events/")) return true;
   if (pathname === ROUTES.channels) return true;
   if (pathname.startsWith("/channel/")) return true;
   if (pathname.startsWith("/channels/") && pathname !== "/channels/new") return true;
@@ -88,6 +91,9 @@ export function isGuestStubRoute(pathname: string): boolean {
   // показывать форму или окно входа.
   if (pathname === ROUTES.communities) return true;
   if (pathname.startsWith("/communities/") && pathname !== "/communities/new") return true;
+  // Страница мероприятия открыта так же, как сообщества: ссылку на встречу
+  // присылают тем, у кого аккаунта ещё нет.
+  if (pathname.startsWith("/events/")) return true;
   if (pathname === ROUTES.channels) return true;
   if (pathname.startsWith("/channel/")) return true;
   if (pathname.startsWith("/channels/") && pathname !== "/channels/new") return true;
@@ -143,7 +149,12 @@ export function pathnameToRouteAction(pathname: string): string | null {
   }
   if (pathname === ROUTES.messenger || pathname.startsWith("/messenger")) return "route.messenger";
   if (pathname === ROUTES.friends || pathname.startsWith("/friends")) return "route.friends";
-  if (pathname === ROUTES.communities || pathname.startsWith("/communities"))
+  // Мероприятие подчиняется правам сообществ: отдельной ступени у него нет.
+  if (
+    pathname === ROUTES.communities ||
+    pathname.startsWith("/communities") ||
+    pathname.startsWith("/events/")
+  )
     return "route.communities";
   if (pathname === ROUTES.categories || pathname.startsWith("/categories"))
     return "route.categories";

@@ -46,9 +46,6 @@ import {
   joinCommunity,
   leaveCommunity,
   fetchCommunityMembers,
-  fetchCommunityEvents,
-  attendCommunityEvent,
-  createCommunityEvent,
   fetchCommunityChat,
   fetchSimilarCommunities,
   setCommunityFavorite,
@@ -86,6 +83,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useVisibleOnce } from "@/hooks/use-visible";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { CommunityManagePanel } from "@/components/communities/CommunityManagePanel";
+import { CommunityEventsSection } from "@/components/events/CommunityEventsSection";
+import { eventDateParts } from "@/components/events/event-format";
+import { fetchCommunityEvents, type ClubEvent } from "@/lib/api/events";
 import { toast } from "@/lib/toast";
 
 import i18n from "@/lib/i18n";
@@ -545,12 +545,61 @@ function MemberRow({
   );
 }
 
+/** Ближайшее мероприятие в правой колонке: дата блоком, название, место. */
+function NearestEventCard({ event }: { event: ClubEvent }) {
+  const { day, month, time } = eventDateParts(event.startsAt);
+  return (
+    <Card
+      className="p-3.5 shadow-none"
+      style={{
+        background: "var(--background-elevated)",
+        borderColor: "var(--border)",
+        borderRadius: "var(--r-card)",
+      }}
+    >
+      <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+        Ближайшее мероприятие
+      </h3>
+      <Link
+        to="/events/$uuid"
+        params={{ uuid: event.uuid }}
+        className="mt-2.5 flex items-start gap-2.5 hover:opacity-90"
+      >
+        <span
+          className="flex h-[48px] w-[44px] shrink-0 flex-col items-center justify-center rounded-[10px]"
+          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+          aria-hidden
+        >
+          <span className="font-display text-[18px] font-bold leading-none">{day}</span>
+          <span className="mt-0.5 text-[10px] font-semibold uppercase leading-none">{month}</span>
+        </span>
+        <span className="min-w-0">
+          <span
+            className="line-clamp-2 text-[13px] font-medium"
+            style={{ color: "var(--foreground)" }}
+          >
+            {event.title}
+          </span>
+          <span className="block truncate text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {time}
+            {event.locationName ? ` · ${event.locationName}` : ""}
+          </span>
+          <span className="block text-[12px]" style={{ color: "var(--foreground-50)" }}>
+            {event.going ? "Вы идёте" : `Идут: ${event.attendeesCount}`}
+          </span>
+        </span>
+      </Link>
+    </Card>
+  );
+}
+
 /* ============================ Right rail ============================ */
 
 function CommunityRightRail({
   community,
   members,
   events,
+  nearest,
   similar,
   onSignup,
   containerRef,
@@ -563,6 +612,8 @@ function CommunityRightRail({
    */
   members: Array<{ user: { id: string; name: string; avatar?: string; online?: boolean } }>;
   events: DemoCommunityEvent[];
+  /** Ближайшее мероприятие на боевых данных; в демо — `events`. */
+  nearest: ClubEvent | null;
   /** Похожие приходят готовыми: страница грузит их, когда колонка показалась. */
   similar: Community[];
   onSignup: (e: DemoCommunityEvent) => void;
@@ -660,6 +711,8 @@ function CommunityRightRail({
             </div>
           </Card>
         )}
+
+        {nearest && <NearestEventCard event={nearest} />}
 
         {/* О сообществе — первая из трёх карточек раздела 5.6 */}
         <Card
@@ -874,14 +927,10 @@ function CommunityDetailPage() {
   const [posts, setPosts] = useState<Post[]>(loaded.posts ?? []);
   const [postsLoading, setPostsLoading] = useState(false);
   const postsPrimedRef = useRef(true);
-  const [hubEvents, setHubEvents] = useState<CommunityEvent[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(false);
+  const [nearestEvent, setNearestEvent] = useState<ClubEvent | null>(null);
+  const [upcomingCount, setUpcomingCount] = useState(0);
   const me = useCurrentUser();
   const [createPostOpen, setCreatePostOpen] = useState(false);
-  const [eventFormOpen, setEventFormOpen] = useState(false);
-  const [eventTitle, setEventTitle] = useState("");
-  const [eventWhen, setEventWhen] = useState("");
-  const [eventPlace, setEventPlace] = useState("");
   const [composerSelection] = useState<ComposerSelection>({ kind: "photo", source: "profile" });
 
   useEffect(() => {
@@ -1031,14 +1080,27 @@ function CommunityDetailPage() {
       .finally(() => setMembersLoading(false));
   }, [community, demo, demoMemberList, membersScope]);
 
+  /*
+   * Ближайшее мероприятие — для правой колонки и счётчика вкладки. Спрашиваем,
+   * когда колонка показалась, по тому же правилу, что «Похожие»: на телефоне
+   * колонки нет, и запрос не нужен.
+   */
+  const communitySlug = community?.id;
   useEffect(() => {
-    if (!community || tab !== "events" || demo) return;
-    setEventsLoading(true);
-    fetchCommunityEvents(community.id)
-      .then(setHubEvents)
-      .catch(() => setHubEvents([]))
-      .finally(() => setEventsLoading(false));
-  }, [community, tab, demo]);
+    if (!communitySlug || demo || !railVisible) return;
+    let alive = true;
+    fetchCommunityEvents(communitySlug, "upcoming", 5)
+      .then((page) => {
+        if (!alive) return;
+        const published = page.items.filter((e) => e.status === "published");
+        setNearestEvent(published[0] ?? null);
+        setUpcomingCount(published.length);
+      })
+      .catch(() => alive && setNearestEvent(null));
+    return () => {
+      alive = false;
+    };
+  }, [communitySlug, demo, railVisible]);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -1316,39 +1378,6 @@ function CommunityDetailPage() {
     },
   ].filter(Boolean) as EntityAction[];
 
-  const toggleEvent = (event: CommunityEvent) => {
-    if (!joined && !isOwner) {
-      toast.error(t("pages.communityDetail.chatMembersOnly"));
-      return;
-    }
-    void attendCommunityEvent(community.id, event.uuid)
-      .then((updated) =>
-        setHubEvents((prev) => prev.map((item) => (item.uuid === updated.uuid ? updated : item))),
-      )
-      .catch(() => toast.error(t("pages.communityDetail.eventFailed")));
-  };
-
-  const submitEvent = () => {
-    if (eventTitle.trim().length < 3 || !eventWhen) {
-      toast.error(t("pages.communityDetail.eventFailed"));
-      return;
-    }
-    void createCommunityEvent(community.id, {
-      title: eventTitle.trim(),
-      startsAt: new Date(eventWhen).toISOString(),
-      locationName: eventPlace.trim() || undefined,
-    })
-      .then((created) => {
-        setHubEvents((prev) => [...prev, created]);
-        setEventFormOpen(false);
-        setEventTitle("");
-        setEventWhen("");
-        setEventPlace("");
-        toast.success(t("pages.communityDetail.eventCreated"));
-      })
-      .catch(() => toast.error(t("pages.communityDetail.eventFailed")));
-  };
-
   const handleBan = async (uuid: string) => {
     if (!(await askConfirm({ title: t("pages.communityDetail.banMember"), danger: true }))) return;
     void banCommunityMember(community.id, uuid)
@@ -1360,14 +1389,15 @@ function CommunityDetailPage() {
   };
 
   // Правая колонка теперь есть и на боевых данных: «Похожие» получили
-  // эндпоинт, участники приходят из списка сообщества, а «О сообществе»
-  // собирается из самой карточки. События остаются демонстрационными —
-  // у них своя форма, и в правую колонку они попадают только в демо.
+  // эндпоинт, участники приходят из списка сообщества, «О сообществе»
+  // собирается из самой карточки, ближайшее мероприятие — из модуля
+  // мероприятий. Демо-события остаются только в демо.
   const rail = (
     <CommunityRightRail
       community={community}
       members={demo ? demoMemberList : memberList}
       events={demo ? events : []}
+      nearest={demo ? null : nearestEvent}
       similar={similar}
       onSignup={setSignupEvent}
       containerRef={railRef}
@@ -1460,7 +1490,7 @@ function CommunityDetailPage() {
                 : tabItem.key === "events"
                   ? demo
                     ? events.length
-                    : hubEvents.length
+                    : upcomingCount
                   : tabItem.key === "members"
                     ? // Число берём из ресурса, а не из длины загруженного
                       // списка: карточке правой колонки хватает восьми, и
@@ -1562,87 +1592,12 @@ function CommunityDetailPage() {
             />
           ))}
 
-        {tab === "events" && (
-          <>
-            {canManage && !demo && (
-              <div className="mb-[16px] flex justify-end">
-                <Button
-                  type="button"
-                  onClick={() => setEventFormOpen((v) => !v)}
-                  className="gap-[6px]"
-                >
-                  <Plus size={16} /> {t("pages.communityDetail.createEvent")}
-                </Button>
-              </div>
-            )}
-            {eventFormOpen && (
-              <Card
-                className="mb-[16px] space-y-[10px] p-[16px] shadow-none"
-                style={{
-                  background: "var(--background)",
-                  borderColor: "var(--border)",
-                  borderRadius: "var(--r-card)",
-                }}
-              >
-                <input
-                  value={eventTitle}
-                  onChange={(e) => setEventTitle(e.target.value)}
-                  placeholder={t("pages.communityDetail.eventTitle")}
-                  className="h-11 w-full rounded-[10px] border px-3 text-[14px]"
-                  style={{
-                    background: "var(--background-surface)",
-                    borderColor: "var(--border)",
-                    color: "var(--foreground)",
-                  }}
-                />
-                <input
-                  type="datetime-local"
-                  value={eventWhen}
-                  onChange={(e) => setEventWhen(e.target.value)}
-                  className="h-11 w-full rounded-[10px] border px-3 text-[14px]"
-                  style={{
-                    background: "var(--background-surface)",
-                    borderColor: "var(--border)",
-                    color: "var(--foreground)",
-                  }}
-                />
-                <input
-                  value={eventPlace}
-                  onChange={(e) => setEventPlace(e.target.value)}
-                  placeholder={t("pages.communityDetail.eventPlace")}
-                  className="h-11 w-full rounded-[10px] border px-3 text-[14px]"
-                  style={{
-                    background: "var(--background-surface)",
-                    borderColor: "var(--border)",
-                    color: "var(--foreground)",
-                  }}
-                />
-                <Button type="button" onClick={submitEvent}>
-                  {t("pages.communityDetail.eventCreate")}
-                </Button>
-              </Card>
-            )}
-            {demo ? (
-              events.length > 0 ? (
-                <div className="grid gap-[16px] sm:grid-cols-2">
-                  {events.map((e) => (
-                    <EventCard key={e.id} e={e} onSignup={setSignupEvent} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={CalendarDays}
-                  title={t("pages.communityDetail.emptyEvents")}
-                  description={t("pages.communityDetail.emptyEventsDesc")}
-                  variant="compact"
-                />
-              )
-            ) : eventsLoading ? (
-              <Skeleton className="h-[160px] w-full rounded-[var(--r-card)]" />
-            ) : hubEvents.length > 0 ? (
+        {tab === "events" &&
+          (demo ? (
+            events.length > 0 ? (
               <div className="grid gap-[16px] sm:grid-cols-2">
-                {hubEvents.map((e) => (
-                  <HubEventCard key={e.uuid} e={e} onToggle={toggleEvent} />
+                {events.map((e) => (
+                  <EventCard key={e.id} e={e} onSignup={setSignupEvent} />
                 ))}
               </div>
             ) : (
@@ -1652,9 +1607,14 @@ function CommunityDetailPage() {
                 description={t("pages.communityDetail.emptyEventsDesc")}
                 variant="compact"
               />
-            )}
-          </>
-        )}
+            )
+          ) : (
+            <CommunityEventsSection
+              slug={community.id}
+              canManage={canManage}
+              onUpcomingCount={setUpcomingCount}
+            />
+          ))}
 
         {tab === "members" &&
           (membersLoading ? (

@@ -2,9 +2,10 @@
 
 namespace App\Support\Demo;
 
+use App\Enums\UserRole;
+use App\Models\ClubEvent;
 use App\Models\Community;
 use App\Models\CommunityCategory;
-use App\Models\CommunityEvent;
 use App\Models\User;
 use Modules\Community\Services\CommunityService;
 use Modules\Feed\Services\PostService;
@@ -90,7 +91,7 @@ class DemoCommunitiesSection extends DemoSection
             return 0;
         }
 
-        $admin = User::query()->where('role', \App\Enums\UserRole::Admin)->orderBy('id')->first();
+        $admin = User::query()->where('role', UserRole::Admin)->orderBy('id')->first();
         if ($admin === null) {
             return 0;
         }
@@ -181,7 +182,7 @@ class DemoCommunitiesSection extends DemoSection
         }
 
         for ($i = 0; $i < $item['events']; $i++) {
-            CommunityEvent::create([
+            ClubEvent::create([
                 'community_id' => $community->id,
                 'created_by' => $owner->id,
                 'title' => self::MARKER.' Встреча клуба — '.$item['name'],

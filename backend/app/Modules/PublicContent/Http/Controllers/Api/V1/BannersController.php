@@ -4,6 +4,7 @@ namespace Modules\PublicContent\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Models\ClubEvent;
 use App\Support\BannerCarouselConfig;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class BannersController extends Controller
         $placement = $request->string('placement')->toString() ?: $carousel['placement'];
 
         $banners = Banner::query()
-            ->with('image')
+            ->with(['image', 'event'])
             ->where('is_active', true)
             ->where('placement', $placement)
             ->where(function ($q): void {
@@ -57,6 +58,14 @@ class BannersController extends Controller
             'kind' => $b->kind,
             'until_label' => $b->until_label,
             'link_url' => $b->link_url,
+            // Событие площадки за баннером: кнопка регистрирует, а не открывает заглушку.
+            'event' => $b->event && $b->event->status !== ClubEvent::STATUS_DRAFT && ! $b->event->trashed() ? [
+                'uuid' => $b->event->uuid,
+                'title' => $b->event->title,
+                'starts_at' => $b->event->starts_at?->toIso8601String(),
+                'status' => $b->event->displayStatus(),
+                'location_name' => $b->event->location_name,
+            ] : null,
             'image_url' => $b->image?->url,
             'is_pinned' => (bool) $b->is_pinned,
             'priority' => (int) $b->priority,

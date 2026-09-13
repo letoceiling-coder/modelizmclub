@@ -29,6 +29,7 @@ export const ruAdmin = {
         applications: "Заявки",
         monetization: "Монетизация",
         feedBanners: "Рекламный блок",
+        events: "Мероприятия",
         feedGuestAccess: "Права доступа /feed",
         notificationPolicy: "Правила уведомлений",
         landingBlocks: "Главная страница",

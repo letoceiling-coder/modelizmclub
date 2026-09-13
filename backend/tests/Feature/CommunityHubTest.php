@@ -227,9 +227,9 @@ class CommunityHubTest extends TestCase
             ->json('data.0.uuid');
 
         $this->actingAs($member, 'sanctum')
-            ->postJson("/api/v1/communities/{$community->slug}/events/{$eventUuid}/attend")
+            ->postJson("/api/v1/events/{$eventUuid}/attendance")
             ->assertOk()
-            ->assertJsonPath('going', true);
+            ->assertJsonPath('data.going', true);
 
         $postCategory = $this->postCategory('Wall', 'wall-hub');
         $post = Post::query()->create([

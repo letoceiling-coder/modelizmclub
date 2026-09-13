@@ -2,18 +2,26 @@
 
 namespace App\Providers;
 
+use App\Models\ClubEvent;
 use App\Models\Comment;
 use App\Models\Community;
 use App\Models\Conversation;
 use App\Models\Dispute;
+use App\Models\FaqArticle;
+use App\Models\FaqCategory;
+use App\Models\FooterLink;
+use App\Models\LandingCard;
+use App\Models\LandingSection;
 use App\Models\Listing;
 use App\Models\Message;
 use App\Models\Post;
 use App\Models\SafeDeal;
+use App\Models\SystemSetting;
 use App\Policies\CommentPolicy;
 use App\Policies\CommunityPolicy;
 use App\Policies\ConversationPolicy;
 use App\Policies\DisputePolicy;
+use App\Policies\EventPolicy;
 use App\Policies\ListingPolicy;
 use App\Policies\MessagePolicy;
 use App\Policies\PostPolicy;
@@ -57,6 +65,7 @@ use Modules\Delivery\Services\CdekClientFactory;
 use Modules\Delivery\Services\CdekService;
 use Modules\Delivery\Services\CdekTokenCache;
 use Modules\Delivery\Services\YandexDeliveryService;
+use Modules\PublicContent\Services\PublicBootstrapService;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
@@ -209,6 +218,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Comment::class, CommentPolicy::class);
         Gate::policy(Listing::class, ListingPolicy::class);
         Gate::policy(Community::class, CommunityPolicy::class);
+        Gate::policy(ClubEvent::class, EventPolicy::class);
 
         Gate::define('viewApiDocs', function () {
             if (app()->environment(['local', 'development', 'staging'])) {
@@ -230,15 +240,15 @@ class AppServiceProvider extends ServiceProvider
          * перестановки порядка сбрасывают кеш сами, см. PublicBootstrapService.
          */
         foreach ([
-            \App\Models\SystemSetting::class,
-            \App\Models\FooterLink::class,
-            \App\Models\FaqCategory::class,
-            \App\Models\FaqArticle::class,
-            \App\Models\LandingSection::class,
-            \App\Models\LandingCard::class,
+            SystemSetting::class,
+            FooterLink::class,
+            FaqCategory::class,
+            FaqArticle::class,
+            LandingSection::class,
+            LandingCard::class,
         ] as $model) {
-            $model::saved(static fn () => \Modules\PublicContent\Services\PublicBootstrapService::forget());
-            $model::deleted(static fn () => \Modules\PublicContent\Services\PublicBootstrapService::forget());
+            $model::saved(static fn () => PublicBootstrapService::forget());
+            $model::deleted(static fn () => PublicBootstrapService::forget());
         }
 
         // dedoc/scramble лежит в require-dev, а вызов стоял здесь без защиты.
