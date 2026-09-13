@@ -55,15 +55,10 @@ class SafeDealService
         private readonly SafeDealChatService $dealChat,
     ) {}
 
+    /** Процент комиссии — из той же политики, что и страница тарифов. См. SafeDealFeePolicy. */
     public function platformFeePercent(): float
     {
-        $value = SystemSetting::query()->where('key', 'safe_deal.platform_fee_percent')->value('value');
-
-        if (is_array($value) && isset($value['percent'])) {
-            return max(0.0, (float) $value['percent']);
-        }
-
-        return (float) config('billing.safe_deal.platform_fee_percent', 5);
+        return app(SafeDealFeePolicy::class)->percent();
     }
 
     /** Days after delivery before funds auto-release to the seller. */
@@ -150,7 +145,7 @@ class SafeDealService
 
         $item = (int) $listing->price_cents;
         $feePercent = $this->platformFeePercent();
-        $fee = (int) round($item * $feePercent / 100);
+        $fee = app(SafeDealFeePolicy::class)->feeFor($item);
         $parcel = ParcelSize::fromListing($listing);
         $method = $this->resolveDeliveryMethod($listing, $deliveryMethod);
         // Ветвимся по выбору покупателя, а не по набору продавца.

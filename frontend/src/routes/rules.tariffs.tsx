@@ -183,11 +183,11 @@ function TariffsPage() {
             <Row
               name="Комиссия сервиса"
               price={`${feePercent}%`}
-              note={`Не менее ${rub(feeMin)} ₽ за сделку.${
-                t.safe_deal.max_cents ? ` Не более ${rub(t.safe_deal.max_cents)} ₽.` : ""
+              note={`${feeMin > 0 ? `Не менее ${rub(feeMin)} ₽ за сделку. ` : ""}${
+                t.safe_deal.max_cents ? `Не более ${rub(t.safe_deal.max_cents)} ₽. ` : ""
               }${
                 t.safe_deal.base === "item"
-                  ? " Считается от стоимости товара; доставка в расчёт комиссии не входит."
+                  ? "Считается от стоимости товара; доставка в расчёт комиссии не входит."
                   : ""
               }`}
             />
