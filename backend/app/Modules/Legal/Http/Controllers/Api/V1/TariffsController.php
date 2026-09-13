@@ -8,6 +8,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
+use Modules\Billing\Services\SafeDealFeePolicy;
 
 /**
  * Стоимость платных услуг — та же, что человек увидит при оплате.
@@ -104,13 +105,16 @@ class TariffsController extends Controller
      */
     private function safeDeal(): array
     {
+        // Те же числа, по которым считается сделка: SafeDealFeePolicy.
+        $fee = app(SafeDealFeePolicy::class)->settings();
+
         return [
-            'enabled' => (bool) $this->setting('escrow.fee.enabled', 'enabled', true),
-            'percent' => (float) $this->setting('escrow.fee.percent', 'percent', 5),
-            'min_cents' => (int) $this->setting('escrow.fee.min_cents', 'min_cents', 30000),
-            'max_cents' => $this->setting('escrow.fee.max_cents', 'max_cents', null),
+            'enabled' => $fee['enabled'],
+            'percent' => $fee['percent'],
+            'min_cents' => $fee['min_cents'],
+            'max_cents' => $fee['max_cents'],
             // `item` — процент считается от цены товара, доставка в базу не входит.
-            'base' => (string) $this->setting('escrow.fee.apply_to', 'base', 'item'),
+            'base' => $fee['base'],
         ];
     }
 
