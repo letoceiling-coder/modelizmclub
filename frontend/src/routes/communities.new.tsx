@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Users } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { useGate } from "@/lib/gate";
 import { useCurrentUser } from "@/lib/session";
 import { isFullyVerified, isStaffUser } from "@/lib/auth/verification";
 import { useMySubscription } from "@/lib/subscription";
@@ -46,7 +47,12 @@ function CommunityNewPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const me = useCurrentUser();
-  const { requirePremium, requireAccount, isGuest } = useGuestAccess();
+  const { requireAccount, isGuest } = useGuestAccess();
+  // Кто сюда дошёл вошедшим и не подходит — у того нет подтверждённого номера:
+  // подписчик и подтвердивший номер проходят проверкой ниже, сервер пускает
+  // любого с номером. Значит, окно — подтверждение, а не подписка (приёмка
+  // 13.09, D2). requirePremium открыл бы после номера ещё и paywall.
+  const { require: requireLevel } = useGate();
   const { sub, loading: subLoading } = useMySubscription();
   const eligible = isStaffUser(me) || isFullyVerified(me) || sub?.is_active === true;
 
@@ -77,7 +83,15 @@ function CommunityNewPage() {
           >
             <Button
               className="rounded-[12px]"
-              onClick={() => requirePremium(() => undefined, "/communities/new")}
+              onClick={() =>
+                void requireLevel("verified", () => undefined, {
+                  intent: {
+                    key: "navigate",
+                    params: { to: "/communities/new" },
+                    returnTo: "/communities/new",
+                  },
+                })
+              }
             >
               {t("pages.communityWizard.needAccessAction")}
             </Button>
