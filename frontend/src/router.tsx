@@ -3,6 +3,11 @@ import { createRouter } from "@tanstack/react-router";
 import { RoutePending } from "@/components/boot/RoutePending";
 import { routeTree } from "./routeTree.gen";
 import { setSessionQueryClient } from "@/lib/session/queryClient";
+import {
+  SCROLL_TO_TOP_SELECTORS,
+  holdRestoredScroll,
+  scrollOnPathChange,
+} from "@/lib/scroll-policy";
 
 export const getRouter = () => {
   // On the server every request gets its own client that is thrown away right
@@ -31,7 +36,11 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: { queryClient },
-    scrollRestoration: true,
+    // Новый маршрут — наверх, «назад» — прежняя позиция, смена ?post=/?tab=
+    // внутри страницы — без прокрутки. На десктопе прокручивается <main>. См.
+    // lib/scroll-policy.ts.
+    scrollRestoration: scrollOnPathChange,
+    scrollToTopSelectors: SCROLL_TO_TOP_SELECTORS,
     defaultPendingComponent: RoutePending,
     // Show a skeleton only if the loader is actually slow. A min-pending
     // window forced a 240ms flash even when data was already in cache.
@@ -47,6 +56,8 @@ export const getRouter = () => {
     defaultPreloadDelay: 120,
     defaultPreloadStaleTime: 30_000,
   });
+
+  if (!isServer) holdRestoredScroll(router);
 
   return router;
 };

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { APP_SCROLL_ID } from "@/lib/scroll-policy";
 import { useMatch } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { hasDirectionsRail } from "@/lib/layout/rails";
@@ -126,6 +127,14 @@ export function AppLayout({
             панель и так w-80 = --rightrail-w, а свёрнутая — w-11, и в дорожке
             в 320 справа от неё оставалось 276 px пустоты.
           */
+          /*
+            Строка сетки — minmax(0,1fr), то есть ровно высота ряда. Без неё
+            строка росла до самой высокой колонки — бокового меню (848 при
+            доступных 824 на 900), ряд с overflow-hidden срезал разницу, и с
+            ней низ <main>: последний ряд обзоров не докручивался на 24 px
+            (замер 13.09, 1440 и 1920). На 1024 ряд — flex, там этого не было.
+          */
+          "xl:grid-rows-[minmax(0,1fr)]",
           withRail
             ? "xl:grid xl:grid-cols-[var(--sidebar-w)_minmax(0,1fr)_auto]"
             : narrowNav
@@ -135,7 +144,10 @@ export function AppLayout({
       >
         {sidebar === false ? null : (sidebar ?? <Sidebar collapsed={navCollapsed} />)}
         {/* Center column: the only scroll zone on desktop. */}
-        <main className="min-w-0 flex-1 lg:overflow-y-auto xl:flex-none">
+        <main
+          data-scroll-restoration-id={APP_SCROLL_ID}
+          className="min-w-0 flex-1 lg:overflow-y-auto xl:flex-none"
+        >
           {/*
             Подвал не заходит в первый экран, пока грузится содержимое.
 
