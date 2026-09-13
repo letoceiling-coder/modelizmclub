@@ -943,7 +943,17 @@ function NewAdPage() {
           >
             {editId ? t("pages.adsNew.editListingTitle") : t("pages.adsNew.newListingTitle")}
           </h1>
-          <p className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
+          {/*
+            Две строки высоты на узком экране при любом тексте. «Рассчитываем
+            стоимость…» — одна строка, «Размещение — 30 ₽. После оплаты…» — две:
+            когда приходила цена, индикатор шагов и фотографии съезжали на 21 px
+            при каждом входе в мастер (замер 13.09, 375, 15 пар из 240). С 640
+            любой вариант помещается в строку.
+          */}
+          <p
+            className="min-h-[42px] text-[14px] leading-[21px] sm:min-h-0"
+            style={{ color: "var(--foreground-70)" }}
+          >
             {/*
               Пока флаги не приехали, ничего про деньги не утверждаем.
               Раньше здесь ветвление шло сразу по listingPaymentEnabled, а его

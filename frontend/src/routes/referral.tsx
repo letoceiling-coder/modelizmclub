@@ -221,7 +221,8 @@ function Dashboard({ meId }: { meId: string }) {
         <Stat
           icon={<Sparkles size={16} />}
           label="Бонусов"
-          value={loading ? "…" : `${data?.bonus ?? 0} объявл.`}
+          value={loading ? "…" : String(data?.bonus ?? 0)}
+          unit={loading ? undefined : "объявл."}
         />
       </section>
 
@@ -280,7 +281,25 @@ function Dashboard({ meId }: { meId: string }) {
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+/*
+  Высота плитки не зависит от значения. Пока идёт запрос, в плитке «…», потом
+  число — и «0 объявл.» 20-м кеглем на 1024 не помещалось в ячейку около
+  92 px, переносилось на вторую строку, и сетка тянула весь ряд с 99 до 113:
+  блок «Приглашённые друзья» съезжал на 14 px при каждом входе в раздел
+  (замер 13.09, 15 пар из 240). Значение — одной строкой фиксированной
+  высоты, единица — мелко рядом.
+*/
+function Stat({
+  icon,
+  label,
+  value,
+  unit,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  unit?: string;
+}) {
   return (
     <div style={{ ...card, padding: 14 }}>
       <div className="flex items-center gap-[6px]" style={{ color: "var(--accent)" }}>
@@ -288,15 +307,23 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
         <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>{label}</span>
       </div>
       <div
-        className="mt-[6px]"
+        className="mt-[6px] truncate"
         style={{
           fontFamily: "var(--font-display)",
           fontWeight: 700,
           fontSize: 20,
+          lineHeight: "28px",
+          height: 28,
           color: "var(--foreground)",
         }}
       >
         {value}
+        {unit ? (
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground-50)" }}>
+            {" "}
+            {unit}
+          </span>
+        ) : null}
       </div>
     </div>
   );
