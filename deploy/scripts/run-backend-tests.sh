@@ -28,6 +28,14 @@
 # остаётся байт в байт прежним; скрипт это проверяет и ругается, если нет.
 set -euo pipefail
 
+# От www-data, а не от root. Прогон от root 13.09 оставил в storage/ файлы
+# с владельцем root: дневной csp-*.log, скомпилированные шаблоны, кэш тестовых
+# дисков. php-fpm работает от www-data и в такие файлы писать не может — отчёты
+# CSP полдня отвечали 500. Осознанный прогон от root: RUN_TESTS_AS_ROOT=1.
+if [[ "${EUID}" -eq 0 && -z "${RUN_TESTS_AS_ROOT:-}" ]] && id www-data >/dev/null 2>&1; then
+  exec sudo -u www-data --preserve-env=APP_DIR,TMPDIR HOME=/tmp bash "$0" "$@"
+fi
+
 APP_DIR="${APP_DIR:-/var/www/modelizmclub}"
 
 cd "${APP_DIR}/backend"
