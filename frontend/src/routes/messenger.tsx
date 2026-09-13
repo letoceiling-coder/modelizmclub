@@ -171,6 +171,9 @@ function MessengerRoute() {
  */
 type MessengerTab = "direct" | "rooms" | "deals" | "communities" | "archive" | "calls";
 
+/** Поле, с которым активная вкладка встаёт у края ряда: шире градиента-подсказки. */
+const TAB_EDGE_GAP = 36;
+
 /** Вкладка, в которой живёт диалог. Архив перекрывает тип: он один на всех. */
 type DialogTab = Exclude<MessengerTab, "calls">;
 
@@ -1229,9 +1232,47 @@ function MessengerPage() {
    * только этот ряд.
    */
   useEffect(() => {
-    const active = tabsRowRef.current?.querySelector<HTMLElement>('[aria-selected="true"]');
-    active?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    const row = tabsRowRef.current;
+    const active = row?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!row || !active) return;
+    /*
+     * Не вплотную к краю. scrollIntoView({ inline: "nearest" }) ставил вкладку
+     * ровно в край ряда — «Сделки 19» упиралась в границу и уходила под
+     * подсказку-градиент. Двигаем только ряд, с полем TAB_EDGE_GAP с обеих
+     * сторон; вкладка, которая и так видна с полем, ряд не трогает.
+     */
+    const left = active.offsetLeft - TAB_EDGE_GAP;
+    const right = active.offsetLeft + active.offsetWidth + TAB_EDGE_GAP - row.clientWidth;
+    const target = row.scrollLeft > left ? left : row.scrollLeft < right ? right : row.scrollLeft;
+    if (target === row.scrollLeft) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    row.scrollTo({ left: Math.max(0, target), behavior: reduce ? "auto" : "smooth" });
   }, [tab]);
+
+  /*
+   * Подсказка «есть ещё» — градиент у того края, за которым остались вкладки.
+   * Считаем по фактической прокрутке: ширина ряда зависит от колонки (320 на
+   * 768, 360 с 1280, весь экран на телефоне) и от чисел в счётчиках.
+   */
+  const [tabsOverflow, setTabsOverflow] = useState({ start: false, end: false });
+  useEffect(() => {
+    const row = tabsRowRef.current;
+    if (!row) return;
+    const update = () => {
+      const max = row.scrollWidth - row.clientWidth;
+      const next = { start: row.scrollLeft > 1, end: row.scrollLeft < max - 1 };
+      setTabsOverflow((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
+    };
+    update();
+    row.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(row);
+    for (const child of Array.from(row.children)) observer.observe(child);
+    return () => {
+      row.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [mobileView]);
 
   const filtered = useMemo(() => {
     if (tab === "calls") return [];
@@ -1749,31 +1790,34 @@ function MessengerPage() {
               на 360 px колонка под «Категорийные» выходит в 44 px, и слово
               обрезается до «Кате…» у всех сразу.
             */}
-            <div
-              ref={tabsRowRef}
-              className="flex gap-[4px] overflow-x-auto px-[8px]"
-              style={{ borderBottom: "1px solid var(--border)", scrollbarWidth: "none" }}
-              role="tablist"
-            >
-              {MESSENGER_TABS.map((key) => {
-                const isActive = tab === key;
-                const count = key === "calls" ? 0 : unreadByTab[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    onClick={() => setTab(key)}
-                    className={`flex shrink-0 items-center gap-[4px] px-[8px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
-                    style={{
-                      height: 32,
-                      fontWeight: isActive ? 600 : 500,
-                      color: isActive ? "var(--accent)" : "var(--foreground-50)",
-                      borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
-                    }}
-                  >
-                    {/*
+            <div className="relative" style={{ borderBottom: "1px solid var(--border)" }}>
+              <div
+                ref={tabsRowRef}
+                className="flex gap-[4px] overflow-x-auto pl-[8px] pr-[16px]"
+                style={{ scrollbarWidth: "none" }}
+                role="tablist"
+              >
+                {MESSENGER_TABS.map((key) => {
+                  const isActive = tab === key;
+                  const count = key === "calls" ? 0 : unreadByTab[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setTab(key)}
+                      className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                      style={{
+                        height: 32,
+                        fontWeight: isActive ? 600 : 500,
+                        color: isActive ? "var(--accent)" : "var(--foreground-50)",
+                        borderBottom: isActive
+                          ? "2px solid var(--accent)"
+                          : "2px solid transparent",
+                      }}
+                    >
+                      {/*
                       Ширина вкладки не зависит от данных.
 
                       Вкладки стоят одним рядом, и любая перемена ширины одной
@@ -1788,31 +1832,52 @@ function MessengerPage() {
                       клетке сетки. Место под счётчик есть всегда, ноль просто
                       невидим — как и раньше, «0» не показывается.
                     */}
-                    <span className="inline-grid">
-                      <span className="whitespace-nowrap [grid-area:1/1]">
-                        {t(TAB_LABEL_KEY[key])}
+                      <span className="inline-grid">
+                        <span className="whitespace-nowrap [grid-area:1/1]">
+                          {t(TAB_LABEL_KEY[key])}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="invisible whitespace-nowrap font-semibold [grid-area:1/1]"
+                        >
+                          {t(TAB_LABEL_KEY[key])}
+                        </span>
                       </span>
-                      <span
-                        aria-hidden="true"
-                        className="invisible whitespace-nowrap font-semibold [grid-area:1/1]"
-                      >
-                        {t(TAB_LABEL_KEY[key])}
-                      </span>
-                    </span>
-                    {key !== "calls" && (
-                      <span
-                        aria-hidden={count > 0 ? undefined : true}
-                        // min-w-[24px] — место под две цифры: «9» → «12» иначе
-                        // тоже расширяло бы вкладку.
-                        className={`grid min-w-[24px] place-items-center rounded-full px-[4px] text-[10px] font-semibold leading-[16px] tabular-nums ${count > 0 ? "" : "invisible"}`}
-                        style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-                      >
-                        {count > 99 ? "99+" : count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                      {key !== "calls" && (
+                        <span
+                          aria-hidden={count > 0 ? undefined : true}
+                          // min-w-[28px] — место под «99+» целиком: «9» → «12» → «99+»
+                          // не расширяют вкладку. Свои поля 6 px — цифры не
+                          // касаются края кружка, кружок не касается подписи.
+                          className={`grid h-[18px] min-w-[28px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
+                          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                        >
+                          {count > 99 ? "99+" : count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Подсказки «есть ещё»: не перехватывают нажатия, прячутся у края. */}
+              <span
+                aria-hidden="true"
+                data-scroll-hint="start"
+                className="pointer-events-none absolute inset-y-0 left-0 w-[24px] transition-opacity duration-150"
+                style={{
+                  opacity: tabsOverflow.start ? 1 : 0,
+                  background: "linear-gradient(to right, var(--background-elevated), transparent)",
+                }}
+              />
+              <span
+                aria-hidden="true"
+                data-scroll-hint="end"
+                className="pointer-events-none absolute inset-y-0 right-0 w-[32px] transition-opacity duration-150"
+                style={{
+                  opacity: tabsOverflow.end ? 1 : 0,
+                  background: "linear-gradient(to left, var(--background-elevated), transparent)",
+                }}
+              />
             </div>
           </div>
 
