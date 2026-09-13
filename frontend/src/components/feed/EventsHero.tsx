@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MediaArrow } from "@/components/ui/MediaArrow";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, m } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { CalendarDays, X } from "lucide-react";
+import { CalendarDays, Check, MapPin, Users, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { attendeesLabel } from "@/components/events/EventCard";
+import { eventDateParts } from "@/components/events/event-format";
+import { useEventAttendance } from "@/components/events/useEventAttendance";
+import { fetchEvent, type ClubEvent } from "@/lib/api/events";
 import type { Banner } from "@/lib/mock";
 import {
   fetchBannersWithSettings,
@@ -180,6 +191,11 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
   const openCta = (b: Banner) => {
     guardAction("feed.banner.navigate", () => {
       void recordBannerEvent(b.id, "click");
+      // Баннер события площадки регистрирует прямо здесь, ссылка не нужна.
+      if (b.event) {
+        setSignup(b);
+        return;
+      }
       const link = b.link?.trim();
       if (link && /^https?:\/\//i.test(link)) {
         window.open(link, "_blank", "noopener,noreferrer");
@@ -287,67 +303,132 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
   );
 }
 
+/**
+ * Регистрация на событие площадки из баннера.
+ *
+ * Данные баннера — только витрина: отметка «иду», число участников и право
+ * отметиться берутся из самого события, поэтому окно спрашивает его при
+ * открытии. Без привязанного события окно не открывается вовсе — такой
+ * баннер ведёт по своей ссылке.
+ */
 function EventSignupModal({ banner, onClose }: { banner: Banner | null; onClose: () => void }) {
+  const navigate = useNavigate();
+  const [event, setEvent] = useState<ClubEvent | null>(null);
+  const [failed, setFailed] = useState(false);
+  const uuid = banner?.event?.uuid ?? null;
+  const { toggle, busyUuid } = useEventAttendance(setEvent);
+
   useEffect(() => {
-    if (!banner) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [banner, onClose]);
+    setEvent(null);
+    setFailed(false);
+    if (!uuid) return;
+    let alive = true;
+    fetchEvent(uuid)
+      .then((e) => alive && setEvent(e))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [uuid]);
+
+  const preview = banner?.event;
+  const when = preview?.startsAt ? eventDateParts(event?.startsAt ?? preview.startsAt).full : "";
+  const canAttend = event ? event.going || event.can.attend : false;
 
   return (
-    <AnimatePresence>
-      {banner && (
-        <m.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[var(--z-popover)] flex items-end justify-center p-0 sm:items-center sm:p-4"
-          style={{ background: "rgba(0,0,0,0.55)" }}
-          onClick={onClose}
-        >
-          <m.div
-            initial={{ y: 30, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 30, opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full rounded-t-[20px] p-[22px] sm:max-w-[420px] sm:rounded-[18px]"
-            style={{ background: "var(--background-elevated)", border: "1px solid var(--border)" }}
-          >
-            <div
-              className="grid h-[44px] w-[44px] place-items-center rounded-full"
-              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-            >
-              <CalendarDays className="h-[22px] w-[22px]" />
+    <Dialog open={Boolean(banner && preview)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Регистрация на мероприятие</DialogTitle>
+          <DialogDescription>{event?.title ?? preview?.title ?? banner?.title}</DialogDescription>
+        </DialogHeader>
+        <dl className="mt-1.5 flex flex-col gap-2 text-[14px]">
+          {when && (
+            <div className="flex items-start gap-2">
+              <dt className="sr-only">Когда</dt>
+              <CalendarDays
+                className="mt-0.5 h-[16px] w-[16px] shrink-0"
+                style={{ color: "var(--foreground-50)" }}
+                aria-hidden
+              />
+              <dd style={{ color: "var(--foreground)" }}>{when}</dd>
             </div>
-            <h3
-              className="mt-[14px] text-[18px] font-bold"
-              style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
-            >
-              Регистрация на мероприятие
-            </h3>
-            <p
-              className="mt-[6px] text-[14px] leading-relaxed"
-              style={{ color: "var(--foreground-70)" }}
-            >
-              {banner.title}
-            </p>
-            <p className="mt-[10px] text-[13px]" style={{ color: "var(--foreground-50)" }}>
-              Заявка будет доступна после подключения модуля мероприятий.
-            </p>
-            <button
+          )}
+          {(event?.locationName ?? preview?.locationName) && (
+            <div className="flex items-start gap-2">
+              <dt className="sr-only">Где</dt>
+              <MapPin
+                className="mt-0.5 h-[16px] w-[16px] shrink-0"
+                style={{ color: "var(--foreground-50)" }}
+                aria-hidden
+              />
+              <dd style={{ color: "var(--foreground)" }}>
+                {event?.locationName ?? preview?.locationName}
+              </dd>
+            </div>
+          )}
+          {event && (
+            <div className="flex items-start gap-2">
+              <dt className="sr-only">Участники</dt>
+              <Users
+                className="mt-0.5 h-[16px] w-[16px] shrink-0"
+                style={{ color: "var(--foreground-50)" }}
+                aria-hidden
+              />
+              <dd style={{ color: "var(--foreground)" }}>{attendeesLabel(event.attendeesCount)}</dd>
+            </div>
+          )}
+        </dl>
+
+        {failed && (
+          <p role="alert" className="mt-2.5 text-[13px]" style={{ color: "var(--error, #dc2626)" }}>
+            Не удалось загрузить мероприятие. Попробуйте позже.
+          </p>
+        )}
+        {event && !canAttend && (
+          <p className="mt-2.5 text-[13px]" style={{ color: "var(--foreground-50)" }}>
+            {event.displayStatus === "cancelled"
+              ? "Мероприятие отменено."
+              : event.displayStatus === "past"
+                ? "Мероприятие уже прошло."
+                : "На это мероприятие сейчас нельзя отметиться."}
+          </p>
+        )}
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
+          {event && canAttend && (
+            <Button
               type="button"
-              onClick={onClose}
-              className="mt-[18px] h-[44px] w-full rounded-[12px] text-[14px] font-semibold text-[var(--accent-foreground)] transition-transform active:scale-[0.99]"
-              style={{ background: "var(--accent)" }}
+              className="flex-1 gap-1.5"
+              variant={event.going ? "outline" : "default"}
+              disabled={busyUuid === event.uuid}
+              aria-pressed={event.going}
+              onClick={() => toggle(event)}
             >
-              Понятно
-            </button>
-          </m.div>
-        </m.div>
-      )}
-    </AnimatePresence>
+              {event.going && <Check className="h-[15px] w-[15px]" aria-hidden />}
+              {event.going ? "Вы идёте — отменить" : "Пойду"}
+            </Button>
+          )}
+          {!event && !failed && (
+            <Button type="button" className="flex-1" disabled>
+              Загружаем…
+            </Button>
+          )}
+          {uuid && (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                onClose();
+                void navigate({ to: "/events/$uuid", params: { uuid } });
+              }}
+            >
+              Подробнее
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

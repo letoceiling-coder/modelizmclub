@@ -494,6 +494,9 @@ export interface AdminBannerRow {
   linkUrl: string;
   imageUrl: string | null;
   imageMediaUuid: string | null;
+  /** Событие площадки, на которое регистрирует кнопка баннера. */
+  eventUuid: string | null;
+  eventTitle: string | null;
   startsAt: string;
   endsAt: string;
   isActive: boolean;
@@ -515,6 +518,8 @@ interface ApiBanner {
   until_label?: string | null;
   link_url?: string | null;
   image_url?: string | null;
+  event_uuid?: string | null;
+  event_title?: string | null;
   starts_at?: string | null;
   ends_at?: string | null;
   is_active?: boolean;
@@ -540,6 +545,8 @@ function mapAdminBanner(b: ApiBanner): AdminBannerRow {
     linkUrl: b.link_url ?? "",
     imageUrl: b.image_url ?? null,
     imageMediaUuid: null,
+    eventUuid: b.event_uuid ?? null,
+    eventTitle: b.event_title ?? null,
     startsAt: b.starts_at ? b.starts_at.slice(0, 10) : "",
     endsAt: b.ends_at ? b.ends_at.slice(0, 10) : "",
     isActive: b.is_active ?? true,
@@ -622,6 +629,7 @@ export async function updateAdminBanner(
     until_label?: string | null;
     link_url?: string | null;
     image_media_uuid?: string | null;
+    event_uuid?: string | null;
     starts_at?: string | null;
     ends_at?: string | null;
     is_active?: boolean;

@@ -222,6 +222,8 @@ function emptyBanner(
     linkUrl: "",
     imageUrl: null,
     imageMediaUuid: null,
+    eventUuid: null,
+    eventTitle: null,
     startsAt: "",
     endsAt: "",
     isActive: true,

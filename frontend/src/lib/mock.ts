@@ -336,6 +336,14 @@ export interface Banner {
   scheduleFrom?: string;
   scheduleTo?: string;
   active?: boolean;
+  /** Событие площадки за баннером: кнопка регистрирует, а не ведёт по ссылке. */
+  event?: {
+    uuid: string;
+    title: string;
+    startsAt: string | null;
+    status: string;
+    locationName: string | null;
+  } | null;
 }
 
 export interface Tariff {

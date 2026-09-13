@@ -11,6 +11,7 @@ import {
 } from "@/components/entity/ManageFields";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 import { CommunityBrandingForm } from "@/components/communities/CommunityBrandingForm";
+import { CommunityEventsSection } from "@/components/events/CommunityEventsSection";
 import { fetchCommunityCategories, type CommunityCategoryOption } from "@/lib/api/entity-requests";
 import {
   updateCommunity,
@@ -200,6 +201,12 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
           onClick={() => void save()}
         />
       </ManageSection>
+
+      {!isDemoMode() && (
+        <ManageSection title="Мероприятия">
+          <CommunityEventsSection slug={community.id} canManage compact />
+        </ManageSection>
+      )}
 
       {requests.length > 0 && (
         <ManageSection title="Заявки на вступление">

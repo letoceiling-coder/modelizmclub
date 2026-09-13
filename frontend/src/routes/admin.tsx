@@ -10,6 +10,7 @@ export type Section =
   | "delivery"
   | "monetization"
   | "feedBanners"
+  | "events"
   | "feedGuestAccess"
   | "notificationPolicy"
   | "landingBlocks"

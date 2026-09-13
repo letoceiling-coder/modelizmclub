@@ -26,6 +26,7 @@ import {
   FileText,
   Palette,
   Search,
+  CalendarDays,
 } from "lucide-react";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
@@ -74,6 +75,11 @@ const MonetizationSection = lazy(() =>
 );
 const FeedBannersSection = lazy(() =>
   import("@/components/admin/AdminThinSections").then((m) => ({ default: m.FeedBannersSection })),
+);
+const AdminEventsSection = lazy(() =>
+  import("@/components/admin/AdminEventsSection").then((m) => ({
+    default: m.AdminEventsSection,
+  })),
 );
 const FeedGuestAccessSection = lazy(() =>
   import("@/components/admin/AdminThinSections").then((m) => ({
@@ -174,6 +180,12 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: Admi
     roles: ["admin"],
   },
   {
+    id: "events",
+    labelKey: "pages.adminShell.nav.events",
+    icon: CalendarDays,
+    roles: ["admin"],
+  },
+  {
     id: "feedGuestAccess",
     labelKey: "pages.adminShell.nav.feedGuestAccess",
     icon: ShieldCheck,
@@ -265,6 +277,7 @@ function SectionViewInner({
   if (section === "applications") return <ApplicationsSection />;
   if (section === "monetization") return <MonetizationSection />;
   if (section === "feedBanners") return <FeedBannersSection />;
+  if (section === "events") return <AdminEventsSection />;
   if (section === "feedGuestAccess") return <FeedGuestAccessSection />;
   if (section === "notificationPolicy") return <NotificationPolicySection />;
   if (section === "landingBlocks") return <LandingBlocksSection />;
