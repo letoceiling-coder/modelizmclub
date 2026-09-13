@@ -30,6 +30,17 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Прогон с боевым окружением — это прогон против боевых доступов:
+        // SMS, банк, почта. Имя базы проверяется ниже, но база — не единственное,
+        // что тесты трогают снаружи.
+        if (! app()->environment('testing')) {
+            $this->fail('Tests must run with APP_ENV=testing, got: '.app()->environment());
+        }
+
+        if ((string) config('sms.iqsms.login') !== '' || (string) config('sms.mts.login') !== '' || (string) config('sms.mts.token') !== '') {
+            $this->fail('Tests must not see real SMS credentials (IQSMS_LOGIN / MTS_LOGIN / MTS_TOKEN). See phpunit.xml.');
+        }
+
         if (config('database.default') !== 'pgsql') {
             $this->fail(
                 'Tests must run on PostgreSQL (DB_CONNECTION=pgsql). '
