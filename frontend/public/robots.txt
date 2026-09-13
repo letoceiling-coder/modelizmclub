@@ -1,0 +1,39 @@
+# modelizmclub.ru
+# Закрыто то, что гость всё равно не откроет без входа, и служебные адреса.
+# Публичные разделы и карточки — в sitemap.xml.
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /settings
+Disallow: /profile
+Disallow: /messenger
+Disallow: /notifications
+Disallow: /friends
+Disallow: /favorites
+Disallow: /my-ads
+Disallow: /ads/new
+Disallow: /communities/new
+Disallow: /channels/new
+Disallow: /reviews/upload
+Disallow: /deals
+Disallow: /safe-deal
+Disallow: /safe-deals
+Disallow: /wallet
+Disallow: /balance
+Disallow: /subscription
+Disallow: /pay/
+Disallow: /login
+Disallow: /register
+Disallow: /recover
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /auth
+Disallow: /oauth/
+Disallow: /onboarding
+Disallow: /diag
+Disallow: /r/
+Disallow: /api/
+Disallow: /docs
+
+Sitemap: https://modelizmclub.ru/sitemap.xml
