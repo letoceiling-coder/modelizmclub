@@ -15,6 +15,7 @@ use Modules\PublicContent\Http\Controllers\Api\V1\IndexDeliveryMethodsController
 use Modules\PublicContent\Http\Controllers\Api\V1\PlacementPricingController;
 use Modules\PublicContent\Http\Controllers\Api\V1\PublicBootstrapController;
 use Modules\PublicContent\Http\Controllers\Api\V1\SiteBrandingController;
+use Modules\PublicContent\Http\Controllers\Api\V1\SitemapController;
 
 Route::prefix('public')->group(function (): void {
     Route::get('bootstrap', PublicBootstrapController::class);
@@ -30,6 +31,7 @@ Route::prefix('public')->group(function (): void {
     Route::get('branding', SiteBrandingController::class);
     Route::get('delivery-methods', IndexDeliveryMethodsController::class);
     Route::get('placement-pricing', PlacementPricingController::class);
+    Route::get('sitemap', SitemapController::class);
     Route::post('referrals/click', \Modules\PublicContent\Http\Controllers\Api\V1\TrackReferralClickController::class);
 });
 
