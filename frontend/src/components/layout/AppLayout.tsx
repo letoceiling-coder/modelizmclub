@@ -3,7 +3,7 @@ import { APP_SCROLL_ID } from "@/lib/scroll-policy";
 import { useMatch } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { hasDirectionsRail } from "@/lib/layout/rails";
-import { loadNavExpanded, selectNavExpanded, useStore } from "@/lib/store";
+import { loadNavExpanded, loadPersistedFavorites, selectNavExpanded, useStore } from "@/lib/store";
 import { Sidebar } from "./Sidebar";
 import { DirectionsRightRail } from "./DirectionsRightRail";
 import { BottomNav } from "./BottomNav";
@@ -67,6 +67,10 @@ export function AppLayout({
   useEffect(() => {
     if (navCollapsed) loadNavExpanded();
   }, [navCollapsed]);
+  // Избранное из localStorage — тоже после гидрации (см. lib/store).
+  useEffect(() => {
+    loadPersistedFavorites();
+  }, []);
   const narrowNav = Boolean(navCollapsed) && !navExpanded;
 
   /*

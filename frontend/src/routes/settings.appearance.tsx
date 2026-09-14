@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { RadioCard } from "@/components/ui-bespoke/RadioCard";
 import { useTheme, type ThemePreference } from "@/components/ThemeProvider";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 export const Route = createFileRoute("/settings/appearance")({
   component: AppearanceSection,
@@ -32,7 +33,11 @@ const OPTIONS: { value: ThemePreference; icon: typeof Sun; titleKey: string; des
 
 function AppearanceSection() {
   const { t } = useTranslation();
-  const { preference, setPreference } = useTheme();
+  const { preference: storedPreference, setPreference } = useTheme();
+  // Выбор темы хранится в браузере; сервер его не знает и отмечает «системную».
+  // До конца гидрации показываем то же, иначе React #418 (D8).
+  const hydrated = useHydrated();
+  const preference: ThemePreference = hydrated ? storedPreference : "system";
 
   return (
     <SettingsSectionShell title={t("pages.settings.appearanceTitle")}>

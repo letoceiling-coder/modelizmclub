@@ -30,7 +30,12 @@ function HistorySection() {
     profile: t("pages.settings.historyKindProfile"),
     community: t("pages.settings.historyKindCommunity"),
   };
-  const [items, setItems] = useState<ViewHistoryItem[]>(getViewHistory);
+  // Местная история — из localStorage, поэтому не в первом кадре: сервер её
+  // не видит и рисует пустой список, а заполненный давал React #418 (D8).
+  const [items, setItems] = useState<ViewHistoryItem[]>([]);
+  useEffect(() => {
+    setItems((current) => (current.length > 0 ? current : getViewHistory()));
+  }, []);
   /*
    * Четыре состояния списка, как в избранном и сообществах: данные, отказ с
    * «Повторить», пусто, снова данные. Раньше отказ уходил в никуда, и «не
