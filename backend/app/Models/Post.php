@@ -40,6 +40,22 @@ class Post extends Model
         'scheduled_at',
     ];
 
+    protected static function booted(): void
+    {
+        // Удалённая запись не должна числиться отложенной. Публиковать её
+        // команда и так не станет (SoftDeletes), но статус «scheduled» с
+        // прошедшим сроком выглядел как сбой: так висела запись 69 с 14.08.
+        static::deleted(function (Post $post): void {
+            if ($post->isForceDeleting()) {
+                return;
+            }
+            if ($post->status !== ContentStatus::Scheduled && $post->scheduled_at === null) {
+                return;
+            }
+            $post->forceFill(['status' => ContentStatus::Draft, 'scheduled_at' => null])->saveQuietly();
+        });
+    }
+
     protected function casts(): array
     {
         return [
