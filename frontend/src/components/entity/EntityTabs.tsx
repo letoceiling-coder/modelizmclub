@@ -56,8 +56,25 @@ export function EntityTabs<K extends string>({
     if (!row || !btn) return;
     // Только по горизонтали и только внутри ряда: scrollIntoView увёл бы
     // вместе с рядом всю страницу к вкладкам, стоит переключить раздел.
-    const left = btn.offsetLeft - row.clientWidth / 2 + btn.clientWidth / 2;
-    row.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+    const center = (behavior: ScrollBehavior) => {
+      const left = btn.offsetLeft - row.clientWidth / 2 + btn.clientWidth / 2;
+      row.scrollTo({ left: Math.max(0, left), behavior });
+    };
+    center("smooth");
+
+    /*
+     * Ширины вкладок меняются уже после первой прокрутки: счётчики приходят
+     * запросами и добавляют кружки. При прямом заходе на `?tab=posts` ряд
+     * прокручивался, пока он ещё помещался в экран, а потом четыре кружка
+     * выталкивали «Записи» за край — `scrollLeft` оставался нулём (замер на
+     * проде 15.09, 375). Поэтому центрируем снова, когда меняется размер
+     * любой вкладки. Ручную прокрутку это не перебивает: смахивание размеров
+     * не меняет.
+     */
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => center("auto"));
+    for (const tab of Array.from(row.children)) observer.observe(tab);
+    return () => observer.disconnect();
   }, [active]);
 
   return (
