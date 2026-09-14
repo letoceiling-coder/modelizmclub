@@ -12,6 +12,7 @@ use App\Models\Media;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Support\DemoImageFactory;
 use Illuminate\Console\Command;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Factory as Http;
@@ -308,9 +309,8 @@ class StressTestCommand extends Command
             imagefilledellipse($img, random_int(0, $w), random_int(0, $h), random_int(40, 240), random_int(40, 240), $c);
         }
 
-        $fg = imagecolorallocate($img, 255, 255, 255);
-        imagestring($img, 5, 24, 24, $label, $fg);
-        imagestring($img, 3, 24, 50, 'modelizmclub stress '.date('H:i:s'), $fg);
+        // Та же подпись, что у демо-картинок: imagestring не знает кириллицы.
+        DemoImageFactory::drawCaption($img, $label, 'modelizmclub stress '.date('H:i:s'));
 
         $base = tempnam(sys_get_temp_dir(), 'stress_');
         $path = $base.'.jpg';
