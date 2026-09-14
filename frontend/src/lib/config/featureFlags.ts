@@ -24,6 +24,9 @@ export interface FeatureFlags {
   escrowEnabled: boolean;
   /** Off until admin enables paid listing placement. Server-controlled via /admin. */
   listingPaymentEnabled: boolean;
+  /** Настоящее распознавание голосовых настроено на сервере (не заглушка,
+   *  есть ключи). Без него «Показать текст» у голосового не показывается. */
+  voiceTranscriptionEnabled: boolean;
 }
 
 const DEFAULTS: FeatureFlags = {
@@ -32,6 +35,7 @@ const DEFAULTS: FeatureFlags = {
   marketEnabled: false,
   escrowEnabled: false,
   listingPaymentEnabled: false,
+  voiceTranscriptionEnabled: false,
 };
 
 const LS_KEY = "modelizm_feature_flags";
@@ -44,6 +48,7 @@ const SERVER_CONTROLLED: (keyof FeatureFlags)[] = [
   "marketEnabled",
   "escrowEnabled",
   "listingPaymentEnabled",
+  "voiceTranscriptionEnabled",
 ];
 
 let serverFlags: Partial<FeatureFlags> | null = null;

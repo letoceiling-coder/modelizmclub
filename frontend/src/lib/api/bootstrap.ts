@@ -16,6 +16,7 @@ export interface BootstrapFeatureFlags {
   market_enabled?: boolean;
   escrow_enabled?: boolean;
   listing_payment_enabled?: boolean;
+  voice_transcription_enabled?: boolean;
 }
 
 export interface BootstrapStats {
@@ -98,6 +99,7 @@ export function mapBootstrapFeatureFlags(data: BootstrapFeatureFlags): {
   marketEnabled: boolean;
   escrowEnabled: boolean;
   listingPaymentEnabled: boolean;
+  voiceTranscriptionEnabled: boolean;
 } {
   return {
     communitiesEnabled: Boolean(data.communities_enabled),
@@ -105,5 +107,6 @@ export function mapBootstrapFeatureFlags(data: BootstrapFeatureFlags): {
     marketEnabled: Boolean(data.market_enabled),
     escrowEnabled: Boolean(data.escrow_enabled),
     listingPaymentEnabled: Boolean(data.listing_payment_enabled),
+    voiceTranscriptionEnabled: Boolean(data.voice_transcription_enabled),
   };
 }

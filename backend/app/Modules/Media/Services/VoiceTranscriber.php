@@ -23,6 +23,31 @@ use Modules\Media\Exceptions\TranscriptionException;
 class VoiceTranscriber
 {
     /**
+     * Настоящая расшифровка настроена: выбран провайдер, а не заглушка, и у
+     * него есть ключи.
+     *
+     * Заглушка расшифровкой не считается. До 14.09 она отвечала на проде
+     * «Тестовой расшифровкой голосового сообщения» под кнопкой «Показать
+     * текст», и выглядело это как плохое распознавание, а не как его
+     * отсутствие. Фронт получает этот ответ флагом voice_transcription_enabled
+     * и без него кнопку не показывает; ключи в .env включат её без выкатки.
+     */
+    public static function available(): bool
+    {
+        $provider = (string) config('media.transcription.provider', 'stub');
+        if ($provider === 'stub' || config('media.transcription.stub')) {
+            return false;
+        }
+
+        if ($provider === 'yandex') {
+            return (string) config('media.transcription.yandex.api_key') !== ''
+                && (string) config('media.transcription.yandex.folder_id') !== '';
+        }
+
+        return false;
+    }
+
+    /**
      * @return array{text: string, lang: string}|null
      *
      * @throws TranscriptionException on provider/config/runtime failure

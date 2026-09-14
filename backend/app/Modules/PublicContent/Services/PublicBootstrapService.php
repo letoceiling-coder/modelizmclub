@@ -16,6 +16,7 @@ use App\Support\ReferralProgramConfig;
 use App\Support\SiteBranding;
 use Illuminate\Support\Facades\Cache;
 use Modules\Catalog\Services\CatalogService;
+use Modules\Media\Services\VoiceTranscriber;
 
 class PublicBootstrapService
 {
@@ -92,6 +93,7 @@ class PublicBootstrapService
                 'market_enabled' => FeatureFlags::enabled('feature.market_enabled'),
                 'escrow_enabled' => FeatureFlags::enabled('feature.escrow_enabled'),
                 'listing_payment_enabled' => FeatureFlags::enabled('feature.listing_payment_enabled'),
+                'voice_transcription_enabled' => VoiceTranscriber::available(),
             ],
             'branding' => SiteBranding::publicPayload(is_array($brandingRaw) ? $brandingRaw : null),
             'footer_contacts' => FooterContacts::publicPayload(is_array($contactsRaw) ? $contactsRaw : null),
@@ -118,7 +120,7 @@ class PublicBootstrapService
                 ],
             ],
             'feed_guest_access' => $this->guestAccess->publicPayload(),
-            'icon_overrides' => is_array($iconRaw) && $iconRaw !== [] ? $iconRaw : new \stdClass(),
+            'icon_overrides' => is_array($iconRaw) && $iconRaw !== [] ? $iconRaw : new \stdClass,
             'landing_faq' => $this->landingFaq(),
             'post_categories' => $this->catalog->postCategoryTree(),
             'listing_categories' => $this->catalog->listingCategoryTree(),
@@ -142,7 +144,7 @@ class PublicBootstrapService
                 'target_value' => $link->target_value,
                 'sort' => $link->sort,
             ])->values()
-        )->all() ?: new \stdClass();
+        )->all() ?: new \stdClass;
     }
 
     /** @return list<array<string, mixed>> */
