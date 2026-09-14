@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -28,15 +28,24 @@ export function SchedulePostDialog({ post, open, onOpenChange, onUpdated }: Prop
   const [timezone, setTimezone] = useState(defaultScheduleTimezone());
   const [saving, setSaving] = useState(false);
 
-  const handleOpen = (next: boolean) => {
-    if (next && post?.scheduledAt) {
-      // Дата и время — в поясе, который выбран в диалоге (см. scheduleInputsFromIso).
-      const filled = scheduleInputsFromIso(post.scheduledAt, timezone);
-      setDate(filled.date);
-      setTime(filled.time);
-    }
-    onOpenChange(next);
-  };
+  /*
+   * Поля — из времени записи, при каждом открытии. Карточка открывает диалог,
+   * выставляя `open`, а Radix зовёт onOpenChange только на закрытие: прежнее
+   * заполнение в обработчике не срабатывало никогда, и «Изменить дату»
+   * показывал «завтра 12:00». Дата и время — в выбранном поясе
+   * (scheduleInputsFromIso), а не дата из UTC и время по браузеру.
+   */
+  useEffect(() => {
+    if (!open || !post?.scheduledAt) return;
+    const filled = scheduleInputsFromIso(post.scheduledAt, timezone);
+    setDate(filled.date);
+    setTime(filled.time);
+    // timezone намеренно не в зависимостях: смена пояса в открытом диалоге
+    // не должна перетирать то, что человек уже поправил руками.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, post?.scheduledAt]);
+
+  const handleOpen = (next: boolean) => onOpenChange(next);
 
   const save = async () => {
     if (!post) return;
