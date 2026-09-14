@@ -28,6 +28,15 @@ class TranscribeMediaController extends Controller
             abort(403);
         }
 
+        // Без настоящего провайдера отвечаем «недоступно», а не текстом
+        // заглушки: выдуманная расшифровка хуже отсутствующей. Сохранённое
+        // раньше тоже не отдаём — на проде это были только заглушки.
+        if (! VoiceTranscriber::available()) {
+            return response()->json([
+                'message' => 'Расшифровка голосовых пока недоступна.',
+            ], 503);
+        }
+
         $existing = MediaTranscript::query()->find($media->id);
         if ($existing?->text) {
             return response()->json(['text' => $existing->text, 'lang' => $existing->lang]);

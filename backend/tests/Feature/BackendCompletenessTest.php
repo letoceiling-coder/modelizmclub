@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\MediaStatus;
 use App\Enums\UserStatus;
 use App\Models\Media;
+use App\Models\MediaTranscript;
 use App\Models\SavedPaymentMethod;
 use App\Models\User;
 use App\Models\UserProfile;
@@ -111,9 +112,10 @@ class BackendCompletenessTest extends TestCase
         $this->assertNull(UserTwoFactor::query()->where('user_id', $user->id)->first());
     }
 
-    public function test_transcription_stub_returns_text(): void
+    public function test_transcription_stub_is_reported_unavailable_and_not_stored(): void
     {
-        config(['media.transcription.stub' => true]);
+        // Заглушка — не расшифровка: 503 и пустая таблица, а не выдуманный текст.
+        config(['media.transcription.provider' => 'stub', 'media.transcription.stub' => true]);
         $user = $this->seedUser();
 
         $media = Media::query()->create([
@@ -129,8 +131,27 @@ class BackendCompletenessTest extends TestCase
 
         $this->actingAs($user, 'sanctum')
             ->postJson("/api/v1/media/{$media->uuid}/transcribe")
+            ->assertStatus(503)
+            ->assertJsonMissingPath('text');
+
+        $this->assertSame(0, MediaTranscript::query()->count());
+        $this->getJson('/api/v1/public/feature-flags')
             ->assertOk()
-            ->assertJsonStructure(['text', 'lang']);
+            ->assertJsonPath('data.voice_transcription_enabled', false);
+    }
+
+    public function test_voice_transcription_flag_requires_real_provider_keys(): void
+    {
+        config([
+            'media.transcription.stub' => false,
+            'media.transcription.provider' => 'yandex',
+            'media.transcription.yandex.api_key' => '',
+            'media.transcription.yandex.folder_id' => '',
+        ]);
+        $this->getJson('/api/v1/public/feature-flags')->assertJsonPath('data.voice_transcription_enabled', false);
+
+        config(['media.transcription.yandex.api_key' => 'k', 'media.transcription.yandex.folder_id' => 'f']);
+        $this->getJson('/api/v1/public/feature-flags')->assertJsonPath('data.voice_transcription_enabled', true);
     }
 
     public function test_reports_accept_extended_types(): void

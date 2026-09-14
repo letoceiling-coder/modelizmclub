@@ -3,6 +3,7 @@ import { Play, Pause, ChevronDown, FileText, Loader2 } from "lucide-react";
 import type { VoiceMessage } from "@/lib/mock";
 import { transcribeVoiceMedia } from "@/lib/api/chat";
 import { isDemoMode } from "@/lib/demo-mode";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useTranslation } from "react-i18next";
 
 const EXPAND_MS = 280;
@@ -39,6 +40,13 @@ export function VoiceBubble({
   onResize?: () => void;
 }) {
   const { t } = useTranslation();
+  /*
+   * «Показать текст» — только при настоящем распознавании. До 14.09 на проде
+   * под кнопкой стояла заглушка «Тестовая расшифровка голосового сообщения»:
+   * человек решал, что распознавание плохое, хотя его не было вовсе.
+   * Демо-режим оставляет кнопку — там заглушка и есть весь смысл.
+   */
+  const transcriptionEnabled = useFeatureFlag("voiceTranscriptionEnabled") || isDemoMode();
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -266,71 +274,77 @@ export function VoiceBubble({
         </div>
       </div>
 
-      <button
-        onClick={toggleTranscript}
-        className="mt-[8px] flex w-full items-center gap-[6px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors"
-        style={{
-          background: isMe
-            ? "rgba(255,255,255,0.12)"
-            : "color-mix(in oklab, var(--accent) 8%, transparent)",
-          color: fg,
-        }}
-        aria-expanded={expanded}
-      >
-        <FileText size={12} style={{ color: subtle, flexShrink: 0 }} />
-        <span className="flex-1 text-[12px] font-medium">
-          {expanded ? t("components.voiceBubble.hideText") : t("components.voiceBubble.showText")}
-        </span>
-        {showSkeleton && (
-          <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />
-        )}
-        <ChevronDown
-          size={12}
-          style={{
-            color: subtle,
-            flexShrink: 0,
-            transform: expanded ? "rotate(180deg)" : "none",
-            transition: `transform ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
-          }}
-        />
-      </button>
+      {transcriptionEnabled && (
+        <>
+          <button
+            onClick={toggleTranscript}
+            className="mt-[8px] flex w-full items-center gap-[6px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors"
+            style={{
+              background: isMe
+                ? "rgba(255,255,255,0.12)"
+                : "color-mix(in oklab, var(--accent) 8%, transparent)",
+              color: fg,
+            }}
+            aria-expanded={expanded}
+          >
+            <FileText size={12} style={{ color: subtle, flexShrink: 0 }} />
+            <span className="flex-1 text-[12px] font-medium">
+              {expanded
+                ? t("components.voiceBubble.hideText")
+                : t("components.voiceBubble.showText")}
+            </span>
+            {showSkeleton && (
+              <Loader2 size={12} className="animate-spin shrink-0" style={{ color: subtle }} />
+            )}
+            <ChevronDown
+              size={12}
+              style={{
+                color: subtle,
+                flexShrink: 0,
+                transform: expanded ? "rotate(180deg)" : "none",
+                transition: `transform ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+              }}
+            />
+          </button>
 
-      <div
-        className="overflow-hidden"
-        style={{
-          height: panelHeight,
-          transition: panelAnimating
-            ? `height ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`
-            : undefined,
-        }}
-        onTransitionEnd={(e) => {
-          if (e.propertyName !== "height") return;
-          setPanelAnimating(false);
-          if (expanded) {
-            const next = measurePanelHeight();
-            if (next !== panelHeight) setPanelHeight(next);
-          }
-          notifyResize();
-        }}
-      >
-        <div
-          ref={transcriptRef}
-          className="mt-[6px] rounded-[10px] px-[8px] py-[8px] text-[12px] leading-[1.45]"
-          style={{
-            background: isMe
-              ? "rgba(255,255,255,0.10)"
-              : "color-mix(in oklab, var(--accent) 6%, transparent)",
-            color: transcriptBody && !showSkeleton ? fg : subtle,
-            minHeight: showSkeleton ? 52 : undefined,
-          }}
-        >
-          {showSkeleton ? (
-            <TranscriptSkeleton subtle={subtle} />
-          ) : (
-            transcriptBody || unavailableText
-          )}
-        </div>
-      </div>
+          <div
+            className="overflow-hidden"
+            style={{
+              height: panelHeight,
+              transition: panelAnimating
+                ? `height ${EXPAND_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`
+                : undefined,
+            }}
+            onTransitionEnd={(e) => {
+              if (e.propertyName !== "height") return;
+              setPanelAnimating(false);
+              if (expanded) {
+                const next = measurePanelHeight();
+                if (next !== panelHeight) setPanelHeight(next);
+              }
+              notifyResize();
+            }}
+          >
+            <div
+              ref={transcriptRef}
+              className="mt-[6px] rounded-[10px] px-[8px] py-[8px] text-[12px] leading-[1.45]"
+              style={{
+                background: isMe
+                  ? "rgba(255,255,255,0.10)"
+                  : "color-mix(in oklab, var(--accent) 6%, transparent)",
+                color: transcriptBody && !showSkeleton ? fg : subtle,
+                minHeight: showSkeleton ? 52 : undefined,
+              }}
+            >
+              {showSkeleton ? (
+                <TranscriptSkeleton subtle={subtle} />
+              ) : (
+                transcriptBody || unavailableText
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

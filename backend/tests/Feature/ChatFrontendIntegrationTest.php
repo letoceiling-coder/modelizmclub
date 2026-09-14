@@ -19,13 +19,14 @@ use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Modules\Media\Services\VoiceTranscriber;
 use Tests\Feature\Policies\PolicyFixtures;
 use Tests\TestCase;
 
 class ChatFrontendIntegrationTest extends TestCase
 {
     use PolicyFixtures;
-
     use RefreshDatabase;
 
     private function usersWithProfiles(): array
@@ -256,12 +257,20 @@ class ChatFrontendIntegrationTest extends TestCase
 
     public function test_recipient_can_transcribe_received_voice(): void
     {
-        config(['media.transcription.stub' => true]);
+        config([
+            'media.transcription.stub' => false,
+            'media.transcription.provider' => 'yandex',
+            'media.transcription.yandex.api_key' => 'test-key',
+            'media.transcription.yandex.folder_id' => 'test-folder',
+        ]);
+        $this->mock(VoiceTranscriber::class)
+            ->shouldReceive('transcribe')->once()
+            ->andReturn(['text' => 'Привет, модель готова', 'lang' => 'ru']);
         [$sender, $recipient] = $this->usersWithProfiles();
         $conv = $this->directConversation($sender, $recipient);
 
         $media = Media::create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'uploaded_by' => $sender->id,
             'disk' => 'local',
             'path' => 'media/voice/2026/07/test.ogg',
@@ -284,7 +293,13 @@ class ChatFrontendIntegrationTest extends TestCase
         $this->actingAs($recipient, 'sanctum')
             ->postJson("/api/v1/media/{$media->uuid}/transcribe")
             ->assertOk()
-            ->assertJsonStructure(['text', 'lang']);
+            ->assertJsonPath('text', 'Привет, модель готова');
+
+        // Второй запрос — из базы, провайдер больше не зовётся (once() выше).
+        $this->actingAs($recipient, 'sanctum')
+            ->postJson("/api/v1/media/{$media->uuid}/transcribe")
+            ->assertOk()
+            ->assertJsonPath('text', 'Привет, модель готова');
     }
 
     public function test_hide_message_for_current_user_only(): void
