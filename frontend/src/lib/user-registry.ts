@@ -43,6 +43,14 @@ const placeholder = (id: ID): User => ({
  */
 export function registerUser(user: Partial<User> & { id: ID }): void {
   if (!user?.id) return;
+  /*
+   * На сервере реестр не наполняем. Модуль живёт, пока жив процесс Node, и
+   * записи копились бы между запросами разных посетителей: страница,
+   * отрисованная после другой, знала бы людей, которых браузер при гидрации
+   * не знает, — React #418 (D8, страница канала после страницы сообщества).
+   * В первом кадре сервер и браузер одинаково видят пустой реестр.
+   */
+  if (typeof window === "undefined") return;
   users[user.id] = { ...placeholder(user.id), ...users[user.id], ...user };
 }
 
