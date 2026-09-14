@@ -13,6 +13,7 @@ use App\Models\CommunityCategory;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -63,6 +64,45 @@ class ClubEventsTest extends TestCase
 
         Queue::assertPushed(SendClubEventNotificationsJob::class, fn ($job) => $job->kind === 'published');
         $this->assertTrue(AuditLog::query()->where('action', 'event.create')->exists());
+    }
+
+    public function test_starts_at_in_utc_keeps_the_instant_under_moscow_app_timezone(): void
+    {
+        // Прод живёт по Москве, колонки — timestamp без пояса. 14.09 форма
+        // отправила «…T00:16:00Z» (03:16 МСК), в базу легло «00:16», и
+        // карточка показала время на три часа раньше.
+        $previous = date_default_timezone_get();
+        config(['app.timezone' => 'Europe/Moscow']);
+        date_default_timezone_set('Europe/Moscow');
+
+        try {
+            $owner = $this->user();
+            $community = $this->community($owner);
+            Sanctum::actingAs($owner);
+
+            $utc = now('UTC')->addDays(2)->setTime(0, 16)->toIso8601ZuluString();
+            $uuid = $this->postJson("/api/v1/communities/{$community->slug}/events", [
+                'title' => 'Сверка пояса',
+                'starts_at' => $utc,
+            ])->assertCreated()->json('data.uuid');
+
+            $returned = $this->getJson("/api/v1/events/{$uuid}")->assertOk()->json('data.starts_at');
+            $this->assertTrue(
+                Carbon::parse($returned)->equalTo(Carbon::parse($utc)),
+                "ожидали {$utc}, сервер вернул {$returned}",
+            );
+            $this->assertSame('03:16', ClubEvent::query()->where('uuid', $uuid)->value('starts_at')->format('H:i'));
+
+            // Правка — тот же путь.
+            $moved = now('UTC')->addDays(3)->setTime(9, 0)->toIso8601ZuluString();
+            $this->patchJson("/api/v1/events/{$uuid}", ['starts_at' => $moved])->assertOk();
+            $this->assertTrue(Carbon::parse(
+                $this->getJson("/api/v1/events/{$uuid}")->json('data.starts_at')
+            )->equalTo(Carbon::parse($moved)));
+        } finally {
+            config(['app.timezone' => $previous]);
+            date_default_timezone_set($previous);
+        }
     }
 
     public function test_member_cannot_create_event(): void
