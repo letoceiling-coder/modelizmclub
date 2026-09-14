@@ -421,11 +421,14 @@ interface ApiPromocode {
 export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
   const res = await api<{ data: Paginated<ApiPromocode> }>("/admin/promocodes");
   const rows = res.data?.data ?? [];
-  const today = new Date().toISOString().slice(0, 10);
+  const now = Date.now();
   return rows.map((p) => {
+    // Сервер отдаёт срок с московским смещением («…T23:59:59+03:00»): первые
+    // десять знаков — введённый день. Истёк ли — по моменту, не по строкам:
+    // сравнение дат-строк с UTC-«сегодня» гасило промокод на три часа раньше.
     const expiresAt = p.valid_until ? p.valid_until.slice(0, 10) : "";
-    const status: "active" | "expired" =
-      p.is_active === false || (expiresAt && expiresAt < today) ? "expired" : "active";
+    const expired = p.valid_until ? new Date(p.valid_until).getTime() < now : false;
+    const status: "active" | "expired" = p.is_active === false || expired ? "expired" : "active";
     return {
       id: p.code,
       code: p.code,

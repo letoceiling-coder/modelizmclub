@@ -2,6 +2,8 @@
 
 namespace App\Models\Concerns;
 
+use Illuminate\Support\Carbon;
+
 /**
  * Время пишется в базу в поясе приложения, откуда бы ни пришло.
  *
@@ -31,5 +33,20 @@ trait StoresDatesInAppTimezone
         return empty($value) ? $value : $this->asDateTime($value)
             ->setTimezone((string) config('app.timezone'))
             ->format($this->getDateFormat().'P');
+    }
+
+    /**
+     * В JSON — тоже в поясе приложения, со смещением («…T23:59:59+03:00»).
+     *
+     * По умолчанию Eloquent отдаёт `toArray()`/`paginate()` в UTC («…Z»), и
+     * интерфейс, берущий дату как `slice(0, 10)`, показывал предыдущий день:
+     * промокод «до 31.12» в таблице админки стоял «до 30.12». Мгновение то же,
+     * меняется только запись.
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return Carbon::instance($date)
+            ->setTimezone((string) config('app.timezone'))
+            ->toIso8601String();
     }
 }

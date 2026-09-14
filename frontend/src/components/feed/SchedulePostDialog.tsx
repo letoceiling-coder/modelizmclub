@@ -6,6 +6,7 @@ import {
   buildSchedulePayload,
   defaultScheduleDateTime,
   defaultScheduleTimezone,
+  scheduleInputsFromIso,
   isScheduleDateTimeValid,
 } from "@/lib/post-schedule";
 import { schedulePost } from "@/lib/api/feed";
@@ -29,11 +30,10 @@ export function SchedulePostDialog({ post, open, onOpenChange, onUpdated }: Prop
 
   const handleOpen = (next: boolean) => {
     if (next && post?.scheduledAt) {
-      const d = new Date(post.scheduledAt);
-      setDate(d.toISOString().slice(0, 10));
-      setTime(
-        `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
-      );
+      // Дата и время — в поясе, который выбран в диалоге (см. scheduleInputsFromIso).
+      const filled = scheduleInputsFromIso(post.scheduledAt, timezone);
+      setDate(filled.date);
+      setTime(filled.time);
     }
     onOpenChange(next);
   };

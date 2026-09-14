@@ -32,9 +32,42 @@ export function defaultScheduleDateTime(): { date: string; time: string } {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   d.setHours(12, 0, 0, 0);
-  const date = d.toISOString().slice(0, 10);
-  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  // Дата — тоже по часам браузера, как и время (не toISOString, там UTC).
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return { date, time };
+}
+
+/**
+ * Дата и время для полей формы из сохранённого ISO — в выбранном поясе.
+ *
+ * Обе части считаются в одном поясе. Диалог переноса брал дату из UTC
+ * (`toISOString().slice(0, 10)`), а время — по часам браузера: запись на
+ * 00:00–02:59 МСК открывалась с предыдущим днём и при сохранении уезжала на
+ * сутки назад.
+ */
+export function scheduleInputsFromIso(
+  iso: string,
+  timezone: string,
+): { date: string; time: string } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(new Date(iso))
+      .map((p) => [p.type, p.value]),
+  );
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour}:${parts.minute}`,
+  };
 }
 
 /** Build API payload: local datetime string + IANA timezone. */

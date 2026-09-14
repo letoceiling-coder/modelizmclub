@@ -268,7 +268,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
                           textAlign: "right",
                         }}
                       >
-                        {a.time}
+                        {formatDate(a.time, "absolute")}
                       </td>
                     </tr>
                   ))}

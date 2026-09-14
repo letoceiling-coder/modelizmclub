@@ -28,6 +28,10 @@ class AuditService
             'new_values' => $new,
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
+            // Время ставит приложение, а не база: значение колонки по умолчанию
+            // (CURRENT_TIMESTAMP) пишется в поясе сессии Postgres — UTC, — и
+            // журнал отставал на три часа от всех остальных записей.
+            'created_at' => now(),
         ]);
     }
 }

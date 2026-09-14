@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\StoresDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuditLog extends Model
 {
+    use StoresDatesInAppTimezone;
+
     public $timestamps = false;
 
     protected $table = 'audit_logs';
@@ -20,6 +23,7 @@ class AuditLog extends Model
         'new_values',
         'ip_address',
         'user_agent',
+        'created_at',
     ];
 
     protected function casts(): array

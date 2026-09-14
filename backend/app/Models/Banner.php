@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\StoresDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Banner extends Model
 {
+    use StoresDatesInAppTimezone;
+
     protected $fillable = [
         'placement',
         'title',
