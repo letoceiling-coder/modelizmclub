@@ -68,3 +68,13 @@ describe("formatDate inputs", () => {
     expect(formatDate("")).toBe("");
   });
 });
+
+describe("formatRevisionDate — не зависит от пояса того, кто рисует", () => {
+  // Страница /rules приходит с сервера (Etc/UTC), а гидрируется у человека
+  // в Москве. Дата в поясе рисующего давала разный текст — React #418 (D8).
+  it("показывает московское время при любом поясе процесса", async () => {
+    const { formatRevisionDate } = await import("@/components/legal/RulesDocumentView");
+    expect(formatRevisionDate("2026-08-27T17:07:00Z")).toBe("27 августа 2026, 20:07");
+    expect(formatRevisionDate("2026-12-31T21:30:00Z")).toBe("1 января 2027, 00:30");
+  });
+});

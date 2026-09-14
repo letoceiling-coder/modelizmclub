@@ -1,3 +1,4 @@
+import { useHasToken } from "@/hooks/use-has-token";
 import { Link } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
 import { useCurrentUser, useSessionResolved } from "@/lib/session";
@@ -6,17 +7,17 @@ import {
   isPhoneVerified,
   isPhoneVerificationRequired,
 } from "@/lib/auth/verification";
-import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 
 export function VerificationBanner() {
   const me = useCurrentUser();
   const sessionReady = useSessionResolved();
+  const hasToken = useHasToken();
 
   // Guests must see login, not SMS. Also wait for the boot-time session probe
   // so GUEST_USER is not treated as an unverified account on reload.
   if (!sessionReady || isDemoMode()) return null;
-  if (!isAuthenticated() || isAnonymousUser(me)) return null;
+  if (!hasToken || isAnonymousUser(me)) return null;
   if (!isPhoneVerificationRequired(me) || isPhoneVerified(me)) return null;
 
   return (

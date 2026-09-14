@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { RulePageData, RuleSection, RulesHubData } from "@/lib/api/rules";
-import { formatDate } from "@/lib/format/date";
+import { formatAbsoluteInZone } from "@/lib/format/date";
 
 const SITE_ORIGIN = "https://modelizmclub.ru";
 
@@ -8,7 +8,9 @@ export function formatRevisionDate(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return formatDate(d, "absolute");
+  // По Москве, а не в поясе рисующего: страница приходит с сервера (UTC), и
+  // дата в разных поясах давала React #418 у всех посетителей /rules (D8).
+  return formatAbsoluteInZone(d);
 }
 
 export function rulesJsonLd(page: RulePageData, pathname: string) {

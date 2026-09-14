@@ -1,9 +1,9 @@
+import { useHasToken } from "@/hooks/use-has-token";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { getToken } from "@/lib/api/client";
 import { ROUTES } from "@/lib/routes";
 import cover from "@/assets/cover-modelizm.jpg";
 
@@ -20,7 +20,7 @@ interface Props {
 
 export function AuthLogoLink({ size = 40 }: { size?: number }) {
   const { t } = useTranslation();
-  const isGuest = !getToken();
+  const isGuest = !useHasToken();
   const to = isGuest ? ROUTES.home : ROUTES.feed;
 
   return (

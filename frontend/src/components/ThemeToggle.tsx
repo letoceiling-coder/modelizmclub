@@ -46,11 +46,15 @@ export function ThemeToggle({
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           style={{ display: "inline-flex" }}
         >
-          {isDark ? (
-            <Sun size={20} color="var(--foreground-70)" />
-          ) : (
-            <Moon size={20} color="var(--foreground-70)" />
-          )}
+          {/*
+            Обе иконки в разметке, видна одна — по классу `dark` на <html>.
+            Выбирать иконку по `theme` нельзя: сервер темы не знает и считает
+            её тёмной, браузер со светлой темой рисовал другую иконку, и
+            React падал с #418 на лендинге (D8). Класс `dark` скрипт из
+            __root ставит до первой отрисовки, так что мигания нет.
+          */}
+          <Sun size={20} color="var(--foreground-70)" className="hidden dark:block" />
+          <Moon size={20} color="var(--foreground-70)" className="block dark:hidden" />
         </m.span>
       </AnimatePresence>
     </button>

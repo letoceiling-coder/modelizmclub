@@ -1,10 +1,10 @@
+import { useHasToken } from "@/hooks/use-has-token";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getReferralLink, REFERRAL_MAX_BONUS, REFERRAL_BONUS_PER_INVITE } from "@/lib/referral";
 import { useReferral } from "@/lib/api/referral";
-import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
@@ -116,7 +116,8 @@ function InviteGuestCta() {
 
 export function InviteBlock() {
   const me = useCurrentUser();
-  const isGuest = me.id === GUEST_USER.id && !isAuthenticated() && !isDemoMode();
+  const hasToken = useHasToken();
+  const isGuest = me.id === GUEST_USER.id && !hasToken && !isDemoMode();
 
   if (isGuest) {
     return <InviteGuestCta />;

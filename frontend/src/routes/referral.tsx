@@ -1,10 +1,10 @@
+import { useHasToken } from "@/hooks/use-has-token";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Copy, Check, Share2, Gift, Users, MousePointerClick, Phone, Sparkles } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useReferral } from "@/lib/api/referral";
-import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
@@ -25,7 +25,8 @@ const card: React.CSSProperties = {
 
 function ReferralPage() {
   const me = useCurrentUser();
-  const isGuest = me.id === GUEST_USER.id && !isAuthenticated() && !isDemoMode();
+  const hasToken = useHasToken();
+  const isGuest = me.id === GUEST_USER.id && !hasToken && !isDemoMode();
 
   return (
     <AppLayout>

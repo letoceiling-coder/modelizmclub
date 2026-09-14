@@ -90,3 +90,34 @@ export function formatDate(
   if (d.getFullYear() === now.getFullYear()) return `${dayMonth} в ${hhmm(d)}`;
   return `${dayMonth} ${d.getFullYear()}`;
 }
+
+/**
+ * Абсолютная дата в заданном поясе — одинаковая на сервере и в браузере.
+ *
+ * `formatDate(…, "absolute")` пишет время в поясе того, кто рисует. Для
+ * страницы, пришедшей с сервера, это разные пояса: сервер в Etc/UTC, человек
+ * в Москве, текст расходится, React бросает #418 и пересобирает дерево (D8,
+ * /rules). Для таких мест — эта функция: формат тот же, пояс фиксирован.
+ */
+export function formatAbsoluteInZone(
+  input: string | Date | null | undefined,
+  timeZone = "Europe/Moscow",
+): string {
+  if (input === null || input === undefined || input === "") return "";
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return typeof input === "string" ? input : "";
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${Number(parts.day)} ${MONTHS_GENITIVE[Number(parts.month) - 1]} ${parts.year}, ${parts.hour}:${parts.minute}`;
+}
