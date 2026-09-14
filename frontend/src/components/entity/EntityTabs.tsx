@@ -4,7 +4,10 @@ import { m } from "framer-motion";
 export interface EntityTab<K extends string> {
   key: K;
   label: string;
-  /** Число рядом с названием. 0 и undefined не показываются. */
+  /**
+   * Число рядом с названием. `undefined` — число неизвестно (ещё грузится или
+   * у вкладки его нет), кружка нет. Ноль показывается только при `showZero`.
+   */
   count?: number;
 }
 
@@ -14,6 +17,12 @@ interface Props<K extends string> {
   onChange: (key: K) => void;
   /** Общий для страницы идентификатор подчёркивания, чтобы оно переезжало. */
   layoutId: string;
+  /**
+   * Показывать ноль. У направления счётчик стоит на всех вкладках, и пустой
+   * кружок отличает «здесь пусто» от «счётчик не работает». У сообщества и
+   * канала ноль по-прежнему скрыт: там счётчики есть не у всех вкладок.
+   */
+  showZero?: boolean;
 }
 
 /**
@@ -31,7 +40,13 @@ interface Props<K extends string> {
  * выбранная вкладка сама уезжает в видимую область — иначе на 375 «Участники»
  * оказываются за краем, и о них узнаёшь, только если догадаешься смахнуть.
  */
-export function EntityTabs<K extends string>({ tabs, active, onChange, layoutId }: Props<K>) {
+export function EntityTabs<K extends string>({
+  tabs,
+  active,
+  onChange,
+  layoutId,
+  showZero = false,
+}: Props<K>) {
   const rowRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -54,7 +69,8 @@ export function EntityTabs<K extends string>({ tabs, active, onChange, layoutId 
     >
       {tabs.map((tab) => {
         const isActive = tab.key === active;
-        const count = tab.count ?? 0;
+        const count = tab.count;
+        const showCount = count !== undefined && (count > 0 || showZero);
         return (
           <button
             key={tab.key}
@@ -66,7 +82,7 @@ export function EntityTabs<K extends string>({ tabs, active, onChange, layoutId 
             style={{ color: isActive ? "var(--foreground)" : "var(--foreground-50)" }}
           >
             {tab.label}
-            {count > 0 && (
+            {showCount && (
               /* Счётчик кружком рядом с названием, а не отдельным блоком:
                  в пилюле с полями он весил как ещё одна вкладка. */
               <span
