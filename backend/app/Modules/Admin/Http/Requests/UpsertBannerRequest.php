@@ -29,7 +29,8 @@ class UpsertBannerRequest extends FormRequest
             'kind' => ['nullable', 'string', 'max:16', Rule::in(['event', 'news', 'promo'])],
             'until_label' => ['nullable', 'string', 'max:128'],
             'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date', 'after:starts_at'],
+            // Одна дата — показ на один день: начало дня и его конец (контроллер).
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['nullable', 'boolean'],
             'force_visible' => ['nullable', 'boolean'],
             'is_pinned' => ['nullable', 'boolean'],

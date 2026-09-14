@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchAuditLogPage, type AuditLogDetailEntry } from "@/lib/api/admin";
@@ -173,7 +174,7 @@ export function AuditLogSection() {
                         }}
                         title={e.time}
                       >
-                        {e.time}
+                        {formatDate(e.time, "absolute")}
                       </td>
                       <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>
                         {e.action}
