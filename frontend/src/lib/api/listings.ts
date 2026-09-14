@@ -233,6 +233,20 @@ export async function fetchListings(params: CatalogParams = {}): Promise<Ad[]> {
   return (res.data ?? []).map(mapListing);
 }
 
+/**
+ * Сколько объявлений под фильтром — числом из `meta.total`, а не длиной
+ * страницы. Список комнаты берёт первые 50, и счётчик по длине списка
+ * упирался бы в 50.
+ */
+export async function countListings(params: CatalogParams = {}): Promise<number> {
+  if (isDemoMode()) return (await import("@/lib/demo-data")).demoListingsFiltered(params).length;
+  const res = await api<Paginated<ApiListing>>("/listings", {
+    auth: Boolean(getToken()),
+    query: { taxonomy_id: params.taxonomyId || undefined, per_page: 1 },
+  });
+  return res.meta?.total ?? res.data?.length ?? 0;
+}
+
 export async function fetchPopularListings(limit = 10): Promise<Ad[]> {
   return fetchListings({ sort: "popular", perPage: limit });
 }

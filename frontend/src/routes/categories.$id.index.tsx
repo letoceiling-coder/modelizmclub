@@ -7,7 +7,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import type { Category, CategoryChild } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { SubcategoryRoomPage } from "@/components/categories/SubcategoryRoomPage";
-import { ROOM_TABS, type RoomTab } from "@/components/categories/room-tabs";
+import { DEFAULT_ROOM_TAB, ROOM_TABS, type RoomTab } from "@/components/categories/room-tabs";
 import { CategoryIcon, IconBox } from "@/components/ui/Icon";
 import {
   membersForSubcategory,
@@ -22,8 +22,8 @@ export const Route = createFileRoute("/categories/$id/")({
   errorComponent: RouteErrorState,
   /*
    * Вкладку комнаты держит адрес, а не состояние страницы. Иначе ссылка
-   * «открыть чат» открывала бы то, что стоит вкладкой по умолчанию, а по
-   * умолчанию теперь стоят записи.
+   * «открыть участников» открывала бы то, что стоит вкладкой по умолчанию, —
+   * чат.
    *
    * Направление вкладок не имеет, лишний параметр ему не мешает.
    */
@@ -92,11 +92,11 @@ function DirectionOrRoomPage() {
   return (
     <SubcategoryRoomPage
       roomKey={id}
-      tab={tab ?? "posts"}
+      tab={tab ?? DEFAULT_ROOM_TAB}
       // replace: переключение вкладок не должно копиться в истории — «назад»
       // из комнаты возвращает туда, откуда в неё пришли.
       onTabChange={(next) =>
-        navigate({ search: { tab: next === "posts" ? undefined : next }, replace: true })
+        navigate({ search: { tab: next === DEFAULT_ROOM_TAB ? undefined : next }, replace: true })
       }
     />
   );

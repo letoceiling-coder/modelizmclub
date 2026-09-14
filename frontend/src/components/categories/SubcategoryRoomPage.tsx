@@ -33,10 +33,11 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { searchUsers } from "@/lib/api/social";
-import { fetchListings } from "@/lib/api/listings";
+import { countListings, fetchListings } from "@/lib/api/listings";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import {
   fetchRoomMessages,
+  fetchCategoryRoomStats,
   fetchRoomMembers,
   mapMessageToRoom,
   resolveRoomConversation,
@@ -64,6 +65,13 @@ import { EntityTabs } from "@/components/entity/EntityTabs";
 const PAGE_SIZE = 20;
 
 type Tab = RoomTab;
+
+const ROOM_TAB_LABELS: Record<RoomTab, string> = {
+  chat: "pages.subcategoryDetail.tabChat",
+  members: "pages.subcategoryDetail.tabMembers",
+  ads: "pages.subcategoryDetail.tabAds",
+  posts: "pages.subcategoryDetail.tabPosts",
+};
 
 function seedFrom(s: string): number {
   return s.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
@@ -289,6 +297,15 @@ export function SubcategoryRoomPage({
   const [subAds, setSubAds] = useState<Ad[]>([]);
   const [roomMembers, setRoomMembers] = useState<RoomMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(!isDemoMode() && me.id !== GUEST_USER.id);
+  /*
+   * Счётчики вкладок. `undefined` — число ещё не пришло, и кружка нет;
+   * ноль — пришёл ноль, и кружок с нулём есть. Иначе пустая вкладка и
+   * неработающий счётчик выглядели бы одинаково.
+   *
+   * Каждое число — итог с сервера, а не длина загруженного списка: список
+   * объявлений берёт первые 50, участников — первую страницу.
+   */
+  const [counts, setCounts] = useState<Partial<Record<RoomTab, number>>>({});
 
   useEffect(() => {
     let active = true;
@@ -304,12 +321,19 @@ export function SubcategoryRoomPage({
     if (!c || !sub || isDemoMode() || me.id === GUEST_USER.id) {
       setRoomMembers([]);
       setMembersLoading(false);
+      // Участники комнаты без токена и в демо не запрашиваются — их ноль.
+      setCounts((prev) => ({ ...prev, members: 0 }));
       return;
     }
     let active = true;
     setMembersLoading(true);
+    setCounts((prev) => ({ ...prev, members: undefined }));
     fetchRoomMembers(c.id, sub.id)
-      .then(({ members }) => active && setRoomMembers(members))
+      .then(({ members, total }) => {
+        if (!active) return;
+        setRoomMembers(members);
+        setCounts((prev) => ({ ...prev, members: total }));
+      })
       .catch(() => active && setRoomMembers([]))
       .finally(() => active && setMembersLoading(false));
     return () => {
@@ -336,20 +360,60 @@ export function SubcategoryRoomPage({
     if (!c || !sub) return;
     let active = true;
     const taxonomyId = parseTaxonomyId(sub.id);
+    setCounts((prev) => ({ ...prev, ads: undefined }));
     fetchListings(taxonomyId ? { taxonomyId } : {})
       .then((found) => {
         if (!active) return;
-        setSubAds(
-          taxonomyId
-            ? found
-            : found.filter((a) => a.category === c.name && a.subcategory === sub.name),
-        );
+        const own = taxonomyId
+          ? found
+          : found.filter((a) => a.category === c.name && a.subcategory === sub.name);
+        setSubAds(own);
+        // Демо-дерево узла в запрос не передаёт — там список и есть итог.
+        if (!taxonomyId) setCounts((prev) => ({ ...prev, ads: own.length }));
       })
       .catch((e) => reportReadFailure(e, "объявления подкатегории"));
+    if (taxonomyId) {
+      countListings({ taxonomyId })
+        .then((total) => active && setCounts((prev) => ({ ...prev, ads: total })))
+        .catch((e) => reportReadFailure(e, "число объявлений подкатегории"));
+    }
     return () => {
       active = false;
     };
   }, [c, sub]);
+
+  useEffect(() => {
+    if (!c || !sub) return;
+    let active = true;
+    setCounts((prev) => ({ ...prev, posts: undefined, chat: undefined }));
+    fetchFeed({ categoryId: Number(sub.id), categoryName: sub.name, page: 1, perPage: 1 })
+      .then((res) => active && setCounts((prev) => ({ ...prev, posts: res.total })))
+      .catch((e) => reportReadFailure(e, "число записей комнаты"));
+    /*
+     * У чата — непрочитанные. Сервер отдаёт `null`, пока человек в разговоре
+     * не состоит: непрочитанного у него тогда нет, это ноль, а не «не знаем».
+     * Комнаты без разговора в ответе нет вовсе — тоже ноль.
+     */
+    if (isDemoMode() || me.id === GUEST_USER.id) {
+      setCounts((prev) => ({ ...prev, chat: 0 }));
+    } else {
+      fetchCategoryRoomStats(c.id)
+        .then(
+          (stats) =>
+            active &&
+            setCounts((prev) => ({ ...prev, chat: stats.bySubcategory[sub.id]?.unread ?? 0 })),
+        )
+        .catch((e) => reportReadFailure(e, "непрочитанные в чате комнаты"));
+    }
+    return () => {
+      active = false;
+    };
+  }, [c, sub, me.id]);
+
+  // Открытый чат прочитан: число, пришедшее до открытия, уже неправда.
+  useEffect(() => {
+    if (tab === "chat" && counts.chat) setCounts((prev) => ({ ...prev, chat: 0 }));
+  }, [tab, counts.chat]);
 
   // Подписка до раннего выхода ниже: хук не должен зависеть от того,
   // нашлась категория или нет.
@@ -453,25 +517,18 @@ export function SubcategoryRoomPage({
           Значки ушли вместе с `TabBtn`: у сообщества и канала их нет, а
           «одинаково» значит одинаково.
         */}
-        <div className="shrink-0">
+        {/* Отступ как у шапки комнаты: без него «Чат» прилипал к рамке карточки. */}
+        <div className="shrink-0 px-3.5">
           <EntityTabs
             layoutId="room-tab-underline"
             active={tab}
             onChange={setTab}
-            tabs={[
-              { key: "posts" as RoomTab, label: t("pages.subcategoryDetail.tabPosts") },
-              { key: "chat" as RoomTab, label: t("pages.subcategoryDetail.tabChat") },
-              {
-                key: "ads" as RoomTab,
-                label: t("pages.subcategoryDetail.tabAds"),
-                count: subAds.length,
-              },
-              {
-                key: "members" as RoomTab,
-                label: t("pages.subcategoryDetail.tabMembers"),
-                count: roomMembers.length,
-              },
-            ]}
+            showZero
+            tabs={ROOM_TABS.map((key) => ({
+              key,
+              label: t(ROOM_TAB_LABELS[key]),
+              count: counts[key],
+            }))}
           />
         </div>
 
