@@ -10,9 +10,9 @@ use App\Models\Video;
 use App\Models\VideoCategory;
 use App\Models\VideoReaction;
 use App\Models\VideoView;
+use App\Support\ScheduledPublishFailures;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Feed\Support\CommentMediaSync;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -229,15 +229,22 @@ class VideoService
             ->where('scheduled_at', '<=', now())
             ->get();
 
+        $count = 0;
         foreach ($due as $video) {
-            $video->update([
-                'status' => 'published',
-                'published_at' => now(),
-                'scheduled_at' => null,
-            ]);
+            // Одно сломанное видео не должно обрывать публикацию остальных.
+            try {
+                $video->update([
+                    'status' => 'published',
+                    'published_at' => now(),
+                    'scheduled_at' => null,
+                ]);
+                $count++;
+            } catch (\Throwable $e) {
+                ScheduledPublishFailures::report('video', $video->id, $e);
+            }
         }
 
-        return $due->count();
+        return $count;
     }
 
     public function show(string $uuid, ?User $viewer): Video

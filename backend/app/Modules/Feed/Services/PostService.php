@@ -12,7 +12,9 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Support\ScheduledPublishFailures;
 use App\Support\UserLabel;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -282,7 +284,7 @@ class PostService
             ]);
         }
 
-        $at = \Illuminate\Support\Carbon::parse($scheduledAt);
+        $at = Carbon::parse($scheduledAt);
 
         if ($at->isPast()) {
             throw ValidationException::withMessages([
@@ -342,14 +344,17 @@ class PostService
         foreach ($due as $post) {
             $author = $post->author;
             if (! $author) {
+                ScheduledPublishFailures::report('post', $post->id, null, 'нет автора');
+
                 continue;
             }
 
             try {
                 $this->publish($post, $author);
                 $count++;
-            } catch (\Throwable) {
-                // Skip broken rows — cron will retry on next run if still due.
+            } catch (\Throwable $e) {
+                // Строку пропускаем — следующий прогон попробует снова, пока срок наступил.
+                ScheduledPublishFailures::report('post', $post->id, $e);
             }
         }
 
