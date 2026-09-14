@@ -675,6 +675,21 @@ function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Po
   return {
     id: post.feedPostId ?? post.id,
     authorId: channel.ownerId ?? channel.slug,
+    /*
+     * Автор — владелец канала, прямо из данных канала. Раньше карточка искала
+     * его в реестре пользователей, а PostItem клал владельца туда эффектом —
+     * уже после первого кадра. На сервере реестр наполняли чужие запросы, и
+     * там было имя, в браузере — «Пользователь»: React #418 на странице
+     * канала после любой страницы сообщества (D8).
+     */
+    author: {
+      id: channel.ownerId ?? channel.slug,
+      name: channel.ownerName,
+      avatar: channel.ownerAvatar ?? "",
+      city: "",
+      interests: "",
+      slug: channel.ownerSlug,
+    },
     date: post.createdAt,
     category: channel.category,
     title: "",

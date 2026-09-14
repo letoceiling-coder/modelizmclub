@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -167,14 +167,18 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   const location = useLocation();
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortMode>(() => {
-    if (typeof window === "undefined") return "alpha";
-    return window.localStorage.getItem(SORT_KEY) === "popular" ? "popular" : "alpha";
-  });
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(COLLAPSE_KEY) === "1";
-  });
+  /*
+   * Сортировка и свёрнутость — из localStorage, но не в первом кадре.
+   * Сервер их не знает и рисует «по алфавиту, развёрнуто»; читать сохранённое
+   * при создании состояния значило бы разойтись с серверной разметкой у
+   * каждого, кто хоть раз переключал колонку, — React #418 на /feed и
+   * /communities (D8). Первый кадр как у сервера, сохранённое — после
+   * монтирования; до этого ничего не пишем, иначе затрём выбор человека.
+   */
+  const [sort, setSort] = useState<SortMode>("alpha");
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const prefsLoaded = useRef(false);
+
   const { categories: postCategories, loading: postLoading } = usePostCategoriesState();
   const { categories: listingCategories, loading: listingLoading } = useListingCategoriesState();
   const categories = variant === "ads" ? listingCategories : postCategories;
@@ -182,14 +186,26 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   const roomStats = useCategoryRoomStats();
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!prefsLoaded.current) return;
     window.localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!prefsLoaded.current) return;
     window.localStorage.setItem(SORT_KEY, sort);
   }, [sort]);
+
+  // Чтение — после эффектов записи: при монтировании те видят prefsLoaded =
+  // false и молчат, а прочитанное запишется уже следующей отрисовкой.
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(SORT_KEY) === "popular") setSort("popular");
+      if (window.localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
+    } catch {
+      // приватный режим — остаёмся на значениях по умолчанию
+    }
+    prefsLoaded.current = true;
+  }, []);
 
   const activeTaxonomyId = useMemo(() => {
     const params = new URLSearchParams(location.searchStr.replace(/^\?/, ""));

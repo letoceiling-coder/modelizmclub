@@ -102,6 +102,18 @@ export function loadNavExpanded(): void {
 
 export const selectNavExpanded = (s: AppState): boolean => s.navExpanded;
 
+/**
+ * Загрузить сохранённое избранное — один раз, после гидрации. Отмеченное до
+ * загрузки не теряется: списки объединяются.
+ */
+export function loadPersistedFavorites(): void {
+  if (favoritesLoaded || typeof window === "undefined") return;
+  const persisted = readPersistedFavorites();
+  const merged = Array.from(new Set([...persisted, ...state.favoriteAdIds]));
+  favoritesLoaded = true;
+  dispatch({ type: "SET_FAVORITE_AD_IDS", ids: merged });
+}
+
 function readPersistedFavorites(): ID[] {
   if (typeof window === "undefined") return [];
   try {
@@ -130,7 +142,10 @@ export function createInitialState(): AppState {
     friendships: [],
     blockedUserIds: [],
     hiddenUserIds: [],
-    favoriteAdIds: readPersistedFavorites(),
+    // Пусто, как на сервере: сохранённое избранное читается после гидрации
+    // (loadPersistedFavorites). Иначе счётчик на иконке в шапке расходился
+    // с серверной разметкой — React #418 у всех, у кого есть избранное (D8).
+    favoriteAdIds: [],
     dialogAdRefs: {},
     pendingDialogMessages: {},
     revealedPhones: {},
@@ -160,8 +175,11 @@ const emit = (): void => {
 
 // Persist favoriteAdIds to localStorage on change (session-durable favorites).
 let lastPersistedFavorites: ID[] = state.favoriteAdIds;
+let favoritesLoaded = false;
 subscribe(() => {
   if (typeof window === "undefined") return;
+  // До загрузки сохранённого не пишем: пустой стартовый список затёр бы его.
+  if (!favoritesLoaded) return;
   if (state.favoriteAdIds === lastPersistedFavorites) return;
   lastPersistedFavorites = state.favoriteAdIds;
   try {
