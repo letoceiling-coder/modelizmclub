@@ -17,7 +17,9 @@ use App\Models\UserProfile;
 use App\Models\UserSubscription;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Modules\Auth\Services\EmailVerificationService;
 use Tests\TestCase;
 
 class PromoPoolAndReferralRewardTest extends TestCase
@@ -52,6 +54,45 @@ class PromoPoolAndReferralRewardTest extends TestCase
         );
     }
 
+    public function test_pool_expiry_keeps_the_instant_for_every_form_term_under_moscow(): void
+    {
+        // Форма шлёт три вида срока: «до конца года» и «до даты» — стенные
+        // часы без пояса, «на N месяцев» — Date.toISOString() в UTC.
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+
+        $this->inAppTimezone('Europe/Moscow', function () use ($admin): void {
+            $cases = [
+                'конец года' => ['2026-12-31T23:59:59', '2026-12-31 23:59:59'],
+                'дата' => [now()->addMonth()->format('Y-m-d').'T23:59:59', now()->addMonth()->format('Y-m-d').' 23:59:59'],
+                // 23:59:59 в браузере по Москве = 20:59:59Z
+                'месяцы' => [now()->addMonths(3)->format('Y-m-d').'T20:59:59.000Z', now()->addMonths(3)->format('Y-m-d').' 23:59:59'],
+            ];
+
+            foreach ($cases as $label => [$sent, $expectedMoscow]) {
+                $uuid = $this->actingAs($admin, 'sanctum')
+                    ->postJson('/api/v1/admin/promo-pools', [
+                        'name' => 'Срок: '.$label,
+                        'max_activations' => 5,
+                        'expires_at' => $sent,
+                        'auto_assign_on_register' => false,
+                    ])->assertCreated()->json('data.uuid');
+
+                $this->assertSame(
+                    $expectedMoscow,
+                    PromoPool::query()->where('uuid', $uuid)->firstOrFail()->expires_at->setTimezone('Europe/Moscow')->format('Y-m-d H:i:s'),
+                    "срок «{$label}» записан со сдвигом",
+                );
+            }
+
+            // Срок пула переходит в подписку: timestamptz → timestamp без пояса.
+            PromoPool::query()->update(['auto_assign_on_register' => false]);
+            PromoPool::query()->where('name', 'Срок: конец года')->update(['auto_assign_on_register' => true]);
+            $user = $this->verifyNewUser();
+            $ends = UserSubscription::query()->where('user_id', $user->id)->firstOrFail()->ends_at;
+            $this->assertSame('2026-12-31 23:59:59', $ends->setTimezone('Europe/Moscow')->format('Y-m-d H:i:s'));
+        });
+    }
+
     public function test_admin_can_create_auto_assign_pool_and_counter_increments(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
@@ -74,7 +115,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
         $this->assertNotNull($first->promo_pool_id);
         $this->assertTrue($first->hasActiveSubscription());
         $ends = UserSubscription::query()->where('user_id', $first->id)->value('ends_at');
-        $this->assertSame('2026-12-31', \Illuminate\Support\Carbon::parse($ends)->timezone(config('app.timezone'))->format('Y-m-d'));
+        $this->assertSame('2026-12-31', Carbon::parse($ends)->timezone(config('app.timezone'))->format('Y-m-d'));
 
         // The install migration backfills a legacy (disabled) "Первые N" pool, so the
         // counter must be read from the pool this test created, not from the first row.
@@ -308,7 +349,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
             'slug' => 'promo-'.uniqid(),
         ]);
 
-        app(\Modules\Auth\Services\EmailVerificationService::class)->issueCode($user);
+        app(EmailVerificationService::class)->issueCode($user);
         $code = EmailVerificationCode::query()->where('user_id', $user->id)->value('code');
         $this->assertNotNull($code);
 

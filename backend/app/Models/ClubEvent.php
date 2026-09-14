@@ -4,13 +4,12 @@ namespace App\Models;
 
 use App\Enums\CommunityStatus;
 use App\Models\Concerns\HasPublicUuid;
+use App\Models\Concerns\StoresDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 
 /**
  * Мероприятие — у сообщества или у площадки.
@@ -25,6 +24,7 @@ class ClubEvent extends Model
 {
     use HasPublicUuid;
     use SoftDeletes;
+    use StoresDatesInAppTimezone;
 
     public const SCOPE_COMMUNITY = 'community';
 
@@ -66,23 +66,6 @@ class ClubEvent extends Model
             'latitude' => 'float',
             'longitude' => 'float',
         ];
-    }
-
-    /**
-     * Начало — в поясе приложения перед записью.
-     *
-     * Колонка timestamp без пояса, Laravel пишет в неё стенные часы как есть.
-     * Форма шлёт ISO в UTC («…T00:16:00Z»), и без приведения в базу ложилось
-     * «00:16», которое при чтении становилось 00:16 по Москве — на три часа
-     * раньше выбранного. Найдено на проде 14.09 в первом же событии.
-     */
-    protected function startsAt(): Attribute
-    {
-        return Attribute::make(
-            set: fn (mixed $value) => $value === null || $value === ''
-                ? null
-                : Carbon::parse($value)->setTimezone((string) config('app.timezone'))->format('Y-m-d H:i:s'),
-        );
     }
 
     public function community(): BelongsTo
