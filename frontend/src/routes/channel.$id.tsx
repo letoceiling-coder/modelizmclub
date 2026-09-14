@@ -83,7 +83,7 @@ import { registerUser } from "@/lib/user-registry";
 import { openConversation } from "@/lib/api/chat";
 
 import i18n from "@/lib/i18n";
-import { formatDate } from "@/lib/format/date";
+import { formatAbsoluteInZone } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
 import { askConfirm } from "@/lib/ui/ask";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
@@ -1200,7 +1200,9 @@ function AboutPanel({
   scrollSection?: "stats";
 }) {
   const { t } = useTranslation();
-  const created = formatDate(channel.createdAt, "absolute");
+  // По Москве: страница приходит с сервера в UTC, дата в поясе рисующего
+  // расходилась с браузером — React #418 на странице канала (D8).
+  const created = formatAbsoluteInZone(channel.createdAt);
   const ownerProfileId = channel.ownerSlug ?? channel.ownerId;
   const ownerNameEl = ownerProfileId ? (
     <Link

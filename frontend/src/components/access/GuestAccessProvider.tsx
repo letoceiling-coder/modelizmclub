@@ -1,3 +1,4 @@
+import { useHasToken } from "@/hooks/use-has-token";
 import {
   createContext,
   useCallback,
@@ -85,7 +86,9 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
   const me = useCurrentUser();
   const sessionReady = useSessionResolved();
   const { sub, loading: subLoading } = useMySubscription();
-  const isGuest = !getToken() || (sessionReady && isAnonymousUser(me));
+  // Не getToken(): при гидрации разметка должна совпасть с серверной (D8).
+  const hasToken = useHasToken();
+  const isGuest = !hasToken || (sessionReady && isAnonymousUser(me));
   const needsPhone =
     !isDemoMode() && !isGuest && isPhoneVerificationRequired(me) && !isPhoneVerified(me);
   const needsSubscription =
@@ -213,7 +216,7 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
   );
 
   const ready =
-    !loading && (isGuest || isDemoMode() || isStaffUser(me) || !getToken() || sessionReady);
+    !loading && (isGuest || isDemoMode() || isStaffUser(me) || !hasToken || sessionReady);
 
   const value = useMemo(
     () => ({

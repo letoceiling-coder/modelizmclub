@@ -1,3 +1,4 @@
+import { useHasToken } from "@/hooks/use-has-token";
 import { Link } from "@tanstack/react-router";
 import { LogOut, LogIn, Sun, Moon } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useCurrentUser } from "@/lib/session";
-import { signOut, isAuthenticated } from "@/lib/auth/session";
+import { signOut } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ROUTES } from "@/lib/routes";
 import { useTheme } from "@/components/ThemeProvider";
@@ -37,8 +38,9 @@ export function UserMenu() {
     onWrapperMouseLeave,
     onContentMouseEnter,
   } = useHoverDropdown();
+  const hasToken = useHasToken();
 
-  const isGuest = me.id === "guest" || (!isAuthenticated() && !isDemoMode());
+  const isGuest = me.id === "guest" || (!hasToken && !isDemoMode());
 
   if (isGuest) {
     return (
