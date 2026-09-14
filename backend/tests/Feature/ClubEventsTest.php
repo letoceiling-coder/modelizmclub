@@ -71,11 +71,7 @@ class ClubEventsTest extends TestCase
         // Прод живёт по Москве, колонки — timestamp без пояса. 14.09 форма
         // отправила «…T00:16:00Z» (03:16 МСК), в базу легло «00:16», и
         // карточка показала время на три часа раньше.
-        $previous = date_default_timezone_get();
-        config(['app.timezone' => 'Europe/Moscow']);
-        date_default_timezone_set('Europe/Moscow');
-
-        try {
+        $this->inAppTimezone('Europe/Moscow', function (): void {
             $owner = $this->user();
             $community = $this->community($owner);
             Sanctum::actingAs($owner);
@@ -91,7 +87,7 @@ class ClubEventsTest extends TestCase
                 Carbon::parse($returned)->equalTo(Carbon::parse($utc)),
                 "ожидали {$utc}, сервер вернул {$returned}",
             );
-            $this->assertSame('03:16', ClubEvent::query()->where('uuid', $uuid)->value('starts_at')->format('H:i'));
+            $this->assertSame('03:16', ClubEvent::query()->where('uuid', $uuid)->firstOrFail()->starts_at->setTimezone('Europe/Moscow')->format('H:i'));
 
             // Правка — тот же путь.
             $moved = now('UTC')->addDays(3)->setTime(9, 0)->toIso8601ZuluString();
@@ -99,10 +95,7 @@ class ClubEventsTest extends TestCase
             $this->assertTrue(Carbon::parse(
                 $this->getJson("/api/v1/events/{$uuid}")->json('data.starts_at')
             )->equalTo(Carbon::parse($moved)));
-        } finally {
-            config(['app.timezone' => $previous]);
-            date_default_timezone_set($previous);
-        }
+        });
     }
 
     public function test_member_cannot_create_event(): void

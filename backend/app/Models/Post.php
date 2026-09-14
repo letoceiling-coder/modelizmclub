@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ContentStatus;
 use App\Models\Concerns\HasPublicUuid;
+use App\Models\Concerns\StoresDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class Post extends Model
 {
     use HasPublicUuid;
     use SoftDeletes;
+    use StoresDatesInAppTimezone;
 
     protected $fillable = [
         'uuid',

@@ -4,7 +4,9 @@ namespace Tests;
 
 use App\Models\Payment;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -64,7 +66,44 @@ abstract class TestCase extends BaseTestCase
         }
     }
 
-    protected function recordPaidPlanPayment(\App\Models\User $user, int $planId, int $amountCents = 9900): void
+    /**
+     * Выполнить проверку в поясе прода.
+     *
+     * Прод живёт по Europe/Moscow, тесты — по UTC, колонки времени без пояса.
+     * Дата в UTC, записанная как есть, в UTC-окружении выглядит верной и
+     * сдвигается на три часа только на проде — так 14.09 уехало время
+     * мероприятий. Проверки дат с форм — через этот помощник.
+     *
+     * @template T
+     *
+     * @param  \Closure(): T  $callback
+     * @return T
+     */
+    protected function inAppTimezone(string $timezone, \Closure $callback): mixed
+    {
+        $previousConfig = config('app.timezone');
+        $previousDefault = date_default_timezone_get();
+        config(['app.timezone' => $timezone]);
+        date_default_timezone_set($timezone);
+        // Сессия Postgres — как на проде (Etc/UTC). Локальная база живёт в
+        // своём поясе, и timestamptz без смещения там записался бы «верно»
+        // там, где прод ошибается.
+        DB::statement("set time zone 'UTC'");
+
+        try {
+            return $callback();
+        } finally {
+            try {
+                DB::statement('reset time zone');
+            } catch (\Throwable) {
+                // Транзакция теста уже прервана — её откат вернёт пояс сам.
+            }
+            config(['app.timezone' => $previousConfig]);
+            date_default_timezone_set($previousDefault);
+        }
+    }
+
+    protected function recordPaidPlanPayment(User $user, int $planId, int $amountCents = 9900): void
     {
         Payment::query()->create([
             'uuid' => (string) Str::uuid(),

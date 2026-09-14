@@ -4,12 +4,14 @@ namespace App\Models;
 
 use App\Enums\ReferralStatus;
 use App\Models\Concerns\HasPublicUuid;
+use App\Models\Concerns\StoresDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Referral extends Model
 {
     use HasPublicUuid;
+    use StoresDatesInAppTimezone;
 
     protected $fillable = [
         'uuid',
