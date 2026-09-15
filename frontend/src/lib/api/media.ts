@@ -185,7 +185,23 @@ export function beginPresignedUpload(
         return item;
       } catch (error) {
         void failMediaUpload(slot.media_uuid).catch(() => undefined);
-        throw error;
+        /*
+         * Хранилище не приняло файл — загрузка идёт через сервер.
+         *
+         * PUT из браузера прямо в S3 требует CORS на бакете. На проде его нет
+         * (Selectel отвечает NoSuchCORSConfiguration, предзапрос — 405), и
+         * ни одно видео записи или обзора этим путём не загрузилось: пять
+         * сессий висели pending с 22.07 (ДФ-3, 15.09). Браузер при этом
+         * получает не ответ, а сетевую ошибку, так что отличить «CORS» от
+         * «оборвалась связь» нельзя — в обоих случаях повтор через сервер
+         * верный.
+         *
+         * Ошибка подтверждения (`ApiError` от /media/confirm) — не про
+         * хранилище, её не маскируем.
+         */
+        if (!isPresignPutFailure(error)) throw error;
+        onProgress?.(0);
+        return uploadViaApi(file, purpose, onProgress);
       }
     })();
 
@@ -246,15 +262,9 @@ export async function uploadMedia(
   }
 
   if (shouldUsePresignedUpload(file, purpose)) {
-    try {
-      return await uploadViaPresigned(file, purpose, onProgress);
-    } catch (error) {
-      // Large / video files must stay on the presigned path. Falling back to
-      // PHP FormData is what used to freeze the composer on «Публикуем…».
-      if (purpose === "post_video" || purpose === "review_video") throw error;
-      if (!isPresignPutFailure(error)) throw error;
-      return uploadViaApi(file, purpose, onProgress);
-    }
+    // Повтор через сервер при отказе хранилища уже внутри
+    // `beginPresignedUpload` — второй раз здесь не повторяем.
+    return uploadViaPresigned(file, purpose, onProgress);
   }
 
   return uploadViaApi(file, purpose, onProgress);

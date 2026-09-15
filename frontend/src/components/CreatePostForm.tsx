@@ -340,10 +340,15 @@ export function CreatePostForm({
         const handle = await (videoUploadRef.current ??
           beginPresignedUpload(videoFile, "post_video", setVideoProgress));
         videoUploadRef.current = Promise.resolve(handle);
-        mediaIds.push(handle.uuid);
-        void handle.done.catch(() => {
-          toast.error(t("components.createPostForm.videoFailed"));
-        });
+        /*
+         * Запись создаётся после окончания загрузки, а не с uuid сессии.
+         * Если хранилище не приняло файл, загрузка повторяется через сервер
+         * под другим uuid, а uuid сессии становится failed — запись с ним
+         * сервер отклоняет («Прикреплённый файл недоступен…»). Так и было на
+         * проде до 15.09 (ДФ-3). Прогресс виден в поле видео, пока ждём.
+         */
+        const uploaded = await handle.done;
+        mediaIds.push(uploaded.uuid);
       }
 
       if (sel.source === "profile") {
