@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useDialogA11y } from "@/hooks/use-dialog-a11y";
 import { CreatePostForm } from "@/components/CreatePostForm";
 import type { ComposerDraft, ComposerSelection } from "@/components/feed/CreatePostMenu";
 import type { Post } from "@/lib/mock";
@@ -31,6 +33,10 @@ export function CreatePostModal({
   // controls presence; visible drives the CSS transition class.
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(open);
+  const { t } = useTranslation();
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Escape здесь уже обрабатывается ниже, вместе с блокировкой прокрутки.
+  useDialogA11y(open && mounted, panelRef, onClose, { escape: false });
 
   useEffect(() => {
     if (open) {
@@ -72,6 +78,11 @@ export function CreatePostModal({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("components.createPostForm.newPost")}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="flex h-[85dvh] max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-[20px] transition-[transform,opacity] sm:h-auto sm:max-h-[92dvh] sm:max-w-[600px] sm:rounded-[16px]"
         style={{
