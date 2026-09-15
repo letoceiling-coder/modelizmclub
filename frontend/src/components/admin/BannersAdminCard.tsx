@@ -461,11 +461,12 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
           {t("pages.adminBanners.carousel.hint")}
         </p>
 
-        {loading ? (
-          <p style={{ fontSize: "13px", color: "var(--foreground-50)" }}>
-            {t("pages.adminCommon.loading")}
-          </p>
-        ) : (
+        {/*
+         * Поля рисуются сразу, заблокированными, пока настройки грузятся.
+         * Раньше строка «Загрузка…» сменялась сеткой из четырёх полей, и форма
+         * нового баннера ниже уезжала на 248 px: CLS 0,15 на 375 (прогон 15.09).
+         */}
+        <fieldset disabled={loading} aria-busy={loading} className="m-0 min-w-0 border-0 p-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: "12px" }}>
             <label style={{ display: "grid", gap: "6px" }}>
               <span style={{ fontSize: "12px", color: "var(--foreground-70)" }}>
@@ -523,12 +524,12 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
               </span>
             </label>
           </div>
-        )}
+        </fieldset>
 
         <button
           type="button"
           onClick={saveCarousel}
-          disabled={savingCarousel}
+          disabled={savingCarousel || loading}
           style={{ ...primaryBtn, marginTop: "14px" }}
         >
           {savingCarousel

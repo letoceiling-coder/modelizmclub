@@ -91,12 +91,13 @@ export function PostHeader({
         className,
       )}
     >
-      {/* The ::after box lifts the 40px avatar to a 44px tap target without
-          moving it or the name beside it. */}
+      {/* ::after — зона нажатия 44×44 по центру аватара, не двигая ни его, ни
+          имя рядом. Было -inset-[2px]: на 375 аватар 36, и зона выходила 40
+          (прогон 15.09). */}
       <GuestGuardLink
         actionKey={authorActionKey}
         to={authorHref}
-        className='relative shrink-0 after:absolute after:-inset-[2px] after:rounded-full after:content-[""]'
+        className="relative shrink-0 after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:content-['']"
       >
         <AuthorAvatar src={author.avatar} name={author.name} />
       </GuestGuardLink>

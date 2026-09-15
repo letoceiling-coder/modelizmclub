@@ -125,15 +125,14 @@ function RequisitesSection() {
         className="p-[20px]"
         style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
       >
-        {loading ? (
-          <div
-            className="flex items-center gap-[8px] py-[8px] text-[13px]"
-            style={{ color: "var(--foreground-50)" }}
-          >
-            <Loader2 size={14} className="animate-spin" /> {t("pages.settings.loading")}
-          </div>
-        ) : (
-          <form onSubmit={save} className="space-y-[12px]">
+        {/*
+         * Форма рисуется сразу, заблокированной, и данные встают в готовые
+         * поля. Раньше на время загрузки в карточке была одна строка
+         * «Загрузка…», а затем четыре поля — карточка вырастала на 309 px и
+         * сдвигала «Карту для выплат»: CLS 0,14–0,19 на 768 (прогон 15.09).
+         */}
+        <form onSubmit={save} className="space-y-[12px]" aria-busy={loading}>
+          <fieldset disabled={loading} className="m-0 min-w-0 space-y-[12px] border-0 p-0">
             <Field label={t("pages.settings.fullName")}>
               <Input
                 value={form.fullName}
@@ -173,9 +172,11 @@ function RequisitesSection() {
                 placeholder={t("pages.settings.addressPlaceholder")}
               />
             </Field>
-            <Button type="submit">{t("pages.settings.save")}</Button>
-          </form>
-        )}
+          </fieldset>
+          <Button type="submit" disabled={loading}>
+            {t("pages.settings.save")}
+          </Button>
+        </form>
       </Card>
 
       <PayoutCard />
