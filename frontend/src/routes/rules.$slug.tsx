@@ -66,25 +66,34 @@ function RuleDocumentPage() {
       </header>
 
       <main className="mx-auto max-w-[1100px] px-4 py-10">
+        {/*
+         * Крошки в одну строку, длинное название обрезается многоточием. С
+         * переносом строка менялась, когда подгружался шрифт: на 375
+         * «Оферта на платные услуги» прыгала со второй строки на первую и
+         * тянула за собой документ — CLS 0,158 при первом заходе (15.09).
+         */}
         <nav
-          className="mb-6 flex flex-wrap items-center gap-1 text-[12.5px]"
+          className="mb-6 flex min-w-0 flex-nowrap items-center gap-1 text-[12.5px]"
           style={{ color: "var(--foreground-50)" }}
           aria-label="Хлебные крошки"
         >
-          <Link to="/" className="rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]">
+          <Link
+            to="/"
+            className="shrink-0 rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]"
+          >
             Главная
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
           <Link
             to="/rules"
-            className="rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]"
+            className="shrink-0 rounded-md px-1.5 py-0.5 hover:bg-[var(--background-surface)]"
           >
             Правила
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />
           <span
             aria-current="page"
-            className="px-1.5 py-0.5 font-semibold"
+            className="min-w-0 truncate px-1.5 py-0.5 font-semibold"
             style={{ color: "var(--foreground)" }}
           >
             {page.title}

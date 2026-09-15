@@ -401,7 +401,7 @@ export function ProfileView({
                 <button
                   type="button"
                   onClick={() => setTab("reviews")}
-                  className="inline-flex items-center gap-[4px] hover:underline"
+                  className="relative inline-flex items-center gap-[4px] after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:underline"
                 >
                   <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
                   <span style={{ color: "var(--foreground)", fontWeight: 600 }}>
@@ -1535,7 +1535,7 @@ function ProfileAvatar({
                 type="button"
                 aria-label={t("pages.profile.changePhoto")}
                 disabled={uploading || pickingFile}
-                className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors md:h-[36px] md:w-[36px]"
+                className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] md:h-[36px] md:w-[36px]"
                 style={{
                   background: "var(--accent)",
                   color: "#fff",
@@ -1686,7 +1686,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
             aria-label={t("pages.profile.changeCover")}
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium transition-colors hover:brightness-110"
+            className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium transition-colors after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:brightness-110"
             style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
           >
             <Camera size={14} /> {t("pages.profile.changeCover")}

@@ -44,13 +44,18 @@ export function AskSellerWidget({ onAsk }: { onAsk: (text: string) => void }) {
       <h3 className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
         Спросите у продавца
       </h3>
-      <div className="flex flex-wrap gap-[6px]">
+      {/*
+        Чипы высотой 31, зона нажатия — полоса 44 по высоте (::after). Ряды
+        разведены на 13, чтобы полосы соседних рядов не накрывали друг друга:
+        31 + 13 = 44. На широком экране мышь, там прежние 6 (прогон 15.09).
+      */}
+      <div className="flex flex-wrap gap-x-[6px] gap-y-[13px] lg:gap-y-[6px]">
         {QUICK_QUESTIONS.map((q) => (
           <button
             key={q}
             type="button"
             onClick={() => withAccess(() => setText(q))}
-            className="text-[11.5px] font-medium transition-colors"
+            className="relative text-[11.5px] font-medium transition-colors after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-['']"
             style={{
               padding: "6px 10px",
               borderRadius: "var(--r-tag)",

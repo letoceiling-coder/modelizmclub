@@ -88,13 +88,13 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, filterC
           value={sort}
           onChange={(e) => onSort(e.target.value as SortKey)}
           aria-label={t("components.adsCatalog.sortAria")}
-          className="shrink-0 cursor-pointer text-[13px] font-medium"
+          // 44 на сенсорных ширинах (зона нажатия), 36 с lg — как было.
+          className="h-11 shrink-0 cursor-pointer text-[13px] font-medium lg:h-9"
           style={{
             background: "var(--background-elevated)",
             color: "var(--foreground)",
             border: "1px solid var(--border)",
             borderRadius: "var(--r-button)",
-            height: 36,
             padding: "0 10px",
           }}
         >
