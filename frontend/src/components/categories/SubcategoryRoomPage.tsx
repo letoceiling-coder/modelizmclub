@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { EmojiPicker } from "@/components/messenger/EmojiPicker";
+import { messengerCache } from "@/lib/messenger";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -661,6 +662,7 @@ function ChatTab({
     isDemoMode() ? buildMessages(category, subName, pool) : [],
   );
   const [conversationUuid, setConversationUuid] = useState<string | null>(null);
+  const conversationUuidRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(!isDemoMode());
   const [sending, setSending] = useState(false);
   const [text, setText] = useState("");
@@ -746,11 +748,21 @@ function ChatTab({
         // как было раньше, значило отдать строку в звено, которое ждёт список:
         // дальше по цепочке `msgs` оказывался то массивом, то строкой.
         if (!alive) return [];
+        conversationUuidRef.current = uuid;
         setConversationUuid(uuid);
         return fetchRoomMessages(uuid);
       })
       .then((msgs) => {
-        if (alive && msgs) setMessages(msgs);
+        if (!alive || !msgs) return;
+        setMessages(msgs);
+        /*
+         * Открытый чат комнаты — прочитанный чат, как в мессенджере. До 15.09
+         * страница направления сообщений не отмечала: человек видел их здесь,
+         * а мессенджер и значок в шапке продолжали считать непрочитанными
+         * (замер: вкладка «Чат 0», значок и API — 1).
+         */
+        const uuid = conversationUuidRef.current;
+        if (uuid && document.visibilityState === "visible") messengerCache.markRead(uuid);
       })
       .catch(() => {
         if (alive) toast.error(t("pages.subcategoryDetail.chatLoadFailed"));
@@ -770,8 +782,19 @@ function ChatTab({
       setHubConversation(null);
       return;
     }
-    setHubConversation(conversationUuid, (m) => upsertRoomMessage(mapMessageToRoom(m)));
-    return () => setHubConversation(null);
+    let readTimer: ReturnType<typeof setTimeout> | null = null;
+    setHubConversation(conversationUuid, (m) => {
+      upsertRoomMessage(mapMessageToRoom(m));
+      // Пришло, пока чат открыт и виден, — прочитано. Отметка раз в секунду,
+      // а не на каждое сообщение: в живой комнате их бывает много подряд.
+      if (document.visibilityState !== "visible") return;
+      if (readTimer) clearTimeout(readTimer);
+      readTimer = setTimeout(() => messengerCache.markRead(conversationUuid), 1000);
+    });
+    return () => {
+      if (readTimer) clearTimeout(readTimer);
+      setHubConversation(null);
+    };
   }, [conversationUuid, me.id, upsertRoomMessage]);
 
   // reset local UI when room changes

@@ -72,13 +72,24 @@ function isOptimisticTwin(local: Message, incoming: Message): boolean {
   return true;
 }
 
-/** Fetched list wins; optimistic (tmp) messages not yet confirmed are kept at the end. */
+/**
+ * Fetched list wins; optimistic (tmp) messages not yet confirmed are kept at the end.
+ *
+ * `clientKey` переносится со старой записи на новую: по нему список ключует
+ * пузыри. До 15.09 перечитывание раз в 20 с строило сообщение заново без
+ * ключа, и только что отправленный пузырь монтировался второй раз —
+ * `Appear` проигрывал подъём ещё раз, сообщение «дёргалось». Так бывало в
+ * обоих порядках: перечитывание после замены tmp на серверное и до неё
+ * (тогда tmp выбрасывался как двойник, а серверное приходило без ключа).
+ */
 export function mergeMessages(current: Message[], incoming: Message[]): Message[] {
   const incomingIds = new Set(incoming.map((m) => m.id));
   const byId = new Map(current.map((m) => [m.id, m]));
   const merged = incoming.map((m) => {
     const prev = byId.get(m.id);
-    return prev ? preserveMessageMedia(prev, m) : m;
+    if (prev) return { ...preserveMessageMedia(prev, m), clientKey: prev.clientKey ?? m.clientKey };
+    const twin = current.find((x) => isOptimisticTwin(x, m));
+    return twin ? { ...preserveMessageMedia(twin, m), clientKey: twin.clientKey ?? twin.id } : m;
   });
   for (const m of current) {
     if (
@@ -204,7 +215,24 @@ export function replaceMessageInCache(
     const list = prev ?? [];
     const temp = list.find((m) => m.id === tempId);
     const normalized = temp ? preserveMessageMedia(temp, saved) : saved;
-    if (!temp) return [...list.filter((m) => m.id !== normalized.id), normalized];
+    if (!temp) {
+      /*
+       * tmp уже заменён: сообщение пришло по сокету раньше ответа на POST и
+       * встало на место черновика со своим clientKey. Раньше здесь его
+       * вырезали и дописывали ответ сервера в конец без ключа — пузырь
+       * монтировался второй раз и «дёргался» (замер 15.09: ровно в момент
+       * ответа, 1,3 с после отправки). Обновляем на месте, ключ оставляем.
+       */
+      const existing = list.find((m) => m.id === normalized.id);
+      if (existing) {
+        return list.map((m) =>
+          m.id === normalized.id
+            ? { ...preserveMessageMedia(existing, normalized), clientKey: existing.clientKey }
+            : m,
+        );
+      }
+      return [...list, normalized];
+    }
     return list.map((m) =>
       m.id === tempId
         ? {
