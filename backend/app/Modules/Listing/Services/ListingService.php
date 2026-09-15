@@ -745,6 +745,43 @@ class ListingService
             $promocode = Promocode::query()->find($quote['promocode']['id']);
         }
 
+        /*
+         * Нулевую цену даёт и кредит размещения — `quote()` показывает его как
+         * бесплатность, но сам кредит не трогает: котировку открывают просто
+         * посмотреть. Списывать надо здесь, в транзакции создания объявления.
+         * До 15.09 эта ветка возвращала «бесплатно», а списание стояло ниже и
+         * не достигалось: один кредит давал сколько угодно объявлений.
+         *
+         * Списание условным UPDATE, а не чтением и записью: две вкладки с одним
+         * кредитом не должны опубликовать два объявления. Если кредит успел
+         * кончиться, объявление ждёт оплату по цене без кредита.
+         */
+        if ($quote['final_cents'] === 0 && ($quote['free_reason'] ?? null) === 'listing_credit') {
+            $consumed = User::query()
+                ->whereKey($user->id)
+                ->where('listing_placement_credits', '>=', 1)
+                ->decrement('listing_placement_credits');
+
+            $pricedCents = max(0, (int) $quote['price_after_subscription_cents'] - (int) $quote['promo_discount_cents']);
+
+            if ($consumed === 1) {
+                [$status, $publishedAt] = $this->gatePublishStatus();
+
+                // Не «бесплатно»: кредит — оплаченная заранее единица, и в
+                // квоту бесплатных размещений подписки он не засчитывается.
+                return [
+                    $status,
+                    $publishedAt,
+                    [
+                        'placement_was_free' => false,
+                        'placement_amount_cents' => $pricedCents,
+                    ],
+                ];
+            }
+
+            $quote['final_cents'] = $pricedCents;
+        }
+
         if ($quote['final_cents'] === 0) {
             [$status, $publishedAt] = $this->gatePublishStatus();
 

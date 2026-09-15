@@ -116,7 +116,9 @@ class ListingPlacementPricingService
 
         $quote = $this->quote($user, $categoryId, $subcategoryId, $promocodeCode);
 
-        if ($quote['final_cents'] === 0) {
+        // Нулевая цена от кредита — не бесплатность: кредит списывается ниже.
+        // До 15.09 здесь был ранний возврат, и кредит не тратился (ДФ-5).
+        if ($quote['final_cents'] === 0 && ($quote['free_reason'] ?? null) !== 'listing_credit') {
             return $quote;
         }
 
