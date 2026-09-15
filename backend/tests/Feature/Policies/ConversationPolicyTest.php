@@ -3,6 +3,7 @@
 namespace Tests\Feature\Policies;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ConversationPolicyTest extends TestCase
@@ -67,9 +68,37 @@ class ConversationPolicyTest extends TestCase
         $a = $this->seedUser('a');
         $conversation = $this->seedConversation($a, $this->seedUser('b'));
 
+        // Код нужен клиенту, чтобы открыть окно подписки, а не показать
+        // «Это действие не авторизовано».
         $this->actingAs($a, 'sanctum')
             ->postJson("/api/v1/conversations/{$conversation->uuid}/messages", ['body' => 'hi'])
-            ->assertForbidden();
+            ->assertForbidden()
+            ->assertJsonPath('code', 'subscription_required');
+    }
+
+    public function test_participant_without_subscription_gets_coded_403_on_attachment(): void
+    {
+        $a = $this->seedUser('a');
+        $conversation = $this->seedConversation($a, $this->seedUser('b'));
+
+        $this->actingAs($a, 'sanctum')
+            ->post("/api/v1/conversations/{$conversation->uuid}/attachments", [
+                'file' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf'),
+            ], ['Accept' => 'application/json'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'subscription_required');
+    }
+
+    public function test_stranger_send_refusal_carries_no_subscription_code(): void
+    {
+        $conversation = $this->seedConversation($this->seedUser('a'), $this->seedUser('b'));
+        $stranger = $this->seedUser('c');
+        $this->grantSubscription($stranger);
+
+        $this->actingAs($stranger, 'sanctum')
+            ->postJson("/api/v1/conversations/{$conversation->uuid}/messages", ['body' => 'hi'])
+            ->assertForbidden()
+            ->assertJsonMissingPath('code');
     }
 
     public function test_subscriber_starts_conversation_and_free_user_cannot(): void
