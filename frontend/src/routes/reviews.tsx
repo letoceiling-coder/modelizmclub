@@ -1,7 +1,9 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Clapperboard } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
+import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { getFeatureFlags, loadFeatureFlagsFromServer } from "@/lib/config/featureFlags";
 
 export const Route = createFileRoute("/reviews")({
@@ -16,6 +18,12 @@ export const Route = createFileRoute("/reviews")({
 
 function ReviewsSection() {
   const guestBlocked = useGuestRouteBlocked("route.reviews");
+  const { requireLogin } = useGuestAccess();
+  // Гость получает окно входа сразу, как на /deals, — а не одну заглушку, где
+  // окно ждёт нажатия «Войти». Приёмка 15.09: «гость → окно входа» без исключений.
+  useEffect(() => {
+    if (guestBlocked) requireLogin(() => {});
+  }, [guestBlocked, requireLogin]);
   if (guestBlocked) {
     return (
       /*

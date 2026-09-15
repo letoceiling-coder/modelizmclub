@@ -62,6 +62,18 @@ function CommunityNewPage() {
     }
   }, [isGuest, requireAccount]);
 
+  // Вошедший без подтверждённого номера получает окно телефона сразу — как при
+  // «Создать канал». Раньше здесь была одна заглушка, и окно открывалось только
+  // по кнопке (приёмка 15.09: «без SMS → окно телефона»). Заглушка остаётся под
+  // окном: закрыл окно — видно, почему форма не открылась.
+  const needsPhone = !isGuest && !subLoading && !eligible;
+  useEffect(() => {
+    if (!needsPhone) return;
+    void requireLevel("verified", () => undefined, {
+      intent: { key: "navigate", params: { to: "/communities/new" }, returnTo: "/communities/new" },
+    });
+  }, [needsPhone, requireLevel]);
+
   if (isGuest || subLoading) {
     return (
       <AppLayout footer>
