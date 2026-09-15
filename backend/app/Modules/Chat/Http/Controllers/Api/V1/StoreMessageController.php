@@ -7,11 +7,14 @@ use App\Models\Conversation;
 use App\Models\Post;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Chat\Http\Controllers\Api\V1\Concerns\AuthorizesSend;
 use Modules\Chat\Http\Resources\MessageResource;
 use Modules\Chat\Services\ChatService;
 
 class StoreMessageController extends Controller
 {
+    use AuthorizesSend;
+
     public function __invoke(string $uuid, Request $request, ChatService $chat): JsonResponse
     {
         $data = $request->validate([
@@ -28,7 +31,9 @@ class StoreMessageController extends Controller
             ? Post::query()->where('uuid', $data['post_uuid'])->firstOrFail()
             : null;
 
-        $this->authorize('send', Conversation::query()->where('uuid', $uuid)->firstOrFail());
+        if ($denied = $this->denySend($request, Conversation::query()->where('uuid', $uuid)->firstOrFail())) {
+            return $denied;
+        }
 
         $conversation = $chat->findConversation($uuid, $request->user());
         $chat->attachMessageStatusContext($request, $conversation, $request->user());

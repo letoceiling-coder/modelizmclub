@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\ConversationType;
 use App\Models\Conversation;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 
 /**
  * Viewing needs participation; writing needs participation *and* the
@@ -14,6 +15,8 @@ use App\Models\User;
  */
 class ConversationPolicy
 {
+    public const SUBSCRIPTION_REQUIRED_MESSAGE = 'Оформите подписку, чтобы писать в чатах.';
+
     public function view(User $user, Conversation $conversation): bool
     {
         return $this->isParticipant($user, $conversation);
@@ -25,19 +28,26 @@ class ConversationPolicy
         return $this->isSubscriber($user);
     }
 
-    public function send(User $user, Conversation $conversation): bool
+    /**
+     * Отказ из-за подписки несёт код `subscription_required`: клиент по нему
+     * открывает окно подписки. Без кода человек видел «Это действие не
+     * авторизовано» — так было у подписчика, чья оплата не засчиталась (15.09).
+     */
+    public function send(User $user, Conversation $conversation): Response
     {
         if (! $this->isParticipant($user, $conversation)) {
-            return false;
+            return Response::deny();
         }
 
         // A deal chat belongs to the two parties of the deal — buying or selling
         // is not a social feature, so no subscription is required there.
         if ($conversation->type === ConversationType::Deal) {
-            return true;
+            return Response::allow();
         }
 
-        return $this->isSubscriber($user);
+        return $this->isSubscriber($user)
+            ? Response::allow()
+            : Response::deny(self::SUBSCRIPTION_REQUIRED_MESSAGE, 'subscription_required');
     }
 
     public function delete(User $user, Conversation $conversation): bool

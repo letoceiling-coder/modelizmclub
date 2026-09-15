@@ -145,20 +145,13 @@ class ChatService
             throw new NotFoundHttpException('Подкатегория не найдена.');
         }
 
-        $conversation = Conversation::query()
-            ->where('type', ConversationType::Room)
-            ->where('post_category_id', $sub->id)
-            ->first();
-
-        if (! $conversation) {
-            $conversation = DB::transaction(function () use ($sub): Conversation {
-                return Conversation::create([
-                    'type' => ConversationType::Room,
-                    'post_category_id' => $sub->id,
-                    'title' => $sub->name,
-                ]);
-            });
-        }
+        // Страница комнаты спрашивает беседу и участников параллельно, и оба
+        // запроса приходят сюда. firstOrCreate при встречной вставке ловит
+        // нарушение уникальности и перечитывает строку, а не отдаёт 500.
+        $conversation = Conversation::query()->firstOrCreate(
+            ['type' => ConversationType::Room, 'post_category_id' => $sub->id],
+            ['title' => $sub->name],
+        );
 
         $this->ensureParticipant($conversation, $user);
 
@@ -322,25 +315,17 @@ class ChatService
 
     private function ensureParticipant(Conversation $conversation, User $user): void
     {
-        $existing = ConversationParticipant::query()
-            ->where('conversation_id', $conversation->id)
-            ->where('user_id', $user->id)
-            ->first();
+        // Прочитать и потом вставить — гонка: два параллельных запроса одного
+        // человека оба не находили строку, второй падал на уникальном ключе
+        // (conversation_id, user_id) с 500. На проде 15.09, rooms/157.
+        $participant = ConversationParticipant::query()->firstOrCreate(
+            ['conversation_id' => $conversation->id, 'user_id' => $user->id],
+            ['role' => 'member', 'joined_at' => now()],
+        );
 
-        if ($existing) {
-            if ($existing->left_at !== null) {
-                $existing->update(['left_at' => null, 'joined_at' => now()]);
-            }
-
-            return;
+        if (! $participant->wasRecentlyCreated && $participant->left_at !== null) {
+            $participant->update(['left_at' => null, 'joined_at' => now()]);
         }
-
-        ConversationParticipant::create([
-            'conversation_id' => $conversation->id,
-            'user_id' => $user->id,
-            'role' => 'member',
-            'joined_at' => now(),
-        ]);
     }
 
     public function listMessages(string $conversationUuid, User $user, int $perPage = 50): LengthAwarePaginator

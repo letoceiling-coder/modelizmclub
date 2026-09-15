@@ -76,6 +76,9 @@ export async function prepareChatAttachmentFile(
 
 export function formatChatAttachmentError(err: unknown): string {
   if (err instanceof ApiError) {
+    // Эти отказы открывают своё окно (client.ts); пустая строка — без тоста.
+    const code = (err.payload as { code?: string } | undefined)?.code;
+    if (code === "phone_not_verified" || code === "subscription_required") return "";
     return firstFieldError(err.errors, err.message || "Не удалось отправить вложение");
   }
   if (err instanceof Error && err.message) return err.message;

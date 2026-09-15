@@ -29,6 +29,7 @@ import type { Category, CategoryChild, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { toast } from "@/lib/toast";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER } from "@/lib/store";
@@ -946,9 +947,13 @@ function ChatTab({
         mediaUuids.length ? mediaUuids : undefined,
       );
       upsertRoomMessage({ ...saved, clientKey });
-    } catch {
+    } catch (err) {
       setMessages((prev) => prev.filter((m) => m.clientKey !== clientKey));
-      toast.error(t("pages.subcategoryDetail.sendFailed"));
+      // Текст не пропадает: после оформления подписки его можно отправить.
+      setText((current) => current || v);
+      // Отказ по подписке открывает окно (client.ts) — тост поверх него лишний.
+      const message = formatApiErrorMessage(err, t("pages.subcategoryDetail.sendFailed"));
+      if (message) toast.error(message);
     } finally {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
       setSending(false);

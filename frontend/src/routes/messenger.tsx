@@ -1586,7 +1586,8 @@ function MessengerPage() {
     try {
       ({ file: readyFile, convertedFromHeic } = await prepareChatAttachmentFile(file, kind));
     } catch (err) {
-      toast.error(formatChatAttachmentError(err));
+      const message = formatChatAttachmentError(err);
+      if (message) toast.error(message);
       return;
     }
 
@@ -1636,7 +1637,8 @@ function MessengerPage() {
     } catch (err) {
       messengerCache.removeMessage(dialogId, tempId);
       URL.revokeObjectURL(url);
-      toast.error(formatChatAttachmentError(err));
+      const message = formatChatAttachmentError(err);
+      if (message) toast.error(message);
     }
   };
 
