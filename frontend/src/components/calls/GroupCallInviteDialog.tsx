@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useDialogA11y } from "@/hooks/use-dialog-a11y";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { createPortal } from "react-dom";
 import { m, AnimatePresence } from "framer-motion";
@@ -46,6 +47,8 @@ export function GroupCallInviteDialog() {
   const [friends, setFriends] = useState<User[]>([]);
   const [all, setAll] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(Boolean(picker), panelRef, () => groupCalls.closePicker());
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"friends" | "online">("friends");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -168,6 +171,11 @@ export function GroupCallInviteDialog() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 16, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="group-call-picker-title"
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             className="flex w-full max-w-[460px] flex-col overflow-hidden rounded-t-[18px] sm:rounded-[18px]"
             style={{
@@ -191,6 +199,7 @@ export function GroupCallInviteDialog() {
                 </span>
                 <div>
                   <div
+                    id="group-call-picker-title"
                     className="font-display text-[16px] font-bold"
                     style={{ color: "var(--foreground)" }}
                   >

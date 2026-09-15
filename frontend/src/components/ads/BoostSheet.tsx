@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDialogA11y } from "@/hooks/use-dialog-a11y";
 import { createPortal } from "react-dom";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { X, Zap, Loader2 } from "lucide-react";
@@ -29,6 +30,8 @@ export function BoostSheet({
   const [packages, setPackages] = useState(BOOST_PACKAGES);
   const [selected, setSelected] = useState(BOOST_PACKAGES[1]?.id ?? BOOST_PACKAGES[0].id);
   const [paying, setPaying] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(open, panelRef, onClose);
   // Ключ попытки: одно продвижение одного объявления — один платёж.
   const attempt = usePaymentAttempt();
 
@@ -96,6 +99,11 @@ export function BoostSheet({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="boost-sheet-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[440px] rounded-t-[20px] p-[20px] sm:rounded-[16px]"
         style={{ background: "var(--background-elevated)", border: "1px solid var(--border)" }}
@@ -110,6 +118,7 @@ export function BoostSheet({
             </span>
             <div>
               <div
+                id="boost-sheet-title"
                 className="text-[16px] font-semibold"
                 style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
               >
