@@ -1,4 +1,4 @@
-import type { Level } from "./levels";
+import type { GateWindow, Level } from "./levels";
 
 /**
  * What the user was trying to do when a gate stopped them. Survives a full
@@ -13,6 +13,8 @@ export interface Intent {
   returnTo?: string;
   /** The rung that was required. */
   level?: Level;
+  /** Окно следующего шага, уже показанное после входа, — второй раз оно не поднимается. */
+  prompted?: GateWindow;
   createdAt: number;
 }
 

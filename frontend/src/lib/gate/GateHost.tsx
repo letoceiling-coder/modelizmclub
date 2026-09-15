@@ -4,9 +4,10 @@ import { useSession } from "@/lib/session";
 import { AuthDialog } from "./AuthDialog";
 import { PaywallDialog } from "./PaywallDialog";
 import { VerifyPhoneDialog } from "./VerifyPhoneDialog";
-import { closeGate, setPendingAction, useGateState } from "./gateStore";
-import { clearIntent, readIntent } from "./intent";
-import { levelOf, meets } from "./levels";
+import { closeGate, openGate, setPendingAction, useGateState } from "./gateStore";
+import { clearIntent, readIntent, saveIntent } from "./intent";
+import { levelOf } from "./levels";
+import { decideStoredIntent } from "./storedIntent";
 import { resumeIntent } from "./resume";
 
 /**
@@ -46,22 +47,28 @@ export function GateHost() {
   useEffect(() => {
     if (session.isPending) return;
     const stored = readIntent();
-    if (!stored) {
+    const decision = decideStoredIntent(level, stored);
+    if (decision.kind === "none") {
       resumed.current = false;
       return;
     }
-    if (!stored.level) {
+    if (decision.kind === "clear") {
       clearIntent();
       return;
     }
-    if (!meets(level, stored.level)) return;
+    if (decision.kind === "prompt" && stored) {
+      // Следующий недостающий шаг — один раз; намерение остаётся, чтобы после
+      // подтверждения номера или оплаты действие всё-таки выполнилось.
+      saveIntent({ ...stored, prompted: decision.window });
+      openGate(decision.window, stored.returnTo);
+      return;
+    }
+    if (decision.kind !== "resume") return;
     if (resumed.current) return;
     resumed.current = true;
     // Повтор после перезагрузки меняет данные уже загруженной страницы —
     // её загрузчики надо перечитать, иначе избранное появится только после F5.
     void resumeIntent(go, () => router.invalidate());
-    // Намерение с непройденным уровнем остаётся лежать: пользователь откроет
-    // окно сам, повторив действие. Ничего не всплывает без спроса.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.isPending, level]);
 
