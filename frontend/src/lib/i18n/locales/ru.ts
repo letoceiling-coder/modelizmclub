@@ -1,6 +1,7 @@
 export const ru = {
   common: {
     appName: "МоДелизМ",
+    listEnd: "Это все",
     appSuffix: "Форум",
     loading: "Загрузка…",
     save: "Сохранить",
@@ -864,6 +865,7 @@ export const ru = {
       emptyTitle: "Пока нет звонков",
       emptyDesc: "Совершите вызов из любого диалога",
       missedSuffix: "пропущен",
+      showingLast: "Показаны последние {{count}} звонков",
       callBack: "Перезвонить",
       openChat: "Открыть чат",
       openChatFailed: "Не удалось открыть чат",

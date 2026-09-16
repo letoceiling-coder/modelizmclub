@@ -306,18 +306,37 @@ export async function markConversationRead(conversationUuid: string): Promise<vo
   await api(`/conversations/${conversationUuid}/read`, { method: "POST" });
 }
 
+/**
+ * Все страницы одного раздела диалогов.
+ *
+ * Бралась только первая страница по 50. Замер 16.09 на проде: у одного
+ * человека 64 комнаты направлений — 14 из них в списке не появлялись вовсе,
+ * и прокрутка упиралась в пятидесятую, как будто это конец. Потолок в
+ * MAX_CONVERSATION_PAGES страниц — от бесконечного цикла, если сервер
+ * ответит без meta; до него тысяча диалогов.
+ */
+const MAX_CONVERSATION_PAGES = 20;
+
+async function fetchAllConversationPages(query: { space?: string }): Promise<ApiConversation[]> {
+  const out: ApiConversation[] = [];
+  for (let page = 1; page <= MAX_CONVERSATION_PAGES; page++) {
+    const res = await api<Paginated<ApiConversation>>("/conversations", {
+      query: { ...query, per_page: 50, page },
+    });
+    out.push(...(res.data ?? []));
+    if (page >= (res.meta?.last_page ?? 1)) break;
+  }
+  return out;
+}
+
 export async function fetchConversations(meUuid: string): Promise<Dialog[]> {
   if (isDemoMode()) return (await import("@/lib/demo-data")).demoConversations();
   const [chats, communities, rooms] = await Promise.all([
-    api<Paginated<ApiConversation>>("/conversations", { query: { per_page: 50 } }),
-    api<Paginated<ApiConversation>>("/conversations", {
-      query: { per_page: 50, space: "communities" },
-    }).catch(() => ({ data: [] as ApiConversation[] })),
-    api<Paginated<ApiConversation>>("/conversations", {
-      query: { per_page: 50, space: "rooms" },
-    }).catch(() => ({ data: [] as ApiConversation[] })),
+    fetchAllConversationPages({}),
+    fetchAllConversationPages({ space: "communities" }).catch(() => [] as ApiConversation[]),
+    fetchAllConversationPages({ space: "rooms" }).catch(() => [] as ApiConversation[]),
   ]);
-  const merged = [...(chats.data ?? []), ...(communities.data ?? []), ...(rooms.data ?? [])];
+  const merged = [...chats, ...communities, ...rooms];
   return dedupeDialogsByPartner(merged.map((c) => mapConversation(c, meUuid)));
 }
 

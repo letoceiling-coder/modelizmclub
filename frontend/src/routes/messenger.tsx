@@ -109,6 +109,7 @@ import { useInsertAtCaret } from "@/lib/insert-at-caret";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ListEnd } from "@/components/ui/list-end";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -2041,6 +2042,8 @@ function MessengerPage() {
                 })}
               </ul>
             )}
+            {/* Список загружен целиком (все страницы) — конец можно назвать. */}
+            {tab !== "calls" && !loading && filtered.length > 0 && <ListEnd />}
           </div>
         </aside>
 
