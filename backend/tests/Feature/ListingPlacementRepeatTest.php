@@ -15,8 +15,10 @@ use App\Models\UserProfile;
 use App\Models\UserSubscription;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Listing\Http\Resources\ListingResource;
 use Modules\Listing\Services\ListingPlacementPricingService;
 use Modules\Listing\Services\ListingService;
 use Tests\TestCase;
@@ -220,6 +222,57 @@ class ListingPlacementRepeatTest extends TestCase
 
         $this->expectException(ValidationException::class);
         app(ListingService::class)->setStatus($listing, $user, ListingStatus::Published);
+    }
+
+    public function test_владелец_видит_состояние_оплаты_размещения(): void
+    {
+        $user = $this->seller(false);
+        $user->forceFill(['listing_placement_credits' => 1])->save();
+        $service = app(ListingService::class);
+
+        $paidByCredit = $service->create($user->fresh(), [
+            'category_id' => $this->category(null),
+            'title' => 'Модель '.uniqid(),
+            'description' => 'Оплата кредитом размещения.',
+            'price_cents' => 150000,
+            'delivery_methods' => ['Почта России'],
+            'publish' => true,
+        ]);
+
+        $this->actingAs($user->fresh(), 'sanctum')
+            ->getJson('/api/v1/listings/'.$paidByCredit->uuid)
+            ->assertOk()
+            ->assertJsonPath('data.placement.paid', true);
+
+        $draft = $service->create($user->fresh(), [
+            'category_id' => $this->category(null),
+            'title' => 'Модель '.uniqid(),
+            'description' => 'Черновик без оплаты.',
+            'price_cents' => 150000,
+            'delivery_methods' => ['Почта России'],
+            'publish' => false,
+        ]);
+
+        // Черновик публичной страницы не имеет — владелец видит его в своём списке.
+        $mine = $this->actingAs($user->fresh(), 'sanctum')
+            ->getJson('/api/v1/users/me/listings?per_page=50')
+            ->assertOk()
+            ->json('data');
+        $row = collect($mine)->firstWhere('uuid', $draft->uuid);
+        $this->assertNotNull($row, 'черновик не виден владельцу в «Моих объявлениях»');
+        $this->assertFalse((bool) ($row['placement']['paid'] ?? true), 'неоплаченный черновик помечен оплаченным');
+
+        // Посторонний состояния оплаты не видит. Объявление на модерации
+        // публичной страницы не имеет, поэтому спрашиваем сам ресурс.
+        $stranger = $this->seller(false);
+        $request = Request::create('/api/v1/listings/'.$paidByCredit->uuid);
+        $request->setUserResolver(fn () => $stranger);
+        $asStranger = (new ListingResource($paidByCredit))->response($request)->getData(true)['data'];
+        $this->assertArrayNotHasKey('placement', $asStranger);
+
+        $request->setUserResolver(fn () => $user->fresh());
+        $asOwner = (new ListingResource($paidByCredit))->response($request)->getData(true)['data'];
+        $this->assertTrue($asOwner['placement']['paid'] ?? false);
     }
 
     public function test_восстановленное_объявление_возвращается_в_очередь(): void
