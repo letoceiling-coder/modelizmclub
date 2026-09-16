@@ -187,6 +187,32 @@ class ListingPlacementRepeatTest extends TestCase
         $this->assertSame($payment->id, (int) $again->placement_payment_id);
     }
 
+    public function test_публикация_по_кредиту_не_просит_денег_во_второй_раз(): void
+    {
+        $categoryId = $this->category(null);
+        $user = $this->seller(false);
+        $user->forceFill(['listing_placement_credits' => 1])->save();
+
+        $service = app(ListingService::class);
+        $listing = $service->create($user->fresh(), [
+            'category_id' => $categoryId,
+            'title' => 'Модель '.uniqid(),
+            'description' => 'Публикация по кредиту размещения.',
+            'price_cents' => 150000,
+            'delivery_methods' => ['Почта России'],
+            'publish' => true,
+        ]);
+
+        $this->assertSame(0, (int) $user->fresh()->listing_placement_credits, 'кредит списан');
+        $this->assertFalse((bool) $listing->placement_was_free);
+
+        $draft = $service->setStatus($listing, $user->fresh(), ListingStatus::Draft);
+        $again = $service->setStatus($draft->fresh(), $user->fresh(), ListingStatus::Published);
+
+        $this->assertContains($again->status, [ListingStatus::PendingModeration, ListingStatus::Published]);
+        $this->assertSame(0, (int) $user->fresh()->listing_placement_credits, 'второй кредит не списан');
+    }
+
     public function test_неоплаченное_объявление_по_прежнему_требует_оплату(): void
     {
         $user = $this->seller(false);
