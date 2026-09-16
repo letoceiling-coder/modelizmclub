@@ -28,6 +28,10 @@ import {
   formatSocialActionError,
   type IncomingRequest,
 } from "@/lib/api/social";
+import {
+  refreshIncomingFriendRequests,
+  setIncomingFriendRequestCount,
+} from "@/lib/friend-requests";
 import { ApiError } from "@/lib/api/client";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { openConversation } from "@/lib/api/chat";
@@ -240,6 +244,7 @@ function FriendsPage() {
       if (!active) return;
       setFriends(fr);
       setRequests(rq);
+      setIncomingFriendRequestCount(rq.length);
       setAllUsers(us);
       setPending(new Map(out.map((r) => [r.to.id, r.id])));
       setLoading(false);
@@ -338,6 +343,7 @@ function FriendsPage() {
     try {
       await acceptFriendRequest(id);
       setRequests((rs) => rs.filter((r) => r.id !== id));
+      refreshIncomingFriendRequests();
       // Optimistically move the requester into the friends list so the change
       // is visible immediately (demo has no server round-trip to re-fetch).
       if (req) {
@@ -352,6 +358,7 @@ function FriendsPage() {
     try {
       await declineFriendRequest(id);
       setRequests((rs) => rs.filter((r) => r.id !== id));
+      refreshIncomingFriendRequests();
       toast.success(t("pages.friends.requestDeclined"));
     } catch {
       toast.error(t("pages.friends.requestDeclineFailed"));

@@ -5,6 +5,7 @@ import { AnimatePresence, m } from "framer-motion";
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
   CheckCheck,
   CornerUpLeft,
   MessageSquare,
@@ -65,6 +66,14 @@ import {
 import { isDemoMode } from "@/lib/demo-mode";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useScrollRow } from "@/lib/ui/scroll-row";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { setHubConversation } from "@/lib/realtime/hub";
 import { onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
@@ -177,14 +186,68 @@ const TAB_EDGE_GAP = 36;
 /** Вкладка, в которой живёт диалог. Архив перекрывает тип: он один на всех. */
 type DialogTab = Exclude<MessengerTab, "calls">;
 
-const MESSENGER_TABS: readonly MessengerTab[] = [
-  "direct",
-  "rooms",
-  "deals",
+/** Где переписываются — всегда на виду. */
+const PRIMARY_TABS = ["direct", "deals", "rooms"] as const satisfies readonly MessengerTab[];
+/** Служебные разделы — под «Ещё». */
+const SECONDARY_TABS = [
   "communities",
   "archive",
   "calls",
-];
+] as const satisfies readonly MessengerTab[];
+
+function isSecondaryTab(tab: MessengerTab): boolean {
+  return (SECONDARY_TABS as readonly MessengerTab[]).includes(tab);
+}
+
+function tabButtonStyle(active: boolean) {
+  return {
+    height: 32,
+    fontWeight: active ? 600 : 500,
+    color: active ? "var(--accent)" : "var(--foreground-50)",
+    borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+  } as const;
+}
+
+/*
+ * Ширина вкладки не зависит от данных.
+ *
+ * Вкладки стоят одним рядом, и любая перемена ширины одной двигает соседей.
+ * Менялась она дважды: счётчик непрочитанного появлялся и пропадал (он
+ * приходит отдельными запросами по комнатам и сообществам, а открытие чата
+ * его гасит), и активная вкладка переключалась с 500 на 600 без клика — по
+ * открытому диалогу. Замер 11.09, /feed → /messenger на 768: вкладки ±23 и
+ * 42 px, CLS 0,0004 в каждом пятом переходе.
+ *
+ * Подпись держит ширину полужирной: невидимая копия в той же клетке сетки.
+ * Место под счётчик есть всегда, ноль просто невидим — «0» не показывается.
+ */
+function TabLabel({ text }: { text: string }) {
+  return (
+    <span className="inline-grid">
+      <span className="whitespace-nowrap [grid-area:1/1]">{text}</span>
+      <span
+        aria-hidden="true"
+        className="invisible whitespace-nowrap font-semibold [grid-area:1/1]"
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
+function TabCount({ count }: { count: number }) {
+  return (
+    <span
+      aria-hidden={count > 0 ? undefined : true}
+      // min-w-[28px] — место под «99+» целиком: «9» → «12» → «99+» не
+      // расширяют вкладку. Свои поля 6 px — цифры не касаются края кружка.
+      className={`grid h-[18px] min-w-[28px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
+      style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 const TAB_LABEL_KEY: Record<MessengerTab, string> = {
   direct: "pages.messenger.tabDirect",
@@ -914,6 +977,9 @@ function MessengerPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">(chat ? "chat" : "list");
   const [tab, setTab] = useState<MessengerTab>("direct");
   const tabsRowRef = useRef<HTMLDivElement>(null);
+  const secondaryActive = isSecondaryTab(tab);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreClosedAt = useRef(0);
   const [chatSearchOpen, setChatSearchOpen] = useState(false);
   const [searchHighlightId, setSearchHighlightId] = useState<string | null>(null);
   const [searchHighlightQuery, setSearchHighlightQuery] = useState("");
@@ -1065,10 +1131,18 @@ function MessengerPage() {
     [navigate],
   );
 
+  /*
+   * Диалог «открыт», только когда он на экране. На телефоне список и чат —
+   * разные экраны: после «Назад» activeId остаётся, но человек смотрит на
+   * список, и пинг о новом сообщении в этом диалоге должен прозвучать. Замер
+   * 16.09 на 375: вернулся к списку — пинга не было.
+   */
+  const isNarrow = useIsMobile();
+  const chatOnScreen = !isNarrow || mobileView === "chat";
   useEffect(() => {
-    setWatchingDialog(activeId);
+    setWatchingDialog(chatOnScreen ? activeId : null);
     return () => setWatchingDialog(null);
-  }, [activeId]);
+  }, [activeId, chatOnScreen]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -1222,11 +1296,11 @@ function MessengerPage() {
   /*
    * Выбранная вкладка доезжает в видимую часть.
    *
-   * Шесть вкладок в ряд не помещаются: на 365 видно три с половиной, на
-   * 440 — четыре. Ряд прокручивается, но за выбором не следовал: нажатие
-   * на «Звонки» из списка меняло содержимое, а сама вкладка оставалась за
-   * краем — подчёркивания не видно, и ряд выглядел нетронутым. Замерено:
-   * при окне 365 вкладка стояла на 451 при scrollLeft 0.
+   * Ряд прокручивается, но за выбором не следовал: нажатие на «Звонки» из
+   * списка меняло содержимое, а сама вкладка оставалась за краем —
+   * подчёркивания не видно, и ряд выглядел нетронутым. Замерено при шести
+   * вкладках: при окне 365 вкладка стояла на 451 при scrollLeft 0. Для
+   * раздела под «Ещё» выбранной считается сама «Ещё».
    *
    * `block: "nearest"` — чтобы не увести страницу по вертикали: двигаем
    * только этот ряд.
@@ -1273,6 +1347,7 @@ function MessengerPage() {
       observer.disconnect();
     };
   }, [mobileView]);
+  useScrollRow(tabsRowRef, [mobileView]);
 
   const filtered = useMemo(() => {
     if (tab === "calls") return [];
@@ -1787,10 +1862,19 @@ function MessengerPage() {
               </div>
             )}
             {/*
-              Шесть вкладок в один ряд с прокруткой по X, а не четыре плюс
-              четыре фишки снизу. Прокрутка, а не сетка на шесть колонок:
-              на 360 px колонка под «Категорийные» выходит в 44 px, и слово
-              обрезается до «Кате…» у всех сразу.
+              Три основные вкладки и «Ещё».
+
+              Шесть вкладок в ряд не помещались ни на одной ширине: на 375,
+              768, 1024, 1440 и 1920 целиком видно две, ряд 287–327 px при
+              содержимом 660–687. Замер 16.09 по живым данным за 30 дней:
+              личные — 130 сообщений от 33 человек, направления — 22,
+              сделки — 31 активный чат; в сообществах ноль сообщений, архив
+              и звонки — служебные разделы. Основные — то, где переписываются;
+              остальное — под «Ещё», вкладка которой показывает выбранный
+              раздел и сумму его непрочитанного.
+
+              Ряд по-прежнему прокручивается (колесо, палец, мышь): на 320 px
+              колонки четыре вкладки со счётчиками тоже не входят.
             */}
             <div className="relative" style={{ borderBottom: "1px solid var(--border)" }}>
               <div
@@ -1799,67 +1883,92 @@ function MessengerPage() {
                 style={{ scrollbarWidth: "none" }}
                 role="tablist"
               >
-                {MESSENGER_TABS.map((key) => {
-                  const isActive = tab === key;
-                  const count = key === "calls" ? 0 : unreadByTab[key];
-                  return (
+                {PRIMARY_TABS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === key}
+                    onClick={() => setTab(key)}
+                    className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                    style={tabButtonStyle(tab === key)}
+                  >
+                    <TabLabel text={t(TAB_LABEL_KEY[key])} />
+                    <TabCount count={unreadByTab[key]} />
+                  </button>
+                ))}
+                <DropdownMenu
+                  open={moreOpen}
+                  onOpenChange={(open) => {
+                    if (!open) moreClosedAt.current = Date.now();
+                    setMoreOpen(open);
+                  }}
+                  modal={false}
+                >
+                  <DropdownMenuTrigger asChild>
                     <button
-                      key={key}
                       type="button"
                       role="tab"
-                      aria-selected={isActive}
-                      onClick={() => setTab(key)}
-                      className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
-                      style={{
-                        height: 32,
-                        fontWeight: isActive ? 600 : 500,
-                        color: isActive ? "var(--accent)" : "var(--foreground-50)",
-                        borderBottom: isActive
-                          ? "2px solid var(--accent)"
-                          : "2px solid transparent",
+                      aria-selected={secondaryActive}
+                      aria-haspopup="menu"
+                      aria-expanded={moreOpen}
+                      /*
+                       * Меню открывается по клику, а не по нажатию, как у
+                       * Radix по умолчанию: иначе ряд нельзя протащить
+                       * мышью или пальцем, начав с этой вкладки, — меню
+                       * выскакивает раньше, чем понятно, что это прокрутка.
+                       * Клавиатура (Enter, пробел, стрелка) работает как была.
+                       */
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        // Нажатие вне меню уже закрыло его — не открываем снова.
+                        if (Date.now() - moreClosedAt.current < 300) return;
+                        setMoreOpen((v) => !v);
                       }}
+                      className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                      style={tabButtonStyle(secondaryActive)}
                     >
-                      {/*
-                      Ширина вкладки не зависит от данных.
-
-                      Вкладки стоят одним рядом, и любая перемена ширины одной
-                      двигает соседей. Менялась она дважды: счётчик непрочитанного
-                      появлялся и пропадал (он приходит отдельными запросами по
-                      комнатам и сообществам, а открытие чата его гасит), и
-                      активная вкладка переключалась с 500 на 600 без клика — по
-                      открытому диалогу. Замер 11.09, /feed → /messenger на 768:
-                      вкладки ±23 и 42 px, CLS 0,0004 в каждом пятом переходе.
-
-                      Подпись держит ширину полужирной: невидимая копия в той же
-                      клетке сетки. Место под счётчик есть всегда, ноль просто
-                      невидим — как и раньше, «0» не показывается.
-                    */}
-                      <span className="inline-grid">
-                        <span className="whitespace-nowrap [grid-area:1/1]">
-                          {t(TAB_LABEL_KEY[key])}
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className="invisible whitespace-nowrap font-semibold [grid-area:1/1]"
-                        >
-                          {t(TAB_LABEL_KEY[key])}
-                        </span>
-                      </span>
-                      {key !== "calls" && (
-                        <span
-                          aria-hidden={count > 0 ? undefined : true}
-                          // min-w-[28px] — место под «99+» целиком: «9» → «12» → «99+»
-                          // не расширяют вкладку. Свои поля 6 px — цифры не
-                          // касаются края кружка, кружок не касается подписи.
-                          className={`grid h-[18px] min-w-[28px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
-                          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
-                        >
-                          {count > 99 ? "99+" : count}
-                        </span>
-                      )}
+                      <TabLabel
+                        text={
+                          secondaryActive ? t(TAB_LABEL_KEY[tab]) : t("pages.messenger.tabMore")
+                        }
+                      />
+                      <ChevronDown aria-hidden="true" className="size-[14px] shrink-0" />
+                      <TabCount count={unreadByTab.communities + unreadByTab.archive} />
                     </button>
-                  );
-                })}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[200px]">
+                    {SECONDARY_TABS.map((key) => {
+                      const count = key === "calls" ? 0 : unreadByTab[key];
+                      return (
+                        <DropdownMenuItem
+                          key={key}
+                          onSelect={() => setTab(key)}
+                          aria-current={tab === key ? "true" : undefined}
+                          className="min-h-[44px] gap-[8px]"
+                        >
+                          <span className="flex-1">{t(TAB_LABEL_KEY[key])}</span>
+                          {count > 0 && (
+                            <span
+                              className="grid h-[18px] min-w-[28px] place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums"
+                              style={{
+                                background: "var(--accent)",
+                                color: "var(--accent-foreground)",
+                              }}
+                            >
+                              {count > 99 ? "99+" : count}
+                            </span>
+                          )}
+                          <Check
+                            aria-hidden="true"
+                            className={`size-[16px] ${tab === key ? "" : "invisible"}`}
+                            style={{ color: "var(--accent)" }}
+                          />
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               {/* Подсказки «есть ещё»: не перехватывают нажатия, прячутся у края. */}
               <span
