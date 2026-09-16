@@ -452,6 +452,10 @@ export interface Dialog {
   lastReadMessageId?: string;
   /** Чат безопасной сделки — статус показываем прямо в шапке диалога. */
   deal?: DialogDealRef;
+  /** Действующая обычная сделка: продавец отметил продажу в этом чате. */
+  ordinaryDeal?: { id: ID; role: "buyer" | "seller"; statusLabel: string };
+  /** Можно ли мне отметить продажу лота, о котором этот чат. */
+  canMarkSold?: boolean;
   /** Последнее сообщение — своё: в превью списка перед ним «Вы: ». */
   lastFromMe?: boolean;
 }

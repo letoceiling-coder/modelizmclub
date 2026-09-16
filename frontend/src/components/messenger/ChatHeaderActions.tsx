@@ -18,6 +18,9 @@ import {
   PinOff,
   Trash2,
   Flag,
+  BadgeCheck,
+  Undo2,
+  CircleX,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { TAP_TARGET_44 } from "@/lib/tap-target";
@@ -37,6 +40,8 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { groupCalls, useGroupCall } from "@/lib/groupCall";
 import { actions, useStore, selectors, markDialogDeleted } from "@/lib/store";
 import { askConfirm } from "@/lib/ui/ask";
+import { reportActionFailure } from "@/lib/errors/handle";
+import { cancelOrdinaryDeal, declineOrdinaryDeal, markListingSold } from "@/lib/api/deals";
 
 interface Props {
   partnerId: string;
@@ -47,6 +52,17 @@ interface Props {
   onSearch: () => void;
   /** Called after "Удалить чат" — parent should deselect this dialog. */
   onDeleted?: () => void;
+  /**
+   * Обычная сделка в этом чате: отметить продажу (продавец), снять отметку
+   * (продавец), «Я не покупал» (покупатель). После действия чат переезжает
+   * между вкладками «Личные» и «Сделки» — родитель перечитывает список.
+   */
+  deal?: {
+    canMarkSold: boolean;
+    ordinaryDeal?: { id: string; role: "buyer" | "seller" };
+    listingTitle?: string;
+    onChanged: () => void;
+  };
 }
 
 export function ChatHeaderActions({
@@ -57,6 +73,7 @@ export function ChatHeaderActions({
   pinned,
   onSearch,
   onDeleted,
+  deal,
 }: Props) {
   const { t } = useTranslation();
   const { requirePremium } = useGuestAccess();
@@ -266,6 +283,50 @@ export function ChatHeaderActions({
     }
   };
 
+  const markSold = async () => {
+    close();
+    if (!dialogId || !deal) return;
+    const ok = await askConfirm({
+      title: t("components.chatHeader.markSoldConfirm", {
+        title: deal.listingTitle ?? "",
+        name: partnerName,
+      }),
+      description: t("components.chatHeader.markSoldConfirmDesc"),
+    });
+    if (!ok) return;
+    try {
+      await markListingSold(dialogId);
+      toast.success(t("components.chatHeader.markSoldDone"), {
+        description: t("components.chatHeader.markSoldDoneDesc"),
+      });
+      deal.onChanged();
+    } catch (e) {
+      reportActionFailure(e, t("components.chatHeader.markSoldFailed"));
+    }
+  };
+
+  const unmarkSold = async () => {
+    close();
+    const current = deal?.ordinaryDeal;
+    if (!deal || !current) return;
+    const asBuyer = current.role === "buyer";
+    const ok = await askConfirm({
+      title: asBuyer
+        ? t("components.chatHeader.declinePurchaseConfirm")
+        : t("components.chatHeader.cancelSoldConfirm"),
+      description: t("components.chatHeader.unmarkSoldDesc"),
+    });
+    if (!ok) return;
+    try {
+      if (asBuyer) await declineOrdinaryDeal(current.id);
+      else await cancelOrdinaryDeal(current.id);
+      toast.success(t("components.chatHeader.unmarkSoldDone"));
+      deal.onChanged();
+    } catch (e) {
+      reportActionFailure(e, t("components.chatHeader.unmarkSoldFailed"));
+    }
+  };
+
   return (
     <>
       <button
@@ -361,6 +422,24 @@ export function ChatHeaderActions({
                     close();
                     onSearch();
                   }}
+                />
+              )}
+              {deal?.canMarkSold && (
+                <Item
+                  icon={BadgeCheck}
+                  label={t("components.chatHeader.markSold")}
+                  onClick={() => void markSold()}
+                />
+              )}
+              {deal?.ordinaryDeal && (
+                <Item
+                  icon={deal.ordinaryDeal.role === "buyer" ? CircleX : Undo2}
+                  label={
+                    deal.ordinaryDeal.role === "buyer"
+                      ? t("components.chatHeader.declinePurchase")
+                      : t("components.chatHeader.cancelSold")
+                  }
+                  onClick={() => void unmarkSold()}
                 />
               )}
               <Item

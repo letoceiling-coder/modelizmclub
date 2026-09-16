@@ -79,6 +79,7 @@ import { onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
 import { ChatHeaderActions } from "@/components/messenger/ChatHeaderActions";
+import { isDealDialog } from "@/lib/messenger/deal-dialog";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestSectionStub, useGuestRouteBlocked } from "@/components/access/GuestSectionStub";
 import { ChatMessageSearch } from "@/components/messenger/ChatMessageSearch";
@@ -264,9 +265,9 @@ function dialogTab(d: Dialog, archived: boolean): DialogTab {
   if (archived) return "archive";
   if (d.type === "community") return "communities";
   if (d.type === "room") return "rooms";
-  // Чат сделки — это отдельный тип; личный чат про объявление тоже живёт
-  // во вкладке «Сделок», пока у него нет своей сделки.
-  if (d.type === "deal" || d.listing) return "deals";
+  // Та же сделка, что в разделе «Сделки»: безопасная или отмеченная обычная.
+  // Вопрос про объявление без сделки — личная переписка.
+  if (isDealDialog(d)) return "deals";
   return "direct";
 }
 
@@ -2107,13 +2108,15 @@ function MessengerPage() {
                         {activeIdentity?.name ?? partner?.name}
                       </div>
                       <div className="flex min-w-0 items-center gap-[6px] text-[12px] leading-tight">
-                        {active.deal && (
+                        {(active.deal || active.ordinaryDeal) && (
                           <span
                             className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
                             style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
                             title={t("pages.messenger.dealStatus")}
                           >
-                            {active.deal.statusLabel || active.deal.status}
+                            {active.deal
+                              ? active.deal.statusLabel || active.deal.status
+                              : active.ordinaryDeal?.statusLabel}
                           </span>
                         )}
                         {active.type === "community" || active.type === "room" ? (
@@ -2174,6 +2177,16 @@ function MessengerPage() {
                         pinned={Boolean(active.pinned)}
                         onSearch={() => setChatSearchOpen(true)}
                         onDeleted={() => deselectDialog(active.id)}
+                        deal={
+                          active.type === "direct" && (active.canMarkSold || active.ordinaryDeal)
+                            ? {
+                                canMarkSold: Boolean(active.canMarkSold),
+                                ordinaryDeal: active.ordinaryDeal,
+                                listingTitle: active.listing?.title,
+                                onChanged: () => void refetchDialogs(),
+                              }
+                            : undefined
+                        }
                       />
                     )}
                   </div>

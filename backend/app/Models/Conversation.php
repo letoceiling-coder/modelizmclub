@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ConversationType;
+use App\Enums\OrdinaryDealStatus;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -58,6 +59,14 @@ class Conversation extends Model
     public function safeDeal(): HasOne
     {
         return $this->hasOne(SafeDeal::class, 'conversation_id');
+    }
+
+    /** Действующая обычная сделка в этом чате — по ней чат попадает во вкладку «Сделки». */
+    public function activeOrdinaryDeal(): HasOne
+    {
+        return $this->hasOne(OrdinaryDeal::class, 'conversation_id')
+            ->where('status', OrdinaryDealStatus::Active->value)
+            ->latestOfMany();
     }
 
     public function participants(): HasMany

@@ -3,14 +3,16 @@
 namespace Modules\Chat\Http\Resources;
 
 use App\Enums\ConversationType;
+use App\Enums\ListingStatus;
 use App\Http\Resources\Concerns\HasCanFlags;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\PostCategory;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Modules\User\Http\Resources\UserCompactResource;
 use Modules\Chat\Services\ChatService;
+use Modules\User\Http\Resources\UserCompactResource;
 
 /** @mixin Conversation */
 class ConversationResource extends JsonResource
@@ -56,9 +58,18 @@ class ConversationResource extends JsonResource
                 'status' => $this->safeDeal->status->value,
                 'status_label' => $this->safeDeal->status->label(),
             ]),
+            // Обычная сделка — продажа, отмеченная продавцом в этом чате.
+            'ordinary_deal' => $this->whenLoaded('activeOrdinaryDeal', fn () => $this->activeOrdinaryDeal ? [
+                'uuid' => $this->activeOrdinaryDeal->uuid,
+                'status' => $this->activeOrdinaryDeal->status->value,
+                'status_label' => $this->activeOrdinaryDeal->status->label(),
+                'role' => $user && (int) $this->activeOrdinaryDeal->buyer_id === (int) $user->id ? 'buyer' : 'seller',
+            ] : null),
+            // Можно ли человеку отметить продажу лота, о котором этот чат.
+            'can_mark_sold' => $this->canMarkSold($user),
             'is_pinned' => $myParticipant?->pinned_at !== null,
             'pinned_at' => $myParticipant?->pinned_at?->toIso8601String(),
-            'pinned_message' => $this->whenLoaded('pinnedMessage', function () use ($request, $user) {
+            'pinned_message' => $this->whenLoaded('pinnedMessage', function () use ($user) {
                 if (! $this->pinnedMessage || ! $user) {
                     return $this->pinnedMessage ? new MessageResource($this->pinnedMessage) : null;
                 }
@@ -139,5 +150,19 @@ class ConversationResource extends JsonResource
         $slug = PostCategory::query()->whereKey($this->post_category_id)->value('slug');
 
         return is_string($slug) ? $slug : null;
+    }
+
+    private function canMarkSold(?User $user): bool
+    {
+        if (! $user || $this->type !== ConversationType::Direct || ! $this->relationLoaded('listing') || ! $this->listing) {
+            return false;
+        }
+        if ($this->relationLoaded('activeOrdinaryDeal') && $this->activeOrdinaryDeal) {
+            return false;
+        }
+
+        return (int) $this->listing->user_id === (int) $user->id
+            && $this->listing->status === ListingStatus::Published
+            && $this->listing->reserved_at === null;
     }
 }

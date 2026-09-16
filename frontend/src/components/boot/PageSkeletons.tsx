@@ -67,7 +67,11 @@ export function DealsPageSkeleton() {
         <div className="mx-auto w-full max-w-[760px] space-y-[12px]">
           <Skeleton className="h-[28px] w-[240px] rounded-[8px]" />
           <Skeleton className="h-[16px] w-[80%] rounded-[6px]" />
-          <Skeleton className="h-[40px] w-[220px] rounded-full" />
+          {/* Два переключателя: покупки/продажи и вид сделки. */}
+          <div className="flex flex-wrap gap-[8px]">
+            <Skeleton className="h-[40px] w-[220px] rounded-full" />
+            <Skeleton className="h-[40px] w-[270px] rounded-full" />
+          </div>
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
