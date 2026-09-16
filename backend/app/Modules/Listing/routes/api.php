@@ -3,18 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Listing\Http\Controllers\Api\V1\AiSuggestListingController;
 use Modules\Listing\Http\Controllers\Api\V1\BoostPackagesController;
-use Modules\Listing\Http\Controllers\Api\V1\PlacementQuoteController;
-use Modules\Listing\Http\Controllers\Api\V1\PromoteListingController;
-use Modules\Listing\Http\Controllers\Api\V1\RestoreListingController;
 use Modules\Listing\Http\Controllers\Api\V1\DestroyListingController;
 use Modules\Listing\Http\Controllers\Api\V1\FavoriteListingsController;
 use Modules\Listing\Http\Controllers\Api\V1\IndexListingsController;
 use Modules\Listing\Http\Controllers\Api\V1\ListingFavoriteController;
 use Modules\Listing\Http\Controllers\Api\V1\ListingStatusController;
 use Modules\Listing\Http\Controllers\Api\V1\MyListingsController;
+use Modules\Listing\Http\Controllers\Api\V1\OrdinaryDealController;
+use Modules\Listing\Http\Controllers\Api\V1\PlacementQuoteController;
+use Modules\Listing\Http\Controllers\Api\V1\PromoteListingController;
 use Modules\Listing\Http\Controllers\Api\V1\RecentPickupAddressesController;
-use Modules\Listing\Http\Controllers\Api\V1\ShowListingController;
+use Modules\Listing\Http\Controllers\Api\V1\RestoreListingController;
 use Modules\Listing\Http\Controllers\Api\V1\RevealPhoneController;
+use Modules\Listing\Http\Controllers\Api\V1\ShowListingController;
 use Modules\Listing\Http\Controllers\Api\V1\StoreListingController;
 use Modules\Listing\Http\Controllers\Api\V1\UpdateListingController;
 use Modules\Listing\Http\Controllers\Api\V1\UserListingsController;
@@ -29,12 +30,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('users/me/listings', MyListingsController::class);
     Route::get('users/me/pickup-addresses', RecentPickupAddressesController::class);
     Route::get('users/me/favorites', FavoriteListingsController::class);
+    Route::get('ordinary-deals', [OrdinaryDealController::class, 'index']);
 });
 
 Route::get('users/{slug}/listings', UserListingsController::class)
     ->where('slug', '^(?!me$)[a-z0-9-]+$');
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+    Route::post('conversations/{uuid}/ordinary-deal', [OrdinaryDealController::class, 'store'])->where('uuid', '[0-9a-f-]{36}');
+    Route::post('ordinary-deals/{uuid}/decline', [OrdinaryDealController::class, 'decline'])->where('uuid', '[0-9a-f-]{36}');
+    Route::post('ordinary-deals/{uuid}/cancel', [OrdinaryDealController::class, 'cancel'])->where('uuid', '[0-9a-f-]{36}');
     Route::get('listings/placement-quote', PlacementQuoteController::class);
     Route::post('listings', StoreListingController::class);
     Route::post('listings/ai-suggest', AiSuggestListingController::class);

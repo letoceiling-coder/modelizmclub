@@ -85,6 +85,13 @@ interface ApiConversation {
   community?: { slug?: string; name?: string; avatar?: string | null } | null;
   room?: { category_id?: number | null; slug?: string | null } | null;
   deal?: { uuid: string; status?: string | null; status_label?: string | null } | null;
+  ordinary_deal?: {
+    uuid: string;
+    status?: string | null;
+    status_label?: string | null;
+    role?: "buyer" | "seller";
+  } | null;
+  can_mark_sold?: boolean;
 }
 
 interface Paginated<T> {
@@ -277,6 +284,14 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
           statusLabel: c.deal.status_label ?? undefined,
         }
       : undefined,
+    ordinaryDeal: c.ordinary_deal
+      ? {
+          id: c.ordinary_deal.uuid,
+          role: c.ordinary_deal.role ?? "seller",
+          statusLabel: c.ordinary_deal.status_label ?? "",
+        }
+      : undefined,
+    canMarkSold: Boolean(c.can_mark_sold),
   };
   return dialog;
 }

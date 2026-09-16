@@ -9,12 +9,14 @@ use App\Models\ConversationParticipant;
 use App\Models\Listing;
 use App\Models\Media;
 use App\Models\Message;
+use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
 use App\Support\UserLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -91,6 +93,7 @@ class ChatService
                 'pinnedMessage.author.profile.avatar',
                 'community.avatar',
                 'safeDeal',
+                'activeOrdinaryDeal',
             ])
             ->orderByRaw('cp.pinned_at IS NULL')
             ->orderByDesc('cp.pinned_at')
@@ -114,6 +117,7 @@ class ChatService
                 'latestMessage.post.mediaItems.media',
                 'community.avatar',
                 'safeDeal',
+                'activeOrdinaryDeal',
             ])
             ->first();
 
@@ -177,8 +181,8 @@ class ChatService
         return false;
     }
 
-    /** @return \Illuminate\Support\Collection<int, int> */
-    private function descendantCategoryIds(int $parentCategoryId): \Illuminate\Support\Collection
+    /** @return Collection<int, int> */
+    private function descendantCategoryIds(int $parentCategoryId): Collection
     {
         $ids = collect();
         $frontier = collect([$parentCategoryId]);
@@ -364,7 +368,7 @@ class ChatService
         string $type = 'text',
         array $mediaUuids = [],
         ?string $forwardedFromMessageUuid = null,
-        ?\App\Models\Post $post = null,
+        ?Post $post = null,
     ): Message {
         if (! $this->isParticipant($conversation, $user)) {
             throw ValidationException::withMessages(['conversation' => ['Нет доступа к диалогу.']]);
@@ -703,7 +707,7 @@ class ChatService
     }
 
     /** Preload peer read cursor + last_seen for MessageResource status resolution. */
-    public function attachMessageStatusContext(\Illuminate\Http\Request $request, Conversation $conversation, User $user): void
+    public function attachMessageStatusContext(Request $request, Conversation $conversation, User $user): void
     {
         $other = ConversationParticipant::query()
             ->where('conversation_id', $conversation->id)

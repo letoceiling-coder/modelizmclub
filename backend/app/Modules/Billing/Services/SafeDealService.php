@@ -1182,6 +1182,8 @@ class SafeDealService
                 'tracking_number' => $deal->shipment->tracking_number,
                 'external_status' => $deal->shipment->external_status,
             ] : null,
+            // Порядок в общем списке «Сделок» — по дате создания, как у обычных.
+            'created_at' => $deal->created_at?->toIso8601String(),
             'paid_at' => $deal->paid_at?->toIso8601String(),
             'shipped_at' => $deal->shipped_at?->toIso8601String(),
             'delivered_at' => $deal->delivered_at?->toIso8601String(),

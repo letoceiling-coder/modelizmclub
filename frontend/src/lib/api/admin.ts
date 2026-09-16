@@ -927,6 +927,10 @@ export interface AdminCategory {
   listingPriceCents: number | null;
   subscriberListingPriceCents: number | null;
   videosCount?: number;
+  /** Где виден узел дерева направлений: лента, объявления, сообщества. */
+  inFeed?: boolean;
+  inListings?: boolean;
+  inCommunities?: boolean;
 }
 
 interface ApiAdminCategory {
@@ -939,6 +943,9 @@ interface ApiAdminCategory {
   is_active?: boolean;
   listing_price_cents?: number | null;
   subscriber_listing_price_cents?: number | null;
+  in_feed?: boolean;
+  in_listings?: boolean;
+  in_communities?: boolean;
   videos_count?: number;
 }
 
@@ -954,6 +961,9 @@ function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
     listingPriceCents: c.listing_price_cents ?? null,
     subscriberListingPriceCents: c.subscriber_listing_price_cents ?? null,
     videosCount: c.videos_count,
+    inFeed: c.in_feed,
+    inListings: c.in_listings,
+    inCommunities: c.in_communities,
   };
 }
 
@@ -976,10 +986,16 @@ export interface UpsertCategoryInput {
   isActive?: boolean;
   listingPriceCents?: number | null;
   subscriberListingPriceCents?: number | null;
+  inFeed?: boolean;
+  inListings?: boolean;
+  inCommunities?: boolean;
 }
 
 function categoryBody(input: UpsertCategoryInput): Record<string, unknown> {
   return {
+    ...(input.inFeed === undefined ? {} : { in_feed: input.inFeed }),
+    ...(input.inListings === undefined ? {} : { in_listings: input.inListings }),
+    ...(input.inCommunities === undefined ? {} : { in_communities: input.inCommunities }),
     name: input.name,
     slug: input.slug,
     parent_id: input.parentId ?? null,

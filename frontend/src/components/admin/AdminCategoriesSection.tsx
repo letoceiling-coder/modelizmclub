@@ -14,7 +14,20 @@ import {
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
 import { askConfirm, askText } from "@/lib/ui/ask";
 
-const CATEGORY_KIND_IDS: CategoryKind[] = ["post", "community", "listing", "video"];
+/*
+ * Две вкладки, а не четыре. Деревья объявлений и сообществ строятся из
+ * дерева направлений и напрямую не правятся (сервер отвечает 422): их
+ * отдельная правка и развела списки формы подачи, каталога и сообществ
+ * (разбор 17.09). Где виден раздел — флаги в строке направления, там же
+ * цена размещения.
+ */
+const CATEGORY_KIND_IDS: CategoryKind[] = ["post", "video"];
+
+const FLAG_KEYS = [
+  { key: "inFeed", labelKey: "pages.adminCategories.flagFeed" },
+  { key: "inListings", labelKey: "pages.adminCategories.flagListings" },
+  { key: "inCommunities", labelKey: "pages.adminCategories.flagCommunities" },
+] as const;
 
 // Простой транслит для генерации slug из кириллического названия.
 function slugify(input: string): string {
@@ -189,6 +202,9 @@ export function CategoriesSection() {
         isActive: c.isActive,
         listingPriceCents: c.listingPriceCents,
         subscriberListingPriceCents: c.subscriberListingPriceCents,
+        inFeed: c.inFeed,
+        inListings: c.inListings,
+        inCommunities: c.inCommunities,
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
       toast.success(t("pages.adminCommon.saved"));
@@ -208,6 +224,9 @@ export function CategoriesSection() {
         isActive: !c.isActive,
         listingPriceCents: c.listingPriceCents,
         subscriberListingPriceCents: c.subscriberListingPriceCents,
+        inFeed: c.inFeed,
+        inListings: c.inListings,
+        inCommunities: c.inCommunities,
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
       toast.success(t("pages.adminCommon.saved"));
@@ -227,6 +246,9 @@ export function CategoriesSection() {
         isActive: c.isActive,
         listingPriceCents: c.listingPriceCents,
         subscriberListingPriceCents: c.subscriberListingPriceCents,
+        inFeed: c.inFeed,
+        inListings: c.inListings,
+        inCommunities: c.inCommunities,
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
       toast.success(t("pages.adminCategories.pricesSaved"));
@@ -235,8 +257,64 @@ export function CategoriesSection() {
     }
   };
 
+  const toggleFlag = async (c: AdminCategory, flag: (typeof FLAG_KEYS)[number]["key"]) => {
+    const next = { ...c, [flag]: !(c[flag] ?? true) };
+    try {
+      const updated = await updateAdminCategory(kind, c.id, {
+        name: next.name,
+        slug: next.slug,
+        parentId: next.parentId,
+        icon: next.icon,
+        sortOrder: next.sortOrder,
+        isActive: next.isActive,
+        listingPriceCents: next.listingPriceCents,
+        subscriberListingPriceCents: next.subscriberListingPriceCents,
+        inFeed: next.inFeed,
+        inListings: next.inListings,
+        inCommunities: next.inCommunities,
+      });
+      // Ответ сервера — сам узел, без цены из каталога: её держим свою.
+      setItems((p) =>
+        p.map((x) =>
+          x.id === c.id
+            ? {
+                ...updated,
+                listingPriceCents: next.listingPriceCents,
+                subscriberListingPriceCents: next.subscriberListingPriceCents,
+              }
+            : x,
+        ),
+      );
+      toast.success(t("pages.adminCommon.saved"));
+    } catch {
+      toast.error(t("pages.adminCategories.updateFailed"));
+    }
+  };
+
+  const flagFields = (c: AdminCategory) => {
+    if (kind !== "post") return null;
+    return (
+      <div className="flex flex-wrap items-center gap-[10px] ml-[24px] mt-[2px]">
+        {FLAG_KEYS.map((f) => (
+          <label
+            key={f.key}
+            className="flex items-center gap-[4px] text-[11px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
+            <input
+              type="checkbox"
+              checked={c[f.key] ?? true}
+              onChange={() => void toggleFlag(c, f.key)}
+            />
+            {t(f.labelKey)}
+          </label>
+        ))}
+      </div>
+    );
+  };
+
   const listingPriceFields = (c: AdminCategory) => {
-    if (kind !== "listing") return null;
+    if (kind !== "post" || c.inListings === false) return null;
     return (
       <div className="flex flex-wrap items-center gap-[6px] ml-[24px] mt-[4px] mb-[6px]">
         <label
@@ -433,6 +511,7 @@ export function CategoriesSection() {
                     </IconBtn>
                   </div>
                 </div>
+                {flagFields(c)}
                 {listingPriceFields(c)}
                 <AnimatePresence>
                   {open[c.id] && subs.length > 0 && (
@@ -489,6 +568,7 @@ export function CategoriesSection() {
                                 </IconBtn>
                               </div>
                             </div>
+                            {flagFields(s)}
                             {listingPriceFields(s)}
                             {thirds.map((n) => (
                               <div
@@ -526,6 +606,7 @@ export function CategoriesSection() {
                                     </IconBtn>
                                   </div>
                                 </div>
+                                {flagFields(n)}
                                 {listingPriceFields(n)}
                               </div>
                             ))}

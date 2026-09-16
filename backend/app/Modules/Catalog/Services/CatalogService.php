@@ -14,6 +14,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Modules\Catalog\Support\CategoryTreeBuilder;
+use Modules\PublicContent\Services\PublicBootstrapService;
 
 class CatalogService
 {
@@ -39,7 +40,11 @@ class CatalogService
     /** @return list<array<string, mixed>> */
     public function postCategoryTree(): array
     {
-        $tree = Cache::remember(self::KEY_TREE_POST, self::TTL, fn () => $this->categoryTree(PostCategory::query()));
+        // Лента и направления — только узлы с флагом in_feed: торговые разделы
+        // («Наборы», «Литература») живут в дереве, но не в ленте.
+        $tree = Cache::remember(self::KEY_TREE_POST, self::TTL, fn () => $this->categoryTree(
+            PostCategory::query()->whereIn('id', app(CategoryTaxonomyService::class)->visiblePostIds('in_feed')),
+        ));
         $counts = Cache::remember(self::KEY_TREE_POST_USAGE, 300, function () {
             $flat = PostCategory::query()->where('is_active', true)->get();
 
@@ -90,7 +95,7 @@ class CatalogService
      */
     private function attachMemberCounts(array $tree, array $members): array
     {
-        [$tree, ] = $this->foldMemberCounts($tree, $members);
+        [$tree] = $this->foldMemberCounts($tree, $members);
 
         return $tree;
     }
@@ -130,13 +135,21 @@ class CatalogService
     /** @return list<array<string, mixed>> */
     public function communityCategoryTree(): array
     {
-        return Cache::remember(self::KEY_TREE_COMMUNITY, self::TTL, fn () => $this->categoryTree(CommunityCategory::query()));
+        return Cache::remember(self::KEY_TREE_COMMUNITY, self::TTL, fn () => $this->categoryTree(
+            CommunityCategory::query()->whereIn('id', app(CategoryTaxonomyService::class)->visibleMirrorIds(CommunityCategory::class)),
+        ));
     }
 
     /** @return list<array<string, mixed>> */
     public function listingCategoryTree(): array
     {
-        return Cache::remember(self::KEY_TREE_LISTING, self::TTL, fn () => $this->categoryTree(ListingCategory::query(), includeListingPrice: true));
+        // Дерево объявлений строится из дерева направлений: те же узлы, что
+        // видны в разделе объявлений. Форма подачи, каталог и фильтр читают
+        // этот список — и получают одно и то же (разбор 17.09).
+        return Cache::remember(self::KEY_TREE_LISTING, self::TTL, fn () => $this->categoryTree(
+            ListingCategory::query()->whereIn('id', app(CategoryTaxonomyService::class)->visibleMirrorIds(ListingCategory::class)),
+            includeListingPrice: true,
+        ));
     }
 
     /**
@@ -151,7 +164,7 @@ class CatalogService
 
         // Деревья категорий входят и в bootstrap: без этого правка в админке
         // доехала бы до лендинга и ленты только по истечении его TTL.
-        \Modules\PublicContent\Services\PublicBootstrapService::forget();
+        PublicBootstrapService::forget();
     }
 
     /** @return Collection<int, City> */

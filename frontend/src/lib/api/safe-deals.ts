@@ -36,6 +36,7 @@ export interface SafeDealDestination {
 
 export interface SafeDeal {
   uuid: string;
+  created_at?: string | null;
   listing_uuid: string | null;
   listing_title?: string | null;
   status: SafeDealStatus;

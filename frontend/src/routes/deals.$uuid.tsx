@@ -75,7 +75,7 @@ function DealDetailRoute() {
           <GuestSectionStub
             icon={ShieldCheck}
             title="Войдите, чтобы посмотреть сделки"
-            description="Безопасные сделки доступны после входа в аккаунт."
+            description="Сделки доступны после входа в аккаунт."
           />
         </div>
       </AppLayout>

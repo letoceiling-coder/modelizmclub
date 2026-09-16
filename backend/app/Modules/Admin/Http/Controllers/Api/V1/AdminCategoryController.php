@@ -3,6 +3,7 @@
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\PostCategory;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\PathParameter;
@@ -46,14 +47,14 @@ abstract class AdminCategoryController extends Controller
         $class = $this->modelClass();
         $category = DB::transaction(function () use ($class, $request) {
             $category = $class::query()->create($request->validated());
-            $this->afterMutate($category);
+            $this->afterMutate($category, null, $request->validated());
 
             return $category->fresh();
         });
         $audit->log($request->user(), $this->auditPrefix().'.create', $category, null, $category->toArray(), $request);
         CatalogService::flushCache();
 
-        return response()->json(['data' => $category], 201);
+        return response()->json(['data' => $this->presentForResponse($category)], 201);
     }
 
     #[PathParameter('id', description: 'ID категории (slug aviation после seed)', example: 1)]
@@ -61,7 +62,7 @@ abstract class AdminCategoryController extends Controller
     {
         $category = $this->findCategory($id);
 
-        return response()->json(['data' => $category]);
+        return response()->json(['data' => $this->presentForResponse($category)]);
     }
 
     #[PathParameter('id', description: 'ID категории', example: 1)]
@@ -71,14 +72,14 @@ abstract class AdminCategoryController extends Controller
         $old = $category->toArray();
         $category = DB::transaction(function () use ($category, $request, $old) {
             $category->update($request->validated());
-            $this->afterMutate($category->fresh(), isset($old['path']) ? (string) $old['path'] : null);
+            $this->afterMutate($category->fresh(), isset($old['path']) ? (string) $old['path'] : null, $request->validated());
 
             return $category->fresh();
         });
         $audit->log($request->user(), $this->auditPrefix().'.update', $category, $old, $category->toArray(), $request);
         CatalogService::flushCache();
 
-        return response()->json(['data' => $category]);
+        return response()->json(['data' => $this->presentForResponse($category)]);
     }
 
     #[PathParameter('id', description: 'ID категории (создайте копию для DELETE-теста)', example: 999)]
@@ -105,9 +106,16 @@ abstract class AdminCategoryController extends Controller
         return $category;
     }
 
-    protected function afterMutate(Model $category, ?string $previousPath = null): void
+    /** Что отдать в ответе на чтение и запись одного узла. */
+    protected function presentForResponse(Model $category): mixed
     {
-        if ($category instanceof \App\Models\PostCategory) {
+        return $category;
+    }
+
+    /** @param  array<string, mixed>  $validated */
+    protected function afterMutate(Model $category, ?string $previousPath = null, array $validated = []): void
+    {
+        if ($category instanceof PostCategory) {
             app(CategoryTaxonomyService::class)->syncFromPostCategory($category, $previousPath);
         }
     }

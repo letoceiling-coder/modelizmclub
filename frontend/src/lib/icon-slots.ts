@@ -86,7 +86,7 @@ export const ICON_SLOTS: IconSlot[] = [
   },
   {
     key: "nav.deals",
-    label: "Безопасные сделки",
+    label: "Сделки",
     group: "nav",
     page: "navigation",
     defaultLucide: "ShieldCheck",

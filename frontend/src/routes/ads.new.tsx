@@ -6,11 +6,7 @@ import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category, type CategoryChild } from "@/lib/mock";
-import {
-  fetchListingCategories,
-  fetchPostCategories,
-  mapCategorySelectionByName,
-} from "@/lib/api/categories";
+import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { PickupAddressField, rememberPickupAddress } from "@/components/ads/PickupAddressField";
@@ -156,34 +152,24 @@ function toggleDeliveryMethod(deliveries: string[], m: { id: string; label: stri
   return on ? next : [...next, m.label];
 }
 
+/**
+ * Категория объявления — прямо из формы.
+ *
+ * Форма показывает дерево объявлений (/categories/listings), то же, что
+ * каталог и его фильтр. До 17.09 она показывала дерево направлений и
+ * сопоставляла выбор с деревом объявлений по названиям: в форме были
+ * «Каналы» и «Выставки и события», которых нет в каталоге, и не было
+ * «Наборов» и «Литературы», которые в каталоге есть.
+ */
 function listingIdsFromForm(
   form: Pick<Form, "categoryId" | "subcategoryId" | "nestedCategoryId">,
-  postCats: Category[],
-  listingCats: Category[],
-): { taxonomyId: number; categoryId?: number; subcategoryId?: number } | null {
-  const taxonomyId = Number(form.nestedCategoryId || form.subcategoryId || form.categoryId);
-  if (!Number.isInteger(taxonomyId) || taxonomyId <= 0) return null;
-
-  const mapped = mapCategorySelectionByName(
-    postCats,
-    listingCats,
-    form.categoryId,
-    form.subcategoryId,
-    form.nestedCategoryId,
-  );
-  if (!mapped) {
-    return { taxonomyId };
-  }
-  const categoryId = Number(mapped.categoryId);
-  if (!Number.isInteger(categoryId) || categoryId <= 0) {
-    return { taxonomyId };
-  }
-  const leaf = mapped.nestedCategoryId || mapped.subcategoryId;
-  const subcategoryId = leaf ? Number(leaf) : undefined;
+): { taxonomyId?: number; categoryId: number; subcategoryId?: number } | null {
+  const categoryId = Number(form.categoryId);
+  if (!Number.isInteger(categoryId) || categoryId <= 0) return null;
+  const leaf = Number(form.nestedCategoryId || form.subcategoryId);
   return {
-    taxonomyId,
     categoryId,
-    subcategoryId: subcategoryId && Number.isInteger(subcategoryId) ? subcategoryId : undefined,
+    subcategoryId: Number.isInteger(leaf) && leaf > 0 ? leaf : undefined,
   };
 }
 
@@ -370,12 +356,6 @@ function NewAdPage() {
     promocode: promoFromUrl?.toUpperCase() ?? "",
   });
   const [cats, setCats] = useState<Category[]>([]);
-  const [listingCats, setListingCats] = useState<Category[]>([]);
-  const [listingPathToMap, setListingPathToMap] = useState<{
-    categoryId: string;
-    subcategoryId: string;
-    nestedCategoryId: string;
-  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   // Ключ попытки оплаты размещения: переживает повторные нажатия.
@@ -397,7 +377,7 @@ function NewAdPage() {
   const payDraftRef = useRef<string | null>(null);
   const [pendingPay, setPendingPay] = useState<{
     mediaIds: string[];
-    taxonomyId: number;
+    taxonomyId?: number;
     categoryId?: number;
     subcategoryId?: number;
     cityId?: number;
@@ -418,10 +398,9 @@ function NewAdPage() {
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
   useEffect(() => {
-    Promise.all([fetchPostCategories(), fetchListingCategories()])
-      .then(([posts, listings]) => {
+    fetchListingCategories()
+      .then((posts) => {
         setCats(posts);
-        setListingCats(listings);
         setForm((f) =>
           f.categoryId
             ? f
@@ -443,11 +422,6 @@ function NewAdPage() {
     fetchListing(editId)
       .then((ad) => {
         if (!alive) return;
-        setListingPathToMap({
-          categoryId: ad.categoryId ?? "",
-          subcategoryId: ad.subcategoryId ?? "",
-          nestedCategoryId: "",
-        });
         setForm((f) => ({
           photoItems: (ad.gallery ?? (ad.image ? [ad.image] : [])).map((url, i) => ({
             id: `existing-${i}-${url}`,
@@ -531,23 +505,9 @@ function NewAdPage() {
     [subcategories, form.subcategoryId],
   );
 
+  // Объявление хранит корень и лист; форма раскладывает лист на три уровня.
   useEffect(() => {
     if (!cats.length) return;
-    if (listingPathToMap && listingCats.length) {
-      const mapped = mapCategorySelectionByName(
-        listingCats,
-        cats,
-        listingPathToMap.categoryId,
-        listingPathToMap.subcategoryId,
-        listingPathToMap.nestedCategoryId,
-      );
-      setListingPathToMap(null);
-      if (mapped) {
-        setForm((f) => ({ ...f, ...mapped }));
-        return;
-      }
-    }
-    if (listingPathToMap) return;
     setForm((f) => {
       const leaf = f.nestedCategoryId || f.subcategoryId;
       if (!leaf) return f;
@@ -564,11 +524,11 @@ function NewAdPage() {
         return f;
       return { ...f, categoryId: path.l1, subcategoryId: path.l2, nestedCategoryId };
     });
-  }, [cats, listingCats, editId, listingPathToMap]);
+  }, [cats, editId]);
 
   useEffect(() => {
     if (!listingPaymentEnabled || editId || step < 2) return;
-    const ids = listingIdsFromForm(form, cats, listingCats);
+    const ids = listingIdsFromForm(form);
     if (!ids) {
       setQuoteLoading(false);
       return;
@@ -602,7 +562,6 @@ function NewAdPage() {
     form.nestedCategoryId,
     form.promocode,
     cats,
-    listingCats,
   ]);
 
   const valid = useMemo(() => {
@@ -640,7 +599,7 @@ function NewAdPage() {
       return;
     }
 
-    const ids = listingIdsFromForm(form, cats, listingCats);
+    const ids = listingIdsFromForm(form);
     if (!ids) {
       toast.error(t("pages.adsNew.selectCategory"));
       setStep(2);
