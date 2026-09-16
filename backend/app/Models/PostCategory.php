@@ -11,6 +11,10 @@ class PostCategory extends Model
     protected $fillable = [
         'parent_id',
         'listing_category_id',
+        'community_category_id',
+        'in_feed',
+        'in_listings',
+        'in_communities',
         'name',
         'slug',
         'icon',
@@ -25,6 +29,9 @@ class PostCategory extends Model
     {
         return [
             'is_active' => 'boolean',
+            'in_feed' => 'boolean',
+            'in_listings' => 'boolean',
+            'in_communities' => 'boolean',
         ];
     }
 
@@ -48,5 +55,11 @@ class PostCategory extends Model
     public function listingCategory(): BelongsTo
     {
         return $this->belongsTo(ListingCategory::class, 'listing_category_id');
+    }
+
+    /** Узел этого направления в дереве сообществ. */
+    public function communityCategory(): BelongsTo
+    {
+        return $this->belongsTo(CommunityCategory::class, 'community_category_id');
     }
 }

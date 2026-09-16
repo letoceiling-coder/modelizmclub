@@ -117,6 +117,14 @@ class CategoryTaxonomyService
             ]);
         }
 
+        // Направление без объявлений («Каналы», «Выставки и события») в форме
+        // подачи не показывается — и в обход формы его не выбрать.
+        if (! $this->visibleIn($post, 'in_listings')) {
+            throw ValidationException::withMessages([
+                'taxonomy_id' => ['В этом разделе объявления не размещаются.'],
+            ]);
+        }
+
         $listing = $this->ensureListingMirror($post);
         if (! $listing->is_active) {
             throw ValidationException::withMessages([
@@ -258,7 +266,10 @@ class CategoryTaxonomyService
 
     private function findListingMirror(PostCategory $post): ?ListingCategory
     {
-        return ListingCategory::query()->where('path', $post->path)->first()
+        $post->refresh();
+
+        return ($post->listing_category_id ? ListingCategory::query()->find($post->listing_category_id) : null)
+            ?? ListingCategory::query()->where('path', $post->path)->first()
             ?? ListingCategory::query()->where('slug', $post->slug)->first();
     }
 
@@ -292,27 +303,47 @@ class CategoryTaxonomyService
     }
 
     /**
+     * Узел-зеркало в дереве объявлений или сообществ.
+     *
+     * Связь по id (`listing_category_id` / `community_category_id`) — первым
+     * делом: до 17.09 зеркало искалось по `path`, потом по `slug`, и связь
+     * была заполнена у 12 узлов из 79. Переименование или перенос узла
+     * порождали второе зеркало, а старое оставалось висеть в дереве
+     * сообществ корневым узлом («ил 6», «Планеры» на верхнем уровне).
+     * Поиск по пути остался запасным — для узлов, которые ещё не связаны.
+     *
+     * Новое зеркало заводится, только если узел виден в этом разделе
+     * (флаг с учётом предков): «Каналам» полка в каталоге не нужна.
+     *
      * @param  class-string<Model>  $class
      */
     private function mirror(PostCategory $source, string $class, ?string $previousPath = null): void
     {
+        [$linkColumn, $flagColumn] = $this->linkColumns($class);
+
         $parentId = null;
         if ($source->parent_id) {
             $parentPost = PostCategory::query()->find($source->parent_id);
             if ($parentPost) {
-                $parentMirror = $class::query()->where('path', $parentPost->path)->first()
+                $parentMirror = ($parentPost->{$linkColumn} ? $class::query()->find($parentPost->{$linkColumn}) : null)
+                    ?? $class::query()->where('path', $parentPost->path)->first()
                     ?? $class::query()->where('slug', $parentPost->slug)->first();
                 $parentId = $parentMirror?->id;
             }
         }
 
-        $existing = $class::query()->where('path', $source->path)->first()
+        $existing = ($source->{$linkColumn} ? $class::query()->find($source->{$linkColumn}) : null)
+            ?? $class::query()->where('path', $source->path)->first()
             ?? ($previousPath ? $class::query()->where('path', $previousPath)->first() : null)
             ?? $class::query()
                 ->where('slug', $source->slug)
                 ->where('parent_id', $parentId)
                 ->first()
             ?? $class::query()->where('slug', $source->slug)->first();
+
+        if (! $existing && ! $this->visibleIn($source, $flagColumn)) {
+            return;
+        }
 
         $payload = [
             'parent_id' => $parentId,
@@ -327,11 +358,84 @@ class CategoryTaxonomyService
 
         if ($existing) {
             $existing->fill($payload)->save();
-
-            return;
+            $mirror = $existing;
+        } else {
+            $mirror = $class::query()->create($payload);
         }
 
-        $class::query()->create($payload);
+        if ((int) $source->{$linkColumn} !== (int) $mirror->getKey()) {
+            $source->forceFill([$linkColumn => $mirror->getKey()])->saveQuietly();
+        }
+    }
+
+    /**
+     * Виден ли узел в разделе: его флаг и флаги всех предков, и активен.
+     */
+    public function visibleIn(PostCategory $node, string $flagColumn): bool
+    {
+        $cursor = $node;
+        $guard = 0;
+        while ($cursor && $guard++ < 16) {
+            if (! $cursor->is_active || ! $cursor->{$flagColumn}) {
+                return false;
+            }
+            $cursor = $cursor->parent_id ? PostCategory::query()->find($cursor->parent_id) : null;
+        }
+
+        return true;
+    }
+
+    /**
+     * id узлов дерева направлений, видимых в разделе (флаг с учётом предков).
+     *
+     * @return list<int>
+     */
+    public function visiblePostIds(string $flagColumn): array
+    {
+        $flat = PostCategory::query()->get(['id', 'parent_id', 'is_active', $flagColumn])->keyBy('id');
+        $memo = [];
+        $visible = function (int $id) use (&$visible, &$memo, $flat, $flagColumn): bool {
+            if (array_key_exists($id, $memo)) {
+                return $memo[$id];
+            }
+            $memo[$id] = false; // защита от цикла
+            $node = $flat->get($id);
+            $ok = $node && $node->is_active && $node->{$flagColumn}
+                && (! $node->parent_id || $visible((int) $node->parent_id));
+
+            return $memo[$id] = (bool) $ok;
+        };
+
+        return $flat->keys()->filter(fn ($id) => $visible((int) $id))->map(fn ($id) => (int) $id)->values()->all();
+    }
+
+    /**
+     * id узлов дерева объявлений или сообществ, связанных с видимыми
+     * направлениями. Из них и строится дерево раздела.
+     *
+     * @param  class-string<Model>  $class
+     * @return list<int>
+     */
+    public function visibleMirrorIds(string $class): array
+    {
+        [$linkColumn, $flagColumn] = $this->linkColumns($class);
+
+        return PostCategory::query()
+            ->whereIn('id', $this->visiblePostIds($flagColumn))
+            ->whereNotNull($linkColumn)
+            ->pluck($linkColumn)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function linkColumns(string $class): array
+    {
+        return $class === ListingCategory::class
+            ? ['listing_category_id', 'in_listings']
+            : ['community_category_id', 'in_communities'];
     }
 
     /**
@@ -346,7 +450,9 @@ class CategoryTaxonomyService
             if (! $post) {
                 continue;
             }
-            $mirror = $class::query()->where('path', $post->path)->first()
+            [$linkColumn] = $this->linkColumns($class);
+            $mirror = ($post->{$linkColumn} ? $class::query()->find($post->{$linkColumn}) : null)
+                ?? $class::query()->where('path', $post->path)->first()
                 ?? $class::query()->where('slug', $post->slug)->first();
             if ($mirror) {
                 $ids[] = (int) $mirror->id;

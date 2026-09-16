@@ -32,6 +32,10 @@ class UpsertCategoryRequest extends FormRequest
             'icon' => ['nullable', 'string', 'max:64'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+            // Где виден узел дерева направлений (только для него).
+            'in_feed' => ['sometimes', 'boolean'],
+            'in_listings' => ['sometimes', 'boolean'],
+            'in_communities' => ['sometimes', 'boolean'],
             'listing_price_cents' => ['nullable', 'integer', 'min:0'],
             'subscriber_listing_price_cents' => ['nullable', 'integer', 'min:0'],
         ];

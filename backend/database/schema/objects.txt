@@ -730,6 +730,18 @@ COLUMN|notifications.notifiable_type|character varying|NO
 COLUMN|notifications.read_at|timestamp without time zone|YES
 COLUMN|notifications.type|character varying|NO
 COLUMN|notifications.updated_at|timestamp without time zone|YES
+COLUMN|ordinary_deals.amount_kopecks|bigint|NO
+COLUMN|ordinary_deals.buyer_id|bigint|NO
+COLUMN|ordinary_deals.cancelled_at|timestamp without time zone|YES
+COLUMN|ordinary_deals.conversation_id|bigint|YES
+COLUMN|ordinary_deals.created_at|timestamp without time zone|YES
+COLUMN|ordinary_deals.declined_at|timestamp without time zone|YES
+COLUMN|ordinary_deals.id|bigint|NO
+COLUMN|ordinary_deals.listing_id|bigint|NO
+COLUMN|ordinary_deals.seller_id|bigint|NO
+COLUMN|ordinary_deals.status|character varying|NO
+COLUMN|ordinary_deals.updated_at|timestamp without time zone|YES
+COLUMN|ordinary_deals.uuid|uuid|NO
 COLUMN|password_reset_tokens.created_at|timestamp without time zone|YES
 COLUMN|password_reset_tokens.email|character varying|NO
 COLUMN|password_reset_tokens.token|character varying|NO
@@ -796,11 +808,15 @@ COLUMN|phone_verification_codes.user_id|bigint|NO
 COLUMN|post_bookmarks.created_at|timestamp without time zone|NO
 COLUMN|post_bookmarks.post_id|bigint|NO
 COLUMN|post_bookmarks.user_id|bigint|NO
+COLUMN|post_categories.community_category_id|bigint|YES
 COLUMN|post_categories.created_at|timestamp without time zone|YES
 COLUMN|post_categories.depth|smallint|NO
 COLUMN|post_categories.icon_image_url|character varying|YES
 COLUMN|post_categories.icon|character varying|YES
 COLUMN|post_categories.id|bigint|NO
+COLUMN|post_categories.in_communities|boolean|NO
+COLUMN|post_categories.in_feed|boolean|NO
+COLUMN|post_categories.in_listings|boolean|NO
 COLUMN|post_categories.is_active|boolean|NO
 COLUMN|post_categories.listing_category_id|bigint|YES
 COLUMN|post_categories.name|character varying|NO
@@ -1483,6 +1499,10 @@ FK|model_has_roles|model_has_roles_role_id_foreign
 FK|moderation_actions|moderation_actions_actor_id_foreign
 FK|moderation_queue|moderation_queue_assigned_to_foreign
 FK|notification_preferences|notification_preferences_user_id_foreign
+FK|ordinary_deals|ordinary_deals_buyer_id_foreign
+FK|ordinary_deals|ordinary_deals_conversation_id_foreign
+FK|ordinary_deals|ordinary_deals_listing_id_foreign
+FK|ordinary_deals|ordinary_deals_seller_id_foreign
 FK|payment_items|payment_items_payment_id_foreign
 FK|payments|payments_user_id_foreign
 FK|pending_email_changes|pending_email_changes_user_id_foreign
@@ -1490,6 +1510,7 @@ FK|personal_data_consents|personal_data_consents_user_id_foreign
 FK|phone_verification_codes|phone_verification_codes_user_id_foreign
 FK|post_bookmarks|post_bookmarks_post_id_foreign
 FK|post_bookmarks|post_bookmarks_user_id_foreign
+FK|post_categories|post_categories_community_category_id_foreign
 FK|post_categories|post_categories_listing_category_id_foreign
 FK|post_categories|post_categories_parent_id_foreign
 FK|post_hashtags|post_hashtags_post_id_foreign
@@ -1771,6 +1792,12 @@ INDEX|notification_preferences|notification_preferences_pkey
 INDEX|notification_preferences|notification_preferences_user_id_channel_type_unique
 INDEX|notifications|notifications_notifiable_type_notifiable_id_index
 INDEX|notifications|notifications_pkey
+INDEX|ordinary_deals|ordinary_deals_buyer_id_status_index
+INDEX|ordinary_deals|ordinary_deals_conversation_id_status_index
+INDEX|ordinary_deals|ordinary_deals_one_active_per_listing
+INDEX|ordinary_deals|ordinary_deals_pkey
+INDEX|ordinary_deals|ordinary_deals_seller_id_status_index
+INDEX|ordinary_deals|ordinary_deals_uuid_unique
 INDEX|password_reset_tokens|password_reset_tokens_pkey
 INDEX|payment_items|payment_items_payable_type_payable_id_index
 INDEX|payment_items|payment_items_pkey
@@ -1991,6 +2018,7 @@ SEQ|moderation_banned_patterns_id_seq
 SEQ|moderation_queue_id_seq
 SEQ|moderation_stop_words_id_seq
 SEQ|notification_preferences_id_seq
+SEQ|ordinary_deals_id_seq
 SEQ|payment_items_id_seq
 SEQ|payments_id_seq
 SEQ|pending_email_changes_id_seq
@@ -2121,6 +2149,7 @@ TABLE|moderation_queue
 TABLE|moderation_stop_words
 TABLE|notification_preferences
 TABLE|notifications
+TABLE|ordinary_deals
 TABLE|password_reset_tokens
 TABLE|payment_items
 TABLE|payments
