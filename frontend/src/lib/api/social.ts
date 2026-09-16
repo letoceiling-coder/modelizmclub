@@ -155,10 +155,17 @@ export async function searchUsers(q: string): Promise<User[]> {
 
 export async function fetchFriends(): Promise<User[]> {
   if (isDemoMode()) return (await import("@/lib/demo-data")).demoFriends();
-  const res = await api<Paginated<ApiCompactUser>>("/users/me/friends", {
-    query: { per_page: 50 },
-  });
-  return (res.data ?? []).map(mapCompactUser);
+  // Все страницы: список друзей кончается там, где кончаются друзья, а не
+  // первая страница. Потолок — от цикла при ответе без meta.
+  const out: ApiCompactUser[] = [];
+  for (let page = 1; page <= 20; page++) {
+    const res = await api<Paginated<ApiCompactUser>>("/users/me/friends", {
+      query: { per_page: 50, page },
+    });
+    out.push(...(res.data ?? []));
+    if (page >= (res.meta?.last_page ?? 1)) break;
+  }
+  return out.map(mapCompactUser);
 }
 
 export async function fetchIncomingRequests(): Promise<IncomingRequest[]> {

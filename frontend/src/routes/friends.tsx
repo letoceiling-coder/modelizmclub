@@ -476,7 +476,7 @@ function FriendsPage() {
 
   if (guestBlocked) {
     return (
-      <AppLayout>
+      <AppLayout footer>
         <div className="mx-auto w-full max-w-[720px] px-[16px] py-[48px]">
           <GuestSectionStub
             icon={Users}
@@ -489,7 +489,9 @@ function FriendsPage() {
   }
 
   return (
-    <AppLayout>
+    // Подвал сайта — конец страницы. Без него прокрутка упиралась в последнюю
+    // рекомендацию, и не было видно, что дальше ничего нет (разбор 16.09).
+    <AppLayout footer>
       <div className="space-y-[16px]">
         <header className="flex flex-col gap-[12px] sm:flex-row sm:items-start sm:justify-between">
           <div>

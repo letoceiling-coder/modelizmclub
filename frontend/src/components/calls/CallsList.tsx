@@ -19,6 +19,10 @@ import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/format/date";
 import { useTranslation } from "react-i18next";
 import { reportReadFailure } from "@/lib/errors/handle";
+import { ListEnd } from "@/components/ui/list-end";
+
+/** CallController::history — `->limit(100)`. */
+const CALL_HISTORY_LIMIT = 100;
 
 function formatWhen(iso: string): string {
   return formatDate(iso, "relative");
@@ -80,104 +84,114 @@ export function CallsList({ onOpenChat }: Props) {
   }
 
   return (
-    <ul>
-      {history.map((rec) => {
-        const isMissed = rec.status === "missed" || rec.status === "rejected";
-        const initial = (rec.peer.name || "?").slice(0, 1).toUpperCase();
-        return (
-          <li
-            key={rec.uuid}
-            className="flex items-center gap-[12px] px-[16px] py-[12px]"
-            style={{ borderBottom: "1px solid var(--border)" }}
-          >
-            <UserAvatar src={rec.peer.avatar} name={rec.peer.name} size={44} />
-            <div className="min-w-0 flex-1">
-              <div
-                className="truncate font-display text-[14px] font-semibold"
-                style={{ color: isMissed ? "var(--error)" : "var(--foreground)" }}
-              >
-                {rec.peer.name}
+    <>
+      <ul>
+        {history.map((rec) => {
+          const isMissed = rec.status === "missed" || rec.status === "rejected";
+          const initial = (rec.peer.name || "?").slice(0, 1).toUpperCase();
+          return (
+            <li
+              key={rec.uuid}
+              className="flex items-center gap-[12px] px-[16px] py-[12px]"
+              style={{ borderBottom: "1px solid var(--border)" }}
+            >
+              <UserAvatar src={rec.peer.avatar} name={rec.peer.name} size={44} />
+              <div className="min-w-0 flex-1">
+                <div
+                  className="truncate font-display text-[14px] font-semibold"
+                  style={{ color: isMissed ? "var(--error)" : "var(--foreground)" }}
+                >
+                  {rec.peer.name}
+                </div>
+                <div
+                  className="mt-[2px] flex items-center gap-[6px] text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  <CallIcon rec={rec} />
+                  {rec.media === "video" && (
+                    <Video size={12} style={{ color: "var(--foreground-50)" }} />
+                  )}
+                  <span>
+                    {rec.direction === "incoming"
+                      ? t("components.callScreen.directionIncoming")
+                      : t("components.callScreen.directionOutgoing")}
+                    {isMissed
+                      ? ` · ${t("components.callsList.missedSuffix")}`
+                      : rec.duration > 0
+                        ? ` · ${fmtDuration(rec.duration)}`
+                        : ""}
+                  </span>
+                </div>
+                <div
+                  className="mt-[2px] font-mono text-[11px]"
+                  style={{ color: "var(--foreground-30)" }}
+                >
+                  {formatWhen(rec.started_at)}
+                </div>
               </div>
-              <div
-                className="mt-[2px] flex items-center gap-[6px] text-[12px]"
-                style={{ color: "var(--foreground-50)" }}
-              >
-                <CallIcon rec={rec} />
-                {rec.media === "video" && (
-                  <Video size={12} style={{ color: "var(--foreground-50)" }} />
-                )}
-                <span>
-                  {rec.direction === "incoming"
-                    ? t("components.callScreen.directionIncoming")
-                    : t("components.callScreen.directionOutgoing")}
-                  {isMissed
-                    ? ` · ${t("components.callsList.missedSuffix")}`
-                    : rec.duration > 0
-                      ? ` · ${fmtDuration(rec.duration)}`
-                      : ""}
-                </span>
-              </div>
-              <div
-                className="mt-[2px] font-mono text-[11px]"
-                style={{ color: "var(--foreground-30)" }}
-              >
-                {formatWhen(rec.started_at)}
-              </div>
-            </div>
-            <div className="flex flex-col gap-[6px]">
-              <button
-                type="button"
-                onClick={() =>
-                  void calls.start(
-                    rec.peer.uuid,
-                    rec.peer.name,
-                    rec.peer.avatar ?? undefined,
-                    rec.media,
-                  )
-                }
-                className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                aria-label={t("components.callsList.callBack")}
-                title={t("components.callsList.callBack")}
-              >
-                <Phone size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  void requireAction("messenger.send", async () => {
-                    registerUser({
-                      id: rec.peer.uuid,
-                      name: rec.peer.name,
-                      avatar: rec.peer.avatar ?? "",
-                      city: "",
-                      interests: "",
+              <div className="flex flex-col gap-[6px]">
+                <button
+                  type="button"
+                  onClick={() =>
+                    void calls.start(
+                      rec.peer.uuid,
+                      rec.peer.name,
+                      rec.peer.avatar ?? undefined,
+                      rec.media,
+                    )
+                  }
+                  className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                  aria-label={t("components.callsList.callBack")}
+                  title={t("components.callsList.callBack")}
+                >
+                  <Phone size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void requireAction("messenger.send", async () => {
+                      registerUser({
+                        id: rec.peer.uuid,
+                        name: rec.peer.name,
+                        avatar: rec.peer.avatar ?? "",
+                        city: "",
+                        interests: "",
+                      });
+                      try {
+                        await navigateToPartnerChat(
+                          (opts) => {
+                            onOpenChat(opts.search.chat);
+                            navigate(opts);
+                          },
+                          userById(rec.peer.uuid),
+                          me.id,
+                        );
+                      } catch {
+                        toast.error(t("components.callsList.openChatFailed"));
+                      }
                     });
-                    try {
-                      await navigateToPartnerChat(
-                        (opts) => {
-                          onOpenChat(opts.search.chat);
-                          navigate(opts);
-                        },
-                        userById(rec.peer.uuid),
-                        me.id,
-                      );
-                    } catch {
-                      toast.error(t("components.callsList.openChatFailed"));
-                    }
-                  });
-                }}
-                className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
-                style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
-                aria-label={t("components.callsList.openChat")}
-                title={t("components.callsList.openChat")}
-              >
-                <MessageSquare size={16} />
-              </button>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+                  }}
+                  className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"
+                  style={{ background: "var(--background-surface)", color: "var(--foreground-70)" }}
+                  aria-label={t("components.callsList.openChat")}
+                  title={t("components.callsList.openChat")}
+                >
+                  <MessageSquare size={16} />
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {/* Сервер отдаёт не больше CALL_HISTORY_LIMIT последних звонков. */}
+      {!loading && (
+        <ListEnd>
+          {history.length >= CALL_HISTORY_LIMIT
+            ? t("components.callsList.showingLast", { count: CALL_HISTORY_LIMIT })
+            : undefined}
+        </ListEnd>
+      )}
+    </>
   );
 }

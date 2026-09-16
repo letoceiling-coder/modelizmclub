@@ -534,20 +534,30 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
                 {selectedPoint.address ? ` · ${selectedPoint.address}` : ""}
               </p>
             )}
-            <Checkbox
-              checked={acceptTerms}
-              onChange={setAcceptTerms}
-              label="Согласен с Правилами безопасной сделки"
-            />
-            <a
-              href="/rules/safe-deal"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[12px] font-medium"
-              style={{ color: "var(--accent)" }}
-            >
-              Открыть правила в новой вкладке
-            </a>
+            {/*
+              Ссылка — строкой под чекбоксом, по его левому краю. Оба узла
+              строчные (inline-flex и a), и в одном блоке ссылка вставала в ту
+              же строку: от 768 «Открыть правила в новой» справа от чекбокса,
+              «вкладке» — обрывком на следующей строке (замер 16.09 на проде,
+              окно 520 px). На 375 чекбокс занимал строку целиком, и там
+              ссылка случайно стояла верно.
+            */}
+            <div className="flex flex-col items-start gap-[8px]">
+              <Checkbox
+                checked={acceptTerms}
+                onChange={setAcceptTerms}
+                label="Согласен с Правилами безопасной сделки"
+              />
+              <a
+                href="/rules/safe-deal"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[12px] font-medium"
+                style={{ color: "var(--accent)" }}
+              >
+                Открыть правила в новой вкладке
+              </a>
+            </div>
             <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
               {/* Текст обязан совпадать с тем, что произойдёт на самом деле.
                   При эскроу на кошельке карта не участвует вовсе: сумма

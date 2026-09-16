@@ -945,80 +945,75 @@ function NewAdPage() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col gap-[24px] pb-[calc(var(--bottom-nav-space)+88px)] lg:pb-[96px]">
-        <header className="space-y-[6px]">
-          <Link
-            to="/ads"
-            className="inline-flex items-center gap-[4px] text-[12px]"
-            style={{ color: "var(--foreground-50)" }}
-          >
-            <ChevronLeft size={14} /> {t("pages.adsNew.backToListings")}
-          </Link>
-          <h1
-            className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
-            style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
-          >
-            {editId ? t("pages.adsNew.editListingTitle") : t("pages.adsNew.newListingTitle")}
-          </h1>
-          {/*
+      {/*
+        Мастер и его панель «Назад / Далее» — одна колонка.
+
+        Панель была fixed на всю ширину окна и накрывала низ бокового меню:
+        на 1440 и 1920 «Пригласи друга» и «Обратная связь» оказывались под
+        ней и не нажимались, на 1024 она заходила на колонку значков (замер
+        16.09 на проде). Теперь по ширинам:
+
+        - с 1024 — sticky внутри <main>: прокручивается он, ширина панели —
+          ровно центральная колонка. lg:min-h-full и mt-auto держат её у низа
+          и на коротком шаге, где sticky сам к низу не прижмёт;
+        - 768–1023 — fixed, но от правого края колонки значков: поле
+          раскладки 12 + колонка 64 + зазор 24. Sticky здесь не годится:
+          прокручивается документ, а у html и body глобально overflow-x:
+          hidden, от этого body считается контейнером прокрутки, и sticky
+          липнет к нему, а не к окну (замер: на длинной форме панель уехала
+          вниз на 2305 при окне 900);
+        - до 768 бокового меню нет — fixed на всю ширину над нижней
+          навигацией, как было.
+      */}
+      <div className="flex flex-col lg:min-h-full">
+        <div className="flex flex-col gap-[24px] pb-[calc(var(--bottom-nav-space)+88px)] lg:pb-[24px]">
+          <header className="space-y-[6px]">
+            <Link
+              to="/ads"
+              className="inline-flex items-center gap-[4px] text-[12px]"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              <ChevronLeft size={14} /> {t("pages.adsNew.backToListings")}
+            </Link>
+            <h1
+              className="font-display text-[28px] font-bold leading-none sm:text-[36px]"
+              style={{ color: "var(--foreground)", letterSpacing: "-0.02em" }}
+            >
+              {editId ? t("pages.adsNew.editListingTitle") : t("pages.adsNew.newListingTitle")}
+            </h1>
+            {/*
             Две строки высоты на узком экране при любом тексте. «Рассчитываем
             стоимость…» — одна строка, «Размещение — 30 ₽. После оплаты…» — две:
             когда приходила цена, индикатор шагов и фотографии съезжали на 21 px
             при каждом входе в мастер (замер 13.09, 375, 15 пар из 240). С 640
             любой вариант помещается в строку.
           */}
-          <p
-            className="min-h-[42px] text-[14px] leading-[21px] sm:min-h-0"
-            style={{ color: "var(--foreground-70)" }}
-          >
-            {/*
+            <p
+              className="min-h-[42px] text-[14px] leading-[21px] sm:min-h-0"
+              style={{ color: "var(--foreground-70)" }}
+            >
+              {/*
               Пока флаги не приехали, ничего про деньги не утверждаем.
               Раньше здесь ветвление шло сразу по listingPaymentEnabled, а его
               значение по умолчанию — `false`, и до гидрации страница обещала
               бесплатное размещение. Обещание про деньги, данное по умолчанию,
               хуже отсутствия строки.
             */}
-            {!flagsHydrated
-              ? t("pages.adsNew.calculatingCost")
-              : listingPaymentEnabled
-                ? quoteLoading || !priceKnown
-                  ? t("pages.adsNew.calculatingCost")
-                  : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
-                : t("pages.adsNew.freePlacement")}
-          </p>
-        </header>
+              {!flagsHydrated
+                ? t("pages.adsNew.calculatingCost")
+                : listingPaymentEnabled
+                  ? quoteLoading || !priceKnown
+                    ? t("pages.adsNew.calculatingCost")
+                    : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
+                  : t("pages.adsNew.freePlacement")}
+            </p>
+          </header>
 
-        {!editId && <StepIndicator current={step} labels={steps} />}
+          {!editId && <StepIndicator current={step} labels={steps} />}
 
-        {editId ? (
-          <>
-            <StepPhotos form={form} set={set} />
-            <StepData
-              form={form}
-              set={set}
-              cat={cat}
-              cats={cats}
-              subcategories={subcategories}
-              touched={touched}
-              touch={touch}
-              verifiedPhone={verifiedPhone}
-              hidePhotoPreview
-              onVerifiedPhone={(phone) => {
-                setVerifiedPhone(phone);
-                set("contact", phone);
-              }}
-            />
-          </>
-        ) : (
-          <ReducedMotionSwitch
-            switchKey={step}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {step === 1 && <StepPhotos form={form} set={set} />}
-            {step === 2 && (
+          {editId ? (
+            <>
+              <StepPhotos form={form} set={set} />
               <StepData
                 form={form}
                 set={set}
@@ -1028,84 +1023,110 @@ function NewAdPage() {
                 touched={touched}
                 touch={touch}
                 verifiedPhone={verifiedPhone}
+                hidePhotoPreview
                 onVerifiedPhone={(phone) => {
                   setVerifiedPhone(phone);
                   set("contact", phone);
                 }}
               />
-            )}
-            {step === 3 && (
-              <StepPreview
-                form={form}
-                set={set}
-                cat={cat}
-                submitError={submitError}
-                listingPaymentEnabled={listingPaymentEnabled}
-                publishButtonLabel={publishButtonLabel}
-                placementQuote={placementQuote}
-                quoteLoading={quoteLoading}
-              />
-            )}
-          </ReducedMotionSwitch>
-        )}
-      </div>
-
-      {/* Sticky footer — lifted above the mobile BottomNav so the submit CTA is never covered */}
-      <div
-        className="fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-[calc(var(--z-sticky)+1)] border-t backdrop-blur lg:bottom-0"
-        style={{
-          background: "color-mix(in srgb, var(--background) 88%, transparent)",
-          borderColor: "var(--border)",
-        }}
-      >
-        <div className="mx-auto flex max-w-[760px] flex-col-reverse gap-[8px] px-[16px] py-[12px] sm:flex-row sm:items-center sm:justify-between sm:gap-[12px] sm:px-[24px]">
-          {!editId && (
-            <Button
-              variant="outline"
-              disabled={step === 1}
-              onClick={() => setStep((s) => Math.max(1, s - 1))}
-              className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
-            >
-              <ChevronLeft size={16} /> {t("pages.adsNew.back")}
-            </Button>
-          )}
-          {editId || step >= 3 ? (
-            <Button
-              onClick={() => {
-                if (!hasListingPhotos(form)) {
-                  notifyPhotosRequired(setStep, t);
-                  return;
-                }
-                if (editId && !valid) return;
-                void submit();
-              }}
-              loading={submitting}
-              disabled={editId ? !valid : paymentGatePending}
-              aria-label={publishButtonLabel}
-              className="h-11 w-full shrink-0 rounded-[var(--r-button)] px-4 sm:min-w-[220px] sm:w-auto"
-            >
-              {submitting
-                ? editId
-                  ? t("pages.adsNew.saving")
-                  : t("pages.adsNew.publishing")
-                : publishButtonLabel}
-            </Button>
+            </>
           ) : (
-            <Button
-              disabled={step === 2 && !valid}
-              onClick={() => {
-                if (!hasListingPhotos(form)) {
-                  notifyPhotosRequired(setStep, t);
-                  return;
-                }
-                if (step === 2 && !valid) return;
-                setStep((s) => Math.min(3, s + 1));
-              }}
-              className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
+            <ReducedMotionSwitch
+              switchKey={step}
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
-              {t("pages.adsNew.next")} <ChevronRight size={16} />
-            </Button>
+              {step === 1 && <StepPhotos form={form} set={set} />}
+              {step === 2 && (
+                <StepData
+                  form={form}
+                  set={set}
+                  cat={cat}
+                  cats={cats}
+                  subcategories={subcategories}
+                  touched={touched}
+                  touch={touch}
+                  verifiedPhone={verifiedPhone}
+                  onVerifiedPhone={(phone) => {
+                    setVerifiedPhone(phone);
+                    set("contact", phone);
+                  }}
+                />
+              )}
+              {step === 3 && (
+                <StepPreview
+                  form={form}
+                  set={set}
+                  cat={cat}
+                  submitError={submitError}
+                  listingPaymentEnabled={listingPaymentEnabled}
+                  publishButtonLabel={publishButtonLabel}
+                  placementQuote={placementQuote}
+                  quoteLoading={quoteLoading}
+                />
+              )}
+            </ReducedMotionSwitch>
           )}
+        </div>
+
+        <div
+          className="fixed inset-x-0 bottom-[var(--bottom-nav-space)] z-[calc(var(--z-sticky)+1)] border-t backdrop-blur md:right-3 md:bottom-0 md:left-[calc(0.75rem+4rem+1.5rem)] lg:sticky lg:inset-x-auto lg:mt-auto"
+          style={{
+            background: "color-mix(in srgb, var(--background) 88%, transparent)",
+            borderColor: "var(--border)",
+          }}
+        >
+          <div className="mx-auto flex max-w-[760px] flex-col-reverse gap-[8px] px-[16px] py-[12px] sm:flex-row sm:items-center sm:justify-between sm:gap-[12px] sm:px-[24px]">
+            {!editId && (
+              <Button
+                variant="outline"
+                disabled={step === 1}
+                onClick={() => setStep((s) => Math.max(1, s - 1))}
+                className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
+              >
+                <ChevronLeft size={16} /> {t("pages.adsNew.back")}
+              </Button>
+            )}
+            {editId || step >= 3 ? (
+              <Button
+                onClick={() => {
+                  if (!hasListingPhotos(form)) {
+                    notifyPhotosRequired(setStep, t);
+                    return;
+                  }
+                  if (editId && !valid) return;
+                  void submit();
+                }}
+                loading={submitting}
+                disabled={editId ? !valid : paymentGatePending}
+                aria-label={publishButtonLabel}
+                className="h-11 w-full shrink-0 rounded-[var(--r-button)] px-4 sm:min-w-[220px] sm:w-auto"
+              >
+                {submitting
+                  ? editId
+                    ? t("pages.adsNew.saving")
+                    : t("pages.adsNew.publishing")
+                  : publishButtonLabel}
+              </Button>
+            ) : (
+              <Button
+                disabled={step === 2 && !valid}
+                onClick={() => {
+                  if (!hasListingPhotos(form)) {
+                    notifyPhotosRequired(setStep, t);
+                    return;
+                  }
+                  if (step === 2 && !valid) return;
+                  setStep((s) => Math.min(3, s + 1));
+                }}
+                className="h-11 w-full shrink-0 rounded-[var(--r-button)] sm:w-auto"
+              >
+                {t("pages.adsNew.next")} <ChevronRight size={16} />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1347,7 +1368,7 @@ function StepData({
     cat?.subcategories.find((s) => s.id === form.subcategoryId)?.children ?? [];
 
   // Keep the focused field clear of the mobile soft keyboard + the fixed
-  // wizard footer: on focus, centre the field in the viewport. Delayed so the
+  // sticky wizard footer: on focus, centre the field in the viewport. Delayed so the
   // keyboard has begun animating before we measure/scroll.
   const keepFieldVisible = (e: React.FocusEvent<HTMLElement>) => {
     const t = e.target;
