@@ -57,6 +57,29 @@ class ListingResource extends JsonResource
                 ->map(fn ($item) => $item->media?->toApiArray())
                 ->filter()
                 ->values()),
+            /*
+             * Почему черновик не опубликовался, видно в самом объявлении.
+             * Мастер создаёт черновик до оплаты; человек уходит с формы банка —
+             * и черновик остаётся без объяснений (приёмка 16.09). Показываем
+             * состояние оплаты владельцу, остальным это знать незачем.
+             */
+            'placement' => $this->when(
+                $request->user() !== null && (int) $request->user()->id === (int) $this->user_id,
+                fn () => [
+                    'was_free' => (bool) $this->placement_was_free,
+                    'amount_cents' => $this->placement_amount_cents,
+                    'payment_status' => $this->placement_payment_id
+                        ? ($this->relationLoaded('placementPayment')
+                            ? $this->placementPayment?->status
+                            : \App\Models\Payment::query()->whereKey($this->placement_payment_id)->value('status'))
+                        : null,
+                    'paid' => $this->placement_payment_id
+                        ? ($this->relationLoaded('placementPayment')
+                            ? $this->placementPayment?->status === 'paid'
+                            : \App\Models\Payment::query()->whereKey($this->placement_payment_id)->where('status', 'paid')->exists())
+                        : (bool) $this->placement_was_free,
+                ],
+            ),
             'published_at' => $this->published_at?->toIso8601String(),
             'is_reserved' => $this->reserved_at !== null,
             'rejection_reason' => $this->rejection_reason,

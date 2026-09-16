@@ -174,6 +174,33 @@ export function MyAdCard({
           </div>
         </div>
       )}
+      {/*
+        Черновик после неудавшейся оплаты.
+
+        Мастер создаёт объявление черновиком и ведёт на оплату. Человек уходит
+        с формы банка — и черновик лежит молча, будто сайт его «вернул сам»
+        (приёмка 16.09). Пишем прямо: оплата не завершена, и вот кнопка.
+      */}
+      {status === "draft" && ad.placement && !ad.placement.paid && (
+        <div
+          className="mt-[8px] flex items-start gap-[8px] rounded-[10px] px-[12px] py-[10px]"
+          style={{
+            background:
+              "var(--warning-soft, color-mix(in oklab, var(--warning, #b8860b) 12%, transparent))",
+            color: "var(--foreground-80)",
+          }}
+        >
+          <AlertTriangle
+            size={16}
+            className="mt-[1px] shrink-0"
+            style={{ color: "var(--warning, #b8860b)" }}
+          />
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold">{t("pages.myAds.placementUnpaidTitle")}</div>
+            <p className="mt-[2px] text-[13px]">{t("pages.myAds.placementUnpaidDesc")}</p>
+          </div>
+        </div>
+      )}
       <BoostSheet
         open={boostOpen}
         onClose={() => setBoostOpen(false)}

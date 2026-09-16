@@ -67,6 +67,12 @@ class Listing extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /** Платёж за размещение: по нему видно, доведена ли оплата до конца. */
+    public function placementPayment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class, 'placement_payment_id');
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(ListingCategory::class, 'category_id');

@@ -38,14 +38,21 @@ class ListingPlacementPricingService
             if ($freeListingsRemaining > 0) {
                 $priceAfterSubscription = 0;
                 $freeReason = 'subscription_quota';
-            } elseif ($category && $category->subscriber_listing_price_cents !== null) {
-                $priceAfterSubscription = (int) $category->subscriber_listing_price_cents;
-                $subscriberAdjustment = $priceAfterSubscription - $baseCents;
-                if ($priceAfterSubscription === 0) {
-                    $freeReason = 'subscriber_price';
-                }
             } else {
-                $priceAfterSubscription = ListingPlacementConfig::subscriberDefaultPriceCents();
+                /*
+                 * Подписка не может сделать размещение дороже.
+                 *
+                 * Цена подписчика применялась поверх категорийной, даже когда
+                 * та ниже: в бесплатной категории подписчик платил 20 ₽, а
+                 * человек без подписки — ноль; в «ил 6» с ценой 1 ₽ списывали
+                 * те же 20 ₽ (платёж 149 на проде, 15.09). Берём меньшее:
+                 * подписка остаётся скидкой, а не наценкой.
+                 */
+                $subscriberPrice = $category && $category->subscriber_listing_price_cents !== null
+                    ? (int) $category->subscriber_listing_price_cents
+                    : ListingPlacementConfig::subscriberDefaultPriceCents();
+
+                $priceAfterSubscription = min($baseCents, max(0, $subscriberPrice));
                 $subscriberAdjustment = $priceAfterSubscription - $baseCents;
                 if ($priceAfterSubscription === 0) {
                     $freeReason = 'subscriber_price';
@@ -144,6 +151,41 @@ class ListingPlacementPricingService
             'publish' => ['Для публикации требуется оплата размещения.'],
             'placement_quote' => [$quote],
         ]);
+    }
+
+    /**
+     * Размещение этого объявления уже оплачено.
+     *
+     * Публикация из черновика считала котировку заново и про привязанный
+     * платёж не знала: за одно и то же объявление просили деньги второй раз
+     * (приёмка 16.09). Платёж засчитывается, если он оплачен, относится к
+     * размещению именно этого объявления и покрывает текущую цену — иначе
+     * смена категории на более дорогую проходила бы по старой оплате.
+     */
+    public function listingPlacementPaid(Listing $listing, User $user): bool
+    {
+        if (! $listing->placement_payment_id) {
+            return false;
+        }
+
+        $payment = Payment::query()
+            ->whereKey($listing->placement_payment_id)
+            ->where('user_id', $user->id)
+            ->where('status', 'paid')
+            ->first();
+
+        if (! $payment || ($payment->metadata['payable_type'] ?? null) !== 'listing_placement') {
+            return false;
+        }
+
+        $paidFor = $payment->metadata['listing_uuid'] ?? null;
+        if ($paidFor !== null && $paidFor !== $listing->uuid) {
+            return false;
+        }
+
+        $quote = $this->quote($user, $listing->category_id, $listing->subcategory_id);
+
+        return (int) $payment->amount_cents >= (int) $quote['final_cents'];
     }
 
     /** @param array<string, mixed> $quote */
