@@ -164,8 +164,15 @@ class ListingPlacementPricingService
      */
     public function listingPlacementPaid(Listing $listing, User $user): bool
     {
+        /*
+         * Кредит размещения — тоже оплата, просто внесённая заранее: платежа
+         * у объявления нет, но единица списана и цена записана в
+         * `placement_amount_cents` (см. ListingService::resolveCreateStatus).
+         * Без этой ветки человек, опубликовавший по кредиту, после возврата
+         * в черновик снова упирался в оплату.
+         */
         if (! $listing->placement_payment_id) {
-            return false;
+            return ! $listing->placement_was_free && (int) $listing->placement_amount_cents > 0;
         }
 
         $payment = Payment::query()
