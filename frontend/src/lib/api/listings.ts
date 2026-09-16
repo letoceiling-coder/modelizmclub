@@ -40,6 +40,12 @@ interface ApiListing {
   category?: { id?: number; name?: string; slug?: string } | null;
   subcategory?: { id?: number; name?: string; slug?: string } | null;
   city?: { id?: number; name?: string } | null;
+  placement?: {
+    paid?: boolean;
+    payment_status?: string | null;
+    amount_cents?: number | null;
+    was_free?: boolean;
+  } | null;
   media?: Array<{ uuid?: string; url?: string | null; variants?: MediaVariantSet }>;
   package_size?: "s" | "m" | "l" | null;
   weight_kg?: number | null;
@@ -160,6 +166,14 @@ export function mapListing(l: ApiListing): Ad {
     delivery: l.delivery_methods ?? [],
     condition: conditionFromApi(l.condition),
     rejectionReason: l.rejection_reason ?? undefined,
+    placement: l.placement
+      ? {
+          paid: Boolean(l.placement.paid),
+          paymentStatus: l.placement.payment_status ?? null,
+          amountCents: l.placement.amount_cents ?? null,
+          wasFree: Boolean(l.placement.was_free),
+        }
+      : undefined,
     status: "Продаю",
     contact: l.contact_via_messenger ? "Написать в мессенджере" : "",
     authorId: author?.id ?? "",

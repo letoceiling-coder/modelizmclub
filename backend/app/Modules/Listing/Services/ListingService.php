@@ -34,7 +34,7 @@ class ListingService
     /** @return list<string> */
     private function relations(): array
     {
-        return ['author.profile.avatar', 'category', 'subcategory', 'city', 'mediaItems.media'];
+        return ['author.profile.avatar', 'category', 'subcategory', 'city', 'mediaItems.media', 'placementPayment'];
     }
 
     /**
@@ -440,6 +440,32 @@ class ListingService
     {
         $this->assertOwner($listing, $user);
 
+        /*
+         * За уже оплаченное размещение второй раз не берём.
+         *
+         * Публикация из черновика шла через resolveCreateStatus, а он считает
+         * котировку заново и про привязанный платёж не знает. Человек платил,
+         * снимал объявление с публикации, публиковал снова — и платил опять
+         * (приёмка 16.09). Платёж проверяется по самому объявлению, поэтому
+         * переживает и возврат в черновик, и снятие с публикации.
+         */
+        if (
+            $status === ListingStatus::Published
+            && $listing->status !== ListingStatus::Published
+            && app(ListingPlacementPricingService::class)->listingPlacementPaid($listing, $user)
+        ) {
+            [$resolvedStatus, $publishedAt] = $this->gatePublishStatus();
+            $listing->status = $resolvedStatus;
+            $listing->published_at = $publishedAt;
+            $listing->save();
+
+            if ($resolvedStatus === ListingStatus::PendingModeration) {
+                $this->enqueueModeration($listing);
+            }
+
+            return $listing->fresh($this->relations());
+        }
+
         if ($status === ListingStatus::Published && $listing->status !== ListingStatus::Published) {
             [$resolvedStatus, $publishedAt, $placementMeta] = $this->resolveCreateStatus($user, true, array_merge([
                 'category_id' => $listing->category_id,
@@ -604,6 +630,17 @@ class ListingService
         }
 
         $listing->restore();
+
+        /*
+         * Пока объявление лежало удалённым, очередь помечала его запись
+         * отменённой (ModerationService::cancelOrphanedEntries). После
+         * восстановления статус «на модерации» оставался, а задачи у
+         * модератора не было — счётчик очереди показывал ноль при непустом
+         * списке «на модерации» (приёмка 16.09).
+         */
+        if ($listing->status === ListingStatus::PendingModeration) {
+            $this->enqueueModeration($listing);
+        }
 
         return $listing->fresh($this->relations());
     }

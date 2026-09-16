@@ -386,6 +386,15 @@ function NewAdPage() {
   const { sub: mySubscription } = useMySubscription();
   const [placementQuote, setPlacementQuote] = useState<PlacementQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  /*
+   * Черновик, созданный для оплаты, живёт до её завершения.
+   *
+   * Мастер создаёт объявление черновиком и только потом ведёт на оплату.
+   * Каждая попытка создавала новый черновик, и у человека, дважды ушедшего
+   * с формы банка, в «Моих объявлениях» копились одинаковые черновики
+   * (приёмка 16.09). Теперь черновик один: повторная попытка обновляет его.
+   */
+  const payDraftRef = useRef<string | null>(null);
   const [pendingPay, setPendingPay] = useState<{
     mediaIds: string[];
     taxonomyId: number;
@@ -832,7 +841,7 @@ function NewAdPage() {
     setPendingPay(null);
     setSubmitting(true);
     try {
-      const draft = await createListing({
+      const draftInput = {
         title: job.title,
         description: job.description,
         priceCents: job.priceCents,
@@ -849,7 +858,14 @@ function NewAdPage() {
         weightKg: jobParcel.weightKg,
         dimensionsCm: jobParcel.dimensionsCm,
         pickupAddress: job.pickupAddress || undefined,
-      });
+      };
+      // Черновик от прошлой попытки оплаты переиспользуется, а не плодится.
+      const draft = payDraftRef.current
+        ? await updateListing(payDraftRef.current, draftInput).catch(() =>
+            createListing(draftInput),
+          )
+        : await createListing(draftInput);
+      payDraftRef.current = draft.id;
       const checkout = await createListingPlacementPayment({
         taxonomyId: job.taxonomyId,
         categoryId: job.categoryId,
@@ -864,6 +880,7 @@ function NewAdPage() {
         return;
       }
       attempt.reset();
+      payDraftRef.current = null;
       notifyBillingChanged();
       toast.success(
         source === "wallet" ? t("pages.subscription.payWalletPaid") : t("pages.adsNew.paySuccess"),

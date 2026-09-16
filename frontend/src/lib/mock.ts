@@ -212,6 +212,13 @@ export interface Ad {
   moderation?: "published" | "moderation" | "rejected";
   /** Причина отклонения от модератора. Есть только у отклонённых объявлений. */
   rejectionReason?: string;
+  /** Оплата размещения: видна только владельцу. Черновик без оплаты — не ошибка сайта. */
+  placement?: {
+    paid: boolean;
+    paymentStatus?: string | null;
+    amountCents?: number | null;
+    wasFree?: boolean;
+  };
   /** Currently boosted/продвигается (Stage 5). On the real backend this comes
    *  from ListingResource (is_promoted / promoted_until) — not yet exposed. */
   promoted?: boolean;
