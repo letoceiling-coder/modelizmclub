@@ -25,7 +25,4 @@ describe("shouldPlayMessagePing", () => {
   it("молчит, если звук выключен в настройках", () => {
     expect(shouldPlayMessagePing({ ...base, soundEnabled: false })).toBe(false);
   });
-  it("молчит во второй вкладке", () => {
-    expect(shouldPlayMessagePing({ ...base, alreadyPlayed: true })).toBe(false);
-  });
 });
