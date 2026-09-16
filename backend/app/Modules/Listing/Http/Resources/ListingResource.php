@@ -73,11 +73,14 @@ class ListingResource extends JsonResource
                             ? $this->placementPayment?->status
                             : \App\Models\Payment::query()->whereKey($this->placement_payment_id)->value('status'))
                         : null,
+                    // Кредит размещения — оплата без платежа: единица списана,
+                    // цена записана. Иначе владелец видел бы «оплата не
+                    // завершена» у оплаченного объявления (проверка 16.09).
                     'paid' => $this->placement_payment_id
                         ? ($this->relationLoaded('placementPayment')
                             ? $this->placementPayment?->status === 'paid'
                             : \App\Models\Payment::query()->whereKey($this->placement_payment_id)->where('status', 'paid')->exists())
-                        : (bool) $this->placement_was_free,
+                        : ((bool) $this->placement_was_free || (int) $this->placement_amount_cents > 0),
                 ],
             ),
             'published_at' => $this->published_at?->toIso8601String(),
