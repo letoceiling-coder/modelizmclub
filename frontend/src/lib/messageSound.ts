@@ -6,7 +6,8 @@
  * чата к списку — диалог продолжал считаться открытым. Переключателя не было.
  *
  * Правило одно: пинг — только о сообщении, которого человек сейчас не видит,
- * если звук включён и диалог не заглушён, и только в одной вкладке.
+ * если звук включён и диалог не заглушён. Какая из открытых вкладок его
+ * сыграет — решает claimMessagePing.
  */
 
 const SOUND_KEY = "mc_message_sound";
@@ -20,14 +21,11 @@ export interface PingInput {
   /** Отметка «без звука» у диалога. */
   muted: boolean;
   soundEnabled: boolean;
-  /** Эту же отметку уже проиграла другая вкладка. */
-  alreadyPlayed: boolean;
 }
 
 export function shouldPlayMessagePing(input: PingInput): boolean {
   if (!input.soundEnabled) return false;
   if (input.muted) return false;
-  if (input.alreadyPlayed) return false;
   return input.watchingDialogId !== input.conversationUuid;
 }
 
@@ -48,10 +46,33 @@ export function setMessageSoundEnabled(enabled: boolean): void {
 }
 
 /**
- * Первая вкладка «забирает» сообщение, остальные молчат. localStorage общий
- * для всех вкладок одного сайта; окно в пять секунд покрывает доставку сокета.
+ * Первая вкладка «забирает» сообщение, остальные молчат.
+ *
+ * Сокет доставляет событие во все открытые вкладки в одну и ту же
+ * миллисекунду. Отметка в localStorage этого не ловит: до другой вкладки
+ * запись доходит асинхронно, и обе читают пустое. Замер 16.09 на проде: две
+ * вкладки в ленте — два пинга. Web Locks атомарны между вкладками: замок
+ * берёт одна, вторая получает отказ сразу (ifAvailable). Держим его пять
+ * секунд — дольше, чем расходятся доставки одного события.
  */
-export function claimMessagePing(messageId: string): boolean {
+export async function claimMessagePing(messageId: string): Promise<boolean> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  if (!locks?.request) return claimByStorage(messageId);
+  try {
+    return await new Promise<boolean>((resolve) => {
+      void locks.request(PLAYED_PREFIX + messageId, { ifAvailable: true }, (lock) => {
+        resolve(lock !== null);
+        if (!lock) return undefined;
+        return new Promise<void>((release) => window.setTimeout(release, PLAYED_TTL_MS));
+      });
+    });
+  } catch {
+    return claimByStorage(messageId);
+  }
+}
+
+/** Для браузеров без Web Locks: лучше, чем ничего, но гонку не исключает. */
+function claimByStorage(messageId: string): boolean {
   try {
     const key = PLAYED_PREFIX + messageId;
     const prev = Number(window.localStorage.getItem(key) ?? 0);

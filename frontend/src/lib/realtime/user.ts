@@ -75,16 +75,16 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
       conversationUuid: p.conversation_uuid,
       muted,
       soundEnabled: isMessageSoundEnabled(),
-      // Проверяем последним: «забрать» сообщение имеет смысл, только если звук
-      // действительно прозвучит.
-      alreadyPlayed: false,
     });
-    if (play && claimMessagePing(message.id)) {
-      try {
-        playMessagePing();
-      } catch {
-        /* ignore */
-      }
+    if (play) {
+      void claimMessagePing(message.id).then((mine) => {
+        if (!mine) return;
+        try {
+          playMessagePing();
+        } catch {
+          /* ignore */
+        }
+      });
     }
     return;
   }
