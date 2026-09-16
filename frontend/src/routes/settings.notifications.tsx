@@ -18,6 +18,7 @@ import { fetchMe } from "@/lib/api/auth";
 import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { isMaxOAuthUser } from "@/lib/auth/verification";
+import { isMessageSoundEnabled, setMessageSoundEnabled } from "@/lib/messageSound";
 
 export const Route = createFileRoute("/settings/notifications")({
   component: NotificationsSettings,
@@ -30,6 +31,11 @@ function NotificationsSettings() {
   const [items, setItems] = useState<CabinetNotifItem[] | null>(null);
   const [groupLabels, setGroupLabels] = useState<Record<string, string>>({});
   const [maxEnabled, setMaxEnabled] = useState(true);
+  // Хранится на устройстве, не на сервере: звук — свойство этого браузера,
+  // на работе его выключают, дома оставляют. Читаем после монтирования,
+  // чтобы разметка сервера и клиента совпала.
+  const [messageSound, setMessageSound] = useState(true);
+  useEffect(() => setMessageSound(isMessageSoundEnabled()), []);
 
   const load = () => {
     fetchNotifPrefs()
@@ -127,6 +133,32 @@ function NotificationsSettings() {
               </Link>
             </Button>
           )}
+        </div>
+      </Card>
+      <Card
+        className="p-[16px]"
+        style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
+      >
+        <div className="flex items-center justify-between gap-[12px]">
+          <div className="min-w-0">
+            <div className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>
+              {t("pages.settings.messageSoundTitle")}
+            </div>
+            <p
+              className="mt-[4px] text-[13px] leading-relaxed"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              {t("pages.settings.messageSoundHint")}
+            </p>
+          </div>
+          <Switch
+            checked={messageSound}
+            onCheckedChange={(v) => {
+              setMessageSound(v);
+              setMessageSoundEnabled(v);
+            }}
+            aria-label={t("pages.settings.messageSoundTitle")}
+          />
         </div>
       </Card>
       {items === null ? (

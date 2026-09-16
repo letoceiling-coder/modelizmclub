@@ -30,6 +30,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 import { useUnreadMessagesTotal } from "@/lib/messenger";
+import { useIncomingFriendRequestCount } from "@/lib/friend-requests";
 import { actions, selectNavExpanded, useStore } from "@/lib/store";
 
 interface Item {
@@ -122,6 +123,9 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const { sub } = useMySubscription();
   const { isGuest } = useGuestAccess();
   const unreadMessages = useUnreadMessagesTotal();
+  const friendRequests = useIncomingFriendRequestCount();
+  const sectionBadge = (section: string) =>
+    section === "messenger" ? unreadMessages : section === "friends" ? friendRequests : 0;
   // Развёрнуто ли свёрнутое меню (каталог, объявление) — выбор человека.
   const expanded = useStore(selectNavExpanded);
 
@@ -307,7 +311,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                   section,
                   activeSection === section,
                   false,
-                  section === "messenger" ? unreadMessages : 0,
+                  sectionBadge(section),
                 ),
               )}
             </div>
@@ -374,7 +378,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           section,
           activeSection === section,
           true,
-          section === "messenger" ? unreadMessages : 0,
+          sectionBadge(section),
         ),
       )}
       {marketLink(true)}

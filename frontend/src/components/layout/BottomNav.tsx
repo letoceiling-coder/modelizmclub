@@ -6,6 +6,7 @@ import { navSlotKey } from "@/lib/icon-slots";
 import { getActiveSection, ROUTES } from "@/lib/routes";
 import { scrollSectionToTop } from "@/lib/scroll-top";
 import { useUnreadMessagesTotal } from "@/lib/messenger";
+import { useIncomingFriendRequestCount } from "@/lib/friend-requests";
 import { useStore, selectors } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
@@ -35,6 +36,8 @@ export function BottomNav() {
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
   const unreadMessages = useUnreadMessagesTotal();
+  // Входящие заявки в друзья — тот же счётчик, что в боковом меню.
+  const friendRequests = useIncomingFriendRequestCount();
 
   return (
     <nav
@@ -61,7 +64,13 @@ export function BottomNav() {
             item={it}
             label={t(it.labelKey)}
             active={activeSection === it.section}
-            badge={it.section === "messenger" ? unreadMessages : 0}
+            badge={
+              it.section === "messenger"
+                ? unreadMessages
+                : it.section === "friends"
+                  ? friendRequests
+                  : 0
+            }
           />
         ))}
       </ul>

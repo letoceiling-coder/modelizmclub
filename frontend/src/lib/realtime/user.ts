@@ -1,11 +1,12 @@
 import type { AppNotification } from "@/lib/api/notifications";
 import { mapMessage, type ApiMessage } from "@/lib/api/chat";
 import { getToken } from "@/lib/api/client";
-import { GUEST_USER } from "@/lib/store";
+import { GUEST_USER, getState } from "@/lib/store";
 import { messengerCache } from "@/lib/messenger";
 import { ingestCallSignal } from "@/lib/calls";
 import { subscribeUser } from "@/lib/realtime/echo";
 import { playMessagePing } from "@/lib/callAudio";
+import { claimMessagePing, isMessageSoundEnabled, shouldPlayMessagePing } from "@/lib/messageSound";
 
 interface ApiNotificationPayload {
   id: string;
@@ -68,7 +69,17 @@ function handleEvent(payload: { type?: string; payload?: unknown }): void {
     const message = mapMessage(p.message);
     const notViewing = watchingDialogId !== p.conversation_uuid;
     messengerCache.ingestIncoming(p.conversation_uuid, message, notViewing);
-    if (notViewing) {
+    const muted = Boolean(getState().dialogMeta[p.conversation_uuid]?.muted);
+    const play = shouldPlayMessagePing({
+      watchingDialogId,
+      conversationUuid: p.conversation_uuid,
+      muted,
+      soundEnabled: isMessageSoundEnabled(),
+      // Проверяем последним: «забрать» сообщение имеет смысл, только если звук
+      // действительно прозвучит.
+      alreadyPlayed: false,
+    });
+    if (play && claimMessagePing(message.id)) {
       try {
         playMessagePing();
       } catch {
