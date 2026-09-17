@@ -7,12 +7,13 @@ use App\Models\CommunityCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Modules\Admin\Services\AuditService;
 use Modules\Community\Http\Resources\CommunityResource;
 use Modules\Community\Services\CommunityService;
 
 class UpdateCommunityController extends Controller
 {
-    public function __invoke(string $slug, Request $request, CommunityService $communities): JsonResponse
+    public function __invoke(string $slug, Request $request, CommunityService $communities, AuditService $audit): JsonResponse
     {
         $community = $communities->findActiveBySlug($slug);
         $user = $request->user();
@@ -35,11 +36,22 @@ class UpdateCommunityController extends Controller
             'custom_category' => ['sometimes', 'nullable', 'string', 'max:120'],
             'post_category_ids' => ['sometimes', 'array', 'max:12'],
             'post_category_ids.*' => ['integer', 'exists:post_categories,id'],
+            'moderate_member_posts' => ['sometimes', 'boolean'],
         ]);
+
+        /*
+         * «Проверять записи участников» решает владелец: это правило для всех
+         * участников, а модераторов сообщества назначает он же. Отказ, а не
+         * молчаливый пропуск поля — иначе модератор видел бы «Настройки
+         * сохранены» при неизменной настройке.
+         */
+        $isOwner = $community->isOwnedBy($user);
+        if (array_key_exists('moderate_member_posts', $data) && ! $isOwner) {
+            return response()->json(['message' => 'Проверку записей участников включает и выключает владелец сообщества.'], 403);
+        }
 
         $updates = [];
         $immediate = [];
-        $isOwner = $community->isOwnedBy($user);
         if ($isOwner && array_key_exists('name', $data)) {
             $updates['name'] = trim($data['name']);
         }
@@ -63,6 +75,21 @@ class UpdateCommunityController extends Controller
 
         if ($immediate !== []) {
             $community->update($immediate);
+        }
+        if (array_key_exists('moderate_member_posts', $data)) {
+            $before = (bool) $community->moderate_member_posts;
+            $after = (bool) $data['moderate_member_posts'];
+            if ($before !== $after) {
+                $community->update(['moderate_member_posts' => $after]);
+                $audit->log(
+                    $user,
+                    'community.moderate_member_posts',
+                    $community,
+                    ['moderate_member_posts' => $before],
+                    ['moderate_member_posts' => $after],
+                    $request,
+                );
+            }
         }
         if (array_key_exists('post_category_ids', $data)) {
             $community->topicCategories()->sync(array_map('intval', $data['post_category_ids']));

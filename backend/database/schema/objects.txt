@@ -250,6 +250,7 @@ COLUMN|communities.description|text|YES
 COLUMN|communities.id|bigint|NO
 COLUMN|communities.is_official|boolean|NO
 COLUMN|communities.members_count|integer|NO
+COLUMN|communities.moderate_member_posts|boolean|NO
 COLUMN|communities.name|character varying|NO
 COLUMN|communities.posts_count|integer|NO
 COLUMN|communities.rules|text|YES

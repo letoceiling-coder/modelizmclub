@@ -378,10 +378,15 @@ export function CreatePostForm({
             toast.success(t("components.createPostForm.scheduled"));
           } else {
             post = await publishPost(post.id);
+            // Что сказать, решает ответ сервера: в своём сообществе запись
+            // владельца и модераторов выходит сразу, и «отправлена на
+            // модерацию» было бы неправдой.
             toast.success(
               sel.kind === "video"
                 ? t("components.createPostForm.videoQueued")
-                : t("components.createPostForm.sentToModeration"),
+                : post.status === "published"
+                  ? t("components.createPostForm.published")
+                  : t("components.createPostForm.sentToModeration"),
             );
           }
         } else if (publishMode === "schedule") {

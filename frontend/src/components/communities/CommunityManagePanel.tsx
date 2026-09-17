@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   DangerZone,
   ManageSection,
@@ -27,6 +28,7 @@ import {
   COMMUNITY_RULES_MAX,
 } from "@/lib/community-limits";
 import { isDemoMode } from "@/lib/demo-mode";
+import { reportActionFailure } from "@/lib/errors/handle";
 
 interface Props {
   community: Community;
@@ -47,6 +49,8 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
   const [phone, setPhone] = useState(community.contacts?.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [requests, setRequests] = useState<CommunityJoinRequestRow[]>([]);
+  const [moderateMembers, setModerateMembers] = useState(community.moderateMemberPosts !== false);
+  const [savingModeration, setSavingModeration] = useState(false);
 
   useEffect(() => {
     fetchCommunityCategories()
@@ -58,6 +62,7 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
     setName(community.name);
     setDescription(community.description);
     setAccessType(community.accessType ?? "open");
+    setModerateMembers(community.moderateMemberPosts !== false);
     setRules(community.rules ?? "");
     setTelegram(community.contacts?.telegram ?? "");
     setWebsite(community.contacts?.website ?? "");
@@ -88,6 +93,33 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
     telegram.trim() !== (community.contacts?.telegram ?? "") ||
     website.trim() !== (community.contacts?.website ?? "") ||
     phone.trim() !== (community.contacts?.phone ?? "");
+
+  /*
+   * Сохраняется сразу, отдельным запросом, а не кнопкой «Сохранить»: та
+   * отправляет название и описание, а они уходят на проверку площадки.
+   * Переключатель — правило для участников, его меняет владелец; сервер
+   * отвечает 403 всем остальным и пишет изменение в журнал аудита.
+   */
+  const toggleModeration = async (next: boolean) => {
+    setModerateMembers(next);
+    if (isDemoMode()) {
+      onUpdated({ ...community, moderateMemberPosts: next });
+      return;
+    }
+    setSavingModeration(true);
+    try {
+      const updated = await updateCommunity(community.id, { moderateMemberPosts: next });
+      onUpdated(updated);
+      toast.success(
+        next ? "Записи участников снова проходят проверку" : "Записи участников публикуются сразу",
+      );
+    } catch (err) {
+      setModerateMembers(!next);
+      reportActionFailure(err, "Не удалось изменить проверку записей");
+    } finally {
+      setSavingModeration(false);
+    }
+  };
 
   const save = async () => {
     if (!name.trim()) {
@@ -200,6 +232,39 @@ export function CommunityManagePanel({ community, Icon, onUpdated, onDeleted }: 
           busyLabel="Сохраняем…"
           onClick={() => void save()}
         />
+      </ManageSection>
+
+      <ManageSection title="Публикации">
+        <div
+          className="flex items-start justify-between gap-3 rounded-[10px] border p-3"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <div className="min-w-0">
+            <label
+              htmlFor="community-moderate-members"
+              className="block text-[14px] font-medium"
+              style={{ color: "var(--foreground)" }}
+            >
+              Проверять записи участников
+            </label>
+            <p
+              className="mt-1 text-[12px] leading-relaxed"
+              style={{ color: "var(--foreground-50)" }}
+            >
+              {moderateMembers
+                ? "Записи участников выходят после проверки модератором площадки."
+                : "Записи участников выходят сразу."}{" "}
+              Записи владельца и модераторов сообщества публикуются сразу.
+              {!community.isOwner && " Переключает владелец сообщества."}
+            </p>
+          </div>
+          <Switch
+            id="community-moderate-members"
+            checked={moderateMembers}
+            disabled={!community.isOwner || savingModeration}
+            onCheckedChange={(next) => void toggleModeration(next)}
+          />
+        </div>
       </ManageSection>
 
       {!isDemoMode() && (

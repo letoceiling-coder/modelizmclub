@@ -310,6 +310,8 @@ export interface Community {
   /** Viewer's role in this community, from the backend `viewer_role`. */
   role?: "owner" | "moderator" | "member";
   accessType?: "open" | "request";
+  /** «Проверять записи участников»; записи владельца и модераторов сообщества выходят сразу. */
+  moderateMemberPosts?: boolean;
   rules?: string | null;
   customCategory?: string | null;
   city?: { id: number; name: string } | null;
