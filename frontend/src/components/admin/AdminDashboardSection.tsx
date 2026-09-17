@@ -297,10 +297,13 @@ export function SubscriptionCell({
   user,
   busy,
   onChange,
+  readOnly = false,
 }: {
   user: AdminUserRow;
   busy: boolean;
   onChange: (action: "activate" | "extend" | "deactivate", days?: number) => void;
+  /** Модератор видит подписку, но выдавать и продлевать её — Владелец. */
+  readOnly?: boolean;
 }) {
   const [days, setDays] = useState(365);
   const meta = SUBSCRIPTION_LABEL[user.subscription.status];
@@ -323,43 +326,45 @@ export function SubscriptionCell({
       {endsAt && (
         <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>до {endsAt}</span>
       )}
-      <div className="flex flex-wrap items-center" style={{ gap: "4px" }}>
-        <input
-          type="number"
-          min={1}
-          max={3650}
-          value={days}
-          onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 1))}
-          style={{ ...actionStyle, width: "60px", padding: "0 6px" }}
-          aria-label="Дней"
-        />
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onChange("activate", days)}
-          style={actionStyle}
-        >
-          Активировать
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onChange("extend", days)}
-          style={actionStyle}
-        >
-          Продлить
-        </button>
-        {user.subscription.isActive && (
+      {!readOnly && (
+        <div className="flex flex-wrap items-center" style={{ gap: "4px" }}>
+          <input
+            type="number"
+            min={1}
+            max={3650}
+            value={days}
+            onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 1))}
+            style={{ ...actionStyle, width: "60px", padding: "0 6px" }}
+            aria-label="Дней"
+          />
           <button
             type="button"
             disabled={busy}
-            onClick={() => onChange("deactivate")}
+            onClick={() => onChange("activate", days)}
             style={actionStyle}
           >
-            Снять
+            Активировать
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onChange("extend", days)}
+            style={actionStyle}
+          >
+            Продлить
+          </button>
+          {user.subscription.isActive && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onChange("deactivate")}
+              style={actionStyle}
+            >
+              Снять
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

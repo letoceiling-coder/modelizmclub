@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AdminAccess;
 use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -83,6 +84,7 @@ class AdminUserController extends Controller
             throw new NotFoundHttpException('Пользователь не найден.');
         }
 
+        $this->guardModeratorEdit($request, $user);
         $this->guardLastAdmin($request, $user);
 
         $old = $user->only(['email', 'name', 'role', 'status']);
@@ -144,5 +146,25 @@ class AdminUserController extends Controller
             ->where('status', UserStatus::Active)
             ->where('id', '!=', $user->id)
             ->count();
+    }
+
+    /**
+     * Модератор правит обычных пользователей — статус и имя. Роль, почта и
+     * пароль, а также любые сотрудники — у Владельца (AdminAccess).
+     */
+    private function guardModeratorEdit(UpdateAdminUserRequest $request, User $target): void
+    {
+        $actor = $request->user();
+        if (AdminAccess::isOwner($actor)) {
+            return;
+        }
+        if (AdminAccess::isStaff($target)) {
+            abort(403, 'Сотрудников правит только Владелец.');
+        }
+        foreach (AdminAccess::OWNER_ONLY_USER_FIELDS as $field) {
+            if ($request->has($field)) {
+                abort(403, 'Роль, почту и пароль меняет только Владелец.');
+            }
+        }
     }
 }

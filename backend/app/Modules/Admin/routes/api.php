@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Admin\Http\Controllers\Api\V1\AdminAccessController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminAuditLogController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminBannerController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminChannelApplicationsController;
@@ -55,7 +56,14 @@ use Modules\Admin\Http\Controllers\Api\V1\RevisionModerationController;
 use Modules\Admin\Http\Controllers\Api\V1\ShowReportController;
 
 Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
-    Route::middleware('role:moderator,admin')->group(function (): void {
+    /*
+     * Разделы по карте App\Support\AdminAccess — одна карта на маршруты и
+     * меню (GET admin/access). До 17.09 здесь были группы role:moderator,admin
+     * и role:admin, а меню держало свой список, и они расходились.
+     */
+    Route::get('access', AdminAccessController::class);
+
+    Route::middleware('admin.section:moderation')->group(function (): void {
         Route::get('moderation/queue', IndexModerationQueueController::class);
         Route::post('moderation/{type}/{id}/approve', ApproveModerationController::class);
         Route::post('moderation/{type}/{id}/reject', RejectModerationController::class);
@@ -63,33 +71,77 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::get('reports', IndexReportsController::class);
         Route::get('reports/{id}', ShowReportController::class)->whereNumber('id');
         Route::patch('reports/{id}', ResolveReportController::class)->whereNumber('id');
+    });
 
+    Route::middleware('admin.section:feedback')->group(function (): void {
         Route::get('feedback', [AdminFeedbackController::class, 'index']);
         Route::patch('feedback/{id}', [AdminFeedbackController::class, 'update'])->whereNumber('id');
+    });
 
-        // Registered before the communities apiResource below so the literal
+    Route::middleware('admin.section:applications')->group(function (): void {
         // "applications" segment wins over the {slug} parameter.
         Route::get('communities/applications', [AdminCommunityApplicationsController::class, 'index']);
         Route::post('communities/applications/{id}/approve', [AdminCommunityApplicationsController::class, 'approve'])->whereNumber('id');
         Route::post('communities/applications/{id}/reject', [AdminCommunityApplicationsController::class, 'reject'])->whereNumber('id');
-
         Route::get('channels/applications', [AdminChannelApplicationsController::class, 'index']);
         Route::post('channels/applications/{id}/approve', [AdminChannelApplicationsController::class, 'approve'])->whereNumber('id');
         Route::post('channels/applications/{id}/reject', [AdminChannelApplicationsController::class, 'reject'])->whereNumber('id');
     });
 
-    Route::middleware('role:admin')->group(function (): void {
+    Route::middleware('admin.section:users')->group(function (): void {
+        // Модератор: список, карточка, правка статуса и имени обычных
+        // пользователей. Роль, почту, пароль и сотрудников — Владелец
+        // (AdminUserController::guardModeratorEdit).
+        Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid'])->only(['index', 'show', 'update']);
+    });
+
+    Route::middleware('admin.section:content')->group(function (): void {
+        Route::get('posts', [AdminPostController::class, 'index']);
+        Route::patch('posts/{uuid}', [AdminPostController::class, 'update']);
+        Route::delete('posts/{uuid}', [AdminPostController::class, 'destroy']);
+    });
+
+    Route::middleware('admin.section:ads')->group(function (): void {
+        Route::get('listings', [AdminListingController::class, 'index']);
+        Route::get('listings/{uuid}', [AdminListingController::class, 'show']);
+        Route::patch('listings/{uuid}', [AdminListingController::class, 'update']);
+        Route::delete('listings/{uuid}', [AdminListingController::class, 'destroy']);
+    });
+
+    Route::middleware('admin.section:delivery')->group(function (): void {
+        Route::prefix('delivery')->group(function (): void {
+            Route::get('methods', [AdminDeliveryMethodController::class, 'index']);
+            Route::patch('methods/{deliveryMethod}', [AdminDeliveryMethodController::class, 'update']);
+            Route::post('methods/reorder', [AdminDeliveryMethodController::class, 'reorder']);
+            Route::get('stats', AdminDeliveryStatsController::class);
+            Route::get('shipments', AdminIndexShipmentsController::class);
+            Route::get('shipments/{shipment}', AdminShowShipmentController::class);
+            Route::patch('shipments/{shipment}', AdminUpdateShipmentController::class);
+        });
+    });
+
+    Route::middleware('admin.section:categories')->group(function (): void {
+        // Цены размещения в строке категории — только Владелец
+        // (AdminPostCategoryController::guardOwnerOnlyFields).
+        Route::prefix('categories')->group(function (): void {
+            Route::apiResource('post', AdminPostCategoryController::class);
+            Route::apiResource('community', AdminCommunityCategoryController::class);
+            Route::apiResource('listing', AdminListingCategoryController::class);
+        });
+    });
+
+    // Всё остальное — Владелец: настройки, платежи и монетизация, кошельки и
+    // выплаты, роли и создание/удаление пользователей, лендинг, правила.
+    Route::middleware('admin.section:owner')->group(function (): void {
+        Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid'])->only(['store', 'destroy']);
         Route::get('dashboard', AdminDashboardController::class);
         Route::get('diagnostics', AdminDiagnosticsController::class);
 
         Route::get('users/{id}/payout-requisites', AdminUserPayoutRequisitesController::class)->whereNumber('id');
         Route::post('users/{uuid}/subscription', AdminUserSubscriptionController::class)->where('uuid', '[0-9a-f-]{36}');
-        Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid']);
 
+        // Категории обзоров — раздел «Обзоры», у Владельца.
         Route::prefix('categories')->group(function (): void {
-            Route::apiResource('post', AdminPostCategoryController::class);
-            Route::apiResource('community', AdminCommunityCategoryController::class);
-            Route::apiResource('listing', AdminListingCategoryController::class);
             Route::patch('video/reorder', [AdminVideoCategoryController::class, 'reorder']);
             Route::apiResource('video', AdminVideoCategoryController::class);
         });
@@ -98,15 +150,6 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::get('videos/{uuid}', [AdminVideoController::class, 'show'])->where('uuid', '[0-9a-f-]{36}');
         Route::patch('videos/{uuid}', [AdminVideoController::class, 'update'])->where('uuid', '[0-9a-f-]{36}');
         Route::delete('videos/{uuid}', [AdminVideoController::class, 'destroy'])->where('uuid', '[0-9a-f-]{36}');
-
-        Route::get('posts', [AdminPostController::class, 'index']);
-        Route::patch('posts/{uuid}', [AdminPostController::class, 'update']);
-        Route::delete('posts/{uuid}', [AdminPostController::class, 'destroy']);
-
-        Route::get('listings', [AdminListingController::class, 'index']);
-        Route::get('listings/{uuid}', [AdminListingController::class, 'show']);
-        Route::patch('listings/{uuid}', [AdminListingController::class, 'update']);
-        Route::delete('listings/{uuid}', [AdminListingController::class, 'destroy']);
 
         Route::apiResource('communities', AdminCommunityController::class)->parameters(['communities' => 'slug']);
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
@@ -156,16 +199,6 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
         Route::get('media', [AdminMediaController::class, 'index']);
         Route::post('media', [AdminMediaController::class, 'store']);
-
-        Route::prefix('delivery')->group(function (): void {
-            Route::get('methods', [AdminDeliveryMethodController::class, 'index']);
-            Route::patch('methods/{deliveryMethod}', [AdminDeliveryMethodController::class, 'update']);
-            Route::post('methods/reorder', [AdminDeliveryMethodController::class, 'reorder']);
-            Route::get('stats', AdminDeliveryStatsController::class);
-            Route::get('shipments', AdminIndexShipmentsController::class);
-            Route::get('shipments/{shipment}', AdminShowShipmentController::class);
-            Route::patch('shipments/{shipment}', AdminUpdateShipmentController::class);
-        });
 
         // Wallets, safe deals and disputes (spec v4.0 §T12).
         Route::get('wallets', [AdminWalletController::class, 'index']);

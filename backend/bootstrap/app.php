@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Middleware\EnsureActiveSubscription;
+use App\Http\Middleware\EnsureAdminSection;
 use App\Http\Middleware\EnsureCommunitiesEnabled;
 use App\Http\Middleware\EnsureFullyVerified;
 use App\Http\Middleware\EnsureUserRole;
+use App\Http\Middleware\JsonEtag;
 use App\Http\Middleware\RequiresSubscription;
 use App\Http\Middleware\ResolveOptionalUser;
 use Illuminate\Auth\AuthenticationException;
@@ -23,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => EnsureUserRole::class,
+            'admin.section' => EnsureAdminSection::class,
             'verified' => EnsureFullyVerified::class,
             'subscriber' => EnsureActiveSubscription::class,
             'requiresSubscription' => RequiresSubscription::class,
@@ -37,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // ETag на JSON-ответы 200 и 304 на повторный запрос. Подробности —
         // в докблоке класса: почему вся группа, а не список публичных маршрутов.
-        $middleware->appendToGroup('api', \App\Http\Middleware\JsonEtag::class);
+        $middleware->appendToGroup('api', JsonEtag::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, Request $request) {
