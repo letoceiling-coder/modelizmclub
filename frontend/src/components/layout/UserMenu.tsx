@@ -1,5 +1,6 @@
 import { useHasToken } from "@/hooks/use-has-token";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useRef } from "react";
 import { LogOut, LogIn, Sun, Moon } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { useTranslation } from "react-i18next";
@@ -17,6 +18,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { ROUTES } from "@/lib/routes";
 import { useTheme } from "@/components/ThemeProvider";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
+import { avatarPressOpensProfile } from "@/lib/layout/avatar-press";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -39,6 +41,10 @@ export function UserMenu() {
     onContentMouseEnter,
   } = useHoverDropdown();
   const hasToken = useHasToken();
+  const navigate = useNavigate();
+  // Нажатие мышью ведёт в профиль, а не переключает меню — разбор в
+  // lib/layout/avatar-press.ts. Флаг живёт от pointerdown до click.
+  const pressOpensProfile = useRef(false);
 
   const isGuest = me.id === "guest" || (!hasToken && !isDemoMode());
 
@@ -79,6 +85,18 @@ export function UserMenu() {
           <button
             type="button"
             aria-label={t("nav.profile")}
+            onPointerDown={(e) => {
+              pressOpensProfile.current = avatarPressOpensProfile(e);
+              // preventDefault до обработчика Radix: он пропускает событие
+              // с defaultPrevented и не закрывает меню, открытое наведением.
+              if (pressOpensProfile.current) e.preventDefault();
+            }}
+            onClick={() => {
+              if (!pressOpensProfile.current) return;
+              pressOpensProfile.current = false;
+              setOpen(false);
+              void navigate({ to: ROUTES.profile });
+            }}
             className="grid place-items-center rounded-full transition-colors"
             style={{ width: 40, height: 40 }}
           >

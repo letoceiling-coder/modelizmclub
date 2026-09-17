@@ -95,7 +95,12 @@ export function CallsList({ onOpenChat }: Props) {
               className="flex items-center gap-[12px] px-[16px] py-[12px]"
               style={{ borderBottom: "1px solid var(--border)" }}
             >
-              <UserAvatar src={rec.peer.avatar} name={rec.peer.name} size={44} />
+              <UserAvatar
+                src={rec.peer.avatar}
+                name={rec.peer.name}
+                size={44}
+                profileId={rec.peer.uuid || null}
+              />
               <div className="min-w-0 flex-1">
                 <div
                   className="truncate font-display text-[14px] font-semibold"

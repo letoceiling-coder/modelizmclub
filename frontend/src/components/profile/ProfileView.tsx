@@ -67,6 +67,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1031,12 +1032,10 @@ function ProfileReviewsTab({ numericUserId, isOwn }: { numericUserId?: number; i
       {reviews.map((review) => (
         <Card key={review.id} className="space-y-[8px] p-[14px]">
           <div className="flex items-center justify-between gap-[8px]">
-            <span
-              className="truncate text-[14px] font-semibold"
-              style={{ color: "var(--foreground)" }}
-            >
-              {review.author.display_name ?? t("pages.profile.reviewAnonymous")}
-            </span>
+            <ReviewAuthor
+              author={review.author}
+              fallbackName={t("pages.profile.reviewAnonymous")}
+            />
             <span className="inline-flex shrink-0 items-center gap-[2px]">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
@@ -1113,6 +1112,41 @@ function ProfileReviewsTab({ numericUserId, isOwn }: { numericUserId?: number; i
         </Card>
       ))}
     </div>
+  );
+}
+
+/**
+ * Автор отзыва — аватар и имя ведут в его профиль. До 17.09 здесь было одно
+ * имя простым текстом: API отдавал автора только числовым id, а маршрут
+ * /user/{id} ищет профиль по slug или uuid.
+ */
+function ReviewAuthor({
+  author,
+  fallbackName,
+}: {
+  author: UserReviewApi["author"];
+  fallbackName: string;
+}) {
+  const name = author.display_name ?? fallbackName;
+  const profileId = author.slug ?? author.uuid ?? null;
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <UserAvatar src={author.avatar_url} name={name} size={32} profileId={profileId} />
+      {profileId ? (
+        <Link
+          to="/user/$id"
+          params={{ id: profileId }}
+          className="truncate text-[14px] font-semibold hover:underline"
+          style={{ color: "var(--foreground)" }}
+        >
+          {name}
+        </Link>
+      ) : (
+        <span className="truncate text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+          {name}
+        </span>
+      )}
+    </span>
   );
 }
 
