@@ -13,7 +13,7 @@ class EnsureFullyVerified
         $user = $request->user('sanctum');
 
         if (! $user) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+            return response()->json(['message' => __('Unauthenticated.')], 401);
         }
 
         if ($user->isFullyVerified()) {

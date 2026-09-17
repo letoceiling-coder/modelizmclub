@@ -32,8 +32,8 @@ class SafeDealActionsController extends Controller
         $deal = $this->deal($uuid);
         $this->authorize('markDelivered', $deal);
 
-        if (! $deal->involves($request->user()) && ! $request->user()->isModerator()) {
-            abort(403);
+        if (! $deal->involves($request->user())) {
+            abort(403, 'Нет доступа к сделке.');
         }
 
         $deal = $this->deals->markDelivered($deal, $request->user());

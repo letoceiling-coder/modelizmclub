@@ -55,13 +55,17 @@ class SafeDealPolicyTest extends TestCase
         $this->getJson("/api/v1/safe-deals/{$deal->uuid}")->assertUnauthorized();
     }
 
-    public function test_moderator_views_any_deal(): void
+    /** Чужую сделку видит Владелец (платежи и споры); Модератор — нет (17.09). */
+    public function test_owner_views_any_deal_moderator_does_not(): void
     {
         $deal = $this->seedDeal($this->seedUser('buyer'), $this->seedUser('seller'));
 
-        $this->actingAs($this->seedUser('mod', UserRole::Moderator), 'sanctum')
+        $this->actingAs($this->seedUser('owner', UserRole::Admin), 'sanctum')
             ->getJson("/api/v1/safe-deals/{$deal->uuid}")
             ->assertOk();
+        $this->actingAs($this->seedUser('mod', UserRole::Moderator), 'sanctum')
+            ->getJson("/api/v1/safe-deals/{$deal->uuid}")
+            ->assertForbidden();
     }
 
     public function test_seller_ships_paid_deal(): void

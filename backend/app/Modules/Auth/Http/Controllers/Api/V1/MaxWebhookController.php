@@ -18,7 +18,7 @@ class MaxWebhookController extends Controller
             if (! hash_equals($secret, $header)) {
                 Log::warning('MAX webhook rejected: bad secret');
 
-                return response()->json(['message' => 'Unauthorized.'], 401);
+                return response()->json(['message' => __('Unauthorized.')], 401);
             }
         }
 

@@ -12,10 +12,11 @@ use App\Models\User;
  *
  * Два вида различаются здесь, а не таблицами (см. ClubEvent):
  *
- * - событие сообщества создают и правят те, кто управляет сообществом
- *   (Community::canManage — владелец, модератор сообщества, модератор
- *   площадки), и администратор;
- * - событие площадки создаёт и правит только администратор.
+ * - событие сообщества создают и правят владелец и модераторы сообщества
+ *   (Community::canManage). Модерация площадки его только отменяет или
+ *   снимает: до 17.09 модератор и администратор площадки создавали и
+ *   правили события в чужих сообществах;
+ * - событие площадки создаёт, правит, отменяет и снимает администратор.
  *
  * Видимость: событие площадки — всем; событие сообщества — тем, кто видит
  * сообщество. Открытое сообщество видят все, сообщество по заявке — только
@@ -32,7 +33,7 @@ class EventPolicy
             return $user !== null && $user->isAdmin();
         }
         if ($event->status === ClubEvent::STATUS_DRAFT) {
-            return $user !== null && $this->canEdit($user, $event);
+            return $user !== null && ($this->canEdit($user, $event) || $this->canTakeDown($user, $event));
         }
         if ($event->isPlatform()) {
             return true;
@@ -46,7 +47,7 @@ class EventPolicy
             return true;
         }
 
-        return $user !== null && ($this->isMember($user, $community) || $community->canManage($user) || $user->isAdmin());
+        return $user !== null && ($this->isMember($user, $community) || $community->canModerate($user));
     }
 
     /** Создать событие у сообщества; `null` — событие площадки. */
@@ -58,7 +59,7 @@ class EventPolicy
 
         return $community->status === CommunityStatus::Active
             && ! $community->trashed()
-            && ($community->canManage($user) || $user->isAdmin());
+            && $community->canManage($user);
     }
 
     public function update(User $user, ClubEvent $event): bool
@@ -66,9 +67,18 @@ class EventPolicy
         return ! $event->trashed() && $this->canEdit($user, $event);
     }
 
+    /** Снять: команда сообщества или модерация площадки. */
     public function delete(User $user, ClubEvent $event): bool
     {
-        return ! $event->trashed() && $this->canEdit($user, $event);
+        return ! $event->trashed() && ($this->canEdit($user, $event) || $this->canTakeDown($user, $event));
+    }
+
+    /** Отменить: команда сообщества или модерация площадки. */
+    public function cancel(User $user, ClubEvent $event): bool
+    {
+        return ! $event->trashed()
+            && $event->status !== ClubEvent::STATUS_CANCELLED
+            && ($this->canEdit($user, $event) || $this->canTakeDown($user, $event));
     }
 
     /** Отметиться «пойду»: опубликовано, не отменено, ещё не началось, видно. */
@@ -83,21 +93,23 @@ class EventPolicy
     /** Видеть черновики, список участников целиком, править из админки. */
     public function manage(User $user, ClubEvent $event): bool
     {
-        return $this->canEdit($user, $event);
+        return $this->canEdit($user, $event) || $this->canTakeDown($user, $event);
     }
 
     private function canEdit(User $user, ClubEvent $event): bool
     {
-        if ($user->isAdmin()) {
-            return true;
-        }
         if ($event->isPlatform()) {
-            return false;
+            return $user->isAdmin();
         }
-
         $community = $event->community;
 
         return $community !== null && ! $community->trashed() && $community->canManage($user);
+    }
+
+    /** Модерация площадки: отменить и снять чужое событие, но не править его. */
+    private function canTakeDown(User $user, ClubEvent $event): bool
+    {
+        return $event->isPlatform() ? $user->isAdmin() : $user->isModerator();
     }
 
     private function isMember(User $user, Community $community): bool

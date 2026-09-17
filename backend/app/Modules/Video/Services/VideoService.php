@@ -326,7 +326,12 @@ class VideoService
 
     public function delete(Video $video, User $user): void
     {
-        $this->assertCanManage($video, $user);
+        // Снять чужое видео может модерация площадки; править — нет.
+        if ($video->uploader_id !== $user->id && ! $user->isModerator()) {
+            throw ValidationException::withMessages([
+                'video' => ['Недостаточно прав.'],
+            ]);
+        }
         $video->delete();
     }
 
@@ -461,9 +466,10 @@ class VideoService
         return $media;
     }
 
+    /** Править и планировать — только автор; в админке видео правит adminUpdate. */
     private function assertCanManage(Video $video, User $user): void
     {
-        if ($video->uploader_id !== $user->id && ! $user->isAdmin()) {
+        if ($video->uploader_id !== $user->id) {
             throw ValidationException::withMessages([
                 'video' => ['Недостаточно прав.'],
             ]);

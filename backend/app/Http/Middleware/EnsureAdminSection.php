@@ -14,7 +14,7 @@ class EnsureAdminSection
     {
         $user = $request->user('sanctum');
         if (! $user) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+            return response()->json(['message' => __('Unauthenticated.')], 401);
         }
         if (! AdminAccess::allows($user, $section)) {
             return response()->json(['message' => 'Нет доступа к этому разделу админки.'], 403);

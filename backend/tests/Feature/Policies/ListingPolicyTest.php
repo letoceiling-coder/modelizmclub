@@ -73,8 +73,9 @@ class ListingPolicyTest extends TestCase
         $listing = $this->seedListing($this->seedUser('owner'));
         $moderator = $this->seedUser('mod', UserRole::Moderator);
 
+        // Модерация убирает чужое объявление, но не правит его (17.09).
         $this->assertTrue($moderator->can('delete', $listing));
-        $this->assertTrue($moderator->can('update', $listing));
+        $this->assertFalse($moderator->can('update', $listing));
         $this->assertFalse($moderator->can('promote', $listing));
     }
 

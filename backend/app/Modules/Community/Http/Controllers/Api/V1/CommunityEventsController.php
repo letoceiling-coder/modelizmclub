@@ -25,7 +25,7 @@ class CommunityEventsController extends Controller
     {
         $community = $communities->findActiveBySlug($slug);
         $user = $request->user('sanctum');
-        if (! $community->isOpen() && ! ($user && ($community->canManage($user) || $user->isAdmin() || $community->members()->where('users.id', $user->id)->exists()))) {
+        if (! $community->isOpen() && ! ($user && ($community->canModerate($user) || $community->members()->where('users.id', $user->id)->exists()))) {
             throw new NotFoundHttpException('Мероприятия видят участники сообщества.');
         }
 

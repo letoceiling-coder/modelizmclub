@@ -370,7 +370,7 @@ function EventView({ uuid, initial }: { uuid: string; initial: ClubEvent | null 
                   <Pencil size={15} aria-hidden /> Изменить
                 </Button>
               )}
-              {event.can.update &&
+              {event.can.cancel &&
                 (event.displayStatus === "published" || event.displayStatus === "draft") && (
                   <Button
                     type="button"

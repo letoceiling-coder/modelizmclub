@@ -145,6 +145,13 @@ class Community extends Model
             ->exists();
     }
 
+    /**
+     * Команда сообщества: владелец и назначенные им модераторы сообщества.
+     *
+     * До 17.09 сюда пускала и роль площадки (users.role moderator/admin): модератор
+     * площадки правил настройки любого сообщества, разбирал его заявки и заводил
+     * в нём события. Роль площадки даёт модерацию — canModerate.
+     */
     public function canManage(?User $user): bool
     {
         if ($user === null) {
@@ -153,13 +160,16 @@ class Community extends Model
         if ($this->isOwnedBy($user)) {
             return true;
         }
-        if (method_exists($user, 'isModerator') && $user->isModerator()) {
-            return true;
-        }
 
         return $this->members()
             ->where('users.id', $user->id)
             ->where('community_members.role', CommunityMemberRole::Moderator->value)
             ->exists();
+    }
+
+    /** Видеть закрытое и снимать: команда сообщества или модерация площадки. */
+    public function canModerate(?User $user): bool
+    {
+        return $user !== null && ($this->canManage($user) || $user->isModerator());
     }
 }
