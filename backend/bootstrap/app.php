@@ -8,11 +8,14 @@ use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\JsonEtag;
 use App\Http\Middleware\RequiresSubscription;
 use App\Http\Middleware\ResolveOptionalUser;
+use App\Support\ApiErrorMessage;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -45,5 +48,21 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             return response()->json(['message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
+        });
+
+        // Любой ответ-ошибка JSON — с русским сообщением (App\Support\ApiErrorMessage).
+        $exceptions->respond(function (Response $response) {
+            if ($response instanceof JsonResponse && $response->getStatusCode() >= 400) {
+                $data = $response->getData(true);
+                if (is_array($data) && array_key_exists('message', $data)) {
+                    $data['message'] = ApiErrorMessage::translate(
+                        is_string($data['message']) ? $data['message'] : null,
+                        $response->getStatusCode(),
+                    );
+                    $response->setData($data);
+                }
+            }
+
+            return $response;
         });
     })->create();

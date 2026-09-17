@@ -19,7 +19,7 @@ class EnsureUserRole
         $user = $request->user('sanctum');
 
         if (! $user) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+            return response()->json(['message' => __('Unauthenticated.')], 401);
         }
 
         $allowed = array_map(
@@ -28,7 +28,7 @@ class EnsureUserRole
         );
 
         if (! in_array($user->role, $allowed, true)) {
-            return response()->json(['message' => 'Forbidden.'], 403);
+            return response()->json(['message' => __('Forbidden.')], 403);
         }
 
         return $next($request);
