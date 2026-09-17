@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type ReactNode } from "react";
+import { useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { variantUrl } from "@/lib/media/variants";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -6,6 +6,7 @@ import { Img } from "@/components/ui/Img";
 import { Button } from "@/components/ui/button";
 import { coverPlaceholder } from "@/lib/placeholder-image";
 import { cn } from "@/lib/utils";
+import { exceedsLines, toggleClampInPlace, useClampOverflow } from "@/lib/ui/clamp-text";
 
 /**
  * Действие в шапке сущности.
@@ -74,10 +75,19 @@ export function EntityHeader({
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const hasCover = Boolean(coverUrl);
-  // Порог тот же, что в карточке ленты: решение принимается по длине текста и
-  // одинаково на сервере и в браузере, поэтому кнопка не появляется после
-  // первого кадра и ничего не двигает.
-  const canExpand = (description ?? "").length > 140;
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  /*
+   * Как в карточке ленты (см. clamp-text): первый кадр — по оценке строк с
+   * переносами, одинаково на сервере и в браузере; дальше — мера, обрезан ли
+   * текст на самом деле. До 17.09 решала длина больше 140 знаков: описание
+   * короче, но в три абзаца, резалось на двух строках без кнопки, а длинная
+   * строка на широком экране получала кнопку, которой нечего раскрывать.
+   */
+  const text = description ?? "";
+  const clamped = useClampOverflow(descriptionRef, expanded, text);
+  const canExpandNarrow = exceedsLines(text, 45, 2);
+  const canExpandWide = exceedsLines(text, 85, 2);
+  const canExpand = expanded || (clamped ?? canExpandNarrow);
 
   const list = actions ?? [];
   const [primary, ...secondary] = list;
@@ -170,6 +180,7 @@ export function EntityHeader({
 
         {description && (
           <p
+            ref={descriptionRef}
             className={cn(
               "mt-3 whitespace-pre-line text-[15px] leading-[1.4]",
               !expanded && "line-clamp-2",
@@ -182,8 +193,16 @@ export function EntityHeader({
         {canExpand && (
           <button
             type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="hit-target mt-1 cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80"
+            onClick={(e) => {
+              const control = e.currentTarget;
+              toggleClampInPlace(descriptionRef.current, control, !expanded, () =>
+                setExpanded((v) => !v),
+              );
+            }}
+            className={cn(
+              "hit-target mt-1 cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80",
+              clamped === null && !canExpandWide && "md:hidden",
+            )}
             style={{ color: "var(--accent)" }}
           >
             {expanded ? t("pages.shared.collapse") : t("pages.shared.showAll")}

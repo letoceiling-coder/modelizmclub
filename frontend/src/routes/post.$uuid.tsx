@@ -9,7 +9,8 @@ import { PostCardSkeleton } from "@/components/feed/Skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { API_ORIGIN, ApiError, getToken } from "@/lib/api/client";
-import { fetchPost } from "@/lib/api/feed";
+import { fetchPost, recordPostView } from "@/lib/api/feed";
+import { ignoreFailure } from "@/lib/errors/handle";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { variantUrl } from "@/lib/media/variants";
 import { GC, STALE, qk } from "@/lib/queries/keys";
@@ -193,6 +194,28 @@ function PostView({ uuid, initial }: { uuid: string; initial: Post | null }) {
   // Правка своей записи: кладём ответ прямо в кеш этого запроса, чтобы
   // страница обновилась без повторного похода за той же записью.
   const queryClient = useQueryClient();
+
+  /*
+   * Страница записи открыта — засчитать просмотр. Из браузера, а не из
+   * загрузчика: до 17.09 просмотр писал сам GET /posts/{uuid}, и серверная
+   * отрисовка засчитывала его с адреса сервера — 27 из 72 таких запросов на
+   * проде, все гости с прямого захода под одним ключом. Новое число кладём в
+   * кеш записи, чтобы счётчик под ней сразу показал этот заход.
+   */
+  const hasPost = post !== null;
+  useEffect(() => {
+    if (!hasPost) return;
+    let cancelled = false;
+    recordPostView(uuid)
+      .then((views) => {
+        if (cancelled || views === null) return;
+        queryClient.setQueryData<Post>(qk.post(uuid), (prev) => (prev ? { ...prev, views } : prev));
+      })
+      .catch(ignoreFailure("просмотр засчитается при следующем открытии записи"));
+    return () => {
+      cancelled = true;
+    };
+  }, [hasPost, uuid, queryClient]);
 
   return (
     <AppLayout>

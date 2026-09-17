@@ -3,6 +3,7 @@
 namespace Modules\Feed\Services;
 
 use App\Enums\ContentStatus;
+use App\Models\ChannelPost;
 use App\Models\Community;
 use App\Models\ModerationQueue;
 use App\Models\Post;
@@ -14,12 +15,15 @@ use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
 use App\Support\ScheduledPublishFailures;
 use App\Support\UserLabel;
+use App\Support\ViewerKey;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Channel\Services\ChannelPostViewLedger;
 use Modules\Feed\Support\PostMediaSync;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -27,6 +31,7 @@ class PostService
 {
     public function __construct(
         private readonly PostMediaSync $mediaSync,
+        private readonly ChannelPostViewLedger $channelViews,
     ) {}
 
     public function findByUuid(string $uuid, ?User $viewer = null): Post
@@ -379,27 +384,44 @@ class PostService
     }
 
     /**
-     * Count a view for a published post. The author's own views are ignored.
-     * Updates the in-memory model so the response reflects the new total.
+     * Засчитать открытие записи: один раз в сутки на читателя, автор не
+     * считается. Обновляет модель в памяти, чтобы ответ показал новое число.
+     *
+     * Вызывается только из POST /posts/{uuid}/view — фактического открытия.
+     * До 17.09 просмотр писал GET /posts/{uuid}, то есть и серверная
+     * отрисовка страницы: на проде 27 из 72 успешных таких запросов за 15–17.09 пришли с адреса
+     * самого сервера, и все гости с прямого захода делили один ключ на шесть
+     * часов. Гость теперь — по своему идентификатору (ViewerKey), не по IP.
+     *
+     * Зеркало записи канала считается по книге канала: одна запись — один
+     * счётчик, без команды канала. Разбор — в ChannelPostViewLedger.
      */
-    public function recordView(Post $post, ?User $viewer): void
+    public function recordView(Post $post, ?User $viewer, ?Request $request = null): bool
     {
         if ($post->status !== ContentStatus::Published) {
-            return;
+            return false;
+        }
+
+        $request ??= request();
+
+        $mirror = ChannelPost::query()->where('feed_post_id', $post->id)->first();
+        if ($mirror !== null) {
+            return $this->channelViews->record($mirror, $viewer, $request, $post);
         }
 
         if ($viewer && $viewer->id === $post->user_id) {
-            return;
+            return false;
         }
 
-        // De-duplicate: a given viewer (or anonymous IP) only counts once per
-        // 6h window, so reloads/bots can't inflate the counter.
-        $who = $viewer ? 'u'.$viewer->id : 'ip'.request()->ip();
-        if (! Cache::add('pv:'.$post->id.':'.$who, 1, now()->addHours(6))) {
-            return;
+        $day = now()->toDateString();
+        $key = 'pv:'.$post->id.':'.ViewerKey::for($viewer, $request).':'.$day;
+        if (! Cache::add($key, 1, now()->endOfDay())) {
+            return false;
         }
 
         $post->increment('views_count');
+
+        return true;
     }
 
     public function attachViewerFlags(Post $post, ?User $viewer): void

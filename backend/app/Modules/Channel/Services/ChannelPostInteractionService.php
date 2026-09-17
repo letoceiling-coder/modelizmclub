@@ -4,20 +4,17 @@ namespace Modules\Channel\Services;
 
 use App\Models\ChannelPost;
 use App\Models\ChannelPostLike;
-use App\Models\ChannelPostView;
 use App\Models\User;
-use App\Support\ViewerKey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Feed\Services\PostInteractionService;
-use Modules\Feed\Services\PostService;
 
 class ChannelPostInteractionService
 {
     public function __construct(
         private readonly PostInteractionService $feedInteractions,
-        private readonly PostService $posts,
+        private readonly ChannelPostViewLedger $views,
     ) {}
 
     public function like(ChannelPost $post, User $user): ChannelPost
@@ -76,40 +73,12 @@ class ChannelPostInteractionService
 
     /**
      * Count one unique view for an authenticated user or a valid guest session.
-     * Owner/manager views and unpublished posts are ignored.
+     * Owner/manager views and unpublished posts are ignored. Книга общая с
+     * зеркалом в ленте — см. ChannelPostViewLedger.
      */
     public function recordView(ChannelPost $post, ?User $viewer, Request $request): bool
     {
-        if ($post->status !== 'published') {
-            return false;
-        }
-
-        $post->loadMissing('channel');
-        if ($post->channel?->canManage($viewer) || ($viewer && (int) $post->author_id === (int) $viewer->id)) {
-            return false;
-        }
-
-        $key = ViewerKey::for($viewer, $request);
-
-        $inserted = ChannelPostView::query()->insertOrIgnore([
-            'channel_post_id' => $post->id,
-            'viewer_key' => $key,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        if ($inserted === 0) {
-            return false;
-        }
-
-        $post->increment('views_count');
-
-        $post->loadMissing('feedPost');
-        if ($post->feedPost) {
-            $this->posts->recordView($post->feedPost, $viewer);
-        }
-
-        return true;
+        return $this->views->record($post, $viewer, $request);
     }
 
     public function pin(ChannelPost $post): ChannelPost

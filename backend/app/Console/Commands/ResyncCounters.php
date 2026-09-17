@@ -29,7 +29,7 @@ class ResyncCounters extends Command
 
     /**
      * @var list<array{string, string, string, list<string>}>
-     *   [подпись, SQL пересчёта, SQL подсчёта расхождений, привязки]
+     *                                                        [подпись, SQL пересчёта, SQL подсчёта расхождений, привязки]
      *
      * Привязки, а не литералы: 07.09 имя класса было вписано строкой с
      * экранированием, PHP свернул `\\\\` в `\\`, SQL сравнивал с
@@ -75,6 +75,23 @@ class ResyncCounters extends Command
                 'channel_posts.likes_count',
                 'update channel_posts p set likes_count = x.n from (select cp.id, (select count(*) from channel_post_likes l where l.channel_post_id = cp.id) as n from channel_posts cp) x where x.id = p.id and p.likes_count is distinct from x.n',
                 'select count(*) from channel_posts p where p.likes_count is distinct from (select count(*) from channel_post_likes l where l.channel_post_id = p.id)',
+                [],
+            ],
+            [
+                'channel_posts.views_count',
+                'update channel_posts p set views_count = x.n from (select cp.id, (select count(*) from channel_post_views v where v.channel_post_id = cp.id) as n from channel_posts cp) x where x.id = p.id and p.views_count is distinct from x.n',
+                'select count(*) from channel_posts p where p.views_count is distinct from (select count(*) from channel_post_views v where v.channel_post_id = p.id)',
+                [],
+            ],
+            [
+                // Зеркало записи канала в ленте. До 17.09 счётчики вели порознь,
+                // и на проде 13 зеркал из 43 отставали от книги канала (23 против
+                // 8 у «Мастерской»), одно обгоняло (2 против 1) — его прочитали на
+                // странице записи, а книги у ленты нет. Поэтому не «равно книге», а
+                // «не меньше книги»: чтения в ленте до починки не теряем.
+                'posts.views_count (зеркала)',
+                'update posts p set views_count = x.n from (select cp.feed_post_id as id, (select count(*) from channel_post_views v where v.channel_post_id = cp.id) as n from channel_posts cp where cp.feed_post_id is not null) x where x.id = p.id and p.views_count < x.n',
+                'select count(*) from channel_posts cp join posts p on p.id = cp.feed_post_id where p.views_count < (select count(*) from channel_post_views v where v.channel_post_id = cp.id)',
                 [],
             ],
             [

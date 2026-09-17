@@ -83,16 +83,27 @@ export function ResponsiveImage({
       setNear(true);
       return;
     }
+    const { root, target } = deferObservation(el);
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         setNear(true);
         io.disconnect();
       },
-      // Запас в пол-экрана: байты успевают приехать до того, как плитка видна.
-      { rootMargin: "400px 0px" },
+      /*
+       * Запас в полтора экрана того, что прокручивается, — не страницы.
+       *
+       * Замер ленты 17.09 при 1,6 Мбит/с: на 1440 лента прокручивается в
+       * <main>, а наблюдатель смотрел на окно. Пересечение с окном обрезается
+       * краем <main>, запас в 400 px за этот край не выходил, и запрос
+       * картинки уходил через 5–10 мс после того, как она уже стояла на
+       * экране: 21 из 28 появились позже 300 мс, медиана 1,4 с. На 375 (там
+       * прокручивается окно) половина картинок стартовала тем же образом —
+       * 400 px меньше одного движения пальцем.
+       */
+      { root, rootMargin: "150% 0px" },
     );
-    io.observe(el);
+    io.observe(target);
     return () => io.disconnect();
   }, [near]);
 
@@ -116,7 +127,10 @@ export function ResponsiveImage({
       src={src}
       alt={alt}
       className={className}
-      loading={loading}
+      // Отложенная картинка уже дождалась подхода к экрану — байты нужны
+      // сейчас. Родной lazy поверх неё ждал бы ещё раз и так же упирался бы в
+      // край прокручиваемого <main>.
+      loading={defer ? "eager" : loading}
       fetchPriority={fetchPriority}
       decoding={decoding}
       draggable={draggable}
@@ -139,4 +153,32 @@ export function ResponsiveImage({
       {img}
     </picture>
   );
+}
+
+/**
+ * Что и относительно чего наблюдать.
+ *
+ * Корень — ближайший предок, прокручиваемый по вертикали: только к нему запас rootMargin
+ * применяется целиком. Цель — сама коробка, а если она внутри блока с
+ * `content-visibility: auto` (карточки ленты), то этот блок: содержимое
+ * пропущенного блока не раскладывается, и его геометрия для наблюдателя
+ * не существует, пока блок не подойдёт к экрану сам.
+ */
+function deferObservation(el: HTMLElement): { root: Element | null; target: Element } {
+  let root: Element | null = null;
+  let target: Element = el;
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (target === el && style.contentVisibility === "auto") target = node;
+    // Горизонтальная лента тоже получает overflow-y: auto — отличаем её по
+    // тому, что вертикально она не прокручивается.
+    if (
+      (style.overflowY === "auto" || style.overflowY === "scroll") &&
+      node.scrollHeight > node.clientHeight
+    ) {
+      root = node;
+      break;
+    }
+  }
+  return { root, target };
 }
