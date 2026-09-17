@@ -9,7 +9,7 @@ import {
   PanelRightOpen,
   Search,
 } from "lucide-react";
-import { usePostCategoriesState, useListingCategoriesState } from "@/lib/hooks/useCategories";
+import { usePostCategoriesState } from "@/lib/hooks/useCategories";
 import {
   onlineForCategory,
   totalOnlineFromStats,
@@ -17,19 +17,14 @@ import {
 } from "@/lib/hooks/useCategoryRoomStats";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import type { Category, CategoryChild } from "@/lib/mock";
-import { parseTaxonomyId, type RailVariant } from "@/lib/taxonomy";
+import { parseTaxonomyId } from "@/lib/taxonomy";
+import { railChatHref, railFilterHref, railNameHref } from "@/lib/rail-links";
 
 const COLLAPSE_KEY = "modelizm:rightrail:collapsed";
 /** v3: first paint is always А–Я; older keys stored «popular» as an implicit default. */
 const SORT_KEY = "modelizm:rightrail:sort:v3";
 
 type SortMode = "popular" | "alpha";
-
-type Props = {
-  /** When true, category links are wrapped in GuestGuardLink (feed page). */
-  guestGuard?: boolean;
-  variant?: RailVariant;
-};
 
 type RailNode = {
   id: string;
@@ -110,50 +105,6 @@ function filterNodes(nodes: RailNode[], q: string): RailNode[] {
   });
 }
 
-/** Отбор по разделу на той странице, где панель показана. */
-function filterHrefFor(variant: RailVariant, id: string): string {
-  if (variant === "ads") return `/ads?taxonomy_id=${id}`;
-  if (variant === "communities") return `/communities?taxonomy_id=${id}`;
-  if (variant === "channels") return `/channels?taxonomy_id=${id}`;
-  return `/feed?taxonomy_id=${id}`;
-}
-
-/**
- * Куда ведёт название.
- *
- * В ленте — на само направление: панель здесь точка входа, а не фильтр,
- * и «Авиация» должна открывать «Авиацию», а не ленту, суженную до неё.
- * Отбор при этом никуда не делся — он на строке «Все посты направления»
- * внутри раскрытого узла.
- *
- * На остальных страницах панель именно отбирает: она сужает тот список,
- * рядом с которым стоит. Уводить оттуда на страницу направления значило бы
- * увести человека со страницы, на которую он пришёл, — а в каталоге ещё и
- * в пустоту: дерево там своё, и тринадцати его разделам из двадцати пяти
- * направления не соответствует ни одно (замер 09.09).
- */
-function nameHrefFor(variant: RailVariant, node: RailNode): string {
-  if (variant !== "feed") return filterHrefFor(variant, node.id);
-
-  return `/categories/${node.slug ?? node.id}`;
-}
-
-/**
- * Значок чата ведёт в чат этого уровня. Уровень у чата ровно один:
- * `ChatService::isDescendantOf` отказывает узлу без родителя, то есть
- * комната есть у подкатегории и не бывает у направления.
- *
- * Поэтому у направления значка нет — раньше он вёл на список комнат, то
- * есть туда же, куда теперь ведёт название. Две кнопки в одно место, и
- * одна из них обещает чат, которого на этом уровне не существует.
- *
- * Без `?tab=`: комната и так открывается чатом, а параметр со значением по
- * умолчанию дал бы той же странице второй адрес.
- */
-function chatHrefFor(node: RailNode): string {
-  return `/categories/${node.slug ?? node.id}`;
-}
-
 /**
  * «Все направления» — список всех направлений с подкатегориями, на любой
  * странице. Раньше ссылка вела в корень текущего раздела (`/feed`, `/ads`,
@@ -162,7 +113,14 @@ function chatHrefFor(node: RailNode): string {
  */
 const ALL_DIRECTIONS_HREF = "/categories";
 
-export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Props) {
+/**
+ * Ссылки проходят через GuestGuardLink везде: что гостю можно открыть,
+ * решает карта доступа, а не страница, на которой стоит панель. До 18.09
+ * проверка стояла только в ленте.
+ */
+const guestGuard = true;
+
+export function DirectionsRightRail() {
   const { t } = useTranslation();
   const location = useLocation();
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
@@ -179,10 +137,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const prefsLoaded = useRef(false);
 
-  const { categories: postCategories, loading: postLoading } = usePostCategoriesState();
-  const { categories: listingCategories, loading: listingLoading } = useListingCategoriesState();
-  const categories = variant === "ads" ? listingCategories : postCategories;
-  const categoriesLoading = variant === "ads" ? listingLoading : postLoading;
+  const { categories, loading: categoriesLoading } = usePostCategoriesState();
   const roomStats = useCategoryRoomStats();
 
   useEffect(() => {
@@ -234,13 +189,8 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
     setOpenIds((prev) => ({ ...prev, ...next }));
   }, [query, visible]);
 
-  const catalog = variant !== "feed";
-  const title = catalog
-    ? t("components.rightCategories.titleCatalog")
-    : t("components.rightCategories.title");
-  const subtitle = catalog
-    ? t(`components.rightCategories.subtitle${variant.charAt(0).toUpperCase()}${variant.slice(1)}`)
-    : t("components.rightCategories.subtitle");
+  const title = t("components.rightCategories.title");
+  const subtitle = t("components.rightCategories.subtitle");
 
   if (collapsed) {
     return (
@@ -289,8 +239,8 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
       {nodes.map((node) => {
         const open = Boolean(openIds[node.id]);
         const hasChildren = node.children.length > 0;
-        const href = nameHrefFor(variant, node);
-        const filterHref = filterHrefFor(variant, node.id);
+        const href = railNameHref(node);
+        const filterHref = railFilterHref(node.id);
         const active = activeTaxonomyId === Number(node.id);
         const pad = depth === 0 ? "py-[8px] pl-[10px]" : "px-[8px] py-[5px]";
         const toggle = () => setOpenIds((p) => ({ ...p, [node.id]: !p[node.id] }));
@@ -320,7 +270,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                   добавляла строке направления 18 px: всё ниже неё съезжало,
                   подвал панели — на 35 (CLS 0,004 на ленте и друзьях, замер
                   11.09). В строке счётчик только сужает название. */}
-              {depth === 0 && !catalog && onlineForCategory(roomStats, node.id) > 0 && (
+              {depth === 0 && onlineForCategory(roomStats, node.id) > 0 && (
                 <span
                   className="flex shrink-0 items-center gap-[4px] text-[11px]"
                   style={{ color: "var(--foreground-50)" }}
@@ -366,9 +316,9 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                 направления без чата название разъезжалось бы на её ширину,
                 и значки в столбце стояли бы по двум вертикалям.
               */}
-              {!catalog && depth > 0 ? (
+              {depth > 0 ? (
                 <RailLink
-                  to={chatHrefFor(node)}
+                  to={railChatHref(node)}
                   guestGuard={guestGuard}
                   actionKey="feed.rail.subcategory"
                   className="grid w-6 shrink-0 place-items-center transition-colors hover:bg-[var(--background-surface)]"
@@ -377,7 +327,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
                   <MessageCircle className="h-[13px] w-[13px]" />
                 </RailLink>
               ) : (
-                !catalog && <span className="w-6 shrink-0" aria-hidden />
+                <span className="w-6 shrink-0" aria-hidden />
               )}
               {/*
                 Колонка шеврона занята всегда — даже когда раскрывать нечего.
@@ -558,7 +508,7 @@ export function DirectionsRightRail({ guestGuard = false, variant = "feed" }: Pr
               <span>
                 {t("components.rightCategories.directionsCount", { count: categories.length })}
               </span>
-              {!catalog && totalOnline > 0 && (
+              {totalOnline > 0 && (
                 <span className="flex items-center gap-[5px]">
                   <span
                     className="inline-block h-[6px] w-[6px] rounded-full"
