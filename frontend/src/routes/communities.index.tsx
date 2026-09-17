@@ -164,6 +164,7 @@ function CommunitySection({
 
 function CommunitiesPage() {
   const { t } = useTranslation();
+  const navigate = Route.useNavigate();
   const { taxonomy_id: taxonomyId } = Route.useSearch();
   const loaded = Route.useLoaderData();
   const [all, setAll] = useState<Community[]>(() => loaded.communities);
@@ -255,7 +256,7 @@ function CommunitiesPage() {
   const noneJoined = mine.length === 0 && subscriptions.length === 0;
 
   return (
-    <AppLayout rightColumn={<DirectionsRightRail variant="communities" />} footer>
+    <AppLayout rightColumn={<DirectionsRightRail />} footer>
       <div className="space-y-[24px]">
         {/* Заголовок и действие — одной строкой; пояснение уходит под
             заголовок в caption, а не занимает отдельную строку крупным
@@ -304,6 +305,20 @@ function CommunitiesPage() {
         ) : nothing ? (
           hasQuery ? (
             <EmptySearch />
+          ) : taxonomyId ? (
+            // Пусто в отборе — не «у вас нет сообществ». До 18.09 сюда
+            // попадали по «Авиации» из панели, и страница сообщала человеку
+            // о его сообществах то, что было правдой только про отбор.
+            <EmptyState
+              icon={Users}
+              title={t("pages.communities.emptyTaxonomyTitle")}
+              description={t("pages.communities.emptyTaxonomyDesc")}
+              action={{
+                label: t("pages.communities.showAll"),
+                onClick: () => void navigate({ to: "/communities", search: {} }),
+              }}
+              variant="compact"
+            />
           ) : isGuest ? (
             // Гостю не сообщаем, что «у вас пока нет сообществ» — у него их и
             // не может быть; предлагаем войти.

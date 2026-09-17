@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { HistoryBackLink } from "@/components/ui/HistoryBackLink";
 import type { Category, CategoryChild } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
 import { SubcategoryRoomPage } from "@/components/categories/SubcategoryRoomPage";
@@ -153,13 +154,13 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
           style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
         >
           <div className="flex items-center gap-[10px]">
-            <Link
-              to="/feed"
-              aria-label={t("pages.categoryDetail.backAria")}
+            <HistoryBackLink
+              fallback="/categories"
+              ariaLabel={t("pages.categoryDetail.backAria")}
               className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
             >
               <ArrowLeft className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
-            </Link>
+            </HistoryBackLink>
             <span
               className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px]"
               style={{ background: "var(--background-surface)", color: "var(--accent)" }}

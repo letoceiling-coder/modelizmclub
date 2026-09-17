@@ -241,7 +241,7 @@ function ChannelsPage() {
   const hasQuery = q.trim().length > 0;
 
   return (
-    <AppLayout rightColumn={<DirectionsRightRail variant="channels" />} footer>
+    <AppLayout rightColumn={<DirectionsRightRail />} footer>
       <div className="space-y-[24px]">
         <header className="flex items-start justify-between gap-[12px]">
           <div className="min-w-0">
@@ -289,6 +289,18 @@ function ChannelsPage() {
             title={t("pages.channels.loadFailedTitle")}
             description={t("pages.channels.loadFailedDesc")}
             action={{ label: t("pages.shared.retry"), onClick: () => router.invalidate() }}
+            variant="compact"
+          />
+        ) : nothing && taxonomyId && !hasQuery ? (
+          // Пусто в отборе по направлению — не «каналов нет, создайте свой».
+          <EmptyState
+            icon={Radio}
+            title={t("pages.channels.emptyTaxonomyTitle")}
+            description={t("pages.channels.emptyTaxonomyDesc")}
+            action={{
+              label: t("pages.channels.showAll"),
+              onClick: () => void navigate({ to: "/channels", search: {} }),
+            }}
             variant="compact"
           />
         ) : nothing ? (

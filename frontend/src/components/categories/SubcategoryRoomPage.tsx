@@ -22,6 +22,7 @@ import { messengerCache } from "@/lib/messenger";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdCard } from "@/components/AdCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { HistoryBackLink } from "@/components/ui/HistoryBackLink";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { resolveLucideIcon, useLucideTail } from "@/lib/lucide-icon";
 import { userById } from "@/lib/user-registry";
@@ -466,14 +467,14 @@ export function SubcategoryRoomPage({
           className="flex items-center gap-[10px] border-b px-[14px] py-[10px]"
           style={{ borderColor: "var(--border)" }}
         >
-          <Link
-            to="/categories/$id"
+          <HistoryBackLink
+            fallback="/categories/$id"
             params={{ id: c.slug ?? c.id }}
-            aria-label={t("pages.subcategoryDetail.backAria")}
+            ariaLabel={t("pages.subcategoryDetail.backAria")}
             className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] transition-colors hover:bg-[var(--background-surface)]"
           >
             <ArrowLeft className="h-[16px] w-[16px]" style={{ color: "var(--foreground-70)" }} />
-          </Link>
+          </HistoryBackLink>
           <span
             className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px]"
             style={{ background: "var(--background-surface)", color: "var(--accent)" }}
