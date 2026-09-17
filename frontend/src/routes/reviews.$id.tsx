@@ -315,28 +315,32 @@ function WatchPageInner() {
     });
   };
 
+  /** `false` — сервер отказал, поле вернёт набранное (см. CommentSection). */
   const addComment = (
     text: string,
     parentId?: string,
     photos?: { mediaIds: string[]; urls: string[] },
-  ) => {
-    requirePremium(() => {
-      void createVideoComment(id, text, parentId, photos?.mediaIds)
-        .then((c) => {
-          const saved =
-            photos?.urls?.length && !c.images?.length ? { ...c, images: photos.urls } : c;
-          if (parentId) {
-            setComments((prev) => appendToCommentThread(prev, parentId, saved));
-          } else {
-            setComments((prev) => [saved, ...prev]);
-          }
-        })
-        .catch((err) => {
-          const message = formatApiErrorMessage(err, t("pages.reviews.commentFailed"));
-          if (message) toast.error(message);
-        });
+  ): Promise<boolean> =>
+    new Promise((resolve) => {
+      requirePremium(() => {
+        void createVideoComment(id, text, parentId, photos?.mediaIds)
+          .then((c) => {
+            const saved =
+              photos?.urls?.length && !c.images?.length ? { ...c, images: photos.urls } : c;
+            if (parentId) {
+              setComments((prev) => appendToCommentThread(prev, parentId, saved));
+            } else {
+              setComments((prev) => [saved, ...prev]);
+            }
+            resolve(true);
+          })
+          .catch((err) => {
+            const message = formatApiErrorMessage(err, t("pages.reviews.commentFailed"));
+            if (message) toast.error(message);
+            resolve(false);
+          });
+      });
     });
-  };
 
   if (state === "loading") {
     return (

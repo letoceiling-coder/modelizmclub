@@ -102,7 +102,13 @@ export function PostHeader({
         <AuthorAvatar src={author.avatar} name={author.name} />
       </GuestGuardLink>
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-[8px]">
+        {/*
+          Между строками 4, между плашками в строке 8. Было 8 в обе стороны:
+          на 375 плашки записи канала («Закреплено», «Новость») уходят под
+          имя, и между именем и плашками вставало 8, а между плашками и
+          датой — 1 (замер на проде 17.09).
+        */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <GuestGuardLink
             actionKey={authorActionKey}
             to={authorHref}

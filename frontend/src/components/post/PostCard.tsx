@@ -504,51 +504,58 @@ export function PostCard({
     }
   };
 
+  /** `false` — сервер отказал, поле вернёт набранное (см. CommentSection). */
   const addComment = (
     text: string,
     parentId?: string,
     photos?: { mediaIds: string[]; urls: string[] },
-  ) => {
-    if (!canInteract) return;
-    void gate.require(levelFor("feed.post.comment"), () => {
-      const tempId = `nc${Date.now()}`;
-      const newC: Comment = {
-        id: tempId,
-        authorId: me.id,
-        time: new Date().toISOString(),
-        text,
-        likes: 0,
-        replies: [],
-        images: photos?.urls ?? [],
-      };
-      pendingComments.current.set(tempId, { parentId, comment: newC });
-      setCommentList((list) => {
-        if (!parentId) return [...list, newC];
-        return appendToCommentThread(list, parentId, newC);
-      });
-      if (onTogglePost) onTogglePost(post.id, { comments: (post.comments ?? 0) + 1 });
-      else setOwnCommentDelta((d) => d + 1);
-      createComment(post.id, text, parentId, photos?.mediaIds)
-        .then((saved) => {
-          pendingComments.current.delete(tempId);
-          pendingComments.current.set(saved.id, { parentId, comment: saved });
-          // Ответ ветки мог принести сохранённый раньше, чем вернулся POST:
-          // тогда временную строку убираем, а не превращаем во второй экземпляр.
-          setCommentList((list) =>
-            hasComment(list, saved.id)
-              ? removeFromCommentThread(list, tempId)
-              : replaceInCommentThread(list, parentId, tempId, saved),
-          );
-        })
-        .catch(() => {
-          pendingComments.current.delete(tempId);
-          setCommentList((list) => removeFromCommentThread(list, tempId));
-          if (onTogglePost) onTogglePost(post.id, { comments: post.comments ?? 0 });
-          else setOwnCommentDelta((d) => d - 1);
-          toast.error(t("components.commentSection.sendFailed"));
+  ): Promise<boolean> =>
+    new Promise((resolve) => {
+      if (!canInteract) return resolve(false);
+      void gate.require(levelFor("feed.post.comment"), () => {
+        const tempId = `nc${Date.now()}`;
+        const newC: Comment = {
+          id: tempId,
+          authorId: me.id,
+          time: new Date().toISOString(),
+          text,
+          likes: 0,
+          replies: [],
+          images: photos?.urls ?? [],
+        };
+        pendingComments.current.set(tempId, { parentId, comment: newC });
+        setCommentList((list) => {
+          if (!parentId) return [...list, newC];
+          return appendToCommentThread(list, parentId, newC);
         });
+        if (onTogglePost) onTogglePost(post.id, { comments: (post.comments ?? 0) + 1 });
+        else setOwnCommentDelta((d) => d + 1);
+        createComment(post.id, text, parentId, photos?.mediaIds)
+          .then((saved) => {
+            pendingComments.current.delete(tempId);
+            pendingComments.current.set(saved.id, { parentId, comment: saved });
+            // Ответ ветки мог принести сохранённый раньше, чем вернулся POST:
+            // тогда временную строку убираем, а не превращаем во второй экземпляр.
+            setCommentList((list) =>
+              hasComment(list, saved.id)
+                ? removeFromCommentThread(list, tempId)
+                : replaceInCommentThread(list, parentId, tempId, saved),
+            );
+            resolve(true);
+          })
+          .catch((err) => {
+            pendingComments.current.delete(tempId);
+            setCommentList((list) => removeFromCommentThread(list, tempId));
+            if (onTogglePost) onTogglePost(post.id, { comments: post.comments ?? 0 });
+            else setOwnCommentDelta((d) => d - 1);
+            // Причину называет сервер; пустая строка — отказ уже объяснило
+            // окно (подтверждение номера), второй тост не нужен.
+            const message = formatApiErrorMessage(err, t("components.commentSection.sendFailed"));
+            if (message) toast.error(message);
+            resolve(false);
+          });
+      });
     });
-  };
 
   const profileTo = author.slug ?? author.id;
   const authorHref = `/user/${profileTo}`;
@@ -570,8 +577,16 @@ export function PostCard({
    */
   const lightboxAside = (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Шапка 56: аватар 40, имя, под ним дата. Крестик справа — он же
-          единственный в окне, когда панель есть (см. Lightbox). */}
+      {/* Шапка от 56: аватар 40, имя, под ним дата. Крестик справа — он же
+          единственный в окне, когда панель есть (см. Lightbox).
+
+          Не ровно 56, а не меньше 56. У записи канала рядом с именем плашки
+          «Закреплено» и «Новость»; в колонке 380 и на телефоне они уходят
+          строкой ниже, и содержимое шапки становилось 71 при высоте 56:
+          имя вылезало на 8 px выше верхней границы, дата — на 7 ниже нижней
+          и ложилась на линию (замер на проде 17.09: 375, 1024, 1440, 1920).
+          Поля 8 сверху и 7 снизу плюс рамка 1 держат обычную шапку ровно в
+          56, как было; с плашками в две строки она растёт до 80. */}
       <PostHeader
         author={author}
         authorHref={authorHref}
@@ -580,7 +595,7 @@ export function PostCard({
         isScheduled={isScheduled}
         showContext={false}
         badges={badges}
-        className="h-[56px] min-h-0 shrink-0 border-b border-[var(--border)] px-4 pt-0 md:px-4"
+        className="min-h-[56px] shrink-0 border-b border-[var(--border)] px-4 pb-[7px] pt-2 md:px-4"
       >
         <LightboxCloseButton />
       </PostHeader>
@@ -705,7 +720,13 @@ export function PostCard({
               // сообществе и канале список лежит внутри блока с полями —
               // там карточка остаётся карточкой.
               "rounded-none border-x-0 shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)] sm:border-x"
-            : "rounded-none shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)]",
+            : variant === "channel"
+              ? // Канал на телефоне — тоже карточка: список лежит в полях 12
+                // рядом со скруглённой шапкой канала, а без скругления
+                // запись выглядела коробкой с острыми углами и рамкой по
+                // бокам (замер на проде 17.09, 375: радиус 0, рамка 1).
+                "rounded-[var(--r-card)] shadow-[var(--shadow-card)]"
+              : "rounded-none shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)]",
       )}
     >
       {isShare && (

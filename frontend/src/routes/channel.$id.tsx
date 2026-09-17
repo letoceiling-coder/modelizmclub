@@ -552,7 +552,11 @@ function ChannelPage() {
                 variant="section"
               />
             ) : (
-              <ul className="space-y-2">
+              /* Зазор между записями как в ленте: 8 на телефоне, 16 от 640.
+                 Было 8 на всех ширинах — от 768 записи канала стояли вдвое
+                 теснее тех же карточек в ленте и в профиле (замер на проде
+                 17.09: 8 против 16). */
+              <ul className="space-y-2 sm:space-y-4">
                 {list.map((p: ChannelPost) => (
                   <PostItem
                     key={p.id}
@@ -706,7 +710,11 @@ function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Po
     })),
     views: post.views,
     likes: post.likes,
-    comments: 0,
+    // Число и вердикт приходят с зеркальной записи ленты. Было `comments: 0`
+    // и без `can`: «0» под каждой записью и открытое поле учётке без
+    // телефона, которой сервер всё равно откажет (прод 17.09).
+    comments: post.comments,
+    can: post.can,
     isLiked: post.liked,
     status: post.status === "published" ? "published" : "moderation",
     canInteract: post.status === "published",
@@ -781,8 +789,18 @@ function PostItem({
   };
 
   const feedPost = { ...toFeedPost(post, channel, canManage), views };
-  const chip = "inline-flex items-center gap-1 text-[11px] font-semibold";
-  const chipStyle = { padding: "3px 7px", borderRadius: 6 } as const;
+  /*
+   * Плашка ростом 20 (`h-5`) — на пиксель ниже имени автора (21), а не выше
+   * его; по бокам 8. Отступы из шкалы: высоту держит размер, а не поля.
+   *
+   * Было поле 3/7 и межстрочный интервал шрифта 11 px по умолчанию — 23 px:
+   * плашки «Закреплено» и «Новость» стояли в строке имени выше самого имени
+   * и растягивали шапку карточки до 50 вместо 48 (замер на проде 17.09,
+   * 768–1920), а в шапке просмотрщика вместе с переносом выпирали за её
+   * границы.
+   */
+  const chip = "inline-flex h-5 items-center gap-1 px-2 text-[11px] font-semibold leading-4";
+  const chipStyle = { borderRadius: 6 } as const;
 
   const badges = (
     <>

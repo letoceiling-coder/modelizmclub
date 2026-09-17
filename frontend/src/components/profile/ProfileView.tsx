@@ -331,7 +331,7 @@ export function ProfileView({
             <ProfileAvatar src={user.avatar} name={user.name} editable={isOwn} />
           </div>
           <div className="min-w-0 flex-1 md:flex-[1_1_260px]">
-            <div className="flex flex-wrap items-center gap-[6px]">
+            <div className="flex flex-wrap items-center gap-2">
               {/*
                 Имя переносится на вторую строку, а не режется многоточием.
 
@@ -360,7 +360,7 @@ export function ProfileView({
                 <Badge
                   variant="top-outline"
                   withIcon={false}
-                  className="gap-[3px] rounded-full px-[7px] py-[2px] text-[10px]"
+                  className="h-5 gap-1 rounded-full px-2 py-0 text-[10px]"
                 >
                   <BadgeCheck size={10} /> Pro
                 </Badge>
@@ -368,7 +368,7 @@ export function ProfileView({
               {user.firstHundred && (
                 <Badge
                   withIcon={false}
-                  className="gap-[3px] rounded-full border-transparent px-[8px] py-[2px] text-[10px]"
+                  className="h-5 gap-1 rounded-full border-transparent px-2 py-0 text-[10px]"
                   style={{
                     background:
                       "linear-gradient(135deg, var(--gold-1, #FBBF24), var(--gold-2, #B45309))",
@@ -384,7 +384,7 @@ export function ProfileView({
                   <Badge
                     variant={isPhoneVerified(user) ? "published" : "draft"}
                     withIcon={false}
-                    className="rounded-full px-[8px] py-[2px] text-[10px]"
+                    className="h-5 rounded-full px-2 py-0 text-[10px]"
                     title={
                       isPhoneVerified(user)
                         ? t("pages.profile.phoneVerifiedBadge")
@@ -398,46 +398,52 @@ export function ProfileView({
                 </Link>
               )}
             </div>
-            <div
-              className="mt-[3px] flex flex-wrap items-center gap-x-[10px] gap-y-[2px] text-[12.5px]"
-              style={{ color: "var(--foreground-50)" }}
-            >
-              <span className="inline-flex items-center gap-[6px]">
-                <MapPin size={12} /> {user.city}
-              </span>
-              {(stats?.rating ?? 0) > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setTab("reviews")}
-                  className="relative inline-flex items-center gap-[4px] after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:underline"
-                >
-                  <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
-                  <span style={{ color: "var(--foreground)", fontWeight: 600 }}>
-                    {(stats?.rating ?? 0).toFixed(1)}
-                  </span>
-                  {(stats?.reviews ?? 0) > 0 && (
-                    <span>{t("pages.profile.reviewsCount", { count: stats?.reviews ?? 0 })}</span>
-                  )}
-                </button>
-              )}
-              {stats?.trusted && (
-                <span
-                  className="inline-flex items-center gap-[3px] px-[6px] py-[1px] text-[11px] font-semibold"
-                  style={{
-                    background: "var(--accent-soft)",
-                    color: "var(--accent)",
-                    borderRadius: "var(--r-pill)",
-                  }}
-                >
-                  <ShieldCheck size={11} /> {t("pages.profile.trustedSeller")}
-                </span>
-              )}
-            </div>
-            {user.status && (
+            {/*
+              Строка под именем — только когда в ней есть что показать. Без
+              города здесь оставался один значок булавки: пустая строка 17 px
+              между именем и кнопками (прод 17.09, 1229 и demo-user, 375–1920).
+            */}
+            {(user.city || (stats?.rating ?? 0) > 0 || stats?.trusted) && (
               <div
-                className="mt-[2px] text-[12.5px] italic"
+                className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px]"
                 style={{ color: "var(--foreground-50)" }}
               >
+                {user.city && (
+                  <span className="inline-flex items-center gap-2">
+                    <MapPin size={12} /> {user.city}
+                  </span>
+                )}
+                {(stats?.rating ?? 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTab("reviews")}
+                    className="relative inline-flex items-center gap-1 after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:underline"
+                  >
+                    <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
+                    <span style={{ color: "var(--foreground)", fontWeight: 600 }}>
+                      {(stats?.rating ?? 0).toFixed(1)}
+                    </span>
+                    {(stats?.reviews ?? 0) > 0 && (
+                      <span>{t("pages.profile.reviewsCount", { count: stats?.reviews ?? 0 })}</span>
+                    )}
+                  </button>
+                )}
+                {stats?.trusted && (
+                  <span
+                    className="inline-flex h-5 items-center gap-1 px-2 text-[11px] font-semibold"
+                    style={{
+                      background: "var(--accent-soft)",
+                      color: "var(--accent)",
+                      borderRadius: "var(--r-pill)",
+                    }}
+                  >
+                    <ShieldCheck size={11} /> {t("pages.profile.trustedSeller")}
+                  </span>
+                )}
+              </div>
+            )}
+            {user.status && (
+              <div className="mt-1 text-[12.5px] italic" style={{ color: "var(--foreground-50)" }}>
                 {user.status}
               </div>
             )}
@@ -622,8 +628,11 @@ export function ProfileView({
         {/* Tabs */}
         <Tabs tab={shownTab} setTab={setTab} isOwn={isOwn} hideAbout={hideAbout} />
 
+        {/* Сверху 24, как у содержимого вкладки под блоком. Было 16: от
+            вкладок до «Подписки» 16, от «Подписки» до содержимого 24 и от
+            содержимого до края карточки 24 (замер на проде 17.09, 375–1920). */}
         {isOwn && (
-          <div className="px-[16px] pt-[16px] md:px-[32px]">
+          <div className="px-[16px] pt-6 md:px-[32px]">
             <SubscriptionBlock />
           </div>
         )}
@@ -894,7 +903,7 @@ export function ProfileView({
 function Counter({ label, value, divider }: { label: string; value: number; divider?: boolean }) {
   return (
     <div
-      className="min-w-0 px-[6px] py-[10px] text-center md:px-[24px] md:py-[12px]"
+      className="min-w-0 px-2 py-3 text-center md:px-6"
       style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}
     >
       <div
@@ -904,7 +913,7 @@ function Counter({ label, value, divider }: { label: string; value: number; divi
         {value}
       </div>
       <div
-        className="mt-[3px] truncate text-[10px] md:text-[11px]"
+        className="mt-1 truncate text-[10px] md:text-[11px]"
         style={{ color: "var(--foreground-50)" }}
       >
         {label}
@@ -928,27 +937,57 @@ function Tabs({
   const visibleTabs = TABS_BASE.filter(
     (item) => (isOwn || !item.ownOnly) && !(hideAbout && item.key === "about"),
   );
+  const rowRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  // Выбранная вкладка — в видимой части ряда, как в EntityTabs. Только по
+  // горизонтали и только внутри ряда: scrollIntoView увёл бы страницу.
+  useEffect(() => {
+    const row = rowRef.current;
+    const btn = activeRef.current;
+    if (!row || !btn) return;
+    if (
+      btn.offsetLeft >= row.scrollLeft &&
+      btn.offsetLeft + btn.offsetWidth <= row.scrollLeft + row.clientWidth
+    )
+      return;
+    row.scrollTo({
+      left: Math.max(0, btn.offsetLeft - row.clientWidth / 2 + btn.offsetWidth / 2),
+      behavior: "smooth",
+    });
+  }, [tab]);
 
   return (
     <div
-      className="sticky top-0 z-10 px-[16px] py-[6px] md:px-[32px] md:py-[8px]"
+      className="sticky top-0 z-10 px-[16px] py-2 md:px-[32px]"
       style={{
         background: "var(--background)",
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <div className="-mx-[16px] overflow-x-auto px-[16px] md:mx-0 md:overflow-visible md:px-0">
-        <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-[2px] md:min-h-0 md:w-full md:flex-wrap md:gap-[4px]">
+      {/*
+        Один ряд на всех ширинах, прокрутка вбок — как у вкладок сообщества
+        и канала (EntityTabs) и как здесь же на телефоне.
+
+        От 768 ряд переносился: восемь вкладок своего профиля — это 971 px
+        при месте 478–614, и они вставали в две строки на 768, 1440 и 1920 и
+        в три на 1024; шесть вкладок чужого — в две строки от 768. Полоса
+        вкладок занимала 105 и 151 px вместо 61, а подчёркивание выбранной
+        оказывалось посреди блока (замер на проде 17.09).
+      */}
+      <div ref={rowRef} className="-mx-[16px] overflow-x-auto px-[16px] md:-mx-[32px] md:px-[32px]">
+        <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-1">
           {visibleTabs.map(({ key, Icon }) => {
             const active = tab === key;
             const label = t(TAB_LABEL_KEYS[key]);
             return (
               <button
                 key={key}
+                ref={active ? activeRef : undefined}
                 type="button"
                 onClick={() => setTab(key)}
-                className="inline-flex shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[8px] px-[8px] py-[10px] font-display transition-colors duration-200 md:gap-[6px] md:px-[14px] md:py-[12px]"
+                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[8px] px-2 py-3 font-display transition-colors duration-200 md:px-3"
                 style={{
                   fontSize: 12,
                   fontWeight: active ? 600 : 500,
@@ -1731,7 +1770,7 @@ function CoverImage({ src, editable }: { src?: string; editable?: boolean }) {
             aria-label={t("pages.profile.changeCover")}
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="absolute right-[12px] top-[12px] inline-flex items-center gap-[6px] rounded-full px-[12px] py-[7px] text-[12px] font-medium transition-colors after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:brightness-110"
+            className="absolute right-3 top-3 inline-flex h-8 items-center gap-2 rounded-full px-3 text-[12px] font-medium transition-colors after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2 after:content-[''] hover:brightness-110"
             style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
           >
             <Camera size={14} /> {t("pages.profile.changeCover")}

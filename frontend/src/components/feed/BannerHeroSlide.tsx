@@ -99,10 +99,23 @@ export function BannerHeroSlide({
           кнопка. В 140 px телефона помещаются только заголовок и кнопка, в
           180 добавляется значок вида, в 200 — одна строка текста. Раньше в
           блок клали всё сразу, и на любой ширине верх обрезался: значок и
-          первая строка заголовка уезжали за край. */}
-      <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[8px] overflow-hidden p-[14px] pb-[16px] sm:max-w-[52%] sm:gap-[10px] sm:p-[20px] sm:pb-[22px] md:gap-[10px] md:p-[24px] md:pb-[26px]">
+          первая строка заголовка уезжали за край.
+
+          Отступы — из шкалы 4/8/12/16/24/32: поля 16 и зазор 8; от 768 по
+          бокам 24, сверху 12, снизу 16. Значок вида 24 в высоту, кнопка 36.
+          Было (прод 17.09): поля 14 и 16 снизу на телефоне, от 640 — 24 и
+          26 снизу, зазоры 10, у кнопки поля 14/8 и 16/9, у значка 10/4.
+
+          Место считается по самому высокому содержимому от 768: заголовок в
+          колонке 52 % переносится уже на двадцати знаках и обрезается
+          line-clamp-2. Значок 24 + заголовок 65 + текст 19 + кнопка 36 и три
+          зазора по 8 — 168 при месте 200 − 12 − 16 = 172. До 17.09 выходило
+          178 при 174, и значок «Событие» / «Новость» срезался сверху на 4 px
+          на 768, 1024, 1440 и 1920. Верхнее поле при нехватке места
+          занимается, но не режет: `overflow-hidden` обрезает по внешнему краю поля. */}
+      <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-2 overflow-hidden p-4 sm:max-w-[52%] md:px-6 md:pb-4 md:pt-3">
         <span
-          className="hidden w-fit shrink-0 items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[11px] font-medium uppercase tracking-wide text-white sm:inline-flex"
+          className="hidden h-6 w-fit shrink-0 items-center gap-2 rounded-full px-3 text-[11px] font-medium uppercase tracking-wide text-white sm:inline-flex"
           style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
         >
           <KindIcon className="h-[12px] w-[12px]" />
@@ -131,7 +144,7 @@ export function BannerHeroSlide({
             {...ctaPointerProps}
             className={cn(
               TAP_TARGET_ROW_44,
-              "inline-flex items-center rounded-[10px] bg-white px-[14px] py-[8px] text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:pointer-events-none sm:px-[16px] sm:py-[9px] sm:text-[14px]",
+              "inline-flex h-9 items-center rounded-[10px] bg-white px-4 text-[13px] font-semibold text-slate-900 transition-transform hover:scale-[1.02] active:scale-[0.99] disabled:pointer-events-none sm:text-[14px]",
             )}
           >
             {banner.cta || "Подробнее"}

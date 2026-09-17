@@ -25,6 +25,18 @@ trait HasCanFlags
      */
     protected function canFlags(?User $user, array $abilities): array
     {
+        return $this->canFlagsFor($user, $this->resource, $abilities);
+    }
+
+    /**
+     * То же для объекта, который ресурс только несёт с собой: запись канала
+     * отвечает за свою зеркальную запись ленты, где живут комментарии.
+     *
+     * @param  array<int|string, string>  $abilities
+     * @return array<string, bool>
+     */
+    protected function canFlagsFor(?User $user, mixed $subject, array $abilities): array
+    {
         /*
          * Флаги учитывают и политику, и стену `verified`.
          *
@@ -56,7 +68,7 @@ trait HasCanFlags
                 continue;
             }
 
-            $flags[$name] = $user->can($ability, $this->resource);
+            $flags[$name] = $user->can($ability, $subject);
         }
 
         return $flags;
