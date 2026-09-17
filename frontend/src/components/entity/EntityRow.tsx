@@ -62,10 +62,7 @@ export function EntityRow({ to, params, avatarUrl, name, badges, meta, action }:
           </span>
           {badges && <span className="hidden shrink-0 @min-[16rem]:inline-flex">{badges}</span>}
         </span>
-        <span
-          className="mt-[2px] block truncate text-[13px]"
-          style={{ color: "var(--foreground-50)" }}
-        >
+        <span className="mt-1 block truncate text-[13px]" style={{ color: "var(--foreground-50)" }}>
           {meta}
         </span>
       </Link>
@@ -79,7 +76,7 @@ export function EntityRow({ to, params, avatarUrl, name, badges, meta, action }:
 export function EntityRowBadge({ children }: { children: ReactNode }) {
   return (
     <span
-      className="shrink-0 rounded-[var(--r-pill)] px-[6px] py-[1px] text-[11px] font-semibold"
+      className="inline-flex h-5 shrink-0 items-center rounded-[var(--r-pill)] px-2 text-[11px] font-semibold"
       style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
     >
       {children}
@@ -101,7 +98,7 @@ export function EntityRowSkeleton() {
           style={{ background: "var(--background-surface)" }}
         />
         <span
-          className="mt-[6px] block h-[13px] w-[60%] animate-pulse rounded-[4px]"
+          className="mt-2 block h-[13px] w-[60%] animate-pulse rounded-[4px]"
           style={{ background: "var(--background-surface)" }}
         />
       </span>

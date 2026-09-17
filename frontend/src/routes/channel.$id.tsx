@@ -790,16 +790,17 @@ function PostItem({
 
   const feedPost = { ...toFeedPost(post, channel, canManage), views };
   /*
-   * Плашка ростом 20 — на пиксель ниже имени автора (21), а не выше его.
+   * Плашка ростом 20 (`h-5`) — на пиксель ниже имени автора (21), а не выше
+   * его; по бокам 8. Отступы из шкалы: высоту держит размер, а не поля.
    *
-   * Было поле 3 и межстрочный интервал шрифта 11 px по умолчанию — 23 px:
+   * Было поле 3/7 и межстрочный интервал шрифта 11 px по умолчанию — 23 px:
    * плашки «Закреплено» и «Новость» стояли в строке имени выше самого имени
    * и растягивали шапку карточки до 50 вместо 48 (замер на проде 17.09,
    * 768–1920), а в шапке просмотрщика вместе с переносом выпирали за её
-   * границы. Строка 16 и поле 2 дают 20.
+   * границы.
    */
-  const chip = "inline-flex items-center gap-1 text-[11px] font-semibold leading-4";
-  const chipStyle = { padding: "2px 7px", borderRadius: 6 } as const;
+  const chip = "inline-flex h-5 items-center gap-1 px-2 text-[11px] font-semibold leading-4";
+  const chipStyle = { borderRadius: 6 } as const;
 
   const badges = (
     <>
