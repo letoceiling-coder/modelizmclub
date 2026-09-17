@@ -504,51 +504,58 @@ export function PostCard({
     }
   };
 
+  /** `false` — сервер отказал, поле вернёт набранное (см. CommentSection). */
   const addComment = (
     text: string,
     parentId?: string,
     photos?: { mediaIds: string[]; urls: string[] },
-  ) => {
-    if (!canInteract) return;
-    void gate.require(levelFor("feed.post.comment"), () => {
-      const tempId = `nc${Date.now()}`;
-      const newC: Comment = {
-        id: tempId,
-        authorId: me.id,
-        time: new Date().toISOString(),
-        text,
-        likes: 0,
-        replies: [],
-        images: photos?.urls ?? [],
-      };
-      pendingComments.current.set(tempId, { parentId, comment: newC });
-      setCommentList((list) => {
-        if (!parentId) return [...list, newC];
-        return appendToCommentThread(list, parentId, newC);
-      });
-      if (onTogglePost) onTogglePost(post.id, { comments: (post.comments ?? 0) + 1 });
-      else setOwnCommentDelta((d) => d + 1);
-      createComment(post.id, text, parentId, photos?.mediaIds)
-        .then((saved) => {
-          pendingComments.current.delete(tempId);
-          pendingComments.current.set(saved.id, { parentId, comment: saved });
-          // Ответ ветки мог принести сохранённый раньше, чем вернулся POST:
-          // тогда временную строку убираем, а не превращаем во второй экземпляр.
-          setCommentList((list) =>
-            hasComment(list, saved.id)
-              ? removeFromCommentThread(list, tempId)
-              : replaceInCommentThread(list, parentId, tempId, saved),
-          );
-        })
-        .catch(() => {
-          pendingComments.current.delete(tempId);
-          setCommentList((list) => removeFromCommentThread(list, tempId));
-          if (onTogglePost) onTogglePost(post.id, { comments: post.comments ?? 0 });
-          else setOwnCommentDelta((d) => d - 1);
-          toast.error(t("components.commentSection.sendFailed"));
+  ): Promise<boolean> =>
+    new Promise((resolve) => {
+      if (!canInteract) return resolve(false);
+      void gate.require(levelFor("feed.post.comment"), () => {
+        const tempId = `nc${Date.now()}`;
+        const newC: Comment = {
+          id: tempId,
+          authorId: me.id,
+          time: new Date().toISOString(),
+          text,
+          likes: 0,
+          replies: [],
+          images: photos?.urls ?? [],
+        };
+        pendingComments.current.set(tempId, { parentId, comment: newC });
+        setCommentList((list) => {
+          if (!parentId) return [...list, newC];
+          return appendToCommentThread(list, parentId, newC);
         });
+        if (onTogglePost) onTogglePost(post.id, { comments: (post.comments ?? 0) + 1 });
+        else setOwnCommentDelta((d) => d + 1);
+        createComment(post.id, text, parentId, photos?.mediaIds)
+          .then((saved) => {
+            pendingComments.current.delete(tempId);
+            pendingComments.current.set(saved.id, { parentId, comment: saved });
+            // Ответ ветки мог принести сохранённый раньше, чем вернулся POST:
+            // тогда временную строку убираем, а не превращаем во второй экземпляр.
+            setCommentList((list) =>
+              hasComment(list, saved.id)
+                ? removeFromCommentThread(list, tempId)
+                : replaceInCommentThread(list, parentId, tempId, saved),
+            );
+            resolve(true);
+          })
+          .catch((err) => {
+            pendingComments.current.delete(tempId);
+            setCommentList((list) => removeFromCommentThread(list, tempId));
+            if (onTogglePost) onTogglePost(post.id, { comments: post.comments ?? 0 });
+            else setOwnCommentDelta((d) => d - 1);
+            // Причину называет сервер; пустая строка — отказ уже объяснило
+            // окно (подтверждение номера), второй тост не нужен.
+            const message = formatApiErrorMessage(err, t("components.commentSection.sendFailed"));
+            if (message) toast.error(message);
+            resolve(false);
+          });
+      });
     });
-  };
 
   const profileTo = author.slug ?? author.id;
   const authorHref = `/user/${profileTo}`;

@@ -14,6 +14,7 @@ import { EmojiPicker } from "@/components/messenger/EmojiPicker";
 import { ComplaintDialog } from "@/components/friends/ComplaintDialog";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { sendCommentDraft } from "@/lib/comment-draft";
 import { useGate } from "@/lib/gate";
 import { controlForServerVerdict } from "@/lib/gate/levels";
 import { useInsertAtCaret } from "@/lib/insert-at-caret";
@@ -32,7 +33,15 @@ type CommentPhotosPayload = { mediaIds: string[]; urls: string[] };
 
 interface Props {
   comments: Comment[];
-  onAdd: (text: string, parentId?: string, photos?: CommentPhotosPayload) => void;
+  /**
+   * Отправка. Промис с `false` — сервер отказал: поле возвращает набранное,
+   * как в сообщениях. `void` — страница об исходе не сообщает.
+   */
+  onAdd: (
+    text: string,
+    parentId?: string,
+    photos?: CommentPhotosPayload,
+  ) => void | Promise<boolean>;
   onDeleted?: (commentId: string) => void;
   loading?: boolean;
   readOnly?: boolean;
@@ -389,7 +398,11 @@ function CommentItem({
   depth?: number;
   /** Set on second-level comments: the id of the root this thread hangs from. */
   rootId?: string;
-  onReply: (parentId: string, text: string, photos?: CommentPhotosPayload) => void;
+  onReply: (
+    parentId: string,
+    text: string,
+    photos?: CommentPhotosPayload,
+  ) => void | Promise<boolean>;
   readOnly?: boolean;
   likeOverrides: Record<string, number>;
   onLikeChange: (id: string, likes: number) => void;
@@ -416,19 +429,26 @@ function CommentItem({
   // keeps the thread two levels deep on a 375px screen.
   const replyParentId = rootId ?? comment.id;
 
+  // Как у поля под записью: при отказе сервера поле ответа снова открыто
+  // и набранное на месте.
   const submit = () => {
-    if (!draft.trim() && replyPhotos.photos.length === 0) return;
+    const text = draft.trim();
+    if (!text && replyPhotos.photos.length === 0) return;
     runGuarded(guest, "feed.post.comment", () => {
       void (async () => {
+        let photos: CommentPhotosPayload;
         try {
-          const photos = await replyPhotos.upload();
-          onReply(replyParentId, draft.trim(), photos.mediaIds.length ? photos : undefined);
-          setDraft("");
-          replyPhotos.clear();
-          setReplying(false);
+          photos = await replyPhotos.upload();
         } catch (err) {
           toast.error(formatApiErrorMessage(err, t("components.commentSection.photoUploadFailed")));
+          return;
         }
+        setReplying(false);
+        const accepted = await sendCommentDraft(text, setDraft, () =>
+          onReply(replyParentId, text, photos.mediaIds.length ? photos : undefined),
+        );
+        if (accepted) replyPhotos.clear();
+        else setReplying(true);
       })();
     });
   };
@@ -687,18 +707,30 @@ export function CommentSection({
   const handleReply = (parentId: string, text: string, attached?: CommentPhotosPayload) =>
     onAdd(text, parentId, attached);
 
+  /*
+   * Поле очищается сразу, а при отказе сервера набранное возвращается — так
+   * же, как в сообщениях (`routes/messenger.tsx`, send). Раньше черновик
+   * стирался до ответа и не возвращался: 17.09 на проде учётка без телефона
+   * набирала комментарий в канале, получала 403 и теряла текст. Если за это
+   * время человек начал писать заново, его новый текст не затирается.
+   * Фото черновика снимаются только после ответа: вернуть их было бы нечем.
+   */
   const submit = () => {
     runGuarded(guest, "feed.post.comment", () => {
-      if (!draft.trim() && photos.photos.length === 0) return;
+      const text = draft.trim();
+      if (!text && photos.photos.length === 0) return;
       void (async () => {
+        let attached: CommentPhotosPayload;
         try {
-          const attached = await photos.upload();
-          onAdd(draft.trim(), undefined, attached.mediaIds.length ? attached : undefined);
-          setDraft("");
-          photos.clear();
+          attached = await photos.upload();
         } catch (err) {
           toast.error(formatApiErrorMessage(err, t("components.commentSection.photoUploadFailed")));
+          return;
         }
+        const accepted = await sendCommentDraft(text, setDraft, () =>
+          onAdd(text, undefined, attached.mediaIds.length ? attached : undefined),
+        );
+        if (accepted) photos.clear();
       })();
     });
   };

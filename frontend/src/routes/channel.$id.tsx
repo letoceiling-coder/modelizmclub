@@ -710,7 +710,11 @@ function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Po
     })),
     views: post.views,
     likes: post.likes,
-    comments: 0,
+    // Число и вердикт приходят с зеркальной записи ленты. Было `comments: 0`
+    // и без `can`: «0» под каждой записью и открытое поле учётке без
+    // телефона, которой сервер всё равно откажет (прод 17.09).
+    comments: post.comments,
+    can: post.can,
     isLiked: post.liked,
     status: post.status === "published" ? "published" : "moderation",
     canInteract: post.status === "published",

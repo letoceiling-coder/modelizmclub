@@ -40,6 +40,10 @@ export interface ChannelPost {
   status: PostStatus;
   likes: number;
   views: number;
+  /** Комментарии зеркальной записи ленты — там они и живут. */
+  comments: number;
+  /** Вердикт сервера по зеркальной записи: `comment` — политика и стена `verified`. */
+  can?: Record<string, boolean>;
   liked?: boolean;
   pinned?: boolean;
   feedPostId?: string;
@@ -161,6 +165,8 @@ interface ApiChannelPost {
   status?: string;
   likes?: number;
   views?: number;
+  comments?: number;
+  can?: Record<string, boolean>;
   liked?: boolean;
   pinned?: boolean;
   feed_post_uuid?: string | null;
@@ -236,6 +242,8 @@ function mapPost(p: ApiChannelPost, channelId: string): ChannelPost {
     status: mapStatus(p.status),
     likes: p.likes ?? 0,
     views: p.views ?? 0,
+    comments: p.comments ?? 0,
+    can: p.can,
     liked: Boolean(p.liked),
     pinned: Boolean(p.pinned),
     feedPostId: p.feed_post_uuid ?? undefined,
@@ -389,6 +397,7 @@ export async function setChannelPostLiked(
       status: "published",
       likes: liked ? 1 : 0,
       views: 0,
+      comments: 0,
       liked,
       media: [],
       images: [],
@@ -457,6 +466,7 @@ export async function createChannelPost(input: {
       status: "published",
       likes: 0,
       views: 0,
+      comments: 0,
       kind: input.kind,
       media,
       images: media.filter((item) => item.type === "image").map((item) => item.url),
