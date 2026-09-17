@@ -570,8 +570,16 @@ export function PostCard({
    */
   const lightboxAside = (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Шапка 56: аватар 40, имя, под ним дата. Крестик справа — он же
-          единственный в окне, когда панель есть (см. Lightbox). */}
+      {/* Шапка от 56: аватар 40, имя, под ним дата. Крестик справа — он же
+          единственный в окне, когда панель есть (см. Lightbox).
+
+          Не ровно 56, а не меньше 56. У записи канала рядом с именем плашки
+          «Закреплено» и «Новость»; в колонке 380 и на телефоне они уходят
+          строкой ниже, и содержимое шапки становилось 71 при высоте 56:
+          имя вылезало на 8 px выше верхней границы, дата — на 7 ниже нижней
+          и ложилась на линию (замер на проде 17.09: 375, 1024, 1440, 1920).
+          Поля 8 сверху и 7 снизу плюс рамка 1 держат обычную шапку ровно в
+          56, как было; с плашками в две строки она растёт до 80. */}
       <PostHeader
         author={author}
         authorHref={authorHref}
@@ -580,7 +588,7 @@ export function PostCard({
         isScheduled={isScheduled}
         showContext={false}
         badges={badges}
-        className="h-[56px] min-h-0 shrink-0 border-b border-[var(--border)] px-4 pt-0 md:px-4"
+        className="min-h-[56px] shrink-0 border-b border-[var(--border)] px-4 pb-[7px] pt-2 md:px-4"
       >
         <LightboxCloseButton />
       </PostHeader>
@@ -705,7 +713,13 @@ export function PostCard({
               // сообществе и канале список лежит внутри блока с полями —
               // там карточка остаётся карточкой.
               "rounded-none border-x-0 shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)] sm:border-x"
-            : "rounded-none shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)]",
+            : variant === "channel"
+              ? // Канал на телефоне — тоже карточка: список лежит в полях 12
+                // рядом со скруглённой шапкой канала, а без скругления
+                // запись выглядела коробкой с острыми углами и рамкой по
+                // бокам (замер на проде 17.09, 375: радиус 0, рамка 1).
+                "rounded-[var(--r-card)] shadow-[var(--shadow-card)]"
+              : "rounded-none shadow-[var(--shadow-card)] sm:rounded-[var(--r-card)]",
       )}
     >
       {isShare && (
