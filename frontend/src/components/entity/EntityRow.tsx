@@ -40,14 +40,27 @@ export function EntityRow({ to, params, avatarUrl, name, badges, meta, action }:
         params={params}
         className='min-w-0 flex-1 after:absolute after:inset-0 after:rounded-[12px] after:content-[""] focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-[var(--accent)]'
       >
-        <span className="flex min-w-0 items-center gap-[8px]">
+        {/*
+          Бейдж уступает место названию, когда строке тесно.
+
+          На 375 справа стоит кнопка «Подписаться» (101) или «Вступить» (77),
+          а бейдж не сжимается — и название канала «МоДелизМ Форум» получало
+          59 px из своих 131, то есть «МоДе…», сообщества «ModelizmClub» —
+          83 из 102 (замер на проде 17.09). Бейдж прячется, когда колонка
+          названия уже 16rem: на 375 это 155–178 px, от 768 — не меньше 348,
+          и там он на месте. Запрос к контейнеру, а не к ширине экрана:
+          колонку сужает кнопка, а не экран. Контейнер — эта строка, а не
+          ссылка: у контейнера включается layout containment, и растянутая
+          на всю строку ::after-зона ссылки сжалась бы до самой ссылки.
+        */}
+        <span className="@container flex min-w-0 items-center gap-[8px]">
           <span
             className="truncate text-[15px] font-semibold"
             style={{ color: "var(--foreground)" }}
           >
             {name}
           </span>
-          {badges}
+          {badges && <span className="hidden shrink-0 @min-[16rem]:inline-flex">{badges}</span>}
         </span>
         <span
           className="mt-[2px] block truncate text-[13px]"
