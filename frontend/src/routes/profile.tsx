@@ -156,9 +156,10 @@ function ProfilePage() {
     }
     const interests = await syncOwnInterests(categoryIds);
 
+    // Город — из ответа сервера, а не из поля: иначе стёртый город
+    // оставался на экране до перезагрузки.
     setCurrentUser({
       ...applyOwnProfilePatch(currentUser, profile),
-      city: profile.city?.name ?? draft.city,
       interests,
     });
   };

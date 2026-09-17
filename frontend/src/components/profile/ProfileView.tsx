@@ -788,9 +788,14 @@ export function ProfileView({
             {tab === "blocked" && isOwn && <BlockedUsersSection />}
             {tab === "about" && (
               <div className="max-w-[600px]">
+                {/*
+                  pre-line — абзацы, которые человек разделил переводом строки.
+                  Без него текст «Первая строка.\n\nВторой абзац…» на проде
+                  17.09 рисовался одной строкой высотой 24 px на 1440.
+                */}
                 {user.bio ? (
                   <p
-                    className="text-[15px] leading-[1.6]"
+                    className="whitespace-pre-line text-[15px] leading-[1.6]"
                     style={{ color: "var(--foreground-70)" }}
                   >
                     {user.bio}
