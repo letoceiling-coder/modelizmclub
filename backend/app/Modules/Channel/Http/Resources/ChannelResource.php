@@ -38,6 +38,7 @@ class ChannelResource extends JsonResource
             'owner' => $this->whenLoaded('owner', fn () => new UserCompactResource($this->owner)),
             'is_owner' => $this->isOwnedBy($viewer),
             'can_manage' => $this->canManage($viewer),
+            'can_moderate' => $this->canModerate($viewer),
             'is_subscribed' => $this->is_subscribed,
             'comments_enabled' => (bool) $this->comments_enabled,
             'rules' => $this->rules ?? '',

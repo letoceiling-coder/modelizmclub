@@ -44,11 +44,14 @@ class CommunityPolicy
         return $this->canManage($user, $community);
     }
 
-    /** Публиковать на стене: участник или тот, кто управляет. */
+    /**
+     * Публиковать на стене: участник. Владелец и модераторы сообщества —
+     * тоже участники; модерация площадки управляет, но не пишет от имени
+     * сообщества (та же проверка на сервере — PostService::assertCommunityAccess).
+     */
     public function post(User $user, Community $community): bool
     {
-        return $this->isActive($community)
-            && ($this->isMember($user, $community) || $this->canManage($user, $community));
+        return $this->isActive($community) && $this->isMember($user, $community);
     }
 
     /** Звать друзей может тот, кто сам внутри. */

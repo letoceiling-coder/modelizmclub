@@ -64,9 +64,23 @@ class PostPolicy
         return $post->status === ContentStatus::Published;
     }
 
+    /**
+     * Комментировать запись канала можно, только если владелец включил
+     * комментарии; при выключенных отвечать может лишь команда канала.
+     * До 17.09 выключатель прятал поле в интерфейсе, а запрос проходил.
+     */
     public function comment(User $user, Post $post): bool
     {
-        return $post->status === ContentStatus::Published;
+        if ($post->status !== ContentStatus::Published) {
+            return false;
+        }
+
+        $channel = $post->loadMissing('channelPost.channel')->channelPost?->channel;
+        if ($channel && ! $channel->comments_enabled) {
+            return $channel->canManage($user);
+        }
+
+        return true;
     }
 
     public function publish(User $user, Post $post): bool

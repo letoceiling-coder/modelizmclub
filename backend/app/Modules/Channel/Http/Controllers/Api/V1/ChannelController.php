@@ -78,7 +78,7 @@ class ChannelController extends Controller
     {
         $channel = $this->findChannel($slug);
         $viewer = $request->user('sanctum');
-        $canManage = $channel->canManage($viewer);
+        $canManage = $channel->canModerate($viewer);
 
         $items = ChannelPost::query()
             ->with(['author.profile', 'channel', 'media.media', 'feedPost'])

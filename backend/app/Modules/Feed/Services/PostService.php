@@ -562,9 +562,12 @@ class PostService
             ]);
         }
 
+        // Стена сообщества — для участников (владелец и модераторы сообщества
+        // тоже участники). Роль площадки права голоса в чужом сообществе не
+        // даёт: до 17.09 модератор и администратор площадки проходили сюда.
         $isMember = $community->members()->where('users.id', $user->id)->exists();
 
-        if (! $isMember && ! $user->isModerator()) {
+        if (! $isMember) {
             throw ValidationException::withMessages([
                 'community_id' => ['Нужно состоять в сообществе, чтобы публиковать там.'],
             ]);

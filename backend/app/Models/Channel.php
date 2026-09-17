@@ -87,6 +87,13 @@ class Channel extends Model
             && (int) $this->owner_id === (int) $user->id;
     }
 
+    /**
+     * Публиковать и закреплять: владелец и назначенные им администраторы.
+     *
+     * До 17.09 сюда же пускала роль площадки (users.role moderator/admin), и
+     * на проде это кончилось записями модератора и администратора в чужих
+     * каналах. Роль площадки даёт модерацию (canModerate), а не голос канала.
+     */
     public function canManage(?User $user): bool
     {
         if ($user === null) {
@@ -95,11 +102,18 @@ class Channel extends Model
         if ($this->isOwnedBy($user)) {
             return true;
         }
-        if (method_exists($user, 'isModerator') && $user->isModerator()) {
-            return true;
-        }
 
         return $this->admins()->whereKey($user->id)->exists();
+    }
+
+    /** Убрать запись и видеть неопубликованное: команда канала или модерация площадки. */
+    public function canModerate(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        return $this->canManage($user) || $user->isModerator();
     }
 
     public function appearsInPublicFeed(): bool
