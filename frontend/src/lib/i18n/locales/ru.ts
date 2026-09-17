@@ -1640,6 +1640,8 @@ export const ru = {
       phoneUnverifiedBadge: "Подтвердите телефон",
       createListing: "Создать объявление",
       emptyAbout: "Пользователь ещё не заполнил раздел «О себе»",
+      emptyAboutOwn: "Вы ещё не рассказали о себе",
+      fillAbout: "Заполнить",
       editProfileTitle: "Редактирование профиля",
       changePhoto: "Изменить фото",
       uploadPhoto: "Загрузить фото",

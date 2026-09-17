@@ -277,6 +277,15 @@ export function ProfileView({
     [isOwn, t],
   );
   const interestList = splitInterests(user.interests);
+  /*
+   * Вариант А «скрыть до заполнения». Посетителю пустая вкладка «О себе»
+   * не показывается: на проде 17.09 она стояла у всех, а у 20 из 59
+   * активных профилей внутри была только фраза «Пользователь ещё не
+   * заполнил…». Владельцу вкладка остаётся — с предложением заполнить.
+   */
+  const aboutEmpty = !user.bio?.trim() && interestList.length === 0;
+  const hideAbout = !isOwn && aboutEmpty;
+  const shownTab: TabKey = hideAbout && tab === "about" ? "posts" : tab;
 
   return (
     <AppLayout footer>
@@ -611,7 +620,7 @@ export function ProfileView({
         </div>
 
         {/* Tabs */}
-        <Tabs tab={tab} setTab={setTab} isOwn={isOwn} />
+        <Tabs tab={shownTab} setTab={setTab} isOwn={isOwn} hideAbout={hideAbout} />
 
         {isOwn && (
           <div className="px-[16px] pt-[16px] md:px-[32px]">
@@ -622,13 +631,13 @@ export function ProfileView({
         {/* Tab content */}
         <div className="px-[16px] py-[24px] md:px-[32px]">
           <ReducedMotionSwitch
-            switchKey={tab}
+            switchKey={shownTab}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            {tab === "posts" &&
+            {shownTab === "posts" &&
               (loading ? (
                 <ProfileTabSkeleton />
               ) : originalPosts.length === 0 ? (
@@ -640,7 +649,7 @@ export function ProfileView({
                   ))}
                 </div>
               ))}
-            {tab === "reposts" &&
+            {shownTab === "reposts" &&
               (loading ? (
                 <ProfileTabSkeleton />
               ) : repostedPosts.length === 0 ? (
@@ -652,10 +661,10 @@ export function ProfileView({
                   ))}
                 </div>
               ))}
-            {tab === "reviews" && (
+            {shownTab === "reviews" && (
               <ProfileReviewsTab numericUserId={user.numericId} isOwn={isOwn} />
             )}
-            {tab === "ads" &&
+            {shownTab === "ads" &&
               (loading ? (
                 <ProfileTabSkeleton />
               ) : userAds.length === 0 ? (
@@ -739,7 +748,7 @@ export function ProfileView({
                   )}
                 </div>
               ))}
-            {tab === "communities" &&
+            {shownTab === "communities" &&
               (loading ? (
                 <ProfileTabSkeleton />
               ) : userCommunities.length === 0 ? (
@@ -784,9 +793,9 @@ export function ProfileView({
                   })}
                 </div>
               ))}
-            {tab === "invited" && isOwn && <InvitedFriendsSection />}
-            {tab === "blocked" && isOwn && <BlockedUsersSection />}
-            {tab === "about" && (
+            {shownTab === "invited" && isOwn && <InvitedFriendsSection />}
+            {shownTab === "blocked" && isOwn && <BlockedUsersSection />}
+            {shownTab === "about" && (
               <div className="max-w-[600px]">
                 {/*
                   pre-line — абзацы, которые человек разделил переводом строки.
@@ -800,6 +809,15 @@ export function ProfileView({
                   >
                     {user.bio}
                   </p>
+                ) : isOwn ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
+                      {t("pages.profile.emptyAboutOwn")}
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                      <Pencil size={14} /> {t("pages.profile.fillAbout")}
+                    </Button>
+                  </div>
                 ) : (
                   <p className="text-[14px]" style={{ color: "var(--foreground-50)" }}>
                     {t("pages.profile.emptyAbout")}
@@ -899,13 +917,17 @@ function Tabs({
   tab,
   setTab,
   isOwn,
+  hideAbout = false,
 }: {
   tab: TabKey;
   setTab: (k: TabKey) => void;
   isOwn: boolean;
+  hideAbout?: boolean;
 }) {
   const { t } = useTranslation();
-  const visibleTabs = TABS_BASE.filter((item) => isOwn || !item.ownOnly);
+  const visibleTabs = TABS_BASE.filter(
+    (item) => (isOwn || !item.ownOnly) && !(hideAbout && item.key === "about"),
+  );
 
   return (
     <div
