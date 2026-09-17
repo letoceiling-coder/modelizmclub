@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/admin";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
 import { askConfirm, askText } from "@/lib/ui/ask";
+import { useAdminAccess } from "@/lib/admin-access";
 
 /*
  * Две вкладки, а не четыре. Деревья объявлений и сообществ строятся из
@@ -78,6 +79,7 @@ function slugify(input: string): string {
 
 export function CategoriesSection() {
   const { t } = useTranslation();
+  const isOwner = useAdminAccess()?.isOwner ?? false;
   const categoryKinds = useMemo(
     () => CATEGORY_KIND_IDS.map((id) => ({ id, label: t(`pages.adminCategories.kinds.${id}`) })),
     [t],
@@ -314,7 +316,8 @@ export function CategoriesSection() {
   };
 
   const listingPriceFields = (c: AdminCategory) => {
-    if (kind !== "post" || c.inListings === false) return null;
+    // Цены размещения — деньги: правит Владелец, модератору сервер ответит 403.
+    if (kind !== "post" || c.inListings === false || !isOwner) return null;
     return (
       <div className="flex flex-wrap items-center gap-[6px] ml-[24px] mt-[4px] mb-[6px]">
         <label

@@ -4,6 +4,7 @@ import { Eye, Ban, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAdminAccess } from "@/lib/admin-access";
 import { useCurrentUser } from "@/lib/session";
 import {
   fetchAdminUsers,
@@ -20,6 +21,8 @@ import { reportReadFailure } from "@/lib/errors/handle";
 export function UsersSection() {
   const { t } = useTranslation();
   const me = useCurrentUser();
+  // Роль, подписка и удаление — у Владельца; сервер отвечает модератору 403.
+  const isOwner = useAdminAccess()?.isOwner ?? false;
   const roleOptions = useMemo(
     () => [
       { value: "user" as const, label: t("pages.adminUsers.roleUser") },
@@ -273,38 +276,43 @@ export function UsersSection() {
                     <SubscriptionCell
                       user={u}
                       busy={savingSubscription === u.uuid}
+                      readOnly={!isOwner}
                       onChange={(action, days) => changeSubscription(u.uuid, action, days)}
                     />
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex flex-col" style={{ gap: "6px" }}>
                       {roleBadge(u.role)}
-                      <select
-                        value={u.role}
-                        disabled={me.id === u.uuid || savingRole === u.uuid}
-                        onChange={(e) => changeRole(u.uuid, e.target.value as AdminUserRow["role"])}
-                        title={
-                          me.id === u.uuid
-                            ? t("pages.adminUsers.cannotChangeOwnRole")
-                            : t("pages.adminUsers.changeRoleTitle")
-                        }
-                        style={{
-                          fontSize: "12px",
-                          height: "28px",
-                          padding: "0 8px",
-                          borderRadius: "var(--r-card-sm)",
-                          border: "1px solid var(--border)",
-                          background: "var(--background-surface)",
-                          color: "var(--foreground-70)",
-                          opacity: me.id === u.uuid ? 0.5 : 1,
-                        }}
-                      >
-                        {roleOptions.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
+                      {isOwner && (
+                        <select
+                          value={u.role}
+                          disabled={me.id === u.uuid || savingRole === u.uuid}
+                          onChange={(e) =>
+                            changeRole(u.uuid, e.target.value as AdminUserRow["role"])
+                          }
+                          title={
+                            me.id === u.uuid
+                              ? t("pages.adminUsers.cannotChangeOwnRole")
+                              : t("pages.adminUsers.changeRoleTitle")
+                          }
+                          style={{
+                            fontSize: "12px",
+                            height: "28px",
+                            padding: "0 8px",
+                            borderRadius: "var(--r-card-sm)",
+                            border: "1px solid var(--border)",
+                            background: "var(--background-surface)",
+                            color: "var(--foreground-70)",
+                            opacity: me.id === u.uuid ? 0.5 : 1,
+                          }}
+                        >
+                          {roleOptions.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </td>
                   <td style={{ padding: "10px 16px" }}>
@@ -325,20 +333,27 @@ export function UsersSection() {
                       >
                         <Eye size={14} />
                       </IconBtn>
-                      <IconBtn danger onClick={() => toggle(u.uuid)}>
-                        <Ban size={14} />
-                      </IconBtn>
-                      <IconBtn
-                        danger
-                        onClick={() => remove(u.uuid)}
-                        title={
-                          me.id === u.uuid
-                            ? t("pages.adminUsers.cannotDeleteSelf")
-                            : t("pages.adminCommon.actionDelete")
-                        }
-                      >
-                        <Trash2 size={14} style={{ opacity: deletingUuid === u.uuid ? 0.4 : 1 }} />
-                      </IconBtn>
+                      {(isOwner || (u.role !== "admin" && u.role !== "moderator")) && (
+                        <IconBtn danger onClick={() => toggle(u.uuid)}>
+                          <Ban size={14} />
+                        </IconBtn>
+                      )}
+                      {isOwner && (
+                        <IconBtn
+                          danger
+                          onClick={() => remove(u.uuid)}
+                          title={
+                            me.id === u.uuid
+                              ? t("pages.adminUsers.cannotDeleteSelf")
+                              : t("pages.adminCommon.actionDelete")
+                          }
+                        >
+                          <Trash2
+                            size={14}
+                            style={{ opacity: deletingUuid === u.uuid ? 0.4 : 1 }}
+                          />
+                        </IconBtn>
+                      )}
                     </div>
                   </td>
                 </tr>

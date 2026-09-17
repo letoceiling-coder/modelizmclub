@@ -4,9 +4,12 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Models\ListingCategory;
 use App\Models\PostCategory;
+use App\Support\AdminAccess;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
+use Modules\Admin\Http\Requests\UpsertCategoryRequest;
+use Modules\Admin\Services\AuditService;
 
 /**
  * Дерево направлений — единственное место, где правятся категории.
@@ -40,6 +43,45 @@ class AdminPostCategoryController extends AdminCategoryController
         $items->getCollection()->transform(fn (PostCategory $c) => $this->present($c));
 
         return response()->json(['data' => $items]);
+    }
+
+    /**
+     * Цены размещения — деньги, их меняет только Владелец. Модератор правит
+     * дерево и флаги; админка отправляет цены строки как есть, поэтому
+     * отказ — только если значение действительно меняется.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function guardOwnerOnlyFields(array $validated, ?PostCategory $current): void
+    {
+        if (AdminAccess::isOwner(request()->user())) {
+            return;
+        }
+        $mirror = $current?->listing_category_id ? ListingCategory::query()->find($current->listing_category_id) : null;
+        foreach (AdminAccess::OWNER_ONLY_CATEGORY_FIELDS as $field) {
+            if (! array_key_exists($field, $validated)) {
+                continue;
+            }
+            $was = $mirror?->{$field};
+            $now = $validated[$field];
+            if ($now !== null && (int) $now !== (int) $was || $now === null && $was !== null) {
+                abort(403, 'Цены размещения меняет только Владелец.');
+            }
+        }
+    }
+
+    public function store(UpsertCategoryRequest $request, AuditService $audit): JsonResponse
+    {
+        $this->guardOwnerOnlyFields($request->validated(), null);
+
+        return parent::store($request, $audit);
+    }
+
+    public function update(UpsertCategoryRequest $request, int $id, AuditService $audit): JsonResponse
+    {
+        $this->guardOwnerOnlyFields($request->validated(), PostCategory::query()->find($id));
+
+        return parent::update($request, $id, $audit);
     }
 
     /** @param  array<string, mixed>  $validated */

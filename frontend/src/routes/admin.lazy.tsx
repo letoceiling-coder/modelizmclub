@@ -36,6 +36,9 @@ import { ensureSession } from "@/lib/auth/session";
 import { AdminSectionSkeleton } from "@/components/admin/AdminSectionSkeleton";
 import type { AdminRole } from "@/components/admin/adminShared";
 import type { Section } from "@/routes/admin";
+import { fetchAdminAccess, setAdminAccess } from "@/lib/admin-access";
+import { isDemoMode } from "@/lib/demo-mode";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createLazyFileRoute("/admin")({
   component: AdminPage,
@@ -144,113 +147,101 @@ const SettingsSection = lazy(() =>
   import("@/components/admin/AdminSettingsSection").then((m) => ({ default: m.SettingsSection })),
 );
 
-const navItems: { id: Section; labelKey: string; icon: typeof Users; roles: AdminRole[] }[] = [
+/*
+ * Кому какой раздел — решает сервер (GET /admin/access, карта
+ * App\Support\AdminAccess). Здесь только порядок, подписи и значки.
+ */
+const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
   {
     id: "dashboard",
     labelKey: "pages.adminShell.nav.dashboard",
     icon: LayoutDashboard,
-    roles: ["admin", "moderator"],
   },
-  { id: "users", labelKey: "pages.adminShell.nav.users", icon: Users, roles: ["admin"] },
-  { id: "content", labelKey: "pages.adminShell.nav.content", icon: Newspaper, roles: ["admin"] },
-  { id: "ads", labelKey: "pages.adminShell.nav.ads", icon: Megaphone, roles: ["admin"] },
-  { id: "delivery", labelKey: "pages.adminShell.nav.delivery", icon: Truck, roles: ["admin"] },
+  { id: "users", labelKey: "pages.adminShell.nav.users", icon: Users },
+  { id: "content", labelKey: "pages.adminShell.nav.content", icon: Newspaper },
+  { id: "ads", labelKey: "pages.adminShell.nav.ads", icon: Megaphone },
+  { id: "delivery", labelKey: "pages.adminShell.nav.delivery", icon: Truck },
   {
     id: "moderation",
     labelKey: "pages.adminShell.nav.moderation",
     icon: ShieldCheck,
-    roles: ["admin", "moderator"],
   },
   {
     id: "applications",
     labelKey: "pages.adminShell.nav.applications",
     icon: Inbox,
-    roles: ["admin"],
   },
   {
     id: "monetization",
     labelKey: "pages.adminShell.nav.monetization",
     icon: DollarSign,
-    roles: ["admin"],
   },
   {
     id: "feedBanners",
     labelKey: "pages.adminShell.nav.feedBanners",
     icon: Megaphone,
-    roles: ["admin"],
   },
   {
     id: "events",
     labelKey: "pages.adminShell.nav.events",
     icon: CalendarDays,
-    roles: ["admin"],
   },
   {
     id: "feedGuestAccess",
     labelKey: "pages.adminShell.nav.feedGuestAccess",
     icon: ShieldCheck,
-    roles: ["admin"],
   },
   {
     id: "notificationPolicy",
     labelKey: "pages.adminShell.nav.notificationPolicy",
     icon: Bell,
-    roles: ["admin"],
   },
   {
     id: "landingBlocks",
     labelKey: "pages.adminShell.nav.landingBlocks",
     icon: Home,
-    roles: ["admin"],
   },
-  { id: "icons", labelKey: "pages.adminShell.nav.icons", icon: Image, roles: ["admin"] },
+  { id: "icons", labelKey: "pages.adminShell.nav.icons", icon: Image },
   {
     id: "categories",
     labelKey: "pages.adminShell.nav.categories",
     icon: FolderTree,
-    roles: ["admin"],
   },
-  { id: "reviews", labelKey: "pages.adminShell.nav.reviews", icon: Clapperboard, roles: ["admin"] },
+  { id: "reviews", labelKey: "pages.adminShell.nav.reviews", icon: Clapperboard },
   {
     id: "notifications",
     labelKey: "pages.adminShell.nav.notifications",
     icon: Bell,
-    roles: ["admin"],
   },
   {
     id: "analytics",
     labelKey: "pages.adminShell.nav.analytics",
     icon: BarChart3,
-    roles: ["admin"],
   },
   {
     id: "feedback",
     labelKey: "pages.adminShell.nav.feedback",
     icon: Inbox,
-    roles: ["admin", "moderator"],
   },
-  { id: "design", labelKey: "pages.adminShell.nav.design", icon: Palette, roles: ["admin"] },
-  { id: "media", labelKey: "pages.adminShell.nav.media", icon: Image, roles: ["admin"] },
-  { id: "settings", labelKey: "pages.adminShell.nav.settings", icon: Settings, roles: ["admin"] },
+  { id: "design", labelKey: "pages.adminShell.nav.design", icon: Palette },
+  { id: "media", labelKey: "pages.adminShell.nav.media", icon: Image },
+  { id: "settings", labelKey: "pages.adminShell.nav.settings", icon: Settings },
   {
     id: "rulesPages",
     labelKey: "pages.adminShell.nav.rulesPages",
     icon: FileText,
-    roles: ["admin"],
   },
   {
     id: "legalPages",
     labelKey: "pages.adminShell.nav.legalPages",
     icon: FileText,
-    roles: ["admin"],
   },
   {
     id: "footerLinks",
     labelKey: "pages.adminShell.nav.footerLinks",
     icon: FileText,
-    roles: ["admin"],
   },
-  { id: "auditLog", labelKey: "pages.adminShell.nav.auditLog", icon: Search, roles: ["admin"] },
+  { id: "auditLog", labelKey: "pages.adminShell.nav.auditLog", icon: Search },
 ];
 
 function SectionView({ section, adminRole }: { section: Section; adminRole: AdminRole | null }) {
@@ -309,6 +300,7 @@ function AdminPage() {
   const [access, setAccess] = useState<"checking" | "granted" | "forbidden">("checking");
   const [localeReady, setLocaleReady] = useState(false);
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
+  const [allowedSections, setAllowedSections] = useState<string[]>([]);
 
   // Раздел живёт в адресе, а не в состоянии рядом с ним. Пока это был
   // `useState`, ссылку на раздел нельзя было дать, перезагрузка возвращала в
@@ -376,6 +368,24 @@ function AdminPage() {
           : current.isAdmin
             ? "admin"
             : null;
+      if (resolvedRole && !isDemoMode()) {
+        try {
+          const granted = await fetchAdminAccess();
+          if (!alive) return;
+          setAdminAccess(granted);
+          setAllowedSections(granted.sections);
+        } catch (e) {
+          reportReadFailure(e, "разделы админки");
+          if (!alive) return;
+          setAdminRole(null);
+          setAccess("forbidden");
+          return;
+        }
+      } else if (resolvedRole) {
+        // Демо: сессия — владелец, сервера нет.
+        setAdminAccess({ role: "admin", isOwner: true, sections: navItems.map((n) => n.id) });
+        setAllowedSections(navItems.map((n) => n.id));
+      }
       setAdminRole(resolvedRole);
       setAccess(resolvedRole ? "granted" : "forbidden");
     })();
@@ -388,7 +398,9 @@ function AdminPage() {
   // has to sit before the "checking"/"forbidden" early returns below, not
   // after them, or React throws "Rendered more hooks than during the
   // previous render" once access resolves past "checking".
-  const visibleNavItems = navItems.filter((n) => adminRole !== null && n.roles.includes(adminRole));
+  const visibleNavItems = navItems.filter(
+    (n) => adminRole !== null && allowedSections.includes(n.id),
+  );
 
   // Раздел из адреса роли не виден — уводим на первый доступный и правим
   // адрес подменой записи, чтобы «назад» не возвращал в запрещённый раздел.
