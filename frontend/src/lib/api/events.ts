@@ -34,7 +34,8 @@ export interface ClubEvent {
   cancelReason: string | null;
   attendeesCount: number;
   going: boolean;
-  can: { update: boolean; delete: boolean; attend: boolean; manage: boolean };
+  /** cancel — отменить: команда сообщества или модерация площадки; update — только команда. */
+  can: { update: boolean; delete: boolean; cancel: boolean; attend: boolean; manage: boolean };
   deletedAt: string | null;
 }
 
@@ -131,6 +132,7 @@ export function mapEvent(e: ApiEvent): ClubEvent {
     can: {
       update: Boolean(e.can?.update),
       delete: Boolean(e.can?.delete),
+      cancel: Boolean(e.can?.cancel),
       attend: Boolean(e.can?.attend),
       manage: Boolean(e.can?.manage),
     },

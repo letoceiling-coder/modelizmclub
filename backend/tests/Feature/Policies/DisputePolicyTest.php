@@ -34,12 +34,14 @@ class DisputePolicyTest extends TestCase
         $this->assertFalse($stranger->can('addEvidence', $dispute));
     }
 
-    public function test_moderator_resolves_dispute(): void
+    /** Спор решает Владелец: деньги и споры не входят в разделы Модератора (17.09). */
+    public function test_owner_resolves_dispute_moderator_does_not(): void
     {
         $deal = $this->seedDeal($this->seedUser('buyer'), $this->seedUser('seller'), SafeDealStatus::Disputed);
         $dispute = $this->seedDispute($deal, $deal->buyer);
 
-        $this->assertTrue($this->seedUser('mod', UserRole::Moderator)->can('resolve', $dispute));
+        $this->assertTrue($this->seedUser('owner', UserRole::Admin)->can('resolve', $dispute));
+        $this->assertFalse($this->seedUser('mod', UserRole::Moderator)->can('resolve', $dispute));
     }
 
     public function test_deal_payload_carries_dispute_can_block(): void

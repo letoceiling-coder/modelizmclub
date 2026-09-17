@@ -79,8 +79,8 @@ class EventsController extends Controller
     {
         $event = $this->find($uuid);
         $user = $request->user();
-        if (! Gate::forUser($user)->allows('update', $event)) {
-            throw new AccessDeniedHttpException('Отменить мероприятие может его организатор.');
+        if (! Gate::forUser($user)->allows('cancel', $event)) {
+            throw new AccessDeniedHttpException('Отменить мероприятие может его организатор или модерация.');
         }
         $data = $request->validate(['reason' => ['nullable', 'string', 'max:255']]);
         $old = ['status' => $event->status];

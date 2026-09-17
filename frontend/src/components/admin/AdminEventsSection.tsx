@@ -63,7 +63,6 @@ export function AdminEventsSection() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [createCommunity, setCreateCommunity] = useState("");
   const [editing, setEditing] = useState<ClubEvent | null>(null);
   const [attendeesOf, setAttendeesOf] = useState<ClubEvent | null>(null);
   const [bannerOf, setBannerOf] = useState<ClubEvent | null>(null);
@@ -289,7 +288,8 @@ export function AdminEventsSection() {
                 >
                   <Users size={14} aria-hidden /> Участники
                 </Button>
-                {!event.deletedAt && (
+                {/* Событие сообщества правит его команда; здесь — отменить и снять. */}
+                {!event.deletedAt && event.scope === "platform" && (
                   <Button
                     type="button"
                     size="sm"
@@ -372,39 +372,15 @@ export function AdminEventsSection() {
         open={createOpen}
         onOpenChange={(open) => {
           setCreateOpen(open);
-          if (!open) setCreateCommunity("");
         }}
-        title={
-          createCommunity.trim() ? "Новое мероприятие сообщества" : "Новое мероприятие площадки"
-        }
-        submit={(input) =>
-          adminCreateEvent({ ...input, communitySlug: createCommunity.trim() || null })
-        }
+        // Админка заводит только события площадки: событие сообщества создаёт
+        // его команда, сервер на чужое сообщество отвечает 403 (17.09).
+        title="Новое мероприятие площадки"
+        submit={(input) => adminCreateEvent({ ...input, communitySlug: null })}
         onSaved={() => {
           setPage(1);
           load();
         }}
-        extra={
-          <label className="flex flex-col gap-1.5 text-[13px]">
-            <span className="font-medium" style={{ color: "var(--foreground)" }}>
-              Сообщество
-            </span>
-            <input
-              value={createCommunity}
-              onChange={(e) => setCreateCommunity(e.target.value)}
-              placeholder="Пусто — событие площадки"
-              className="h-11 w-full rounded-[10px] border px-3 text-[14px]"
-              style={{
-                background: "var(--background-surface)",
-                borderColor: "var(--border)",
-                color: "var(--foreground)",
-              }}
-            />
-            <span className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              Адрес сообщества из ссылки /communities/…. Событие площадки получат все пользователи.
-            </span>
-          </label>
-        }
       />
 
       <EventFormDialog

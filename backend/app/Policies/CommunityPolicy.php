@@ -119,11 +119,9 @@ class CommunityPolicy
         return $community->isOwnedBy($user);
     }
 
+    /** Команда сообщества; роль площадки сюда не входит (см. Community::canManage). */
     private function canManage(User $user, Community $community): bool
     {
-        if ($user->isModerator()) {
-            return true;
-        }
 
         $cached = $this->cachedRole($user, $community);
 

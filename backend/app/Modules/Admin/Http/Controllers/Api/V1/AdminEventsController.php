@@ -4,7 +4,6 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClubEvent;
-use App\Models\Community;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Admin\Services\AuditService;
@@ -54,10 +53,13 @@ class AdminEventsController extends Controller
             'community_slug' => ['nullable', 'string', 'exists:communities,slug'],
         ], ClubEventRules::messages());
 
-        $community = filled($data['community_slug'] ?? null)
-            ? Community::query()->where('slug', $data['community_slug'])->firstOrFail()
-            : null;
-        $event = $events->create($community, $request->user(), $data);
+        // Админка заводит события площадки. Событие сообщества создаёт его
+        // команда (EventPolicy::create); до 17.09 здесь можно было завести
+        // событие в любом сообществе.
+        if (filled($data['community_slug'] ?? null)) {
+            abort(403, 'События сообщества создают его владелец и модераторы.');
+        }
+        $event = $events->create(null, $request->user(), $data);
         $audit->log($request->user(), 'admin.events.create', $event, null, $event->only(['title', 'scope', 'status', 'starts_at', 'community_id']), $request);
 
         return (new ClubEventResource($event->load(['cover', 'community'])->loadCount('attendees')))->response()->setStatusCode(201);
@@ -66,6 +68,10 @@ class AdminEventsController extends Controller
     public function update(string $uuid, Request $request, ClubEventService $events, AuditService $audit): JsonResponse
     {
         $event = $this->find($uuid);
+        // Событие сообщества правит его команда; админка его только отменяет и снимает.
+        if (! $event->isPlatform()) {
+            abort(403, 'Событие сообщества правят его владелец и модераторы.');
+        }
         $rules = ClubEventRules::rules(false);
         if (! $request->has('starts_at')) {
             unset($rules['starts_at']);

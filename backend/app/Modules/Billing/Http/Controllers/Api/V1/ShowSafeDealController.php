@@ -19,7 +19,7 @@ class ShowSafeDealController extends Controller
         $user = $request->user();
         $this->authorize('view', $deal);
 
-        if (! $deal->involves($user) && ! $user->isModerator()) {
+        if (! $deal->involves($user) && ! $user->isAdmin()) {
             abort(403);
         }
 

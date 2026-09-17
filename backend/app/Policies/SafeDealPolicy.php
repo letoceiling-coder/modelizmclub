@@ -18,9 +18,10 @@ use Illuminate\Auth\Access\Response;
  */
 class SafeDealPolicy
 {
+    /** Стороны и Владелец (разбор споров — раздел «Платежи»). */
     public function view(User $user, SafeDeal $deal): bool
     {
-        return $deal->involves($user) || $user->isModerator();
+        return $deal->involves($user) || $user->isAdmin();
     }
 
     /** Buyer opens a deal on someone else's published listing. */
@@ -42,7 +43,7 @@ class SafeDealPolicy
 
     public function markDelivered(User $user, SafeDeal $deal): bool
     {
-        return ($deal->involves($user) || $user->isModerator())
+        return $deal->involves($user)
             && in_array($deal->status, [SafeDealStatus::Paid, SafeDealStatus::Shipped], true);
     }
 
@@ -61,7 +62,7 @@ class SafeDealPolicy
      */
     public function cancel(User $user, SafeDeal $deal): bool
     {
-        return ($deal->involves($user) || $user->isModerator())
+        return $deal->involves($user)
             && in_array($deal->status, [
                 SafeDealStatus::Created,
                 SafeDealStatus::Paid,
@@ -112,7 +113,7 @@ class SafeDealPolicy
     /** Admin release / refund of held funds. */
     public function resolve(User $user, SafeDeal $deal): bool
     {
-        return $user->isModerator();
+        return $user->isAdmin();
     }
 
     private function isBuyer(User $user, SafeDeal $deal): bool

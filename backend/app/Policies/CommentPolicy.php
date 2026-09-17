@@ -7,9 +7,10 @@ use App\Models\User;
 
 class CommentPolicy
 {
+    /** Править текст — только автор; модерация комментарий удаляет, но не переписывает. */
     public function update(User $user, Comment $comment): bool
     {
-        return (int) $comment->user_id === (int) $user->id || $user->isModerator();
+        return (int) $comment->user_id === (int) $user->id;
     }
 
     public function delete(User $user, Comment $comment): bool

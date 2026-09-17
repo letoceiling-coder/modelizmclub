@@ -9,9 +9,10 @@ class ListingPolicy
 {
     // Owner or moderator — the same rule ListingService::assertOwner has
     // enforced all along; `promote` is a paid boost and stays owner-only.
+    // Править — только автор (ListingService::assertAuthor); убрать и вернуть — и модерация.
     public function update(User $user, Listing $listing): bool
     {
-        return $this->isOwner($user, $listing) || $user->isModerator();
+        return $this->isOwner($user, $listing);
     }
 
     public function delete(User $user, Listing $listing): bool

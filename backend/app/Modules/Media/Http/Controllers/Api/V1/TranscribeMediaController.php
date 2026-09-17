@@ -24,8 +24,10 @@ class TranscribeMediaController extends Controller
             ]);
         }
 
-        if (! $request->user()->isAdmin() && ! $this->canAccessVoice($media, $request->user()->id)) {
-            abort(403);
+        // Расшифровать голосовое — только участникам переписки. Роль площадки
+        // права читать чужие переписки не даёт (до 17.09 администратору давала).
+        if (! $this->canAccessVoice($media, $request->user()->id)) {
+            abort(403, 'Нет доступа к голосовому сообщению.');
         }
 
         // Без настоящего провайдера отвечаем «недоступно», а не текстом

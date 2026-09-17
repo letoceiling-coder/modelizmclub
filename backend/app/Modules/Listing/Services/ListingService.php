@@ -2,7 +2,9 @@
 
 namespace Modules\Listing\Services;
 
+use App\Enums\DeliveryCarrier;
 use App\Enums\ListingStatus;
+use App\Enums\SafeDealStatus;
 use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\ListingMedia;
@@ -10,6 +12,7 @@ use App\Models\Media;
 use App\Models\ModerationQueue;
 use App\Models\Payment;
 use App\Models\Promocode;
+use App\Models\SafeDeal;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Notifications\InAppNotification;
@@ -17,17 +20,16 @@ use App\Services\InAppNotify;
 use App\Support\ParcelSize;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Billing\Services\PromocodeService;
 use Modules\Catalog\Services\CategoryTaxonomyService;
+use Modules\Delivery\Services\SellerDeliveryProfileService;
 use Modules\Listing\Support\ListingPlacementConfig;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use App\Enums\DeliveryCarrier;
-use Modules\Delivery\Services\SellerDeliveryProfileService;
-use App\Enums\SafeDealStatus;
-use App\Models\SafeDeal;
 
 class ListingService
 {
@@ -306,7 +308,7 @@ class ListingService
 
         $listing->increment('views_count');
 
-        app(\Modules\Listing\Services\SellerStatsService::class)->recordDailyView($listing);
+        app(SellerStatsService::class)->recordDailyView($listing);
     }
 
     /** @param array<string, mixed> $data */
@@ -347,7 +349,7 @@ class ListingService
             ]);
 
             if (($placementMeta['record_promocode'] ?? null) instanceof Promocode) {
-                app(\Modules\Billing\Services\PromocodeService::class)
+                app(PromocodeService::class)
                     ->recordUsage($placementMeta['record_promocode'], $user, $placementMeta['placement_payment_id'] ?? null);
             }
 
@@ -364,7 +366,7 @@ class ListingService
     /** @param array<string, mixed> $data */
     public function update(Listing $listing, User $user, array $data): Listing
     {
-        $this->assertOwner($listing, $user);
+        $this->assertAuthor($listing, $user);
         $this->assertDeliveryDetails(array_merge([
             'delivery_methods' => $listing->delivery_methods,
             'package_size' => $listing->package_size,
@@ -438,7 +440,12 @@ class ListingService
 
     public function setStatus(Listing $listing, User $user, ListingStatus $status, array $context = []): Listing
     {
-        $this->assertOwner($listing, $user);
+        // Снять с публикации может и модерация площадки; публиковать — только автор.
+        if ($status === ListingStatus::Unpublished) {
+            $this->assertOwner($listing, $user);
+        } else {
+            $this->assertAuthor($listing, $user);
+        }
 
         /*
          * За уже оплаченное размещение второй раз не берём.
@@ -477,7 +484,7 @@ class ListingService
             $listing->placement_promocode_id = $placementMeta['placement_promocode_id'] ?? $listing->placement_promocode_id;
 
             if (($placementMeta['record_promocode'] ?? null) instanceof Promocode) {
-                app(\Modules\Billing\Services\PromocodeService::class)
+                app(PromocodeService::class)
                     ->recordUsage($placementMeta['record_promocode'], $user, $placementMeta['placement_payment_id'] ?? null);
             }
 
@@ -704,6 +711,20 @@ class ListingService
         }
     }
 
+    /**
+     * Правка и публикация — только автор. До 17.09 и здесь проходил модератор
+     * площадки: мог переписать чужое объявление и опубликовать его.
+     */
+    private function assertAuthor(Listing $listing, User $user): void
+    {
+        if ($listing->user_id !== $user->id) {
+            throw ValidationException::withMessages([
+                'listing' => ['Нет доступа к объявлению.'],
+            ]);
+        }
+    }
+
+    /** Автор или модерация площадки: снять, удалить, вернуть, посмотреть. */
     private function assertOwner(Listing $listing, User $user): void
     {
         if ($listing->user_id !== $user->id && ! $user->isModerator()) {
@@ -750,7 +771,7 @@ class ListingService
         }
     }
 
-    /** @return array{0: ListingStatus, 1: \Illuminate\Support\Carbon|null, 2: array<string, mixed>} */
+    /** @return array{0: ListingStatus, 1: Carbon|null, 2: array<string, mixed>} */
     private function resolveCreateStatus(User $user, bool $publish, array $data = []): array
     {
         if (! $publish) {
@@ -881,7 +902,7 @@ class ListingService
         ])->errorBag('default');
     }
 
-    /** @return array{0: ListingStatus, 1: \Illuminate\Support\Carbon|null} */
+    /** @return array{0: ListingStatus, 1: Carbon|null} */
     private function gatePublishStatus(): array
     {
         if ($this->autoPublishEnabled()) {

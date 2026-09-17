@@ -62,6 +62,7 @@ class ClubEventResource extends JsonResource
             'can' => [
                 'update' => $user !== null && Gate::forUser($user)->allows('update', $this->resource),
                 'delete' => $user !== null && Gate::forUser($user)->allows('delete', $this->resource),
+                'cancel' => $user !== null && Gate::forUser($user)->allows('cancel', $this->resource),
                 'attend' => $user !== null && Gate::forUser($user)->allows('attend', $this->resource),
                 'manage' => $user !== null && Gate::forUser($user)->allows('manage', $this->resource),
             ],

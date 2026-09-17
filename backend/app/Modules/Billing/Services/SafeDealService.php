@@ -506,7 +506,8 @@ class SafeDealService
      */
     public function cancel(User $actor, SafeDeal $deal): SafeDeal
     {
-        if (! $deal->involves($actor) && ! $actor->isModerator()) {
+        // Отменяют стороны. Возврат по решению площадки — AdminSafeDealController::refund.
+        if (! $deal->involves($actor)) {
             throw ValidationException::withMessages(['deal' => ['Нет доступа к сделке.']]);
         }
 
@@ -1115,7 +1116,10 @@ class SafeDealService
             default => $deal->involves($user),
         };
 
-        if (! $ok && ! $user->isModerator()) {
+        // Отправить, подтвердить получение, оценить — только сама сторона. До
+        // 17.09 модератор площадки проходил эту проверку; решение площадки по
+        // сделке — в админке (Владелец).
+        if (! $ok) {
             throw ValidationException::withMessages(['deal' => ['Нет доступа к сделке.']]);
         }
     }
