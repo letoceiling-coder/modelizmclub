@@ -614,8 +614,11 @@ export function ProfileView({
         {/* Tabs */}
         <Tabs tab={tab} setTab={setTab} isOwn={isOwn} />
 
+        {/* Сверху 24, как у содержимого вкладки под блоком. Было 16: от
+            вкладок до «Подписки» 16, от «Подписки» до содержимого 24 и от
+            содержимого до края карточки 24 (замер на проде 17.09, 375–1920). */}
         {isOwn && (
-          <div className="px-[16px] pt-[16px] md:px-[32px]">
+          <div className="px-[16px] pt-6 md:px-[32px]">
             <SubscriptionBlock />
           </div>
         )}
@@ -902,6 +905,25 @@ function Tabs({
 }) {
   const { t } = useTranslation();
   const visibleTabs = TABS_BASE.filter((item) => isOwn || !item.ownOnly);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  // Выбранная вкладка — в видимой части ряда, как в EntityTabs. Только по
+  // горизонтали и только внутри ряда: scrollIntoView увёл бы страницу.
+  useEffect(() => {
+    const row = rowRef.current;
+    const btn = activeRef.current;
+    if (!row || !btn) return;
+    if (
+      btn.offsetLeft >= row.scrollLeft &&
+      btn.offsetLeft + btn.offsetWidth <= row.scrollLeft + row.clientWidth
+    )
+      return;
+    row.scrollTo({
+      left: Math.max(0, btn.offsetLeft - row.clientWidth / 2 + btn.offsetWidth / 2),
+      behavior: "smooth",
+    });
+  }, [tab]);
 
   return (
     <div
@@ -912,14 +934,25 @@ function Tabs({
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <div className="-mx-[16px] overflow-x-auto px-[16px] md:mx-0 md:overflow-visible md:px-0">
-        <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-[2px] md:min-h-0 md:w-full md:flex-wrap md:gap-[4px]">
+      {/*
+        Один ряд на всех ширинах, прокрутка вбок — как у вкладок сообщества
+        и канала (EntityTabs) и как здесь же на телефоне.
+
+        От 768 ряд переносился: восемь вкладок своего профиля — это 971 px
+        при месте 478–614, и они вставали в две строки на 768, 1440 и 1920 и
+        в три на 1024; шесть вкладок чужого — в две строки от 768. Полоса
+        вкладок занимала 105 и 151 px вместо 61, а подчёркивание выбранной
+        оказывалось посреди блока (замер на проде 17.09).
+      */}
+      <div ref={rowRef} className="-mx-[16px] overflow-x-auto px-[16px] md:-mx-[32px] md:px-[32px]">
+        <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-[2px] md:gap-[4px]">
           {visibleTabs.map(({ key, Icon }) => {
             const active = tab === key;
             const label = t(TAB_LABEL_KEYS[key]);
             return (
               <button
                 key={key}
+                ref={active ? activeRef : undefined}
                 type="button"
                 onClick={() => setTab(key)}
                 className="inline-flex shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[8px] px-[8px] py-[10px] font-display transition-colors duration-200 md:gap-[6px] md:px-[14px] md:py-[12px]"
