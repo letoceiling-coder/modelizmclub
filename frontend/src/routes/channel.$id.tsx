@@ -45,7 +45,6 @@ import {
   formatCount,
   formatChannelDate,
   setChannelPostLiked,
-  recordChannelPostView,
   setChannelPostPinned,
   type Channel,
   type ChannelPost,
@@ -743,7 +742,6 @@ function PostItem({
   const { t } = useTranslation();
   const s = postStatusMeta(t)[post.status];
   const [pinning, setPinning] = useState(false);
-  const [views, setViews] = useState(post.views);
 
   // The card resolves the author through the store; the channel owner is the author here.
   useEffect(() => {
@@ -757,17 +755,6 @@ function PostItem({
     });
   }, [channel.ownerId, channel.slug, channel.ownerName, channel.ownerAvatar, channel.ownerSlug]);
 
-  useEffect(() => {
-    if (post.status !== "published") return;
-    let cancelled = false;
-    void recordChannelPostView(channel.slug, post.id).then((next) => {
-      if (!cancelled && typeof next === "number") setViews(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [channel.slug, post.id, post.status]);
-
   const togglePin = async () => {
     setPinning(true);
     try {
@@ -780,7 +767,13 @@ function PostItem({
     }
   };
 
-  const feedPost = { ...toFeedPost(post, channel, canManage), views };
+  /*
+   * Просмотр засчитывает открытие записи (окно с полной записью или её
+   * страница — это делает PostCard), а не отрисовка в списке. До 17.09 здесь
+   * стоял вызов на монтирование карточки, и у всех записей канала было одно
+   * число: 23 у шести записей «Мастерской», 106 у пяти «Авиамоделизма».
+   */
+  const feedPost = toFeedPost(post, channel, canManage);
   const chip = "inline-flex items-center gap-1 text-[11px] font-semibold";
   const chipStyle = { padding: "3px 7px", borderRadius: 6 } as const;
 

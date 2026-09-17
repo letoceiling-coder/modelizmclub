@@ -3,6 +3,7 @@ import { registerUser } from "@/lib/user-registry";
 import { api, getToken } from "./client";
 import { mapApiUser, type ApiUser } from "./auth";
 import { isDemoMode } from "@/lib/demo-mode";
+import { getGuestViewerId } from "@/lib/channels";
 import { rememberMediaAspect } from "@/lib/media/aspectCache";
 import type { MediaVariantSet, VideoDelivery } from "@/lib/media/variants";
 
@@ -472,6 +473,24 @@ export async function fetchPost(uuid: string): Promise<Post> {
   }
   const res = await api<{ data: ApiPost }>(`/posts/${uuid}`);
   return mapPost(res.data);
+}
+
+/**
+ * Запись открыта — засчитать просмотр. Сервер считает одного читателя раз в
+ * сутки; гостя — по идентификатору браузера, а не по адресу (за одним NAT
+ * бывают сотни людей). Возвращает новое число или null, если не узнали.
+ *
+ * Звать только на фактическое открытие: страница записи, окно с полной
+ * записью. Не на отрисовку карточки — так до 17.09 делала страница канала, и
+ * у всех записей канала стояло одно число.
+ */
+export async function recordPostView(uuid: string): Promise<number | null> {
+  if (isDemoMode()) return null;
+  const res = await api<{ data: { views?: number; counted?: boolean } }>(`/posts/${uuid}/view`, {
+    method: "POST",
+    headers: { "X-Guest-Viewer": getGuestViewerId() },
+  });
+  return typeof res.data?.views === "number" ? res.data.views : null;
 }
 
 export async function schedulePost(

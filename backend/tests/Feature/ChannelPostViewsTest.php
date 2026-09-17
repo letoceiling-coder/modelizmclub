@@ -14,18 +14,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Один счётчик просмотров у записи канала и её зеркала в ленте.
+ * Просмотр — фактическое открытие записи, один раз в сутки на читателя, и один
+ * счётчик у записи канала и её зеркала в ленте.
  *
- * Разбор 17.09 на проде, канал «Мастерская: короткие заметки»: у шести
- * записей на странице канала 23 просмотра, у тех же записей в ленте — 8.
- * Последний учтённый просмотр 15.09 14:54 МСК, после него страницу канала
- * открывали ещё пять раз (журнал nginx), и счётчик стоял.
- *
- * Причин две. Администратор площадки (508) до 17.09 считался командой канала,
- * и его просмотры не учитывались вовсе — в channel_post_views нет ни одной
- * строки u:508. И чтение той же записи в ленте (/post/{uuid}) шло в
- * posts.views_count с дедупликацией по IP на шесть часов и до счётчика канала
- * не доходило никогда.
+ * Разбор 17.09 на проде, «под всеми публикациями 23»: у шести записей канала
+ * «Мастерская: короткие заметки» по 23 просмотра, у пяти «Авиамоделизма
+ * сегодня» по 106, у пяти «Брони и диорам» по 1. Страница канала засчитывала
+ * просмотр каждой отрисованной записи — открыл канал, и все записи получили
+ * по одному. У тех же записей «Мастерской» в ленте было 8: зеркало вело свой
+ * счётчик с дедупликацией по IP на шесть часов, а чтение в ленте до канала не
+ * доходило. Администратор площадки (508) до 30d5c7f3 считался командой
+ * канала — ни одной строки u:508 в книге.
  */
 class ChannelPostViewsTest extends TestCase
 {
@@ -81,13 +80,21 @@ class ChannelPostViewsTest extends TestCase
         return $response;
     }
 
-    private function readInFeed(Post $post, ?User $as, array $headers = [])
+    /** Открыть запись: страница записи или окно с полной записью. */
+    private function open(string $uuid, ?User $as, ?string $guest = 'guest-aaaa-0001')
     {
         $request = $as ? $this->actingAs($as, 'sanctum') : $this;
-        $response = $request->withHeaders($headers)->getJson("/api/v1/posts/{$post->uuid}")->assertOk();
+        $response = $request->withHeaders($guest === null ? [] : ['X-Guest-Viewer' => $guest])
+            ->postJson("/api/v1/posts/{$uuid}/view")
+            ->assertOk();
         $this->app['auth']->forgetGuards();
 
         return $response;
+    }
+
+    private function openInFeed(Post $post, ?User $as, ?string $guest = 'guest-aaaa-0001')
+    {
+        return $this->open($post->uuid, $as, $guest);
     }
 
     private function assertViews(int $expected, ChannelPost $channelPost, Post $feedPost): void
@@ -112,7 +119,7 @@ class ChannelPostViewsTest extends TestCase
     {
         [$channelPost, $feedPost] = $this->publish();
 
-        $this->readInFeed($feedPost, $this->user())->assertJsonPath('data.stats.views', 1);
+        $this->openInFeed($feedPost, $this->user())->assertJsonPath('data.views', 1);
 
         $this->assertViews(1, $channelPost, $feedPost);
     }
@@ -123,7 +130,7 @@ class ChannelPostViewsTest extends TestCase
         $reader = $this->user();
 
         $this->viewInChannel($channelPost, $reader)->assertJsonPath('data.views', 1);
-        $this->readInFeed($feedPost, $reader);
+        $this->openInFeed($feedPost, $reader);
         $this->viewInChannel($channelPost, $reader)->assertJsonPath('data.counted', false);
 
         $this->assertViews(1, $channelPost, $feedPost);
@@ -146,23 +153,23 @@ class ChannelPostViewsTest extends TestCase
         $channelAdmin = $this->user();
         $this->channel->admins()->attach($channelAdmin->id);
 
-        $this->readInFeed($feedPost, $this->owner);
-        $this->readInFeed($feedPost, $channelAdmin);
+        $this->openInFeed($feedPost, $this->owner);
+        $this->openInFeed($feedPost, $channelAdmin);
         $this->viewInChannel($channelPost, $channelAdmin)->assertJsonPath('data.counted', false);
 
         $this->assertViews(0, $channelPost, $feedPost);
     }
 
     /**
-     * Серверная отрисовка страницы записи ходит в API без заголовка, куки и
-     * сессии. Ключ гостя тогда строится из адреса, а не падает на session().
+     * Запрос без заголовка, куки и сессии (у api-группы её нет): ключ гостя
+     * строится из адреса, а не падает на session() с 500.
      */
     public function test_guest_request_without_any_identity_does_not_fail(): void
     {
         [$channelPost, $feedPost] = $this->publish();
 
-        $this->readInFeed($feedPost, null);
-        $this->readInFeed($feedPost, null);
+        $this->openInFeed($feedPost, null, null);
+        $this->openInFeed($feedPost, null, null);
 
         $this->assertViews(1, $channelPost, $feedPost);
     }
@@ -170,7 +177,79 @@ class ChannelPostViewsTest extends TestCase
     public function test_plain_feed_post_keeps_its_own_counter(): void
     {
         $author = $this->user();
-        $post = Post::query()->create([
+        $post = $this->plainPost($author);
+
+        $this->openInFeed($post, $this->user());
+        $this->openInFeed($post, $author);
+
+        $this->assertSame(1, (int) $post->fresh()->views_count);
+    }
+
+    /** Серверная отрисовка страницы записи и любой другой GET просмотр не засчитывают. */
+    public function test_reading_post_or_channel_list_does_not_count(): void
+    {
+        [$channelPost, $feedPost] = $this->publish();
+
+        $this->getJson("/api/v1/posts/{$feedPost->uuid}")->assertOk();
+        $this->getJson("/api/v1/channels/{$this->channel->slug}/posts")->assertOk();
+        $this->actingAs($this->user(), 'sanctum')->getJson("/api/v1/posts/{$feedPost->uuid}")->assertOk();
+
+        $this->assertViews(0, $channelPost, $feedPost);
+    }
+
+    public function test_one_view_per_reader_per_day(): void
+    {
+        [$channelPost, $feedPost] = $this->publish();
+        $reader = $this->user();
+
+        $this->openInFeed($feedPost, $reader)->assertJsonPath('data.counted', true);
+        $this->openInFeed($feedPost, $reader)->assertJsonPath('data.counted', false);
+        $this->viewInChannel($channelPost, $reader)->assertJsonPath('data.counted', false);
+        $this->assertViews(1, $channelPost, $feedPost);
+
+        $this->travel(1)->days();
+        $this->openInFeed($feedPost, $reader)->assertJsonPath('data.counted', true);
+        $this->openInFeed($feedPost, $reader)->assertJsonPath('data.counted', false);
+        $this->assertViews(2, $channelPost, $feedPost);
+    }
+
+    public function test_plain_post_counts_guests_by_their_id_once_a_day(): void
+    {
+        $author = $this->user();
+        $post = $this->plainPost($author);
+
+        $this->open($post->uuid, null, 'guest-aaaa-0001')->assertJsonPath('data.counted', true);
+        $this->open($post->uuid, null, 'guest-aaaa-0001')->assertJsonPath('data.counted', false);
+        // Тот же адрес, другой гость: до 17.09 ключом был IP, и это был бы ноль.
+        $this->open($post->uuid, null, 'guest-bbbb-0002')->assertJsonPath('data.views', 2);
+
+        $this->travel(1)->days();
+        $this->open($post->uuid, null, 'guest-aaaa-0001')->assertJsonPath('data.views', 3);
+    }
+
+    public function test_channel_post_without_mirror_is_opened_by_its_own_id(): void
+    {
+        [$channelPost, $feedPost] = $this->publish();
+        $channelPost->forceFill(['feed_post_id' => null])->save();
+
+        $this->open($channelPost->uuid, $this->user())->assertJsonPath('data.views', 1);
+
+        $this->assertSame(1, (int) $channelPost->fresh()->views_count);
+        $this->assertSame(0, (int) $feedPost->fresh()->views_count);
+    }
+
+    public function test_unknown_or_hidden_post_is_404(): void
+    {
+        $this->postJson('/api/v1/posts/00000000-0000-4000-8000-000000000000/view')->assertNotFound();
+
+        [$channelPost] = $this->publish();
+        $channelPost->forceFill(['feed_post_id' => null, 'status' => 'pending'])->save();
+        $this->postJson("/api/v1/posts/{$channelPost->uuid}/view")->assertNotFound();
+    }
+
+    private function plainPost(User $author): Post
+    {
+        return Post::query()->create([
             'user_id' => $author->id,
             'title' => 'Пост',
             'body' => 'Текст',
@@ -178,11 +257,6 @@ class ChannelPostViewsTest extends TestCase
             'published_at' => now(),
             'category_id' => PostCategory::query()->create(['name' => 'А', 'slug' => 'a-'.uniqid(), 'is_active' => true])->id,
         ]);
-
-        $this->readInFeed($post, $this->user());
-        $this->readInFeed($post, $author);
-
-        $this->assertSame(1, (int) $post->fresh()->views_count);
     }
 
     public function test_resync_brings_the_mirror_up_to_the_channel_ledger(): void

@@ -15,8 +15,10 @@ import {
   publishPost,
   cancelScheduledPost,
   fetchPost,
+  recordPostView,
   type CommentSort,
 } from "@/lib/api/feed";
+import { ignoreFailure } from "@/lib/errors/handle";
 import { formatScheduledAt, defaultScheduleTimezone } from "@/lib/post-schedule";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
@@ -175,6 +177,18 @@ export function PostCard({
    */
   const [viewerAt, setViewerAt] = useState<number | null>(null);
   const viewerOpen = viewerAt !== null;
+
+  /*
+   * Окно с полной записью — это открытие записи, и просмотр засчитывается
+   * здесь, а не на отрисовку карточки в списке. Сервер считает читателя раз
+   * в сутки, повторное открытие ничего не прибавит.
+   */
+  useEffect(() => {
+    if (!viewerOpen) return;
+    recordPostView(post.id).catch(
+      ignoreFailure("просмотр засчитается при следующем открытии записи"),
+    );
+  }, [viewerOpen, post.id]);
 
   const [likes, setLikes] = useState(post.likes);
 

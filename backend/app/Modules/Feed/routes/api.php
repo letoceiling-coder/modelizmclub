@@ -11,6 +11,7 @@ use Modules\Feed\Http\Controllers\Api\V1\PostBookmarkController;
 use Modules\Feed\Http\Controllers\Api\V1\PostCommentsController;
 use Modules\Feed\Http\Controllers\Api\V1\PostReactionController;
 use Modules\Feed\Http\Controllers\Api\V1\PublishPostController;
+use Modules\Feed\Http\Controllers\Api\V1\RecordPostViewController;
 use Modules\Feed\Http\Controllers\Api\V1\RepostPostController;
 use Modules\Feed\Http\Controllers\Api\V1\SchedulePostController;
 use Modules\Feed\Http\Controllers\Api\V1\ShowPostController;
@@ -21,6 +22,7 @@ use Modules\Feed\Http\Controllers\Api\V1\UpdatePostController;
 Route::middleware('optionalAuth')->group(function (): void {
     Route::get('feed', IndexFeedController::class);
     Route::get('posts/{uuid}', ShowPostController::class);
+    Route::post('posts/{uuid}/view', RecordPostViewController::class);
     Route::get('posts/{uuid}/comments', [PostCommentsController::class, 'index']);
     Route::get('comments/{uuid}/thread', CommentThreadController::class);
 });

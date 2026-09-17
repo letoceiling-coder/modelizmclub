@@ -400,25 +400,6 @@ export async function setChannelPostLiked(
   return mapPost(res.data, channelSlug);
 }
 
-export async function recordChannelPostView(
-  channelSlug: string,
-  postId: string,
-): Promise<number | null> {
-  if (isDemoMode()) return null;
-  try {
-    const res = await api<{ data: { views?: number } }>(
-      `/channels/${channelSlug}/posts/${postId}/view`,
-      {
-        method: "POST",
-        headers: { "X-Guest-Viewer": getGuestViewerId() },
-      },
-    );
-    return res.data?.views ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export async function setChannelPostPinned(
   channelSlug: string,
   postId: string,

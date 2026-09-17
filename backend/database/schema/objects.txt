@@ -118,6 +118,7 @@ COLUMN|channel_post_views.channel_post_id|bigint|NO
 COLUMN|channel_post_views.created_at|timestamp without time zone|YES
 COLUMN|channel_post_views.id|bigint|NO
 COLUMN|channel_post_views.updated_at|timestamp without time zone|YES
+COLUMN|channel_post_views.viewed_on|date|NO
 COLUMN|channel_post_views.viewer_key|character varying|NO
 COLUMN|channel_posts.author_id|bigint|YES
 COLUMN|channel_posts.channel_id|bigint|NO
@@ -1640,7 +1641,7 @@ INDEX|channel_applications|channel_applications_user_id_status_index
 INDEX|channel_post_likes|channel_post_likes_channel_post_id_user_id_unique
 INDEX|channel_post_likes|channel_post_likes_pkey
 INDEX|channel_post_media|channel_post_media_pkey
-INDEX|channel_post_views|channel_post_views_channel_post_id_viewer_key_unique
+INDEX|channel_post_views|channel_post_views_channel_post_id_viewer_key_viewed_on_unique
 INDEX|channel_post_views|channel_post_views_pkey
 INDEX|channel_posts|channel_posts_channel_id_pinned_at_index
 INDEX|channel_posts|channel_posts_channel_id_status_index

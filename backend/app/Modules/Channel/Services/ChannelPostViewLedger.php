@@ -17,10 +17,11 @@ use Illuminate\Http\Request;
  * ленте — в posts.views_count с дедупликацией по IP на шесть часов. Чтение в
  * ленте до канала не доходило, а гости за одним адресом давали ленте один
  * просмотр. На проде у шести записей «Мастерской» это было 23 в канале и 8 в
- * ленте, и счётчик канала не рос с 15.09.
+ * ленте.
  *
  * Теперь оба входа пишут сюда, и оба счётчика двигаются вместе: строка в книге
- * — плюс один и записи канала, и её зеркалу.
+ * — плюс один и записи канала, и её зеркалу. Строка — читатель в сутки
+ * (viewed_on), повторный заход в тот же день не считается.
  */
 class ChannelPostViewLedger
 {
@@ -43,6 +44,7 @@ class ChannelPostViewLedger
         $inserted = ChannelPostView::query()->insertOrIgnore([
             'channel_post_id' => $post->id,
             'viewer_key' => ViewerKey::for($viewer, $request),
+            'viewed_on' => now()->toDateString(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
