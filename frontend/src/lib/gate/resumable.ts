@@ -19,7 +19,8 @@
 
 export const RESUME_PREFIX = "resume:";
 
-export type ResumableKey = "post.like" | "post.save" | "listing.favorite" | "community.join";
+export type ResumableKey =
+  "post.like" | "post.save" | "listing.favorite" | "listing.reveal_phone" | "community.join";
 
 type Params = Record<string, unknown>;
 
@@ -32,6 +33,12 @@ const HANDLERS: Record<ResumableKey, (params: Params) => Promise<unknown>> = {
     // Значок избранного читает локальный список; вход по токену уже
     // синхронизировал его — до того, как действие дошло до сервера.
     await (await import("@/lib/auth/session")).syncFavoritesFromServer();
+  },
+  // Номер кладётся туда же, откуда его читает страница объявления: после
+  // входа по ссылке страница уже смонтирована заново и покажет его сама.
+  "listing.reveal_phone": async ({ uuid }) => {
+    const phone = await (await import("@/lib/api/listings")).revealSellerPhone(String(uuid));
+    (await import("@/lib/store")).actions.setRevealedPhone(String(uuid), phone);
   },
   "community.join": async ({ slug }) =>
     (await import("@/lib/api/communities")).joinCommunity(String(slug)),

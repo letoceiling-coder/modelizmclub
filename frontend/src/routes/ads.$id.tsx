@@ -10,7 +10,10 @@ import {
   removeFavoriteListing,
   archiveListing,
   deleteListing,
+  revealSellerPhone,
+  setListingPhoneVisibility,
 } from "@/lib/api/listings";
+import { reportActionFailure } from "@/lib/errors/handle";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
@@ -150,6 +153,9 @@ function AdDetailPage() {
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>(adFromServer ? "ok" : "loading");
   const saved = useStore(selectors.isAdFavorite(id));
+  const revealedPhone = useStore((s) => s.revealedPhones[id]) ?? null;
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [showPhoneBusy, setShowPhoneBusy] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -320,6 +326,55 @@ function AdDetailPage() {
 
   const share = () => setShareOpen(true);
 
+  /*
+   * «Позвонить продавцу». Номер — отдельным запросом по нажатию и только
+   * вошедшему с подтверждённым телефоном (как и на сервере). Гостю — окно
+   * входа; после входа действие повторяется: в той же вкладке замыканием,
+   * после входа по ссылке — через resumable «listing.reveal_phone», который
+   * кладёт номер туда же, откуда его читает страница.
+   */
+  const revealPhone = () => {
+    requireAccount(
+      () => {
+        void (async () => {
+          if (revealedPhone || phoneLoading) return;
+          setPhoneLoading(true);
+          try {
+            actions.setRevealedPhone(id, await revealSellerPhone(id));
+          } catch (err) {
+            reportActionFailure(err, t("pages.adDetail.phoneFailed"));
+          } finally {
+            setPhoneLoading(false);
+          }
+        })();
+      },
+      undefined,
+      { key: "listing.reveal_phone", params: { uuid: id } },
+    );
+  };
+  const toggleShowPhone = (next: boolean) => {
+    void (async () => {
+      setShowPhoneBusy(true);
+      setAd((prev) => (prev ? { ...prev, showPhone: next } : prev));
+      try {
+        const updated = await setListingPhoneVisibility(id, next);
+        setAd((prev) =>
+          prev
+            ? { ...prev, showPhone: updated.showPhone, phoneAvailable: updated.phoneAvailable }
+            : prev,
+        );
+      } catch (err) {
+        setAd((prev) => (prev ? { ...prev, showPhone: !next } : prev));
+        reportActionFailure(err, t("pages.adDetail.showPhoneFailed"));
+      } finally {
+        setShowPhoneBusy(false);
+      }
+    })();
+  };
+  const call = ad.phoneAvailable
+    ? { phone: revealedPhone, loading: phoneLoading, onReveal: revealPhone }
+    : undefined;
+
   const toggleSave = () => {
     requireAccount(
       () => {
@@ -485,6 +540,7 @@ function AdDetailPage() {
                     onShare={share}
                     onSafeDeal={() => void startSafeDeal()}
                     safeDealBusy={safeDealBusy}
+                    call={call}
                   />
                 </div>
               ) : (
@@ -496,6 +552,8 @@ function AdDetailPage() {
                   onDelete={() => void handleOwnerDelete()}
                   onShare={share}
                   onPreviewAsBuyer={() => setPreviewAsBuyer(true)}
+                  onToggleShowPhone={toggleShowPhone}
+                  showPhoneBusy={showPhoneBusy}
                 />
               )}
             </div>
@@ -637,7 +695,7 @@ function AdDetailPage() {
          * и повторяется при этом вторичное — главное здесь «Купить через
          * безопасную сделку». Замерено на 440.
          */
-        !actionsVisible && <MobileStickyActionBar ad={ad} onWrite={writeToSeller} />
+        !actionsVisible && <MobileStickyActionBar ad={ad} onWrite={writeToSeller} call={call} />
       ) : (
         <AdOwnerMobileBar
           ad={ad}

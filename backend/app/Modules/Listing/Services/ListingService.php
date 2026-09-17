@@ -340,6 +340,7 @@ class ListingService
                 'weight_kg' => $data['weight_kg'] ?? null,
                 'dimensions_cm' => $data['dimensions_cm'] ?? null,
                 'pickup_address' => $data['pickup_address'] ?? null,
+                'show_phone' => (bool) ($data['show_phone'] ?? true),
                 'status' => $status,
                 'published_at' => $publishedAt,
                 'placement_payment_id' => $placementMeta['placement_payment_id'] ?? null,
@@ -416,6 +417,9 @@ class ListingService
             }
             if (array_key_exists('pickup_address', $data)) {
                 $listing->pickup_address = $data['pickup_address'];
+            }
+            if (array_key_exists('show_phone', $data)) {
+                $listing->show_phone = (bool) $data['show_phone'];
             }
 
             $listing->save();

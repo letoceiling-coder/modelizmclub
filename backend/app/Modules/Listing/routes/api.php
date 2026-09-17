@@ -7,6 +7,7 @@ use Modules\Listing\Http\Controllers\Api\V1\DestroyListingController;
 use Modules\Listing\Http\Controllers\Api\V1\FavoriteListingsController;
 use Modules\Listing\Http\Controllers\Api\V1\IndexListingsController;
 use Modules\Listing\Http\Controllers\Api\V1\ListingFavoriteController;
+use Modules\Listing\Http\Controllers\Api\V1\ListingPhoneVisibilityController;
 use Modules\Listing\Http\Controllers\Api\V1\ListingStatusController;
 use Modules\Listing\Http\Controllers\Api\V1\MyListingsController;
 use Modules\Listing\Http\Controllers\Api\V1\OrdinaryDealController;
@@ -47,6 +48,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::delete('listings/{uuid}', DestroyListingController::class);
     Route::post('listings/{uuid}/restore', RestoreListingController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/reveal-phone', RevealPhoneController::class)->where('uuid', '[0-9a-f-]{36}');
+    Route::put('listings/{uuid}/phone-visibility', ListingPhoneVisibilityController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/promote', PromoteListingController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/publish', [ListingStatusController::class, 'publish']);
     Route::post('listings/{uuid}/archive', [ListingStatusController::class, 'archive']);

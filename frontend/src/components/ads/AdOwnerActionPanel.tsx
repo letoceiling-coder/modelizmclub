@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
+import { ShowPhoneSwitch } from "@/components/ads/ShowPhoneSwitch";
 import { Button } from "@/components/ui/button";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -35,6 +36,9 @@ interface AdOwnerActionPanelProps {
   onDelete: () => void;
   onShare: () => void;
   onPreviewAsBuyer: () => void;
+  /** «Показывать мой номер» — сохраняется сразу, без повторной модерации. */
+  onToggleShowPhone?: (next: boolean) => void;
+  showPhoneBusy?: boolean;
   className?: string;
 }
 
@@ -103,6 +107,8 @@ export function AdOwnerActionPanel({
   onDelete,
   onShare,
   onPreviewAsBuyer,
+  onToggleShowPhone,
+  showPhoneBusy,
   className,
 }: AdOwnerActionPanelProps) {
   const { t } = useTranslation();
@@ -228,6 +234,19 @@ export function AdOwnerActionPanel({
             <UserRound size={16} /> {t("pages.adDetail.ownerPreviewAsBuyer")}
           </Button>
         </div>
+
+        {onToggleShowPhone && (
+          <ShowPhoneSwitch
+            checked={ad.showPhone !== false}
+            onChange={onToggleShowPhone}
+            disabled={busy || showPhoneBusy}
+            note={
+              ad.showPhone !== false && !ad.phoneAvailable
+                ? t("pages.adDetail.showPhoneUnverified")
+                : undefined
+            }
+          />
+        )}
 
         <div className="flex flex-col gap-[8px]">
           {/*
