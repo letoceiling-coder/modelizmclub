@@ -844,9 +844,15 @@ export function CommentSection({
         <CommentAvatar author={me} name={me.name} actionKey={authorActionKey(guest)} />
       </div>
       <div className="min-w-0 flex-1">
+        {/*
+          `field-shell` — фокус подсвечивает эту скруглённую оболочку, а не
+          строку раскладки внутри неё (styles.css). Цвет рамки — из общего
+          правила `* { border-color: var(--border) }`: инлайновый стиль
+          перебил бы акцент при фокусе, и рамка оставалась бы серой.
+        */}
         <div
-          className="rounded-[12px] border px-[12px] py-[4px]"
-          style={{ background: "var(--background-elevated)", borderColor: "var(--border)" }}
+          className="field-shell rounded-[12px] border px-[12px] py-[4px]"
+          style={{ background: "var(--background-elevated)" }}
         >
           <div className="flex min-w-0 items-center gap-[6px]">
             <input
