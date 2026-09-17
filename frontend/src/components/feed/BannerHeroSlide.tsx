@@ -99,8 +99,19 @@ export function BannerHeroSlide({
           кнопка. В 140 px телефона помещаются только заголовок и кнопка, в
           180 добавляется значок вида, в 200 — одна строка текста. Раньше в
           блок клали всё сразу, и на любой ширине верх обрезался: значок и
-          первая строка заголовка уезжали за край. */}
-      <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[8px] overflow-hidden p-[14px] pb-[16px] sm:max-w-[52%] sm:gap-[10px] sm:p-[20px] sm:pb-[22px] md:gap-[10px] md:p-[24px] md:pb-[26px]">
+          первая строка заголовка уезжали за край.
+
+          От 768 поля 20 и зазор 8, а не 24/26 и 10. Счёт выше верен для
+          заголовка в одну строку, а колонка в 52 % ширины переносит его уже
+          на двадцати знаках: значок 25 + заголовок 65 + текст 19 + кнопка 39
+          и три зазора по 10 давали 178 при месте 200 − 26 = 174, и значок
+          «Событие» / «Новость» срезался сверху на 4 px — на 768, 1024,
+          1440 и 1920 (замер на проде 17.09). Теперь самое высокое, что
+          здесь бывает (заголовок в две строки обрезан line-clamp-2), — 172
+          при месте 180: значок стоит в 8 px от верха, на одной высоте с
+          крестиком. Верхнее поле при нехватке места занимается, но не
+          режет: `overflow-hidden` обрезает по внешнему краю поля. */}
+      <div className="absolute inset-y-0 left-0 flex max-w-[86%] flex-col justify-end gap-[8px] overflow-hidden p-[14px] pb-[16px] sm:max-w-[52%] sm:gap-[10px] sm:p-[20px] sm:pb-[22px] md:gap-2 md:p-5">
         <span
           className="hidden w-fit shrink-0 items-center gap-[6px] rounded-full px-[10px] py-[4px] text-[11px] font-medium uppercase tracking-wide text-white sm:inline-flex"
           style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }}
