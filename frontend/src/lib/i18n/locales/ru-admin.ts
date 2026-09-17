@@ -407,7 +407,7 @@ export const ruAdmin = {
     adminModeration: {
       title: "Модерация",
       subtitle:
-        "Проверяйте новый контент перед публикацией. При отклонении или отправке на доработку обязательно укажите причину — автор увидит её и сможет исправить материал.",
+        "Проверяйте новый контент и заявки на создание сообществ и каналов перед публикацией. При отклонении или отправке на доработку обязательно укажите причину — автор увидит её и сможет исправить материал.",
       mainTabQueue: "Очередь контента",
       mainTabReports: "Жалобы пользователей",
       queueHint: "Выберите тип контента и просмотрите материал целиком перед решением.",
@@ -417,6 +417,8 @@ export const ruAdmin = {
         communities: "Сообщества",
         listings: "Объявления",
         videos: "Обзоры",
+        community_applications: "Заявки: сообщества",
+        channel_applications: "Заявки: каналы",
       },
       empty: {
         posts: "Нет публикаций на модерации",
@@ -424,10 +426,13 @@ export const ruAdmin = {
         communities: "Нет сообществ на модерации",
         listings: "Нет объявлений на модерации",
         videos: "Нет обзоров на модерации",
+        community_applications: "Нет заявок на создание сообщества",
+        channel_applications: "Нет заявок на создание канала",
       },
       cardAuthor: "Автор: {{name}}",
       cardSubmitted: "отправлено {{date}}",
       cardRevision: "На доработку",
+      cardApplicant: "Заявитель: {{name}}",
       rejectDialogTitle: "Отклонить материал",
       rejectDialogDesc: "Опишите, что именно нарушено или не подходит. Автор увидит этот текст.",
       revisionDialogTitle: "Отправить на доработку",
@@ -490,6 +495,7 @@ export const ruAdmin = {
         comment: "Комментарий",
         video: "Обзор",
         community: "Сообщество",
+        channel: "Канал",
       },
       entityTabs: {
         all: "Все",
@@ -1131,6 +1137,8 @@ export const ruAdmin = {
     adminApplications: {
       title: "Заявки на создание",
       empty: "Заявок нет",
+      loadFailed: "Не удалось загрузить заявки",
+      retry: "Повторить",
       filters: { pending: "Новые", approved: "Одобрены", rejected: "Отклонены" },
       kinds: { channel: "Канал", community: "Сообщество" },
     },

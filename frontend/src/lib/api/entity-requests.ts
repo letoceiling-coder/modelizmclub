@@ -102,13 +102,12 @@ export async function fetchMyEntityRequests(): Promise<EntityRequest[]> {
 
 export async function fetchEntityRequests(status?: RequestStatus): Promise<EntityRequest[]> {
   if (isDemoMode()) return (await import("@/lib/demo-data")).demoEntityRequests(status);
+  // Отказ любого из двух запросов — отказ всего списка. До 17.09 каждый
+  // превращался в пустой массив, и раздел показывал «Заявок нет», когда
+  // заявки были, а сервер не ответил.
   const [communities, channels] = await Promise.all([
-    api<{ data: EntityRequest[] }>("/admin/communities/applications", { query: { status } }).catch(
-      () => ({ data: [] as EntityRequest[] }),
-    ),
-    api<{ data: EntityRequest[] }>("/admin/channels/applications", { query: { status } }).catch(
-      () => ({ data: [] as EntityRequest[] }),
-    ),
+    api<{ data: EntityRequest[] }>("/admin/communities/applications", { query: { status } }),
+    api<{ data: EntityRequest[] }>("/admin/channels/applications", { query: { status } }),
   ]);
   return [...(communities.data ?? []), ...(channels.data ?? [])];
 }

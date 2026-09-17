@@ -264,7 +264,19 @@ export async function setAdminUserSubscription(
   return mapAdminSubscription(res.data);
 }
 
-export type ModerationType = "posts" | "communities" | "videos" | "channel_posts" | "listings";
+export type ModerationType =
+  | "posts"
+  | "communities"
+  | "videos"
+  | "channel_posts"
+  | "listings"
+  | "community_applications"
+  | "channel_applications";
+
+/** Заявки решаются только «одобрить» или «отклонить» — доработки у них нет. */
+export function isApplicationModeration(type: ModerationType): boolean {
+  return type === "community_applications" || type === "channel_applications";
+}
 
 export interface ModerationItem {
   id: number;
@@ -279,6 +291,8 @@ export interface ModerationItem {
   channelSlug: string | null;
   communitySlug: string | null;
   priceRub: number | null;
+  /** Что заявитель заполнил сверх названия и описания. */
+  details: { label: string; value: string }[];
 }
 
 interface ApiModerationItem {
@@ -288,7 +302,9 @@ interface ApiModerationItem {
   moderatable_type?: string;
   moderatable_id?: number;
   moderatable?: {
-    uuid?: string;
+    uuid?: string | null;
+    application_id?: number | null;
+    details?: { label: string; value: string }[];
     slug?: string | null;
     title?: string | null;
     name?: string | null;
@@ -305,6 +321,8 @@ interface ApiModerationItem {
 }
 
 function moderationTypeFromClass(cls?: string): ModerationType {
+  if (cls === "CommunityApplication") return "community_applications";
+  if (cls === "ChannelApplication") return "channel_applications";
   if (cls === "Community") return "communities";
   if (cls === "Video") return "videos";
   if (cls === "ChannelPost") return "channel_posts";
@@ -319,10 +337,15 @@ export async function fetchModerationQueue(status = "pending"): Promise<Moderati
   return (res.data ?? [])
     .map((m) => {
       const mod = m.moderatable;
+      const type = moderationTypeFromClass(m.moderatable_type);
       return {
         id: m.id,
-        type: moderationTypeFromClass(m.moderatable_type),
-        targetId: mod?.uuid ?? "",
+        type,
+        // У заявки нет uuid: решение адресуется номером заявки. До 17.09
+        // здесь стоял только uuid, и заявка отбрасывалась фильтром ниже.
+        targetId: isApplicationModeration(type)
+          ? String(mod?.application_id ?? m.moderatable_id ?? "")
+          : (mod?.uuid ?? ""),
         title: mod?.title ?? mod?.name ?? "Без названия",
         author: mod?.author?.display_name ?? "",
         category: mod?.category?.name ?? mod?.channel?.name ?? m.queue ?? "",
@@ -332,6 +355,7 @@ export async function fetchModerationQueue(status = "pending"): Promise<Moderati
         channelSlug: mod?.channel?.slug ?? null,
         communitySlug: mod?.slug ?? null,
         priceRub: mod?.price_cents != null ? Math.round(mod.price_cents / 100) : null,
+        details: mod?.details ?? [],
       };
     })
     .filter((m) => m.targetId !== "");

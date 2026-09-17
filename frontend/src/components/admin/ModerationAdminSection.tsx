@@ -9,6 +9,7 @@ import {
   approveModeration,
   fetchAdminReports,
   fetchModerationQueue,
+  isApplicationModeration,
   rejectModeration,
   reviseModeration,
   updateAdminReportStatus,
@@ -37,7 +38,20 @@ const card: CSSProperties = {
   borderRadius: "var(--r-card)",
 };
 
-const QUEUE_TAB_IDS = ["posts", "channel_posts", "communities", "listings", "videos"] as const;
+/*
+ * Заявки на создание сообщества и канала — здесь же, с 17.09. Модератор
+ * работает в этой очереди, а заявки жили только в разделе «Заявки»: на проде
+ * все 32 рассмотренные заявки рассмотрели Владельцы, ни одной — модератор.
+ */
+const QUEUE_TAB_IDS = [
+  "posts",
+  "channel_posts",
+  "communities",
+  "community_applications",
+  "channel_applications",
+  "listings",
+  "videos",
+] as const;
 type QueueTabId = (typeof QUEUE_TAB_IDS)[number];
 
 const REPORT_FILTER_IDS = [
@@ -64,6 +78,7 @@ const REPORT_TARGET_IDS = [
   "comment",
   "video",
   "community",
+  "channel",
 ] as const;
 const REPORT_ENTITY_TAB_IDS = [
   "all",
@@ -96,6 +111,10 @@ function moderationOpenPath(item: ModerationItem): string | null {
       return item.targetId ? `/ads/${item.targetId}` : null;
     case "videos":
       return item.targetId ? `/reviews/${item.targetId}` : null;
+    // Сообщества или канала ещё нет — открывать на сайте нечего.
+    case "community_applications":
+    case "channel_applications":
+      return null;
     default:
       return null;
   }
@@ -147,6 +166,7 @@ function ModerationDetailCard({
 }) {
   const { t } = useTranslation();
   const openPath = moderationOpenPath(item);
+  const isApplication = isApplicationModeration(item.type);
   const submitted = item.submittedAt ? formatDate(item.submittedAt, "absolute") : null;
 
   return (
@@ -199,7 +219,12 @@ function ModerationDetailCard({
             {item.title}
           </h5>
           <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--foreground-50)" }}>
-            {t("pages.adminModeration.cardAuthor", { name: item.author || "—" })}
+            {t(
+              isApplication
+                ? "pages.adminModeration.cardApplicant"
+                : "pages.adminModeration.cardAuthor",
+              { name: item.author || "—" },
+            )}
             {submitted ? ` · ${t("pages.adminModeration.cardSubmitted", { date: submitted })}` : ""}
             {item.priceRub != null ? ` · ${item.priceRub.toLocaleString("ru-RU")} ₽` : ""}
           </div>
@@ -224,6 +249,34 @@ function ModerationDetailCard({
         >
           {item.body}
         </div>
+      )}
+
+      {item.details.length > 0 && (
+        <dl
+          style={{
+            marginTop: "12px",
+            display: "grid",
+            gridTemplateColumns: "minmax(0, max-content) minmax(0, 1fr)",
+            columnGap: "12px",
+            rowGap: "6px",
+            fontSize: "13px",
+          }}
+        >
+          {item.details.map((d) => (
+            <div key={d.label} style={{ display: "contents" }}>
+              <dt style={{ color: "var(--foreground-50)" }}>{d.label}</dt>
+              <dd
+                style={{
+                  color: "var(--foreground-80)",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {d.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
       )}
 
       {item.media.length > 0 && (
@@ -256,13 +309,16 @@ function ModerationDetailCard({
         <button type="button" onClick={onApprove} style={feedbackBtn("var(--success)", "#fff")}>
           {t("pages.adminModeration.cardApprove")}
         </button>
-        <button
-          type="button"
-          onClick={onRevision}
-          style={feedbackBtn("var(--warning-soft)", "var(--warning)")}
-        >
-          {t("pages.adminModeration.cardRevision")}
-        </button>
+        {/* У заявки нет доработки: сервер ответит 422. */}
+        {!isApplication && (
+          <button
+            type="button"
+            onClick={onRevision}
+            style={feedbackBtn("var(--warning-soft)", "var(--warning)")}
+          >
+            {t("pages.adminModeration.cardRevision")}
+          </button>
+        )}
         <button type="button" onClick={onReject} style={feedbackBtn("var(--error)", "#fff")}>
           {t("pages.adminModeration.cardReject")}
         </button>
@@ -632,7 +688,16 @@ export function ModerationAdminSection() {
   const reloadQueue = () => {
     setLoading(true);
     fetchModerationQueue("pending")
-      .then(setQueue)
+      .then((list) => {
+        setQueue(list);
+        // Открыть вкладку, где есть что решать: на пустых «Публикациях»
+        // заявка в соседней вкладке видна только цифрой на ярлыке.
+        setQueueTab((current) =>
+          list.some((q) => q.type === current)
+            ? current
+            : (QUEUE_TAB_IDS.find((id) => list.some((q) => q.type === id)) ?? current),
+        );
+      })
       .catch(() => toast.error(t("pages.adminModeration.queueLoadFailed")))
       .finally(() => setLoading(false));
   };
