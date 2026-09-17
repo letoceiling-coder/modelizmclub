@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { toggleClampInPlace } from "@/lib/ui/clamp-text";
 
 interface Props {
   text: string;
@@ -81,7 +82,11 @@ export function CollapsibleText({ text, maxLines = 6, maxLinesLg, className, sty
       {(overflows || expanded) && (
         <button
           type="button"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={(e) => {
+            // Без рывка: начало текста остаётся на месте — см. toggleClampInPlace.
+            const control = e.currentTarget;
+            toggleClampInPlace(ref.current, control, !expanded, () => setExpanded((v) => !v));
+          }}
           className="mt-[8px] text-[13px] font-semibold transition-opacity hover:opacity-80"
           style={{ color: "var(--accent)" }}
         >

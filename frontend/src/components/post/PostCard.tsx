@@ -54,6 +54,7 @@ import { RepostComposerDialog } from "@/components/feed/RepostComposerDialog";
 import { formatDate } from "@/lib/format/date";
 import { Img } from "@/components/ui/Img";
 import { askConfirm } from "@/lib/ui/ask";
+import { exceedsLines, toggleClampInPlace, useClampOverflow } from "@/lib/ui/clamp-text";
 
 export type PostCardVariant = "feed" | "community" | "channel" | "profile" | "post" | "embedded";
 
@@ -164,6 +165,10 @@ export function PostCard({
   // строками, в карточке — тремя на телефоне и четырьмя на широком экране.
   // Одно на двоих раскрывало бы карточку в ленте заодно с панелью.
   const [asideExpanded, setAsideExpanded] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const asideTextRef = useRef<HTMLParagraphElement>(null);
+  const textClamped = useClampOverflow(textRef, expanded, post.text ?? "");
+  const asideTextClamped = useClampOverflow(asideTextRef, asideExpanded, post.text ?? "");
   const [showAllComments, setShowAllComments] = useState(false);
   /*
    * Просмотрщик записи: номер открытого снимка.
@@ -384,20 +389,20 @@ export function PostCard({
   // Текст обрезается строками, а не символами: четыре строки на широком
   // экране, три на телефоне — ровно то, что видно, без «…» посреди слова.
   //
-  // Показывать ли «Показать ещё», решается по длине текста, а не по
-  // измеренной высоте, и одинаково на сервере и в браузере. Измерение дало бы
-  // точный ответ, но только после первого кадра: кнопка появлялась бы уже
-  // после отрисовки и толкала медиа вниз — тот самый сдвиг, ради которого
-  // всё это и затевалось. Пороги — вместимость строк: ~50 символов в строке
-  // на 375 (три строки) и ~90 на 680 (четыре).
-  const CLAMP_MOBILE_CHARS = 150;
-  /** Панель просмотрщика: колонка 380, ~48 знаков в строке. Шесть строк на
-   *  широком экране, три на узком — по числу строк и считаем. */
-  const CLAMP_ASIDE_NARROW_CHARS = 145;
-  const CLAMP_ASIDE_WIDE_CHARS = 290;
-  const CLAMP_DESKTOP_CHARS = 330;
-  const canExpandMobile = text.length > CLAMP_MOBILE_CHARS;
-  const canExpandDesktop = text.length > CLAMP_DESKTOP_CHARS;
+  // Нужна ли «Показать ещё», решает мера: обрезан ли текст на самом деле
+  // (useClampOverflow). Первый кадр и серверная разметка идут по оценке —
+  // вместимость строк с учётом переносов: ~50 знаков в строке на 375 (три
+  // строки) и ~82 на 680 (четыре), — а мера приходит до следующей отрисовки.
+  // До 17.09 оценка была единственным ответом и считала только длину: на 1440
+  // у 9 из 11 обрезанных текстов кнопки не было — два переноса добавляли
+  // строку, а порог их не видел.
+  const canExpandMobile = exceedsLines(text, 50, 3);
+  const canExpandDesktop = exceedsLines(text, 82, 4);
+  /** Панель просмотрщика: колонка 380, ~48 знаков в строке; шесть строк на
+   *  широком экране, три на узком. Окно открывается по нажатию, так что
+   *  здесь мера есть с первого кадра, оценка — только запасная. */
+  const canExpandAsideNarrow = exceedsLines(text, 48, 3);
+  const canExpandAsideWide = exceedsLines(text, 48, 6);
   /*
    * Счётчик берётся из записи, а не из загруженного куска ветки.
    *
@@ -623,10 +628,7 @@ export function PostCard({
 
       {/*
         Текст записи под действиями — шесть строк, дальше «Показать ещё».
-        Порог по длине, а не по измеренной высоте: измерять пришлось бы после
-        первого кадра, и кнопка появлялась бы уже после отрисовки, толкая
-        список комментариев вниз. Ширина колонки 380 минус поля — около
-        сорока восьми знаков в строке, шесть строк это примерно 290.
+        Кнопка — по мере, обрезан ли текст (см. canExpandMobile).
       */}
       {text && (
         <div className="shrink-0 border-b border-[var(--border)] px-4 py-3">
@@ -636,6 +638,7 @@ export function PostCard({
             самим комментариям.
           */}
           <p
+            ref={asideTextRef}
             className={`whitespace-pre-line text-[15px] leading-[20px] ${
               asideExpanded ? "" : "line-clamp-3 lg:line-clamp-6"
             }`}
@@ -643,16 +646,18 @@ export function PostCard({
           >
             {text}
           </p>
-          {/* Кнопка появляется по тому же порогу, по которому обрезается
-              текст: на узком экране раньше, чем на широком. Иначе на 1440
-              она предлагала бы раскрыть то, что и так видно целиком. */}
-          {text.length > CLAMP_ASIDE_NARROW_CHARS && (
+          {(asideExpanded || (asideTextClamped ?? canExpandAsideNarrow)) && (
             <button
               type="button"
-              onClick={() => setAsideExpanded((v) => !v)}
+              onClick={(e) => {
+                const control = e.currentTarget;
+                toggleClampInPlace(asideTextRef.current, control, !asideExpanded, () =>
+                  setAsideExpanded((v) => !v),
+                );
+              }}
               className={cn(
                 "hit-target mt-1 min-h-[32px] cursor-pointer text-[13px] font-semibold transition-opacity hover:opacity-80",
-                text.length > CLAMP_ASIDE_WIDE_CHARS ? "" : "lg:hidden",
+                asideTextClamped === null && !canExpandAsideWide && "lg:hidden",
               )}
               style={{ color: "var(--accent)" }}
             >
@@ -961,27 +966,33 @@ export function PostCard({
 
             {post.text ? (
               <p
+                ref={textRef}
                 className={cn(
                   "mt-[8px] whitespace-pre-line text-[14px] leading-[1.45]",
-                  !expanded && "line-clamp-3 md:line-clamp-4",
+                  // Страница записи — это и есть «показать всё»: там текст целиком.
+                  !expanded && variant !== "post" && "line-clamp-3 md:line-clamp-4",
                 )}
                 style={{ color: "var(--foreground-90)" }}
               >
                 {text}
               </p>
             ) : null}
-            {canExpandMobile && (
+            {variant !== "post" && (expanded || (textClamped ?? canExpandMobile)) && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExpanded((v) => !v);
+                  const control = e.currentTarget;
+                  toggleClampInPlace(textRef.current, control, !expanded, () =>
+                    setExpanded((v) => !v),
+                  );
                 }}
                 className={cn(
                   "hit-target mt-[4px] text-[12px] font-semibold transition-opacity hover:opacity-80",
-                  // На широком экране помещается четыре строки: текст, который
-                  // на телефоне обрезан, здесь виден целиком — и кнопка не нужна.
-                  canExpandDesktop ? "" : "md:hidden",
+                  // Пока не измерено — по оценке: на широком экране помещается
+                  // четыре строки, и текст, обрезанный на телефоне, там может
+                  // быть виден целиком.
+                  textClamped === null && !canExpandDesktop && "md:hidden",
                 )}
                 style={{ color: "var(--accent)" }}
               >
