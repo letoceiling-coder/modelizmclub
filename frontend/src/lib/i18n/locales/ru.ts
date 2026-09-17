@@ -687,6 +687,7 @@ export const ru = {
       categoryRequired: "Выберите направление",
       videoRequired: "Добавьте видео",
       sentToModeration: "Публикация отправлена на модерацию",
+      published: "Публикация опубликована",
       publishedToChannel: "Пост опубликован в канал",
       publishFailed: "Не удалось опубликовать. Попробуйте позже.",
       videoQueued: "Публикация отправлена. Видео обрабатывается в фоне.",

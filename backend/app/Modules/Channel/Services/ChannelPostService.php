@@ -22,8 +22,18 @@ class ChannelPostService
         private readonly PostService $postService,
     ) {}
 
-    public function requiresModeration(): bool
+    /**
+     * Запись команды канала — владельца и назначенных им администраторов —
+     * проверки не ждёт: писать в канал больше никто и не может
+     * (ChannelController, canManage). До 18.09 решал только флаг площадки,
+     * и запись владельца уходила в очередь.
+     */
+    public function requiresModeration(Channel $channel, ?User $author): bool
     {
+        if ($channel->canManage($author)) {
+            return false;
+        }
+
         return ! $this->postService->autoPublishEnabled();
     }
 
@@ -33,7 +43,7 @@ class ChannelPostService
     public function create(Channel $channel, User $author, array $data, array $mediaIds): ChannelPost
     {
         return DB::transaction(function () use ($channel, $author, $data, $mediaIds): ChannelPost {
-            $needsModeration = $this->requiresModeration();
+            $needsModeration = $this->requiresModeration($channel, $author);
 
             $channelPost = ChannelPost::query()->create([
                 'channel_id' => $channel->id,

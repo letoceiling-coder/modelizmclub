@@ -173,7 +173,14 @@ class PostService
             ]);
         }
 
-        return DB::transaction(function () use ($post): Post {
+        return DB::transaction(function () use ($post, $user): Post {
+            if ($this->skipsCommunityCheck($post, $user)) {
+                // Мимо очереди: строки в ней нет вовсе, а не «одобрено».
+                $this->markPublished($post);
+
+                return $post->fresh($this->defaultRelations());
+            }
+
             $post->update([
                 'status' => ContentStatus::PendingModeration,
                 'scheduled_at' => null,
@@ -197,6 +204,25 @@ class PostService
 
             return $post->fresh($this->defaultRelations());
         });
+    }
+
+    /**
+     * Сообщество освобождает запись от проверки — мимо очереди, сразу.
+     *
+     * Запись владельца и назначенных им модераторов: сообщество проверено при
+     * создании, они — доверенные лица. До 18.09 решал только флаг площадки, и
+     * в очередь уходила и их запись. Запись участника — когда владелец
+     * выключил «Проверять записи участников».
+     *
+     * Иначе решает флаг площадки, как и вне сообщества: при включённой
+     * автопубликации проверки нет ни у кого (publish).
+     */
+    private function skipsCommunityCheck(Post $post, User $author): bool
+    {
+        $community = $post->community_id ? $post->community()->first() : null;
+
+        return $community !== null
+            && ($community->canManage($author) || ! $community->moderate_member_posts);
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Models\Media;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Channel\Services\ChannelPostService;
 use Tests\TestCase;
 
 class ChannelPostMediaTest extends TestCase
@@ -98,7 +99,7 @@ class ChannelPostMediaTest extends TestCase
             ->assertStatus(403);
     }
 
-    public function test_channel_post_goes_to_moderation_when_auto_publish_disabled(): void
+    public function test_post_from_outside_the_channel_team_goes_to_moderation_when_auto_publish_disabled(): void
     {
         config(['feed.auto_publish' => false]);
 
@@ -110,14 +111,15 @@ class ChannelPostMediaTest extends TestCase
             'kind' => 'author',
         ]);
 
-        $response = $this->actingAs($owner, 'sanctum')
-            ->postJson("/api/v1/channels/{$channel->slug}/posts", [
-                'text' => 'Пост на проверку',
-                'kind' => 'news',
-            ])
-            ->assertCreated();
-
-        $response->assertJsonPath('data.status', 'moderation');
+        // Команда канала публикует сразу (CommunityModerationToggleTest). На
+        // проверку запись попадает, только если автор не из команды — так
+        // лежат записи, созданные до 18.09.
+        app(ChannelPostService::class)->create(
+            $channel,
+            User::factory()->create(['status' => UserStatus::Active]),
+            ['text' => 'Пост на проверку', 'kind' => 'news'],
+            [],
+        );
 
         $channelPost = ChannelPost::query()->firstOrFail();
         $this->assertSame('moderation', $channelPost->status);
@@ -151,12 +153,12 @@ class ChannelPostMediaTest extends TestCase
             'kind' => 'author',
         ]);
 
-        $this->actingAs($owner, 'sanctum')
-            ->postJson("/api/v1/channels/{$channel->slug}/posts", [
-                'text' => '123131312',
-                'kind' => 'news',
-            ])
-            ->assertCreated();
+        app(ChannelPostService::class)->create(
+            $channel,
+            User::factory()->create(['status' => UserStatus::Active]),
+            ['text' => '123131312', 'kind' => 'news'],
+            [],
+        );
 
         $channelPost = ChannelPost::query()->firstOrFail();
         $feedPost = $channelPost->feedPost;

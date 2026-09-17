@@ -7,6 +7,7 @@ use App\Models\Channel;
 use App\Models\ChannelPost;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Channel\Services\ChannelPostService;
 use Tests\TestCase;
 
 class ChannelPostDeleteTest extends TestCase
@@ -66,12 +67,14 @@ class ChannelPostDeleteTest extends TestCase
             'kind' => 'author',
         ]);
 
-        $this->actingAs($owner, 'sanctum')
-            ->postJson("/api/v1/channels/{$channel->slug}/posts", [
-                'text' => 'Пост на модерации',
-                'kind' => 'news',
-            ])
-            ->assertCreated();
+        // Запись владельца проверки не ждёт; на проверке — запись не из
+        // команды, как созданные до 18.09.
+        app(ChannelPostService::class)->create(
+            $channel,
+            User::factory()->create(['status' => UserStatus::Active]),
+            ['text' => 'Пост на модерации', 'kind' => 'news'],
+            [],
+        );
 
         $channelPost = ChannelPost::query()->firstOrFail();
         $this->assertSame('moderation', $channelPost->status);

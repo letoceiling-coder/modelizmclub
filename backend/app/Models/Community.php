@@ -30,6 +30,7 @@ class Community extends Model
         'status',
         'is_official',
         'access_type',
+        'moderate_member_posts',
         'custom_category',
         'members_count',
         'posts_count',
@@ -44,6 +45,7 @@ class Community extends Model
         return [
             'status' => CommunityStatus::class,
             'is_official' => 'boolean',
+            'moderate_member_posts' => 'boolean',
             'settings' => 'array',
             'contacts' => 'array',
             'approved_at' => 'datetime',

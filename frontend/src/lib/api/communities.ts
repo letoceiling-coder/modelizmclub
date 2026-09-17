@@ -13,6 +13,7 @@ interface ApiCommunity {
   rules?: string | null;
   is_official?: boolean;
   access_type?: "open" | "request";
+  moderate_member_posts?: boolean;
   custom_category?: string | null;
   members_count?: number;
   posts_count?: number;
@@ -111,6 +112,7 @@ export function mapCommunity(c: ApiCommunity): Community {
     postsCount: c.posts_count ?? 0,
     role: c.viewer_role ?? (c.is_owner ? "owner" : c.is_member ? "member" : undefined),
     accessType: c.access_type ?? "open",
+    moderateMemberPosts: c.moderate_member_posts !== false,
     rules: c.rules ?? null,
     customCategory: c.custom_category ?? null,
     city: c.city ?? null,
@@ -274,6 +276,7 @@ export async function updateCommunity(
     cityId?: number | null;
     rules?: string | null;
     accessType?: "open" | "request";
+    moderateMemberPosts?: boolean;
     contacts?: { telegram?: string; website?: string; phone?: string } | null;
     customCategory?: string | null;
     postCategoryIds?: number[];
@@ -288,6 +291,7 @@ export async function updateCommunity(
       categoryId: input.categoryId ?? current.categoryId,
       rules: input.rules ?? current.rules,
       accessType: input.accessType ?? current.accessType,
+      moderateMemberPosts: input.moderateMemberPosts ?? current.moderateMemberPosts,
       contacts: input.contacts ?? current.contacts,
     };
   }
@@ -300,6 +304,7 @@ export async function updateCommunity(
       city_id: input.cityId,
       rules: input.rules,
       access_type: input.accessType,
+      moderate_member_posts: input.moderateMemberPosts,
       contacts: input.contacts,
       custom_category: input.customCategory,
       post_category_ids: input.postCategoryIds,

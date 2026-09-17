@@ -59,6 +59,7 @@ class CommunityResource extends JsonResource
             'rules' => $this->rules,
             'is_official' => $this->is_official,
             'access_type' => $this->access_type ?? 'open',
+            'moderate_member_posts' => (bool) ($this->moderate_member_posts ?? true),
             'custom_category' => $this->custom_category,
             'contacts' => $this->contacts,
             'members_count' => (int) ($this->live_members_count ?? $this->members_count),

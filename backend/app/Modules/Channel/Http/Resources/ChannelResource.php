@@ -5,7 +5,7 @@ namespace Modules\Channel\Http\Resources;
 use App\Models\Channel;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Modules\Feed\Services\PostService;
+use Modules\Channel\Services\ChannelPostService;
 use Modules\User\Http\Resources\UserCompactResource;
 
 /** @mixin Channel */
@@ -43,7 +43,8 @@ class ChannelResource extends JsonResource
             'comments_enabled' => (bool) $this->comments_enabled,
             'rules' => $this->rules ?? '',
             'contacts' => $this->contacts ?? '',
-            'posts_require_moderation' => app(PostService::class)->autoPublishEnabled() === false,
+            // Для смотрящего: команда канала публикует сразу.
+            'posts_require_moderation' => app(ChannelPostService::class)->requiresModeration($this->resource, $viewer),
         ];
     }
 }
