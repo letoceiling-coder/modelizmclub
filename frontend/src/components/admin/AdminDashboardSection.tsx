@@ -112,7 +112,13 @@ export function Dashboard({ role }: { role: AdminRole }) {
         initial="hidden"
         animate="visible"
         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
+        /*
+          Шесть в ряд — от 1280, а не от 1024. На 1024 колонка содержимого
+          756, карточка 116, место под подпись 84, а «ВСЕГО ПОЛЬЗОВАТЕЛЕЙ»
+          заглавными одним словом — 107: слово вылезало из карточки на 8 px
+          в зазор к соседней (замер на проде 17.09). Три в ряд на 1024 — 244.
+        */
+        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
         style={{ gap: "12px" }}
       >
         {stats.map((s, i) => (

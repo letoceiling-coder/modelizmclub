@@ -497,10 +497,28 @@ function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--background)" }}>
+    /*
+     * От 768 оболочка ростом в экран, прокручивается только <main> — как у
+     * сайта (AppLayout от 1024). Шапка и левое меню стоят на месте.
+     *
+     * Раньше они были `sticky`, но не липли: у html и body стоит
+     * overflow-x: hidden, body от этого становится прокручивающим
+     * контейнером, а прокручивается окно — и sticky-элементы уезжали вместе
+     * со страницей. Замер на проде 17.09, 1440: после прокрутки на 400 шапка
+     * на −400, меню на −352. Меню при этом высотой в экран (852) со своей
+     * прокруткой без полосы: у владельца 26 разделов — 1002 px, и уехавшая
+     * вверх колонка обрывалась рамкой посреди страницы, а «Правила»,
+     * «Юридические страницы», «Ссылки подвала» и «История изменений»
+     * оставались под её нижним краем, где содержимое страницы шло дальше.
+     * На телефоне меню нет (выбор разделом), там прокручивается окно.
+     */
+    <div
+      className="min-h-screen md:flex md:h-[100dvh] md:min-h-0 md:flex-col md:overflow-hidden"
+      style={{ background: "var(--background)" }}
+    >
       {/* Header */}
       <header
-        className="sticky top-0 z-[var(--z-sticky)] flex items-center justify-between backdrop-blur"
+        className="sticky top-0 z-[var(--z-sticky)] flex shrink-0 items-center justify-between backdrop-blur"
         style={{
           height: "48px",
           background: "color-mix(in oklab, var(--background) 85%, transparent)",
@@ -534,16 +552,14 @@ function AdminPage() {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex md:min-h-0 md:flex-1">
         {/* Sidebar */}
         <aside
-          className="hidden md:block sticky"
+          className="hidden md:block"
           style={{
             width: "220px",
             background: "var(--background-elevated)",
             borderRight: "1px solid var(--border)",
-            height: "calc(100vh - 48px)",
-            top: "48px",
             overflowY: "auto",
             padding: "8px",
             flexShrink: 0,
@@ -584,7 +600,7 @@ function AdminPage() {
         </aside>
 
         {/* Main */}
-        <main className="min-w-0 flex-1 p-3 sm:p-5 md:p-6">
+        <main className="min-w-0 flex-1 p-3 sm:p-5 md:overflow-y-auto md:p-6">
           {/* Mobile selector */}
           <div className="md:hidden" style={{ marginBottom: "16px" }}>
             <select
