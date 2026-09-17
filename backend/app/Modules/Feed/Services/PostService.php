@@ -3,6 +3,7 @@
 namespace Modules\Feed\Services;
 
 use App\Enums\ContentStatus;
+use App\Models\ChannelPost;
 use App\Models\Community;
 use App\Models\ModerationQueue;
 use App\Models\Post;
@@ -14,12 +15,14 @@ use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
 use App\Support\ScheduledPublishFailures;
 use App\Support\UserLabel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Channel\Services\ChannelPostViewLedger;
 use Modules\Feed\Support\PostMediaSync;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -27,6 +30,7 @@ class PostService
 {
     public function __construct(
         private readonly PostMediaSync $mediaSync,
+        private readonly ChannelPostViewLedger $channelViews,
     ) {}
 
     public function findByUuid(string $uuid, ?User $viewer = null): Post
@@ -381,10 +385,21 @@ class PostService
     /**
      * Count a view for a published post. The author's own views are ignored.
      * Updates the in-memory model so the response reflects the new total.
+     *
+     * Зеркало записи канала считается по книге канала: одна запись — один
+     * счётчик, уникально по читателю, без команды канала. Разбор — в
+     * ChannelPostViewLedger.
      */
-    public function recordView(Post $post, ?User $viewer): void
+    public function recordView(Post $post, ?User $viewer, ?Request $request = null): void
     {
         if ($post->status !== ContentStatus::Published) {
+            return;
+        }
+
+        $mirror = ChannelPost::query()->where('feed_post_id', $post->id)->first();
+        if ($mirror !== null) {
+            $this->channelViews->record($mirror, $viewer, $request ?? request(), $post);
+
             return;
         }
 

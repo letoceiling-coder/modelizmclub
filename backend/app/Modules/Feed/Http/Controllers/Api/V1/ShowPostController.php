@@ -14,7 +14,7 @@ class ShowPostController extends Controller
     {
         $viewer = $request->user('sanctum');
         $post = $posts->findByUuid($uuid, $viewer);
-        $posts->recordView($post, $viewer);
+        $posts->recordView($post, $viewer, $request);
 
         return (new PostResource($post))->response();
     }

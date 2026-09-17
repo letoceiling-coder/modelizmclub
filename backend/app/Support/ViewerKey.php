@@ -17,9 +17,12 @@ final class ViewerKey
             return 'u:'.$user->id;
         }
 
+        // Сессии у запроса может не быть вовсе: серверная отрисовка страницы
+        // записи ходит в API без куки и без Origin, и session() бросает
+        // «Session store not set on request». Тогда ключ — адрес.
         $raw = $request->header('X-Guest-Viewer')
             ?: $request->cookie(self::COOKIE)
-            ?: $request->session()->getId();
+            ?: ($request->hasSession() ? $request->session()->getId() : '');
 
         $raw = is_string($raw) ? trim($raw) : '';
         if ($raw !== '' && preg_match('/^[A-Za-z0-9._:-]{8,80}$/', $raw)) {
