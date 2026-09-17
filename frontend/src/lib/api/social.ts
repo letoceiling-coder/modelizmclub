@@ -276,13 +276,22 @@ export function applyOwnProfilePatch(user: User, profile: ApiOwnProfile): User {
   const name = profile.display_name ?? user.name;
   const avatarUrl = profile.avatar?.url?.trim();
   const coverUrl = profile.cover?.url?.trim();
+  /*
+   * «О себе» и город берутся из ответа, если поле в нём есть, — даже null.
+   * Сервер превращает пустую строку в null, и `profile.bio ?? user.bio`
+   * возвращало на экран только что стёртый текст: на проде 17.09 «о себе»
+   * стёрто, сервер ответил bio: null, вкладка до перезагрузки показывала
+   * прежнее. С городом то же самое.
+   */
+  const hasBio = profile.bio !== undefined;
+  const hasCity = profile.city !== undefined || profile.city_id !== undefined;
   return {
     ...user,
     name,
     slug: profile.slug ?? user.slug,
-    bio: profile.bio ?? user.bio,
-    city: profile.city?.name ?? user.city,
-    cityId: profile.city_id ?? profile.city?.id ?? user.cityId,
+    bio: hasBio ? (profile.bio ?? undefined) : user.bio,
+    city: hasCity ? (profile.city?.name ?? "") : user.city,
+    cityId: hasCity ? (profile.city_id ?? profile.city?.id ?? undefined) : user.cityId,
     avatar: avatarUrl || user.avatar,
     coverImage: coverUrl || user.coverImage,
   };

@@ -1009,13 +1009,18 @@ class SafeDealService
 
     public function review(User $author, SafeDeal $deal, int $rating, ?string $text): UserReview
     {
-        $this->assertParticipant($deal, $author, 'any');
+        // Только покупатель и только продавцу: оценка продавца покупателем —
+        // правило заказчика 17.09. Раньше цель выбиралась «другая сторона».
+        $this->assertParticipant($deal, $author, 'buyer');
 
         if ($deal->status !== SafeDealStatus::Completed) {
             throw ValidationException::withMessages(['deal' => ['Оценить можно только завершённую безопасную сделку.']]);
         }
 
-        $targetId = (int) $author->id === (int) $deal->buyer_id ? (int) $deal->seller_id : (int) $deal->buyer_id;
+        $targetId = (int) $deal->seller_id;
+        if ($targetId === (int) $author->id) {
+            throw ValidationException::withMessages(['deal' => ['Нельзя оценить самого себя.']]);
+        }
 
         if (UserReview::query()->where('safe_deal_id', $deal->id)->where('author_id', $author->id)->exists()) {
             throw ValidationException::withMessages(['deal' => ['Вы уже оставили оценку по этой сделке.']]);

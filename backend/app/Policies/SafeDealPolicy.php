@@ -89,7 +89,12 @@ class SafeDealPolicy
      */
     public function review(User $user, SafeDeal $deal): Response|bool
     {
-        if (! $deal->involves($user) || $deal->status !== SafeDealStatus::Completed) {
+        // Отзыв оставляет покупатель продавцу — правило заказчика 17.09. До
+        // него здесь стояло `involves()`, и продавец тоже получал
+        // `can_review: true` по завершённой сделке (прод, сделки 1229→1230).
+        if (! $this->isBuyer($user, $deal)
+            || (int) $deal->buyer_id === (int) $deal->seller_id
+            || $deal->status !== SafeDealStatus::Completed) {
             return false;
         }
 

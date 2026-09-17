@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,15 @@ interface Props {
   size?: number;
   online?: boolean;
   className?: string;
+  /**
+   * slug или uuid человека — аватар становится ссылкой на его профиль.
+   *
+   * Не передавать, если аватар уже стоит внутри ссылки или кнопки (строка
+   * диалога, выбор получателя, шапка переписки): вложенная ссылка — это
+   * два интерактивных элемента друг в друге. Числовой id не подходит —
+   * /user/{id} ищет профиль по slug или uuid.
+   */
+  profileId?: string | null;
 }
 
 /**
@@ -26,11 +36,11 @@ interface Props {
  * initials when the image is missing or fails to load — never renders
  * `<img src="">` or a broken-image glyph. Optional online dot overlay.
  */
-export function UserAvatar({ src, name, size = 48, online, className }: Props) {
+export function UserAvatar({ src, name, size = 48, online, className, profileId }: Props) {
   const hasSrc = Boolean(src && src.trim());
   const dot = Math.max(10, Math.round(size * 0.25));
 
-  return (
+  const face = (
     <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
       <Avatar className={cn("h-full w-full", className)}>
         {hasSrc && <AvatarImage src={src ?? undefined} alt="" />}
@@ -57,5 +67,17 @@ export function UserAvatar({ src, name, size = 48, online, className }: Props) {
         />
       )}
     </span>
+  );
+
+  if (!profileId) return face;
+  return (
+    <Link
+      to="/user/$id"
+      params={{ id: profileId }}
+      aria-label={name}
+      className="inline-flex shrink-0 rounded-full"
+    >
+      {face}
+    </Link>
   );
 }

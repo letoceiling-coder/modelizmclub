@@ -22,6 +22,7 @@ import {
 import { fetchUserRating } from "@/lib/api/rating";
 import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
 import i18n from "@/lib/i18n";
+import { resolveProfileCityId, splitInterests } from "@/lib/profile/edit";
 import { ProfilePageSkeleton } from "@/components/boot/PageSkeletons";
 import {
   ProfileView,
@@ -127,18 +128,23 @@ function ProfilePage() {
       throw new Error(t("pages.profile.bioLengthError", { max: PROFILE_BIO_MAX }));
     }
 
-    const resolvedCityId = cityId ?? draft.cityId ?? null;
+    const city = resolveProfileCityId({
+      text: draft.city,
+      pickedId: cityId,
+      savedId: currentUser.cityId,
+      savedName: currentUser.city,
+    });
+    if ("error" in city) {
+      throw new Error(t("pages.profile.cityPickError"));
+    }
     const profile = await updateOwnProfile({
       display_name: trimmedName,
       bio,
-      city_id: resolvedCityId,
+      city_id: city.cityId,
     });
 
     await fetchPostCategories();
-    const interestNames = (draft.interests || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const interestNames = splitInterests(draft.interests);
     if (interestNames.length > PROFILE_INTERESTS_MAX) {
       throw new Error(t("pages.profile.interestsLimitError", { max: PROFILE_INTERESTS_MAX }));
     }
@@ -150,9 +156,10 @@ function ProfilePage() {
     }
     const interests = await syncOwnInterests(categoryIds);
 
+    // Город — из ответа сервера, а не из поля: иначе стёртый город
+    // оставался на экране до перезагрузки.
     setCurrentUser({
       ...applyOwnProfilePatch(currentUser, profile),
-      city: profile.city?.name ?? draft.city,
       interests,
     });
   };

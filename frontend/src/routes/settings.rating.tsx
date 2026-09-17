@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Star } from "lucide-react";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useCurrentUser } from "@/lib/session";
 import { isDemoMode } from "@/lib/demo-mode";
 import { fetchUserRating, fetchUserReviews } from "@/lib/api/rating";
@@ -30,15 +30,12 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
   );
 }
 
-function initials(name: string): string {
-  const p = name.trim().split(/\s+/);
-  return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase();
-}
-
 interface ReviewRow {
   id: string;
   author: string;
   avatar?: string;
+  /** slug или uuid автора — аватар ведёт в его профиль. */
+  profileId?: string;
   rating: number;
   text: string;
   date: string;
@@ -83,6 +80,8 @@ function RatingSection() {
           rows.map((r) => ({
             id: r.id,
             author: r.author.display_name ?? t("pages.settings.defaultUser"),
+            avatar: r.author.avatar_url ?? undefined,
+            profileId: r.author.slug ?? r.author.uuid ?? undefined,
             rating: r.rating,
             text: r.text ?? "",
             date: r.date,
@@ -153,15 +152,7 @@ function RatingSection() {
               className="flex items-start gap-[12px] p-[16px]"
               style={{ borderColor: "var(--border)", borderRadius: "var(--r-card)" }}
             >
-              <Avatar className="h-[40px] w-[40px] shrink-0">
-                <AvatarImage src={r.avatar} alt="" />
-                <AvatarFallback
-                  className="text-[13px] font-semibold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                >
-                  {initials(r.author)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar src={r.avatar} name={r.author} size={40} profileId={r.profileId} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-[8px]">
                   <span

@@ -8,6 +8,7 @@ use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class UserModuleTest extends TestCase
@@ -130,5 +131,42 @@ class UserModuleTest extends TestCase
             ->putJson('/api/v1/users/me/interests', ['category_ids' => [$category->id]])
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'aviation');
+    }
+
+    /**
+     * «Выбрали два направления — сохранилось одно» (приёмка 17.09).
+     *
+     * Цепочка сервера целиком: запрос с двумя id → две строки в
+     * user_interests → оба в ответе и в /auth/me, откуда профиль берёт их
+     * после перезагрузки. Тест проходил и до правки: массив терялся не здесь,
+     * а в форме (ProfileView: выбранное в списке, но не добавленное «+»
+     * направление в запрос не попадало; на проде 17.09 PUT ушёл с
+     * category_ids [1] при выбранных «Авиация» и «Корабли»).
+     */
+    public function test_two_interests_survive_save_and_reload(): void
+    {
+        $user = User::factory()->create(['status' => UserStatus::Active]);
+        UserProfile::create(['user_id' => $user->id, 'display_name' => 'U', 'slug' => 'u2']);
+
+        $ids = collect(['aviation', 'ships'])->map(fn (string $slug, int $i) => PostCategory::create([
+            'name' => ucfirst($slug),
+            'slug' => $slug,
+            'sort_order' => $i,
+            'is_active' => true,
+            'depth' => 0,
+            'path' => $slug,
+        ])->id)->all();
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/v1/users/me/interests', ['category_ids' => $ids])
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->assertSame(2, DB::table('user_interests')->where('user_id', $user->id)->count());
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonCount(2, 'data.interests');
     }
 }

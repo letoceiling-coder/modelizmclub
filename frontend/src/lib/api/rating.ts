@@ -15,7 +15,14 @@ export interface UserRatingAggregate {
 
 export interface UserReviewApi {
   id: string;
-  author: { id: number; display_name: string | null };
+  /** uuid и slug — для ссылки в профиль автора: по числовому id его не найти. */
+  author: {
+    id: number;
+    uuid?: string | null;
+    slug?: string | null;
+    display_name: string | null;
+    avatar_url?: string | null;
+  };
   rating: number;
   text: string | null;
   reply: string | null;

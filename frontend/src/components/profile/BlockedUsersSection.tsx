@@ -65,7 +65,12 @@ export function BlockedUsersSection() {
             className="flex items-center gap-[12px] rounded-[12px] border px-[14px] py-[10px]"
             style={{ borderColor: "var(--border)" }}
           >
-            <UserAvatar src={u.avatar} name={u.name} size={40} />
+            <UserAvatar
+              src={u.avatar}
+              name={u.name}
+              size={40}
+              profileId={u.id ? (u.slug ?? u.id) : null}
+            />
             <div
               className="min-w-0 flex-1 truncate text-[14px] font-semibold"
               style={{ color: "var(--foreground)" }}

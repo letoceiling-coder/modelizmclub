@@ -56,7 +56,7 @@ class UserRatingService
     public function listReviews(int $userId, int $perPage = 20, string $sort = 'new'): array
     {
         $query = $this->completedDealReviews()
-            ->with(['author.profile'])
+            ->with(['author.profile.avatar'])
             ->where('target_user_id', $userId);
 
         match ($sort) {
@@ -70,9 +70,14 @@ class UserRatingService
         return [
             'data' => $rows->map(fn (UserReview $review) => [
                 'id' => $review->uuid,
+                // uuid и slug — чтобы имя и аватар автора вели в его профиль:
+                // по числовому id маршрут /user/{id} профиль не находит.
                 'author' => [
                     'id' => $review->author_id,
+                    'uuid' => $review->author?->uuid,
+                    'slug' => $review->author?->profile?->slug,
                     'display_name' => $review->author?->profile?->display_name ?? $review->author?->name,
+                    'avatar_url' => $review->author?->profile?->avatar?->url,
                 ],
                 'rating' => $review->rating,
                 'text' => $review->text,
@@ -87,7 +92,8 @@ class UserRatingService
     /** The rated user answers a review left about them. */
     public function reply(int $userId, string $reviewUuid, ?string $reply): UserReview
     {
-        $review = UserReview::query()
+        // Ответить можно только на отзыв, который виден и учтён в рейтинге.
+        $review = $this->completedDealReviews()
             ->where('uuid', $reviewUuid)
             ->where('target_user_id', $userId)
             ->firstOrFail();
@@ -102,10 +108,19 @@ class UserRatingService
         return $review->fresh();
     }
 
+    /**
+     * Учитываются только оценки продавца покупателем по завершённой сделке.
+     * Строки продавца о покупателе, записанные до правила 17.09, остаются в
+     * базе, но в рейтинг и список не попадают (на проде 17.09 таких нет:
+     * оба отзыва — 1229 о 1230, покупатель о продавце).
+     */
     private function completedDealReviews()
     {
         return UserReview::query()
             ->whereNotNull('safe_deal_id')
-            ->whereHas('safeDeal', fn ($q) => $q->where('status', SafeDealStatus::Completed));
+            ->whereHas('safeDeal', fn ($q) => $q
+                ->where('status', SafeDealStatus::Completed)
+                ->whereColumn('safe_deals.buyer_id', 'user_reviews.author_id')
+                ->whereColumn('safe_deals.seller_id', 'user_reviews.target_user_id'));
     }
 }

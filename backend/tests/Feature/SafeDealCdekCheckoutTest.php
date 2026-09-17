@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\ListingStatus;
-use App\Enums\SafeDealStatus;
 use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\Listing;
@@ -12,10 +11,10 @@ use App\Models\SellerDeliveryProfile;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
-use App\Models\UserReview;
 use Database\Seeders\DeliveryMethodsSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Modules\Billing\Services\WalletService;
@@ -336,12 +335,17 @@ class SafeDealCdekCheckoutTest extends TestCase
         ]);
         app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test');
 
-        UserReview::query()->create([
+        // Строка в обход модели: с 17.09 UserReview сам отказывается
+        // создаваться без завершённой сделки, а проверяется здесь чтение —
+        // что такая строка из старых данных в рейтинг не попадает.
+        DB::table('user_reviews')->insert([
             'uuid' => (string) Str::uuid(),
             'author_id' => $buyer->id,
             'target_user_id' => $seller->id,
             'rating' => 5,
             'text' => 'fake',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $ratings = app(UserRatingService::class)->aggregate($seller->id);

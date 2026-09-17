@@ -1116,7 +1116,12 @@ function ChatTab({
                 }}
                 className={`flex gap-[10px] ${mine ? "flex-row-reverse" : ""}`}
               >
-                <UserAvatar src={u.avatar} name={u.name} size={40} />
+                <UserAvatar
+                  src={u.avatar}
+                  name={u.name}
+                  size={40}
+                  profileId={u.id ? (u.slug ?? u.id) : null}
+                />
                 <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                   <div
                     className="mb-[2px] flex items-center gap-[6px] text-[11px]"
@@ -1617,7 +1622,12 @@ function MembersTab({
               className="flex items-center gap-[12px] rounded-[12px] px-[10px] py-[8px] transition-colors hover:bg-[var(--background-surface)]"
             >
               <div className="relative shrink-0">
-                <UserAvatar src={u.avatar} name={u.name} size={40} />
+                <UserAvatar
+                  src={u.avatar}
+                  name={u.name}
+                  size={40}
+                  profileId={u.id ? (u.slug ?? u.id) : null}
+                />
                 <span
                   className="absolute -bottom-[1px] -right-[1px] h-[11px] w-[11px] rounded-full border-[2px]"
                   style={{

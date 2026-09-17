@@ -677,7 +677,14 @@ const MessageBubble = memo(function MessageBubble({
     >
       {!isMe && (
         <div className="w-[28px] shrink-0">
-          {isFirstInGroup && <UserAvatar src={author.avatar} name={author.name} size={28} />}
+          {isFirstInGroup && (
+            <UserAvatar
+              src={author.avatar}
+              name={author.name}
+              size={28}
+              profileId={author.id ? (author.slug ?? author.id) : null}
+            />
+          )}
         </div>
       )}
       <div

@@ -1613,6 +1613,7 @@ export const ru = {
       fieldName: "ФИО",
       fieldCity: "Город",
       cityPlaceholder: "Город",
+      cityPickError: "Выберите город из подсказок",
       fieldBio: "О себе",
       bioPlaceholder: "Расскажите о себе",
       fieldInterests: "Интересы",
