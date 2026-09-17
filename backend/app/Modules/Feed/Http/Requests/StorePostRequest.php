@@ -21,7 +21,7 @@ class StorePostRequest extends FormRequest
             // Направление — необязательное (как во ВКонтакте): пост можно
             // опубликовать без категории. Колонка posts.category_id уже
             // nullable, так что миграция не нужна.
-            'category_id' => ['nullable', 'integer', 'exists:post_categories,id'],
+            'category_id' => ['nullable', 'integer', 'exists:post_categories,id', PostFormRules::notChannelsCategory()],
             'community_id' => ['nullable', 'integer', 'exists:communities,id'],
             'subcategory_id' => ['nullable', 'integer', 'exists:community_subcategories,id'],
             'media_ids' => ['array', 'max:10'],

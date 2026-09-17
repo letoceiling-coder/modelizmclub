@@ -114,7 +114,9 @@ export function CreatePostForm({
   // form is unreachable by the user once closing has started.
   const sel: ComposerSelection = selection ?? { kind: "photo", source: "profile" };
   const { t } = useTranslation();
-  const categories = usePostCategories();
+  // «Каналы» — служебная категория зеркал записей каналов: обычный пост в
+  // ней выглядел бы записью канала. Сервер такой пост тоже не примет.
+  const categories = usePostCategories().filter((c) => c.slug !== "channels");
   const me = useCurrentUser();
   const { requirePremium } = useGuestAccess();
   const [title, setTitle] = useState("");

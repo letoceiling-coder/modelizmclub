@@ -106,7 +106,8 @@ class ChannelPostService
 
     public function delete(Channel $channel, ChannelPost $channelPost, User $user): void
     {
-        if (! $channel->canManage($user)) {
+        // Убрать запись может и модерация площадки — в отличие от публикации.
+        if (! $channel->canModerate($user)) {
             throw ValidationException::withMessages([
                 'post' => ['Удалить пост может только владелец или администратор канала.'],
             ]);

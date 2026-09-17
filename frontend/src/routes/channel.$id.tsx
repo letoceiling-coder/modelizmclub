@@ -710,7 +710,8 @@ function toFeedPost(post: ChannelPost, channel: Channel, canManage: boolean): Po
     isLiked: post.liked,
     status: post.status === "published" ? "published" : "moderation",
     canInteract: post.status === "published",
-    canDelete: canManage,
+    // Убрать запись может и модерация площадки; публиковать и закреплять — нет.
+    canDelete: canManage || Boolean(channel.canModerate),
     canEdit: false,
     channel: {
       slug: channel.slug,

@@ -18,7 +18,7 @@ class UpdatePostRequest extends FormRequest
         return [
             'title' => ['sometimes', 'string', 'max:'.PostFormRules::TITLE_MAX_LENGTH],
             'body' => ['sometimes', 'string', 'max:'.PostFormRules::BODY_MAX_LENGTH],
-            'category_id' => ['sometimes', 'integer', 'exists:post_categories,id'],
+            'category_id' => ['sometimes', 'integer', 'exists:post_categories,id', PostFormRules::notChannelsCategory()],
             'community_id' => ['nullable', 'integer', 'exists:communities,id'],
             'subcategory_id' => ['nullable', 'integer', 'exists:community_subcategories,id'],
             'media_ids' => ['sometimes', 'array', 'max:10'],

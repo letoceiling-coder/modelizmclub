@@ -68,7 +68,10 @@ export interface Channel {
   avatarImage?: string;
   bannerImage?: string;
   isOwner?: boolean;
+  /** Публиковать и закреплять: владелец и администраторы канала. */
   canManage?: boolean;
+  /** Убирать записи: команда канала или модерация площадки. */
+  canModerate?: boolean;
   isSubscribed?: boolean;
   commentsEnabled?: boolean;
   /** Reactions on channel posts; undefined = allowed. */
@@ -128,6 +131,7 @@ interface ApiChannel {
   } | null;
   is_owner?: boolean;
   can_manage?: boolean;
+  can_moderate?: boolean;
   is_subscribed?: boolean;
   comments_enabled?: boolean;
   rules?: string | null;
@@ -186,6 +190,7 @@ function mapChannel(c: ApiChannel): Channel {
     ownerNumericId: c.owner?.id,
     isOwner: Boolean(c.is_owner),
     canManage: Boolean(c.can_manage ?? c.is_owner),
+    canModerate: Boolean(c.can_moderate ?? c.can_manage ?? c.is_owner),
     isSubscribed: Boolean(c.is_subscribed),
     commentsEnabled: c.comments_enabled !== false,
     rules: c.rules ?? "",
