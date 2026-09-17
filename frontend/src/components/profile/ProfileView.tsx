@@ -86,6 +86,7 @@ import { firstFieldError } from "@/lib/api/validationErrors";
 import { formatDate } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
 import { reportReadFailure } from "@/lib/errors/handle";
+import { addInterest, splitInterests } from "@/lib/profile/edit";
 
 /**
  * Карточка профиля — своя и чужая.
@@ -275,10 +276,7 @@ export function ProfileView({
       })),
     [isOwn, t],
   );
-  const interestList = (user.interests || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const interestList = splitInterests(user.interests);
 
   return (
     <AppLayout footer>
@@ -1185,13 +1183,9 @@ function EditSheet({
   const isMobile = useIsMobile();
   const reduceMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
-  const [newInterest, setNewInterest] = useState("");
   const [cityId, setCityId] = useState<number | undefined>(draft.cityId);
   const [interestOptions, setInterestOptions] = useState<Category[]>([]);
-  const interestList = (draft.interests || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const interestList = splitInterests(draft.interests);
 
   useEffect(() => setMounted(true), []);
 
@@ -1220,16 +1214,15 @@ function EditSheet({
     setCityId(draft.cityId);
   }, [draft.cityId]);
 
-  const addInterest = () => {
-    const trimmed = newInterest.trim();
-    if (!trimmed) return;
-    if (interestList.length >= PROFILE_INTERESTS_MAX) {
+  // Выбор в списке сразу добавляет направление — без второго шага «+»,
+  // который терял выбранное при сохранении (разбор в lib/profile/edit.ts).
+  const pickInterest = (name: string) => {
+    const next = addInterest(interestList, name, PROFILE_INTERESTS_MAX);
+    if (next.error === "limit") {
       toast.error(t("pages.profile.interestsLimitError", { max: PROFILE_INTERESTS_MAX }));
       return;
     }
-    if (interestList.includes(trimmed)) return;
-    setDraft({ ...draft, interests: [...interestList, trimmed].join(", ") });
-    setNewInterest("");
+    if (next.list !== interestList) setDraft({ ...draft, interests: next.list.join(", ") });
   };
   const removeInterest = (i: string) => {
     setDraft({ ...draft, interests: interestList.filter((x) => x !== i).join(", ") });
@@ -1371,28 +1364,19 @@ function EditSheet({
                 </Badge>
               ))}
             </div>
-            <div className="mt-[10px] flex gap-[8px]">
+            <div className="mt-[10px]">
               <NativeSelect
-                value={newInterest}
-                onChange={setNewInterest}
+                value=""
+                onChange={pickInterest}
                 options={[
                   { label: t("pages.profile.pickInterest"), value: "" },
                   ...interestOptions
                     .filter((c) => !interestList.includes(c.name))
                     .map((c) => ({ label: c.name, value: c.name })),
                 ]}
-                className="h-11 flex-1"
+                className="h-11"
                 disabled={interestList.length >= PROFILE_INTERESTS_MAX}
               />
-              <Button
-                type="button"
-                size="icon"
-                onClick={addInterest}
-                className="h-11 w-11 shrink-0"
-                disabled={interestList.length >= PROFILE_INTERESTS_MAX || !newInterest}
-              >
-                <Plus size={18} />
-              </Button>
             </div>
           </Field>
         </div>

@@ -185,12 +185,24 @@ export function CitySelect({
         )}
       </div>
 
+      {/*
+        Список подсказок — в portal, и слой у него `--z-popover`, а не
+        `--z-dropdown`: поле живёт и в окне «Редактировать профиль», а окно
+        стоит на `--z-popover` (55). С `--z-dropdown` (20) подсказки
+        открывались под окном — на проде 17.09 по «Моск» пришло 50 городов,
+        а elementFromPoint в центре списка возвращал подпись «О себе» из
+        окна, и выбрать город было нельзя. Шкала в styles.css так и говорит:
+        вынесенное в portal — над модалкой. Тот же компонент стоит в шторке
+        фильтров каталога (`--z-modal`, 50) — там подсказки были под шторкой
+        по той же причине. В форме объявления поле на странице, и там
+        ничего не меняется.
+      */}
       {open &&
         pos &&
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[var(--z-dropdown)] overflow-y-auto overscroll-contain py-[4px]"
+            className="fixed z-[var(--z-popover)] overflow-y-auto overscroll-contain py-[4px]"
             style={{
               left: pos.left,
               top: pos.top,
