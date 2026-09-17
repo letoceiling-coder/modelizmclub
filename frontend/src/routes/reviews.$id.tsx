@@ -762,12 +762,16 @@ function WatchPageInner() {
       {reportOpen && (
         <ComplaintDialog
           target={author}
-          descriptionOverride={t("pages.reviews.supportDescription", {
+          descriptionOverride={t("pages.reviews.reportDescription", {
             title: video.title ? ` «${video.title}»` : "",
-            defaultValue: `Обращение по обзору${video.title ? ` «${video.title}»` : ""} — опишите проблему, мы передадим сообщение в поддержку.`,
           })}
           page={`/reviews/${video.id}`}
           subjectSuffix={t("pages.reviews.reportSuffix")}
+          // Жалоба на обзор — в очередь жалоб. Без `report` диалог писал в
+          // «Книгу замечаний»: сотрудникам об этом не сообщалось, а вкладка
+          // «Обзоры» в «Модерации → Жалобы» оставалась пустой. На проде так
+          // и висит обращение 6 от 23.08.
+          report={{ type: "video", targetId: video.id }}
           onClose={() => setReportOpen(false)}
         />
       )}
