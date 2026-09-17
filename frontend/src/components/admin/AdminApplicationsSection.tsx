@@ -11,7 +11,7 @@ import {
   type RequestStatus,
   type EntityKind,
 } from "@/lib/api/entity-requests";
-import { reportReadFailure } from "@/lib/errors/handle";
+import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
 
 export function ApplicationsSection() {
   const { t } = useTranslation();
@@ -34,16 +34,25 @@ export function ApplicationsSection() {
   const [status, setStatus] = useState<RequestStatus>("pending");
   const [items, setItems] = useState<EntityRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  // Отказ загрузки — своё состояние, а не пустой список: до 17.09 он
+  // выглядел как «Заявок нет», и заявка терялась на глазах у сотрудника.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setFailed(false);
     fetchEntityRequests(status)
       .then((list) => {
         if (alive) setItems(list);
       })
-      .catch(() => {
-        if (alive) setItems([]);
+      .catch((e) => {
+        reportReadFailure(e, "заявки в админке", { status });
+        if (alive) {
+          setItems([]);
+          setFailed(true);
+        }
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -51,18 +60,18 @@ export function ApplicationsSection() {
     return () => {
       alive = false;
     };
-  }, [status]);
+  }, [status, attempt]);
 
   const decide = async (r: EntityRequest, approve: boolean) => {
     setItems((cur) => cur.filter((x) => x.id !== r.id)); // optimistic
     try {
       if (approve) await approveEntityRequest(r.kind, r.id);
       else await rejectEntityRequest(r.kind, r.id);
-    } catch {
-      // на реальном бэке при ошибке перезагрузим список
-      fetchEntityRequests(status)
-        .then(setItems)
-        .catch((e) => reportReadFailure(e, "заявки в админке"));
+    } catch (e) {
+      // Решение не прошло — сказать вслух и вернуть заявку в список:
+      // молча перезагруженный список выглядел как «решено».
+      reportActionFailure(e, t("pages.adminModeration.actionFailed"), { kind: r.kind, id: r.id });
+      setAttempt((n) => n + 1);
     }
   };
 
@@ -104,6 +113,38 @@ export function ApplicationsSection() {
       {loading ? (
         <div style={{ color: "var(--foreground-50)", fontSize: "13px" }}>
           {t("pages.adminCommon.loading")}
+        </div>
+      ) : failed ? (
+        <div
+          role="alert"
+          style={{
+            padding: "32px 16px",
+            textAlign: "center",
+            color: "var(--foreground-70)",
+            fontSize: "13px",
+            border: "1px solid var(--border)",
+            borderRadius: "12px",
+          }}
+        >
+          {t("pages.adminApplications.loadFailed")}
+          <div style={{ marginTop: "12px" }}>
+            <button
+              type="button"
+              onClick={() => setAttempt((n) => n + 1)}
+              style={{
+                height: "34px",
+                padding: "0 14px",
+                borderRadius: "9px",
+                fontSize: "13px",
+                fontWeight: 600,
+                background: "var(--background-surface)",
+                color: "var(--foreground)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              {t("pages.adminApplications.retry")}
+            </button>
+          </div>
         </div>
       ) : items.length === 0 ? (
         <div

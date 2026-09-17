@@ -41,6 +41,9 @@ final class NotificationPolicyRegistry
         'promo' => 'promo',
         'system' => 'promo',
         'report' => 'report',
+        // Обращения и заявки — тот же сигнал сотрудникам, что и жалобы (17.09).
+        'staff_feedback' => 'report',
+        'staff_application' => 'report',
         'event' => 'events',
         'events' => 'events',
     ];
@@ -72,7 +75,7 @@ final class NotificationPolicyRegistry
             ['key' => 'listings', 'group' => 'service', 'label' => 'Объявления', 'hint' => 'Объявление опубликовано, отклонено или отправлено на доработку', 'default_min_tier' => 'registered', 'default_enabled' => true, 'default_user_can_toggle' => false, 'default_channels' => ['in_app', 'max'], 'show_in_cabinet' => true],
             ['key' => 'events', 'group' => 'social', 'label' => 'Мероприятия', 'hint' => 'Новое мероприятие, напоминание за сутки, отмена', 'default_min_tier' => 'registered', 'default_enabled' => true, 'default_user_can_toggle' => true, 'default_channels' => ['in_app', 'max'], 'show_in_cabinet' => true],
             ['key' => 'deals', 'group' => 'service', 'label' => 'Безопасные сделки', 'hint' => 'Смена статуса сделки', 'default_min_tier' => 'registered', 'default_enabled' => true, 'default_user_can_toggle' => false, 'default_channels' => ['in_app', 'max', 'mail'], 'show_in_cabinet' => true],
-            ['key' => 'report', 'group' => 'service', 'label' => 'Жалобы (модераторам)', 'hint' => 'Новая жалоба — только сотрудникам', 'default_min_tier' => 'registered', 'default_enabled' => true, 'default_user_can_toggle' => false, 'default_channels' => ['in_app', 'max'], 'show_in_cabinet' => false],
+            ['key' => 'report', 'group' => 'service', 'label' => 'Жалобы, обращения и заявки (сотрудникам)', 'hint' => 'Новая жалоба, обращение или заявка на сообщество и канал — только сотрудникам', 'default_min_tier' => 'registered', 'default_enabled' => true, 'default_user_can_toggle' => false, 'default_channels' => ['in_app', 'max'], 'show_in_cabinet' => false],
             ['key' => 'promo', 'group' => 'marketing', 'label' => 'Промо и рассылки', 'hint' => 'Промокоды и объявления платформы', 'default_min_tier' => 'verified', 'default_enabled' => true, 'default_user_can_toggle' => true, 'default_channels' => ['in_app', 'max'], 'show_in_cabinet' => true],
         ];
     }

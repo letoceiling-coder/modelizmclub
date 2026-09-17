@@ -12,6 +12,7 @@ use App\Models\ModerationQueue;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Services\StaffNotify;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -157,7 +158,7 @@ class CommunityService
             ]);
         }
 
-        return CommunityApplication::create([
+        $application = CommunityApplication::create([
             'user_id' => $user->id,
             'proposed_name' => $proposedName,
             'description' => $description,
@@ -165,6 +166,16 @@ class CommunityService
             'payload' => $payload !== [] ? $payload : null,
             'status' => CommunityApplicationStatus::Pending,
         ]);
+
+        StaffNotify::send(
+            'staff_application',
+            'Заявка на сообщество',
+            '«'.$proposedName.'» — ждёт решения в очереди модерации',
+            StaffNotify::LINK_MODERATION,
+            $user,
+        );
+
+        return $application;
     }
 
     /**

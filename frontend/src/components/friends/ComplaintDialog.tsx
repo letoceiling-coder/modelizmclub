@@ -131,7 +131,8 @@ export function ComplaintDialog({
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Опишите ситуацию подробнее (необязательно)…"
             rows={4}
-            maxLength={4000}
+            // Жалоба на сервере — до 1000 символов (StoreReportRequest), обращение — до 4000.
+            maxLength={report ? 1000 : 4000}
             className="w-full resize-y rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
           />
           <div className="flex items-center justify-end">

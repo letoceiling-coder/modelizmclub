@@ -5,8 +5,10 @@ namespace Modules\Admin\Services;
 use App\Enums\CommunityStatus;
 use App\Enums\ContentStatus;
 use App\Enums\ListingStatus;
+use App\Models\ChannelApplication;
 use App\Models\ChannelPost;
 use App\Models\Community;
+use App\Models\CommunityApplication;
 use App\Models\Listing;
 use App\Models\ModerationAction;
 use App\Models\ModerationQueue;
@@ -15,11 +17,15 @@ use App\Models\User;
 use App\Models\Video;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Support\ApplicationModerationQueue;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Modules\Admin\Support\ModeratableResolver;
+use Modules\Channel\Services\ChannelApplicationService;
 use Modules\Channel\Services\ChannelPostService;
+use Modules\Community\Services\CommunityService;
 use Modules\Feed\Services\PostService;
 use Modules\Listing\Services\ListingService;
 
@@ -35,6 +41,7 @@ class ModerationService
     public function queue(?string $status = null, ?string $queue = null, int $perPage = 20): LengthAwarePaginator
     {
         $this->cancelOrphanedEntries();
+        ApplicationModerationQueue::sync();
 
         return ModerationQueue::query()
             ->whereHas('moderatable')
@@ -51,12 +58,16 @@ class ModerationService
         return DB::transaction(function () use ($type, $id, $actor): Model {
             $model = $this->resolver->resolve($type, $id);
 
+            if ($model instanceof CommunityApplication || $model instanceof ChannelApplication) {
+                return $this->decideApplication($model, $actor, approve: true);
+            }
+
             if ($model instanceof Post) {
                 $this->posts->markPublished($model);
             } elseif ($model instanceof Listing) {
                 $this->listings->markPublished($model);
             } elseif ($model instanceof Community) {
-                app(\Modules\Community\Services\CommunityService::class)->applyPendingRevision($model);
+                app(CommunityService::class)->applyPendingRevision($model);
                 $model->update([
                     'status' => CommunityStatus::Active,
                     'approved_at' => now(),
@@ -82,6 +93,10 @@ class ModerationService
     {
         return DB::transaction(function () use ($type, $id, $actor, $reason): Model {
             $model = $this->resolver->resolve($type, $id);
+
+            if ($model instanceof CommunityApplication || $model instanceof ChannelApplication) {
+                return $this->decideApplication($model, $actor, approve: false, reason: $reason);
+            }
 
             if ($model instanceof Post) {
                 $model->update([
@@ -122,6 +137,12 @@ class ModerationService
         return DB::transaction(function () use ($type, $id, $actor, $comment): Model {
             $model = $this->resolver->resolve($type, $id);
 
+            if ($model instanceof CommunityApplication || $model instanceof ChannelApplication) {
+                throw ValidationException::withMessages([
+                    'application' => ['Заявку нельзя вернуть на доработку — её можно одобрить или отклонить с причиной.'],
+                ]);
+            }
+
             if ($model instanceof Post) {
                 $model->update([
                     'status' => ContentStatus::Revision,
@@ -147,6 +168,33 @@ class ModerationService
 
             return $this->notifyDecision($model->fresh() ?? $model, 'revision', $comment);
         });
+    }
+
+    /**
+     * Заявку решает её собственный сервис — тот же, что и в разделе «Заявки»:
+     * он создаёт сообщество или канал и сам сообщает заявителю. Общее
+     * уведомление очереди («Сообщество одобрено») здесь было бы вторым.
+     * Строку очереди закрывает событие модели.
+     */
+    private function decideApplication(
+        CommunityApplication|ChannelApplication $application,
+        User $actor,
+        bool $approve,
+        ?string $reason = null,
+    ): Model {
+        if ($application instanceof CommunityApplication && $approve) {
+            app(CommunityService::class)->approveApplication($application, $actor);
+        } elseif ($application instanceof CommunityApplication) {
+            app(CommunityService::class)->rejectApplication($application, $actor, $reason);
+        } elseif ($approve) {
+            app(ChannelApplicationService::class)->approve($application, $actor);
+        } else {
+            app(ChannelApplicationService::class)->reject($application, $actor, $reason);
+        }
+
+        $this->logAction($application, $actor, $approve ? 'approve' : 'reject', $reason);
+
+        return $application->fresh() ?? $application;
     }
 
     private function notifyDecision(Model $model, string $decision, ?string $reason = null): Model
