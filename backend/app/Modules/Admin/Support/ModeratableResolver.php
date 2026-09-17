@@ -2,8 +2,10 @@
 
 namespace Modules\Admin\Support;
 
+use App\Models\ChannelApplication;
 use App\Models\ChannelPost;
 use App\Models\Community;
+use App\Models\CommunityApplication;
 use App\Models\Listing;
 use App\Models\Post;
 use App\Models\Video;
@@ -26,8 +28,31 @@ class ModeratableResolver
         'listing' => Listing::class,
     ];
 
+    /**
+     * Заявки на сообщество и канал — в очереди с 17.09. У них нет uuid, и в
+     * разделе «Заявки» они с первого дня адресуются номером заявки
+     * (`communities/applications/{id}`). Здесь тот же номер — `moderatable_id`
+     * строки очереди, а не её собственный `id`.
+     *
+     * @var array<string, class-string<Model>>
+     */
+    private const APPLICATIONS = [
+        'community_applications' => CommunityApplication::class,
+        'channel_applications' => ChannelApplication::class,
+    ];
+
     public function resolve(string $type, string $id): Model
     {
+        $applicationClass = self::APPLICATIONS[strtolower($type)] ?? null;
+        if ($applicationClass !== null) {
+            $record = ctype_digit($id) ? $applicationClass::query()->find((int) $id) : null;
+            if (! $record) {
+                throw new NotFoundHttpException('Заявка не найдена.');
+            }
+
+            return $record;
+        }
+
         $modelClass = self::MAP[strtolower($type)] ?? null;
 
         if (! $modelClass) {

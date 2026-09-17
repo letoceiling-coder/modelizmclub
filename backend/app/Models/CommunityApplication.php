@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CommunityApplicationStatus;
+use App\Support\ApplicationModerationQueue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -19,6 +20,17 @@ class CommunityApplication extends Model
         'reviewed_by',
         'reviewed_at',
     ];
+
+    /** Строка в общей очереди модерации — см. ApplicationModerationQueue. */
+    protected static function booted(): void
+    {
+        static::created(fn (self $application) => ApplicationModerationQueue::enqueue($application));
+        static::updated(function (self $application): void {
+            if ($application->wasChanged('status')) {
+                ApplicationModerationQueue::close($application);
+            }
+        });
+    }
 
     protected function casts(): array
     {

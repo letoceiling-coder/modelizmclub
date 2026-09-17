@@ -8,6 +8,7 @@ use App\Models\ChannelApplication;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Services\StaffNotify;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -37,7 +38,7 @@ class ChannelApplicationService
             ]);
         }
 
-        return ChannelApplication::create([
+        $application = ChannelApplication::create([
             'user_id' => $user->id,
             'proposed_name' => $name,
             'proposed_slug' => $slug !== null && $slug !== '' ? self::normalizeSlug($slug) : null,
@@ -49,6 +50,16 @@ class ChannelApplicationService
             'banner_media_id' => $bannerMediaId,
             'status' => ChannelApplicationStatus::Pending,
         ]);
+
+        StaffNotify::send(
+            'staff_application',
+            'Заявка на канал',
+            '«'.$name.'» — ждёт решения в очереди модерации',
+            StaffNotify::LINK_MODERATION,
+            $user,
+        );
+
+        return $application;
     }
 
     /**

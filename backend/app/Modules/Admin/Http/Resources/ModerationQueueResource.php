@@ -2,8 +2,10 @@
 
 namespace Modules\Admin\Http\Resources;
 
+use App\Models\ChannelApplication;
 use App\Models\ChannelPost;
 use App\Models\Community;
+use App\Models\CommunityApplication;
 use App\Models\Listing;
 use App\Models\ModerationQueue;
 use App\Models\Post;
@@ -40,6 +42,10 @@ class ModerationQueueResource extends JsonResource
 
         if ($model === null) {
             return null;
+        }
+
+        if ($model instanceof CommunityApplication || $model instanceof ChannelApplication) {
+            return $this->formatApplication($model);
         }
 
         if ($model instanceof ChannelPost) {
@@ -146,6 +152,66 @@ class ModerationQueueResource extends JsonResource
         return [
             'uuid' => $model->uuid ?? null,
             'title' => $model->title ?? $model->name ?? null,
+        ];
+    }
+
+    /**
+     * Заявка на сообщество или канал.
+     *
+     * uuid у заявок нет — решение адресуется номером заявки, и он отдаётся
+     * отдельным полем `application_id`, чтобы его не спутали с номером строки
+     * очереди. В `details` — то, что заявитель заполнил сверх названия и
+     * описания: по одному названию решать нечего.
+     *
+     * @return array<string, mixed>
+     */
+    private function formatApplication(CommunityApplication|ChannelApplication $model): array
+    {
+        $isChannel = $model instanceof ChannelApplication;
+        $model->loadMissing($isChannel ? ['user.profile'] : ['user.profile', 'category']);
+        $applicant = $model->user;
+
+        $details = [];
+        if ($isChannel) {
+            $details[] = ['label' => 'Адрес', 'value' => $model->proposed_slug];
+            $details[] = ['label' => 'Тип канала', 'value' => $model->proposed_kind];
+            $details[] = ['label' => 'Комментарии', 'value' => $model->comments_enabled ? 'включены' : 'выключены'];
+        } else {
+            $payload = is_array($model->payload) ? $model->payload : [];
+            $contacts = is_array($payload['contacts'] ?? null) ? array_filter($payload['contacts']) : [];
+            $details[] = ['label' => 'Своя тематика', 'value' => $payload['custom_category'] ?? null];
+            $details[] = [
+                'label' => 'Вступление',
+                'value' => isset($payload['access_type'])
+                    ? ($payload['access_type'] === 'request' ? 'по заявке' : 'открытое')
+                    : null,
+            ];
+            $details[] = ['label' => 'Правила', 'value' => $payload['rules'] ?? null];
+            $details[] = ['label' => 'Контакты', 'value' => $contacts !== [] ? implode(', ', $contacts) : null];
+        }
+
+        return [
+            'uuid' => null,
+            'application_id' => $model->id,
+            'kind' => $isChannel ? 'channel' : 'community',
+            'title' => $model->proposed_name,
+            'name' => $model->proposed_name,
+            'description' => $model->description,
+            'body' => $model->description ?? '',
+            'author' => [
+                'display_name' => $applicant?->profile?->display_name ?? $applicant?->name ?? '',
+                'uuid' => $applicant?->uuid,
+                'slug' => $applicant?->profile?->slug,
+            ],
+            'category' => [
+                'name' => $isChannel ? ($model->category ?? '') : ($model->category?->name ?? ''),
+            ],
+            'details' => array_values(array_filter(
+                $details,
+                fn (array $row): bool => $row['value'] !== null && $row['value'] !== '',
+            )),
+            'submitted_at' => $model->created_at?->toIso8601String(),
+            'media' => [],
         ];
     }
 

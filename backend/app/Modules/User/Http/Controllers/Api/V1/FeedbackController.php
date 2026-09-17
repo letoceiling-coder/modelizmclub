@@ -4,10 +4,12 @@ namespace Modules\User\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Feedback;
+use App\Services\StaffNotify;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 #[Group('Users', weight: 20)]
@@ -44,6 +46,14 @@ class FeedbackController extends Controller
             'page' => $data['page'] ?? null,
             'status' => 'new',
         ]);
+
+        StaffNotify::send(
+            'staff_feedback',
+            'Новое обращение',
+            Str::limit(trim(($data['subject'] ?? '') !== '' ? $data['subject'].': '.$data['message'] : $data['message']), 140, '…'),
+            StaffNotify::LINK_FEEDBACK,
+            $user,
+        );
 
         return response()->json([
             'data' => [

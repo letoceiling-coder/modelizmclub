@@ -2,8 +2,6 @@
 
 namespace Modules\Report\Services;
 
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
 use App\Models\Channel;
 use App\Models\Comment;
 use App\Models\Community;
@@ -14,8 +12,7 @@ use App\Models\Post;
 use App\Models\Report;
 use App\Models\User;
 use App\Models\Video;
-use App\Notifications\InAppNotification;
-use App\Services\InAppNotify;
+use App\Services\StaffNotify;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -119,20 +116,14 @@ class ReportService
         ];
         $reasonLabel = $reasonLabels[$report->reason] ?? $report->reason;
 
-        User::query()
-            ->whereIn('role', [UserRole::Admin, UserRole::Moderator])
-            ->where('status', UserStatus::Active)
-            ->each(function (User $moderator) use ($targetLabel, $reasonLabel): void {
-                InAppNotify::send(
-                    $moderator,
-                    new InAppNotification(
-                        'report',
-                        'Новая жалоба',
-                        "Жалоба на {$targetLabel} ({$reasonLabel})",
-                        '/admin',
-                    ),
-                );
-            });
+        // Ссылка — в раздел, где жалобы разбирают. До 17.09 вела на «/admin»,
+        // то есть в дашборд, откуда жалобу ещё надо было найти.
+        StaffNotify::send(
+            'report',
+            'Новая жалоба',
+            "Жалоба на {$targetLabel} ({$reasonLabel})",
+            StaffNotify::LINK_MODERATION,
+        );
     }
 
     public function resolve(Report $report, User $actor, string $status): Report
