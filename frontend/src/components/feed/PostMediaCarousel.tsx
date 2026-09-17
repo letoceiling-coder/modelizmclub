@@ -133,6 +133,9 @@ function GalleryImage({
       height={height}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}
+      // Не родной lazy: в прокручиваемом <main> на широком экране он ждёт,
+      // пока снимок встанет на экран, — см. `defer` у ResponsiveImage.
+      defer={!priority}
       onClick={onClick}
       className={`h-full w-full ${contain ? "object-contain" : "cursor-zoom-in object-cover"} ${onClick ? "cursor-zoom-in" : ""}`}
       onError={() => setErr(true)}
