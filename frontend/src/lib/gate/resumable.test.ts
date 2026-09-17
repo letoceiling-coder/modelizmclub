@@ -16,7 +16,10 @@ const reactToPost = vi.fn(async () => undefined);
 const joinCommunity = vi.fn(async () => ({ status: "member" as const }));
 vi.mock("@/lib/api/feed", () => ({ reactToPost, bookmarkPost: vi.fn() }));
 vi.mock("@/lib/api/communities", () => ({ joinCommunity }));
-vi.mock("@/lib/api/listings", () => ({ addFavoriteListing: vi.fn() }));
+const revealSellerPhone = vi.fn(async () => "+79996371182");
+const setRevealedPhone = vi.fn();
+vi.mock("@/lib/api/listings", () => ({ addFavoriteListing: vi.fn(), revealSellerPhone }));
+vi.mock("@/lib/store", () => ({ actions: { setRevealedPhone } }));
 vi.mock("@/lib/auth/session", () => ({ syncFavoritesFromServer: vi.fn() }));
 
 const store = new Map<string, string>();
@@ -56,6 +59,8 @@ beforeEach(() => {
   setPendingAction(null);
   reactToPost.mockClear();
   joinCommunity.mockClear();
+  revealSellerPhone.mockClear();
+  setRevealedPhone.mockClear();
 });
 
 describe("resumableHandler", () => {
@@ -85,6 +90,40 @@ describe("resumeIntent после перезагрузки", () => {
     expect(onReplayed).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith("/feed");
     expect(readIntent()).toBeNull();
+  });
+
+  // «Позвонить продавцу» гостем → вход по ссылке → страница объявления
+  // монтируется заново, а номер должен прийти без второго нажатия.
+  it("раскрывает номер продавца и кладёт его туда, откуда читает страница", async () => {
+    saveIntent({
+      key: resumeIntentKey("listing.reveal_phone"),
+      params: { uuid: "l-1" },
+      returnTo: "/ads/l-1",
+      level: "verified",
+    });
+    session = signedIn(true, false);
+    const navigate = vi.fn();
+
+    await resumeIntent(navigate);
+
+    expect(revealSellerPhone).toHaveBeenCalledWith("l-1");
+    expect(setRevealedPhone).toHaveBeenCalledWith("l-1", "+79996371182");
+    expect(navigate).toHaveBeenCalledWith("/ads/l-1");
+  });
+
+  it("не раскрывает номер без подтверждённого телефона — просит подтвердить", async () => {
+    saveIntent({
+      key: resumeIntentKey("listing.reveal_phone"),
+      params: { uuid: "l-1" },
+      returnTo: "/ads/l-1",
+      level: "verified",
+    });
+    session = signedIn(false, false);
+
+    await resumeIntent(vi.fn());
+
+    expect(revealSellerPhone).not.toHaveBeenCalled();
+    expect(getGateState().open).not.toBeNull();
   });
 
   it("не вступает, если уровня не хватает, и оставляет намерение", async () => {

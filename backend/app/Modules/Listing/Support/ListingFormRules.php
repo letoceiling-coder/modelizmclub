@@ -37,6 +37,7 @@ final class ListingFormRules
             'publish' => ['nullable', 'boolean'],
             'promocode' => ['nullable', 'string', 'max:64'],
             'placement_payment_uuid' => ['nullable', 'uuid'],
+            'show_phone' => ['nullable', 'boolean'],
         ];
     }
 
@@ -63,6 +64,7 @@ final class ListingFormRules
             'pickup_address' => ['nullable', 'string', 'max:255'],
             'media_ids' => ['sometimes', 'array'],
             'media_ids.*' => ['string'],
+            'show_phone' => ['sometimes', 'boolean'],
         ];
     }
 

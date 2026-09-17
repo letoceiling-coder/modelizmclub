@@ -202,6 +202,10 @@ export interface Ad {
   condition?: AdCondition;
   status: "Продаю" | "Куплю";
   contact: string;
+  /** Кнопка «Позвонить продавцу»: номер есть и продавец его показывает. */
+  phoneAvailable?: boolean;
+  /** Выбор продавца «показывать мой номер»; известен только автору. */
+  showPhone?: boolean;
   authorId: ID;
   seller?: AdSeller;
   views?: number;

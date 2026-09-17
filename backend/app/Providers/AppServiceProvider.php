@@ -65,6 +65,8 @@ use Modules\Delivery\Services\CdekClientFactory;
 use Modules\Delivery\Services\CdekService;
 use Modules\Delivery\Services\CdekTokenCache;
 use Modules\Delivery\Services\YandexDeliveryService;
+use Modules\Listing\Contracts\ContactNumberProvider;
+use Modules\Listing\Services\ProfilePhoneNumberProvider;
 use Modules\PublicContent\Services\PublicBootstrapService;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
@@ -75,6 +77,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Номер для «Позвонить продавцу». Переход на АТС — замена этой строки
+        // (docs/seller-phone-reveal.md).
+        $this->app->bind(
+            ContactNumberProvider::class,
+            ProfilePhoneNumberProvider::class,
+        );
         $this->app->singleton(PaymentRecorder::class);
         $this->app->singleton(PaymentFulfillmentService::class);
         $this->app->singleton(VtbAcquiringClient::class);

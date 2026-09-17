@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
+import { SellerCallButton, type SellerCall } from "@/components/ads/SellerCallButton";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,8 @@ interface AdActionPanelProps {
   onShare: () => void;
   onSafeDeal?: () => void;
   safeDealBusy?: boolean;
+  /** Есть, когда номер доступен — иначе кнопки «Позвонить» нет вовсе. */
+  call?: SellerCall;
   className?: string;
 }
 
@@ -44,6 +47,7 @@ export function AdActionPanel({
   onShare,
   onSafeDeal,
   safeDealBusy,
+  call,
   className,
 }: AdActionPanelProps) {
   const showSafeDeal = Boolean(onSafeDeal) && ad.status === "Продаю" && ad.price > 0;
@@ -155,6 +159,7 @@ export function AdActionPanel({
         >
           <MessageSquare size={16} /> Написать продавцу
         </Button>
+        {call && <SellerCallButton call={call} className="w-full" />}
         <div className="grid grid-cols-2 gap-[8px]">
           <Button
             variant="outline"

@@ -559,6 +559,14 @@ COLUMN|listing_media.listing_id|bigint|NO
 COLUMN|listing_media.media_id|bigint|NO
 COLUMN|listing_media.sort_order|smallint|NO
 COLUMN|listing_media.updated_at|timestamp without time zone|YES
+COLUMN|listing_phone_reveals.created_at|timestamp without time zone|NO
+COLUMN|listing_phone_reveals.id|bigint|NO
+COLUMN|listing_phone_reveals.ip_address|character varying|YES
+COLUMN|listing_phone_reveals.listing_id|bigint|YES
+COLUMN|listing_phone_reveals.provider|character varying|NO
+COLUMN|listing_phone_reveals.seller_id|bigint|YES
+COLUMN|listing_phone_reveals.user_agent|character varying|YES
+COLUMN|listing_phone_reveals.viewer_id|bigint|YES
 COLUMN|listing_pricing_rules.base_price_cents|integer|NO
 COLUMN|listing_pricing_rules.category_id|bigint|YES
 COLUMN|listing_pricing_rules.created_at|timestamp without time zone|YES
@@ -612,6 +620,7 @@ COLUMN|listings.price_cents|bigint|NO
 COLUMN|listings.published_at|timestamp without time zone|YES
 COLUMN|listings.rejection_reason|text|YES
 COLUMN|listings.reserved_at|timestamp without time zone|YES
+COLUMN|listings.show_phone|boolean|NO
 COLUMN|listings.slug|character varying|NO
 COLUMN|listings.sold_at|timestamp without time zone|YES
 COLUMN|listings.status|character varying|NO
@@ -1468,6 +1477,9 @@ FK|listing_favorites|listing_favorites_listing_id_foreign
 FK|listing_favorites|listing_favorites_user_id_foreign
 FK|listing_media|listing_media_listing_id_foreign
 FK|listing_media|listing_media_media_id_foreign
+FK|listing_phone_reveals|listing_phone_reveals_listing_id_foreign
+FK|listing_phone_reveals|listing_phone_reveals_seller_id_foreign
+FK|listing_phone_reveals|listing_phone_reveals_viewer_id_foreign
 FK|listing_pricing_rules|listing_pricing_rules_category_id_foreign
 FK|listing_promotions|listing_promotions_listing_id_foreign
 FK|listing_status_logs|listing_status_logs_actor_id_foreign
@@ -1750,6 +1762,11 @@ INDEX|listing_favorites|listing_favorites_pkey
 INDEX|listing_media|listing_media_listing_id_sort_order_index
 INDEX|listing_media|listing_media_media_id_index
 INDEX|listing_media|listing_media_pkey
+INDEX|listing_phone_reveals|listing_phone_reveals_ip_address_created_at_index
+INDEX|listing_phone_reveals|listing_phone_reveals_listing_id_created_at_index
+INDEX|listing_phone_reveals|listing_phone_reveals_pkey
+INDEX|listing_phone_reveals|listing_phone_reveals_seller_id_created_at_index
+INDEX|listing_phone_reveals|listing_phone_reveals_viewer_id_created_at_index
 INDEX|listing_pricing_rules|listing_pricing_rules_pkey
 INDEX|listing_promotions|listing_promotions_pkey
 INDEX|listing_status_logs|listing_status_logs_pkey
@@ -2004,6 +2021,7 @@ SEQ|legal_page_revisions_id_seq
 SEQ|legal_pages_id_seq
 SEQ|listing_categories_id_seq
 SEQ|listing_media_id_seq
+SEQ|listing_phone_reveals_id_seq
 SEQ|listing_pricing_rules_id_seq
 SEQ|listing_promotions_id_seq
 SEQ|listing_status_logs_id_seq
@@ -2129,6 +2147,7 @@ TABLE|legal_pages
 TABLE|listing_categories
 TABLE|listing_favorites
 TABLE|listing_media
+TABLE|listing_phone_reveals
 TABLE|listing_pricing_rules
 TABLE|listing_promotions
 TABLE|listing_status_logs

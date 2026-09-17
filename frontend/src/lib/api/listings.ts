@@ -34,6 +34,10 @@ interface ApiListing {
   status?: string;
   delivery_methods?: string[];
   contact_via_messenger?: boolean;
+  /** Номер есть и продавец его показывает. Самого номера в ответе нет — см. revealSellerPhone. */
+  phone_available?: boolean;
+  /** Выбор продавца «показывать мой номер» — приходит только автору. */
+  show_phone?: boolean;
   views_count?: number;
   favorites_count?: number;
   author?: ApiListingAuthor | null;
@@ -176,6 +180,8 @@ export function mapListing(l: ApiListing): Ad {
       : undefined,
     status: "Продаю",
     contact: l.contact_via_messenger ? "Написать в мессенджере" : "",
+    phoneAvailable: Boolean(l.phone_available),
+    showPhone: l.show_phone,
     authorId: author?.id ?? "",
     seller,
     views: l.views_count ?? 0,
@@ -352,6 +358,7 @@ export interface UpdateListingInput {
   weightKg?: number | null;
   dimensionsCm?: { length: number; width: number; height: number } | null;
   pickupAddress?: string | null;
+  showPhone?: boolean;
 }
 
 export async function updateListing(uuid: string, input: UpdateListingInput): Promise<Ad> {
@@ -377,6 +384,7 @@ export async function updateListing(uuid: string, input: UpdateListingInput): Pr
       weight_kg: input.weightKg ?? undefined,
       dimensions_cm: input.dimensionsCm ?? undefined,
       pickup_address: input.pickupAddress ?? undefined,
+      show_phone: input.showPhone,
     },
   });
   return mapListing(res.data);
@@ -410,10 +418,28 @@ export async function revealSellerPhone(adId: string): Promise<string> {
     if (!ad?.seller?.phone) throw new Error("no phone");
     return ad.seller.phone;
   }
-  const res = await api<{ data: { phone: string } }>(`/listings/${adId}/reveal-phone`, {
-    method: "POST",
-  });
+  const res = await api<{ data: { phone: string; expires_at?: string | null } }>(
+    `/listings/${adId}/reveal-phone`,
+    { method: "POST" },
+  );
   return res.data.phone;
+}
+
+/**
+ * «Показывать мой номер» со страницы объявления — отдельным запросом: правка
+ * объявления вернула бы его на модерацию, а номер до клика никому не виден.
+ */
+export async function setListingPhoneVisibility(uuid: string, showPhone: boolean): Promise<Ad> {
+  if (isDemoMode()) {
+    const ad = (await import("@/lib/demo-data")).demoListing(uuid);
+    if (!ad) throw new Error("Listing not found");
+    return { ...ad, showPhone, phoneAvailable: showPhone && Boolean(ad.seller?.phone) };
+  }
+  const res = await api<{ data: ApiListing }>(`/listings/${uuid}/phone-visibility`, {
+    method: "PUT",
+    json: { show_phone: showPhone },
+  });
+  return mapListing(res.data);
 }
 
 export async function publishListing(uuid: string): Promise<void> {
@@ -459,6 +485,8 @@ export interface CreateListingInput {
   weightKg?: number | null;
   dimensionsCm?: { length: number; width: number; height: number } | null;
   pickupAddress?: string | null;
+  /** «Показывать мой номер»; не передан — сервер включает. */
+  showPhone?: boolean;
 }
 
 export async function createListing(input: CreateListingInput): Promise<Ad> {
@@ -508,6 +536,7 @@ export async function createListing(input: CreateListingInput): Promise<Ad> {
       weight_kg: input.weightKg ?? undefined,
       dimensions_cm: input.dimensionsCm ?? undefined,
       pickup_address: input.pickupAddress ?? undefined,
+      show_phone: input.showPhone,
     },
   });
   return mapListing(res.data);

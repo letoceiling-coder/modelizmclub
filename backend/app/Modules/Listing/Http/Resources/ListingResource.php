@@ -2,11 +2,14 @@
 
 namespace Modules\Listing\Http\Resources;
 
-use App\Models\Listing;
 use App\Http\Resources\Concerns\HasCanFlags;
+use App\Models\Listing;
+use App\Models\Payment;
+use App\Support\ParcelSize;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Listing\Services\ListingBoostService;
+use Modules\Listing\Services\SellerPhoneRevealService;
 use Modules\User\Http\Resources\UserCompactResource;
 
 /** @mixin Listing */
@@ -34,8 +37,18 @@ class ListingResource extends JsonResource
             'weight_kg' => $this->weight_kg,
             'dimensions_cm' => $this->dimensions_cm,
             'pickup_address' => $this->pickup_address,
-            'offers_cdek' => \App\Support\ParcelSize::offersCdek($this->delivery_methods ?? []),
+            'offers_cdek' => ParcelSize::offersCdek($this->delivery_methods ?? []),
             'contact_via_messenger' => $this->contact_via_messenger,
+            /*
+             * Только знак, что номер есть. Сам номер — отдельным запросом
+             * (reveal-phone): номер в разметке и в ответе списка собирают за
+             * один проход и дальше обзванивают.
+             */
+            'phone_available' => app(SellerPhoneRevealService::class)->isAvailable($this->resource),
+            'show_phone' => $this->when(
+                $request->user() !== null && (int) $request->user()->id === (int) $this->user_id,
+                fn () => (bool) $this->show_phone,
+            ),
             'views_count' => $this->views_count,
             'favorites_count' => $this->favorites_count,
             'author' => new UserCompactResource($this->whenLoaded('author')),
@@ -71,7 +84,7 @@ class ListingResource extends JsonResource
                     'payment_status' => $this->placement_payment_id
                         ? ($this->relationLoaded('placementPayment')
                             ? $this->placementPayment?->status
-                            : \App\Models\Payment::query()->whereKey($this->placement_payment_id)->value('status'))
+                            : Payment::query()->whereKey($this->placement_payment_id)->value('status'))
                         : null,
                     // Кредит размещения — оплата без платежа: единица списана,
                     // цена записана. Иначе владелец видел бы «оплата не
@@ -79,7 +92,7 @@ class ListingResource extends JsonResource
                     'paid' => $this->placement_payment_id
                         ? ($this->relationLoaded('placementPayment')
                             ? $this->placementPayment?->status === 'paid'
-                            : \App\Models\Payment::query()->whereKey($this->placement_payment_id)->where('status', 'paid')->exists())
+                            : Payment::query()->whereKey($this->placement_payment_id)->where('status', 'paid')->exists())
                         : ((bool) $this->placement_was_free || (int) $this->placement_amount_cents > 0),
                 ],
             ),

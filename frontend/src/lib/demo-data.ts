@@ -223,7 +223,9 @@ export function demoMyListings(): { ad: Ad; status: AdStatusKey }[] {
 }
 
 export function demoListing(id: ID): Ad | null {
-  return demoUserListings.find((a) => a.id === id) ?? adById(id) ?? null;
+  const ad = demoUserListings.find((a) => a.id === id) ?? adById(id) ?? null;
+  // В демо номер лежит в продавце; кнопка «Позвонить» — если он есть.
+  return ad ? { ...ad, phoneAvailable: ad.phoneAvailable ?? Boolean(ad.seller?.phone) } : null;
 }
 
 // ── communities ──────────────────────────────────────────────────────────────

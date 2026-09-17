@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ShowPhoneSwitch } from "@/components/ads/ShowPhoneSwitch";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { type AdCondition, type Category, type CategoryChild } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";
@@ -192,6 +193,8 @@ interface Form {
   city: string;
   cityId?: number;
   contact: string;
+  /** «Показывать мой номер» — по умолчанию включено. */
+  showPhone: boolean;
   deliveries: string[];
   packageSize: "" | "s" | "m" | "l";
   weightKg: string;
@@ -331,6 +334,7 @@ const initial: Form = {
   city: "",
   cityId: undefined,
   contact: "",
+  showPhone: true,
   deliveries: ["СДЭК"],
   packageSize: "m",
   weightKg: "",
@@ -394,6 +398,7 @@ function NewAdPage() {
     dimW: string;
     dimH: string;
     pickupAddress: string;
+    showPhone: boolean;
   } | null>(null);
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
@@ -439,6 +444,7 @@ function NewAdPage() {
           city: ad.city,
           cityId: ad.cityId,
           contact: f.contact,
+          showPhone: ad.showPhone !== false,
           deliveries: (ad.delivery.length ? ad.delivery : ["СДЭК"]).filter(
             (d) => !/boxberry|боксберри/i.test(d),
           ),
@@ -678,6 +684,7 @@ function NewAdPage() {
           weightKg: parcel.weightKg,
           dimensionsCm: parcel.dimensionsCm,
           pickupAddress: parcel.pickupAddress,
+          showPhone: form.showPhone,
         });
         toast.success(
           updated.moderation === "moderation"
@@ -741,6 +748,7 @@ function NewAdPage() {
             dimW: form.dimW,
             dimH: form.dimH,
             pickupAddress: form.pickupAddress,
+            showPhone: form.showPhone,
           });
           setSubmitting(false);
           return;
@@ -763,6 +771,7 @@ function NewAdPage() {
             weightKg: parcel.weightKg,
             dimensionsCm: parcel.dimensionsCm,
             pickupAddress: parcel.pickupAddress,
+            showPhone: form.showPhone,
           });
           toast.success(
             created.moderation === "moderation"
@@ -817,6 +826,7 @@ function NewAdPage() {
         weightKg: jobParcel.weightKg,
         dimensionsCm: jobParcel.dimensionsCm,
         pickupAddress: job.pickupAddress || undefined,
+        showPhone: job.showPhone,
       };
       // Черновик от прошлой попытки оплаты переиспользуется, а не плодится.
       const draft = payDraftRef.current
@@ -1486,6 +1496,7 @@ function StepData({
             )}
           </div>
         </div>
+        <ShowPhoneSwitch checked={form.showPhone} onChange={(v) => set("showPhone", v)} />
         <Field label="Способы доставки">
           <div className="space-y-[14px]">
             {(() => {
