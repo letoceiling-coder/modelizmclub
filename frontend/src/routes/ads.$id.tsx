@@ -46,6 +46,8 @@ import { ShareSheet } from "@/components/communities/ShareSheet";
 import i18n from "@/lib/i18n";
 import { useActionGate } from "@/lib/gate";
 import { askConfirm } from "@/lib/ui/ask";
+import { TAP_TARGET_ROW_44 } from "@/lib/tap-target";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ads/$id")({
   /*
@@ -468,13 +470,19 @@ function AdDetailPage() {
     <AppLayout footer navCollapsed>
       <div className="pb-[calc(var(--bottom-nav-space)+72px)] lg:pb-0">
         {/* Breadcrumbs */}
+        {/* gap-y-[26px] — при переносе строки зоны нажатия 44 px не наезжают
+            друг на друга: 18 px текста плюс 26 зазора = 44. На одной строке
+            вертикальный зазор ничего не меняет. */}
         <nav
-          className="mb-[16px] flex flex-wrap items-center gap-[6px] text-[12px]"
+          className="mb-[16px] flex flex-wrap items-center gap-x-[6px] gap-y-[26px] text-[12px]"
           style={{ color: "var(--foreground-50)" }}
         >
           <Link
             to="/ads"
-            className="inline-flex items-center gap-[4px] transition-colors hover:text-[var(--foreground)]"
+            className={cn(
+              "inline-flex items-center gap-[4px] transition-colors hover:text-[var(--foreground)]",
+              TAP_TARGET_ROW_44,
+            )}
           >
             <ChevronLeft size={14} /> {t("pages.adDetail.listingsBreadcrumb")}
           </Link>
@@ -489,7 +497,10 @@ function AdDetailPage() {
                 <Link
                   to="/ads"
                   search={{ category_id: categorySearch.category_id }}
-                  className="transition-colors hover:text-[var(--foreground)] hover:underline"
+                  className={cn(
+                    "inline-block transition-colors hover:text-[var(--foreground)] hover:underline",
+                    TAP_TARGET_ROW_44,
+                  )}
                   style={{ color: "var(--foreground-70)" }}
                 >
                   {ad.category}
@@ -506,7 +517,10 @@ function AdDetailPage() {
                 <Link
                   to="/ads"
                   search={categorySearch}
-                  className="transition-colors hover:underline"
+                  className={cn(
+                    "inline-block transition-colors hover:underline",
+                    TAP_TARGET_ROW_44,
+                  )}
                   style={{ color: "var(--foreground)" }}
                 >
                   {ad.subcategory}
