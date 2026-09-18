@@ -16,6 +16,14 @@ class FeedModuleTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Тест о механике, не о доступе к созданию записи: авторы без подписки.
+        $this->setComposeTier('auth');
+        $this->setActionTier('feed.post.repost', 'auth');
+    }
+
     public function test_user_can_create_publish_and_list_post_in_feed(): void
     {
         config(['feed.auto_publish' => true]);

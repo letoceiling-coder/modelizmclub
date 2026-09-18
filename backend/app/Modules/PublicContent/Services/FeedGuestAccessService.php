@@ -63,6 +63,22 @@ class FeedGuestAccessService
         return $this->mergedConfig();
     }
 
+    /**
+     * Уровень действия из итоговой карты: `guest`, `auth` или `subscription`.
+     *
+     * Та же сборка, что уходит в интерфейс (`publicPayload`), — сервер и
+     * клиент читают одно правило. Для ключа из реестра уровень есть всегда:
+     * `normalizeAction` подставляет умолчательный. Неизвестный ключ или
+     * испорченное значение — самый строгий уровень: ошибка в имени ключа не
+     * должна тихо открывать действие.
+     */
+    public function minTier(string $actionKey): string
+    {
+        $tier = $this->mergedConfig()['actions'][$actionKey]['min_tier'] ?? null;
+
+        return is_string($tier) && in_array($tier, FeedGuestAccessRegistry::TIERS, true) ? $tier : 'subscription';
+    }
+
     /** @return array<string, mixed> */
     private function mergedConfig(): array
     {

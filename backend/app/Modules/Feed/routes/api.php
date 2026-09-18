@@ -28,17 +28,21 @@ Route::middleware('optionalAuth')->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
-    Route::post('posts', StorePostController::class);
+    Route::post('posts', StorePostController::class)
+        ->middleware('requiresSubscription:feed.compose.open');
     Route::patch('posts/{uuid}', UpdatePostController::class);
     Route::delete('posts/{uuid}', DestroyPostController::class);
-    Route::post('posts/{uuid}/publish', PublishPostController::class);
-    Route::post('posts/{uuid}/schedule', SchedulePostController::class);
+    Route::post('posts/{uuid}/publish', PublishPostController::class)
+        ->middleware('requiresSubscription:feed.compose.open');
+    Route::post('posts/{uuid}/schedule', SchedulePostController::class)
+        ->middleware('requiresSubscription:feed.compose.open');
     Route::delete('posts/{uuid}/schedule', CancelScheduledPostController::class);
     Route::post('posts/{uuid}/react', [PostReactionController::class, 'store']);
     Route::delete('posts/{uuid}/react', [PostReactionController::class, 'destroy']);
     Route::post('posts/{uuid}/bookmark', [PostBookmarkController::class, 'store']);
     Route::delete('posts/{uuid}/bookmark', [PostBookmarkController::class, 'destroy']);
-    Route::post('posts/{uuid}/repost', RepostPostController::class);
+    Route::post('posts/{uuid}/repost', RepostPostController::class)
+        ->middleware('requiresSubscription:feed.post.repost');
     Route::delete('posts/{uuid}/repost', UnrepostPostController::class);
     Route::post('posts/{uuid}/comments', [PostCommentsController::class, 'store']);
     Route::delete('comments/{uuid}', DestroyCommentController::class);

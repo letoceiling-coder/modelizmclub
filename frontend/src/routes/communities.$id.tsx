@@ -885,7 +885,7 @@ function EventSignupModal({
 
 function CommunityDetailPage() {
   const { t } = useTranslation();
-  const { requirePremium, requireAccount } = useGuestAccess();
+  const { requirePremium, requireAccount, guardAction } = useGuestAccess();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const loaded = Route.useLoaderData();
@@ -1518,7 +1518,12 @@ function CommunityDetailPage() {
               <div className="mb-3">
                 <CreatePostRow
                   me={me}
-                  onSelectKind={() => requirePremium(() => setCreatePostOpen(true))}
+                  onSelectKind={() =>
+                    // Тот же ключ карты, что у ленты и у сервера (POST /posts):
+                    // уровень правят в админке, и стена сообщества не должна
+                    // требовать больше или меньше, чем сервер.
+                    guardAction("feed.compose.open", () => setCreatePostOpen(true))
+                  }
                 />
               </div>
             )}
@@ -1559,7 +1564,7 @@ function CommunityDetailPage() {
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => requirePremium(() => setCreatePostOpen(true))}
+                    onClick={() => guardAction("feed.compose.open", () => setCreatePostOpen(true))}
                     className="gap-[6px]"
                   >
                     <Plus size={16} />

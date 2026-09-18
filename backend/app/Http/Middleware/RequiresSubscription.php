@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Modules\PublicContent\Services\FeedGuestAccessService;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -12,10 +13,24 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Viewing content (reviews, landing, catalog) stays open; publishing content,
  * messaging and calls require a subscription. Moderators/admins bypass.
+ *
+ * С ключом действия (`requiresSubscription:feed.compose.open`) подписка
+ * нужна, только если в карте доступа у этого действия уровень
+ * `subscription`. Карту правят в админке, и по ней же закрывает кнопки
+ * интерфейс; без ключа сервер жил своей жизнью: 19.09 учётка без подписки
+ * создала и опубликовала запись прямым запросом, хотя «Что у вас нового?»
+ * у неё было закрыто окном подписки. Без ключа — прежнее безусловное
+ * правило (видео).
+ *
+ * Где карта применяется на сервере: `feed.compose.open` — создание,
+ * публикация и отложенная публикация записи (лента и стена сообщества),
+ * `feed.post.repost` — репост. Маршруты — app/Modules/Feed/routes/api.php.
  */
 class RequiresSubscription
 {
-    public function handle(Request $request, Closure $next): Response
+    public function __construct(private readonly FeedGuestAccessService $access) {}
+
+    public function handle(Request $request, Closure $next, ?string $action = null): Response
     {
         $user = Auth::guard('sanctum')->user() ?? $request->user();
 
@@ -24,6 +39,10 @@ class RequiresSubscription
                 'message' => 'Требуется авторизация.',
                 'code' => 'unauthenticated',
             ], 401);
+        }
+
+        if ($action !== null && $this->access->minTier($action) !== 'subscription') {
+            return $next($request);
         }
 
         if ($user->isModerator()) {

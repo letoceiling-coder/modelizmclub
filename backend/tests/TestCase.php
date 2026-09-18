@@ -5,6 +5,7 @@ namespace Tests;
 use App\Models\Payment;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Support\FeedGuestAccessRegistry;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -101,6 +102,32 @@ abstract class TestCase extends BaseTestCase
             config(['app.timezone' => $previousConfig]);
             date_default_timezone_set($previousDefault);
         }
+    }
+
+    /**
+     * Уровень `feed.compose.open` в карте доступа — тот, по которому сервер
+     * решает, нужна ли подписка для записи (RequiresSubscription с ключом).
+     *
+     * По умолчанию в реестре — `subscription`. Тесты механики ленты, модерации
+     * и уведомлений создают записи обычными пользователями: им ставится `auth`,
+     * законная настройка из админки. Сам доступ проверяет
+     * PostSubscriptionGateTest.
+     */
+    protected function setComposeTier(string $tier): void
+    {
+        $this->setActionTier('feed.compose.open', $tier);
+    }
+
+    /** Уровень одного действия в карте доступа; остальные сохраняются. */
+    protected function setActionTier(string $action, string $tier): void
+    {
+        $row = SystemSetting::query()->where('key', FeedGuestAccessRegistry::SETTING_KEY)->first();
+        $config = is_array($row?->value) ? $row->value : FeedGuestAccessRegistry::defaultConfig();
+        $config['actions'][$action]['min_tier'] = $tier;
+        SystemSetting::query()->updateOrCreate(
+            ['key' => FeedGuestAccessRegistry::SETTING_KEY],
+            ['group' => 'feed', 'value' => $config],
+        );
     }
 
     protected function recordPaidPlanPayment(User $user, int $planId, int $amountCents = 9900): void

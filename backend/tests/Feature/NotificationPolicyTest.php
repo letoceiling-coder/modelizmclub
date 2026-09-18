@@ -24,6 +24,8 @@ class NotificationPolicyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Тест о механике, не о доступе к созданию записи: авторы без подписки.
+        $this->setComposeTier('auth');
         $this->seed(RoleSeeder::class);
     }
 
