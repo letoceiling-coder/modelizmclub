@@ -4,6 +4,7 @@ import { ChevronDown, Plus, Send } from "lucide-react";
 import { m } from "framer-motion";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
 import type { Channel } from "@/lib/channels";
@@ -311,7 +312,17 @@ export function CreatePostRow({
         boxShadow: "var(--shadow-card)",
       }}
     >
-      <UserAvatar src={me.avatar} name={me.name} size={40} />
+      {/* Аватар ведёт в свой профиль — как аватар автора в карточке записи.
+          Был единственным аватаром в ленте вне ссылки (обход 18.09).
+          ::after — зона нажатия 44×44, не двигая сам аватар. */}
+      <GuestGuardLink
+        actionKey="route.profile"
+        to="/profile"
+        aria-label={me.name}
+        className="relative shrink-0 after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:content-['']"
+      >
+        <UserAvatar src={me.avatar} name={me.name} size={40} />
+      </GuestGuardLink>
       {/* Коробка 44 — палец; пилюля внутри 36 — глаз. Псевдоэлементом здесь
           не обойтись: truncate ставит на кнопку overflow-hidden, который
           обрезает и её собственный ::after. */}

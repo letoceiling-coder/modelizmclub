@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
+import { catalogNamesFromIds, findSubcategoryByName, parseCatalogId } from "@/lib/catalog-filter";
 import { AdsPageSkeleton } from "@/components/boot/PageSkeletons";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
@@ -43,19 +44,27 @@ export const Route = createFileRoute("/ads/")({
       { name: "description", content: i18n.t("pages.ads.metaDescription") },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { q?: string; taxonomy_id?: number } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { q?: string; taxonomy_id?: number; category_id?: number; subcategory_id?: number } => ({
     q: typeof search.q === "string" ? search.q : undefined,
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
+    category_id: parseCatalogId(search.category_id),
+    subcategory_id: parseCatalogId(search.subcategory_id),
   }),
   loaderDeps: ({ search }) => ({
     q: search.q,
     taxonomy_id: search.taxonomy_id,
+    category_id: search.category_id,
+    subcategory_id: search.subcategory_id,
   }),
   loader: async ({ deps }) => {
     await ensurePublicBootstrap();
     const ads = await fetchListings({
       q: deps.q,
       taxonomyId: deps.taxonomy_id,
+      categoryId: deps.category_id,
+      subcategoryId: deps.subcategory_id,
       sort: "new",
       perPage: PAGE_SIZE,
       page: 1,
@@ -144,7 +153,17 @@ function CatalogPage() {
     setQ(search.q ?? "");
   }, [search.q]);
   const [sort, setSort] = useState<SortKey>("new");
-  const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
+  /*
+   * Раздел из адреса. Дерево каталога приходит с `/public/bootstrap`, который
+   * загрузчик маршрута дожидается до отрисовки, — поэтому названия известны
+   * уже в первом кадре и одинаковы на сервере и в браузере. Подставлять их
+   * позже нельзя: смена `filters` после монтирования запускает повторный
+   * запрос с теми же параметрами и пересборку сетки.
+   */
+  const [filters, setFilters] = useState<FiltersState>(() => {
+    const named = catalogNamesFromIds(listingCategories, search.category_id, search.subcategory_id);
+    return named ? { ...DEFAULT_FILTERS, ...named } : DEFAULT_FILTERS;
+  });
   const [sheetOpen, setSheetOpen] = useState(false);
 
   /*
@@ -163,7 +182,9 @@ function CatalogPage() {
   const { categoryId, subcategoryId } = useMemo(() => {
     const cat = listingCategories.find((c) => c.name === filters.category);
     if (!cat) return { categoryId: undefined, subcategoryId: undefined };
-    const sub = cat.subcategories.find((x) => x.name === filters.subcategory);
+    // По всему поддереву: дерево трёхуровневое, и подраздел может лежать
+    // под своим разделом, а не рядом с ним.
+    const sub = findSubcategoryByName(cat, filters.subcategory);
     const num = (v: string | undefined) => {
       const n = Number(v);
       return Number.isFinite(n) && n > 0 ? n : undefined;

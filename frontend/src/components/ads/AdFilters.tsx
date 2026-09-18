@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from "framer-motion";
+import { flattenSubcategories } from "@/lib/catalog-filter";
 import { X, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -63,7 +64,7 @@ function Body({ value, onChange, onReset }: Props) {
         <Select
           value={value.subcategory}
           onChange={(v) => set("subcategory", v)}
-          options={cat ? ["Все", ...cat.subcategories.map((s) => s.name)] : ["Все"]}
+          options={cat ? ["Все", ...flattenSubcategories(cat).map((s) => s.name)] : ["Все"]}
           disabled={!cat}
         />
       </Group>

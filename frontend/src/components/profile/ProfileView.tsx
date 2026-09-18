@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -612,16 +613,27 @@ export function ProfileView({
             label={t("pages.profile.counterPosts")}
             value={stats?.publications ?? userPosts.length}
             divider
+            onOpen={() => setTab("posts")}
           />
           <Counter
             label={t("pages.profile.counterAds")}
             value={stats?.ads ?? userAds.length}
             divider
+            onOpen={() => setTab("ads")}
           />
-          <Counter label={t("pages.profile.counterFriends")} value={friendsCountDerived} divider />
+          {/* Вкладки «Друзья» нет; свой список друзей — отдельная страница,
+              чужого списка на сайте нет, поэтому в чужом профиле счётчик
+              остаётся текстом, а не ссылкой в никуда. */}
+          <Counter
+            label={t("pages.profile.counterFriends")}
+            value={friendsCountDerived}
+            divider
+            href={isOwn ? "/friends" : undefined}
+          />
           <Counter
             label={t("pages.profile.counterCommunities")}
             value={stats?.communities ?? userCommunities.length}
+            onOpen={() => setTab("communities")}
           />
         </div>
 
@@ -900,12 +912,29 @@ export function ProfileView({
   );
 }
 
-function Counter({ label, value, divider }: { label: string; value: number; divider?: boolean }) {
-  return (
-    <div
-      className="min-w-0 px-2 py-3 text-center md:px-6"
-      style={{ borderRight: divider ? "1px solid var(--border)" : undefined }}
-    >
+/**
+ * Счётчик над вкладками. Нажатие открывает вкладку с тем же названием —
+ * как и у блока рейтинга выше, который открывает «Отзывы». До 18.09 счётчики
+ * были обычными `div`: выглядели входом в раздел и никуда не вели.
+ *
+ * Без `onOpen` (и без адреса) счётчик остаётся текстом — тогда у него нет
+ * вкладки, куда вести: «Друзей» в чужом профиле открывать нечем.
+ */
+function Counter({
+  label,
+  value,
+  divider,
+  onOpen,
+  href,
+}: {
+  label: string;
+  value: number;
+  divider?: boolean;
+  onOpen?: () => void;
+  href?: string;
+}) {
+  const inner = (
+    <>
       <div
         className="font-display text-[16px] font-bold leading-none tabular-nums md:text-[18px]"
         style={{ color: "var(--foreground)" }}
@@ -918,6 +947,36 @@ function Counter({ label, value, divider }: { label: string; value: number; divi
       >
         {label}
       </div>
+    </>
+  );
+  const box = "min-w-0 px-2 py-3 text-center md:px-6";
+  const border = { borderRight: divider ? "1px solid var(--border)" : undefined };
+  if (href) {
+    return (
+      <Link
+        to={href}
+        className={cn(box, "block transition-opacity hover:opacity-80")}
+        style={border}
+      >
+        {inner}
+      </Link>
+    );
+  }
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn(box, "transition-opacity hover:opacity-80")}
+        style={border}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <div className={box} style={border}>
+      {inner}
     </div>
   );
 }
