@@ -217,8 +217,12 @@ export function EventsHero({ initial }: { initial?: BannerPack | null }) {
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
+        {/* Курсор-палец только когда листать есть что: при одном баннере
+            `onSlidePointerUp` выходит сразу, и нажатие ничего не делает.
+            На проде баннер один — курсор обещал действие, которого нет
+            (обход нажимаемого 18.09). */}
         <div
-          className={`relative cursor-pointer ${BANNER_HERO_HEIGHT}`}
+          className={`relative ${list.length > 1 ? "cursor-pointer" : ""} ${BANNER_HERO_HEIGHT}`}
           style={{ touchAction: "pan-y" }}
           onPointerDown={onSlidePointerDown}
           onPointerUp={onSlidePointerUp}

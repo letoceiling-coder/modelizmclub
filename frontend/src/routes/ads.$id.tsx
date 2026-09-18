@@ -14,6 +14,7 @@ import {
   setListingPhoneVisibility,
 } from "@/lib/api/listings";
 import { reportActionFailure } from "@/lib/errors/handle";
+import { catalogSearchForListing } from "@/lib/catalog-filter";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
@@ -459,6 +460,8 @@ function AdDetailPage() {
     }
   };
 
+  const categorySearch = catalogSearchForListing(ad.categoryId, ad.subcategoryId);
+
   return (
     // Меню свёрнуто, как в каталоге: из каталога в объявление и обратно
     // левая колонка не меняет ширину. Во всех четырёх состояниях страницы.
@@ -475,16 +478,42 @@ function AdDetailPage() {
           >
             <ChevronLeft size={14} /> {t("pages.adDetail.listingsBreadcrumb")}
           </Link>
+          {/* Раздел и подраздел — ссылки в каталог с этим отбором. Были
+              обычным текстом: путь показывался, а пройти по нему было
+              нельзя (обход нажимаемого 18.09). Адрес каталога понимает
+              category_id/subcategory_id — см. lib/catalog-filter.ts. */}
           {ad.category && (
             <>
               <span>/</span>
-              <span style={{ color: "var(--foreground-70)" }}>{ad.category}</span>
+              {categorySearch.category_id ? (
+                <Link
+                  to="/ads"
+                  search={{ category_id: categorySearch.category_id }}
+                  className="transition-colors hover:text-[var(--foreground)] hover:underline"
+                  style={{ color: "var(--foreground-70)" }}
+                >
+                  {ad.category}
+                </Link>
+              ) : (
+                <span style={{ color: "var(--foreground-70)" }}>{ad.category}</span>
+              )}
             </>
           )}
           {ad.subcategory && (
             <>
               <span>/</span>
-              <span style={{ color: "var(--foreground)" }}>{ad.subcategory}</span>
+              {categorySearch.subcategory_id ? (
+                <Link
+                  to="/ads"
+                  search={categorySearch}
+                  className="transition-colors hover:underline"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {ad.subcategory}
+                </Link>
+              ) : (
+                <span style={{ color: "var(--foreground)" }}>{ad.subcategory}</span>
+              )}
             </>
           )}
         </nav>
