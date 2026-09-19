@@ -30,7 +30,7 @@ class EventPolicy
     public function view(?User $user, ClubEvent $event): bool
     {
         if ($event->trashed()) {
-            return $user !== null && $user->isAdmin();
+            return $user !== null && $user->isOwner();
         }
         if ($event->status === ClubEvent::STATUS_DRAFT) {
             return $user !== null && ($this->canEdit($user, $event) || $this->canTakeDown($user, $event));
@@ -41,7 +41,7 @@ class EventPolicy
 
         $community = $event->community;
         if (! $community || $community->trashed() || $community->status !== CommunityStatus::Active) {
-            return $user !== null && $user->isAdmin();
+            return $user !== null && $user->isOwner();
         }
         if ($community->isOpen()) {
             return true;
@@ -54,7 +54,7 @@ class EventPolicy
     public function create(User $user, ?Community $community = null): bool
     {
         if ($community === null) {
-            return $user->isAdmin();
+            return $user->isOwner();
         }
 
         return $community->status === CommunityStatus::Active
@@ -99,7 +99,7 @@ class EventPolicy
     private function canEdit(User $user, ClubEvent $event): bool
     {
         if ($event->isPlatform()) {
-            return $user->isAdmin();
+            return $user->isOwner();
         }
         $community = $event->community;
 
@@ -109,7 +109,7 @@ class EventPolicy
     /** Модерация площадки: отменить и снять чужое событие, но не править его. */
     private function canTakeDown(User $user, ClubEvent $event): bool
     {
-        return $event->isPlatform() ? $user->isAdmin() : $user->isModerator();
+        return $event->isPlatform() ? $user->isOwner() : $user->isModerator();
     }
 
     private function isMember(User $user, Community $community): bool

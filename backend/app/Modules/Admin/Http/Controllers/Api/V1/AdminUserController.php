@@ -85,7 +85,7 @@ class AdminUserController extends Controller
         }
 
         $this->guardModeratorEdit($request, $user);
-        $this->guardLastAdmin($request, $user);
+        $this->guardLastOwner($request, $user);
 
         $old = $user->only(['email', 'name', 'role', 'status']);
         $user->fill($request->validated());
@@ -110,8 +110,8 @@ class AdminUserController extends Controller
             abort(422, 'Нельзя удалить собственный аккаунт.');
         }
 
-        if ($user->role === UserRole::Admin && $this->otherActiveAdminsCount($user) === 0) {
-            abort(422, 'Нельзя удалить последнего суперадмина.');
+        if ($user->role === UserRole::Owner && $this->otherActiveOwnersCount($user) === 0) {
+            abort(422, 'Нельзя удалить последнего Владельца.');
         }
 
         $snapshot = $user->only(['email', 'uuid', 'name']);
@@ -122,27 +122,27 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Prevents demoting or blocking the last remaining active superadmin,
+     * Prevents demoting or blocking the last remaining active Owner,
      * which would otherwise lock everyone out of the admin panel.
      */
-    private function guardLastAdmin(UpdateAdminUserRequest $request, User $user): void
+    private function guardLastOwner(UpdateAdminUserRequest $request, User $user): void
     {
-        if ($user->role !== UserRole::Admin) {
+        if ($user->role !== UserRole::Owner) {
             return;
         }
 
-        $losesAdminRole = $request->filled('role') && $request->string('role')->toString() !== UserRole::Admin->value;
+        $losesOwnerRole = $request->filled('role') && $request->string('role')->toString() !== UserRole::Owner->value;
         $becomesInactive = $request->filled('status') && $request->string('status')->toString() !== UserStatus::Active->value;
 
-        if (($losesAdminRole || $becomesInactive) && $this->otherActiveAdminsCount($user) === 0) {
-            abort(422, 'Нельзя снять последнего суперадмина.');
+        if (($losesOwnerRole || $becomesInactive) && $this->otherActiveOwnersCount($user) === 0) {
+            abort(422, 'Нельзя снять последнего Владельца.');
         }
     }
 
-    private function otherActiveAdminsCount(User $user): int
+    private function otherActiveOwnersCount(User $user): int
     {
         return User::query()
-            ->where('role', UserRole::Admin)
+            ->where('role', UserRole::Owner)
             ->where('status', UserStatus::Active)
             ->where('id', '!=', $user->id)
             ->count();

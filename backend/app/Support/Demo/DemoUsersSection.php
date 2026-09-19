@@ -57,7 +57,7 @@ class DemoUsersSection extends DemoSection
         if (SubscriptionPlan::query()->count() === 0) {
             $out[] = 'нет ни одного тарифа — подписки выданы не будут';
         }
-        if (User::query()->where('role', UserRole::Admin)->doesntExist()) {
+        if (User::query()->where('role', UserRole::Owner)->doesntExist()) {
             $out[] = 'нет учётной записи администратора — подписку выдавать некому, '.
                 'а без `granted_by_admin_id` доступ подписчика не откроется';
         }
@@ -87,7 +87,7 @@ class DemoUsersSection extends DemoSection
         $have = $this->people();
         $cityIds = City::query()->pluck('id', 'name')->all();
         $plan = SubscriptionPlan::query()->orderBy('sort_order')->first();
-        $adminId = User::query()->where('role', UserRole::Admin)->orderBy('id')->value('id');
+        $adminId = User::query()->where('role', UserRole::Owner)->orderBy('id')->value('id');
         $made = 0;
 
         foreach (DemoPeople::roster() as $index => $person) {

@@ -7,7 +7,6 @@ use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\SystemSetting;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Modules\Billing\Services\SafeDealFeePolicy;
@@ -29,7 +28,6 @@ class SafeDealFeeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         config(['billing.safe_deal.escrow_provider' => 'wallet']);
     }
 

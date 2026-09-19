@@ -691,12 +691,6 @@ COLUMN|messages.uuid|uuid|NO
 COLUMN|migrations.batch|integer|NO
 COLUMN|migrations.id|integer|NO
 COLUMN|migrations.migration|character varying|NO
-COLUMN|model_has_permissions.model_id|bigint|NO
-COLUMN|model_has_permissions.model_type|character varying|NO
-COLUMN|model_has_permissions.permission_id|bigint|NO
-COLUMN|model_has_roles.model_id|bigint|NO
-COLUMN|model_has_roles.model_type|character varying|NO
-COLUMN|model_has_roles.role_id|bigint|NO
 COLUMN|moderation_actions.action|character varying|NO
 COLUMN|moderation_actions.actor_id|bigint|NO
 COLUMN|moderation_actions.created_at|timestamp without time zone|NO
@@ -784,11 +778,6 @@ COLUMN|pending_email_changes.id|bigint|NO
 COLUMN|pending_email_changes.new_email|character varying|NO
 COLUMN|pending_email_changes.updated_at|timestamp without time zone|YES
 COLUMN|pending_email_changes.user_id|bigint|NO
-COLUMN|permissions.created_at|timestamp without time zone|YES
-COLUMN|permissions.guard_name|character varying|NO
-COLUMN|permissions.id|bigint|NO
-COLUMN|permissions.name|character varying|NO
-COLUMN|permissions.updated_at|timestamp without time zone|YES
 COLUMN|personal_access_tokens.abilities|text|YES
 COLUMN|personal_access_tokens.created_at|timestamp without time zone|YES
 COLUMN|personal_access_tokens.expires_at|timestamp without time zone|YES
@@ -932,13 +921,6 @@ COLUMN|reports.resolved_at|timestamp without time zone|YES
 COLUMN|reports.resolved_by|bigint|YES
 COLUMN|reports.status|character varying|NO
 COLUMN|reports.updated_at|timestamp without time zone|YES
-COLUMN|role_has_permissions.permission_id|bigint|NO
-COLUMN|role_has_permissions.role_id|bigint|NO
-COLUMN|roles.created_at|timestamp without time zone|YES
-COLUMN|roles.guard_name|character varying|NO
-COLUMN|roles.id|bigint|NO
-COLUMN|roles.name|character varying|NO
-COLUMN|roles.updated_at|timestamp without time zone|YES
 COLUMN|rule_page_revisions.content_snapshot|json|NO
 COLUMN|rule_page_revisions.created_at|timestamp without time zone|NO
 COLUMN|rule_page_revisions.id|bigint|NO
@@ -1508,8 +1490,6 @@ FK|messages|messages_listing_id_foreign
 FK|messages|messages_post_id_foreign
 FK|messages|messages_reply_to_id_foreign
 FK|messages|messages_user_id_foreign
-FK|model_has_permissions|model_has_permissions_permission_id_foreign
-FK|model_has_roles|model_has_roles_role_id_foreign
 FK|moderation_actions|moderation_actions_actor_id_foreign
 FK|moderation_queue|moderation_queue_assigned_to_foreign
 FK|notification_preferences|notification_preferences_user_id_foreign
@@ -1551,8 +1531,6 @@ FK|referrals|referrals_invitee_id_foreign
 FK|referrals|referrals_inviter_id_foreign
 FK|reports|reports_reporter_id_foreign
 FK|reports|reports_resolved_by_foreign
-FK|role_has_permissions|role_has_permissions_permission_id_foreign
-FK|role_has_permissions|role_has_permissions_role_id_foreign
 FK|rule_page_revisions|rule_page_revisions_rule_page_id_foreign
 FK|rule_page_revisions|rule_page_revisions_user_id_foreign
 FK|rule_page_sections|rule_page_sections_rule_page_id_foreign
@@ -1796,10 +1774,6 @@ INDEX|messages|messages_pkey
 INDEX|messages|messages_user_id_index
 INDEX|messages|messages_uuid_unique
 INDEX|migrations|migrations_pkey
-INDEX|model_has_permissions|model_has_permissions_model_id_model_type_index
-INDEX|model_has_permissions|model_has_permissions_pkey
-INDEX|model_has_roles|model_has_roles_model_id_model_type_index
-INDEX|model_has_roles|model_has_roles_pkey
 INDEX|moderation_actions|moderation_actions_moderatable_type_moderatable_id_index
 INDEX|moderation_actions|moderation_actions_pkey
 INDEX|moderation_banned_patterns|moderation_banned_patterns_pkey
@@ -1825,8 +1799,6 @@ INDEX|payments|payments_user_id_idempotency_key_unique
 INDEX|payments|payments_user_id_status_index
 INDEX|payments|payments_uuid_unique
 INDEX|pending_email_changes|pending_email_changes_pkey
-INDEX|permissions|permissions_name_guard_name_unique
-INDEX|permissions|permissions_pkey
 INDEX|personal_access_tokens|personal_access_tokens_expires_at_index
 INDEX|personal_access_tokens|personal_access_tokens_pkey
 INDEX|personal_access_tokens|personal_access_tokens_token_unique
@@ -1865,9 +1837,6 @@ INDEX|referrals|referrals_uuid_unique
 INDEX|reports|reports_pkey
 INDEX|reports|reports_reportable_type_reportable_id_index
 INDEX|reports|reports_status_created_at_index
-INDEX|role_has_permissions|role_has_permissions_pkey
-INDEX|roles|roles_name_guard_name_unique
-INDEX|roles|roles_pkey
 INDEX|rule_page_revisions|rule_page_revisions_pkey
 INDEX|rule_page_revisions|rule_page_revisions_rule_page_id_version_index
 INDEX|rule_page_sections|rule_page_sections_pkey
@@ -2042,7 +2011,6 @@ SEQ|ordinary_deals_id_seq
 SEQ|payment_items_id_seq
 SEQ|payments_id_seq
 SEQ|pending_email_changes_id_seq
-SEQ|permissions_id_seq
 SEQ|personal_access_tokens_id_seq
 SEQ|personal_data_consents_id_seq
 SEQ|phone_verification_codes_id_seq
@@ -2056,7 +2024,6 @@ SEQ|promocode_usages_id_seq
 SEQ|promocodes_id_seq
 SEQ|referrals_id_seq
 SEQ|reports_id_seq
-SEQ|roles_id_seq
 SEQ|rule_page_revisions_id_seq
 SEQ|rule_page_sections_id_seq
 SEQ|rule_pages_id_seq
@@ -2162,8 +2129,6 @@ TABLE|message_read_receipts
 TABLE|message_user_hides
 TABLE|messages
 TABLE|migrations
-TABLE|model_has_permissions
-TABLE|model_has_roles
 TABLE|moderation_actions
 TABLE|moderation_banned_patterns
 TABLE|moderation_queue
@@ -2175,7 +2140,6 @@ TABLE|password_reset_tokens
 TABLE|payment_items
 TABLE|payments
 TABLE|pending_email_changes
-TABLE|permissions
 TABLE|personal_access_tokens
 TABLE|personal_data_consents
 TABLE|phone_verification_codes
@@ -2191,8 +2155,6 @@ TABLE|promocode_usages
 TABLE|promocodes
 TABLE|referrals
 TABLE|reports
-TABLE|role_has_permissions
-TABLE|roles
 TABLE|rule_page_revisions
 TABLE|rule_page_sections
 TABLE|rule_pages

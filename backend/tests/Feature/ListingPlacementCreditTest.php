@@ -8,7 +8,6 @@ use App\Models\ListingCategory;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Modules\Listing\Services\ListingService;
@@ -31,7 +30,6 @@ class ListingPlacementCreditTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
 
         $this->setting('feature.listing_payment_enabled', ['enabled' => true]);
         $this->setting('listing.placement.registered_price_cents', ['cents' => 3000]);
@@ -64,7 +62,6 @@ class ListingPlacementCreditTest extends TestCase
             'slug' => 'seller-'.uniqid(),
             'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
         ]);
-        $user->assignRole('user');
 
         return $user;
     }

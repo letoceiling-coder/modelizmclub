@@ -8,7 +8,6 @@ use App\Models\AuditLog;
 use App\Models\Banner;
 use App\Models\Promocode;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,15 +25,9 @@ class FormDatesTimezoneTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
-
     private function admin(): User
     {
-        return User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        return User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
     }
 
     public function test_promocode_valid_until_date_means_through_the_end_of_that_moscow_day(): void

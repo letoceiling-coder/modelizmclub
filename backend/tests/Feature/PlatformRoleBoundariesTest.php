@@ -24,7 +24,6 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VideoCategory;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -50,7 +49,6 @@ class PlatformRoleBoundariesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         config(['billing.safe_deal.escrow_provider' => 'wallet', 'billing.safe_deal.platform_fee_percent' => 5]);
         SystemSetting::query()->updateOrCreate(['key' => 'feature.listing_payment_enabled'], ['value' => ['enabled' => false], 'group' => 'feature']);
     }
@@ -87,7 +85,7 @@ class PlatformRoleBoundariesTest extends TestCase
         $url = "/api/v1/communities/{$community->slug}/events";
 
         $this->actingAs($this->user(UserRole::Moderator), 'sanctum')->postJson($url, $this->eventPayload())->assertForbidden();
-        $this->actingAs($this->user(UserRole::Admin), 'sanctum')->postJson($url, $this->eventPayload())->assertForbidden();
+        $this->actingAs($this->user(UserRole::Owner), 'sanctum')->postJson($url, $this->eventPayload())->assertForbidden();
         $this->actingAs($this->user(), 'sanctum')->postJson($url, $this->eventPayload())->assertForbidden();
         $this->actingAs($owner, 'sanctum')->postJson($url, $this->eventPayload())->assertCreated();
         $this->actingAs($communityModerator, 'sanctum')->postJson($url, $this->eventPayload())->assertCreated();
@@ -113,7 +111,7 @@ class PlatformRoleBoundariesTest extends TestCase
     public function test_platform_roles_do_not_run_someone_elses_community(): void
     {
         [$community, $owner, $communityModerator] = $this->community();
-        foreach ([$this->user(UserRole::Moderator), $this->user(UserRole::Admin)] as $staff) {
+        foreach ([$this->user(UserRole::Moderator), $this->user(UserRole::Owner)] as $staff) {
             $this->actingAs($staff, 'sanctum')->patchJson("/api/v1/communities/{$community->slug}", ['description' => 'Чужое описание'])->assertForbidden();
             $this->actingAs($staff, 'sanctum')->getJson("/api/v1/communities/{$community->slug}/join-requests")->assertForbidden();
             $this->actingAs($staff, 'sanctum')->getJson("/api/v1/communities/{$community->slug}")->assertOk()
@@ -178,7 +176,7 @@ class PlatformRoleBoundariesTest extends TestCase
         app(WalletService::class)->credit($buyer, 200000, WalletTransactionType::Topup, 'test');
         $uuid = $this->actingAs($buyer, 'sanctum')->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])->assertCreated()->json('data.uuid');
 
-        foreach ([$this->user(UserRole::Moderator), $this->user(UserRole::Admin)] as $staff) {
+        foreach ([$this->user(UserRole::Moderator), $this->user(UserRole::Owner)] as $staff) {
             foreach (['ship', 'delivered', 'confirm', 'cancel'] as $action) {
                 $status = $this->actingAs($staff, 'sanctum')->postJson("/api/v1/safe-deals/{$uuid}/{$action}", ['tracking_number' => 'X1'])->status();
                 $this->assertContains($status, [403, 422], "{$staff->role->value} {$action} → {$status}");
@@ -193,7 +191,7 @@ class PlatformRoleBoundariesTest extends TestCase
         $media = Media::create(['disk' => 's3', 'path' => 'media/v.mp4', 'filename' => 'v.mp4', 'mime_type' => 'video/mp4', 'size_bytes' => 10, 'uploaded_by' => $uploader->id, 'status' => MediaStatus::Ready]);
         $category = VideoCategory::query()->create(['uuid' => (string) Str::uuid(), 'slug' => 'v-'.uniqid(), 'title' => 'Обзоры', 'is_active' => true]);
         $video = Video::query()->create(['uuid' => (string) Str::uuid(), 'title' => 'Обзор', 'category_id' => $category->id, 'video_media_id' => $media->id, 'uploader_id' => $uploader->id, 'status' => 'published', 'published_at' => now(), 'tags' => []]);
-        $admin = $this->user(UserRole::Admin);
+        $admin = $this->user(UserRole::Owner);
         $service = app(VideoService::class);
 
         try {
@@ -212,6 +210,6 @@ class PlatformRoleBoundariesTest extends TestCase
         $owner = $this->user();
         $voice = Media::create(['disk' => 's3', 'path' => 'media/voice/voice.webm', 'filename' => 'voice.webm', 'mime_type' => 'audio/webm', 'size_bytes' => 10, 'uploaded_by' => $owner->id, 'status' => MediaStatus::Ready]);
 
-        $this->actingAs($this->user(UserRole::Admin), 'sanctum')->postJson("/api/v1/media/{$voice->uuid}/transcribe")->assertForbidden();
+        $this->actingAs($this->user(UserRole::Owner), 'sanctum')->postJson("/api/v1/media/{$voice->uuid}/transcribe")->assertForbidden();
     }
 }

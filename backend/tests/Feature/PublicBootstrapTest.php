@@ -4,19 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\SystemSetting;
 use App\Support\FooterContacts;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PublicBootstrapTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_public_bootstrap_nests_existing_payloads(): void
     {

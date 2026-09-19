@@ -18,14 +18,12 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Auth\Notifications\ResetPasswordNotification;
 use Modules\Billing\Services\PaymentGatewayManager;
-use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     use HasApiTokens;
     use HasFactory;
     use HasPublicUuid;
-    use HasRoles;
     use Notifiable;
     use SoftDeletes;
 
@@ -357,13 +355,18 @@ class User extends Authenticatable
         return ! $this->requiresEmailVerification() && $this->phone_verified_at !== null;
     }
 
+    /**
+     * Модератор или Владелец — всё, что модерирует площадку целиком.
+     * Администратор направления сюда не входит: его права ограничены
+     * своими категориями и проверяются отдельно.
+     */
     public function isModerator(): bool
     {
-        return in_array($this->role, [UserRole::Moderator, UserRole::Admin], true);
+        return in_array($this->role, [UserRole::Moderator, UserRole::Owner], true);
     }
 
-    public function isAdmin(): bool
+    public function isOwner(): bool
     {
-        return $this->role === UserRole::Admin;
+        return $this->role === UserRole::Owner;
     }
 }

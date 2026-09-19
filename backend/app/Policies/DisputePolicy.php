@@ -10,7 +10,7 @@ class DisputePolicy
 {
     public function view(User $user, Dispute $dispute): bool
     {
-        return $dispute->safeDeal->involves($user) || $user->isAdmin();
+        return $dispute->safeDeal->involves($user) || $user->isOwner();
     }
 
     public function addEvidence(User $user, Dispute $dispute): bool
@@ -20,6 +20,6 @@ class DisputePolicy
 
     public function resolve(User $user, Dispute $dispute): bool
     {
-        return $user->isAdmin();
+        return $user->isOwner();
     }
 }

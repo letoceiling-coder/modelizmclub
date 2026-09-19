@@ -623,14 +623,6 @@ class SimulateActivityCommand extends Command
 
         $this->createProfile($user);
 
-        if (method_exists($user, 'assignRole') && ! $user->hasRole('user')) {
-            try {
-                $user->assignRole('user');
-            } catch (\Throwable) {
-                // Spatie role may be absent in a stripped environment.
-            }
-        }
-
         return $user;
     }
 

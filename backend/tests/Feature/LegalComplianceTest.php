@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\ConsentLog;
 use App\Models\User;
 use Database\Seeders\LegalComplianceSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +15,6 @@ class LegalComplianceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         $this->seed(LegalComplianceSeeder::class);
     }
 

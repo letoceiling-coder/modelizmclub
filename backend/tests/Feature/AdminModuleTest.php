@@ -9,7 +9,6 @@ use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -17,12 +16,6 @@ use Tests\TestCase;
 class AdminModuleTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_moderation_queue_requires_moderator_role(): void
     {
@@ -121,7 +114,7 @@ class AdminModuleTest extends TestCase
 
     public function test_admin_can_access_dashboard(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $this->getJson('/api/v1/admin/dashboard', ['Authorization' => 'Bearer '.$token])

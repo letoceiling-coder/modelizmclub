@@ -21,7 +21,7 @@ class SafeDealPolicy
     /** Стороны и Владелец (разбор споров — раздел «Платежи»). */
     public function view(User $user, SafeDeal $deal): bool
     {
-        return $deal->involves($user) || $user->isAdmin();
+        return $deal->involves($user) || $user->isOwner();
     }
 
     /** Buyer opens a deal on someone else's published listing. */
@@ -118,7 +118,7 @@ class SafeDealPolicy
     /** Admin release / refund of held funds. */
     public function resolve(User $user, SafeDeal $deal): bool
     {
-        return $user->isAdmin();
+        return $user->isOwner();
     }
 
     private function isBuyer(User $user, SafeDeal $deal): bool

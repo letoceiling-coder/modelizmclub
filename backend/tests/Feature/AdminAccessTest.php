@@ -7,7 +7,6 @@ use App\Enums\UserStatus;
 use App\Models\ListingCategory;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -57,12 +56,6 @@ class AdminAccessTest extends TestCase
         '/api/v1/admin/events',
     ];
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
-
     private function staff(UserRole $role): User
     {
         return User::factory()->create(['role' => $role, 'status' => UserStatus::Active]);
@@ -77,7 +70,7 @@ class AdminAccessTest extends TestCase
             ->assertJsonPath('data.is_owner', false)
             ->assertJsonPath('data.sections', ['dashboard', 'users', 'content', 'ads', 'delivery', 'moderation', 'applications', 'feedback', 'categories']);
 
-        $owner = $this->actingAs($this->staff(UserRole::Admin), 'sanctum')->getJson('/api/v1/admin/access')->assertOk()->json('data');
+        $owner = $this->actingAs($this->staff(UserRole::Owner), 'sanctum')->getJson('/api/v1/admin/access')->assertOk()->json('data');
         $this->assertTrue($owner['is_owner']);
         $this->assertContains('settings', $owner['sections']);
         $this->assertContains('monetization', $owner['sections']);
@@ -100,7 +93,7 @@ class AdminAccessTest extends TestCase
 
     public function test_owner_sees_everything(): void
     {
-        $owner = $this->staff(UserRole::Admin);
+        $owner = $this->staff(UserRole::Owner);
         foreach ([...self::SHARED_GETS, ...self::OWNER_GETS] as $url) {
             $status = $this->actingAs($owner, 'sanctum')->getJson($url)->status();
             $this->assertNotContains($status, [401, 403], "{$url} → {$status}");
@@ -115,11 +108,28 @@ class AdminAccessTest extends TestCase
         }
     }
 
+    /**
+     * Администратор направления получит доступ к модерации своих категорий
+     * отдельным этапом; до тех пор общая админка ему закрыта целиком — роль
+     * не должна открыть больше, чем обещано.
+     */
+    public function test_category_admin_has_no_general_admin_access_yet(): void
+    {
+        $categoryAdmin = $this->staff(UserRole::CategoryAdmin);
+        $this->assertFalse($categoryAdmin->isModerator());
+        $this->assertFalse($categoryAdmin->isOwner());
+
+        $this->actingAs($categoryAdmin, 'sanctum')->getJson('/api/v1/admin/access')->assertForbidden();
+        foreach ([...self::SHARED_GETS, ...self::OWNER_GETS] as $url) {
+            $this->actingAs($categoryAdmin, 'sanctum')->getJson($url)->assertForbidden();
+        }
+    }
+
     public function test_moderator_edits_regular_users_but_not_roles_or_staff(): void
     {
         $moderator = $this->staff(UserRole::Moderator);
         $regular = $this->staff(UserRole::User);
-        $owner = $this->staff(UserRole::Admin);
+        $owner = $this->staff(UserRole::Owner);
 
         $this->actingAs($moderator, 'sanctum')->patchJson("/api/v1/admin/users/{$regular->uuid}", ['status' => 'blocked'])->assertOk();
         $this->actingAs($moderator, 'sanctum')->patchJson("/api/v1/admin/users/{$regular->uuid}", ['role' => 'moderator'])->assertForbidden();
@@ -139,7 +149,7 @@ class AdminAccessTest extends TestCase
     public function test_moderator_edits_categories_but_not_placement_prices(): void
     {
         $moderator = $this->staff(UserRole::Moderator);
-        $owner = $this->staff(UserRole::Admin);
+        $owner = $this->staff(UserRole::Owner);
         $listing = ListingCategory::query()->create(['name' => 'Наборы', 'slug' => 'kits', 'is_active' => true, 'listing_price_cents' => 3000]);
         $post = PostCategory::query()->create(['name' => 'Наборы', 'slug' => 'kits', 'is_active' => true, 'depth' => 0, 'path' => 'kits', 'listing_category_id' => $listing->id]);
 

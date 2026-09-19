@@ -40,7 +40,7 @@ class DisputePolicyTest extends TestCase
         $deal = $this->seedDeal($this->seedUser('buyer'), $this->seedUser('seller'), SafeDealStatus::Disputed);
         $dispute = $this->seedDispute($deal, $deal->buyer);
 
-        $this->assertTrue($this->seedUser('owner', UserRole::Admin)->can('resolve', $dispute));
+        $this->assertTrue($this->seedUser('owner', UserRole::Owner)->can('resolve', $dispute));
         $this->assertFalse($this->seedUser('mod', UserRole::Moderator)->can('resolve', $dispute));
     }
 

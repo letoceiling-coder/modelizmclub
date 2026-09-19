@@ -12,7 +12,6 @@ use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VideoCategory;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -34,7 +33,6 @@ class ScheduledAtTimezoneTest extends TestCase
         parent::setUp();
         // Тест о механике, не о доступе к созданию записи: авторы без подписки.
         $this->setComposeTier('auth');
-        $this->seed(RoleSeeder::class);
     }
 
     public function test_post_scheduled_in_moscow_and_samara_publishes_at_the_chosen_instant(): void
@@ -78,7 +76,7 @@ class ScheduledAtTimezoneTest extends TestCase
     public function test_video_scheduled_in_moscow_keeps_the_chosen_instant(): void
     {
         $this->inAppTimezone('Europe/Moscow', function (): void {
-            $admin = User::factory()->create(['role' => UserRole::Admin]);
+            $admin = User::factory()->create(['role' => UserRole::Owner]);
             $video = $this->video($admin);
             $day = now()->addDays(2)->format('Y-m-d');
 

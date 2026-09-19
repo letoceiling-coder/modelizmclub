@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\ListingCategory;
 use App\Models\User;
 use Database\Seeders\DeliveryMethodsSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +15,6 @@ class DeliveryMethodsCatalogTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         $this->seed(DeliveryMethodsSeeder::class);
     }
 

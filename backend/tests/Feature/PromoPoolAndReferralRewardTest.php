@@ -15,7 +15,6 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -29,7 +28,6 @@ class PromoPoolAndReferralRewardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         Config::set('sms.driver', 'log');
         Config::set('sms.verification.resend_cooldown_seconds', 0);
 
@@ -58,7 +56,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
     {
         // Форма шлёт три вида срока: «до конца года» и «до даты» — стенные
         // часы без пояса, «на N месяцев» — Date.toISOString() в UTC.
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
 
         $this->inAppTimezone('Europe/Moscow', function () use ($admin): void {
             $cases = [
@@ -95,7 +93,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
 
     public function test_admin_can_create_auto_assign_pool_and_counter_increments(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
 
         $poolUuid = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/admin/promo-pools', [
@@ -131,7 +129,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
     public function test_pool_stops_granting_after_limit(): void
     {
         $poolUuid = $this->actingAs(
-            User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]),
+            User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]),
             'sanctum',
         )->postJson('/api/v1/admin/promo-pools', [
             'name' => 'Два места',
@@ -150,7 +148,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
 
     public function test_pause_stops_new_grants_and_keeps_existing_seat(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $uuid = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/admin/promo-pools', [
                 'name' => 'Пауза',

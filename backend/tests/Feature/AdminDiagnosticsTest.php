@@ -4,19 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AdminDiagnosticsTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_guest_cannot_read_diagnostics(): void
     {
@@ -34,7 +27,7 @@ class AdminDiagnosticsTest extends TestCase
 
     public function test_admin_diagnostics_returns_checks(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
 
         $this->actingAs($admin, 'sanctum')
             ->getJson('/api/v1/admin/diagnostics')

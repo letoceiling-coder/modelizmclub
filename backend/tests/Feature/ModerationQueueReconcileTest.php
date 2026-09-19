@@ -128,7 +128,7 @@ class ModerationQueueReconcileTest extends TestCase
 
     public function test_author_of_the_decision_is_restored_from_the_audit_log(): void
     {
-        $admin = $this->seedUser(UserRole::Admin);
+        $admin = $this->seedUser(UserRole::Owner);
         $listing = $this->listingWithOpenTask(ListingStatus::Published);
 
         DB::table('audit_logs')->insert([

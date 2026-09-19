@@ -12,7 +12,6 @@ use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VideoCategory;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -27,12 +26,6 @@ use Tests\TestCase;
 class ScheduledPublishHygieneTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_deleting_scheduled_post_clears_its_schedule(): void
     {
@@ -84,7 +77,7 @@ class ScheduledPublishHygieneTest extends TestCase
 
     public function test_one_broken_video_does_not_stop_the_others_and_is_logged(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $broken = $this->scheduledVideo($admin);
         $fine = $this->scheduledVideo($admin);
 

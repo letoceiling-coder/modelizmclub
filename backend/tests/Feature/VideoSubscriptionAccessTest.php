@@ -7,7 +7,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,12 +17,6 @@ use Tests\TestCase;
 class VideoSubscriptionAccessTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     private function seedSubscriber(): User
     {

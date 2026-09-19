@@ -8,7 +8,6 @@ use App\Models\BonusTransaction;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -19,7 +18,6 @@ class ReferralProgramTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         SystemSetting::query()->updateOrCreate(
             ['key' => 'referral_program'],
             ['value' => ['enabled' => true, 'per_invite' => 1, 'max_bonus' => 10], 'group' => 'marketing'],

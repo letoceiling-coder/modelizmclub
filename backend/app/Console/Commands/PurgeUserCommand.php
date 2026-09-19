@@ -34,7 +34,7 @@ class PurgeUserCommand extends Command
             return self::FAILURE;
         }
 
-        if ($user->role === UserRole::Admin && $this->otherActiveAdminsCount($user) === 0) {
+        if ($user->role === UserRole::Owner && $this->otherActiveOwnersCount($user) === 0) {
             $this->error('Cannot purge the last active superadmin.');
 
             return self::FAILURE;
@@ -53,10 +53,10 @@ class PurgeUserCommand extends Command
         return self::SUCCESS;
     }
 
-    private function otherActiveAdminsCount(User $user): int
+    private function otherActiveOwnersCount(User $user): int
     {
         return User::query()
-            ->where('role', UserRole::Admin)
+            ->where('role', UserRole::Owner)
             ->where('status', UserStatus::Active)
             ->where('id', '!=', $user->id)
             ->count();

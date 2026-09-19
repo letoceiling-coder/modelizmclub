@@ -12,7 +12,6 @@ use App\Models\Message;
 use App\Models\OrdinaryDeal;
 use App\Models\User;
 use App\Models\UserProfile;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Modules\Chat\Services\ChatService;
@@ -24,12 +23,6 @@ use Tests\TestCase;
 class OrdinaryDealTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     private function user(string $name): User
     {

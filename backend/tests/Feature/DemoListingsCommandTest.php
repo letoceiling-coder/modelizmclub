@@ -198,7 +198,7 @@ class DemoListingsCommandTest extends TestCase
 
         // И администратор: подписку выдаёт он, его идентификатор — то самое
         // основание доступа, без которого строка в таблице ничего не открывает.
-        User::factory()->create(['role' => \App\Enums\UserRole::Admin]);
+        User::factory()->create(['role' => \App\Enums\UserRole::Owner]);
 
         $this->artisan('listings:demo', ['--section' => ['users']])->assertExitCode(0);
 

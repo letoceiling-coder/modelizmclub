@@ -16,7 +16,6 @@ use App\Models\ModerationQueue;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -44,7 +43,6 @@ class CommunityModerationToggleTest extends TestCase
         parent::setUp();
         // Тест о механике, не о доступе к созданию записи: авторы без подписки.
         $this->setComposeTier('auth');
-        $this->seed(RoleSeeder::class);
         config(['feed.auto_publish' => false]);
 
         $this->category = PostCategory::query()->create([
@@ -189,7 +187,7 @@ class CommunityModerationToggleTest extends TestCase
     public function test_only_the_owner_switches_the_check(): void
     {
         $this->toggle($this->member(CommunityMemberRole::Moderator), false)->assertForbidden();
-        $this->toggle($this->user(UserRole::Admin), false)->assertForbidden();
+        $this->toggle($this->user(UserRole::Owner), false)->assertForbidden();
 
         $this->assertTrue($this->community->fresh()->moderate_member_posts);
         $this->assertSame(0, AuditLog::query()->where('action', 'community.moderate_member_posts')->count());

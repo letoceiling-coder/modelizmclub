@@ -9,7 +9,6 @@ use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\SystemSetting;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,7 +46,6 @@ class ListingConditionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
 
         // Платное размещение и премодерация к состоянию товара отношения не
         // имеют, а без этих двух настроек подача упирается в оплату раньше,

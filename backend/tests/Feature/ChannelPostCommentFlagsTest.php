@@ -6,7 +6,6 @@ use App\Enums\UserStatus;
 use App\Models\Channel;
 use App\Models\ChannelPost;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -31,7 +30,6 @@ class ChannelPostCommentFlagsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         config(['feed.auto_publish' => true]);
         $this->owner = User::factory()->create(['status' => UserStatus::Active]);
         $this->channel = Channel::create([

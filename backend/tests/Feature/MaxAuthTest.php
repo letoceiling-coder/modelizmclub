@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\UserOAuthAccount;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -16,7 +15,6 @@ class MaxAuthTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
 
         config([
             'services.max.bot_token' => 'test-bot-token',

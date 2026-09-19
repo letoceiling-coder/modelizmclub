@@ -6,7 +6,6 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Payment;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -15,15 +14,9 @@ class AdminPaymentsTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
-
     public function test_admin_can_list_payments_with_type(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $user = User::factory()->create(['status' => UserStatus::Active]);
 
         Payment::query()->create([
@@ -46,7 +39,7 @@ class AdminPaymentsTest extends TestCase
 
     public function test_admin_can_export_payments_csv(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $user = User::factory()->create(['status' => UserStatus::Active, 'email' => 'payer@example.com']);
 
         Payment::query()->create([
@@ -70,7 +63,7 @@ class AdminPaymentsTest extends TestCase
 
     public function test_stub_payment_is_marked_in_list_and_export_not_hidden(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $user = User::factory()->create(['status' => UserStatus::Active]);
 
         foreach (['stub' => 9900, 'vtb' => 59900] as $provider => $cents) {

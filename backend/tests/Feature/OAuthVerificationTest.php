@@ -6,7 +6,6 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use App\Models\UserOAuthAccount;
 use App\Models\UserProfile;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Modules\Auth\Services\OAuthService;
@@ -16,12 +15,6 @@ use Tests\TestCase;
 class OAuthVerificationTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_vk_oauth_user_skips_email_verification_middleware(): void
     {

@@ -31,7 +31,7 @@ final class StaffNotify
     public static function send(string $type, string $title, string $body, string $link, ?User $actor = null): void
     {
         User::query()
-            ->whereIn('role', [UserRole::Admin, UserRole::Moderator])
+            ->whereIn('role', [UserRole::Owner, UserRole::Moderator])
             ->where('status', UserStatus::Active)
             ->when($actor !== null, fn ($q) => $q->whereKeyNot($actor->id))
             ->each(function (User $staff) use ($type, $title, $body, $link): void {

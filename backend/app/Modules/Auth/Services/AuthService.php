@@ -123,10 +123,6 @@ class AuthService
                 $user->unsetRelation('profile');
             }
 
-            if (! $user->hasRole('user')) {
-                $user->assignRole('user');
-            }
-
             $this->firstHundred->tryGrant($user);
 
             return $this->tokenResponse($user);
@@ -181,10 +177,6 @@ class AuthService
                     throw ValidationException::withMessages([
                         'password' => ['Не удалось сохранить новый пароль. Попробуйте ещё раз.'],
                     ]);
-                }
-
-                if (! $resetUser->hasRole('user')) {
-                    $resetUser->assignRole('user');
                 }
             }
         );

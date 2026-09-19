@@ -10,7 +10,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\WithdrawalRequest;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -27,7 +26,6 @@ class WalletModuleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         config(['billing.provider' => 'stub']);
     }
 
@@ -40,7 +38,6 @@ class WalletModuleTest extends TestCase
             'slug' => "user-{$suffix}-".uniqid(),
             'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
         ]);
-        $user->assignRole('user');
 
         return $user;
     }
@@ -295,7 +292,7 @@ class WalletModuleTest extends TestCase
     public function test_admin_reject_withdrawal_refunds_balance(): void
     {
         $admin = $this->seedUser('admin');
-        $admin->update(['role' => UserRole::Admin]);
+        $admin->update(['role' => UserRole::Owner]);
         $user = $this->seedUser('u');
         app(WalletService::class)->credit($user, 100000, WalletTransactionType::Topup, 'seed');
 

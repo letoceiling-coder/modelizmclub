@@ -168,15 +168,6 @@ class PurgeUserContentCommand extends Command
                     ->delete();
             }
 
-            foreach (['model_has_roles', 'model_has_permissions'] as $pivot) {
-                if (Schema::hasTable($pivot)) {
-                    DB::table($pivot)
-                        ->where('model_type', 'App\\Models\\User')
-                        ->whereNotIn('model_id', $keeperIds)
-                        ->delete();
-                }
-            }
-
             $userChildTables = [
                 'user_oauth_accounts',
                 'notification_preferences',
@@ -200,8 +191,8 @@ class PurgeUserContentCommand extends Command
                 if ($user->trashed()) {
                     $user->restore();
                 }
-                if ($user->role !== UserRole::Admin) {
-                    $user->forceFill(['role' => UserRole::Admin, 'status' => $user->status])->save();
+                if ($user->role !== UserRole::Owner) {
+                    $user->forceFill(['role' => UserRole::Owner, 'status' => $user->status])->save();
                 }
                 UserProfile::query()->firstOrCreate(
                     ['user_id' => $user->id],

@@ -12,7 +12,6 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
 use Database\Seeders\DeliveryMethodsSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -28,7 +27,6 @@ class SafeDealCdekCheckoutTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         $this->seed(DeliveryMethodsSeeder::class);
         config([
             'cdek.enabled' => true,

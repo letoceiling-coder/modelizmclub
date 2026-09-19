@@ -259,7 +259,7 @@ function SectionViewInner({
   section: Section;
   adminRole: AdminRole | null;
 }) {
-  if (section === "dashboard") return <Dashboard role={adminRole ?? "admin"} />;
+  if (section === "dashboard") return <Dashboard role={adminRole ?? "owner"} />;
   if (section === "users") return <UsersSection />;
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
@@ -361,12 +361,12 @@ function AdminPage() {
       const current = getSessionUser();
       // `role` is the source of truth when present (real API sessions);
       // demo-mode sessions only set `isAdmin` (see lib/demo-data.ts DEMO_USER),
-      // so fall back to treating isAdmin as "admin" there.
+      // so fall back to treating isAdmin as "owner" there.
       const resolvedRole: AdminRole | null =
-        current.role === "admin" || current.role === "moderator"
+        current.role === "owner" || current.role === "moderator"
           ? current.role
           : current.isAdmin
-            ? "admin"
+            ? "owner"
             : null;
       if (resolvedRole && !isDemoMode()) {
         try {
@@ -383,7 +383,7 @@ function AdminPage() {
         }
       } else if (resolvedRole) {
         // Демо: сессия — владелец, сервера нет.
-        setAdminAccess({ role: "admin", isOwner: true, sections: navItems.map((n) => n.id) });
+        setAdminAccess({ role: "owner", isOwner: true, sections: navItems.map((n) => n.id) });
         setAllowedSections(navItems.map((n) => n.id));
       }
       setAdminRole(resolvedRole);

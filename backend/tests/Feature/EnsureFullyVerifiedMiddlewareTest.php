@@ -59,7 +59,7 @@ class EnsureFullyVerifiedMiddlewareTest extends TestCase
     public function test_admin_without_phone_verification_can_create_listing(): void
     {
         $user = User::factory()->create([
-            'role' => UserRole::Admin,
+            'role' => UserRole::Owner,
             'email_verified_at' => now(),
             'phone_verified_at' => null,
         ]);

@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\ListingCategory;
 use App\Models\SystemSetting;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,7 +19,6 @@ class ListingCreateValidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         $this->user = User::factory()->create();
         $this->categoryId = ListingCategory::query()->create([
             'name' => 'Наборы',

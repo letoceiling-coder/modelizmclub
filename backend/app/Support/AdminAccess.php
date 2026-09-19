@@ -8,10 +8,11 @@ use App\Models\User;
 /**
  * Карта разделов админки: кто куда входит. Одна на сервер и интерфейс.
  *
- * Роли — колонка users.role: admin — Владелец, moderator — Модератор.
- * Решение 17.09: Spatie не доводим. В нём 4 роли и ноль разрешений, роль
- * назначена 14 людям (все «user»), ни у одного из шести сотрудников роли в
- * Spatie нет — права всегда определяла колонка.
+ * Роли — колонка users.role: owner — Владелец, moderator — Модератор,
+ * category_admin — администратор направления (своих разделов в общей
+ * админке пока нет), user — админки нет. До 19.09 Владельцем был любой
+ * `admin`. Spatie снят 19.09 вместе с таблицами: на права он не влиял, а у
+ * трёх сотрудников противоречил колонке (решение 17.09 — не доводить).
  *
  * До 17.09 карты было две и они расходились: маршруты делились на
  * `role:moderator,admin` и `role:admin`, а меню держало свой список ролей.
@@ -63,12 +64,12 @@ final class AdminAccess
 
     public static function isStaff(?User $user): bool
     {
-        return $user !== null && in_array($user->role, [UserRole::Admin, UserRole::Moderator], true);
+        return $user !== null && in_array($user->role, [UserRole::Owner, UserRole::Moderator], true);
     }
 
     public static function isOwner(?User $user): bool
     {
-        return $user !== null && $user->role === UserRole::Admin;
+        return $user !== null && $user->role === UserRole::Owner;
     }
 
     public static function allows(?User $user, string $section): bool

@@ -86,7 +86,7 @@ class AdminListingModerationTest extends TestCase
 
     public function test_publishing_from_the_admin_editor_closes_the_queue_task(): void
     {
-        $admin = $this->seedUser(UserRole::Admin);
+        $admin = $this->seedUser(UserRole::Owner);
         $listing = $this->pendingListing($this->seedUser());
 
         $this->actingAs($admin, 'sanctum')
@@ -111,7 +111,7 @@ class AdminListingModerationTest extends TestCase
 
     public function test_rejecting_from_the_admin_editor_records_the_decision(): void
     {
-        $admin = $this->seedUser(UserRole::Admin);
+        $admin = $this->seedUser(UserRole::Owner);
         $listing = $this->pendingListing($this->seedUser());
 
         $this->actingAs($admin, 'sanctum')
@@ -135,7 +135,7 @@ class AdminListingModerationTest extends TestCase
 
     public function test_sending_back_to_moderation_creates_a_task(): void
     {
-        $admin = $this->seedUser(UserRole::Admin);
+        $admin = $this->seedUser(UserRole::Owner);
         $seller = $this->seedUser();
         $listing = $this->pendingListing($seller);
 
@@ -159,7 +159,7 @@ class AdminListingModerationTest extends TestCase
 
     public function test_non_moderation_statuses_do_not_touch_the_queue(): void
     {
-        $admin = $this->seedUser(UserRole::Admin);
+        $admin = $this->seedUser(UserRole::Owner);
         $listing = $this->pendingListing($this->seedUser());
 
         $this->actingAs($admin, 'sanctum')
@@ -182,7 +182,7 @@ class AdminListingModerationTest extends TestCase
      */
     public function test_queue_id_instead_of_uuid_is_not_a_server_error(): void
     {
-        $admin = $this->seedUser(UserRole::Admin);
+        $admin = $this->seedUser(UserRole::Owner);
         $this->pendingListing($this->seedUser());
 
         $this->actingAs($admin, 'sanctum')
@@ -192,7 +192,7 @@ class AdminListingModerationTest extends TestCase
 
     public function test_editing_text_without_a_status_leaves_moderation_alone(): void
     {
-        $admin = $this->seedUser(UserRole::Admin);
+        $admin = $this->seedUser(UserRole::Owner);
         $listing = $this->pendingListing($this->seedUser());
 
         $this->actingAs($admin, 'sanctum')

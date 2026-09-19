@@ -51,7 +51,7 @@ class AdminFaqTest extends TestCase
 
     public function test_admin_can_manage_faq_articles(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'owner']);
 
         $category = FaqCategory::query()->create([
             'slug' => 'landing',

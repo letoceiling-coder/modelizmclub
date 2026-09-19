@@ -1,6 +1,6 @@
 import type { ReactNode, CSSProperties } from "react";
 
-export type AdminRole = "admin" | "moderator";
+export type AdminRole = "owner" | "moderator";
 
 /** Section heading used across every admin panel section. */
 export function H({ children, action }: { children: ReactNode; action?: ReactNode }) {

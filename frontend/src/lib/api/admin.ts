@@ -160,7 +160,7 @@ export async function fetchAuditLogPage(
   };
 }
 
-export type AdminUserRole = "user" | "subscriber" | "moderator" | "admin";
+export type AdminUserRole = "user" | "category_admin" | "moderator" | "owner";
 export type AdminUserStatus = "active" | "blocked" | "pending_verification";
 
 export type AdminSubscriptionStatus = "active" | "expired" | "cancelled" | "none";

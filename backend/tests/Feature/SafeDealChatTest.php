@@ -15,7 +15,6 @@ use App\Models\SafeDeal;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Modules\Billing\Services\WalletService;
@@ -35,7 +34,6 @@ class SafeDealChatTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         config([
             'billing.safe_deal.escrow_provider' => 'wallet',
             'billing.safe_deal.platform_fee_percent' => 5,

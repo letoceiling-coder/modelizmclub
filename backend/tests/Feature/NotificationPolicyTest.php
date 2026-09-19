@@ -12,7 +12,6 @@ use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
 use App\Services\NotificationPolicy;
 use App\Support\NotificationPolicyRegistry;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Admin\Services\NotificationPolicySettingsService;
 use Tests\TestCase;
@@ -26,7 +25,6 @@ class NotificationPolicyTest extends TestCase
         parent::setUp();
         // Тест о механике, не о доступе к созданию записи: авторы без подписки.
         $this->setComposeTier('auth');
-        $this->seed(RoleSeeder::class);
     }
 
     public function test_default_policy_allows_social_types_for_registered_users(): void
@@ -52,7 +50,7 @@ class NotificationPolicyTest extends TestCase
         $verified = User::factory()->create(['status' => UserStatus::Active]);
         $admin = User::factory()->create([
             'status' => UserStatus::Active,
-            'role' => UserRole::Admin,
+            'role' => UserRole::Owner,
             'email_verified_at' => null,
             'phone_verified_at' => null,
         ]);
@@ -147,7 +145,7 @@ class NotificationPolicyTest extends TestCase
     {
         $admin = User::factory()->create([
             'status' => UserStatus::Active,
-            'role' => UserRole::Admin,
+            'role' => UserRole::Owner,
         ]);
 
         $payload = NotificationPolicyRegistry::defaultConfig();

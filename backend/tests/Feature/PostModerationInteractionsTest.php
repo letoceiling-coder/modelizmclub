@@ -7,7 +7,6 @@ use App\Enums\UserStatus;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,7 +22,6 @@ class PostModerationInteractionsTest extends TestCase
         // Тест о механике, не о доступе к созданию записи: авторы без подписки.
         $this->setComposeTier('auth');
         $this->setActionTier('feed.post.repost', 'auth');
-        $this->seed(RoleSeeder::class);
         config(['feed.auto_publish' => false]);
 
         $this->category = PostCategory::query()->create([

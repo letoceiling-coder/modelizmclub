@@ -7,7 +7,6 @@ use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Catalog\Services\CatalogService;
 use Tests\TestCase;
@@ -31,7 +30,6 @@ class DirectionMembersCountTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         CatalogService::flushCache();
     }
 

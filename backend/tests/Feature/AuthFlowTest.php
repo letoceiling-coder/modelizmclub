@@ -7,7 +7,6 @@ use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Enums\UserStatus;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
@@ -15,12 +14,6 @@ use Tests\TestCase;
 class AuthFlowTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_register_verify_login_and_me_flow(): void
     {

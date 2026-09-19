@@ -139,8 +139,6 @@ if ! grep -qvE 'ERROR|SQLSTATE' <<<"$(tail -1 "${MIGRATION_LOG}")"; then
   exit 1
 fi
 
-php artisan db:seed --class=RoleSeeder --force --no-interaction
-
 php artisan route:clear
 php artisan route:cache
 php artisan view:cache 2>/dev/null || true

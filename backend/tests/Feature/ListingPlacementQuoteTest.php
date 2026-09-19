@@ -9,19 +9,12 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ListingPlacementQuoteTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     /** @param array<string, mixed> $value */
     private function upsertSetting(string $key, array $value): void
@@ -45,7 +38,6 @@ class ListingPlacementQuoteTest extends TestCase
             'slug' => "user-{$suffix}-".uniqid(),
             'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
         ]);
-        $user->assignRole('user');
 
         return $user;
     }

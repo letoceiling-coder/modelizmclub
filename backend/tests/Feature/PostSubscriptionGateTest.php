@@ -9,7 +9,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,7 +30,6 @@ class PostSubscriptionGateTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         config(['feed.auto_publish' => true]);
         $this->category = PostCategory::query()->create([
             'name' => 'Авиация',
@@ -136,7 +134,7 @@ class PostSubscriptionGateTest extends TestCase
         // Как в интерфейсе: сотрудник считается подписчиком (isStaffUser).
         $this->setComposeTier('subscription');
 
-        foreach ([UserRole::Moderator, UserRole::Admin] as $role) {
+        foreach ([UserRole::Moderator, UserRole::Owner] as $role) {
             $this->actingAs($this->verifiedUser(['role' => $role]), 'sanctum')
                 ->postJson('/api/v1/posts', $this->payload())
                 ->assertCreated();
