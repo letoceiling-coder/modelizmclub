@@ -81,8 +81,12 @@ class AdminListingController extends Controller
         if ($data === []) {
             abort(422, 'Укажите хотя бы одно поле для изменения.');
         }
+        // Только смена статуса: страница объявления шлёт статус с каждой
+        // правкой, и исправление заголовка у лота на модерации не должно
+        // упираться в список разрешённых решений.
         if (
             array_key_exists('status', $data)
+            && $data['status'] !== $listing->status->value
             && CategoryScope::for(request()->user()) !== null
             && ! in_array($data['status'], CategoryScope::LISTING_STATUSES, true)
         ) {

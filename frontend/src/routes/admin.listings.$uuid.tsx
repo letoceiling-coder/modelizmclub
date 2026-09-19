@@ -52,6 +52,9 @@ const labelStyle: CSSProperties = {
   color: "var(--foreground-50)",
 };
 
+/** Совпадает с CategoryScope::LISTING_STATUSES на сервере. */
+const SCOPED_STATUSES = ["published", "unpublished", "rejected", "revision"];
+
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "published", label: "Опубликовано" },
   { value: "pending_moderation", label: "На модерации" },
@@ -86,7 +89,8 @@ function AdminListingPage() {
   const [saving, setSaving] = useState(false);
   // Удаление — модератору и Владельцу; администратор направления правит и
   // снимает. Пока карта доступа не пришла, кнопки нет.
-  const canDelete = useAdminAccess()?.capabilities.includes("listings.delete") ?? false;
+  const access = useAdminAccess();
+  const canDelete = access?.capabilities.includes("listings.delete") ?? false;
   const [listing, setListing] = useState<AdminListingDetail | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -278,7 +282,14 @@ function AdminListingPage() {
                     onChange={(e) => setStatus(e.target.value)}
                     style={{ ...inputStyle, height: "42px" }}
                   >
-                    {STATUS_OPTIONS.map((o) => (
+                    {STATUS_OPTIONS.filter(
+                      // Администратор направления — только «правка и снятие»;
+                      // текущий статус остаётся в списке, чтобы его было видно.
+                      (o) =>
+                        access?.role !== "category_admin" ||
+                        o.value === status ||
+                        SCOPED_STATUSES.includes(o.value),
+                    ).map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>

@@ -254,6 +254,12 @@ class CategoryAdminTest extends TestCase
         $listing = $this->pendingListing($this->aviation);
         $post = $this->pendingPost($this->aviation);
 
+        // Правка без смены статуса — как с формы, которая шлёт статус всегда.
+        $this->actingAs($admin, 'sanctum')
+            ->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['status' => 'pending_moderation', 'title' => 'Уточнённый заголовок'])
+            ->assertOk();
+        $this->assertSame('Уточнённый заголовок', $listing->fresh()->title);
+
         $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['status' => 'sold'])->assertStatus(422);
         $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['status' => 'published'])->assertOk();
         $this->assertSame(ListingStatus::Published, $listing->fresh()->status);
