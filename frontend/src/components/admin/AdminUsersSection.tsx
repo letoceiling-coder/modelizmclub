@@ -359,6 +359,7 @@ export function UsersSection() {
                         onClick={() =>
                           toast.info(t("pages.adminUsers.previewToast", { name: u.name }))
                         }
+                        title={t("pages.adminCommon.actionPreview")}
                       >
                         <Eye size={14} />
                       </IconBtn>
@@ -371,7 +372,16 @@ export function UsersSection() {
                         </IconBtn>
                       )}
                       {(isOwner || u.role === "user") && (
-                        <IconBtn danger onClick={() => toggle(u.uuid)}>
+                        <IconBtn
+                          danger
+                          onClick={() => toggle(u.uuid)}
+                          title={t(
+                            u.status === "blocked"
+                              ? "pages.adminUsers.actionUnblock"
+                              : "pages.adminUsers.actionBlock",
+                            { name: u.name },
+                          )}
+                        >
                           <Ban size={14} />
                         </IconBtn>
                       )}

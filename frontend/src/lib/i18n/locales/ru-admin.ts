@@ -208,6 +208,8 @@ export const ruAdmin = {
       statusChangeFailed: "Не удалось изменить статус",
       changeRoleTitle: "Изменить роль",
       previewToast: "Просмотр: {{name}}",
+      actionBlock: "Заблокировать «{{name}}»",
+      actionUnblock: "Разблокировать «{{name}}»",
       deleteConfirm: "Удалить пользователя {{email}}?",
       deleteConfirmDesc:
         "Аккаунт и всё его содержимое удаляются безвозвратно: публикации, объявления, сообщения.",
