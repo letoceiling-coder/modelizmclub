@@ -363,7 +363,9 @@ function AdminPage() {
       // demo-mode sessions only set `isAdmin` (see lib/demo-data.ts DEMO_USER),
       // so fall back to treating isAdmin as "owner" there.
       const resolvedRole: AdminRole | null =
-        current.role === "owner" || current.role === "moderator"
+        current.role === "owner" ||
+        current.role === "moderator" ||
+        current.role === "category_admin"
           ? current.role
           : current.isAdmin
             ? "owner"
@@ -383,7 +385,13 @@ function AdminPage() {
         }
       } else if (resolvedRole) {
         // Демо: сессия — владелец, сервера нет.
-        setAdminAccess({ role: "owner", isOwner: true, sections: navItems.map((n) => n.id) });
+        setAdminAccess({
+          role: "owner",
+          isOwner: true,
+          sections: navItems.map((n) => n.id),
+          capabilities: ["reports", "posts.delete", "listings.delete"],
+          categories: [],
+        });
         setAllowedSections(navItems.map((n) => n.id));
       }
       setAdminRole(resolvedRole);

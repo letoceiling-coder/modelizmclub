@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
+import { useAdminAccess } from "@/lib/admin-access";
 
 export const Route = createFileRoute("/admin/listings/$uuid")({
   head: () => ({ meta: [{ title: "Объявление — админ — МоДелизМ" }] }),
@@ -51,6 +52,9 @@ const labelStyle: CSSProperties = {
   color: "var(--foreground-50)",
 };
 
+/** Совпадает с CategoryScope::LISTING_STATUSES на сервере. */
+const SCOPED_STATUSES = ["published", "unpublished", "rejected", "revision"];
+
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "published", label: "Опубликовано" },
   { value: "pending_moderation", label: "На модерации" },
@@ -83,6 +87,10 @@ function AdminListingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Удаление — модератору и Владельцу; администратор направления правит и
+  // снимает. Пока карта доступа не пришла, кнопки нет.
+  const access = useAdminAccess();
+  const canDelete = access?.capabilities.includes("listings.delete") ?? false;
   const [listing, setListing] = useState<AdminListingDetail | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -274,7 +282,14 @@ function AdminListingPage() {
                     onChange={(e) => setStatus(e.target.value)}
                     style={{ ...inputStyle, height: "42px" }}
                   >
-                    {STATUS_OPTIONS.map((o) => (
+                    {STATUS_OPTIONS.filter(
+                      // Администратор направления — только «правка и снятие»;
+                      // текущий статус остаётся в списке, чтобы его было видно.
+                      (o) =>
+                        access?.role !== "category_admin" ||
+                        o.value === status ||
+                        SCOPED_STATUSES.includes(o.value),
+                    ).map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
@@ -319,15 +334,17 @@ function AdminListingPage() {
                 <Button onClick={() => void save()} disabled={saving} className="h-10 px-5">
                   {saving ? "Сохранение…" : "Сохранить"}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void remove()}
-                  className="h-10 px-5"
-                  style={{ color: "var(--error)" }}
-                >
-                  <Trash2 size={14} className="mr-[6px]" />
-                  Удалить
-                </Button>
+                {canDelete && (
+                  <Button
+                    variant="outline"
+                    onClick={() => void remove()}
+                    className="h-10 px-5"
+                    style={{ color: "var(--error)" }}
+                  >
+                    <Trash2 size={14} className="mr-[6px]" />
+                    Удалить
+                  </Button>
+                )}
               </div>
             </div>
           </div>

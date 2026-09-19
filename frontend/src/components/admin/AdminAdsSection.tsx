@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { useAdminAccess } from "@/lib/admin-access";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, Check, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -35,6 +36,8 @@ import {
 
 export function AdsSection() {
   const { t } = useTranslation();
+  // Администратор направления правит и снимает, но не удаляет.
+  const canDelete = useAdminAccess()?.capabilities.includes("listings.delete") ?? false;
   const listingStatusMeta = useMemo(
     () => ({
       published: {
@@ -283,21 +286,23 @@ export function AdsSection() {
           >
             {t("pages.adminAds.bulkToModeration")}
           </button>
-          <button
-            type="button"
-            disabled={bulkBusy}
-            style={{
-              ...bulkBtnStyle,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              color: "var(--error)",
-              borderColor: "color-mix(in oklab, var(--error) 40%, var(--border))",
-            }}
-            onClick={() => setDeleteConfirmOpen(true)}
-          >
-            <Trash2 size={13} /> {t("pages.adminCommon.bulkDelete")}
-          </button>
+          {canDelete && (
+            <button
+              type="button"
+              disabled={bulkBusy}
+              style={{
+                ...bulkBtnStyle,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "var(--error)",
+                borderColor: "color-mix(in oklab, var(--error) 40%, var(--border))",
+              }}
+              onClick={() => setDeleteConfirmOpen(true)}
+            >
+              <Trash2 size={13} /> {t("pages.adminCommon.bulkDelete")}
+            </button>
+          )}
           <button
             type="button"
             disabled={bulkBusy}
@@ -432,13 +437,15 @@ export function AdsSection() {
                           >
                             <Eye size={14} />
                           </IconBtn>
-                          <IconBtn
-                            danger
-                            onClick={() => remove(a.uuid)}
-                            title={t("pages.adminCommon.actionDelete")}
-                          >
-                            <Trash2 size={14} />
-                          </IconBtn>
+                          {canDelete && (
+                            <IconBtn
+                              danger
+                              onClick={() => remove(a.uuid)}
+                              title={t("pages.adminCommon.actionDelete")}
+                            >
+                              <Trash2 size={14} />
+                            </IconBtn>
+                          )}
                         </div>
                       </td>
                     </tr>

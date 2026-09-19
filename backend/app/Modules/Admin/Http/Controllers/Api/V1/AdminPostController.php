@@ -6,6 +6,7 @@ use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ChannelPost;
 use App\Models\Post;
+use App\Support\CategoryScope;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -29,8 +30,12 @@ class AdminPostController extends Controller
         $status = (string) request()->query('status', '');
         $q = trim((string) request()->query('q', ''));
 
+        $scope = CategoryScope::for(request()->user());
+
         $items = Post::query()
             ->with(['author.profile', 'category', 'community', 'mediaItems.media'])
+            // Администратор направления — только свои направления.
+            ->when($scope !== null, fn ($query) => $scope->constrainPosts($query))
             ->when(ContentStatus::tryFrom($status), fn ($query, $s) => $query->where('status', $s))
             ->when($q !== '', fn ($query) => $query->where('title', 'ilike', '%'.$q.'%'))
             ->latest()
@@ -45,14 +50,18 @@ class AdminPostController extends Controller
     public function update(string $uuid, AuditService $audit, ChannelPostService $channelPosts): PostResource
     {
         $post = Post::query()->where('uuid', $uuid)->first();
+        $scope = CategoryScope::for(request()->user());
 
-        if (! $post) {
+        if (! $post || ($scope !== null && ! $scope->allowsPost($post))) {
             throw new NotFoundHttpException('Публикация не найдена.');
         }
 
         $data = request()->validate([
             'status' => ['required', Rule::enum(ContentStatus::class)],
         ]);
+        if ($scope !== null && ! in_array($data['status'], CategoryScope::POST_STATUSES, true)) {
+            abort(422, 'Администратор направления публикует, снимает, отклоняет и возвращает на доработку.');
+        }
 
         $old = $post->toArray();
         $status = ContentStatus::from($data['status']);
@@ -91,8 +100,9 @@ class AdminPostController extends Controller
     public function destroy(string $uuid, AuditService $audit): JsonResponse
     {
         $post = Post::query()->where('uuid', $uuid)->first();
+        $scope = CategoryScope::for(request()->user());
 
-        if (! $post) {
+        if (! $post || ($scope !== null && ! $scope->allowsPost($post))) {
             throw new NotFoundHttpException('Публикация не найдена.');
         }
 

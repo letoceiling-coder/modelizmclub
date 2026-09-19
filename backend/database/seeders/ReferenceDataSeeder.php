@@ -142,6 +142,9 @@ class ReferenceDataSeeder extends Seeder
                 ['slug' => 'armor-apc', 'name' => 'БТР и БМП'],
                 ['slug' => 'armor-artillery', 'name' => 'Артиллерия'],
             ]],
+            // Решение 19.09: отдельное направление, подкатегории назовёт тот,
+            // кто будет его вести.
+            ['slug' => 'numismatics', 'name' => 'Нумизматика', 'icon' => 'coins', 'children' => []],
             ['slug' => 'ships', 'name' => 'Корабли', 'icon' => 'ship', 'children' => [
                 ['slug' => 'ships-warships', 'name' => 'Военные корабли'],
                 ['slug' => 'ships-submarines', 'name' => 'Подводные лодки'],

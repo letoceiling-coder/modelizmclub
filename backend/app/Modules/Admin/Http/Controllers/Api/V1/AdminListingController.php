@@ -5,6 +5,7 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 use App\Enums\ListingStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Listing;
+use App\Support\CategoryScope;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -29,8 +30,12 @@ class AdminListingController extends Controller
         $status = (string) request()->query('status', '');
         $q = trim((string) request()->query('q', ''));
 
+        $scope = CategoryScope::for(request()->user());
+
         $items = Listing::query()
             ->with(['author.profile', 'category', 'city'])
+            // Администратор направления — только свои направления.
+            ->when($scope !== null, fn ($query) => $scope->constrainListings($query))
             ->when(ListingStatus::tryFrom($status), fn ($query, $s) => $query->where('status', $s))
             ->when($q !== '', fn ($query) => $query->where('title', 'ilike', '%'.$q.'%'))
             ->latest()
@@ -47,7 +52,7 @@ class AdminListingController extends Controller
             ->where('uuid', $uuid)
             ->first();
 
-        if (! $listing) {
+        if (! $listing || ! $this->visible($listing)) {
             throw new NotFoundHttpException('Объявление не найдено.');
         }
 
@@ -61,7 +66,7 @@ class AdminListingController extends Controller
     {
         $listing = Listing::query()->where('uuid', $uuid)->first();
 
-        if (! $listing) {
+        if (! $listing || ! $this->visible($listing)) {
             throw new NotFoundHttpException('Объявление не найдено.');
         }
 
@@ -75,6 +80,17 @@ class AdminListingController extends Controller
 
         if ($data === []) {
             abort(422, 'Укажите хотя бы одно поле для изменения.');
+        }
+        // Только смена статуса: страница объявления шлёт статус с каждой
+        // правкой, и исправление заголовка у лота на модерации не должно
+        // упираться в список разрешённых решений.
+        if (
+            array_key_exists('status', $data)
+            && $data['status'] !== $listing->status->value
+            && CategoryScope::for(request()->user()) !== null
+            && ! in_array($data['status'], CategoryScope::LISTING_STATUSES, true)
+        ) {
+            abort(422, 'Администратор направления публикует, снимает, отклоняет и возвращает на доработку.');
         }
 
         $old = $listing->toArray();
@@ -158,7 +174,7 @@ class AdminListingController extends Controller
     {
         $listing = Listing::query()->where('uuid', $uuid)->first();
 
-        if (! $listing) {
+        if (! $listing || ! $this->visible($listing)) {
             throw new NotFoundHttpException('Объявление не найдено.');
         }
 
@@ -166,5 +182,13 @@ class AdminListingController extends Controller
         $audit->log(request()->user(), 'admin.listings.delete', $listing, $listing->toArray(), null, request());
 
         return response()->json(['data' => ['message' => 'Объявление удалено.']]);
+    }
+
+    /** Чужое объявление для администратора направления — «не найдено». */
+    private function visible(Listing $listing): bool
+    {
+        $scope = CategoryScope::for(request()->user());
+
+        return $scope === null || $scope->allowsListing($listing);
     }
 }

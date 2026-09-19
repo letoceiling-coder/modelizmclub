@@ -80,6 +80,12 @@ COLUMN|call_logs.started_at|timestamp without time zone|YES
 COLUMN|call_logs.status|character varying|NO
 COLUMN|call_logs.updated_at|timestamp without time zone|YES
 COLUMN|call_logs.uuid|uuid|NO
+COLUMN|category_admins.assigned_by|bigint|YES
+COLUMN|category_admins.created_at|timestamp without time zone|YES
+COLUMN|category_admins.id|bigint|NO
+COLUMN|category_admins.post_category_id|bigint|NO
+COLUMN|category_admins.updated_at|timestamp without time zone|YES
+COLUMN|category_admins.user_id|bigint|NO
 COLUMN|channel_admins.channel_id|bigint|NO
 COLUMN|channel_admins.created_at|timestamp without time zone|YES
 COLUMN|channel_admins.id|bigint|NO
@@ -1382,6 +1388,9 @@ FK|bonus_accounts|bonus_accounts_user_id_foreign
 FK|bonus_transactions|bonus_transactions_account_user_id_foreign
 FK|call_logs|call_logs_callee_id_foreign
 FK|call_logs|call_logs_caller_id_foreign
+FK|category_admins|category_admins_assigned_by_foreign
+FK|category_admins|category_admins_post_category_id_foreign
+FK|category_admins|category_admins_user_id_foreign
 FK|channel_admins|channel_admins_channel_id_foreign
 FK|channel_admins|channel_admins_user_id_foreign
 FK|channel_applications|channel_applications_avatar_media_id_foreign
@@ -1631,6 +1640,9 @@ INDEX|call_logs|call_logs_callee_id_created_at_index
 INDEX|call_logs|call_logs_caller_id_created_at_index
 INDEX|call_logs|call_logs_pkey
 INDEX|call_logs|call_logs_uuid_unique
+INDEX|category_admins|category_admins_pkey
+INDEX|category_admins|category_admins_post_category_id_index
+INDEX|category_admins|category_admins_user_id_post_category_id_unique
 INDEX|channel_admins|channel_admins_channel_id_user_id_unique
 INDEX|channel_admins|channel_admins_pkey
 INDEX|channel_applications|channel_applications_pkey
@@ -1952,6 +1964,7 @@ SEQ|banner_events_id_seq
 SEQ|banners_id_seq
 SEQ|bonus_transactions_id_seq
 SEQ|call_logs_id_seq
+SEQ|category_admins_id_seq
 SEQ|channel_admins_id_seq
 SEQ|channel_applications_id_seq
 SEQ|channel_post_likes_id_seq
@@ -2070,6 +2083,7 @@ TABLE|bonus_transactions
 TABLE|cache
 TABLE|cache_locks
 TABLE|call_logs
+TABLE|category_admins
 TABLE|channel_admins
 TABLE|channel_applications
 TABLE|channel_post_likes

@@ -40,6 +40,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUserCategoriesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserListingCreditsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
@@ -69,6 +70,11 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('moderation/{type}/{id}/approve', ApproveModerationController::class);
         Route::post('moderation/{type}/{id}/reject', RejectModerationController::class);
         Route::post('moderation/{type}/{id}/revision', RevisionModerationController::class);
+    });
+
+    // Жалобы — часть раздела модерации, но не для администратора
+    // направления: жалоба бывает на что угодно, не только на его ветку.
+    Route::middleware('admin.section:reports')->group(function (): void {
         Route::get('reports', IndexReportsController::class);
         Route::get('reports/{id}', ShowReportController::class)->whereNumber('id');
         Route::patch('reports/{id}', ResolveReportController::class)->whereNumber('id');
@@ -99,14 +105,14 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
     Route::middleware('admin.section:content')->group(function (): void {
         Route::get('posts', [AdminPostController::class, 'index']);
         Route::patch('posts/{uuid}', [AdminPostController::class, 'update']);
-        Route::delete('posts/{uuid}', [AdminPostController::class, 'destroy']);
+        Route::delete('posts/{uuid}', [AdminPostController::class, 'destroy'])->middleware('admin.section:posts.delete');
     });
 
     Route::middleware('admin.section:ads')->group(function (): void {
         Route::get('listings', [AdminListingController::class, 'index']);
         Route::get('listings/{uuid}', [AdminListingController::class, 'show']);
         Route::patch('listings/{uuid}', [AdminListingController::class, 'update']);
-        Route::delete('listings/{uuid}', [AdminListingController::class, 'destroy']);
+        Route::delete('listings/{uuid}', [AdminListingController::class, 'destroy'])->middleware('admin.section:listings.delete');
     });
 
     Route::middleware('admin.section:delivery')->group(function (): void {
@@ -151,6 +157,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::get('users/{id}/payout-requisites', AdminUserPayoutRequisitesController::class)->whereNumber('id');
         Route::post('users/{uuid}/subscription', AdminUserSubscriptionController::class)->where('uuid', '[0-9a-f-]{36}');
         Route::post('users/{uuid}/listing-credits', AdminUserListingCreditsController::class)->where('uuid', '[0-9a-f-]{36}');
+        Route::get('users/{uuid}/categories', [AdminUserCategoriesController::class, 'show'])->where('uuid', '[0-9a-f-]{36}');
+        Route::put('users/{uuid}/categories', [AdminUserCategoriesController::class, 'update'])->where('uuid', '[0-9a-f-]{36}');
     });
 
     Route::middleware('admin.section:reviewCategories')->group(function (): void {
