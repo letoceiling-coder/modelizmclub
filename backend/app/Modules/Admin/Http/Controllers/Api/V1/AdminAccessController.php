@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\PostCategory;
 use App\Support\AdminAccess;
@@ -24,7 +25,7 @@ class AdminAccessController extends Controller
             return response()->json(['message' => 'Нет доступа к админке.'], 403);
         }
 
-        $categoryIds = CategoryScope::for($user) === null ? [] : CategoryScope::assignedCategoryIds($user);
+        $categoryIds = $user->role === UserRole::CategoryAdmin ? CategoryScope::assignedCategoryIds($user) : [];
 
         return response()->json(['data' => [
             'role' => $user->role->value,

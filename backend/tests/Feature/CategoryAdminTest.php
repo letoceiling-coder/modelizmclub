@@ -7,6 +7,8 @@ use App\Enums\ContentStatus;
 use App\Enums\ListingStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Channel;
+use App\Models\ChannelPost;
 use App\Models\Community;
 use App\Models\CommunityCategory;
 use App\Models\Listing;
@@ -226,6 +228,85 @@ class CategoryAdminTest extends TestCase
         $this->actingAs($admin, 'sanctum')->deleteJson("/api/v1/admin/posts/{$own->uuid}")->assertForbidden();
         $this->actingAs($admin, 'sanctum')->deleteJson("/api/v1/admin/listings/{$ownListing->uuid}")->assertForbidden();
         $this->assertNull($own->fresh()->deleted_at);
+    }
+
+    public function test_subcategory_assignment_and_listing_subcategory_branch(): void
+    {
+        // Назначено только подкатегорией: видит её, но не родителя.
+        $admin = $this->categoryAdmin($this->wwii);
+        $parentPost = $this->pendingPost($this->aviation);
+        $childPost = $this->pendingPost($this->wwii);
+
+        $posts = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/posts')->json('data'))->pluck('uuid')->all();
+        $this->assertContains($childPost->uuid, $posts);
+        $this->assertNotContains($parentPost->uuid, $posts);
+
+        // Объявление, у которого подкатегория в области, а категория — нет.
+        $taxonomy = app(CategoryTaxonomyService::class);
+        $listing = $this->pendingListing($this->armor);
+        $listing->forceFill(['subcategory_id' => $taxonomy->listingIdsForPostCategory($this->wwii->id)[0]])->save();
+        $this->actingAs($admin, 'sanctum')->getJson("/api/v1/admin/listings/{$listing->uuid}")->assertOk();
+    }
+
+    public function test_status_changes_are_limited_to_edit_and_unpublish(): void
+    {
+        $admin = $this->categoryAdmin($this->aviation);
+        $listing = $this->pendingListing($this->aviation);
+        $post = $this->pendingPost($this->aviation);
+
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['status' => 'sold'])->assertStatus(422);
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['status' => 'published'])->assertOk();
+        $this->assertSame(ListingStatus::Published, $listing->fresh()->status);
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['status' => 'unpublished'])->assertOk();
+
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/posts/{$post->uuid}", ['status' => 'archived'])->assertStatus(422);
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/posts/{$post->uuid}", ['status' => 'hidden'])->assertOk();
+    }
+
+    public function test_moderator_still_deletes(): void
+    {
+        $moderator = $this->person(UserRole::Moderator);
+        $post = $this->pendingPost($this->armor);
+        $listing = $this->pendingListing($this->armor);
+
+        $this->actingAs($moderator, 'sanctum')->deleteJson("/api/v1/admin/posts/{$post->uuid}")->assertOk();
+        $this->actingAs($moderator, 'sanctum')->deleteJson("/api/v1/admin/listings/{$listing->uuid}")->assertOk();
+    }
+
+    public function test_channel_copies_in_the_feed_are_out_of_scope(): void
+    {
+        $admin = $this->categoryAdmin($this->aviation);
+        $owner = $this->person();
+        $channel = Channel::create(['owner_id' => $owner->id, 'name' => 'К', 'slug' => 'k-'.uniqid(), 'kind' => 'author', 'comments_enabled' => true]);
+        $mirror = $this->pendingPost($this->aviation);
+        ChannelPost::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'channel_id' => $channel->id,
+            'author_id' => $owner->id,
+            'feed_post_id' => $mirror->id,
+            'text' => 'Запись канала',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/posts/{$mirror->uuid}", ['status' => 'published'])->assertNotFound();
+        $posts = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/posts')->json('data'))->pluck('uuid')->all();
+        $this->assertNotContains($mirror->uuid, $posts);
+    }
+
+    public function test_deleted_account_frees_its_place(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['key' => CategoryAdminService::SETTING_KEY],
+            ['value' => ['value' => 1], 'group' => 'moderation'],
+        );
+        $gone = $this->categoryAdmin($this->aviation);
+        $gone->delete();
+
+        $this->assertSame(0, DB::table('category_admins')->where('user_id', $gone->id)->count());
+        $next = $this->person(UserRole::CategoryAdmin);
+        $this->actingAs($this->person(UserRole::Owner), 'sanctum')
+            ->putJson("/api/v1/admin/users/{$next->uuid}/categories", ['category_ids' => [$this->aviation->id]])
+            ->assertOk();
     }
 
     public function test_access_map_for_category_admin(): void

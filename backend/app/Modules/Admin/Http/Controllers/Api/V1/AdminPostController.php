@@ -59,6 +59,9 @@ class AdminPostController extends Controller
         $data = request()->validate([
             'status' => ['required', Rule::enum(ContentStatus::class)],
         ]);
+        if ($scope !== null && ! in_array($data['status'], CategoryScope::POST_STATUSES, true)) {
+            abort(422, 'Администратор направления публикует, снимает, отклоняет и возвращает на доработку.');
+        }
 
         $old = $post->toArray();
         $status = ContentStatus::from($data['status']);

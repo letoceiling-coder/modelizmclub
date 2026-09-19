@@ -81,6 +81,13 @@ class AdminListingController extends Controller
         if ($data === []) {
             abort(422, 'Укажите хотя бы одно поле для изменения.');
         }
+        if (
+            array_key_exists('status', $data)
+            && CategoryScope::for(request()->user()) !== null
+            && ! in_array($data['status'], CategoryScope::LISTING_STATUSES, true)
+        ) {
+            abort(422, 'Администратор направления публикует, снимает, отклоняет и возвращает на доработку.');
+        }
 
         $old = $listing->toArray();
 

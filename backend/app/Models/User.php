@@ -124,6 +124,12 @@ class User extends Authenticatable
                 DB::table('category_admins')->where('user_id', $user->id)->delete();
             }
         });
+
+        // Удалённый аккаунт (в том числе мягко, самим человеком) место
+        // администратора направления не держит.
+        static::deleted(function (self $user): void {
+            DB::table('category_admins')->where('user_id', $user->id)->delete();
+        });
     }
 
     public function sendPasswordResetNotification($token): void

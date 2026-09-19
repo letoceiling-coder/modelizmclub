@@ -106,8 +106,13 @@ class CategoryAdminService
         });
     }
 
+    /** Только живые учётки: удалённый аккаунт место не занимает. */
     private function adminsCount(int $categoryId): int
     {
-        return DB::table('category_admins')->where('post_category_id', $categoryId)->count();
+        return DB::table('category_admins')
+            ->join('users', 'users.id', '=', 'category_admins.user_id')
+            ->where('category_admins.post_category_id', $categoryId)
+            ->whereNull('users.deleted_at')
+            ->count();
     }
 }

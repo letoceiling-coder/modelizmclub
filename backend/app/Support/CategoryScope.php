@@ -67,10 +67,27 @@ final class CategoryScope
             ->all();
     }
 
-    /** @param  Builder<Post>  $query */
+    /**
+     * Статусы, которые администратор направления ставит сам: «правка и
+     * снятие» — опубликовать, снять, отклонить, вернуть на доработку.
+     * Черновик, план, архив и «продано» — не решения модерации.
+     */
+    public const POST_STATUSES = ['published', 'hidden', 'rejected', 'revision'];
+
+    public const LISTING_STATUSES = ['published', 'unpublished', 'rejected', 'revision'];
+
+    /**
+     * Копии записей каналов в ленте не входят в направления: у всех у них
+     * направление «Каналы», а решать по ним — дело модерации каналов, куда
+     * администратору направления хода нет (ревью 19.09).
+     *
+     * @param  Builder<Post>  $query
+     */
     public function constrainPosts(Builder $query): Builder
     {
-        return $query->whereIn('category_id', $this->postCategoryIds === [] ? [0] : $this->postCategoryIds);
+        return $query
+            ->whereIn('category_id', $this->postCategoryIds === [] ? [0] : $this->postCategoryIds)
+            ->whereDoesntHave('channelPost');
     }
 
     /** @param  Builder<Listing>  $query */
@@ -85,7 +102,8 @@ final class CategoryScope
 
     public function allowsPost(Post $post): bool
     {
-        return in_array((int) $post->category_id, $this->postCategoryIds, true);
+        return in_array((int) $post->category_id, $this->postCategoryIds, true)
+            && ! $post->channelPost()->exists();
     }
 
     public function allowsListing(Listing $listing): bool

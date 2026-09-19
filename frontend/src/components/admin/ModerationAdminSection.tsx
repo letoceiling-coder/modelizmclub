@@ -713,14 +713,17 @@ export function ModerationAdminSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Администратору направления приходят только записи и объявления —
+  // остальные вкладки у него всегда пусты.
+  const scoped = access?.role === "category_admin";
   const queueTabs = useMemo(
     () =>
-      QUEUE_TAB_IDS.map((id) => ({
+      QUEUE_TAB_IDS.filter((id) => !scoped || id === "posts" || id === "listings").map((id) => ({
         id,
         label: t(`pages.adminModeration.queueTabs.${id}`),
         count: queue.filter((q) => q.type === id).length,
       })),
-    [queue, t],
+    [queue, t, scoped],
   );
 
   const visibleItems = queue.filter((q) => q.type === queueTab);

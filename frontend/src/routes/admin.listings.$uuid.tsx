@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
+import { useAdminAccess } from "@/lib/admin-access";
 
 export const Route = createFileRoute("/admin/listings/$uuid")({
   head: () => ({ meta: [{ title: "Объявление — админ — МоДелизМ" }] }),
@@ -83,6 +84,9 @@ function AdminListingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Удаление — модератору и Владельцу; администратор направления правит и
+  // снимает. Пока карта доступа не пришла, кнопки нет.
+  const canDelete = useAdminAccess()?.capabilities.includes("listings.delete") ?? false;
   const [listing, setListing] = useState<AdminListingDetail | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -319,15 +323,17 @@ function AdminListingPage() {
                 <Button onClick={() => void save()} disabled={saving} className="h-10 px-5">
                   {saving ? "Сохранение…" : "Сохранить"}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void remove()}
-                  className="h-10 px-5"
-                  style={{ color: "var(--error)" }}
-                >
-                  <Trash2 size={14} className="mr-[6px]" />
-                  Удалить
-                </Button>
+                {canDelete && (
+                  <Button
+                    variant="outline"
+                    onClick={() => void remove()}
+                    className="h-10 px-5"
+                    style={{ color: "var(--error)" }}
+                  >
+                    <Trash2 size={14} className="mr-[6px]" />
+                    Удалить
+                  </Button>
+                )}
               </div>
             </div>
           </div>
