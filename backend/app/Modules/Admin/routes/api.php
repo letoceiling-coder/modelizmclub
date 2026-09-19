@@ -130,28 +130,46 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         });
     });
 
-    // Всё остальное — Владелец: настройки, платежи и монетизация, кошельки и
-    // выплаты, роли и создание/удаление пользователей, лендинг, правила.
-    Route::middleware('admin.section:owner')->group(function (): void {
-        Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid'])->only(['store', 'destroy']);
-        Route::get('dashboard', AdminDashboardController::class);
-        Route::get('diagnostics', AdminDiagnosticsController::class);
+    // Дальше — по разделу на группу; минимальная роль раздела объявлена в
+    // App\Support\AdminAccess (SECTIONS и SERVICE). До 19.09 всё это лежало
+    // одной группой `admin.section:owner`. Порядок регистрации сохранён.
 
+    Route::middleware('admin.section:users.manage')->group(function (): void {
+        Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid'])->only(['store', 'destroy']);
+    });
+
+    Route::middleware('admin.section:dashboard.full')->group(function (): void {
+        Route::get('dashboard', AdminDashboardController::class);
+    });
+
+    Route::middleware('admin.section:diagnostics')->group(function (): void {
+        Route::get('diagnostics', AdminDiagnosticsController::class);
+    });
+
+    Route::middleware('admin.section:users.manage')->group(function (): void {
         Route::get('users/{id}/payout-requisites', AdminUserPayoutRequisitesController::class)->whereNumber('id');
         Route::post('users/{uuid}/subscription', AdminUserSubscriptionController::class)->where('uuid', '[0-9a-f-]{36}');
+    });
 
-        // Категории обзоров — раздел «Обзоры», у Владельца.
+    Route::middleware('admin.section:reviewCategories')->group(function (): void {
         Route::prefix('categories')->group(function (): void {
             Route::patch('video/reorder', [AdminVideoCategoryController::class, 'reorder']);
             Route::apiResource('video', AdminVideoCategoryController::class);
         });
+    });
 
+    Route::middleware('admin.section:reviews')->group(function (): void {
         Route::get('videos', [AdminVideoController::class, 'index']);
         Route::get('videos/{uuid}', [AdminVideoController::class, 'show'])->where('uuid', '[0-9a-f-]{36}');
         Route::patch('videos/{uuid}', [AdminVideoController::class, 'update'])->where('uuid', '[0-9a-f-]{36}');
         Route::delete('videos/{uuid}', [AdminVideoController::class, 'destroy'])->where('uuid', '[0-9a-f-]{36}');
+    });
 
+    Route::middleware('admin.section:communities')->group(function (): void {
         Route::apiResource('communities', AdminCommunityController::class)->parameters(['communities' => 'slug']);
+    });
+
+    Route::middleware('admin.section:monetization')->group(function (): void {
         Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'slug']);
         Route::apiResource('promocodes', AdminPromocodeController::class)->parameters(['promocodes' => 'code']);
         Route::get('referrals', [AdminReferralController::class, 'index']);
@@ -165,41 +183,64 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
             ->where('uuid', '[0-9a-f-]{36}');
         Route::get('payments', [AdminPaymentsController::class, 'index']);
         Route::get('payments/export', [AdminPaymentsController::class, 'export']);
+    });
+
+    Route::middleware('admin.section:feedBanners')->group(function (): void {
         Route::patch('banners/carousel/settings', [AdminBannerController::class, 'updateCarousel']);
         Route::apiResource('banners', AdminBannerController::class);
+    });
 
+    Route::middleware('admin.section:events')->group(function (): void {
         Route::get('events', [AdminEventsController::class, 'index']);
         Route::post('events', [AdminEventsController::class, 'store']);
         Route::patch('events/{uuid}', [AdminEventsController::class, 'update'])->whereUuid('uuid');
         Route::delete('events/{uuid}', [AdminEventsController::class, 'destroy'])->whereUuid('uuid');
         Route::post('events/{uuid}/cancel', [AdminEventsController::class, 'cancel'])->whereUuid('uuid');
         Route::get('events/{uuid}/attendees', [AdminEventsController::class, 'attendees'])->whereUuid('uuid');
+    });
 
+    Route::middleware('admin.section:landingBlocks')->group(function (): void {
         Route::get('landing/blocks', [AdminLandingBlocksController::class, 'index']);
         Route::patch('landing/sections/{slug}', [AdminLandingBlocksController::class, 'updateSection']);
         Route::post('landing/cards', [AdminLandingBlocksController::class, 'storeCard']);
         Route::patch('landing/cards/reorder', [AdminLandingBlocksController::class, 'reorderCards']);
         Route::patch('landing/cards/{id}', [AdminLandingBlocksController::class, 'updateCard'])->whereNumber('id');
         Route::delete('landing/cards/{id}', [AdminLandingBlocksController::class, 'destroyCard'])->whereNumber('id');
+    });
 
+    Route::middleware('admin.section:feedGuestAccess')->group(function (): void {
         Route::get('feed/guest-access', [AdminFeedGuestAccessController::class, 'show']);
         Route::put('feed/guest-access', [AdminFeedGuestAccessController::class, 'update']);
+    });
 
+    Route::middleware('admin.section:notificationPolicy')->group(function (): void {
         Route::get('notifications/policy', [AdminNotificationPolicyController::class, 'show']);
         Route::put('notifications/policy', [AdminNotificationPolicyController::class, 'update']);
+    });
 
+    Route::middleware('admin.section:notifications')->group(function (): void {
         Route::post('notifications', AdminNotificationController::class);
+    });
 
+    Route::middleware('admin.section:auditLog')->group(function (): void {
         Route::get('audit-logs', AdminAuditLogController::class);
+    });
 
+    Route::middleware('admin.section:icons')->group(function (): void {
         Route::get('icon-assets', [AdminIconAssetController::class, 'index']);
         Route::post('icon-assets/from-media', [AdminIconAssetController::class, 'storeFromMedia']);
         Route::delete('icon-assets/{id}', [AdminIconAssetController::class, 'destroy'])->whereNumber('id');
         Route::get('icon-media', AdminIconMediaController::class);
+    });
 
+    // Библиотека медиа — раздел модератора; ею же пользуются карточки
+    // иконок, баннеров и лендинга у Владельца.
+    Route::middleware('admin.section:media')->group(function (): void {
         Route::get('media', [AdminMediaController::class, 'index']);
         Route::post('media', [AdminMediaController::class, 'store']);
+    });
 
+    Route::middleware('admin.section:monetization')->group(function (): void {
         // Wallets, safe deals and disputes (spec v4.0 §T12).
         Route::get('wallets', [AdminWalletController::class, 'index']);
         Route::get('wallets/{uuid}', [AdminWalletController::class, 'show'])->where('uuid', '[0-9a-f-]{36}');
@@ -211,10 +252,14 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('safe-deals/{uuid}/refund', [AdminSafeDealController::class, 'refund'])->where('uuid', '[0-9a-f-]{36}');
         Route::get('disputes', [AdminDisputeController::class, 'index']);
         Route::post('disputes/{uuid}/resolve', [AdminDisputeController::class, 'resolve'])->where('uuid', '[0-9a-f-]{36}');
+    });
 
+    Route::middleware('admin.section:settings')->group(function (): void {
         Route::get('settings', [AdminSettingsController::class, 'index']);
         Route::patch('settings', [AdminSettingsController::class, 'update']);
+    });
 
+    Route::middleware('admin.section:rulesPages')->group(function (): void {
         Route::get('rule-pages', [AdminRulePageController::class, 'index']);
         Route::post('rule-pages', [AdminRulePageController::class, 'store']);
         Route::get('rule-pages/{id}', [AdminRulePageController::class, 'show'])->whereNumber('id');
@@ -226,7 +271,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('rule-pages/{id}/revisions/{revisionId}/restore', [AdminRulePageController::class, 'restoreRevision'])
             ->whereNumber('id')
             ->whereNumber('revisionId');
+    });
 
+    Route::middleware('admin.section:legalPages')->group(function (): void {
         Route::get('legal-pages', [AdminLegalPageController::class, 'index']);
         Route::post('legal-pages', [AdminLegalPageController::class, 'store']);
         Route::post('legal-pages/preview-markdown', [AdminLegalPageController::class, 'previewMarkdown']);
@@ -238,13 +285,18 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::post('legal-pages/{id}/revisions/{revisionId}/restore', [AdminLegalPageController::class, 'restoreRevision'])
             ->whereNumber('id')
             ->whereNumber('revisionId');
+    });
 
+    Route::middleware('admin.section:footerLinks')->group(function (): void {
         Route::get('footer-links', [AdminFooterLinkController::class, 'index']);
         Route::post('footer-links', [AdminFooterLinkController::class, 'store']);
         Route::put('footer-links/{id}', [AdminFooterLinkController::class, 'update'])->whereNumber('id');
         Route::delete('footer-links/{id}', [AdminFooterLinkController::class, 'destroy'])->whereNumber('id');
         Route::post('footer-links/reorder', [AdminFooterLinkController::class, 'reorder']);
+    });
 
+    // Вопросы и ответы редактируются в разделе «Главная страница».
+    Route::middleware('admin.section:landingBlocks')->group(function (): void {
         Route::get('faq', [AdminFaqController::class, 'index']);
         Route::post('faq/categories', [AdminFaqController::class, 'storeCategory']);
         Route::patch('faq/categories/{id}', [AdminFaqController::class, 'updateCategory'])->whereNumber('id');

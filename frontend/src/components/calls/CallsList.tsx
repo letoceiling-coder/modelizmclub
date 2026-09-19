@@ -138,11 +138,13 @@ export function CallsList({ onOpenChat }: Props) {
                 <button
                   type="button"
                   onClick={() =>
-                    void calls.start(
-                      rec.peer.uuid,
-                      rec.peer.name,
-                      rec.peer.avatar ?? undefined,
-                      rec.media,
+                    void requireAction("call.start", () =>
+                      calls.start(
+                        rec.peer.uuid,
+                        rec.peer.name,
+                        rec.peer.avatar ?? undefined,
+                        rec.media,
+                      ),
                     )
                   }
                   className="grid h-[36px] w-[36px] place-items-center rounded-full transition-colors"

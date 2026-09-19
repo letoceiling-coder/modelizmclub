@@ -118,7 +118,7 @@ export function CreatePostForm({
   // ней выглядел бы записью канала. Сервер такой пост тоже не примет.
   const categories = usePostCategories().filter((c) => c.slug !== "channels");
   const me = useCurrentUser();
-  const { requirePremium } = useGuestAccess();
+  const { guardAction } = useGuestAccess();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -324,7 +324,9 @@ export function CreatePostForm({
         return;
       }
     }
-    requirePremium(() => {
+    // Ключ карты — тот, что проверит сервер: запись в ленту — как у «Что у
+    // вас нового?», запись от имени канала — как у публикации в канале.
+    guardAction(sel.source === "profile" ? "feed.compose.open" : "channel.post.create", () => {
       void runPublish();
     });
   };

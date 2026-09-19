@@ -35,6 +35,8 @@ class ChannelPermissionsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Тест о механике каналов, не о подписке: запись в канале открыта входом.
+        $this->setActionTier('channel.post.create', 'auth');
         // Тест о механике, не о доступе к созданию записи: авторы без подписки.
         $this->setComposeTier('auth');
         config(['feed.auto_publish' => true]);

@@ -14,13 +14,13 @@ Route::middleware('auth:sanctum')->prefix('calls')->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('calls')->group(function (): void {
-    Route::post('/', [CallController::class, 'initiate']);
+    Route::post('/', [CallController::class, 'initiate'])->middleware('requiresSubscription:call.start');
     Route::post('{uuid}/answer', [CallController::class, 'answer']);
     Route::post('{uuid}/restart', [CallController::class, 'restart']);
     Route::post('{uuid}/ice', [CallController::class, 'ice']);
 
     Route::post('livekit/token', [LiveKitController::class, 'token']);
-    Route::post('group/invite', [LiveKitController::class, 'invite']);
+    Route::post('group/invite', [LiveKitController::class, 'invite'])->middleware('requiresSubscription:call.start');
 });
 
 Route::middleware('auth:sanctum')->prefix('diagnostics')->group(function (): void {

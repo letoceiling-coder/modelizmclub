@@ -82,6 +82,15 @@ final class FeedGuestAccessRegistry
             ['key' => 'ads.call_seller', 'group' => 'marketplace', 'label' => 'Показать телефон продавца', 'hint' => 'Раскрытие контакта в объявлении', 'default_min_tier' => 'auth'],
             ['key' => 'ads.safe_deal', 'group' => 'marketplace', 'label' => 'Безопасная сделка', 'hint' => 'Открытие сделки из объявления', 'default_min_tier' => 'auth'],
             ['key' => 'messenger.send', 'group' => 'marketplace', 'label' => 'Отправка сообщений', 'hint' => 'Текст, голос и вложения в мессенджере', 'default_min_tier' => 'auth'],
+
+            // — Сообщества, каналы, звонки —
+            // До 19.09 эти четыре действия требовали подписку только в
+            // интерфейсе: прямой запрос к API проходил без неё. Теперь сервер
+            // смотрит сюда же (middleware `requiresSubscription:<ключ>`).
+            ['key' => 'community.join', 'group' => 'social_actions', 'label' => 'Вступление в сообщество', 'hint' => '«Вступить» и заявка в закрытое сообщество', 'default_min_tier' => 'auth'],
+            ['key' => 'channel.subscribe', 'group' => 'social_actions', 'label' => 'Подписка на канал', 'hint' => '«Подписаться» на странице канала, в списке и в записи', 'default_min_tier' => 'auth'],
+            ['key' => 'channel.post.create', 'group' => 'social_actions', 'label' => 'Запись в своём канале', 'hint' => 'Публикация владельцем или админом канала', 'default_min_tier' => 'subscription'],
+            ['key' => 'call.start', 'group' => 'social_actions', 'label' => 'Звонок', 'hint' => 'Начать звонок или пригласить в групповой; ответить можно без подписки', 'default_min_tier' => 'subscription'],
         ];
 
         return array_map(static function (array $row): array {
@@ -147,6 +156,7 @@ final class FeedGuestAccessRegistry
             'layout_nav' => 'Меню и шапка',
             'route_guard' => 'Защита страниц',
             'marketplace' => 'Объявления и сделки',
+            'social_actions' => 'Сообщества, каналы, звонки',
         ];
     }
 

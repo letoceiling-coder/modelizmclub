@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { ReviewCategoriesAdminSection } from "@/components/admin/ReviewCategoriesAdminSection";
 import { ReviewsPreviewModal } from "@/components/admin/AdminReviewsPreviewModal";
 import { askConfirm } from "@/lib/ui/ask";
+import { useAdminAccess } from "@/lib/admin-access";
 import {
   fetchAdminVideos,
   updateAdminVideo,
@@ -45,7 +46,13 @@ export function ReviewsSection({
   initialSubTab?: "list" | "categories";
 }) {
   const { t } = useTranslation();
-  const [subTab, setSubTab] = useState<"list" | "categories">(initialSubTab);
+  // Обзоры с 19.09 открыты модератору, категории обзоров — по-прежнему у
+  // Владельца (раздел `reviewCategories`); вкладку без доступа не показываем.
+  const canEditCategories = useAdminAccess()?.sections.includes("reviewCategories") ?? false;
+  const subTabs = canEditCategories ? (["list", "categories"] as const) : (["list"] as const);
+  const [subTab, setSubTab] = useState<"list" | "categories">(
+    canEditCategories ? initialSubTab : "list",
+  );
   const statusMetaMap = useMemo(
     () => ({
       published: {
@@ -267,7 +274,7 @@ export function ReviewsSection({
   return (
     <div>
       <div className="flex flex-wrap gap-[8px]" style={{ marginBottom: "16px" }}>
-        {(["list", "categories"] as const).map((id) => (
+        {subTabs.map((id) => (
           <button
             key={id}
             type="button"
@@ -289,7 +296,7 @@ export function ReviewsSection({
           </button>
         ))}
       </div>
-      {subTab === "categories" ? (
+      {subTab === "categories" && canEditCategories ? (
         <ReviewCategoriesAdminSection />
       ) : (
         <>

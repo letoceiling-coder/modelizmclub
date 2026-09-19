@@ -25,7 +25,7 @@ import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { getSessionUser } from "@/lib/session";
+import { fetchAdminAccess } from "@/lib/admin-access";
 import { ensureSession } from "@/lib/auth/session";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 
@@ -81,8 +81,18 @@ function UploadPage() {
         navigate({ to: "/feed", replace: true });
         return;
       }
-      const me = getSessionUser();
-      setAccess(me.isAdmin ? "granted" : "forbidden");
+      // Страница — часть раздела «Обзоры» админки: кого туда пускает карта
+      // разделов (с 19.09 — и модератора), тот и загружает и правит обзоры.
+      // Раньше здесь стоял `isAdmin`, то есть только Владелец.
+      fetchAdminAccess()
+        .then((granted) => {
+          if (alive) setAccess(granted.sections.includes("reviews") ? "granted" : "forbidden");
+        })
+        .catch(() => {
+          // 403 — не сотрудник; отказ сети — тоже не пускаем, но и не держим
+          // экран «проверка доступа» вечно.
+          if (alive) setAccess("forbidden");
+        });
     });
     fetchVideoCategories()
       .then((c) => {
@@ -216,7 +226,8 @@ function UploadPage() {
       setSubmitting(false);
     }
   };
-  if (access === "checking" || loadingEdit) {
+  // Загрузка правки ждёт доступа; без доступа — сразу отказ, а не вечная проверка.
+  if (access === "checking" || (access === "granted" && loadingEdit)) {
     return (
       <AppLayout>
         <div

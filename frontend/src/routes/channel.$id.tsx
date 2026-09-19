@@ -211,7 +211,7 @@ function ChannelPage() {
   const { tab: tabSearch, section: sectionSearch, settings: settingsSearch } = Route.useSearch();
   const navigate = useNavigate();
   const me = useCurrentUser();
-  const { requirePremium, requireAccount } = useGuestAccess();
+  const { guardAction, requireAccount } = useGuestAccess();
   const { requireAction } = useActionGate();
   const loaded = Route.useLoaderData();
   const { channel, loading, notFound, reload: reloadChannel } = useChannel(id, loaded.channel);
@@ -351,7 +351,7 @@ function ChannelPage() {
 
   const onToggle = () => {
     if (isOwner) return;
-    requirePremium(() => {
+    const run = () => {
       void (async () => {
         try {
           await setChannelSubscription(channel.slug, !subscribed);
@@ -360,7 +360,10 @@ function ChannelPage() {
           toast.error(t("pages.channelDetail.subscribeFailed"));
         }
       })();
-    });
+    };
+    // Отписка свободна; подписка — по карте доступа (`channel.subscribe`).
+    if (subscribed) run();
+    else guardAction("channel.subscribe", run);
   };
 
   const messageOwner = () => {
@@ -898,7 +901,7 @@ function Composer({
   onPosted: () => void;
 }) {
   const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
+  const { guardAction } = useGuestAccess();
   const [expanded, setExpanded] = useState(false);
   const [kind, setKind] = useState<PostKind>("news");
   const [text, setText] = useState("");
@@ -951,8 +954,11 @@ function Composer({
 
   const submit = async () => {
     if (!canSend) return;
+    // Запись в своём канале — по карте доступа (`channel.post.create`), тот же
+    // уровень проверяет сервер. Проверка синхронная: разрешённое действие
+    // выполняется сразу, отказ открывает окно и публикацию не начинает.
     let allowed = false;
-    requirePremium(() => {
+    guardAction("channel.post.create", () => {
       allowed = true;
     });
     if (!allowed) return;

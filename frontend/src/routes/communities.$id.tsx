@@ -1131,35 +1131,40 @@ function CommunityDetailPage() {
 
   const toggleJoin = () => {
     if (busy || isOwner || joinPending) return;
-    requirePremium(
-      () => {
-        void (async () => {
-          setBusy(true);
-          try {
-            if (joined) {
-              await leaveCommunity(community.id);
-              setJoined(false);
-              setMembers((m) => Math.max(0, m - 1));
+    const run = () => {
+      void (async () => {
+        setBusy(true);
+        try {
+          if (joined) {
+            await leaveCommunity(community.id);
+            setJoined(false);
+            setMembers((m) => Math.max(0, m - 1));
+          } else {
+            const result = await joinCommunity(community.id);
+            if (result.status === "pending") {
+              setJoinPending(true);
+              toast.success(t("pages.communityDetail.requestPending"));
             } else {
-              const result = await joinCommunity(community.id);
-              if (result.status === "pending") {
-                setJoinPending(true);
-                toast.success(t("pages.communityDetail.requestPending"));
-              } else {
-                setJoined(true);
-                setMembers((m) => m + 1);
-              }
+              setJoined(true);
+              setMembers((m) => m + 1);
             }
-          } catch {
-            toast.error(t("pages.shared.retry"));
-          } finally {
-            setBusy(false);
           }
-        })();
-      },
-      undefined,
-      joined ? undefined : { key: "community.join", params: { slug: community.id } },
-    );
+        } catch {
+          toast.error(t("pages.shared.retry"));
+        } finally {
+          setBusy(false);
+        }
+      })();
+    };
+    // Выход свободен; вступление — по карте доступа (`community.join`), по
+    // умолчанию подписка не нужна (решение 19.09). Чат сообщества — ниже,
+    // по-прежнему по подписке.
+    if (joined) run();
+    else
+      guardAction("community.join", run, undefined, {
+        key: "community.join",
+        params: { slug: community.id },
+      });
   };
 
   const toggleNotifications = () => {

@@ -510,7 +510,7 @@ function FriendsPage() {
           <div className="flex w-full items-center justify-end gap-[8px] sm:w-auto sm:shrink-0">
             <Button
               type="button"
-              onClick={() => groupCalls.openPicker("start")}
+              onClick={() => void requireAction("call.start", () => groupCalls.openPicker("start"))}
               className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
               size="sm"
             >

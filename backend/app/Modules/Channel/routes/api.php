@@ -16,11 +16,11 @@ Route::prefix('channels')->middleware('optionalAuth')->group(function (): void {
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('channels')->group(function (): void {
     Route::post('apply', ApplyChannelController::class);
-    Route::post('{slug}/subscribe', [ChannelController::class, 'subscribe']);
+    Route::post('{slug}/subscribe', [ChannelController::class, 'subscribe'])->middleware('requiresSubscription:channel.subscribe');
     Route::delete('{slug}/subscribe', [ChannelController::class, 'unsubscribe']);
     Route::patch('{slug}/branding', [ChannelController::class, 'updateBranding']);
     Route::patch('{slug}', UpdateChannelController::class);
-    Route::post('{slug}/posts', [ChannelController::class, 'storePost']);
+    Route::post('{slug}/posts', [ChannelController::class, 'storePost'])->middleware('requiresSubscription:channel.post.create');
     Route::post('{slug}/posts/{postUuid}/like', [ChannelController::class, 'like']);
     Route::delete('{slug}/posts/{postUuid}/like', [ChannelController::class, 'unlike']);
     Route::post('{slug}/posts/{postUuid}/pin', [ChannelController::class, 'pin']);

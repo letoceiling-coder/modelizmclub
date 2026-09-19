@@ -33,7 +33,7 @@ export function viewerRole(c: Community): Community["role"] | undefined {
  */
 export function CommunityRow({ c, onChanged }: { c: Community; onChanged?: () => void }) {
   const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
+  const { guardAction } = useGuestAccess();
   const role = viewerRole(c);
   const [joined, setJoined] = useState(Boolean(c.joined) || role === "member");
   const [busy, setBusy] = useState(false);
@@ -49,24 +49,30 @@ export function CommunityRow({ c, onChanged }: { c: Community; onChanged?: () =>
 
   const join = () => {
     if (busy) return;
-    requirePremium(() => {
-      void (async () => {
-        setBusy(true);
-        try {
-          const result = await joinCommunity(c.id);
-          if (result.status === "pending") {
-            toast.success(t("pages.communityDetail.requestPending"));
-          } else {
-            setJoined(true);
-            onChanged?.();
+    // Уровень — из карты доступа (`community.join`), по умолчанию хватает входа.
+    guardAction(
+      "community.join",
+      () => {
+        void (async () => {
+          setBusy(true);
+          try {
+            const result = await joinCommunity(c.id);
+            if (result.status === "pending") {
+              toast.success(t("pages.communityDetail.requestPending"));
+            } else {
+              setJoined(true);
+              onChanged?.();
+            }
+          } catch {
+            toast.error(t("pages.shared.retry"));
+          } finally {
+            setBusy(false);
           }
-        } catch {
-          toast.error(t("pages.shared.retry"));
-        } finally {
-          setBusy(false);
-        }
-      })();
-    });
+        })();
+      },
+      undefined,
+      { key: "community.join", params: { slug: c.id } },
+    );
   };
 
   const badge =

@@ -265,7 +265,7 @@ export function PostCard({
   useEffect(() => setOwnCommentDelta(0), [post.comments]);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [repostComposerOpen, setRepostComposerOpen] = useState(false);
-  const { requirePremium, isAllowed, config: accessConfig } = useGuestAccess();
+  const { guardAction, isAllowed, config: accessConfig } = useGuestAccess();
   const gate = useGate();
   // Required rung per action comes from the admin's guest-access config
   // (guest | auth | subscription); the gate turns it into one window.
@@ -873,14 +873,16 @@ export function PostCard({
             variant={channelSubscribed ? "outline" : "default"}
             className="shrink-0 rounded-[10px] gap-1"
             onClick={() => {
-              requirePremium(() => {
+              const run = () => {
                 const next = !channelSubscribed;
                 setChannelSubscribed(next);
                 void setChannelSubscription(post.channel!.slug, next).catch(() => {
                   setChannelSubscribed(!next);
                   toast.error(t("pages.channelDetail.subscribeFailed"));
                 });
-              });
+              };
+              if (channelSubscribed) run();
+              else guardAction("channel.subscribe", run);
             }}
           >
             {channelSubscribed ? (

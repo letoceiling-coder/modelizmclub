@@ -17,7 +17,7 @@ import { useGuestAccess } from "@/components/access/GuestAccessProvider";
  */
 export function ChannelRow({ channel, onChanged }: { channel: Channel; onChanged?: () => void }) {
   const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
+  const { guardAction } = useGuestAccess();
   const [subscribed, setSubscribed] = useState(Boolean(channel.isSubscribed));
   const [busy, setBusy] = useState(false);
   const isOwner = Boolean(channel.isOwner || channel.canManage);
@@ -36,7 +36,7 @@ export function ChannelRow({ channel, onChanged }: { channel: Channel; onChanged
 
   const toggle = () => {
     if (busy) return;
-    requirePremium(() => {
+    const run = () => {
       void (async () => {
         setBusy(true);
         const next = !subscribed;
@@ -50,7 +50,11 @@ export function ChannelRow({ channel, onChanged }: { channel: Channel; onChanged
           setBusy(false);
         }
       })();
-    });
+    };
+    // Отписка не закрывается ничем: подписан только вошедший, а закрытый
+    // выход — ловушка. Подписка — по карте доступа (`channel.subscribe`).
+    if (subscribed) run();
+    else guardAction("channel.subscribe", run);
   };
 
   return (

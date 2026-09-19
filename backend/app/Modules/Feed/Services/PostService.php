@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Channel\Services\ChannelPostViewLedger;
 use Modules\Feed\Support\PostMediaSync;
+use Modules\PublicContent\Services\FeedGuestAccessService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PostService
@@ -32,6 +33,7 @@ class PostService
     public function __construct(
         private readonly PostMediaSync $mediaSync,
         private readonly ChannelPostViewLedger $channelViews,
+        private readonly FeedGuestAccessService $access,
     ) {}
 
     public function findByUuid(string $uuid, ?User $viewer = null): Post
@@ -381,6 +383,15 @@ class PostService
             }
 
             try {
+                // Подписку проверяли, когда запись ставили в план, — но за
+                // неделю она могла кончиться. Правило то же, что у маршрута
+                // публикации.
+                if (! $this->access->subscriptionSatisfied($author, 'feed.compose.open')) {
+                    $this->returnToDraftsForSubscription($post, $author);
+
+                    continue;
+                }
+
                 $this->publish($post, $author);
                 $count++;
             } catch (\Throwable $e) {
@@ -390,6 +401,38 @@ class PostService
         }
 
         return $count;
+    }
+
+    /**
+     * Отложенная запись, чей автор к сроку остался без подписки, не выходит
+     * и не висит в плане: планировщик брал бы её каждую минуту и выпустил бы
+     * в случайный момент после продления. Она возвращается в черновики, как
+     * при отмене плана автором, и автор узнаёт почему.
+     */
+    private function returnToDraftsForSubscription(Post $post, User $author): void
+    {
+        // Условно: если автор в эту же секунду опубликовал или перенёс запись
+        // на более поздний срок, его решение не перетирается, и уведомление
+        // не уходит.
+        $returned = Post::query()
+            ->whereKey($post->id)
+            ->where('status', ContentStatus::Scheduled)
+            ->where('scheduled_at', '<=', now())
+            ->update([
+                'status' => ContentStatus::Draft,
+                'scheduled_at' => null,
+            ]);
+
+        if ($returned !== 1) {
+            return;
+        }
+
+        InAppNotify::sendQuiet($author, new InAppNotification(
+            'moderation',
+            'Отложенная запись не опубликована',
+            'К сроку публикации подписка закончилась. Запись вернулась в черновики — продлите подписку и опубликуйте её снова.',
+            '/subscription',
+        ));
     }
 
     /** @return list<string> */

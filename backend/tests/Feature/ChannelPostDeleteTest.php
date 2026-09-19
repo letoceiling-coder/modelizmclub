@@ -14,6 +14,13 @@ class ChannelPostDeleteTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Тест о механике каналов, не о подписке: запись в канале открыта входом.
+        $this->setActionTier('channel.post.create', 'auth');
+    }
+
     public function test_owner_can_delete_channel_post_and_linked_feed_post(): void
     {
         config(['feed.auto_publish' => true]);

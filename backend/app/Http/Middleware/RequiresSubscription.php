@@ -24,7 +24,12 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Где карта применяется на сервере: `feed.compose.open` — создание,
  * публикация и отложенная публикация записи (лента и стена сообщества),
- * `feed.post.repost` — репост. Маршруты — app/Modules/Feed/routes/api.php.
+ * `feed.post.repost` — репост (app/Modules/Feed/routes/api.php);
+ * `community.join` — вступление и заявка в сообщество; `channel.subscribe`
+ * и `channel.post.create` — подписка на канал и запись в нём;
+ * `call.start` — начало звонка и приглашение в групповой (с 19.09).
+ * Отложенную запись планировщик сверяет с картой ещё раз в момент выхода —
+ * см. PostService::publishDueScheduledPosts.
  */
 class RequiresSubscription
 {
@@ -41,15 +46,11 @@ class RequiresSubscription
             ], 401);
         }
 
-        if ($action !== null && $this->access->minTier($action) !== 'subscription') {
-            return $next($request);
-        }
+        $satisfied = $action !== null
+            ? $this->access->subscriptionSatisfied($user, $action)
+            : $user->isModerator() || $user->hasActiveSubscription();
 
-        if ($user->isModerator()) {
-            return $next($request);
-        }
-
-        if (! $user->hasActiveSubscription()) {
+        if (! $satisfied) {
             return response()->json([
                 'message' => 'Оформите подписку, чтобы публиковать контент и пользоваться этой функцией.',
                 'code' => 'subscription_required',

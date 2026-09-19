@@ -18,6 +18,13 @@ class ChannelPostMediaTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Тест о механике каналов, не о подписке: запись в канале открыта входом.
+        $this->setActionTier('channel.post.create', 'auth');
+    }
+
     public function test_owner_can_publish_post_with_media_and_it_duplicates_into_feed(): void
     {
         config(['feed.auto_publish' => true]);

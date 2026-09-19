@@ -7,13 +7,16 @@ use App\Enums\UserStatus;
 use App\Models\ListingCategory;
 use App\Models\PostCategory;
 use App\Models\User;
+use App\Support\AdminAccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * Две роли админки по карте App\Support\AdminAccess: Владелец видит всё,
+ * Роли админки по карте App\Support\AdminAccess: Владелец видит всё,
  * Модератор — контент, пользователей, объявления, доставку, модерацию,
- * заявки и категории, и получает 403 на остальное.
+ * заявки, категории, обзоры, уведомления и медиа, и получает 403 на
+ * остальное.
  */
 class AdminAccessTest extends TestCase
 {
@@ -32,6 +35,8 @@ class AdminAccessTest extends TestCase
         '/api/v1/admin/delivery/stats',
         '/api/v1/admin/delivery/shipments',
         '/api/v1/admin/categories/post',
+        '/api/v1/admin/videos',
+        '/api/v1/admin/media',
     ];
 
     /** Маршруты Владельца: настройки, платежи, роли, лендинг, журнал. */
@@ -52,8 +57,11 @@ class AdminAccessTest extends TestCase
         '/api/v1/admin/legal-pages',
         '/api/v1/admin/notifications/policy',
         '/api/v1/admin/categories/video',
-        '/api/v1/admin/videos',
         '/api/v1/admin/events',
+        '/api/v1/admin/diagnostics',
+        '/api/v1/admin/icon-media',
+        '/api/v1/admin/faq',
+        '/api/v1/admin/communities',
     ];
 
     private function staff(UserRole $role): User
@@ -68,13 +76,15 @@ class AdminAccessTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.role', 'moderator')
             ->assertJsonPath('data.is_owner', false)
-            ->assertJsonPath('data.sections', ['dashboard', 'users', 'content', 'ads', 'delivery', 'moderation', 'applications', 'feedback', 'categories']);
+            ->assertJsonPath('data.sections', ['dashboard', 'users', 'content', 'ads', 'delivery', 'moderation', 'applications', 'feedback', 'categories', 'reviews', 'notifications', 'media']);
 
         $owner = $this->actingAs($this->staff(UserRole::Owner), 'sanctum')->getJson('/api/v1/admin/access')->assertOk()->json('data');
         $this->assertTrue($owner['is_owner']);
         $this->assertContains('settings', $owner['sections']);
         $this->assertContains('monetization', $owner['sections']);
         $this->assertNotContains('owner', $owner['sections']);
+        $this->assertNotContains('users.manage', $owner['sections']);
+        $this->assertSame(array_keys(AdminAccess::SECTIONS), $owner['sections']);
 
         $this->actingAs($this->staff(UserRole::User), 'sanctum')->getJson('/api/v1/admin/access')->assertForbidden();
     }
@@ -98,6 +108,58 @@ class AdminAccessTest extends TestCase
             $status = $this->actingAs($owner, 'sanctum')->getJson($url)->status();
             $this->assertNotContains($status, [401, 403], "{$url} → {$status}");
         }
+    }
+
+    /**
+     * Модератору 19.09 открыты уведомления: рассылка уходит, а политика
+     * уведомлений — по-прежнему у Владельца.
+     */
+    public function test_moderator_broadcasts_but_does_not_edit_notification_policy(): void
+    {
+        $moderator = $this->staff(UserRole::Moderator);
+
+        $status = $this->actingAs($moderator, 'sanctum')
+            ->postJson('/api/v1/admin/notifications', ['title' => 'Проверка', 'body' => 'Текст', 'audience' => 'all'])
+            ->status();
+        $this->assertNotContains($status, [401, 403], "notifications → {$status}");
+
+        $this->actingAs($moderator, 'sanctum')->putJson('/api/v1/admin/notifications/policy', [])->assertForbidden();
+        $this->actingAs($moderator, 'sanctum')->deleteJson('/api/v1/admin/categories/video/1')->assertForbidden();
+    }
+
+    /**
+     * У каждого маршрута админки — охрана с ключом, который знает карта.
+     * Опечатка в ключе закрыла бы раздел для всех, включая Владельца, а
+     * маршрут без охраны открылся бы любому вошедшему.
+     */
+    public function test_every_admin_route_is_guarded_by_a_known_section(): void
+    {
+        $known = AdminAccess::keys();
+        $unguarded = [];
+        foreach (Route::getRoutes() as $route) {
+            if (! str_starts_with($route->uri(), 'api/v1/admin/') || $route->uri() === 'api/v1/admin/access') {
+                continue;
+            }
+            $sections = array_values(array_filter(
+                $route->gatherMiddleware(),
+                fn ($m) => is_string($m) && str_starts_with($m, 'admin.section:'),
+            ));
+            if ($sections === []) {
+                $unguarded[] = $route->uri();
+
+                continue;
+            }
+            foreach ($sections as $m) {
+                $this->assertContains(substr($m, strlen('admin.section:')), $known, $route->uri());
+            }
+        }
+        $this->assertSame([], $unguarded);
+    }
+
+    public function test_unknown_section_key_is_closed_even_for_owner(): void
+    {
+        $this->assertFalse(AdminAccess::allows($this->staff(UserRole::Owner), 'owner'));
+        $this->assertFalse(AdminAccess::allows($this->staff(UserRole::Owner), 'no-such-section'));
     }
 
     public function test_regular_user_is_kept_out(): void
