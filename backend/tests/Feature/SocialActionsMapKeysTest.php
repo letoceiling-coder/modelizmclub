@@ -17,8 +17,10 @@ use App\Models\User;
 use App\Models\UserSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Modules\Feed\Services\PostService;
 use Tests\TestCase;
 
 /**
@@ -132,6 +134,38 @@ class SocialActionsMapKeysTest extends TestCase
         );
     }
 
+    public function test_leaving_a_community_is_never_gated(): void
+    {
+        $community = $this->community();
+        $member = $this->person();
+        $this->actingAs($member, 'sanctum')->postJson("/api/v1/communities/{$community->slug}/join");
+
+        $this->setActionTier('community.join', 'subscription');
+        $this->assertNotSubscriptionGated(
+            $this->actingAs($member, 'sanctum')->deleteJson("/api/v1/communities/{$community->slug}/leave"),
+        );
+    }
+
+    /**
+     * Ответить на звонок, отклонить, положить трубку и получить токен
+     * комнаты может и тот, у кого подписки нет: платит тот, кто звонит.
+     */
+    public function test_answering_a_call_is_not_gated(): void
+    {
+        $free = ['api/v1/calls/{uuid}/answer', 'api/v1/calls/{uuid}/reject', 'api/v1/calls/{uuid}/hangup', 'api/v1/calls/livekit/token'];
+        foreach (Route::getRoutes() as $route) {
+            if (! in_array($route->uri(), $free, true)) {
+                continue;
+            }
+            foreach ($route->gatherMiddleware() as $m) {
+                $this->assertFalse(
+                    is_string($m) && str_starts_with($m, 'requiresSubscription'),
+                    $route->uri().' не должен требовать подписку',
+                );
+            }
+        }
+    }
+
     public function test_subscribing_to_a_channel_needs_no_subscription_by_default_and_follows_the_map(): void
     {
         $channel = $this->channel($this->person());
@@ -233,6 +267,21 @@ class SocialActionsMapKeysTest extends TestCase
         // Повторный прогон запись не трогает: она больше не в плане.
         $this->artisan('posts:publish-scheduled')->assertSuccessful();
         $this->assertSame(1, $author->notifications()->count());
+    }
+
+    public function test_scheduler_does_not_override_an_author_who_already_published(): void
+    {
+        $author = $this->person();
+        $post = $this->scheduledPost($author);
+        // Автор опубликовал сам между выборкой и проверкой подписки.
+        Post::query()->whereKey($post->id)->update(['status' => ContentStatus::Published, 'published_at' => now()]);
+        $stale = $post; // модель в памяти ещё «запланирована»
+
+        $method = new \ReflectionMethod(PostService::class, 'returnToDraftsForSubscription');
+        $method->invoke(app(PostService::class), $stale, $author);
+
+        $this->assertSame(ContentStatus::Published, $post->fresh()->status);
+        $this->assertSame(0, $author->notifications()->count());
     }
 
     public function test_scheduler_publishes_for_a_subscriber(): void

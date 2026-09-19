@@ -382,15 +382,16 @@ class PostService
                 continue;
             }
 
-            // Подписку проверяли, когда запись ставили в план, — но за неделю
-            // она могла кончиться. Правило то же, что у маршрута публикации.
-            if (! $this->access->subscriptionSatisfied($author, 'feed.compose.open')) {
-                $this->returnToDraftsForSubscription($post, $author);
-
-                continue;
-            }
-
             try {
+                // Подписку проверяли, когда запись ставили в план, — но за
+                // неделю она могла кончиться. Правило то же, что у маршрута
+                // публикации.
+                if (! $this->access->subscriptionSatisfied($author, 'feed.compose.open')) {
+                    $this->returnToDraftsForSubscription($post, $author);
+
+                    continue;
+                }
+
                 $this->publish($post, $author);
                 $count++;
             } catch (\Throwable $e) {
@@ -410,10 +411,19 @@ class PostService
      */
     private function returnToDraftsForSubscription(Post $post, User $author): void
     {
-        $post->update([
-            'status' => ContentStatus::Draft,
-            'scheduled_at' => null,
-        ]);
+        // Условно: если автор в эту же секунду опубликовал или перенёс запись,
+        // его решение не перетирается, и уведомление не уходит.
+        $returned = Post::query()
+            ->whereKey($post->id)
+            ->where('status', ContentStatus::Scheduled)
+            ->update([
+                'status' => ContentStatus::Draft,
+                'scheduled_at' => null,
+            ]);
+
+        if ($returned !== 1) {
+            return;
+        }
 
         InAppNotify::sendQuiet($author, new InAppNotification(
             'moderation',

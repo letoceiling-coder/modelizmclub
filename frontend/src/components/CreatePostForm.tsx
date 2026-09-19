@@ -324,9 +324,9 @@ export function CreatePostForm({
         return;
       }
     }
-    // Тот же ключ карты, что у «Что у вас нового?» и у сервера: при уровне
-    // `auth` в карте публикация не должна упираться в окно подписки.
-    guardAction("feed.compose.open", () => {
+    // Ключ карты — тот, что проверит сервер: запись в ленту — как у «Что у
+    // вас нового?», запись от имени канала — как у публикации в канале.
+    guardAction(sel.source === "profile" ? "feed.compose.open" : "channel.post.create", () => {
       void runPublish();
     });
   };
