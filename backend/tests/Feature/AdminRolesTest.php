@@ -82,6 +82,14 @@ class AdminRolesTest extends TestCase
 
         $this->assertSame(3, CategoryAdminService::maxPerCategory());
         $this->assertSame(1, DB::table('audit_logs')->where('action', 'admin.roles.category_admin_limit')->count());
+
+        // Предел действует: четвёртого на то же направление не назначить.
+        $this->actingAs($owner, 'sanctum')->putJson('/api/v1/admin/roles/category-admin-limit', ['value' => 1])->assertOk();
+        $category = PostCategory::query()->create(['name' => 'Авиация', 'slug' => 'aviation', 'is_active' => true]);
+        $first = $this->person(UserRole::CategoryAdmin);
+        $second = $this->person(UserRole::CategoryAdmin);
+        $this->actingAs($owner, 'sanctum')->putJson("/api/v1/admin/users/{$first->uuid}/categories", ['category_ids' => [$category->id]])->assertOk();
+        $this->actingAs($owner, 'sanctum')->putJson("/api/v1/admin/users/{$second->uuid}/categories", ['category_ids' => [$category->id]])->assertStatus(422);
     }
 
     public function test_user_search_finds_by_name_email_and_display_name(): void

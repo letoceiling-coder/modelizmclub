@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, X } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -42,6 +42,9 @@ const sectionTitle: React.CSSProperties = {
   marginBottom: "12px",
 };
 
+/** Сдвиг подкатегории в списке: обычные пробелы браузер в <option> схлопывает. */
+const INDENT = String.fromCharCode(160, 160);
+
 const muted: React.CSSProperties = { fontSize: "12px", color: "var(--foreground-50)" };
 
 export function AdminRolesSection() {
@@ -49,23 +52,38 @@ export function AdminRolesSection() {
   const [overview, setOverview] = useState<RolesOverview | null>(null);
   const [directions, setDirections] = useState<Direction[]>([]);
   const [failed, setFailed] = useState(false);
+  const [directionsFailed, setDirectionsFailed] = useState(false);
+  // Ответы сводки могут прийти не по порядку (две правки подряд); в дело
+  // идёт только ответ на последний запрос.
+  const latest = useRef(0);
 
   const load = useCallback(() => {
+    const request = ++latest.current;
     setFailed(false);
     fetchRolesOverview()
-      .then(setOverview)
+      .then((data) => {
+        if (request === latest.current) setOverview(data);
+      })
       .catch((e) => {
         reportReadFailure(e, "роли и доступ");
-        setFailed(true);
+        if (request === latest.current) setFailed(true);
+      });
+  }, []);
+
+  const loadDirections = useCallback(() => {
+    setDirectionsFailed(false);
+    fetchAdminCategories("post")
+      .then((list) => setDirections(orderTree(list)))
+      .catch((e) => {
+        reportReadFailure(e, "направления для назначения");
+        setDirectionsFailed(true);
       });
   }, []);
 
   useEffect(() => {
     load();
-    fetchAdminCategories("post")
-      .then((list) => setDirections(orderTree(list)))
-      .catch((e) => reportReadFailure(e, "направления для назначения"));
-  }, [load]);
+    loadDirections();
+  }, [load, loadDirections]);
 
   if (failed) {
     return (
@@ -100,6 +118,18 @@ export function AdminRolesSection() {
       </div>
 
       <AddStaffCard overview={overview} onChanged={load} />
+
+      {directionsFailed && (
+        <div
+          className="flex flex-wrap items-center"
+          style={{ ...card, padding: "12px 16px", gap: "12px" }}
+        >
+          <span style={muted}>{t("pages.adminRoles.directionsFailed")}</span>
+          <button type="button" style={primaryBtn} onClick={loadDirections}>
+            {t("pages.adminRoles.retry")}
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col" style={{ gap: "12px" }}>
         {overview.staff.map((member) => (
@@ -143,14 +173,17 @@ function RoleSelect({
   value,
   onChange,
   disabled,
+  label,
 }: {
   value: StaffRole;
   onChange: (role: StaffRole) => void;
   disabled?: boolean;
+  label: string;
 }) {
   const { t } = useTranslation();
   return (
     <select
+      aria-label={label}
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value as StaffRole)}
@@ -185,11 +218,15 @@ function AddStaffCard({ overview, onChanged }: { overview: RolesOverview; onChan
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AdminUserRow[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const q = query.trim();
+    setSearchFailed(false);
     if (q.length < 2) {
       setResults([]);
+      setSearching(false);
       return;
     }
     let alive = true;
@@ -199,7 +236,12 @@ function AddStaffCard({ overview, onChanged }: { overview: RolesOverview; onChan
         .then((list) => {
           if (alive) setResults(list);
         })
-        .catch((e) => reportReadFailure(e, "поиск пользователя для назначения"))
+        .catch((e) => {
+          reportReadFailure(e, "поиск пользователя для назначения");
+          if (!alive) return;
+          setResults([]);
+          setSearchFailed(true);
+        })
         .finally(() => {
           if (alive) setSearching(false);
         });
@@ -208,7 +250,7 @@ function AddStaffCard({ overview, onChanged }: { overview: RolesOverview; onChan
       alive = false;
       window.clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, attempt]);
 
   const staffUuids = useMemo(() => new Set(overview.staff.map((s) => s.uuid)), [overview.staff]);
 
@@ -231,9 +273,25 @@ function AddStaffCard({ overview, onChanged }: { overview: RolesOverview; onChan
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={t("pages.adminRoles.searchPlaceholder")}
+        aria-label={t("pages.adminRoles.searchPlaceholder")}
         style={{ ...inputStyle, width: "100%", maxWidth: "420px" }}
       />
       {searching && <p style={{ ...muted, marginTop: "8px" }}>{t("pages.adminRoles.searching")}</p>}
+      {searchFailed && (
+        <div className="flex flex-wrap items-center" style={{ gap: "10px", marginTop: "8px" }}>
+          <span style={muted}>{t("pages.adminRoles.searchFailed")}</span>
+          <button
+            type="button"
+            style={{ ...inputStyle, height: "32px", cursor: "pointer" }}
+            onClick={() => setAttempt((n) => n + 1)}
+          >
+            {t("pages.adminRoles.retry")}
+          </button>
+        </div>
+      )}
+      {!searching && !searchFailed && query.trim().length >= 2 && results.length === 0 && (
+        <p style={{ ...muted, marginTop: "8px" }}>{t("pages.adminRoles.nothingFound")}</p>
+      )}
       {results.length > 0 && (
         <div className="flex flex-col" style={{ gap: "8px", marginTop: "12px" }}>
           {results.map((user) => (
@@ -326,6 +384,7 @@ function StaffCard({
           <div style={muted}>{member.email}</div>
         </div>
         <RoleSelect
+          label={t("pages.adminRoles.roleOf", { name: member.name })}
           value={member.role}
           disabled={saving || isSelf}
           onChange={(role) => void changeRole(role)}
@@ -349,6 +408,8 @@ function StaffCard({
             max={100000}
             value={draft.freeListingsQuota}
             disabled={draft.freeListingsUnlimited}
+            // Ввод заменяет число целиком, а не дописывается к нулю.
+            onFocus={(e) => e.target.select()}
             onChange={(e) =>
               setDraft((d) => ({
                 ...d,
@@ -428,7 +489,14 @@ function StaffCard({
                   aria-label={t("pages.adminRoles.removeDirection", { name: c.name })}
                   disabled={saving}
                   onClick={() => void setCategories([...assigned].filter((id) => id !== c.id))}
-                  style={{ display: "inline-grid", placeItems: "center" }}
+                  // Значок маленький, зона нажатия — нет.
+                  style={{
+                    display: "inline-grid",
+                    placeItems: "center",
+                    minWidth: "32px",
+                    minHeight: "32px",
+                    margin: "-8px -10px -8px -6px",
+                  }}
                 >
                   <X size={12} />
                 </button>
@@ -436,6 +504,7 @@ function StaffCard({
             ))}
           </div>
           <select
+            aria-label={t("pages.adminRoles.addDirection")}
             value=""
             disabled={saving || directions.length === 0}
             onChange={(e) => {
@@ -455,7 +524,7 @@ function StaffCard({
               .filter((d) => !assigned.has(d.id))
               .map((d) => (
                 <option key={d.id} value={d.id}>
-                  {"  ".repeat(d.depth)}
+                  {INDENT.repeat(d.depth)}
                   {d.name}
                 </option>
               ))}
@@ -496,6 +565,7 @@ function LimitCard({ value, onChanged }: { value: number; onChanged: () => void 
       <div className="flex flex-wrap items-center" style={{ gap: "10px" }}>
         <input
           inputMode="numeric"
+          aria-label={t("pages.adminRoles.limitTitle")}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           style={{ ...inputStyle, width: "90px" }}
