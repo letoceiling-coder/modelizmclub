@@ -10,7 +10,6 @@ use App\Models\Channel;
 use App\Models\ChannelPost;
 use App\Models\Media;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Channel\Services\ChannelPostService;
 use Tests\TestCase;
@@ -18,12 +17,6 @@ use Tests\TestCase;
 class ChannelPostMediaTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_owner_can_publish_post_with_media_and_it_duplicates_into_feed(): void
     {
@@ -144,7 +137,7 @@ class ChannelPostMediaTest extends TestCase
     {
         config(['feed.auto_publish' => false]);
 
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $owner = User::factory()->create(['status' => UserStatus::Active]);
         $channel = Channel::create([
             'owner_id' => $owner->id,

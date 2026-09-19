@@ -60,7 +60,7 @@ describe("levelOf", () => {
   });
 
   it("treats staff as a subscriber (no SMS, no paywall)", () => {
-    expect(levelOf(makeSession({ role: "admin" }))).toBe("subscriber");
+    expect(levelOf(makeSession({ role: "owner" }))).toBe("subscriber");
     expect(levelOf(makeSession({ role: "moderator" }))).toBe("subscriber");
   });
 });

@@ -9,7 +9,6 @@ use App\Models\ChannelPost;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,7 +36,6 @@ class ChannelPostViewsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         config(['feed.auto_publish' => true]);
         $this->owner = $this->user();
         $this->channel = Channel::create([
@@ -109,7 +107,7 @@ class ChannelPostViewsTest extends TestCase
     {
         [$channelPost, $feedPost] = $this->publish();
 
-        $this->viewInChannel($channelPost, $this->user(UserRole::Admin))->assertJsonPath('data.counted', true);
+        $this->viewInChannel($channelPost, $this->user(UserRole::Owner))->assertJsonPath('data.counted', true);
         $this->viewInChannel($channelPost, $this->user(UserRole::Moderator))->assertJsonPath('data.counted', true);
 
         $this->assertViews(2, $channelPost, $feedPost);

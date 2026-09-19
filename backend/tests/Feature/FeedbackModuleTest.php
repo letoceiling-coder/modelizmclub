@@ -6,19 +6,12 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Feedback;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class FeedbackModuleTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_guest_can_submit_feedback_with_email(): void
     {

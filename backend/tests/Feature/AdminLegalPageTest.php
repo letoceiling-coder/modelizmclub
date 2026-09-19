@@ -6,7 +6,6 @@ use App\Enums\LegalPageStatus;
 use App\Models\LegalPage;
 use App\Models\User;
 use Database\Seeders\LegalComplianceSeeder;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,13 +16,12 @@ class AdminLegalPageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         $this->seed(LegalComplianceSeeder::class);
     }
 
     public function test_admin_can_update_and_restore_legal_page_revision(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'owner']);
         $page = LegalPage::query()->where('slug', 'safe-deal')->firstOrFail();
 
         $this->actingAs($admin, 'sanctum')
@@ -56,7 +54,7 @@ class AdminLegalPageTest extends TestCase
 
     public function test_admin_markdown_preview_and_save(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'owner']);
 
         $html = (string) $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/admin/legal-pages/preview-markdown', [

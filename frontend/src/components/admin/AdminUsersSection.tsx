@@ -26,9 +26,9 @@ export function UsersSection() {
   const roleOptions = useMemo(
     () => [
       { value: "user" as const, label: t("pages.adminUsers.roleUser") },
-      { value: "subscriber" as const, label: t("pages.adminUsers.roleSubscriber") },
+      { value: "category_admin" as const, label: t("pages.adminUsers.roleCategoryAdmin") },
       { value: "moderator" as const, label: t("pages.adminUsers.roleModerator") },
-      { value: "admin" as const, label: t("pages.adminUsers.roleAdmin") },
+      { value: "owner" as const, label: t("pages.adminUsers.roleOwner") },
     ],
     [t],
   );
@@ -61,8 +61,8 @@ export function UsersSection() {
       await updateAdminUser(uuid, { role: newRole });
       setUsers((prev) => prev.map((u) => (u.uuid === uuid ? { ...u, role: newRole } : u)));
       toast.success(
-        newRole === "admin"
-          ? t("pages.adminUsers.roleAdminAssigned")
+        newRole === "owner"
+          ? t("pages.adminUsers.roleOwnerAssigned")
           : t("pages.adminUsers.roleUpdated"),
       );
     } catch {
@@ -157,16 +157,16 @@ export function UsersSection() {
 
   const roleBadge = (r: AdminUserRow["role"]) => {
     const map: Record<AdminUserRow["role"], { bg: string; c: string; l: string }> = {
-      admin: { bg: "var(--accent-soft)", c: "var(--accent)", l: t("pages.adminUsers.roleAdmin") },
+      owner: { bg: "var(--accent-soft)", c: "var(--accent)", l: t("pages.adminUsers.roleOwner") },
       moderator: {
         bg: "var(--info-soft)",
         c: "var(--info)",
         l: t("pages.adminUsers.roleModerator"),
       },
-      subscriber: {
+      category_admin: {
         bg: "var(--success-soft)",
         c: "var(--success)",
-        l: t("pages.adminUsers.roleSubscriber"),
+        l: t("pages.adminUsers.roleCategoryAdmin"),
       },
       user: {
         bg: "var(--background-surface)",
@@ -208,9 +208,9 @@ export function UsersSection() {
         >
           <option value="all">{t("pages.adminUsers.allRoles")}</option>
           <option value="user">{t("pages.adminUsers.roleUser")}</option>
-          <option value="subscriber">{t("pages.adminUsers.roleSubscriber")}</option>
+          <option value="category_admin">{t("pages.adminUsers.roleCategoryAdmin")}</option>
           <option value="moderator">{t("pages.adminUsers.roleModerator")}</option>
-          <option value="admin">{t("pages.adminUsers.roleAdmin")}</option>
+          <option value="owner">{t("pages.adminUsers.roleOwner")}</option>
         </select>
       </div>
 
@@ -333,7 +333,7 @@ export function UsersSection() {
                       >
                         <Eye size={14} />
                       </IconBtn>
-                      {(isOwner || (u.role !== "admin" && u.role !== "moderator")) && (
+                      {(isOwner || u.role === "user") && (
                         <IconBtn danger onClick={() => toggle(u.uuid)}>
                           <Ban size={14} />
                         </IconBtn>

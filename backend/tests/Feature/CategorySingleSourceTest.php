@@ -143,7 +143,7 @@ class CategorySingleSourceTest extends TestCase
     {
         $this->seedTrees();
         Artisan::call('categories:single-source', ['--apply' => true]);
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = ['Authorization' => 'Bearer '.$admin->createToken('api')->plainTextToken];
         $listingId = ListingCategory::query()->where('slug', 'kits')->value('id');
 

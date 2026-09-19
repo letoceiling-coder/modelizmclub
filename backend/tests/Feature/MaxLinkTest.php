@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\UserOAuthAccount;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Modules\Auth\Services\MaxNotificationService;
@@ -20,7 +19,6 @@ class MaxLinkTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
 
         config([
             'services.max.bot_token' => 'test-bot-token',

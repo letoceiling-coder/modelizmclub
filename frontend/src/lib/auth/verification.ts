@@ -47,7 +47,7 @@ export function isAnonymousUser(user: User | null | undefined): boolean {
 }
 
 export function isAdminUser(user: User | null | undefined): boolean {
-  return user?.role === "admin" || user?.isAdmin === true;
+  return user?.role === "owner" || user?.isAdmin === true;
 }
 
 /** Admin panel staff — skip email/SMS verification gates on site and in admin UI. */

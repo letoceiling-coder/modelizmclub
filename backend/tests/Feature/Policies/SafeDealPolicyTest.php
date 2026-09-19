@@ -60,7 +60,7 @@ class SafeDealPolicyTest extends TestCase
     {
         $deal = $this->seedDeal($this->seedUser('buyer'), $this->seedUser('seller'));
 
-        $this->actingAs($this->seedUser('owner', UserRole::Admin), 'sanctum')
+        $this->actingAs($this->seedUser('owner', UserRole::Owner), 'sanctum')
             ->getJson("/api/v1/safe-deals/{$deal->uuid}")
             ->assertOk();
         $this->actingAs($this->seedUser('mod', UserRole::Moderator), 'sanctum')

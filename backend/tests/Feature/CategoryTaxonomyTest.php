@@ -15,7 +15,6 @@ use App\Models\ListingCategory;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -26,15 +25,9 @@ class CategoryTaxonomyTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
-
     public function test_admin_can_create_three_level_tree_and_mirrors_listing_community(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = ['Authorization' => 'Bearer '.$admin->createToken('api')->plainTextToken];
         $suffix = uniqid();
 

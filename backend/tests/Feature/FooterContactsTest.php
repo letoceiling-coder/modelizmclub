@@ -6,19 +6,12 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Enums\UserRole;
 use App\Support\FooterContacts;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class FooterContactsTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_public_footer_contacts_returns_only_filled_fields(): void
     {
@@ -48,7 +41,7 @@ class FooterContactsTest extends TestCase
 
     public function test_admin_can_save_footer_contacts(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $this->patchJson('/api/v1/admin/settings', [

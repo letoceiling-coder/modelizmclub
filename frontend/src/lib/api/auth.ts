@@ -66,7 +66,7 @@ export function mapApiUser(u: ApiUser): User {
     coverImage: u.profile?.cover?.url?.trim() || undefined,
     email: u.email ?? undefined,
     bio: u.profile?.bio ?? undefined,
-    isAdmin: u.role === "admin",
+    isAdmin: u.role === "owner",
     phone: u.phone ?? undefined,
     profile: u.profile
       ? {

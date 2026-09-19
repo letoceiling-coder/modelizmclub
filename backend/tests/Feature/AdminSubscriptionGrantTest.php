@@ -8,7 +8,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -29,7 +28,6 @@ class AdminSubscriptionGrantTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
 
         SubscriptionPlan::query()->updateOrCreate(
             ['slug' => 'year'],
@@ -39,7 +37,7 @@ class AdminSubscriptionGrantTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        return User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
     }
 
     private function member(): User

@@ -76,7 +76,6 @@ class OAuthService
 
             $user->ensureReferralCode();
             $this->createProfile($user, $name);
-            $user->assignRole('user');
             $this->linkAccount($user, $provider, $providerUserId, $socialUser);
             $this->syncProfileFromOAuth($user, $socialUser);
             $this->applyProviderVerification($user, $provider, $email);

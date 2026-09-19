@@ -49,7 +49,7 @@ class ReportAndCommentReactionTest extends TestCase
     {
         $author = User::factory()->create(['status' => UserStatus::Active]);
         $reporter = User::factory()->create(['status' => UserStatus::Active]);
-        $admin = User::factory()->create(['status' => UserStatus::Active, 'role' => UserRole::Admin]);
+        $admin = User::factory()->create(['status' => UserStatus::Active, 'role' => UserRole::Owner]);
 
         $postUuid = $this->publishedPostUuid($author);
 

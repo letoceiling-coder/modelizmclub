@@ -13,7 +13,6 @@ use App\Models\UserProfile;
 use App\Models\UserSubscription;
 use App\Models\Video;
 use App\Models\VideoCategory;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -22,12 +21,6 @@ use Tests\TestCase;
 class VideoUploadModerationTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_review_video_upload_session_accepts_purpose(): void
     {
@@ -52,7 +45,7 @@ class VideoUploadModerationTest extends TestCase
         Storage::fake('s3');
         config(['filesystems.default' => 's3']);
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
 
         $category = VideoCategory::query()->create([
             'uuid' => (string) Str::uuid(),

@@ -81,15 +81,6 @@ class UserFullDeletionService
                 DB::table('sessions')->where('user_id', $userId)->delete();
             }
 
-            foreach (['model_has_roles', 'model_has_permissions'] as $pivot) {
-                if (Schema::hasTable($pivot)) {
-                    DB::table($pivot)
-                        ->where('model_type', User::class)
-                        ->where('model_id', $userId)
-                        ->delete();
-                }
-            }
-
             $user->forceDelete();
         });
     }

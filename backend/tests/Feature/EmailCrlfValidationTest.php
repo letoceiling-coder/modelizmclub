@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -108,8 +107,7 @@ class EmailCrlfValidationTest extends TestCase
 
     private function asAdmin(): static
     {
-        $this->seed(RoleSeeder::class);
-        Sanctum::actingAs(User::factory()->create(['role' => UserRole::Admin]));
+        Sanctum::actingAs(User::factory()->create(['role' => UserRole::Owner]));
 
         return $this;
     }

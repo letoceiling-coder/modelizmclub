@@ -79,7 +79,7 @@ class ReferenceDataSeeder extends Seeder
             email: 'admin@modelizmclub.ru',
             name: 'Admin User',
             slug: 'admin-user',
-            role: UserRole::Admin,
+            role: UserRole::Owner,
         );
 
         $this->seedStaffUser(
@@ -100,7 +100,7 @@ class ReferenceDataSeeder extends Seeder
 
         if (! $user->exists) {
             $user->uuid = match ($role) {
-                UserRole::Admin => SwaggerFixtures::ADMIN_USER_UUID,
+                UserRole::Owner => SwaggerFixtures::ADMIN_USER_UUID,
                 UserRole::Moderator => SwaggerFixtures::MODERATOR_USER_UUID,
                 default => (string) Str::uuid(),
             };

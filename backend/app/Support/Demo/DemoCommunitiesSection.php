@@ -91,7 +91,7 @@ class DemoCommunitiesSection extends DemoSection
             return 0;
         }
 
-        $admin = User::query()->where('role', UserRole::Admin)->orderBy('id')->first();
+        $admin = User::query()->where('role', UserRole::Owner)->orderBy('id')->first();
         if ($admin === null) {
             return 0;
         }

@@ -37,11 +37,11 @@ class AdminUserController extends Controller
         return UserResource::collection($users);
     }
 
-    #[Endpoint(title: 'Создать пользователя', description: 'Только admin. Пароль хешируется автоматически.')]
+    #[Endpoint(title: 'Создать пользователя', description: 'Только Владелец. Пароль хешируется автоматически.')]
     #[BodyParameter('email', example: 'staff@example.com')]
     #[BodyParameter('password', example: 'password123')]
     #[BodyParameter('name', required: false, example: 'Staff User')]
-    #[BodyParameter('role', description: 'user|subscriber|moderator|admin', example: 'moderator')]
+    #[BodyParameter('role', description: 'user|category_admin|moderator|owner', example: 'moderator')]
     #[BodyParameter('status', description: 'active|blocked|pending_verification', example: 'active')]
     public function store(StoreAdminUserRequest $request, AuditService $audit): JsonResponse
     {
@@ -85,7 +85,7 @@ class AdminUserController extends Controller
         }
 
         $this->guardModeratorEdit($request, $user);
-        $this->guardLastAdmin($request, $user);
+        $this->guardLastOwner($request, $user);
 
         $old = $user->only(['email', 'name', 'role', 'status']);
         $user->fill($request->validated());
@@ -110,8 +110,8 @@ class AdminUserController extends Controller
             abort(422, 'Нельзя удалить собственный аккаунт.');
         }
 
-        if ($user->role === UserRole::Admin && $this->otherActiveAdminsCount($user) === 0) {
-            abort(422, 'Нельзя удалить последнего суперадмина.');
+        if ($user->role === UserRole::Owner && $this->otherActiveOwnersCount($user) === 0) {
+            abort(422, 'Нельзя удалить последнего Владельца.');
         }
 
         $snapshot = $user->only(['email', 'uuid', 'name']);
@@ -122,27 +122,27 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Prevents demoting or blocking the last remaining active superadmin,
+     * Prevents demoting or blocking the last remaining active Owner,
      * which would otherwise lock everyone out of the admin panel.
      */
-    private function guardLastAdmin(UpdateAdminUserRequest $request, User $user): void
+    private function guardLastOwner(UpdateAdminUserRequest $request, User $user): void
     {
-        if ($user->role !== UserRole::Admin) {
+        if ($user->role !== UserRole::Owner) {
             return;
         }
 
-        $losesAdminRole = $request->filled('role') && $request->string('role')->toString() !== UserRole::Admin->value;
+        $losesOwnerRole = $request->filled('role') && $request->string('role')->toString() !== UserRole::Owner->value;
         $becomesInactive = $request->filled('status') && $request->string('status')->toString() !== UserStatus::Active->value;
 
-        if (($losesAdminRole || $becomesInactive) && $this->otherActiveAdminsCount($user) === 0) {
-            abort(422, 'Нельзя снять последнего суперадмина.');
+        if (($losesOwnerRole || $becomesInactive) && $this->otherActiveOwnersCount($user) === 0) {
+            abort(422, 'Нельзя снять последнего Владельца.');
         }
     }
 
-    private function otherActiveAdminsCount(User $user): int
+    private function otherActiveOwnersCount(User $user): int
     {
         return User::query()
-            ->where('role', UserRole::Admin)
+            ->where('role', UserRole::Owner)
             ->where('status', UserStatus::Active)
             ->where('id', '!=', $user->id)
             ->count();
@@ -150,7 +150,9 @@ class AdminUserController extends Controller
 
     /**
      * Модератор правит обычных пользователей — статус и имя. Роль, почта и
-     * пароль, а также любые сотрудники — у Владельца (AdminAccess).
+     * пароль, а также любые сотрудники, включая администраторов направлений,
+     * — у Владельца (AdminAccess). Администратора направления назначает
+     * Владелец, и модератор не должен его блокировать или переименовывать.
      */
     private function guardModeratorEdit(UpdateAdminUserRequest $request, User $target): void
     {
@@ -158,7 +160,7 @@ class AdminUserController extends Controller
         if (AdminAccess::isOwner($actor)) {
             return;
         }
-        if (AdminAccess::isStaff($target)) {
+        if ($target->role !== UserRole::User) {
             abort(403, 'Сотрудников правит только Владелец.');
         }
         foreach (AdminAccess::OWNER_ONLY_USER_FIELDS as $field) {

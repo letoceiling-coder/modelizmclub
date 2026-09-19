@@ -166,7 +166,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $admin = $this->seedUser('admin');
-        $admin->update(['role' => UserRole::Admin]);
+        $admin->update(['role' => UserRole::Owner]);
         $listing = $this->seedListing($seller);
         $this->fund($buyer, 100000);
 
@@ -252,7 +252,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $admin = $this->seedUser('admin');
-        $admin->update(['role' => UserRole::Admin]);
+        $admin->update(['role' => UserRole::Owner]);
         $listing = $this->seedListing($seller);
         $this->fund($buyer, 100000);
 

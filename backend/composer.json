@@ -13,8 +13,7 @@
         "laravel/socialite": "^5.16",
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "3.0",
-        "socialiteproviders/yandex": "*",
-        "spatie/laravel-permission": "^6.10"
+        "socialiteproviders/yandex": "*"
     },
     "require-dev": {
         "dedoc/scramble": "^0.13.28",

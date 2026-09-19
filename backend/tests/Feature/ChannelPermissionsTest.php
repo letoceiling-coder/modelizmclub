@@ -12,7 +12,6 @@ use App\Models\Community;
 use App\Models\CommunityCategory;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -38,7 +37,6 @@ class ChannelPermissionsTest extends TestCase
         parent::setUp();
         // Тест о механике, не о доступе к созданию записи: авторы без подписки.
         $this->setComposeTier('auth');
-        $this->seed(RoleSeeder::class);
         config(['feed.auto_publish' => true]);
         $this->owner = $this->user();
         $this->channel = Channel::create([
@@ -65,7 +63,7 @@ class ChannelPermissionsTest extends TestCase
     {
         $this->publishAs($this->user())->assertForbidden();
         $this->publishAs($this->user(UserRole::Moderator))->assertForbidden();
-        $this->publishAs($this->user(UserRole::Admin))->assertForbidden();
+        $this->publishAs($this->user(UserRole::Owner))->assertForbidden();
 
         $channelAdmin = $this->user();
         $this->channel->admins()->attach($channelAdmin->id);
@@ -170,7 +168,7 @@ class ChannelPermissionsTest extends TestCase
 
         $post($this->user())->assertStatus(422);
         $post($this->user(UserRole::Moderator))->assertStatus(422);
-        $post($this->user(UserRole::Admin))->assertStatus(422);
+        $post($this->user(UserRole::Owner))->assertStatus(422);
         $post($member)->assertCreated();
         $post($this->owner)->assertCreated();
     }

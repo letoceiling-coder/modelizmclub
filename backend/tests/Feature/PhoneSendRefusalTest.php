@@ -6,7 +6,6 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use App\Services\Sms\SmsDeliveryException;
 use App\Services\Sms\SmsMessenger;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
@@ -28,7 +27,6 @@ class PhoneSendRefusalTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         Config::set('sms.driver', 'log');
         RateLimiter::clear('phone-send:user:1');
     }

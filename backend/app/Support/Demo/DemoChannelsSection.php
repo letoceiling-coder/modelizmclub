@@ -79,7 +79,7 @@ class DemoChannelsSection extends DemoSection
     {
         $have = $this->existingNames();
         $people = array_values($this->people());
-        $admin = User::query()->where('role', UserRole::Admin)->orderBy('id')->first();
+        $admin = User::query()->where('role', UserRole::Owner)->orderBy('id')->first();
         if (count($people) < 3 || $admin === null) {
             return 0;
         }

@@ -44,7 +44,7 @@ export interface User {
   /** Server role — drives the /admin RBAC gate (Task 2) and moderator-scoped
    *  dashboard (Task 3). Undefined in most demo-mode contexts; the gate
    *  falls back to `isAdmin` there (see Task 2). */
-  role?: "user" | "subscriber" | "moderator" | "admin";
+  role?: "user" | "category_admin" | "moderator" | "owner";
 }
 
 export const firstHundredStats = { taken: 47, total: 100 };
@@ -2815,7 +2815,7 @@ export interface AdminUser {
   email: string;
   city: string;
   subscription: string | null;
-  role: "admin" | "moderator" | "user";
+  role: "owner" | "moderator" | "user";
   status: "active" | "blocked";
   registeredAt: string;
 }
@@ -3081,7 +3081,7 @@ export const adminUsers: AdminUser[] = [
     email: "alex@modelizm.ru",
     city: "Краснодар",
     subscription: "Год",
-    role: "admin",
+    role: "owner",
     status: "active",
     registeredAt: "12.03.2025",
   },

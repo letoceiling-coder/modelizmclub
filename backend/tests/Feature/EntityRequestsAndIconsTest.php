@@ -11,7 +11,6 @@ use App\Models\CommunityCategory;
 use App\Models\IconAsset;
 use App\Models\SystemSetting;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -23,12 +22,6 @@ use Tests\TestCase;
 class EntityRequestsAndIconsTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     private function authHeaders(User $user): array
     {
@@ -71,7 +64,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_admin_can_list_approve_and_reject_channel_applications(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $applicant = User::factory()->create();
         $headers = $this->authHeaders($admin);
 
@@ -143,7 +136,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_admin_approve_creates_community_with_owner_member(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $applicant = User::factory()->create();
         $category = $this->makeCategory();
         $headers = $this->authHeaders($admin);
@@ -191,7 +184,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_is_owner_true_when_member_role_owner_even_if_created_by_mismatch(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $owner = User::factory()->create();
         $category = $this->makeCategory();
 
@@ -223,7 +216,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_admin_can_reject_community_application_with_reason(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $applicant = User::factory()->create();
         $category = $this->makeCategory();
         $headers = $this->authHeaders($admin);
@@ -298,7 +291,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_admin_can_upload_icon_and_it_is_sanitized_and_tokenized(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = $this->authHeaders($admin);
 
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">'
@@ -325,7 +318,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_admin_can_upload_png_icon(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = $this->authHeaders($admin);
 
         $response = $this->post('/api/v1/media', [
@@ -352,7 +345,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_admin_can_register_icon_from_media_manager_upload(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = $this->authHeaders($admin);
 
         $media = \App\Models\Media::query()->create([
@@ -382,7 +375,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_multicolor_icon_is_rejected(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = $this->authHeaders($admin);
 
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
@@ -409,7 +402,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_admin_can_list_and_soft_delete_icon_assets(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = $this->authHeaders($admin);
 
         $asset = IconAsset::query()->create([
@@ -461,7 +454,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_settings_update_logs_old_values_for_rollback(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = $this->authHeaders($admin);
 
         SystemSetting::query()->create([
@@ -486,7 +479,7 @@ class EntityRequestsAndIconsTest extends TestCase
 
     public function test_settings_update_accepts_empty_icon_overrides_map(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $headers = $this->authHeaders($admin);
 
         $this->patchJson('/api/v1/admin/settings', [

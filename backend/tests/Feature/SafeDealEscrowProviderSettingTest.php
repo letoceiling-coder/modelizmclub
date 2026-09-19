@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\SystemSetting;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Billing\Services\SafeDealSettlementService;
 use Modules\Billing\Support\SafeDealEscrowConfig;
@@ -26,7 +25,6 @@ class SafeDealEscrowProviderSettingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
 
         // Окружение говорит «банк», и банк настроен: в этих условиях
         // настройка из админки должна суметь увести сделки на кошелёк.
@@ -47,7 +45,7 @@ class SafeDealEscrowProviderSettingTest extends TestCase
 
     private function saveProvider(string $value): \Illuminate\Testing\TestResponse
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         return $this->patchJson('/api/v1/admin/settings', [
@@ -99,7 +97,7 @@ class SafeDealEscrowProviderSettingTest extends TestCase
         // Сохранено «vtb», но эквайринга нет — деньги пойдут на кошелёк.
         $this->assertSame('wallet', $this->provider());
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $row = collect($this->getJson('/api/v1/admin/settings', ['Authorization' => "Bearer {$token}"])
@@ -114,7 +112,7 @@ class SafeDealEscrowProviderSettingTest extends TestCase
     {
         $this->assertDatabaseMissing('system_settings', ['key' => SafeDealEscrowConfig::SETTING_KEY]);
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $row = collect($this->getJson('/api/v1/admin/settings', ['Authorization' => "Bearer {$token}"])

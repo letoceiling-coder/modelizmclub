@@ -7,19 +7,12 @@ use App\Enums\UserStatus;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Support\FeedGuestAccessRegistry;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class FeedGuestAccessTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_public_payload_exposes_min_tier_and_version_two(): void
     {
@@ -78,7 +71,7 @@ class FeedGuestAccessTest extends TestCase
     public function test_admin_can_persist_min_tier_for_pages_and_filters(): void
     {
         $admin = User::factory()->create([
-            'role' => UserRole::Admin,
+            'role' => UserRole::Owner,
             'status' => UserStatus::Active,
         ]);
 
@@ -114,7 +107,7 @@ class FeedGuestAccessTest extends TestCase
     public function test_admin_rejects_invalid_min_tier(): void
     {
         $admin = User::factory()->create([
-            'role' => UserRole::Admin,
+            'role' => UserRole::Owner,
             'status' => UserStatus::Active,
         ]);
 

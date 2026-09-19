@@ -184,7 +184,7 @@ class DeliveryIntegrationTest extends TestCase
     public function test_admin_delivery_stats(): void
     {
         [$seller, $buyer] = $this->sellerAndBuyer();
-        $admin = User::factory()->create(['status' => UserStatus::Active, 'role' => UserRole::Admin]);
+        $admin = User::factory()->create(['status' => UserStatus::Active, 'role' => UserRole::Owner]);
         $listing = $this->listing($seller);
 
         Shipment::create([

@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Models\VideoCategory;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -13,12 +12,6 @@ use Tests\TestCase;
 class AdminVideoCategoryTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     public function test_admin_can_list_video_categories(): void
     {
@@ -29,7 +22,7 @@ class AdminVideoCategoryTest extends TestCase
             'sort_order' => 1,
         ]);
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $this->getJson('/api/v1/admin/categories/video', ['Authorization' => 'Bearer '.$token])
@@ -39,7 +32,7 @@ class AdminVideoCategoryTest extends TestCase
 
     public function test_admin_can_crud_video_category(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
         $headers = ['Authorization' => 'Bearer '.$token];
 
@@ -84,7 +77,7 @@ class AdminVideoCategoryTest extends TestCase
             'sort_order' => 20,
         ]);
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $this->patchJson('/api/v1/admin/categories/video/reorder', [

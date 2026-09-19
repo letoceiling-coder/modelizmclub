@@ -9,13 +9,13 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 use App\Models\User;
 
 $admins = User::query()
-    ->where('role', 'admin')
+    ->where('role', 'owner')
     ->whereNull('deleted_at')
     ->orderBy('id')
     ->get(['id', 'email', 'name', 'status']);
 
 if ($admins->isEmpty()) {
-    echo "no admin users\n";
+    echo "no owner users\n";
     exit(0);
 }
 

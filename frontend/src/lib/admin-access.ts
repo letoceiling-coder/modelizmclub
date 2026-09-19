@@ -10,7 +10,7 @@ import { api } from "@/lib/api/client";
  * меню прятало. Теперь меню строится из ответа сервера.
  */
 export interface AdminAccess {
-  role: "admin" | "moderator";
+  role: "owner" | "moderator";
   /** Владелец: всё, включая роли, цены и платежи. */
   isOwner: boolean;
   sections: string[];
@@ -26,7 +26,7 @@ export function setAdminAccess(next: AdminAccess | null): void {
 
 export async function fetchAdminAccess(): Promise<AdminAccess> {
   const res = await api<{
-    data: { role: "admin" | "moderator"; is_owner: boolean; sections: string[] };
+    data: { role: "owner" | "moderator"; is_owner: boolean; sections: string[] };
   }>("/admin/access");
   return { role: res.data.role, isOwner: res.data.is_owner, sections: res.data.sections };
 }

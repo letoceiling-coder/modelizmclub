@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\PhoneVerificationCode;
 use App\Models\User;
 use App\Enums\UserStatus;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
@@ -17,7 +16,6 @@ class PhoneVerificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         Config::set('sms.driver', 'log');
         Config::set('sms.verification.resend_cooldown_seconds', 0);
     }

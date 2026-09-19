@@ -55,7 +55,7 @@ class DirectUploadController extends Controller
      */
     private function storeIcon(Request $request, IconAssetService $icons): JsonResponse
     {
-        if (! $request->user()->isAdmin()) {
+        if (! $request->user()->isOwner()) {
             return response()->json(['message' => 'Загрузка иконок доступна только администратору.'], 403);
         }
 

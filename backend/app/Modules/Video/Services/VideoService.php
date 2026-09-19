@@ -278,7 +278,7 @@ class VideoService
 
         $videoMedia = $this->ownedMedia($user, $data['video_media_id'], ['post', 'post_video', 'review_video']);
 
-        $autoPublish = $user->isAdmin();
+        $autoPublish = $user->isOwner();
 
         $video = Video::query()->create([
             'title' => $data['title'],

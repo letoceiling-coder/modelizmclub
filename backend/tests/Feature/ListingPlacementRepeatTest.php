@@ -13,7 +13,6 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -40,7 +39,6 @@ class ListingPlacementRepeatTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         $this->setting('feature.listing_payment_enabled', ['enabled' => true]);
         $this->setting('listing.placement.registered_price_cents', ['cents' => 3000]);
         $this->setting('listing.placement.subscriber_default_price_cents', ['cents' => 2000]);
@@ -78,7 +76,6 @@ class ListingPlacementRepeatTest extends TestCase
             'slug' => 'seller-'.uniqid(),
             'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
         ]);
-        $user->assignRole('user');
 
         if ($subscriber) {
             $plan = SubscriptionPlan::query()->create([

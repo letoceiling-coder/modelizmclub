@@ -19,5 +19,5 @@ if (! $user) {
     exit(1);
 }
 
-$user->update(['role' => UserRole::Admin]);
-echo "OK role=admin email={$email}\n";
+$user->update(['role' => UserRole::Owner]);
+echo "OK role=owner email={$email}\n";

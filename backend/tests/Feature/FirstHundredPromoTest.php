@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
 use App\Support\FirstHundredPromo;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -24,7 +23,6 @@ class FirstHundredPromoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
 
         SubscriptionPlan::query()->create([
             'slug' => 'year',
@@ -98,7 +96,7 @@ class FirstHundredPromoTest extends TestCase
             'paid_at' => now(),
         ]);
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $this->actingAs($admin, 'sanctum')
             ->patchJson('/api/v1/admin/settings', [
                 'settings' => [[
@@ -133,7 +131,7 @@ class FirstHundredPromoTest extends TestCase
         $first = $this->verifyNewUser();
         $second = $this->verifyNewUser();
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $this->actingAs($admin, 'sanctum')
             ->patchJson('/api/v1/admin/settings', [
                 'settings' => [[

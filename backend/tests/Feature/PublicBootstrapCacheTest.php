@@ -87,7 +87,7 @@ class PublicBootstrapCacheTest extends TestCase
 
         $this->assertSame(['Первый', 'Второй'], $order());
 
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'owner']);
         $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/admin/faq/articles/reorder', ['items' => [
                 ['id' => $first->id, 'sort_order' => 2],

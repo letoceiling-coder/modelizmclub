@@ -11,7 +11,6 @@ use App\Models\ClubEvent;
 use App\Models\Community;
 use App\Models\CommunityCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Queue;
@@ -32,7 +31,6 @@ class ClubEventsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         Queue::fake();
     }
 
@@ -201,7 +199,7 @@ class ClubEventsTest extends TestCase
             'starts_at' => now()->addDays(10)->toIso8601String(),
         ])->assertForbidden();
 
-        $admin = $this->user(UserRole::Admin);
+        $admin = $this->user(UserRole::Owner);
         Sanctum::actingAs($admin);
         $uuid = $this->postJson('/api/v1/admin/events', [
             'title' => 'Открытие МоДелизМ',
@@ -231,7 +229,7 @@ class ClubEventsTest extends TestCase
     {
         $owner = $this->user();
         $event = $this->event($this->community($owner), $owner);
-        Sanctum::actingAs($this->user(UserRole::Admin));
+        Sanctum::actingAs($this->user(UserRole::Owner));
 
         $this->postJson('/api/v1/admin/banners', [
             'placement' => 'events', 'title' => 'x', 'event_uuid' => $event->uuid,
@@ -311,7 +309,7 @@ class ClubEventsTest extends TestCase
         $community = $this->community($owner);
         $this->event($community, $owner);
         $this->event($community, $owner, ['starts_at' => now()->subDay()]);
-        Sanctum::actingAs($this->user(UserRole::Admin));
+        Sanctum::actingAs($this->user(UserRole::Owner));
 
         $this->getJson('/api/v1/admin/events')->assertOk()->assertJsonPath('meta.total', 2);
         $this->getJson("/api/v1/admin/events?community={$community->slug}&status=past")->assertOk()->assertJsonPath('meta.total', 1);

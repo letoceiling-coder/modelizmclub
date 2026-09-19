@@ -59,8 +59,8 @@ Accept: application/json
 | Verified | `auth:sanctum` + `verified` | Email **и** телефон подтверждены. Модератор и админ **обходят** проверку |
 | Subscription | + `requiresSubscription` | Активная подписка. Модератор и админ обходят |
 | optionalAuth | токен не обязателен | Гость видит контент; если токен есть — в ответе свои лайки |
-| Mod | `role:moderator,admin` | Модератор или админ |
-| Admin | `role:admin` | Только админ |
+| Mod | `admin.section:<раздел>` | Модератор или Владелец (карта `AdminAccess`) |
+| Owner | `admin.section:owner` | Только Владелец |
 | Webhook | без auth | Банк / СДЭК / MAX. Подписи HMAC **нет** |
 
 `verified` = email подтверждён **или** пользователь вошёл через VK/MAX (email не требуют) **и** `phone_verified_at` заполнен.
@@ -87,12 +87,9 @@ Accept: application/json
 
 ### 2.1. Модель пользователя
 
-Две системы рядом:
+Роль — колонка `users.role`, единственный источник прав: `owner` (Владелец) / `moderator` / `category_admin` (администратор направления) / `user`. До 19.09 вместо `owner` был `admin`; Spatie снят вместе с таблицами (он на права не влиял).
 
-1. Колонка `users.role` — **реальный ACL** (`user` / `subscriber` / `moderator` / `admin`).
-2. Таблицы Spatie (`roles`, `permissions`, …) сидируются, **permissions не используются** в middleware.
-
-Подписка — не роль, а факт: есть активная строка в `user_subscriptions` **и** (оплаченный платёж **или** место в акции «первые N»). Роль `subscriber` в enum есть, но доступ к видео-публикации проверяется через `hasActiveSubscription()`, не через имя роли.
+Подписка — не роль, а факт: есть активная строка в `user_subscriptions` **и** (оплаченный платёж **или** место в акции «первые N»). Роли `subscriber` нет; доступ проверяется через `hasActiveSubscription()`.
 
 ### 2.2. Статусы аккаунта (`users.status`)
 
@@ -898,7 +895,6 @@ PostgreSQL. Деньги в биллинге объявлений — **`_cents`
 | `user_view_history` | Недавно смотрел |
 | `user_reviews` | Отзывы после сделки |
 | `promo_pools` / `referrals` | Акции и рефералка |
-| `permissions`, `roles`, `model_has_*`, `role_has_permissions` | Spatie (не драйвит API) |
 
 ### 4.2. Лента и медиа
 
@@ -1114,7 +1110,7 @@ created → paid → shipped → delivered → completed
 
 ### 5.8. Админка сделки
 
-Только `role:admin`: реестр, CSV, принудительный release/refund, очередь споров. Модератор эти экраны не видит.
+Только Владелец: реестр, CSV, принудительный release/refund, очередь споров. Модератор эти экраны не видит.
 
 ### 5.9. Cron, связанный с деньгами
 

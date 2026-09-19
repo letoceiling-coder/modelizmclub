@@ -12,7 +12,6 @@ use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
 use App\Models\UserProfile;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -21,15 +20,9 @@ class AdminUserDeletionTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
-
     public function test_admin_can_permanently_delete_user_and_related_data(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $target = User::factory()->create(['email' => 'purge-me@example.com']);
         UserProfile::query()->create([
             'user_id' => $target->id,
@@ -96,7 +89,7 @@ class AdminUserDeletionTest extends TestCase
 
     public function test_admin_cannot_delete_self(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $this->deleteJson('/api/v1/admin/users/'.$admin->uuid, [], [
@@ -107,7 +100,7 @@ class AdminUserDeletionTest extends TestCase
     public function test_user_purge_command_rejects_last_superadmin(): void
     {
         $soleAdmin = User::factory()->create([
-            'role' => UserRole::Admin,
+            'role' => UserRole::Owner,
             'email' => 'sole-admin@example.com',
         ]);
 

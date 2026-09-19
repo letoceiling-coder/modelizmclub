@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\LegalPageStatus;
 use App\Models\RulePage;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Database\Seeders\RulesHubSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -18,7 +17,6 @@ class RulesHubTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RoleSeeder::class);
         $this->seed(RulesHubSeeder::class);
     }
 
@@ -77,7 +75,7 @@ class RulesHubTest extends TestCase
 
     public function test_admin_can_reorder_publish_and_restore_sections(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'owner']);
         $page = RulePage::query()->where('slug', 'terms')->firstOrFail();
         $originalTitle = $page->title;
 
@@ -133,7 +131,7 @@ class RulesHubTest extends TestCase
 
     public function test_admin_can_duplicate_rule_page(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'owner']);
         $page = RulePage::query()->where('slug', 'ads')->firstOrFail();
 
         $this->actingAs($admin, 'sanctum')

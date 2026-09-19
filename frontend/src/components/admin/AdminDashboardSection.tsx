@@ -21,7 +21,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
 
   useEffect(() => {
     let active = true;
-    if (role === "admin") {
+    if (role === "owner") {
       fetchDashboard()
         .then((d) => active && setData(d))
         .catch((e) => reportReadFailure(e, "сводка админки"));
@@ -101,7 +101,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
       adminOnly: false,
     },
   ];
-  const stats = allStats.filter((s) => role === "admin" || !s.adminOnly);
+  const stats = allStats.filter((s) => role === "owner" || !s.adminOnly);
   const bars = [40, 65, 55, 80, 70, 90, 60];
   const dayKeys = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
@@ -177,7 +177,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
         ))}
       </m.div>
 
-      {role === "admin" && (
+      {role === "owner" && (
         <>
           {/* Chart */}
           <div style={{ ...card, padding: "20px", marginTop: "20px" }}>

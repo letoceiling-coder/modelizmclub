@@ -190,7 +190,7 @@ class SafeDealListingLifecycleTest extends TestCase
             ->assertCreated()
             ->json('data.uuid');
 
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/v1/admin/disputes/{$disputeUuid}/resolve", ['in_favor_of' => 'buyer'])
             ->assertOk();
@@ -214,7 +214,7 @@ class SafeDealListingLifecycleTest extends TestCase
             ->assertCreated()
             ->json('data.uuid');
 
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/v1/admin/disputes/{$disputeUuid}/resolve", ['in_favor_of' => 'seller'])
             ->assertOk();

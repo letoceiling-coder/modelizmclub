@@ -11,7 +11,6 @@ use App\Models\CommunityApplication;
 use App\Models\CommunityCategory;
 use App\Models\ModerationQueue;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -31,12 +30,6 @@ use Tests\TestCase;
 class LostRequestsTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     private function headers(User $user): array
     {
@@ -190,7 +183,7 @@ class LostRequestsTest extends TestCase
 
     public function test_decision_in_applications_section_closes_queue_entry(): void
     {
-        $owner = User::factory()->create(['role' => UserRole::Admin]);
+        $owner = User::factory()->create(['role' => UserRole::Owner]);
         $moderator = $this->moderator();
         $applicant = User::factory()->create();
         $category = $this->category();
@@ -259,7 +252,7 @@ class LostRequestsTest extends TestCase
 
     public function test_new_feedback_notifies_active_staff(): void
     {
-        $owner = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $owner = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $moderator = $this->moderator();
         $blocked = User::factory()->create(['role' => UserRole::Moderator, 'status' => UserStatus::Blocked]);
         $author = User::factory()->create(['status' => UserStatus::Active]);
@@ -308,7 +301,7 @@ class LostRequestsTest extends TestCase
 
     public function test_staff_member_is_not_notified_about_own_feedback(): void
     {
-        $owner = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $owner = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $moderator = $this->moderator();
 
         $this->postJson('/api/v1/feedback', ['message' => 'тест'], $this->headers($owner))->assertCreated();

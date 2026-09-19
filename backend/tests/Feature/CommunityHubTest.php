@@ -17,7 +17,6 @@ use App\Models\Conversation;
 use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -26,15 +25,9 @@ class CommunityHubTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
-
     public function test_apply_payload_is_hydrated_on_approve(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $admin = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
         $applicant = User::factory()->create(['status' => UserStatus::Active]);
         $category = $this->communityCategory();
         $city = $this->city();

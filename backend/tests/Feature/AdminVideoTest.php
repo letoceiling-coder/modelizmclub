@@ -8,7 +8,6 @@ use App\Models\Media;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VideoCategory;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -16,12 +15,6 @@ use Tests\TestCase;
 class AdminVideoTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(RoleSeeder::class);
-    }
 
     private function makeVideo(User $uploader, string $status = 'processing'): Video
     {
@@ -62,7 +55,7 @@ class AdminVideoTest extends TestCase
         $published = $this->makeVideo($uploader, 'published');
         $this->makeVideo($uploader, 'processing');
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
 
         $this->getJson('/api/v1/admin/videos?status=published', ['Authorization' => 'Bearer '.$token])
@@ -76,7 +69,7 @@ class AdminVideoTest extends TestCase
         $uploader = User::factory()->create();
         $video = $this->makeVideo($uploader, 'published');
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
         $headers = ['Authorization' => 'Bearer '.$token];
 
@@ -102,7 +95,7 @@ class AdminVideoTest extends TestCase
             'sort_order' => 2,
         ]);
 
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
         $headers = ['Authorization' => 'Bearer '.$token];
 
