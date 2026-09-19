@@ -333,7 +333,7 @@ export function UsersSection() {
                       >
                         <Eye size={14} />
                       </IconBtn>
-                      {(isOwner || (u.role !== "owner" && u.role !== "moderator")) && (
+                      {(isOwner || u.role === "user") && (
                         <IconBtn danger onClick={() => toggle(u.uuid)}>
                           <Ban size={14} />
                         </IconBtn>

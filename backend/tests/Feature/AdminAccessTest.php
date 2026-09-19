@@ -119,6 +119,9 @@ class AdminAccessTest extends TestCase
         $this->assertFalse($categoryAdmin->isModerator());
         $this->assertFalse($categoryAdmin->isOwner());
 
+        $categoryAdmin->forceFill(['phone_verified_at' => null])->save();
+        $this->assertFalse($categoryAdmin->fresh()->isFullyVerified(), 'без телефона — как обычный человек');
+
         $this->actingAs($categoryAdmin, 'sanctum')->getJson('/api/v1/admin/access')->assertForbidden();
         foreach ([...self::SHARED_GETS, ...self::OWNER_GETS] as $url) {
             $this->actingAs($categoryAdmin, 'sanctum')->getJson($url)->assertForbidden();
@@ -135,6 +138,9 @@ class AdminAccessTest extends TestCase
         $this->actingAs($moderator, 'sanctum')->patchJson("/api/v1/admin/users/{$regular->uuid}", ['role' => 'moderator'])->assertForbidden();
         $this->actingAs($moderator, 'sanctum')->patchJson("/api/v1/admin/users/{$regular->uuid}", ['email' => 'x'.uniqid().'@example.com'])->assertForbidden();
         $this->actingAs($moderator, 'sanctum')->patchJson("/api/v1/admin/users/{$owner->uuid}", ['status' => 'blocked'])->assertForbidden();
+        $categoryAdmin = $this->staff(UserRole::CategoryAdmin);
+        $this->actingAs($moderator, 'sanctum')->patchJson("/api/v1/admin/users/{$categoryAdmin->uuid}", ['status' => 'blocked'])->assertForbidden();
+        $this->assertSame(UserStatus::Active, $categoryAdmin->fresh()->status);
         $this->actingAs($moderator, 'sanctum')->postJson('/api/v1/admin/users', ['email' => 'n'.uniqid().'@example.com', 'password' => 'secret-pass-1', 'role' => 'user'])->assertForbidden();
         $this->actingAs($moderator, 'sanctum')->deleteJson("/api/v1/admin/users/{$regular->uuid}")->assertForbidden();
         $this->actingAs($moderator, 'sanctum')->postJson("/api/v1/admin/users/{$regular->uuid}/subscription", ['action' => 'grant', 'days' => 30])->assertForbidden();

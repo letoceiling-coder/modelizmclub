@@ -27,8 +27,6 @@ class User extends Authenticatable
     use Notifiable;
     use SoftDeletes;
 
-    protected $guard_name = 'api';
-
     protected $fillable = [
         'uuid',
         'name',
