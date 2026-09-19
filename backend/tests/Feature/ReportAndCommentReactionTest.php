@@ -14,6 +14,13 @@ class ReportAndCommentReactionTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Тест о механике, не о доступе к созданию записи: авторы без подписки.
+        $this->setComposeTier('auth');
+    }
+
     private function publishedPostUuid(User $author): string
     {
         config(['feed.auto_publish' => true]);
