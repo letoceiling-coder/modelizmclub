@@ -27,6 +27,11 @@ class UpdateAdminUserRequest extends FormRequest
             'name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'role' => ['sometimes', Rule::enum(UserRole::class)],
             'status' => ['sometimes', Rule::enum(UserStatus::class)],
+            // Льготы на человека (RolePrivileges) — правит только Владелец.
+            'subscription_exempt' => ['sometimes', 'boolean'],
+            'free_listings_quota' => ['sometimes', 'integer', 'min:0', 'max:100000'],
+            'free_listings_unlimited' => ['sometimes', 'boolean'],
+            'free_listings_used' => ['sometimes', 'integer', 'min:0', 'max:100000'],
         ];
     }
 }

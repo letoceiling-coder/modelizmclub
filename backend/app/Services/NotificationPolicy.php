@@ -56,7 +56,7 @@ class NotificationPolicy
 
     public function userTier(User $user): string
     {
-        if ($user->isModerator() || $user->hasActiveSubscription()) {
+        if ($user->hasSubscriptionAccess()) {
             return 'subscriber';
         }
 

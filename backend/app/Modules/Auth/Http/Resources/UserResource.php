@@ -50,6 +50,12 @@ class UserResource extends JsonResource
             'phone_verified' => $this->phone_verified_at !== null,
             'is_first_hundred' => (bool) $this->is_first_hundred,
             'listing_placement_credits' => (int) ($this->listing_placement_credits ?? 0),
+            // Льготы на человека (RolePrivileges): ресурс отдаётся только
+            // самому человеку и в админке.
+            'subscription_exempt' => (bool) $this->subscription_exempt,
+            'free_listings_quota' => (int) ($this->free_listings_quota ?? 0),
+            'free_listings_unlimited' => (bool) $this->free_listings_unlimited,
+            'free_listings_used' => (int) ($this->free_listings_used ?? 0),
             'last_seen_at' => $this->last_seen_at?->toIso8601String(),
             'profile' => $this->whenLoaded('profile', function () {
                 $profile = $this->profile;

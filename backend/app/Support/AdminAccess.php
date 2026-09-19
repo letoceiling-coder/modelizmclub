@@ -132,8 +132,16 @@ final class AdminAccess
         return [...array_keys(self::SECTIONS), ...array_keys(self::SERVICE)];
     }
 
-    /** Поля пользователя, которые меняет только Владелец. */
-    public const OWNER_ONLY_USER_FIELDS = ['role', 'email', 'password'];
+    /** Поля пользователя, которые меняет только Владелец: учётка и льготы. */
+    public const OWNER_ONLY_USER_FIELDS = [
+        'role',
+        'email',
+        'password',
+        'subscription_exempt',
+        'free_listings_quota',
+        'free_listings_unlimited',
+        'free_listings_used',
+    ];
 
     /** Поля категории, которые меняет только Владелец: цены размещения — деньги. */
     public const OWNER_ONLY_CATEGORY_FIELDS = ['listing_price_cents', 'subscriber_listing_price_cents'];

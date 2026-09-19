@@ -346,6 +346,8 @@ class ListingService
                 'placement_payment_id' => $placementMeta['placement_payment_id'] ?? null,
                 'placement_amount_cents' => $placementMeta['placement_amount_cents'] ?? null,
                 'placement_was_free' => $placementMeta['placement_was_free'] ?? false,
+                'placement_free_reason' => $placementMeta['placement_free_reason'] ?? null,
+                'placement_covered_at' => $placementMeta === [] ? null : now(),
                 'placement_promocode_id' => $placementMeta['placement_promocode_id'] ?? null,
             ]);
 
@@ -451,66 +453,84 @@ class ListingService
             $this->assertAuthor($listing, $user);
         }
 
-        /*
-         * За уже оплаченное размещение второй раз не берём.
-         *
-         * Публикация из черновика шла через resolveCreateStatus, а он считает
-         * котировку заново и про привязанный платёж не знает. Человек платил,
-         * снимал объявление с публикации, публиковал снова — и платил опять
-         * (приёмка 16.09). Платёж проверяется по самому объявлению, поэтому
-         * переживает и возврат в черновик, и снятие с публикации.
-         */
-        if (
-            $status === ListingStatus::Published
-            && $listing->status !== ListingStatus::Published
-            && app(ListingPlacementPricingService::class)->listingPlacementPaid($listing, $user)
-        ) {
-            [$resolvedStatus, $publishedAt] = $this->gatePublishStatus();
-            $listing->status = $resolvedStatus;
-            $listing->published_at = $publishedAt;
+        return DB::transaction(function () use ($listing, $user, $status, $context): Listing {
+            /*
+             * Под замком строки объявления и с перечитанным статусом: два
+             * быстрых «Опубликовать» по одному черновику иначе оба видели
+             * «не опубликовано» и оба тратили квоту или кредит (ревью 19.09).
+             */
+            $listing = Listing::query()->lockForUpdate()->findOrFail($listing->id);
+
+            /*
+             * За уже оплаченное размещение второй раз не берём.
+             *
+             * Публикация из черновика шла через resolveCreateStatus, а он считает
+             * котировку заново и про привязанный платёж не знает. Человек платил,
+             * снимал объявление с публикации, публиковал снова — и платил опять
+             * (приёмка 16.09). Платёж проверяется по самому объявлению, поэтому
+             * переживает и возврат в черновик, и снятие с публикации.
+             */
+            if (
+                $status === ListingStatus::Published
+                && $listing->status !== ListingStatus::Published
+                && app(ListingPlacementPricingService::class)->listingPlacementPaid($listing, $user)
+            ) {
+                [$resolvedStatus, $publishedAt] = $this->gatePublishStatus();
+                $listing->status = $resolvedStatus;
+                $listing->published_at = $publishedAt;
+                $listing->save();
+
+                if ($resolvedStatus === ListingStatus::PendingModeration) {
+                    $this->enqueueModeration($listing);
+                }
+
+                return $listing->fresh($this->relations());
+            }
+
+            if ($status === ListingStatus::Published && $listing->status !== ListingStatus::Published) {
+                // Категория и адрес объявления — из самого объявления, после
+                // контекста запроса: их нельзя подменить параметрами публикации.
+                [$resolvedStatus, $publishedAt, $placementMeta] = $this->resolveCreateStatus($user, true, array_merge($context, [
+                    'category_id' => $listing->category_id,
+                    'subcategory_id' => $listing->subcategory_id,
+                    'listing_uuid' => $listing->uuid,
+                ]));
+                $listing->placement_payment_id = $placementMeta['placement_payment_id'] ?? $listing->placement_payment_id;
+                $listing->placement_amount_cents = $placementMeta['placement_amount_cents'] ?? $listing->placement_amount_cents;
+                $listing->placement_was_free = $placementMeta['placement_was_free'] ?? $listing->placement_was_free;
+                if (array_key_exists('placement_free_reason', $placementMeta)) {
+                    $listing->placement_free_reason = $placementMeta['placement_free_reason'];
+                }
+                if ($placementMeta !== []) {
+                    $listing->placement_covered_at = now();
+                }
+                $listing->placement_promocode_id = $placementMeta['placement_promocode_id'] ?? $listing->placement_promocode_id;
+
+                if (($placementMeta['record_promocode'] ?? null) instanceof Promocode) {
+                    app(PromocodeService::class)
+                        ->recordUsage($placementMeta['record_promocode'], $user, $placementMeta['placement_payment_id'] ?? null);
+                }
+
+                $status = $resolvedStatus;
+                if ($publishedAt !== null) {
+                    $listing->published_at = $publishedAt;
+                } elseif ($status === ListingStatus::PendingModeration) {
+                    $listing->published_at = null;
+                }
+            }
+
+            $listing->status = $status;
+            if ($status === ListingStatus::Published && $listing->published_at === null) {
+                $listing->published_at = now();
+            }
             $listing->save();
 
-            if ($resolvedStatus === ListingStatus::PendingModeration) {
+            if ($status === ListingStatus::PendingModeration) {
                 $this->enqueueModeration($listing);
             }
 
             return $listing->fresh($this->relations());
-        }
-
-        if ($status === ListingStatus::Published && $listing->status !== ListingStatus::Published) {
-            [$resolvedStatus, $publishedAt, $placementMeta] = $this->resolveCreateStatus($user, true, array_merge([
-                'category_id' => $listing->category_id,
-                'subcategory_id' => $listing->subcategory_id,
-            ], $context));
-            $listing->placement_payment_id = $placementMeta['placement_payment_id'] ?? $listing->placement_payment_id;
-            $listing->placement_amount_cents = $placementMeta['placement_amount_cents'] ?? $listing->placement_amount_cents;
-            $listing->placement_was_free = $placementMeta['placement_was_free'] ?? $listing->placement_was_free;
-            $listing->placement_promocode_id = $placementMeta['placement_promocode_id'] ?? $listing->placement_promocode_id;
-
-            if (($placementMeta['record_promocode'] ?? null) instanceof Promocode) {
-                app(PromocodeService::class)
-                    ->recordUsage($placementMeta['record_promocode'], $user, $placementMeta['placement_payment_id'] ?? null);
-            }
-
-            $status = $resolvedStatus;
-            if ($publishedAt !== null) {
-                $listing->published_at = $publishedAt;
-            } elseif ($status === ListingStatus::PendingModeration) {
-                $listing->published_at = null;
-            }
-        }
-
-        $listing->status = $status;
-        if ($status === ListingStatus::Published && $listing->published_at === null) {
-            $listing->published_at = now();
-        }
-        $listing->save();
-
-        if ($status === ListingStatus::PendingModeration) {
-            $this->enqueueModeration($listing);
-        }
-
-        return $listing->fresh($this->relations());
+        });
     }
 
     /**
@@ -788,18 +808,33 @@ class ListingService
             return [$status, $publishedAt, ['placement_was_free' => true, 'placement_amount_cents' => 0]];
         }
 
-        $pricing = app(ListingPlacementPricingService::class);
-        $quote = $pricing->quote(
-            $user,
-            isset($data['category_id']) ? (int) $data['category_id'] : null,
-            isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
-            $data['promocode'] ?? null,
-        );
+        /*
+         * Размещения одного человека — по очереди. Строка пользователя под
+         * замком до конца транзакции создания или публикации: квота тарифа
+         * считается по уже размещённым объявлениям, и без замка параллельные
+         * запросы видели бы один и тот же остаток (ревью 19.09).
+         */
+        User::query()->whereKey($user->id)->lockForUpdate()->first();
 
-        if (($quote['promocode']['error'] ?? null) !== null) {
-            throw ValidationException::withMessages([
-                'promocode' => [$quote['promocode']['error']],
-            ]);
+        $quote = $this->placementQuote($user, $data);
+
+        /*
+         * Персональная квота — первой (решение 19.09). Котировка её только
+         * показывает, списывает создание: условным UPDATE, как кредит. Если
+         * единицу успели потратить, котировка считается заново — дальше по
+         * порядку: тариф, кредит, оплата. Если заново снова вышла квота
+         * (Владелец как раз её пополнил), списание пробуется ещё раз — без
+         * списания бесплатным размещение не становится.
+         */
+        $attempts = 0;
+        while (($quote['free_reason'] ?? null) === 'personal_quota' && ! $this->consumePersonalQuota($user)) {
+            if (++$attempts >= 3) {
+                throw ValidationException::withMessages([
+                    'publish' => ['Не удалось списать бесплатное размещение. Попробуйте ещё раз.'],
+                ]);
+            }
+            $user->refresh();
+            $quote = $this->placementQuote($user, $data);
         }
 
         $promocode = null;
@@ -824,7 +859,7 @@ class ListingService
                 ->where('listing_placement_credits', '>=', 1)
                 ->decrement('listing_placement_credits');
 
-            $pricedCents = max(0, (int) $quote['price_after_subscription_cents'] - (int) $quote['promo_discount_cents']);
+            $pricedCents = (int) $quote['price_cents'];
 
             if ($consumed === 1) {
                 [$status, $publishedAt] = $this->gatePublishStatus();
@@ -837,6 +872,7 @@ class ListingService
                     [
                         'placement_was_free' => false,
                         'placement_amount_cents' => $pricedCents,
+                        'placement_free_reason' => null,
                     ],
                 ];
             }
@@ -853,8 +889,11 @@ class ListingService
                 [
                     'placement_was_free' => true,
                     'placement_amount_cents' => 0,
-                    'placement_promocode_id' => $promocode?->id,
-                    'record_promocode' => $promocode,
+                    'placement_free_reason' => $quote['free_reason'] ?? null,
+                    // Квота покрыла размещение раньше промокода — промокод не
+                    // потрачен и в использованные не записывается.
+                    'placement_promocode_id' => $this->promoSpent($quote) ? $promocode?->id : null,
+                    'record_promocode' => $this->promoSpent($quote) ? $promocode : null,
                 ],
             ];
         }
@@ -865,9 +904,10 @@ class ListingService
                 ->where('uuid', $paymentUuid)
                 ->where('user_id', $user->id)
                 ->where('status', 'paid')
+                ->lockForUpdate()
                 ->first();
 
-            if ($payment && ($payment->metadata['payable_type'] ?? null) === 'listing_placement') {
+            if ($payment && $this->paymentCoversListing($payment, $data['listing_uuid'] ?? null, (int) $quote['final_cents'])) {
                 [$status, $publishedAt] = $this->gatePublishStatus();
 
                 return [
@@ -877,6 +917,7 @@ class ListingService
                         'placement_payment_id' => $payment->id,
                         'placement_amount_cents' => $payment->amount_cents,
                         'placement_was_free' => false,
+                        'placement_free_reason' => null,
                         'placement_promocode_id' => $promocode?->id ?? ($payment->metadata['promocode_id'] ?? null),
                         'record_promocode' => $promocode,
                     ],
@@ -897,6 +938,7 @@ class ListingService
                 [
                     'placement_was_free' => false,
                     'placement_amount_cents' => $quote['final_cents'],
+                    'placement_free_reason' => null,
                 ],
             ];
         }
@@ -904,6 +946,89 @@ class ListingService
         throw ValidationException::withMessages([
             'publish' => ['Для публикации объявления нужна оплата.'],
         ])->errorBag('default');
+    }
+
+    /**
+     * Котировка для создания объявления; ошибка промокода — отказ.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function placementQuote(User $user, array $data): array
+    {
+        $quote = app(ListingPlacementPricingService::class)->quote(
+            $user,
+            isset($data['category_id']) ? (int) $data['category_id'] : null,
+            isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
+            $data['promocode'] ?? null,
+        );
+
+        if (($quote['promocode']['error'] ?? null) !== null) {
+            throw ValidationException::withMessages([
+                'promocode' => [$quote['promocode']['error']],
+            ]);
+        }
+
+        return $quote;
+    }
+
+    /**
+     * Годится ли оплаченный платёж для размещения этого объявления.
+     *
+     * До 19.09 принимался любой оплаченный платёж за размещение по его uuid:
+     * без проверки, что он не потрачен на другое объявление и не стал
+     * кредитом. Одна оплата прямым запросом публиковала сколько угодно
+     * объявлений (ревью 19.09). Интерфейс этот параметр не шлёт вовсе —
+     * платёж мастера привязан к черновику и закрепляется при оплате
+     * (PaymentFulfillmentService). Поэтому платёж засчитывается, только если
+     * он оформлен на это самое объявление, не стал кредитом, не закреплён за
+     * другим объявлением и покрывает текущую цену.
+     */
+    private function paymentCoversListing(Payment $payment, ?string $listingUuid, int $priceCents): bool
+    {
+        $metadata = is_array($payment->metadata) ? $payment->metadata : [];
+
+        if (($metadata['payable_type'] ?? null) !== 'listing_placement') {
+            return false;
+        }
+        if ($listingUuid === null || ($metadata['listing_uuid'] ?? null) !== $listingUuid) {
+            return false;
+        }
+        if (($metadata['granted_listing_credit'] ?? false) === true) {
+            return false;
+        }
+        if ((int) $payment->amount_cents < $priceCents) {
+            return false;
+        }
+
+        return Listing::withTrashed()
+            ->where('placement_payment_id', $payment->id)
+            ->where('uuid', '!=', $listingUuid)
+            ->doesntExist();
+    }
+
+    /** Списать единицу персональной квоты; «без ограничения» тоже считается. */
+    private function consumePersonalQuota(User $user): bool
+    {
+        return User::query()
+            ->whereKey($user->id)
+            ->where(function ($q): void {
+                $q->where('free_listings_unlimited', true)
+                    ->orWhereColumn('free_listings_used', '<', 'free_listings_quota');
+            })
+            ->increment('free_listings_used') === 1;
+    }
+
+    /**
+     * Промокод потрачен, только если это он сделал цену нулевой. Когда
+     * размещение покрыла квота, промокод остаётся человеку.
+     *
+     * @param  array<string, mixed>  $quote
+     */
+    private function promoSpent(array $quote): bool
+    {
+        return in_array($quote['free_reason'] ?? null, ['promocode', 'subscriber_price', 'free_category'], true)
+            && (int) ($quote['promo_discount_cents'] ?? 0) > 0;
     }
 
     /** @return array{0: ListingStatus, 1: Carbon|null} */

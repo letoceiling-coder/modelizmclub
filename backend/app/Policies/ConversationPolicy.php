@@ -62,7 +62,7 @@ class ConversationPolicy
 
     private function isSubscriber(User $user): bool
     {
-        return $user->isModerator() || $user->hasActiveSubscription();
+        return $user->hasSubscriptionAccess();
     }
 
     private function isParticipant(User $user, Conversation $conversation): bool

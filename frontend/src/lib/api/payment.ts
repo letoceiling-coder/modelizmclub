@@ -190,6 +190,8 @@ export interface PaymentHistoryItem {
   planName: string | null;
   date: string;
   paidAt: string | null;
+  /** Оплата размещения без объявления стала кредитом размещения. */
+  grantedListingCredit: boolean;
 }
 
 interface PaymentHistoryApi {
@@ -203,6 +205,7 @@ interface PaymentHistoryApi {
   plan_name: string | null;
   date: string;
   paid_at: string | null;
+  granted_listing_credit?: boolean;
 }
 
 export async function fetchMyPayments(perPage = 50): Promise<PaymentHistoryItem[]> {
@@ -221,6 +224,7 @@ export async function fetchMyPayments(perPage = 50): Promise<PaymentHistoryItem[
     planName: p.plan_name,
     date: p.date,
     paidAt: p.paid_at,
+    grantedListingCredit: p.granted_listing_credit === true,
   }));
 }
 

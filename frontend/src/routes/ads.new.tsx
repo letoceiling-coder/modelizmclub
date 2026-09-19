@@ -1847,6 +1847,17 @@ function StepPreview({
                   })}
                 </div>
               )}
+              {placementQuote.personal_free_listings_unlimited ? (
+                <div>{t("pages.adsNew.personalFreeListingsUnlimited")}</div>
+              ) : (
+                (placementQuote.personal_free_listings_remaining ?? 0) > 0 && (
+                  <div>
+                    {t("pages.adsNew.personalFreeListingsRemaining", {
+                      count: placementQuote.personal_free_listings_remaining ?? 0,
+                    })}
+                  </div>
+                )
+              )}
               {placementQuote.has_active_subscription &&
                 placementQuote.free_listings_remaining != null && (
                   <div>

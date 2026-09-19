@@ -20,11 +20,7 @@ class EnsureActiveSubscription
             ], 403);
         }
 
-        if ($user->isModerator()) {
-            return $next($request);
-        }
-
-        if (! $user->hasActiveSubscription()) {
+        if (! $user->hasSubscriptionAccess()) {
             return response()->json([
                 'message' => 'Оформите подписку, чтобы смотреть обзоры.',
                 'code' => 'subscription_required',

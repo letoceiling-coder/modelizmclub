@@ -90,6 +90,8 @@ class PaymentFulfillmentService
                     'placement_payment_id' => $payment->id,
                     'placement_amount_cents' => $payment->amount_cents,
                     'placement_was_free' => false,
+                    'placement_free_reason' => null,
+                    'placement_covered_at' => now(),
                 ]);
 
                 $promocodeId = $payment->metadata['promocode_id'] ?? null;
@@ -108,7 +110,15 @@ class PaymentFulfillmentService
             }
         }
 
+        /*
+         * Оплата размещения без объявления (или с чужим) — кредит: следующее
+         * объявление опубликуется без оплаты. Отметка в платеже нужна истории
+         * платежей — там человек видит, куда делись деньги (решение 19.09).
+         */
         $payment->user->increment('listing_placement_credits');
+        $payment->forceFill([
+            'metadata' => array_merge($payment->metadata ?? [], ['granted_listing_credit' => true]),
+        ])->save();
     }
 
     private function activateListingBoost(Payment $payment): void

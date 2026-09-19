@@ -32,6 +32,16 @@ use Illuminate\Http\Request;
 #[Group('Billing', weight: 20)]
 class MyPaymentsController extends Controller
 {
+    /** @param  array<string, mixed>  $metadata */
+    private function grantedListingCredit(Payment $payment, array $metadata): bool
+    {
+        if ($payment->status !== 'paid' || ($metadata['payable_type'] ?? null) !== 'listing_placement') {
+            return false;
+        }
+
+        return (bool) ($metadata['granted_listing_credit'] ?? empty($metadata['listing_uuid']));
+    }
+
     public function __invoke(Request $request): JsonResponse
     {
         $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
@@ -79,6 +89,12 @@ class MyPaymentsController extends Controller
                     'plan_name' => $planId !== null ? ($planNames[$planId] ?? null) : null,
                     'date' => $payment->created_at?->toIso8601String(),
                     'paid_at' => $payment->paid_at?->toIso8601String(),
+                    // Оплата размещения, не привязанная к объявлению, стала
+                    // кредитом. До 19.09 это нигде не объяснялось: человек
+                    // видел оплаченные 20 ₽ и не видел, что за них получил.
+                    // Старые платежи отметки не имеют — для них признак тот
+                    // же, по которому кредит начислялся: объявления нет.
+                    'granted_listing_credit' => $this->grantedListingCredit($payment, $metadata),
                 ];
             })->all(),
             'meta' => [

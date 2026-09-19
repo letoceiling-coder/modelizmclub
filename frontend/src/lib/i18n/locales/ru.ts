@@ -1833,6 +1833,8 @@ export const ru = {
       promoDiscount: "Скидка по промокоду: −{{price}} ₽",
       freeListingsRemaining: "Бесплатных размещений в этом месяце: {{count}}",
       listingCreditsRemaining: "Кредитов размещения: {{count}}",
+      personalFreeListingsRemaining: "Ваших бесплатных размещений осталось: {{count}}",
+      personalFreeListingsUnlimited: "Размещения для вас бесплатны",
       backToListings: "Назад к объявлениям",
       newListingTitle: "Новое объявление",
       editListingTitle: "Редактирование объявления",
@@ -2278,6 +2280,8 @@ export const ru = {
       walletKindTopup: "Пополнение баланса",
       walletKindSubscription: "Подписка",
       walletKindListingPlacement: "Размещение объявления",
+      paymentGrantedListingCredit:
+        "Оплата не была привязана к объявлению — зачислен 1 кредит: следующее объявление опубликуется без оплаты.",
       walletKindSafeDealHold: "Холд по безопасной сделке",
       walletKindSafeDealRelease: "Выплата по безопасной сделке",
       walletKindSafeDealCommission: "Комиссия платформы",

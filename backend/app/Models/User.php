@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Concerns\HasPublicUuid;
 use App\Support\FirstHundredPromo;
+use App\Support\RolePrivileges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,22 @@ class User extends Authenticatable
     use HasPublicUuid;
     use Notifiable;
     use SoftDeletes;
+
+    /**
+     * Льготы, заданные в этом сохранении явно, — их смена роли не трогает.
+     * Не атрибут модели: живёт до ближайшего сохранения.
+     *
+     * @var list<string>
+     */
+    public array $pinnedPrivileges = [];
+
+    /** @param  list<string>  $fields */
+    public function pinPrivileges(array $fields): static
+    {
+        $this->pinnedPrivileges = array_values(array_intersect($fields, RolePrivileges::FIELDS));
+
+        return $this;
+    }
 
     protected $fillable = [
         'uuid',
@@ -68,6 +85,10 @@ class User extends Authenticatable
             'first_hundred_granted_at' => 'datetime',
             'listing_placement_credits' => 'integer',
             'referral_click_count' => 'integer',
+            'subscription_exempt' => 'boolean',
+            'free_listings_quota' => 'integer',
+            'free_listings_unlimited' => 'boolean',
+            'free_listings_used' => 'integer',
         ];
     }
 
@@ -77,6 +98,21 @@ class User extends Authenticatable
             if ($user->isDirty('email') && is_string($user->email)) {
                 $user->email = Str::lower(trim($user->email));
             }
+
+            // Смена роли выставляет льготы по умолчанию (RolePrivileges), но
+            // не перебивает то, что в этом же сохранении задано явно: так
+            // Владелец назначает роль и сразу правит квоту одним запросом.
+            // «Явно» — изменённое поле или закреплённое (pinPrivileges):
+            // значение, совпавшее с прежним, грязным не считается, а
+            // перезаписывать его умолчанием нельзя.
+            if ($user->isDirty('role') && $user->role instanceof UserRole) {
+                foreach (RolePrivileges::defaultsFor($user->role) as $field => $value) {
+                    if (! $user->isDirty($field) && ! in_array($field, $user->pinnedPrivileges, true)) {
+                        $user->{$field} = $value;
+                    }
+                }
+            }
+            $user->pinnedPrivileges = [];
         });
     }
 
@@ -173,6 +209,28 @@ class User extends Authenticatable
     public function subscriptions(): HasMany
     {
         return $this->hasMany(UserSubscription::class);
+    }
+
+    /**
+     * Подписка человеку не мешает: у него своя действующая подписка или
+     * льгота «подписка не требуется» (Владелец выставляет её любому, по
+     * умолчанию — сотрудникам). Так проверяются действия, закрытые
+     * подпиской; цена размещения для подписчика смотрит только на саму
+     * подписку — льгота её не даёт.
+     */
+    public function hasSubscriptionAccess(): bool
+    {
+        return (bool) $this->subscription_exempt || $this->hasActiveSubscription();
+    }
+
+    /** Остаток персональных бесплатных размещений; null — без ограничения. */
+    public function personalFreeListingsRemaining(): ?int
+    {
+        if ($this->free_listings_unlimited) {
+            return null;
+        }
+
+        return max(0, (int) $this->free_listings_quota - (int) $this->free_listings_used);
     }
 
     /** True when the user currently holds an active, non-expired subscription. */

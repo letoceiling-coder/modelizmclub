@@ -85,11 +85,7 @@ class ApplyChannelController extends Controller
 
     private static function canApply(User $user): bool
     {
-        if (method_exists($user, 'isModerator') && $user->isModerator()) {
-            return true;
-        }
-
-        if ($user->hasActiveSubscription()) {
+        if ($user->hasSubscriptionAccess()) {
             return true;
         }
 

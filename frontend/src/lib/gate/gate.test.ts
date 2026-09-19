@@ -22,6 +22,7 @@ function makeSession(over: {
   phoneVerified?: boolean;
   subscriptionActive?: boolean;
   role?: User["role"];
+  subscriptionExempt?: boolean;
 }): Session {
   return {
     user: {
@@ -32,6 +33,9 @@ function makeSession(over: {
       avatar: "",
       phone_verified: over.phoneVerified ?? false,
       ...(over.role ? { role: over.role } : {}),
+      ...(over.subscriptionExempt !== undefined
+        ? { subscriptionExempt: over.subscriptionExempt }
+        : {}),
     },
     phoneVerified: over.phoneVerified ?? false,
     subscription: { active: over.subscriptionActive ?? false, plan: null, endsAt: null },
@@ -59,9 +63,16 @@ describe("levelOf", () => {
     expect(levelOf(STATES.subscriber)).toBe("subscriber");
   });
 
-  it("treats staff as a subscriber (no SMS, no paywall)", () => {
-    expect(levelOf(makeSession({ role: "owner" }))).toBe("subscriber");
-    expect(levelOf(makeSession({ role: "moderator" }))).toBe("subscriber");
+  it("treats the «подписка не требуется» exemption as a subscriber", () => {
+    expect(levelOf(makeSession({ role: "owner", subscriptionExempt: true }))).toBe("subscriber");
+    expect(levelOf(makeSession({ subscriptionExempt: true }))).toBe("subscriber");
+  });
+
+  it("does not grant the paywall rung by role alone: the exemption decides", () => {
+    // Владелец может снять льготу с модератора — роль её не возвращает.
+    expect(levelOf(makeSession({ role: "moderator", subscriptionExempt: false }))).not.toBe(
+      "subscriber",
+    );
   });
 });
 
