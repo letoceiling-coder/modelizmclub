@@ -9,11 +9,21 @@ import { api } from "@/lib/api/client";
  * они расходились: заявки сообществ и каналов сервер модератору отдавал,
  * меню прятало. Теперь меню строится из ответа сервера.
  */
+export interface AdminCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export interface AdminAccess {
-  role: "owner" | "moderator";
+  role: "owner" | "moderator" | "category_admin";
   /** Владелец: всё, включая роли, цены и платежи. */
   isOwner: boolean;
   sections: string[];
+  /** Служебные права без пункта меню: reports, posts.delete, listings.delete… */
+  capabilities: string[];
+  /** Направления администратора направления; у остальных пусто. */
+  categories: AdminCategory[];
 }
 
 let current: AdminAccess | null = null;
@@ -26,9 +36,21 @@ export function setAdminAccess(next: AdminAccess | null): void {
 
 export async function fetchAdminAccess(): Promise<AdminAccess> {
   const res = await api<{
-    data: { role: "owner" | "moderator"; is_owner: boolean; sections: string[] };
+    data: {
+      role: AdminAccess["role"];
+      is_owner: boolean;
+      sections: string[];
+      capabilities?: string[];
+      categories?: AdminCategory[];
+    };
   }>("/admin/access");
-  return { role: res.data.role, isOwner: res.data.is_owner, sections: res.data.sections };
+  return {
+    role: res.data.role,
+    isOwner: res.data.is_owner,
+    sections: res.data.sections,
+    capabilities: res.data.capabilities ?? [],
+    categories: res.data.categories ?? [],
+  };
 }
 
 export function useAdminAccess(): AdminAccess | null {

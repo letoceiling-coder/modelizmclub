@@ -18,6 +18,7 @@ use App\Models\Video;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
 use App\Support\ApplicationModerationQueue;
+use App\Support\CategoryScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ use Modules\Channel\Services\ChannelPostService;
 use Modules\Community\Services\CommunityService;
 use Modules\Feed\Services\PostService;
 use Modules\Listing\Services\ListingService;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ModerationService
 {
@@ -38,13 +40,24 @@ class ModerationService
         private readonly ChannelPostService $channelPosts,
     ) {}
 
-    public function queue(?string $status = null, ?string $queue = null, int $perPage = 20): LengthAwarePaginator
+    public function queue(?string $status = null, ?string $queue = null, int $perPage = 20, ?User $viewer = null): LengthAwarePaginator
     {
         $this->cancelOrphanedEntries();
         ApplicationModerationQueue::sync();
 
+        // Администратор направления видит только записи и объявления своих
+        // направлений; остальные очереди для него пусты.
+        $scope = $viewer ? CategoryScope::for($viewer) : null;
+
         return ModerationQueue::query()
-            ->whereHas('moderatable')
+            ->when($scope === null, fn ($q) => $q->whereHas('moderatable'))
+            ->when($scope !== null, fn ($q) => $q->whereHasMorph(
+                'moderatable',
+                [Post::class, Listing::class],
+                fn ($m, string $type) => $type === Post::class
+                    ? $scope->constrainPosts($m)
+                    : $scope->constrainListings($m),
+            ))
             ->with(['moderatable', 'assignee.profile'])
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($queue, fn ($q) => $q->where('queue', $queue))
@@ -56,7 +69,7 @@ class ModerationService
     public function approve(string $type, string $id, User $actor): Model
     {
         return DB::transaction(function () use ($type, $id, $actor): Model {
-            $model = $this->resolver->resolve($type, $id);
+            $model = $this->resolveFor($type, $id, $actor);
 
             if ($model instanceof CommunityApplication || $model instanceof ChannelApplication) {
                 return $this->decideApplication($model, $actor, approve: true);
@@ -92,7 +105,7 @@ class ModerationService
     public function reject(string $type, string $id, User $actor, ?string $reason = null): Model
     {
         return DB::transaction(function () use ($type, $id, $actor, $reason): Model {
-            $model = $this->resolver->resolve($type, $id);
+            $model = $this->resolveFor($type, $id, $actor);
 
             if ($model instanceof CommunityApplication || $model instanceof ChannelApplication) {
                 return $this->decideApplication($model, $actor, approve: false, reason: $reason);
@@ -135,7 +148,7 @@ class ModerationService
     public function requestRevision(string $type, string $id, User $actor, ?string $comment = null): Model
     {
         return DB::transaction(function () use ($type, $id, $actor, $comment): Model {
-            $model = $this->resolver->resolve($type, $id);
+            $model = $this->resolveFor($type, $id, $actor);
 
             if ($model instanceof CommunityApplication || $model instanceof ChannelApplication) {
                 throw ValidationException::withMessages([
@@ -168,6 +181,22 @@ class ModerationService
 
             return $this->notifyDecision($model->fresh() ?? $model, 'revision', $comment);
         });
+    }
+
+    /**
+     * Объект модерации — если он виден сотруднику. Чужое для администратора
+     * направления отвечает «не найдено», а не «запрещено»: так по прямой
+     * ссылке не узнать даже, что объект существует.
+     */
+    private function resolveFor(string $type, string $id, User $actor): Model
+    {
+        $model = $this->resolver->resolve($type, $id);
+        $scope = CategoryScope::for($actor);
+        if ($scope !== null && ! $scope->allowsModeratable($model)) {
+            throw new NotFoundHttpException('Объект модерации не найден.');
+        }
+
+        return $model;
     }
 
     /**

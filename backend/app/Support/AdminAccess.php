@@ -29,9 +29,9 @@ final class AdminAccess
 {
     /**
      * Ступени ролей в админке: раздел открыт роли, чья ступень не ниже
-     * объявленной. Администратор направления стоит ниже модератора, и
-     * разделов со ступенью `category_admin` пока нет — свою модерацию он
-     * получит отдельным этапом.
+     * объявленной. Администратор направления стоит ниже модератора: ему
+     * открыты модерация, записи и объявления, а внутри — только его
+     * направления (App\Support\CategoryScope).
      */
     private const RANK = [
         'user' => 0,
@@ -53,10 +53,10 @@ final class AdminAccess
     public const SECTIONS = [
         'dashboard' => 'moderator',
         'users' => 'moderator',
-        'content' => 'moderator',
-        'ads' => 'moderator',
+        'content' => 'category_admin',
+        'ads' => 'category_admin',
         'delivery' => 'moderator',
-        'moderation' => 'moderator',
+        'moderation' => 'category_admin',
         'applications' => 'moderator',
         'feedback' => 'moderator',
         'categories' => 'moderator',
@@ -87,14 +87,30 @@ final class AdminAccess
      * dashboard.full — полная сводка с деньгами (модератор видит урезанную);
      * users.manage   — создание и удаление учёток, выдача подписки, реквизиты;
      * communities    — прямое редактирование сообществ в обход заявок;
-     * diagnostics    — техническая диагностика сервера.
+     * diagnostics    — техническая диагностика сервера;
+     * reports        — жалобы: раздел модерации, но не для администратора
+     *                  направления — жалоба бывает на что угодно;
+     * posts.delete, listings.delete — удаление: администратор направления
+     *                  правит и снимает, но не удаляет.
      */
     private const SERVICE = [
+        'reports' => 'moderator',
+        'posts.delete' => 'moderator',
+        'listings.delete' => 'moderator',
         'dashboard.full' => 'owner',
         'users.manage' => 'owner',
         'communities' => 'owner',
         'diagnostics' => 'owner',
     ];
+
+    /** @return list<string> служебные ключи без пункта меню, доступные человеку */
+    public static function capabilitiesFor(?User $user): array
+    {
+        return array_values(array_filter(
+            array_keys(self::SERVICE),
+            fn (string $s) => self::allows($user, $s),
+        ));
+    }
 
     public static function isStaff(?User $user): bool
     {

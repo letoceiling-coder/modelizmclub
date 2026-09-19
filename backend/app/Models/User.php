@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Modules\Auth\Notifications\ResetPasswordNotification;
@@ -113,6 +114,15 @@ class User extends Authenticatable
                 }
             }
             $user->pinnedPrivileges = [];
+        });
+
+        // Назначенные направления живут, пока человек — администратор
+        // направления. Сменил роль — назначения снимаются, а не лежат
+        // спящими до следующего повышения.
+        static::saved(function (self $user): void {
+            if ($user->wasChanged('role') && $user->role !== UserRole::CategoryAdmin) {
+                DB::table('category_admins')->where('user_id', $user->id)->delete();
+            }
         });
     }
 

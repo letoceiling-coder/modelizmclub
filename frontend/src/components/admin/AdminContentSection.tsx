@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAdminAccess } from "@/lib/admin-access";
 import { Eye, Check, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -22,6 +23,8 @@ import {
 
 export function ContentSection() {
   const { t } = useTranslation();
+  // Администратор направления правит и снимает, но не удаляет.
+  const canDelete = useAdminAccess()?.capabilities.includes("posts.delete") ?? false;
   const postStatusMeta = useMemo(
     () => ({
       published: {
@@ -206,13 +209,15 @@ export function ContentSection() {
                           >
                             <Eye size={14} />
                           </IconBtn>
-                          <IconBtn
-                            danger
-                            onClick={() => remove(p.uuid)}
-                            title={t("pages.adminCommon.actionDelete")}
-                          >
-                            <Trash2 size={14} />
-                          </IconBtn>
+                          {canDelete && (
+                            <IconBtn
+                              danger
+                              onClick={() => remove(p.uuid)}
+                              title={t("pages.adminCommon.actionDelete")}
+                            >
+                              <Trash2 size={14} />
+                            </IconBtn>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -21,6 +21,7 @@ class IndexModerationQueueController extends Controller
             status: request()->string('status')->toString() ?: null,
             queue: request()->string('queue')->toString() ?: null,
             perPage: (int) request()->integer('per_page', 20),
+            viewer: request()->user(),
         );
 
         return ModerationQueueResource::collection($items);

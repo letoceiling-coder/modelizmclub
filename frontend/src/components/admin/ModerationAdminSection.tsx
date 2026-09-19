@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { useAdminAccess } from "@/lib/admin-access";
 import { AnimatePresence, m } from "framer-motion";
 import { ExternalLink, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -674,6 +675,11 @@ const countPill: CSSProperties = {
 
 export function ModerationAdminSection() {
   const { t } = useTranslation();
+  const access = useAdminAccess();
+  // Жалобы — модератору и Владельцу; администратор направления видит
+  // только очередь своих направлений.
+  const canReports = access?.capabilities.includes("reports") ?? false;
+  const scopedCategories = access?.categories ?? [];
   const [mainTab, setMainTab] = useState<"queue" | "reports">("queue");
   const [queueTab, setQueueTab] = useState<QueueTabId>("posts");
   const [queue, setQueue] = useState<ModerationItem[]>([]);
@@ -787,14 +793,23 @@ export function ModerationAdminSection() {
           {t("pages.adminModeration.mainTabQueue")}
           {totalPending > 0 && <span style={{ ...countPill, marginLeft: 6 }}>{totalPending}</span>}
         </button>
-        <button
-          type="button"
-          onClick={() => setMainTab("reports")}
-          style={filterBtn(mainTab === "reports")}
-        >
-          {t("pages.adminModeration.mainTabReports")}
-        </button>
+        {canReports && (
+          <button
+            type="button"
+            onClick={() => setMainTab("reports")}
+            style={filterBtn(mainTab === "reports")}
+          >
+            {t("pages.adminModeration.mainTabReports")}
+          </button>
+        )}
       </div>
+      {scopedCategories.length > 0 && (
+        <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "12px" }}>
+          {t("pages.adminModeration.scopedTo", {
+            names: scopedCategories.map((c) => c.name).join(", "),
+          })}
+        </p>
+      )}
 
       {mainTab === "queue" ? (
         <div style={{ marginTop: "20px" }}>

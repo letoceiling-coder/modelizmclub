@@ -171,22 +171,31 @@ class AdminAccessTest extends TestCase
     }
 
     /**
-     * Администратор направления получит доступ к модерации своих категорий
-     * отдельным этапом; до тех пор общая админка ему закрыта целиком — роль
-     * не должна открыть больше, чем обещано.
+     * Администратору направления открыты только модерация, записи и
+     * объявления — внутри ограниченные его направлениями (CategoryAdminTest).
+     * Всё остальное, включая жалобы, закрыто; льгот сотрудника по роли нет.
      */
-    public function test_category_admin_has_no_general_admin_access_yet(): void
+    public function test_category_admin_reaches_only_scoped_sections(): void
     {
         $categoryAdmin = $this->staff(UserRole::CategoryAdmin);
         $this->assertFalse($categoryAdmin->isModerator());
         $this->assertFalse($categoryAdmin->isOwner());
-
         $categoryAdmin->forceFill(['phone_verified_at' => null])->save();
         $this->assertFalse($categoryAdmin->fresh()->isFullyVerified(), 'без телефона — как обычный человек');
 
-        $this->actingAs($categoryAdmin, 'sanctum')->getJson('/api/v1/admin/access')->assertForbidden();
+        $this->actingAs($categoryAdmin, 'sanctum')
+            ->getJson('/api/v1/admin/access')
+            ->assertOk()
+            ->assertJsonPath('data.sections', ['content', 'ads', 'moderation']);
+
+        $scoped = ['/api/v1/admin/moderation/queue', '/api/v1/admin/posts', '/api/v1/admin/listings'];
         foreach ([...self::SHARED_GETS, ...self::OWNER_GETS] as $url) {
-            $this->actingAs($categoryAdmin, 'sanctum')->getJson($url)->assertForbidden();
+            $response = $this->actingAs($categoryAdmin, 'sanctum')->getJson($url);
+            if (in_array($url, $scoped, true)) {
+                $response->assertOk();
+            } else {
+                $response->assertForbidden();
+            }
         }
     }
 
