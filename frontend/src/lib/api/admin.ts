@@ -229,13 +229,14 @@ function mapAdminUser(u: ApiAdminUser): AdminUserRow {
 }
 
 export async function fetchAdminUsers(
-  opts: { role?: string; status?: string } = {},
+  opts: { role?: string; status?: string; q?: string; perPage?: number } = {},
 ): Promise<AdminUserRow[]> {
   const res = await api<Paginated<ApiAdminUser>>("/admin/users", {
     query: {
       role: opts.role && opts.role !== "all" ? opts.role : undefined,
       status: opts.status && opts.status !== "all" ? opts.status : undefined,
-      per_page: 50,
+      q: opts.q?.trim() || undefined,
+      per_page: opts.perPage ?? 50,
     },
   });
   return (res.data ?? []).map(mapAdminUser);

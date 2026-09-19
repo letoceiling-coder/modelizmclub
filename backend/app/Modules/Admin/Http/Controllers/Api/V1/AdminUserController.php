@@ -31,6 +31,13 @@ class AdminUserController extends Controller
         $users = User::query()
             ->with(['profile', 'subscriptions'])
             ->when(request()->filled('role'), fn ($q) => $q->where('role', request('role')))
+            // Поиск по имени и почте — для назначения сотрудников в «Ролях и доступе».
+            ->when(request()->filled('q'), function ($q): void {
+                $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) request('q'))).'%';
+                $q->where(fn ($w) => $w->where('email', 'ilike', $needle)
+                    ->orWhere('name', 'ilike', $needle)
+                    ->orWhereHas('profile', fn ($p) => $p->where('display_name', 'ilike', $needle)));
+            })
             ->when(request()->filled('status'), fn ($q) => $q->where('status', request('status')))
             ->latest()
             ->paginate((int) request()->integer('per_page', 20));

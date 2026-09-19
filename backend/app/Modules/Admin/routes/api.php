@@ -35,6 +35,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromocodeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminReferralController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminRolesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminRulePageController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
@@ -303,6 +304,11 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::put('footer-links/{id}', [AdminFooterLinkController::class, 'update'])->whereNumber('id');
         Route::delete('footer-links/{id}', [AdminFooterLinkController::class, 'destroy'])->whereNumber('id');
         Route::post('footer-links/reorder', [AdminFooterLinkController::class, 'reorder']);
+    });
+
+    Route::middleware('admin.section:roles')->group(function (): void {
+        Route::get('roles', [AdminRolesController::class, 'show']);
+        Route::put('roles/category-admin-limit', [AdminRolesController::class, 'updateLimit']);
     });
 
     // Вопросы и ответы редактируются в разделе «Главная страница».

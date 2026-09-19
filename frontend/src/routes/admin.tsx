@@ -28,7 +28,8 @@ export type Section =
   | "applications"
   | "legalPages"
   | "rulesPages"
-  | "footerLinks";
+  | "footerLinks"
+  | "roles";
 
 // The component lives in admin.lazy.tsx (createLazyFileRoute) so the whole
 // admin panel — 20+ sections — ships as its own chunk and never touches the
