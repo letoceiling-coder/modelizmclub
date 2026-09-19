@@ -20,13 +20,16 @@ class DemoteQaAdminMigrationTest extends TestCase
 
     public function test_qa_admin_becomes_moderator_and_the_change_is_audited(): void
     {
+        User::factory()->create(['email' => 'owner@example.com', 'role' => UserRole::Admin]);
         $qa = User::factory()->create(['email' => 'admin@modelizmclub.ru', 'role' => UserRole::Admin]);
 
+        $this->runMigration();
         $this->runMigration();
 
         $this->assertSame(UserRole::Moderator, $qa->fresh()->role);
         $row = DB::table('audit_logs')->where('auditable_id', $qa->id)->where('action', 'system.users.role_demoted')->first();
         $this->assertNotNull($row);
+        $this->assertSame(1, DB::table('audit_logs')->where('action', 'system.users.role_demoted')->count());
         $this->assertSame(['role' => 'admin'], json_decode($row->old_values, true));
         $this->assertSame('moderator', json_decode($row->new_values, true)['role']);
     }
@@ -38,6 +41,17 @@ class DemoteQaAdminMigrationTest extends TestCase
         $this->runMigration();
 
         $this->assertSame(UserRole::Admin, $owner->fresh()->role);
+        $this->assertSame(0, DB::table('audit_logs')->where('action', 'system.users.role_demoted')->count());
+    }
+
+    public function test_last_active_admin_is_not_demoted(): void
+    {
+        User::factory()->create(['email' => 'blocked@example.com', 'role' => UserRole::Admin, 'status' => 'blocked']);
+        $qa = User::factory()->create(['email' => 'admin@modelizmclub.ru', 'role' => UserRole::Admin]);
+
+        $this->runMigration();
+
+        $this->assertSame(UserRole::Admin, $qa->fresh()->role);
         $this->assertSame(0, DB::table('audit_logs')->where('action', 'system.users.role_demoted')->count());
     }
 

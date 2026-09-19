@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\DB;
  * меняется, только если сейчас стоит admin, — повторный прогон и уже
  * переназначенная руками учётка остаются как есть. Смена пишется в журнал
  * изменений, как при правке роли из админки.
+ *
+ * Если других действующих админов нет, миграция ничего не делает: иначе
+ * выкатка молча оставила бы площадку без Владельца, а вернуть роль из
+ * админки может только Владелец. То же правило держит `guardLastAdmin`.
  */
 return new class extends Migration
 {
@@ -27,6 +31,17 @@ return new class extends Migration
             ->first(['id']);
 
         if ($user === null) {
+            return;
+        }
+
+        $otherAdmins = DB::table('users')
+            ->where('role', 'admin')
+            ->where('status', 'active')
+            ->whereNull('deleted_at')
+            ->where('id', '!=', $user->id)
+            ->count();
+
+        if ($otherAdmins === 0) {
             return;
         }
 
