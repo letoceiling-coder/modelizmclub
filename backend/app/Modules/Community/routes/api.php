@@ -32,7 +32,7 @@ Route::prefix('communities')->middleware(['communities', 'optionalAuth'])->group
 
     Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
         Route::post('apply', ApplyCommunityController::class);
-        Route::post('{slug}/join', JoinCommunityController::class);
+        Route::post('{slug}/join', JoinCommunityController::class)->middleware('requiresSubscription:community.join');
         Route::delete('{slug}/leave', LeaveCommunityController::class);
         Route::get('{slug}/chat', CommunityChatController::class);
         Route::post('{slug}/events', [CommunityEventsController::class, 'store']);

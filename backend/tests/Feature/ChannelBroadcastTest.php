@@ -14,6 +14,13 @@ class ChannelBroadcastTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Тест о механике каналов, не о подписке: запись в канале открыта входом.
+        $this->setActionTier('channel.post.create', 'auth');
+    }
+
     public function test_like_and_unlike_channel_post_are_recorded(): void
     {
         config(['feed.auto_publish' => true]);

@@ -30,6 +30,8 @@ class ChannelPostCommentFlagsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Тест о механике каналов, не о подписке: запись в канале открыта входом.
+        $this->setActionTier('channel.post.create', 'auth');
         config(['feed.auto_publish' => true]);
         $this->owner = User::factory()->create(['status' => UserStatus::Active]);
         $this->channel = Channel::create([

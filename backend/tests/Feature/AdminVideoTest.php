@@ -115,12 +115,15 @@ class AdminVideoTest extends TestCase
         $this->assertSame(['tag1', 'tag2'], $video->tags);
     }
 
-    public function test_moderator_cannot_access_admin_videos(): void
+    /** С 19.09 обзоры — раздел модератора; категории обзоров остаются у Владельца. */
+    public function test_moderator_manages_videos_but_not_video_categories(): void
     {
         $moderator = User::factory()->create(['role' => UserRole::Moderator]);
         $token = $moderator->createToken('api')->plainTextToken;
 
         $this->getJson('/api/v1/admin/videos', ['Authorization' => 'Bearer '.$token])
+            ->assertOk();
+        $this->postJson('/api/v1/admin/categories/video', ['name' => 'Новая'], ['Authorization' => 'Bearer '.$token])
             ->assertForbidden();
     }
 }

@@ -80,6 +80,10 @@ export const GUEST_ACCESS_DEFAULT_TIERS: Record<string, AccessTier> = {
   "ads.call_seller": "auth",
   "ads.safe_deal": "auth",
   "messenger.send": "subscription",
+  "community.join": "auth",
+  "channel.subscribe": "auth",
+  "channel.post.create": "subscription",
+  "call.start": "subscription",
 };
 
 export const GUEST_ACCESS_DEFAULTS: Record<string, boolean> = Object.fromEntries(

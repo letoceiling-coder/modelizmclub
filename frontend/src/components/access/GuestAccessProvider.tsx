@@ -65,7 +65,16 @@ interface GuestAccessContextValue {
   needsPhone: boolean;
   needsSubscription: boolean;
   isAllowed: (actionKey: string) => boolean;
-  guardAction: (actionKey: string, onAllowed: () => void, returnTo?: string) => void;
+  /**
+   * Gate by the admin-configured access map. `resume` makes the action survive
+   * a full reload (OAuth, email link) — see lib/gate/resumable.ts.
+   */
+  guardAction: (
+    actionKey: string,
+    onAllowed: () => void,
+    returnTo?: string,
+    resume?: ResumeRef,
+  ) => void;
   /** Guest → login window. Logged-in without SMS → verify window. */
   requireAccount: (onAllowed: () => void, returnTo?: string, resume?: ResumeRef) => void;
   /** Guest → login window. Does not require phone verification or a subscription. */
@@ -203,14 +212,18 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
   );
 
   const guardAction = useCallback(
-    (actionKey: string, onAllowed: () => void, returnTo?: string) => {
+    (actionKey: string, onAllowed: () => void, returnTo?: string, resume?: ResumeRef) => {
       if (isAllowed(actionKey)) {
         onAllowed();
         return;
       }
       // Admin-configured minimum for this action → the rung the gate asks for.
       const need = levelForAction(actionKey, resolveMinTier(actionKey, config));
-      void runGate(need, onAllowed, { key: actionKey, returnTo });
+      void runGate(
+        need,
+        onAllowed,
+        resume ? resumeIntentFor(resume, returnTo) : { key: actionKey, returnTo },
+      );
     },
     [isAllowed, config, runGate],
   );

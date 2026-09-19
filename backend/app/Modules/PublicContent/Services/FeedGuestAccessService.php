@@ -3,6 +3,7 @@
 namespace Modules\PublicContent\Services;
 
 use App\Models\SystemSetting;
+use App\Models\User;
 use App\Support\FeedGuestAccessRegistry;
 
 class FeedGuestAccessService
@@ -77,6 +78,23 @@ class FeedGuestAccessService
         $tier = $this->mergedConfig()['actions'][$actionKey]['min_tier'] ?? null;
 
         return is_string($tier) && in_array($tier, FeedGuestAccessRegistry::TIERS, true) ? $tier : 'subscription';
+    }
+
+    /**
+     * Хватает ли вошедшему человеку подписки для действия по карте.
+     *
+     * Одно правило на все места, где сервер его применяет: middleware
+     * `requiresSubscription:<ключ>` и планировщик отложенных записей. Уровень
+     * `guest` и `auth` подписки не требует (вход проверяет маршрут), уровень
+     * `subscription` — требует; сотрудники площадки проходят.
+     */
+    public function subscriptionSatisfied(User $user, string $actionKey): bool
+    {
+        if ($this->minTier($actionKey) !== 'subscription') {
+            return true;
+        }
+
+        return $user->isModerator() || $user->hasActiveSubscription();
     }
 
     /** @return array<string, mixed> */

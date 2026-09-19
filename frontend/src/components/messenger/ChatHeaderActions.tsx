@@ -76,7 +76,7 @@ export function ChatHeaderActions({
   deal,
 }: Props) {
   const { t } = useTranslation();
-  const { requirePremium } = useGuestAccess();
+  const { guardAction } = useGuestAccess();
   const meta = useStore(
     dialogId
       ? selectors.dialogMeta(dialogId)
@@ -352,7 +352,7 @@ export function ChatHeaderActions({
             });
             return;
           }
-          requirePremium(() => setConfirmOpen(true));
+          guardAction("call.start", () => setConfirmOpen(true));
         }}
         disabled={callBusy}
         className={`grid h-[40px] w-[40px] place-items-center rounded-full transition-colors hover:bg-[var(--background-surface)] disabled:opacity-50 ${TAP_TARGET_44}`}
@@ -411,7 +411,7 @@ export function ChatHeaderActions({
                     toast(t("components.chatHeader.callBusy"));
                     return;
                   }
-                  groupCalls.openPicker("start", [partnerId]);
+                  guardAction("call.start", () => groupCalls.openPicker("start", [partnerId]));
                 }}
               />
               {onSearch && (

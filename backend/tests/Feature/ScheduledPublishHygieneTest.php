@@ -16,7 +16,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Modules\Channel\Services\ChannelPostViewLedger;
 use Modules\Feed\Services\PostService;
+use Modules\Feed\Support\PostMediaSync;
+use Modules\PublicContent\Services\FeedGuestAccessService;
 use Tests\TestCase;
 
 /**
@@ -55,8 +58,18 @@ class ScheduledPublishHygieneTest extends TestCase
         $author = User::factory()->create(['status' => UserStatus::Active]);
         $post = $this->makePost($author, ContentStatus::Scheduled, now()->subMinute());
 
-        $this->mock(PostService::class)->makePartial()
-            ->shouldReceive('publish')->andThrow(new \RuntimeException('права автора отозваны'));
+        // Проверка подписки к сроку — отдельный тест (SocialActionsMapKeysTest);
+        // здесь автору её хватает, и отказ случается внутри publish().
+        $this->setComposeTier('auth');
+        // Частичный мок с настоящими зависимостями: без конструктора у сервиса
+        // не было бы карты доступа, которую планировщик читает до publish().
+        $service = \Mockery::mock(PostService::class, [
+            app(PostMediaSync::class),
+            app(ChannelPostViewLedger::class),
+            app(FeedGuestAccessService::class),
+        ])->makePartial();
+        $service->shouldReceive('publish')->andThrow(new \RuntimeException('права автора отозваны'));
+        $this->instance(PostService::class, $service);
 
         Log::spy();
         $this->artisan('posts:publish-scheduled')->assertSuccessful();
