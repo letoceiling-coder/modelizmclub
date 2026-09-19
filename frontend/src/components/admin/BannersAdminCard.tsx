@@ -698,6 +698,23 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
           defaultCta={defaultCta}
         />
 
+        {/* Без переключателя любой новый баннер сразу уходил в ленту — подготовить
+            его заранее, скрытым, было нельзя (приёмка 19.09, путь 8). */}
+        <label className="flex items-start gap-[8px] cursor-pointer" style={{ marginTop: "14px" }}>
+          <input
+            type="checkbox"
+            checked={draft.isActive}
+            onChange={(e) => setDraft((d) => ({ ...d, isActive: e.target.checked }))}
+            style={{ accentColor: "var(--accent)", marginTop: "3px" }}
+          />
+          <span style={{ fontSize: "13px" }}>
+            {t("pages.adminBanners.form.showOnCreate")}
+            <span style={{ display: "block", fontSize: "12px", color: "var(--foreground-50)" }}>
+              {t("pages.adminBanners.form.showOnCreateHint")}
+            </span>
+          </span>
+        </label>
+
         <button
           type="button"
           onClick={createBanner}

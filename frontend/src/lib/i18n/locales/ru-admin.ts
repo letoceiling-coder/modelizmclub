@@ -208,6 +208,8 @@ export const ruAdmin = {
       statusChangeFailed: "Не удалось изменить статус",
       changeRoleTitle: "Изменить роль",
       previewToast: "Просмотр: {{name}}",
+      actionBlock: "Заблокировать «{{name}}»",
+      actionUnblock: "Разблокировать «{{name}}»",
       deleteConfirm: "Удалить пользователя {{email}}?",
       deleteConfirmDesc:
         "Аккаунт и всё его содержимое удаляются безвозвратно: публикации, объявления, сообщения.",
@@ -655,6 +657,9 @@ export const ruAdmin = {
         pin: "Закрепить",
         testShow: "Тестовый показ",
         testShowTitle: "Показывать в ленте до наступления даты «С»",
+        showOnCreate: "Показывать сразу",
+        showOnCreateHint:
+          "Снимите, чтобы подготовить баннер заранее: в ленте он не появится, пока его не включите.",
         photo: "Фото",
         preview: "Предпросмотр",
         untitled: "Без названия",
@@ -1101,6 +1106,11 @@ export const ruAdmin = {
       },
     },
     adminCategories: {
+      actionAddSub: "Добавить подкатегорию в «{{name}}»",
+      actionHide: "Скрыть «{{name}}»",
+      actionShow: "Показать «{{name}}»",
+      actionEditCategory: "Изменить «{{name}}»",
+      actionRemove: "Удалить «{{name}}»",
       title: "Категории",
       kinds: {
         post: "Направления",
@@ -1123,6 +1133,8 @@ export const ruAdmin = {
       promptEditSlug: "Slug",
       unifiedHint:
         "Единое дерево категорий: лента, форма подачи и каталог объявлений, сообщества. Флаги в строке решают, где виден раздел; цена размещения — там же. До трёх уровней.",
+      unifiedHintNoPrices:
+        "Единое дерево категорий: лента, форма подачи и каталог объявлений, сообщества. Флаги в строке решают, где виден раздел. До трёх уровней. Цены размещения задаёт Владелец.",
       promptIcon: "Иконка (имя Lucide, необязательно)",
       promptSort: "Порядок сортировки",
       promptParent: "ID родителя (пусто — корень)",

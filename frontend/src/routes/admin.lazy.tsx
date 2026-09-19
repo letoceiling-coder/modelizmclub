@@ -155,6 +155,11 @@ const SettingsSection = lazy(() =>
  * Кому какой раздел — решает сервер (GET /admin/access, карта
  * App\Support\AdminAccess). Здесь только порядок, подписи и значки.
  */
+/** Разделы-вкладки без своего пункта меню → пункт, внутри которого они открываются. */
+const SECTION_HOSTS: Partial<Record<Section, Section>> = {
+  reviewCategories: "reviews",
+};
+
 const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
   {
     id: "dashboard",
@@ -416,14 +421,26 @@ function AdminPage() {
     (n) => adminRole !== null && allowedSections.includes(n.id),
   );
 
+  // Пункт меню, под которым живёт раздел: вкладка «Категории обзоров» —
+  // внутри «Обзоров», своего пункта у неё нет.
+  const navIdFor = (id: Section): Section => SECTION_HOSTS[id] ?? id;
+
   // Раздел из адреса роли не виден — уводим на первый доступный и правим
   // адрес подменой записи, чтобы «назад» не возвращал в запрещённый раздел.
+  // Раздел-вкладку пропускаем, если он разрешён и виден его пункт меню: до
+  // 20.09 прямая ссылка на «Категории обзоров» уводила Владельца на дашборд.
   useEffect(() => {
     if (adminRole === null) return;
-    if (!visibleNavItems.some((n) => n.id === section)) {
+    const host = SECTION_HOSTS[section];
+    const reachable =
+      visibleNavItems.some((n) => n.id === section) ||
+      (host !== undefined &&
+        allowedSections.includes(section) &&
+        visibleNavItems.some((n) => n.id === host));
+    if (!reachable) {
       goToSection(visibleNavItems[0]?.id ?? "dashboard", true);
     }
-  }, [adminRole, section, visibleNavItems, goToSection]);
+  }, [adminRole, section, visibleNavItems, allowedSections, goToSection]);
 
   if (isNestedAdminRoute) {
     return <Outlet />;
@@ -581,7 +598,7 @@ function AdminPage() {
         >
           <nav style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             {visibleNavItems.map((n) => {
-              const active = section === n.id;
+              const active = navIdFor(section) === n.id;
               return (
                 <button
                   key={n.id}
@@ -618,7 +635,7 @@ function AdminPage() {
           {/* Mobile selector */}
           <div className="md:hidden" style={{ marginBottom: "16px" }}>
             <select
-              value={section}
+              value={navIdFor(section)}
               onChange={(e) => goToSection(e.target.value as Section)}
               className="w-full"
               style={{
