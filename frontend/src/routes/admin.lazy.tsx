@@ -27,6 +27,7 @@ import {
   Palette,
   Search,
   CalendarDays,
+  KeyRound,
 } from "lucide-react";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
@@ -51,6 +52,9 @@ const Dashboard = lazy(() =>
 );
 const UsersSection = lazy(() =>
   import("@/components/admin/AdminUsersSection").then((m) => ({ default: m.UsersSection })),
+);
+const AdminRolesSection = lazy(() =>
+  import("@/components/admin/AdminRolesSection").then((m) => ({ default: m.AdminRolesSection })),
 );
 const ContentSection = lazy(() =>
   import("@/components/admin/AdminContentSection").then((m) => ({ default: m.ContentSection })),
@@ -158,6 +162,7 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
     icon: LayoutDashboard,
   },
   { id: "users", labelKey: "pages.adminShell.nav.users", icon: Users },
+  { id: "roles", labelKey: "pages.adminShell.nav.roles", icon: KeyRound },
   { id: "content", labelKey: "pages.adminShell.nav.content", icon: Newspaper },
   { id: "ads", labelKey: "pages.adminShell.nav.ads", icon: Megaphone },
   { id: "delivery", labelKey: "pages.adminShell.nav.delivery", icon: Truck },
@@ -261,6 +266,7 @@ function SectionViewInner({
 }) {
   if (section === "dashboard") return <Dashboard role={adminRole ?? "owner"} />;
   if (section === "users") return <UsersSection />;
+  if (section === "roles") return <AdminRolesSection />;
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
   if (section === "delivery") return <DeliverySection />;

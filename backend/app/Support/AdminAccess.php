@@ -78,6 +78,8 @@ final class AdminAccess
         'legalPages' => 'owner',
         'footerLinks' => 'owner',
         'auditLog' => 'owner',
+        // Кто сотрудник, какие у него льготы и направления (19.09).
+        'roles' => 'owner',
     ];
 
     /**
@@ -122,6 +124,12 @@ final class AdminAccess
         return $user !== null && $user->role === UserRole::Owner;
     }
 
+    /** Ступень роли в админке (см. RANK); неизвестное — ноль. */
+    public static function rankOf(UserRole|string $role): int
+    {
+        return self::RANK[$role instanceof UserRole ? $role->value : $role] ?? 0;
+    }
+
     /** Неизвестный ключ закрыт: опечатка в маршруте не должна открыть раздел. */
     public static function allows(?User $user, string $section): bool
     {
@@ -140,6 +148,12 @@ final class AdminAccess
             array_keys(self::SECTIONS),
             fn (string $s) => self::allows($user, $s),
         ));
+    }
+
+    /** @return array<string, string> раздел меню → минимальная роль */
+    public static function sectionLevels(): array
+    {
+        return self::SECTIONS;
     }
 
     /** @return list<string> все ключи, которыми можно охранять маршрут */
