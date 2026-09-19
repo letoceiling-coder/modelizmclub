@@ -230,8 +230,9 @@ function AddStaffCard({ overview, onChanged }: { overview: RolesOverview; onChan
       return;
     }
     let alive = true;
+    // Сразу «ищем», а не после паузы: иначе в паузе мелькало «никого не нашли».
+    setSearching(true);
     const timer = window.setTimeout(() => {
-      setSearching(true);
       fetchAdminUsers({ q, perPage: 10 })
         .then((list) => {
           if (alive) setResults(list);
