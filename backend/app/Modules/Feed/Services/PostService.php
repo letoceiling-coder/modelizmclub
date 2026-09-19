@@ -411,11 +411,13 @@ class PostService
      */
     private function returnToDraftsForSubscription(Post $post, User $author): void
     {
-        // Условно: если автор в эту же секунду опубликовал или перенёс запись,
-        // его решение не перетирается, и уведомление не уходит.
+        // Условно: если автор в эту же секунду опубликовал или перенёс запись
+        // на более поздний срок, его решение не перетирается, и уведомление
+        // не уходит.
         $returned = Post::query()
             ->whereKey($post->id)
             ->where('status', ContentStatus::Scheduled)
+            ->where('scheduled_at', '<=', now())
             ->update([
                 'status' => ContentStatus::Draft,
                 'scheduled_at' => null,
