@@ -414,7 +414,12 @@ export function CategoriesSection() {
 
       {kind === "post" && (
         <p className="text-[13px]" style={{ color: "var(--foreground-50)", marginBottom: 12 }}>
-          {t("pages.adminCategories.unifiedHint")}
+          {t(
+            // Модератору поля цены не показываются — подсказка о них его путала.
+            isOwner
+              ? "pages.adminCategories.unifiedHint"
+              : "pages.adminCategories.unifiedHintNoPrices",
+          )}
         </p>
       )}
 
