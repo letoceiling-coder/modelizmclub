@@ -139,9 +139,11 @@ export function CategoriesSection() {
       toast.error(t("pages.adminCategories.parentInvalid"));
       return;
     }
-    const name = window
-      .prompt(t("pages.adminCategories.promptSubName", { name: parent.name }))
-      ?.trim();
+    // Своим диалогом, как название и адрес раздела верхнего уровня: системное
+    // окно браузера выбивалось из админки и глушится встроенными браузерами.
+    const name = (
+      await askText({ title: t("pages.adminCategories.promptSubName", { name: parent.name }) })
+    )?.trim();
     if (!name) return;
     const slug = (
       await askText({ title: t("pages.adminCategories.promptSlug"), defaultValue: slugify(name) })
@@ -456,10 +458,17 @@ export function CategoriesSection() {
                 {c.name}
               </span>
               <div className="flex gap-[4px]">
-                <IconBtn onClick={() => edit(c)}>
+                <IconBtn
+                  onClick={() => edit(c)}
+                  title={t("pages.adminCategories.actionEditCategory", { name: c.name })}
+                >
                   <Pencil size={14} />
                 </IconBtn>
-                <IconBtn danger onClick={() => remove(c)}>
+                <IconBtn
+                  danger
+                  onClick={() => remove(c)}
+                  title={t("pages.adminCategories.actionRemove", { name: c.name })}
+                >
                   <Trash2 size={14} />
                 </IconBtn>
               </div>
@@ -500,16 +509,34 @@ export function CategoriesSection() {
                     )}
                   </button>
                   <div className="flex gap-[4px]">
-                    <IconBtn onClick={() => addSub(c)}>
+                    <IconBtn
+                      onClick={() => addSub(c)}
+                      title={t("pages.adminCategories.actionAddSub", { name: c.name })}
+                    >
                       <Plus size={14} />
                     </IconBtn>
-                    <IconBtn onClick={() => void toggleActive(c)}>
+                    <IconBtn
+                      onClick={() => void toggleActive(c)}
+                      title={t(
+                        c.isActive
+                          ? "pages.adminCategories.actionHide"
+                          : "pages.adminCategories.actionShow",
+                        { name: c.name },
+                      )}
+                    >
                       {c.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
                     </IconBtn>
-                    <IconBtn onClick={() => edit(c)}>
+                    <IconBtn
+                      onClick={() => edit(c)}
+                      title={t("pages.adminCategories.actionEditCategory", { name: c.name })}
+                    >
                       <Pencil size={14} />
                     </IconBtn>
-                    <IconBtn danger onClick={() => remove(c)}>
+                    <IconBtn
+                      danger
+                      onClick={() => remove(c)}
+                      title={t("pages.adminCategories.actionRemove", { name: c.name })}
+                    >
                       <Trash2 size={14} />
                     </IconBtn>
                   </div>
@@ -556,17 +583,39 @@ export function CategoriesSection() {
                               </span>
                               <div className="flex gap-[4px]">
                                 {depthOf(s.id) < 2 && (
-                                  <IconBtn onClick={() => addSub(s)}>
+                                  <IconBtn
+                                    onClick={() => addSub(s)}
+                                    title={t("pages.adminCategories.actionAddSub", {
+                                      name: s.name,
+                                    })}
+                                  >
                                     <Plus size={14} />
                                   </IconBtn>
                                 )}
-                                <IconBtn onClick={() => void toggleActive(s)}>
+                                <IconBtn
+                                  onClick={() => void toggleActive(s)}
+                                  title={t(
+                                    s.isActive
+                                      ? "pages.adminCategories.actionHide"
+                                      : "pages.adminCategories.actionShow",
+                                    { name: s.name },
+                                  )}
+                                >
                                   {s.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
                                 </IconBtn>
-                                <IconBtn onClick={() => edit(s)}>
+                                <IconBtn
+                                  onClick={() => edit(s)}
+                                  title={t("pages.adminCategories.actionEditCategory", {
+                                    name: s.name,
+                                  })}
+                                >
                                   <Pencil size={14} />
                                 </IconBtn>
-                                <IconBtn danger onClick={() => remove(s)}>
+                                <IconBtn
+                                  danger
+                                  onClick={() => remove(s)}
+                                  title={t("pages.adminCategories.actionRemove", { name: s.name })}
+                                >
                                   <Trash2 size={14} />
                                 </IconBtn>
                               </div>
@@ -598,13 +647,32 @@ export function CategoriesSection() {
                                     )}
                                   </span>
                                   <div className="flex gap-[4px]">
-                                    <IconBtn onClick={() => void toggleActive(n)}>
+                                    <IconBtn
+                                      onClick={() => void toggleActive(n)}
+                                      title={t(
+                                        n.isActive
+                                          ? "pages.adminCategories.actionHide"
+                                          : "pages.adminCategories.actionShow",
+                                        { name: n.name },
+                                      )}
+                                    >
                                       {n.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
                                     </IconBtn>
-                                    <IconBtn onClick={() => edit(n)}>
+                                    <IconBtn
+                                      onClick={() => edit(n)}
+                                      title={t("pages.adminCategories.actionEditCategory", {
+                                        name: n.name,
+                                      })}
+                                    >
                                       <Pencil size={14} />
                                     </IconBtn>
-                                    <IconBtn danger onClick={() => remove(n)}>
+                                    <IconBtn
+                                      danger
+                                      onClick={() => remove(n)}
+                                      title={t("pages.adminCategories.actionRemove", {
+                                        name: n.name,
+                                      })}
+                                    >
                                       <Trash2 size={14} />
                                     </IconBtn>
                                   </div>

@@ -1104,6 +1104,11 @@ export const ruAdmin = {
       },
     },
     adminCategories: {
+      actionAddSub: "Добавить подкатегорию в «{{name}}»",
+      actionHide: "Скрыть «{{name}}»",
+      actionShow: "Показать «{{name}}»",
+      actionEditCategory: "Изменить «{{name}}»",
+      actionRemove: "Удалить «{{name}}»",
       title: "Категории",
       kinds: {
         post: "Направления",

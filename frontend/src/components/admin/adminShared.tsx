@@ -63,8 +63,11 @@ export function IconBtn({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
+      // Кнопка-иконка без подписи для экранного чтения — просто «кнопка».
+      aria-label={title}
       style={{
         width: "32px",
         height: "32px",
