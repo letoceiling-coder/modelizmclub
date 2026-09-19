@@ -614,6 +614,8 @@ COLUMN|listings.package_size|character varying|YES
 COLUMN|listings.paid_until|timestamp without time zone|YES
 COLUMN|listings.pickup_address|character varying|YES
 COLUMN|listings.placement_amount_cents|integer|YES
+COLUMN|listings.placement_covered_at|timestamp without time zone|YES
+COLUMN|listings.placement_free_reason|character varying|YES
 COLUMN|listings.placement_payment_id|bigint|YES
 COLUMN|listings.placement_promocode_id|bigint|YES
 COLUMN|listings.placement_was_free|boolean|NO
@@ -1273,6 +1275,9 @@ COLUMN|users.deleted_at|timestamp without time zone|YES
 COLUMN|users.email_verified_at|timestamp without time zone|YES
 COLUMN|users.email|character varying|YES
 COLUMN|users.first_hundred_granted_at|timestamp without time zone|YES
+COLUMN|users.free_listings_quota|integer|NO
+COLUMN|users.free_listings_unlimited|boolean|NO
+COLUMN|users.free_listings_used|integer|NO
 COLUMN|users.id|bigint|NO
 COLUMN|users.is_first_hundred|boolean|NO
 COLUMN|users.last_seen_at|timestamp without time zone|YES
@@ -1290,6 +1295,7 @@ COLUMN|users.registration_track|character varying|YES
 COLUMN|users.remember_token|character varying|YES
 COLUMN|users.role|character varying|NO
 COLUMN|users.status|character varying|NO
+COLUMN|users.subscription_exempt|boolean|NO
 COLUMN|users.theme_preference|character varying|YES
 COLUMN|users.updated_at|timestamp without time zone|YES
 COLUMN|users.uuid|uuid|NO

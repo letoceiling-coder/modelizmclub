@@ -44,6 +44,8 @@ class Listing extends Model
         'placement_payment_id',
         'placement_amount_cents',
         'placement_was_free',
+        'placement_free_reason',
+        'placement_covered_at',
         'placement_promocode_id',
     ];
 
@@ -61,6 +63,7 @@ class Listing extends Model
             'reserved_at' => 'datetime',
             'paid_until' => 'datetime',
             'placement_was_free' => 'boolean',
+            'placement_covered_at' => 'datetime',
         ];
     }
 

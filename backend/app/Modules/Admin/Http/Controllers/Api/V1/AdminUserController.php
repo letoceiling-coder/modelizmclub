@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AdminAccess;
+use App\Support\RolePrivileges;
 use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -87,11 +88,16 @@ class AdminUserController extends Controller
         $this->guardModeratorEdit($request, $user);
         $this->guardLastOwner($request, $user);
 
-        $old = $user->only(['email', 'name', 'role', 'status']);
-        $user->fill($request->validated());
+        $tracked = ['email', 'name', 'role', 'status', ...RolePrivileges::FIELDS];
+        $old = $user->only($tracked);
+        // Правила запроса перечисляют ровно то, что можно менять; льготы не
+        // входят в fillable модели, чтобы их не задел ни один другой путь.
+        // Смена роли сама выставит льготы по умолчанию (User::booted), если
+        // в этом же запросе они не заданы явно.
+        $user->forceFill($request->validated());
         $user->save();
 
-        $audit->log($request->user(), 'admin.users.update', $user, $old, $user->only(['email', 'name', 'role', 'status']), $request);
+        $audit->log($request->user(), 'admin.users.update', $user, $old, $user->only($tracked), $request);
 
         return new UserResource($user->fresh('profile'));
     }
@@ -165,7 +171,7 @@ class AdminUserController extends Controller
         }
         foreach (AdminAccess::OWNER_ONLY_USER_FIELDS as $field) {
             if ($request->has($field)) {
-                abort(403, 'Роль, почту и пароль меняет только Владелец.');
+                abort(403, 'Роль, почту, пароль и льготы меняет только Владелец.');
             }
         }
     }

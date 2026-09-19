@@ -451,6 +451,11 @@ function WalletSection() {
                         {formatDate(item.paidAt ?? item.date)}
                       </span>
                     </div>
+                    {item.grantedListingCredit && (
+                      <p className="mt-1 text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                        {t("pages.settings.paymentGrantedListingCredit")}
+                      </p>
+                    )}
                   </div>
                   <div
                     className="shrink-0 text-[14px] font-semibold tabular-nums"

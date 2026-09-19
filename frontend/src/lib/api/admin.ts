@@ -181,6 +181,8 @@ export interface AdminUserRow {
   city: string;
   createdAt: string;
   subscription: AdminUserSubscription;
+  /** Кредиты размещения: единица — одно объявление без оплаты. */
+  listingCredits: number;
 }
 
 interface ApiAdminSubscription {
@@ -199,6 +201,7 @@ interface ApiAdminUser {
   profile?: { display_name?: string | null; slug?: string | null } | null;
   subscription?: ApiAdminSubscription | null;
   created_at?: string | null;
+  listing_placement_credits?: number;
 }
 
 function mapAdminSubscription(s?: ApiAdminSubscription | null): AdminUserSubscription {
@@ -221,6 +224,7 @@ function mapAdminUser(u: ApiAdminUser): AdminUserRow {
     city: "",
     createdAt: u.created_at ?? "",
     subscription: mapAdminSubscription(u.subscription),
+    listingCredits: u.listing_placement_credits ?? 0,
   };
 }
 
@@ -262,6 +266,19 @@ export async function setAdminUserSubscription(
     json: { action, days },
   });
   return mapAdminSubscription(res.data);
+}
+
+/** Начислить (amount > 0) или списать (amount < 0) кредиты размещения. Только Владелец. */
+export async function changeAdminUserListingCredits(
+  uuid: string,
+  amount: number,
+  reason: string,
+): Promise<number> {
+  const res = await api<{ data: { listing_placement_credits: number } }>(
+    `/admin/users/${uuid}/listing-credits`,
+    { method: "POST", json: { amount, reason } },
+  );
+  return res.data.listing_placement_credits;
 }
 
 export type ModerationType =

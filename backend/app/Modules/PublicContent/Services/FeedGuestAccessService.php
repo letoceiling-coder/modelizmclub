@@ -86,7 +86,8 @@ class FeedGuestAccessService
      * Одно правило на все места, где сервер его применяет: middleware
      * `requiresSubscription:<ключ>` и планировщик отложенных записей. Уровень
      * `guest` и `auth` подписки не требует (вход проверяет маршрут), уровень
-     * `subscription` — требует; сотрудники площадки проходят.
+     * `subscription` — требует; проходит и льгота «подписка не требуется»
+     * (по умолчанию у сотрудников, см. RolePrivileges).
      */
     public function subscriptionSatisfied(User $user, string $actionKey): bool
     {
@@ -94,7 +95,7 @@ class FeedGuestAccessService
             return true;
         }
 
-        return $user->isModerator() || $user->hasActiveSubscription();
+        return $user->hasSubscriptionAccess();
     }
 
     /** @return array<string, mixed> */

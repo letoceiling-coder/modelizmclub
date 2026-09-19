@@ -5,7 +5,6 @@ namespace Modules\Listing\Services;
 use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\Payment;
-use App\Models\Promocode;
 use App\Models\User;
 use App\Models\UserSubscription;
 use Modules\Billing\Services\PromocodeService;
@@ -17,47 +16,50 @@ class ListingPlacementPricingService
         private readonly PromocodeService $promocodes,
     ) {}
 
-    /** @return array<string, mixed> */
+    /**
+     * Цена размещения и то, что её покрывает.
+     *
+     * Сначала считается цена: категория (или её родитель, или общая), для
+     * подписчика — не дороже цены подписчика, минус промокод. Если она
+     * нулевая — размещение бесплатно само по себе, и ни квота, ни кредит не
+     * тратятся. Иначе её покрывают по порядку (решение 19.09):
+     *
+     *   1. персональная квота человека (или «без ограничения»);
+     *   2. месячная квота тарифа подписки;
+     *   3. кредит размещения;
+     *   4. иначе — оплата.
+     *
+     * Котировку открывают просто посмотреть, поэтому здесь ничего не
+     * списывается: квоту и кредит тратит создание объявления
+     * (ListingService::resolveCreateStatus) условным UPDATE.
+     *
+     * @return array<string, mixed>
+     */
     public function quote(User $user, ?int $categoryId, ?int $subcategoryId = null, ?string $promocodeCode = null): array
     {
         $category = $this->resolveCategory($categoryId, $subcategoryId);
         $baseCents = $this->basePriceCents($category);
 
         $subscription = $this->activeSubscription($user);
-        $freeListingsRemaining = null;
         $subscriberAdjustment = 0;
-        $freeReason = null;
         $priceAfterSubscription = $baseCents;
 
         if ($subscription) {
-            $plan = $subscription->plan;
-            $usedThisMonth = $this->freePlacementsUsedThisMonth($user);
-            $freeQuota = (int) ($plan->free_listings_per_month ?? 0);
-            $freeListingsRemaining = max(0, $freeQuota - $usedThisMonth);
+            /*
+             * Подписка не может сделать размещение дороже.
+             *
+             * Цена подписчика применялась поверх категорийной, даже когда
+             * та ниже: в бесплатной категории подписчик платил 20 ₽, а
+             * человек без подписки — ноль; в «ил 6» с ценой 1 ₽ списывали
+             * те же 20 ₽ (платёж 149 на проде, 15.09). Берём меньшее:
+             * подписка остаётся скидкой, а не наценкой.
+             */
+            $subscriberPrice = $category && $category->subscriber_listing_price_cents !== null
+                ? (int) $category->subscriber_listing_price_cents
+                : ListingPlacementConfig::subscriberDefaultPriceCents();
 
-            if ($freeListingsRemaining > 0) {
-                $priceAfterSubscription = 0;
-                $freeReason = 'subscription_quota';
-            } else {
-                /*
-                 * Подписка не может сделать размещение дороже.
-                 *
-                 * Цена подписчика применялась поверх категорийной, даже когда
-                 * та ниже: в бесплатной категории подписчик платил 20 ₽, а
-                 * человек без подписки — ноль; в «ил 6» с ценой 1 ₽ списывали
-                 * те же 20 ₽ (платёж 149 на проде, 15.09). Берём меньшее:
-                 * подписка остаётся скидкой, а не наценкой.
-                 */
-                $subscriberPrice = $category && $category->subscriber_listing_price_cents !== null
-                    ? (int) $category->subscriber_listing_price_cents
-                    : ListingPlacementConfig::subscriberDefaultPriceCents();
-
-                $priceAfterSubscription = min($baseCents, max(0, $subscriberPrice));
-                $subscriberAdjustment = $priceAfterSubscription - $baseCents;
-                if ($priceAfterSubscription === 0) {
-                    $freeReason = 'subscriber_price';
-                }
-            }
+            $priceAfterSubscription = min($baseCents, max(0, $subscriberPrice));
+            $subscriberAdjustment = $priceAfterSubscription - $baseCents;
         }
 
         $promoDiscount = 0;
@@ -86,13 +88,31 @@ class ListingPlacementPricingService
             }
         }
 
-        $finalCents = max(0, $priceAfterSubscription - $promoDiscount);
-        if ($finalCents === 0 && $promoDiscount > 0) {
-            $freeReason ??= 'promocode';
-        }
+        $priceCents = max(0, $priceAfterSubscription - $promoDiscount);
+        $finalCents = $priceCents;
+        $freeReason = null;
 
+        $personalRemaining = $user->personalFreeListingsRemaining();
+        $planRemaining = null;
+        if ($subscription) {
+            $planQuota = (int) ($subscription->plan->free_listings_per_month ?? 0);
+            $planRemaining = max(0, $planQuota - $this->freePlacementsUsedThisMonth($user));
+        }
         $credits = (int) ($user->listing_placement_credits ?? 0);
-        if ($credits >= 1 && $finalCents > 0) {
+
+        if ($priceCents === 0) {
+            $freeReason = match (true) {
+                $baseCents === 0 => 'free_category',
+                $promoDiscount > 0 => 'promocode',
+                default => 'subscriber_price',
+            };
+        } elseif ($personalRemaining === null || $personalRemaining > 0) {
+            $finalCents = 0;
+            $freeReason = 'personal_quota';
+        } elseif (($planRemaining ?? 0) > 0) {
+            $finalCents = 0;
+            $freeReason = 'subscription_quota';
+        } elseif ($credits >= 1) {
             $finalCents = 0;
             $freeReason = 'listing_credit';
         }
@@ -102,55 +122,21 @@ class ListingPlacementPricingService
             'subscriber_adjustment_cents' => $subscriberAdjustment,
             'price_after_subscription_cents' => $priceAfterSubscription,
             'promo_discount_cents' => $promoDiscount,
+            // Цена до квот и кредита — её списывает кредит и её платят.
+            'price_cents' => $priceCents,
             'final_cents' => $finalCents,
             'currency' => config('billing.currency', 'RUB'),
             'is_free' => $finalCents === 0,
             'free_reason' => $finalCents === 0 ? $freeReason : null,
-            'free_listings_remaining' => $freeListingsRemaining,
+            'free_listings_remaining' => $planRemaining,
+            'personal_free_listings_remaining' => $personalRemaining,
+            'personal_free_listings_unlimited' => $personalRemaining === null,
             'listing_placement_credits' => $credits,
             'has_active_subscription' => $subscription !== null,
             'category_id' => $category?->id,
             'category_name' => $category?->name,
             'promocode' => $promocodePayload,
         ];
-    }
-
-    public function assertCanPublish(User $user, ?int $categoryId, ?int $subcategoryId, ?string $promocodeCode, ?string $placementPaymentUuid): array
-    {
-        if (! ListingPlacementConfig::paymentEnabled()) {
-            return ['final_cents' => 0, 'is_free' => true, 'promocode' => null];
-        }
-
-        $quote = $this->quote($user, $categoryId, $subcategoryId, $promocodeCode);
-
-        // Нулевая цена от кредита — не бесплатность: кредит списывается ниже.
-        // До 15.09 здесь был ранний возврат, и кредит не тратился (ДФ-5).
-        if ($quote['final_cents'] === 0 && ($quote['free_reason'] ?? null) !== 'listing_credit') {
-            return $quote;
-        }
-
-        if ($placementPaymentUuid) {
-            $payment = Payment::query()
-                ->where('uuid', $placementPaymentUuid)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if ($payment && $payment->status === 'paid' && $this->paymentMatchesQuote($payment, $quote, $categoryId, $subcategoryId)) {
-                return $quote;
-            }
-        }
-
-        $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-        if ($locked->listing_placement_credits >= 1) {
-            $locked->decrement('listing_placement_credits');
-
-            return array_merge($quote, ['used_legacy_credit' => true]);
-        }
-
-        throw \Illuminate\Validation\ValidationException::withMessages([
-            'publish' => ['Для публикации требуется оплата размещения.'],
-            'placement_quote' => [$quote],
-        ]);
     }
 
     /**
@@ -171,6 +157,12 @@ class ListingPlacementPricingService
          * Без этой ветки человек, опубликовавший по кредиту, после возврата
          * в черновик снова упирался в оплату.
          */
+        // Размещение, покрытое квотой, тоже уже состоялось: повторная
+        // публикация того же объявления вторую единицу квоты не тратит.
+        if (in_array($listing->placement_free_reason, ['personal_quota', 'subscription_quota'], true)) {
+            return true;
+        }
+
         if (! $listing->placement_payment_id) {
             return ! $listing->placement_was_free && (int) $listing->placement_amount_cents > 0;
         }
@@ -193,39 +185,6 @@ class ListingPlacementPricingService
         $quote = $this->quote($user, $listing->category_id, $listing->subcategory_id);
 
         return (int) $payment->amount_cents >= (int) $quote['final_cents'];
-    }
-
-    /** @param array<string, mixed> $quote */
-    public function applyPlacementToListing(Listing $listing, User $user, array $quote, ?Payment $payment = null, ?Promocode $promocode = null): void
-    {
-        $listing->placement_was_free = (bool) ($quote['is_free'] ?? false);
-        $listing->placement_amount_cents = $payment?->amount_cents ?? ($quote['final_cents'] ?? 0);
-
-        if ($payment) {
-            $listing->placement_payment_id = $payment->id;
-        }
-
-        if ($promocode) {
-            $listing->placement_promocode_id = $promocode->id;
-            $this->promocodes->recordUsage($promocode, $user, $payment?->id);
-        }
-    }
-
-    private function paymentMatchesQuote(Payment $payment, array $quote, ?int $categoryId, ?int $subcategoryId): bool
-    {
-        if (($payment->metadata['payable_type'] ?? null) !== 'listing_placement') {
-            return false;
-        }
-
-        if ((int) $payment->amount_cents !== (int) $quote['final_cents']) {
-            return false;
-        }
-
-        $metaCategory = $payment->metadata['category_id'] ?? null;
-        $metaSub = $payment->metadata['subcategory_id'] ?? null;
-
-        return (int) ($metaCategory ?? 0) === (int) ($categoryId ?? 0)
-            && (int) ($metaSub ?? 0) === (int) ($subcategoryId ?? 0);
     }
 
     private function resolveCategory(?int $categoryId, ?int $subcategoryId): ?ListingCategory
@@ -284,11 +243,16 @@ class ListingPlacementPricingService
         $start = now()->startOfMonth();
         $end = now()->endOfMonth();
 
-        return Listing::query()
+        // Только то, что покрыла квота тарифа. До 19.09 считались все
+        // бесплатные размещения, включая бесплатные категории, — квота
+        // тратилась на то, что и так ничего не стоило. Старые строки без
+        // причины не считаются: квоты тарифов до 19.09 были нулевыми.
+        // По моменту размещения, а не публикации: объявление на модерации ещё
+        // не опубликовано, но квоту уже заняло.
+        return Listing::withTrashed()
             ->where('user_id', $user->id)
-            ->where('placement_was_free', true)
-            ->whereNotNull('published_at')
-            ->whereBetween('published_at', [$start, $end])
+            ->where('placement_free_reason', 'subscription_quota')
+            ->whereBetween('placement_covered_at', [$start, $end])
             ->count();
     }
 }

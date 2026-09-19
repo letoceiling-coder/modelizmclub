@@ -104,7 +104,7 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     !isDemoMode() &&
     !isGuest &&
     !needsPhone &&
-    !isStaffUser(me) &&
+    me.subscriptionExempt !== true &&
     !subLoading &&
     sub?.is_active !== true;
   const [config, setConfig] = useState<FeedGuestAccessConfig | null>(() =>
@@ -158,8 +158,10 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
 
   const isAllowed = useCallback(
     (actionKey: string) => {
-      if (isDemoMode() || isStaffUser(me)) return true;
+      if (isDemoMode()) return true;
       if (isGuest) return isActionAllowedForTier(actionKey, "guest", config);
+      // Льгота «подписка не требуется» — тот же уровень, что у подписчика.
+      if (me.subscriptionExempt === true) return true;
       if (subLoading) return isActionAllowedForTier(actionKey, "auth", config);
       const userTier: AccessTier = sub?.is_active === true ? "subscription" : "auth";
       return isActionAllowedForTier(actionKey, userTier, config);

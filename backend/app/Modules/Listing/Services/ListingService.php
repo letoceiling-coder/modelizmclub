@@ -346,6 +346,8 @@ class ListingService
                 'placement_payment_id' => $placementMeta['placement_payment_id'] ?? null,
                 'placement_amount_cents' => $placementMeta['placement_amount_cents'] ?? null,
                 'placement_was_free' => $placementMeta['placement_was_free'] ?? false,
+                'placement_free_reason' => $placementMeta['placement_free_reason'] ?? null,
+                'placement_covered_at' => $placementMeta === [] ? null : now(),
                 'placement_promocode_id' => $placementMeta['placement_promocode_id'] ?? null,
             ]);
 
@@ -485,6 +487,12 @@ class ListingService
             $listing->placement_payment_id = $placementMeta['placement_payment_id'] ?? $listing->placement_payment_id;
             $listing->placement_amount_cents = $placementMeta['placement_amount_cents'] ?? $listing->placement_amount_cents;
             $listing->placement_was_free = $placementMeta['placement_was_free'] ?? $listing->placement_was_free;
+            if (array_key_exists('placement_free_reason', $placementMeta)) {
+                $listing->placement_free_reason = $placementMeta['placement_free_reason'];
+            }
+            if ($placementMeta !== []) {
+                $listing->placement_covered_at = now();
+            }
             $listing->placement_promocode_id = $placementMeta['placement_promocode_id'] ?? $listing->placement_promocode_id;
 
             if (($placementMeta['record_promocode'] ?? null) instanceof Promocode) {
@@ -788,18 +796,18 @@ class ListingService
             return [$status, $publishedAt, ['placement_was_free' => true, 'placement_amount_cents' => 0]];
         }
 
-        $pricing = app(ListingPlacementPricingService::class);
-        $quote = $pricing->quote(
-            $user,
-            isset($data['category_id']) ? (int) $data['category_id'] : null,
-            isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
-            $data['promocode'] ?? null,
-        );
+        $quote = $this->placementQuote($user, $data);
 
-        if (($quote['promocode']['error'] ?? null) !== null) {
-            throw ValidationException::withMessages([
-                'promocode' => [$quote['promocode']['error']],
-            ]);
+        /*
+         * Персональная квота — первой (решение 19.09). Котировка её только
+         * показывает, списывает создание: условным UPDATE, как кредит, чтобы
+         * две вкладки не опубликовали по одной оставшейся единице два
+         * объявления. Если единицу успели потратить, котировка считается
+         * заново — уже без квоты, дальше по порядку: тариф, кредит, оплата.
+         */
+        if (($quote['free_reason'] ?? null) === 'personal_quota' && ! $this->consumePersonalQuota($user)) {
+            $user->refresh();
+            $quote = $this->placementQuote($user, $data);
         }
 
         $promocode = null;
@@ -824,7 +832,7 @@ class ListingService
                 ->where('listing_placement_credits', '>=', 1)
                 ->decrement('listing_placement_credits');
 
-            $pricedCents = max(0, (int) $quote['price_after_subscription_cents'] - (int) $quote['promo_discount_cents']);
+            $pricedCents = (int) $quote['price_cents'];
 
             if ($consumed === 1) {
                 [$status, $publishedAt] = $this->gatePublishStatus();
@@ -837,6 +845,7 @@ class ListingService
                     [
                         'placement_was_free' => false,
                         'placement_amount_cents' => $pricedCents,
+                        'placement_free_reason' => null,
                     ],
                 ];
             }
@@ -853,8 +862,11 @@ class ListingService
                 [
                     'placement_was_free' => true,
                     'placement_amount_cents' => 0,
-                    'placement_promocode_id' => $promocode?->id,
-                    'record_promocode' => $promocode,
+                    'placement_free_reason' => $quote['free_reason'] ?? null,
+                    // Квота покрыла размещение раньше промокода — промокод не
+                    // потрачен и в использованные не записывается.
+                    'placement_promocode_id' => $this->promoSpent($quote) ? $promocode?->id : null,
+                    'record_promocode' => $this->promoSpent($quote) ? $promocode : null,
                 ],
             ];
         }
@@ -904,6 +916,54 @@ class ListingService
         throw ValidationException::withMessages([
             'publish' => ['Для публикации объявления нужна оплата.'],
         ])->errorBag('default');
+    }
+
+    /**
+     * Котировка для создания объявления; ошибка промокода — отказ.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function placementQuote(User $user, array $data): array
+    {
+        $quote = app(ListingPlacementPricingService::class)->quote(
+            $user,
+            isset($data['category_id']) ? (int) $data['category_id'] : null,
+            isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
+            $data['promocode'] ?? null,
+        );
+
+        if (($quote['promocode']['error'] ?? null) !== null) {
+            throw ValidationException::withMessages([
+                'promocode' => [$quote['promocode']['error']],
+            ]);
+        }
+
+        return $quote;
+    }
+
+    /** Списать единицу персональной квоты; «без ограничения» тоже считается. */
+    private function consumePersonalQuota(User $user): bool
+    {
+        return User::query()
+            ->whereKey($user->id)
+            ->where(function ($q): void {
+                $q->where('free_listings_unlimited', true)
+                    ->orWhereColumn('free_listings_used', '<', 'free_listings_quota');
+            })
+            ->increment('free_listings_used') === 1;
+    }
+
+    /**
+     * Промокод потрачен, только если это он сделал цену нулевой. Когда
+     * размещение покрыла квота, промокод остаётся человеку.
+     *
+     * @param  array<string, mixed>  $quote
+     */
+    private function promoSpent(array $quote): bool
+    {
+        return in_array($quote['free_reason'] ?? null, ['promocode', 'subscriber_price', 'free_category'], true)
+            && (int) ($quote['promo_discount_cents'] ?? 0) > 0;
     }
 
     /** @return array{0: ListingStatus, 1: Carbon|null} */

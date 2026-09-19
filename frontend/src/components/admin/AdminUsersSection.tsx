@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, Ban, Trash2 } from "lucide-react";
+import { Eye, Ban, Trash2, Ticket } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -11,11 +11,12 @@ import {
   updateAdminUser,
   deleteAdminUser,
   setAdminUserSubscription,
+  changeAdminUserListingCredits,
   type AdminUserRow,
 } from "@/lib/api/admin";
 import { H, card, inputStyle, IconBtn } from "@/components/admin/adminShared";
 import { SubscriptionCell } from "@/components/admin/AdminDashboardSection";
-import { askConfirm } from "@/lib/ui/ask";
+import { askConfirm, askText } from "@/lib/ui/ask";
 import { reportReadFailure } from "@/lib/errors/handle";
 
 export function UsersSection() {
@@ -86,6 +87,34 @@ export function UsersSection() {
       toast.error(formatApiErrorMessage(err, "Не удалось изменить подписку"));
     } finally {
       setSavingSubscription(null);
+    }
+  };
+
+  // Кредит — оплаченное заранее размещение. Начислить или списать может
+  // только Владелец; причина обязательна и уходит в журнал изменений.
+  const changeCredits = async (target: AdminUserRow) => {
+    const raw = await askText({
+      title: t("pages.adminUsers.creditsTitle", { name: target.name }),
+      description: t("pages.adminUsers.creditsHint", { count: target.listingCredits }),
+      placeholder: "1",
+      defaultValue: "1",
+    });
+    if (raw === null) return;
+    const amount = Number.parseInt(raw.trim(), 10);
+    if (!Number.isFinite(amount) || amount === 0) {
+      toast.error(t("pages.adminUsers.creditsInvalid"));
+      return;
+    }
+    const reason = (await askText({ title: t("pages.adminUsers.creditsReason") }))?.trim();
+    if (!reason) return;
+    try {
+      const credits = await changeAdminUserListingCredits(target.uuid, amount, reason);
+      setUsers((prev) =>
+        prev.map((u) => (u.uuid === target.uuid ? { ...u, listingCredits: credits } : u)),
+      );
+      toast.success(t("pages.adminUsers.creditsSaved", { count: credits }));
+    } catch (err) {
+      toast.error(formatApiErrorMessage(err, t("pages.adminUsers.creditsFailed")));
     }
   };
 
@@ -333,6 +362,14 @@ export function UsersSection() {
                       >
                         <Eye size={14} />
                       </IconBtn>
+                      {isOwner && (
+                        <IconBtn
+                          onClick={() => void changeCredits(u)}
+                          title={t("pages.adminUsers.creditsButton", { count: u.listingCredits })}
+                        >
+                          <Ticket size={14} />
+                        </IconBtn>
+                      )}
                       {(isOwner || u.role === "user") && (
                         <IconBtn danger onClick={() => toggle(u.uuid)}>
                           <Ban size={14} />

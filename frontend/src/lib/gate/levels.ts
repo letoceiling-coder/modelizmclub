@@ -1,6 +1,6 @@
 import type { Session } from "@/lib/session";
 import { isVerifiedRequiredAction } from "@/lib/feed-guest-access/routes";
-import { isPhoneVerificationRequired, isPhoneVerified, isStaffUser } from "@/lib/auth/verification";
+import { isPhoneVerificationRequired, isPhoneVerified } from "@/lib/auth/verification";
 
 /** The access ladder. Every gate asks for exactly one rung. */
 export type Level = "guest" | "registered" | "verified" | "subscriber";
@@ -22,7 +22,8 @@ export function meets(have: Level, need: Level): boolean {
 export function levelOf(session: Session | null | undefined): Level {
   if (!session || session.user.id === "guest") return "guest";
   const user = session.user;
-  if (isStaffUser(user) || session.subscription.active) return "subscriber";
+  // Не роль, а льгота на человека: Владелец может снять её и с сотрудника.
+  if (user.subscriptionExempt === true || session.subscription.active) return "subscriber";
   if (session.phoneVerified || isPhoneVerified(user) || !isPhoneVerificationRequired(user))
     return "verified";
   return "registered";

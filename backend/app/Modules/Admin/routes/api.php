@@ -41,6 +41,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUserListingCreditsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserSubscriptionController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
@@ -149,6 +150,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
     Route::middleware('admin.section:users.manage')->group(function (): void {
         Route::get('users/{id}/payout-requisites', AdminUserPayoutRequisitesController::class)->whereNumber('id');
         Route::post('users/{uuid}/subscription', AdminUserSubscriptionController::class)->where('uuid', '[0-9a-f-]{36}');
+        Route::post('users/{uuid}/listing-credits', AdminUserListingCreditsController::class)->where('uuid', '[0-9a-f-]{36}');
     });
 
     Route::middleware('admin.section:reviewCategories')->group(function (): void {

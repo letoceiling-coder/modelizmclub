@@ -23,6 +23,8 @@ export interface User {
   online?: boolean;
   lastSeenAt?: string;
   isAdmin?: boolean;
+  /** Льгота «подписка не требуется»: закрытое подпиской открыто. */
+  subscriptionExempt?: boolean;
   firstHundred?: boolean;
   /** Server-only fields carried through from ApiUser for settings.account.tsx
    *  (phone/social links/email-verification status) — not part of the core

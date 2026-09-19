@@ -9,7 +9,11 @@ export interface PlacementQuote {
   currency: string;
   is_free: boolean;
   free_reason: string | null;
+  /** Месячная квота тарифа подписки; null — подписки нет. */
   free_listings_remaining: number | null;
+  /** Персональная квота; null — без ограничения. */
+  personal_free_listings_remaining?: number | null;
+  personal_free_listings_unlimited?: boolean;
   listing_placement_credits?: number;
   has_active_subscription: boolean;
   category_id: number | null;

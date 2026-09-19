@@ -12,7 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Gate write-actions behind an active subscription (spec v4.0 §1.3).
  *
  * Viewing content (reviews, landing, catalog) stays open; publishing content,
- * messaging and calls require a subscription. Moderators/admins bypass.
+ * messaging and calls require a subscription. The per-person exemption
+ * «подписка не требуется» (staff by default) bypasses.
  *
  * С ключом действия (`requiresSubscription:feed.compose.open`) подписка
  * нужна, только если в карте доступа у этого действия уровень
@@ -48,7 +49,7 @@ class RequiresSubscription
 
         $satisfied = $action !== null
             ? $this->access->subscriptionSatisfied($user, $action)
-            : $user->isModerator() || $user->hasActiveSubscription();
+            : $user->hasSubscriptionAccess();
 
         if (! $satisfied) {
             return response()->json([
