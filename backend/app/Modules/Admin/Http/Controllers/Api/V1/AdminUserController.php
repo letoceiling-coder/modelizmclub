@@ -94,7 +94,8 @@ class AdminUserController extends Controller
         // входят в fillable модели, чтобы их не задел ни один другой путь.
         // Смена роли сама выставит льготы по умолчанию (User::booted), если
         // в этом же запросе они не заданы явно.
-        $user->forceFill($request->validated());
+        $user->forceFill($request->validated())
+            ->pinPrivileges(array_keys($request->validated()));
         $user->save();
 
         $audit->log($request->user(), 'admin.users.update', $user, $old, $user->only($tracked), $request);

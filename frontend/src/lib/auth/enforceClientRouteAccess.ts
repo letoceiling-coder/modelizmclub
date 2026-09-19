@@ -2,7 +2,7 @@ import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensureSession } from "@/lib/auth/session";
 import { fetchMe } from "@/lib/api/auth";
-import { isPhoneVerified, isPhoneVerificationRequired, isStaffUser } from "@/lib/auth/verification";
+import { isPhoneVerified, isPhoneVerificationRequired } from "@/lib/auth/verification";
 import {
   isAdminRoute,
   isAlwaysPublicRoute,
@@ -108,7 +108,9 @@ export async function enforceClientRouteAccess(
 
   if (minTier === "subscription") {
     const user = getSessionUser();
-    if (isStaffUser(user)) return null;
+    // Льгота «подписка не требуется», а не роль: Владелец снимает её и с
+    // сотрудника, и выдаёт любому.
+    if (user.subscriptionExempt === true) return null;
     const sub = await getMySubscription();
     if (sub?.is_active === true) return null;
     return gateRoute("subscriber", pathname);

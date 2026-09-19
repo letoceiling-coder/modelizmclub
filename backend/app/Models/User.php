@@ -28,6 +28,22 @@ class User extends Authenticatable
     use Notifiable;
     use SoftDeletes;
 
+    /**
+     * Льготы, заданные в этом сохранении явно, — их смена роли не трогает.
+     * Не атрибут модели: живёт до ближайшего сохранения.
+     *
+     * @var list<string>
+     */
+    public array $pinnedPrivileges = [];
+
+    /** @param  list<string>  $fields */
+    public function pinPrivileges(array $fields): static
+    {
+        $this->pinnedPrivileges = array_values(array_intersect($fields, RolePrivileges::FIELDS));
+
+        return $this;
+    }
+
     protected $fillable = [
         'uuid',
         'name',
@@ -86,13 +102,17 @@ class User extends Authenticatable
             // Смена роли выставляет льготы по умолчанию (RolePrivileges), но
             // не перебивает то, что в этом же сохранении задано явно: так
             // Владелец назначает роль и сразу правит квоту одним запросом.
+            // «Явно» — изменённое поле или закреплённое (pinPrivileges):
+            // значение, совпавшее с прежним, грязным не считается, а
+            // перезаписывать его умолчанием нельзя.
             if ($user->isDirty('role') && $user->role instanceof UserRole) {
                 foreach (RolePrivileges::defaultsFor($user->role) as $field => $value) {
-                    if (! $user->isDirty($field)) {
+                    if (! $user->isDirty($field) && ! in_array($field, $user->pinnedPrivileges, true)) {
                         $user->{$field} = $value;
                     }
                 }
             }
+            $user->pinnedPrivileges = [];
         });
     }
 

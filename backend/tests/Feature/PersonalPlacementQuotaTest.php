@@ -6,12 +6,14 @@ use App\Enums\ListingStatus;
 use App\Enums\UserStatus;
 use App\Models\Listing;
 use App\Models\ListingCategory;
+use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\UserSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Listing\Services\ListingService;
 use Tests\TestCase;
@@ -192,6 +194,65 @@ class PersonalPlacementQuotaTest extends TestCase
 
         $this->assertSame(1, (int) $user->fresh()->free_listings_used);
         $this->assertNotSame(ListingStatus::Unpublished, $listing->fresh()->status);
+    }
+
+    private function paidPlacement(User $user, array $metadata): Payment
+    {
+        return Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'amount_cents' => 3000,
+            'currency' => 'RUB',
+            'status' => 'paid',
+            'provider' => 'stub',
+            'idempotency_key' => 'k-'.uniqid(),
+            'paid_at' => now(),
+            'metadata' => array_merge(['payable_type' => 'listing_placement'], $metadata),
+        ]);
+    }
+
+    /**
+     * Одна оплата — одно размещение. До 19.09 оплаченный платёж принимался
+     * по uuid без проверки, на что он уже потрачен, и прямым запросом одна
+     * оплата публиковала сколько угодно объявлений.
+     */
+    public function test_a_paid_placement_cannot_be_reused_for_other_listings(): void
+    {
+        $user = $this->seller();
+        // Оплата без объявления — она стала кредитом, и кредит уже потрачен.
+        $credited = $this->paidPlacement($user, ['granted_listing_credit' => true]);
+
+        try {
+            app(ListingService::class)->create($user, [
+                'category_id' => $this->categoryId,
+                'title' => 'Модель '.uniqid(),
+                'description' => 'Попытка второй раз по той же оплате.',
+                'price_cents' => 150000,
+                'delivery_methods' => ['Почта России'],
+                'publish' => true,
+                'placement_payment_uuid' => $credited->uuid,
+            ]);
+            $this->fail('оплата, ставшая кредитом, опубликовала объявление');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('publish', $e->errors());
+        }
+
+        // Оплата, оформленная на черновик A, публикует A и не публикует B.
+        $service = app(ListingService::class);
+        $draftA = $service->create($user, ['category_id' => $this->categoryId, 'title' => 'A '.uniqid(), 'description' => 'Черновик A для проверки.', 'price_cents' => 1000, 'delivery_methods' => ['Почта России'], 'publish' => false]);
+        $draftB = $service->create($user, ['category_id' => $this->categoryId, 'title' => 'B '.uniqid(), 'description' => 'Черновик B для проверки.', 'price_cents' => 1000, 'delivery_methods' => ['Почта России'], 'publish' => false]);
+        $forA = $this->paidPlacement($user, ['listing_uuid' => $draftA->uuid]);
+
+        try {
+            $service->setStatus($draftB, $user, ListingStatus::Published, ['placement_payment_uuid' => $forA->uuid]);
+            $this->fail('оплата за A опубликовала B');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('publish', $e->errors());
+        }
+
+        $published = $service->setStatus($draftA->fresh(), $user, ListingStatus::Published, ['placement_payment_uuid' => $forA->uuid]);
+        $this->assertSame($forA->id, (int) $published->placement_payment_id);
+        $this->assertNotNull($published->placement_covered_at);
     }
 
     public function test_plan_quota_is_not_eaten_by_free_categories(): void

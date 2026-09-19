@@ -38,9 +38,10 @@ use Illuminate\Support\Facades\Schema;
  * прошла, квота не уменьшалась, и можно было разместить бесплатно больше,
  * чем даёт тариф.
  *
- * Действующим Владельцам и модераторам — умолчания их ролей: подписка не
- * требуется, размещений без ограничения. Так они не теряют того, что роль
- * давала им до сих пор.
+ * Действующим сотрудникам — умолчания их ролей (RolePrivileges): Владельцам
+ * и модераторам подписка не требуется и размещений без ограничения — так
+ * они не теряют того, что роль давала им до сих пор; администраторам
+ * направлений — подписка не требуется и 10 размещений.
  */
 return new class extends Migration
 {
@@ -61,6 +62,9 @@ return new class extends Migration
         DB::table('users')
             ->whereIn('role', ['owner', 'moderator'])
             ->update(['subscription_exempt' => true, 'free_listings_unlimited' => true]);
+        DB::table('users')
+            ->where('role', 'category_admin')
+            ->update(['subscription_exempt' => true, 'free_listings_quota' => 10]);
     }
 
     public function down(): void

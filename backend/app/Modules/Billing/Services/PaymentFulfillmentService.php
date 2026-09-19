@@ -90,6 +90,8 @@ class PaymentFulfillmentService
                     'placement_payment_id' => $payment->id,
                     'placement_amount_cents' => $payment->amount_cents,
                     'placement_was_free' => false,
+                    'placement_free_reason' => null,
+                    'placement_covered_at' => now(),
                 ]);
 
                 $promocodeId = $payment->metadata['promocode_id'] ?? null;

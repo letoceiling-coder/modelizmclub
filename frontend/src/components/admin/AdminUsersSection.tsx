@@ -100,8 +100,8 @@ export function UsersSection() {
       defaultValue: "1",
     });
     if (raw === null) return;
-    const amount = Number.parseInt(raw.trim(), 10);
-    if (!Number.isFinite(amount) || amount === 0) {
+    const amount = /^-?\d+$/.test(raw.trim()) ? Number(raw.trim()) : 0;
+    if (amount === 0) {
       toast.error(t("pages.adminUsers.creditsInvalid"));
       return;
     }

@@ -87,6 +87,27 @@ class UserPrivilegesTest extends TestCase
         $this->assertSame(4, $fresh->free_listings_used);
     }
 
+    /**
+     * Явное значение, совпавшее с прежним, — тоже решение Владельца: смена
+     * роли в том же запросе не заменяет его умолчанием.
+     */
+    public function test_explicit_value_equal_to_the_current_one_survives_a_role_change(): void
+    {
+        $owner = $this->person(UserRole::Owner);
+        $target = $this->person();
+        $this->assertFalse($target->subscription_exempt);
+
+        $this->actingAs($owner, 'sanctum')
+            ->patchJson("/api/v1/admin/users/{$target->uuid}", [
+                'role' => 'moderator',
+                'subscription_exempt' => false,
+                'free_listings_quota' => 0,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.subscription_exempt', false)
+            ->assertJsonPath('data.free_listings_unlimited', true);
+    }
+
     public function test_only_the_owner_edits_privileges(): void
     {
         $moderator = $this->person(UserRole::Moderator);

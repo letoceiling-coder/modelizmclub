@@ -7,7 +7,7 @@ import { EntityRequestForm } from "@/components/entity-requests/EntityRequestFor
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { useGate } from "@/lib/gate";
 import { useCurrentUser } from "@/lib/session";
-import { isFullyVerified, isStaffUser } from "@/lib/auth/verification";
+import { isFullyVerified } from "@/lib/auth/verification";
 import { useMySubscription } from "@/lib/subscription";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,8 @@ function ChannelNewPage() {
   // 13.09, D2). requirePremium открыл бы после номера ещё и paywall.
   const { require: requireLevel } = useGate();
   const { sub, loading: subLoading } = useMySubscription();
-  const eligible = isStaffUser(me) || isFullyVerified(me) || sub?.is_active === true;
+  // Как на сервере (ApplyChannelController::canApply): льгота или подписка, или номер.
+  const eligible = me.subscriptionExempt === true || isFullyVerified(me) || sub?.is_active === true;
 
   useEffect(() => {
     if (isGuest) {
