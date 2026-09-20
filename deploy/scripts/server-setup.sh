@@ -72,6 +72,13 @@ echo "==> nginx (HTTP)"
 cp "${APP_DIR}/deploy/nginx/${DOMAIN}.http.conf" "/etc/nginx/sites-available/${DOMAIN}"
 ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
 rm -f /etc/nginx/sites-enabled/default
+
+# Уловитель для чужих имён хоста. Не вхост, поэтому в conf.d, а не в
+# sites-available + симлинк: у него нет своего домена, и копия в обоих
+# местах означала бы `duplicate default server` — nginx не поднялся бы вовсе.
+# Ставится здесь, а не при выкатке: без него сайт отвечает на любое имя,
+# направленное на адрес (см. deploy/README.md, «nginx: репозиторий и сервер»).
+cp "${APP_DIR}/deploy/nginx/default-server.conf" /etc/nginx/conf.d/default-server.conf
 nginx -t
 systemctl enable nginx php8.3-fpm postgresql redis-server
 systemctl restart nginx php8.3-fpm

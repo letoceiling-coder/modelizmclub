@@ -441,9 +441,19 @@ chmod 640 backend/bootstrap/cache/config.php
 
 ## nginx: репозиторий и сервер
 
-Боевые конфиги лежат в `deploy/nginx/*.conf`. На сервере раскладка одна для
-всех: файл в `sites-available`, симлинк на него в `sites-enabled`. Обычный
-файл в `sites-enabled` — признак того, что источник правды раздвоился.
+Боевые конфиги лежат в `deploy/nginx/*.conf`. У вхостов раскладка одна: файл
+в `sites-available`, симлинк на него в `sites-enabled`. Обычный файл в
+`sites-enabled` — признак того, что источник правды раздвоился.
+
+Два файла вхостами не являются и живут в `conf.d`: `fpm-status.conf` и
+`default-server.conf`. Второй — уловитель: `default_server` на :80 и :443,
+закрывающий соединение (444) на имя хоста, которого у нас нет. До 20.09 его
+не было, и запрос с чужим доменом доставался первому по порядку загрузки
+блоку — сайт отвечал 200 под любым именем, направленным на адрес.
+
+Класть его в `sites-available` с симлинком **нельзя**: две загруженные копии
+дают `duplicate default server for 0.0.0.0:80`, и nginx не поднимется. Ставит
+его `server-setup.sh`; выкатка конфиги nginx не трогает вовсе.
 
 ```bash
 bash deploy/scripts/nginx-drift.sh      # что разошлось
@@ -906,6 +916,7 @@ psql -d modelizmclub_check -tAc \
 | --- | --- | --- |
 | `php-fpm/pool.d/www.conf` | `/etc/php/8.3/fpm/pool.d/www.conf` | Пул на 30 воркеров вместо пяти, `pm.status_path`, медленный лог с порогом 5 с |
 | `nginx/fpm-status.conf` | `/etc/nginx/conf.d/fpm-status.conf` | Счётчики пула на `127.0.0.1:8081`, наружу не смотрят |
+| `nginx/default-server.conf` | `/etc/nginx/conf.d/default-server.conf` | Уловитель чужих имён хоста: 444 вместо содержимого сайта. Ставит `server-setup.sh` |
 | `scripts/fpm-watch.sh` | `/usr/local/bin/fpm-watch.sh` | Раз в пять минут пишет счётчики в лог и поднимает тревогу при `max children reached` |
 | `cron/fpm-watch` | `/etc/cron.d/fpm-watch` | Запуск предыдущего |
 | `nginx/img.modelizmclub.ru.conf`, `nginx/livekit.modelizmclub.ru.conf`, `nginx/dev-cloude.modelizmclub.ru.conf` | `/etc/nginx/sites-available/` | Три вхоста, которых в репозитории не было |
