@@ -26,7 +26,18 @@ case "${1:-}" in
 esac
 
 FAILED=0
-code_of() { curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$@" 2>/dev/null || echo 000; }
+# Код ответа, или `000`, если ответа не было вовсе.
+#
+# Раньше здесь стоял `|| echo 000`, и на оборванном соединении печаталось
+# `000000`: curl выходит с ошибкой, но `-w` к этому моменту уже вывел свои
+# `000`, а `echo` дописывал вторые. Ни одна проверка не ждёт `000`, поэтому
+# на исход это не влияло — но строка отказа называла код, которого не было,
+# и увести могла далеко.
+code_of() {
+  local out
+  out="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$@" 2>/dev/null)"
+  printf '%s' "${out:-000}"
+}
 
 # The service has just been restarted, so give it a few seconds to bind before
 # calling it dead — but never more than RETRIES*SLEEP.
