@@ -2,6 +2,8 @@
 
 export {};
 
+import { swRoute } from "@/lib/sw/route";
+
 /**
  * Service worker МоДелизМ.
  *
@@ -12,8 +14,9 @@ export {};
  *  - прекеш оболочки (офлайн-страница, иконки, favicon) — список подставляет
  *    vite-plugin-pwa в self.__WB_MANIFEST при сборке;
  *  - /assets/** (файлы с хешем в имени) — stale-while-revalidate;
- *  - /api/** — network-first с таймаутом: медленная сеть не должна держать
- *    экран, поэтому через NETWORK_TIMEOUT_MS отдаём последний удачный ответ;
+ *  - /api/v1/media/** — мимо worker'а: кэшировать нельзя, гонка вредна;
+ *  - /api/** — network-first: через NETWORK_TIMEOUT_MS отдаём последний
+ *    удачный ответ, но саму сеть не бросаем — таймаут не отказ;
  *  - навигации — network-first с офлайн-страницей как запасным вариантом.
  *
  * Обновление не применяется молча: новый worker ждёт SKIP_WAITING, который
@@ -31,9 +34,24 @@ const API_CACHE = `modelizm-api-${VERSION}`;
 const KNOWN_CACHES = [SHELL_CACHE, ASSET_CACHE, API_CACHE];
 
 const OFFLINE_URL = "/offline.html";
+/**
+ * Через сколько отдать последний удачный ответ, не дожидаясь сети.
+ *
+ * Это срок ожидания, а не приговор: по его истечении мы отдаём кэш, если он
+ * есть, но саму сеть не бросаем. Раньше таймаут считался отказом, и медленный
+ * ответ был неотличим от пропавшей сети — см. `networkFirstApi`.
+ */
 const NETWORK_TIMEOUT_MS = 4000;
+/**
+ * Предел ожидания, за которым сеть считается мёртвой.
+ *
+ * Не четыре секунды: столько ждать нормально. Но и не бесконечность —
+ * см. `networkFirstApi`.
+ */
+const NETWORK_HARD_LIMIT_MS = 45_000;
 /** Ответы API стареют быстро — храним их только как «лучше, чем пустой экран». */
 const API_CACHE_MAX_ENTRIES = 60;
+/* MEDIA_PATH живёт рядом с решением о маршруте — см. lib/sw/route.ts. */
 
 const PRECACHE_URLS = Array.from(
   new Set([OFFLINE_URL, ...self.__WB_MANIFEST.map((entry) => entry.url)]),
@@ -97,28 +115,73 @@ async function staleWhileRevalidate(request: Request): Promise<Response> {
   return Response.error();
 }
 
-/** Сеть с таймаутом, иначе — последний удачный ответ. */
+/**
+ * Сеть с ожиданием, а не с приговором.
+ *
+ * Прежняя правка гоняла `fetch` наперегонки с таймаутом и считала проигрыш
+ * отказом: если ответа в кэше не было, человек получал синтезированный 503
+ * «Нет соединения» при живом сервере. В админском разделе «Медиа» так падала
+ * половина картинок: страница запрашивает полсотни файлов разом, и часть не
+ * укладывалась в четыре секунды (приёмка 21.09; в журнале nginx 503 за сутки
+ * было ровно ноль).
+ *
+ * Теперь таймаут — повод отдать кэш, а не бросить сеть:
+ *
+ *  - есть кэш и сеть не уложилась в срок — отдаём кэш, запрос продолжается
+ *    и обновит кэш к следующему разу;
+ *  - кэша нет — **ждём сеть сколько нужно**. Медленный ответ лучше ложного
+ *    «нет соединения»;
+ *  - сеть действительно отказала (`fetch` отклонился) — вот тогда кэш, а
+ *    если и его нет — 503.
+ */
 async function networkFirstApi(request: Request): Promise<Response> {
   const cache = await caches.open(API_CACHE);
-  try {
-    const response = (await Promise.race([
-      fetch(request.clone()),
-      timeout(NETWORK_TIMEOUT_MS),
-    ])) as Response;
+
+  const network = fetch(request.clone()).then((response) => {
     if (response.ok) {
       void cache
         .put(request, response.clone())
         .then(() => trimCache(API_CACHE, API_CACHE_MAX_ENTRIES));
     }
     return response;
-  } catch {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    return new Response(JSON.stringify({ message: "Нет соединения" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    });
+  });
+  // Отказ сети разбирается ниже; здесь гасим «unhandled rejection» у ветки,
+  // которую могли не дождаться.
+  network.catch(() => undefined);
+
+  const settled = await Promise.race([
+    network.then((r) => ({ ok: true as const, r })).catch(() => ({ ok: false as const })),
+    timeout(NETWORK_TIMEOUT_MS).then(
+      () => ({ slow: true as const }),
+      () => ({ slow: true as const }),
+    ),
+  ]);
+
+  if ("ok" in settled && settled.ok) return settled.r;
+
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  /*
+   * Кэша нет. Если это была лишь задержка — досматриваем сеть, но не вечно.
+   *
+   * У `fetch` своего срока нет, и залипшее соединение — перехватывающий
+   * портал, потерянная сота посреди запроса — держало бы экран без конца:
+   * промис не отклоняется, значит «Повторить» человеку никто не покажет.
+   * Настоящий офлайн сюда не попадает: там `fetch` отклоняется сразу.
+   */
+  if ("slow" in settled) {
+    try {
+      return (await Promise.race([network, timeout(NETWORK_HARD_LIMIT_MS)])) as Response;
+    } catch {
+      /* сеть отказала или залипла — ниже общий ответ */
+    }
   }
+
+  return new Response(JSON.stringify({ message: "Нет соединения" }), {
+    status: 503,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
 }
 
 /** Страницы всегда с сервера (SSR), офлайн — понятная заглушка. */
@@ -138,25 +201,40 @@ async function networkFirstPage(request: Request): Promise<Response> {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET") return;
+  // Само решение — в lib/sw/route.ts: оно чистое, и на нём стоят проверки.
+  const route = swRoute({
+    method: request.method,
+    mode: request.mode,
+    url: request.url,
+    selfOrigin: self.location.origin,
+  });
 
-  const url = new URL(request.url);
+  /*
+   * Медиа уходит мимо worker'а — `respondWith` для него не зовём вовсе.
+   *
+   * Вся починка была в том, чтобы убрать его из гонки с таймаутом; кэшировать
+   * его нельзя, и попытка это сделать была бы хуже прежнего дефекта:
+   *
+   *  - картинки грузятся обычным `<img src>` на чужой origin без
+   *    `crossorigin`, то есть режимом `no-cors`. Ответ выходит opaque:
+   *    `status: 0`, `ok: false` — класть в кэш нечего, и «кэш вперёд» никогда
+   *    бы не сработал. Отсюда же и сам дефект: запасного ответа по истечении
+   *    четырёх секунд не находилось, и рождался синтезированный 503;
+   *  - зато вложения споров идут через `openAuthorizedMedia` заголовком
+   *    `Authorization` — режимом `cors`, с настоящим 200. Доступ к ним
+   *    проверяет сервер (`ServeMediaController::mayViewPrivate`), а Cache API
+   *    сопоставляет только по адресу: `Vary` прокси не шлёт. То есть в кэш
+   *    легло бы ровно то единственное, чего кэшировать нельзя, и следующий
+   *    человек в этом браузере получил бы файл, минуя проверку прав;
+   *  - и там же видео с запросами диапазонов: `cache.put` на 206 отклоняется,
+   *    а полный 200 из кэша в ответ на `Range` ломает перемотку.
+   *
+   * Решение видно в `swRoute` и проверено: маршрут «медиа» существует не как
+   * стратегия, а как явный отказ от неё.
+   */
+  if (route === "media") return;
 
-  if (request.mode === "navigate") {
-    event.respondWith(networkFirstPage(request));
-    return;
-  }
-
-  // API живёт на отдельном хосте (api.modelizmclub.ru), поэтому проверяем путь
-  // до проверки origin — иначе правило не сработало бы в проде.
-  if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirstApi(request));
-    return;
-  }
-
-  if (url.origin !== self.location.origin) return;
-
-  if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/pwa/")) {
-    event.respondWith(staleWhileRevalidate(request));
-  }
+  if (route === "page") event.respondWith(networkFirstPage(request));
+  else if (route === "api") event.respondWith(networkFirstApi(request));
+  else if (route === "asset") event.respondWith(staleWhileRevalidate(request));
 });
