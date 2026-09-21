@@ -19,6 +19,7 @@ import { useNavigate } from "@tanstack/react-router";
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
+import { writeCookiePrefs } from "@/lib/cookie-consent";
 
 export const Route = createFileRoute("/settings/consents")({
   head: () => ({ meta: [{ title: `Мои согласия — ${i18n.t("common.appName")}` }] }),
@@ -49,6 +50,26 @@ function ConsentsSettingsPage() {
       await revokeConsent(type);
       await qc.invalidateQueries({ queryKey: ["my-consents"] });
       toast.success(t("pages.settings.consentsRevoked_toast"));
+
+      /*
+       * Отзыв согласия на cookie должен выключить счётчик, а не только
+       * записать отказ на сервере.
+       *
+       * До 22.09 выбор оставался в `localStorage` нетронутым: при следующем
+       * заходе `loadAnalyticsIfConsented` читал прежнее «аналитика — да» и
+       * запускал Вебвизор снова, уже после отзыва. В текущей вкладке он и не
+       * останавливался.
+       *
+       * Перезагрузка, а не выгрузка: снять `window.ym` мало — `tag.js` уже
+       * на странице и пишет запись своими слушателями. Убрать его
+       * по-настоящему может только новый документ.
+       */
+      if (type === "cookies" || type === "ads") {
+        writeCookiePrefs({ analytics: false, ads: false });
+        window.location.reload();
+
+        return;
+      }
     } catch (e) {
       toast.error(formatApiErrorMessage(e, t("pages.settings.consentsRevokeFailed")));
     } finally {

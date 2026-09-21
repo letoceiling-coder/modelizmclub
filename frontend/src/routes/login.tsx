@@ -13,12 +13,15 @@ import { resetSessionCache, syncFavoritesFromServer, ensureSession } from "@/lib
 import { isDemoMode } from "@/lib/demo-mode";
 import { readIntent } from "@/lib/gate/intent";
 import { ApiError } from "@/lib/api/client";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 type LoginSearch = {
   redirect?: string;
   oauth_token?: string;
   oauth_error?: string;
   oauth_provider?: string;
+  /** Учётка заведена этим самым входом — признак от сервера, для воронки. */
+  oauth_new?: string;
 };
 
 import i18n from "@/lib/i18n";
@@ -30,6 +33,7 @@ export const Route = createFileRoute("/login")({
     oauth_token: typeof s.oauth_token === "string" ? s.oauth_token : undefined,
     oauth_error: typeof s.oauth_error === "string" ? s.oauth_error : undefined,
     oauth_provider: typeof s.oauth_provider === "string" ? s.oauth_provider : undefined,
+    oauth_new: typeof s.oauth_new === "string" ? s.oauth_new : undefined,
   }),
   beforeLoad: async ({ search }) => {
     const { redirectIfAuthenticated } = await import("@/lib/auth/requireAuth");
@@ -59,7 +63,7 @@ function afterLoginTarget(redirectTo: string | undefined): string {
 function LoginPage() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  const { redirect: redirectTo, oauth_token, oauth_error } = Route.useSearch();
+  const { redirect: redirectTo, oauth_token, oauth_error, oauth_new } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -103,6 +107,15 @@ function LoginPage() {
         if (!alive) return;
         resetSessionCache();
         setCurrentUser(user);
+        /*
+         * Регистрация через провайдера — тоже регистрация.
+         *
+         * Цель стоит ещё в `verifyEmail`, то есть на пути «почта + код». Вход
+         * через VK, Яндекс или MAX заводит учётку и возвращается токеном,
+         * неотличимым от входа существующего, — без признака `oauth_new` от
+         * сервера доля этих регистраций молча выпадала бы из воронки.
+         */
+        if (oauth_new === "1") metrikaGoal(GOALS.signup);
         void syncFavoritesFromServer();
         toast.success(t("authPages.loginSuccess"));
         nav({ to: afterLoginTarget(redirectTo) as "/feed", replace: true });
@@ -118,7 +131,7 @@ function LoginPage() {
     return () => {
       alive = false;
     };
-  }, [oauth_token, oauth_error, nav, redirectTo, t]);
+  }, [oauth_token, oauth_error, oauth_new, nav, redirectTo, t]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

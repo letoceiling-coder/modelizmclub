@@ -51,7 +51,7 @@ export function CookieBanner() {
     } catch {
       /* local prefs still apply */
     }
-    loadAnalyticsIfConsented();
+    void loadAnalyticsIfConsented();
     loadAdsIfConsented();
   }
 

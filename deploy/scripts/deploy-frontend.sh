@@ -73,6 +73,19 @@ export VITE_REVERB_SCHEME="${VITE_REVERB_SCHEME:-https}"
 export VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://api.modelizmclub.ru/api/v1}"
 export VITE_DEMO_MODE="${VITE_DEMO_MODE:-false}"
 
+# Яндекс.Метрика: номер счётчика.
+#
+# Сборка идёт в отдельном рабочем дереве (ниже), поэтому неотслеживаемый
+# frontend/.env в неё не попадает — номер обязан приехать переменной
+# окружения. Без него `isMetrikaConfigured()` отвечает «нет», счётчик молча
+# не грузится, выкатка проходит зелёной, и узнать об этом можно только по
+# пустым отчётам через несколько дней.
+METRIKA_FROM_ENV="$(grep -s '^METRIKA_ID=' "${BACKEND_ENV}" | cut -d= -f2- | tr -d '"' | tr -d "'")"
+export VITE_METRIKA_ID="${VITE_METRIKA_ID:-${METRIKA_FROM_ENV}}"
+if [[ -z "${VITE_METRIKA_ID}" ]]; then
+  echo "предупреждение: VITE_METRIKA_ID не задан — сборка пойдёт без Метрики" >&2
+fi
+
 # Build in an isolated git worktree instead of the live frontend/ directory.
 # The old script ran `bun run build` straight into the live .output the
 # running Node process was still serving from — a request landing mid-build

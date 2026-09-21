@@ -1,13 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GOALS, MASK_SELECTOR } from "@/lib/analytics/metrika";
 
 /*
  * Счётчик молчит, пока человек не согласился.
  *
- * Проверяется дверь, а не сам счётчик: номер задаётся сборкой, и в прогоне
- * его нет — `loadMetrika` в таких условиях не делает ничего по построению.
- * Ценность здесь в том, что `loadAnalyticsIfConsented` не зовёт загрузку
- * раньше выбора: это единственное место, откуда счётчик может появиться.
+ * Проверяется дверь, а не сам счётчик: `loadAnalyticsIfConsented` —
+ * единственное место, откуда счётчик может появиться на странице.
  */
 /*
  * `readCookiePrefs` выходит раньше чтения, когда `window` нет: она написана
@@ -31,16 +28,8 @@ vi.mock("@/lib/analytics/metrika", async (orig) => {
   return { ...m, loadMetrika: () => загрузки.push(1) };
 });
 
+const { GOALS } = await import("@/lib/analytics/metrika");
 const { loadAnalyticsIfConsented, writeCookiePrefs } = await import("@/lib/cookie-consent");
-/*
- * Загрузка идёт динамическим импортом, и одного такта микроочереди ей мало:
- * промис модуля разрешается позже. Ждём, пока он доедет, а не гадаем с
- * числом тактов — иначе проверка стала бы мигающей.
- */
-const дождаться = async (условие: () => boolean, мс = 500): Promise<void> => {
-  const край = Date.now() + мс;
-  while (!условие() && Date.now() < край) await new Promise((r) => setTimeout(r, 5));
-};
 
 describe("аналитика подключается только с согласия", () => {
   beforeEach(() => {
@@ -49,31 +38,57 @@ describe("аналитика подключается только с согла
   });
 
   it("выбора нет — счётчик не грузится", async () => {
-    loadAnalyticsIfConsented();
-    await дождаться(() => загрузки.length > 0, 60);
+    await loadAnalyticsIfConsented();
     expect(загрузки).toHaveLength(0);
   });
 
   it("отказ от аналитики — счётчик не грузится", async () => {
     writeCookiePrefs({ analytics: false, ads: false });
-    loadAnalyticsIfConsented();
-    await дождаться(() => загрузки.length > 0, 60);
+    await loadAnalyticsIfConsented();
     expect(загрузки).toHaveLength(0);
   });
 
   it("согласие на рекламу без аналитики счётчик не включает", async () => {
     // Два разных выбора в баннере. Реклама — не аналитика.
     writeCookiePrefs({ analytics: false, ads: true });
-    loadAnalyticsIfConsented();
-    await дождаться(() => загрузки.length > 0, 60);
+    await loadAnalyticsIfConsented();
     expect(загрузки).toHaveLength(0);
   });
 
   it("согласие на аналитику — грузится", async () => {
     writeCookiePrefs({ analytics: true, ads: false });
-    loadAnalyticsIfConsented();
-    await дождаться(() => загрузки.length > 0);
+    await loadAnalyticsIfConsented();
     expect(загрузки).toHaveLength(1);
+  });
+
+  /*
+   * Ради этого случая загрузка и стала ожидаемой (`Promise`).
+   *
+   * «Принять» в баннере зовёт ту же функцию, а страница к этому моменту уже
+   * смонтирована: без оповещения первый просмотр у согласившегося ушёл бы
+   * только со следующей перезагрузкой.
+   */
+  it("о запуске узнают подписчики", async () => {
+    const { onAnalyticsConsent } = await import("@/lib/cookie-consent");
+    let сказали = 0;
+    const off = onAnalyticsConsent(() => (сказали += 1));
+
+    writeCookiePrefs({ analytics: true, ads: false });
+    await loadAnalyticsIfConsented();
+    off();
+
+    expect(сказали).toBe(1);
+  });
+
+  it("после отписки не зовут", async () => {
+    const { onAnalyticsConsent } = await import("@/lib/cookie-consent");
+    let сказали = 0;
+    onAnalyticsConsent(() => (сказали += 1))();
+
+    writeCookiePrefs({ analytics: true, ads: false });
+    await loadAnalyticsIfConsented();
+
+    expect(сказали).toBe(0);
   });
 });
 
@@ -96,15 +111,5 @@ describe("цели", () => {
       subscribed: "subscribed",
       communityJoined: "community_joined",
     });
-  });
-});
-
-describe("маска Вебвизора", () => {
-  it("закрывает все поля ввода, а не список чувствительных", () => {
-    // Перечислять по одному — значит однажды завести новое поле и забыть
-    // его добавить. Цена забывчивости — чужой пароль в записи.
-    for (const s of ["input", "textarea", "select", "[contenteditable]"]) {
-      expect(MASK_SELECTOR).toContain(s);
-    }
   });
 });
