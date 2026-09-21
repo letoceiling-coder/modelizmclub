@@ -299,10 +299,15 @@ class ModerationService
             return [$model->author ?? User::query()->find($model->user_id), 'moderation', 'Публикация '.$verb, '/feed'];
         }
         if ($model instanceof Listing) {
-            if ($decision === 'approved') {
-                return [null, 'listings', '', ''];
-            }
-
+            /*
+             * Одобрение объявления молчало, а отказ — нет.
+             *
+             * Человек, закрывший вкладку, об одобрении не узнавал вообще:
+             * колокольчик пуст, письма нет, а живое событие по личному каналу
+             * доходит только до открытого экрана. У записи в тех же условиях
+             * уведомление есть — ветка выше, — то есть молчало именно
+             * объявление, и молчало без причины (приёмка 21.09).
+             */
             return [$model->author ?? User::query()->find($model->user_id), 'listings', 'Объявление '.$verb, '/ads/'.$model->uuid];
         }
         if ($model instanceof Community) {

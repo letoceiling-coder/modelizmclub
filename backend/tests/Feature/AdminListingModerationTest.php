@@ -84,6 +84,45 @@ class AdminListingModerationTest extends TestCase
             ->value('status');
     }
 
+    /**
+     * Одобрение должно доходить до автора, а не только до очереди.
+     *
+     * До 21.09 `decisionTarget` на одобренном объявлении возвращал владельца
+     * `null`, и `InAppNotify` не звали вовсе: отказ уведомлял, одобрение
+     * молчало. Человек, закрывший вкладку, не узнавал об одобрении ничем —
+     * живое событие по личному каналу доходит только до открытого экрана.
+     *
+     * У записи ленты в тех же условиях уведомление было, то есть молчало
+     * именно объявление.
+     */
+    public function test_approval_notifies_the_author(): void
+    {
+        $admin = $this->seedUser(UserRole::Owner);
+        $seller = $this->seedUser();
+        $listing = $this->pendingListing($seller);
+
+        $this->actingAs($admin, 'sanctum')
+            ->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['status' => 'published'])
+            ->assertOk();
+
+        $this->assertSame(
+            1,
+            $seller->fresh()->notifications()->count(),
+            'автор должен получить уведомление об одобрении',
+        );
+        $notification = $seller->fresh()->notifications()->first();
+        $this->assertStringContainsString(
+            'одобрено',
+            (string) ($notification->data['title'] ?? ''),
+            'в уведомлении должно быть сказано, что именно случилось',
+        );
+        $this->assertStringContainsString(
+            $listing->uuid,
+            (string) ($notification->data['link'] ?? ''),
+            'ссылка должна вести на само объявление, а не в общий список',
+        );
+    }
+
     public function test_publishing_from_the_admin_editor_closes_the_queue_task(): void
     {
         $admin = $this->seedUser(UserRole::Owner);
