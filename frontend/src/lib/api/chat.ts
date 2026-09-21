@@ -82,6 +82,8 @@ interface ApiConversation {
   /** Курсор прочитанного: id — серверный, uuid — то, чем оперирует клиент. */
   last_read_message_id?: number | null;
   last_read_message_uuid?: string | null;
+  /** Личная переписка: вторая сторона вышла или её нет вовсе. */
+  peer_left?: boolean;
   community?: { slug?: string; name?: string; avatar?: string | null } | null;
   room?: { category_id?: number | null; slug?: string | null } | null;
   deal?: { uuid: string; status?: string | null; status_label?: string | null } | null;
@@ -277,6 +279,7 @@ export function mapConversation(c: ApiConversation, meUuid: string): Dialog {
           }
         : undefined,
     lastReadMessageId: c.last_read_message_uuid ?? undefined,
+    peerLeft: Boolean(c.peer_left),
     deal: c.deal
       ? {
           id: c.deal.uuid,

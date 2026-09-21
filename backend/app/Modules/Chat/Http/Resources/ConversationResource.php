@@ -34,10 +34,24 @@ class ConversationResource extends JsonResource
             : null;
 
         $title = $this->title;
+        /*
+         * Собеседник ушёл из личной переписки.
+         *
+         * Подписку на канал беседы даёт только `left_at IS NULL`, и живых
+         * сообщений ушедший не получает. До 21.09 отправитель об этом не знал
+         * ничего: письмо помечалось «отправлено» и оставалось таким навсегда.
+         * На проде такое сообщение нашлось ровно одно — но отличить «не
+         * прочитал» от «не услышит» было нельзя, а это разные вещи.
+         */
+        $peerLeft = false;
         if ($this->type === ConversationType::Direct && $user && $participants) {
             $other = $this->participants
                 ->first(fn ($p) => $p->user_id !== $user->id);
             $title = $other?->user?->profile?->display_name ?? $other?->user?->name ?? 'Диалог';
+            // Второй стороны может не быть вовсе: до нынешнего кода такие
+            // беседы заводились — девять штук на проде. Для отправителя это
+            // то же самое, что ушедший собеседник.
+            $peerLeft = $other === null || $other->left_at !== null;
         }
 
         $lastReadMessageId = $myParticipant?->last_read_message_id !== null
@@ -49,6 +63,7 @@ class ConversationResource extends JsonResource
             'can' => $this->canFlags($request->user(), ['view', 'send', 'delete', 'pin']),
             'type' => $this->type->value,
             'title' => $title,
+            'peer_left' => $peerLeft,
             'listing_id' => $this->listing_id,
             'listing' => $this->whenLoaded('listing', fn () => $this->listing
                 ? new ListingCompactResource($this->listing)

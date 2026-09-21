@@ -21,26 +21,63 @@ let watchdogTimer: ReturnType<typeof setInterval> | null = null;
 let lifecycleBound = false;
 let reconnectHooked = false;
 
-let convId: string | null = null;
-let convHandler: ((m: Message) => void) | null = null;
-let convDeleteHandler: ((messageUuid: string) => void) | null = null;
-let convUnsub: (() => void) | null = null;
+/*
+ * Подписки на беседы — по одной на идентификатор, а не одна на всё.
+ *
+ * Здесь стояла единственная ячейка `convId`/`convHandler`, и писали в неё два
+ * места: мессенджер и чат направления. Пока они разные маршруты и не живут
+ * одновременно, беды не было. Первый же чат, открытый поверх другого —
+ * мессенджер шторкой над страницей направления, — молча отписал бы нижний:
+ * второй вызов затирал ячейку, а закрытие верхнего звало `null` и снимало
+ * то, что осталось. Выглядело бы это как «сообщения перестали приходить
+ * сами», а не как ошибка (разведка 21.09).
+ *
+ * Каждая беседа держит свою запись. Уходит только та, которую закрыли.
+ */
+interface ConvSub {
+  handler: (m: Message) => void;
+  onDelete?: (messageUuid: string) => void;
+  /** Снятие подписки; пока идёт привязка — `null`. */
+  unsub: (() => void) | null;
+  /** Номер попытки: ответ устаревшей привязки не должен перетирать свежую. */
+  seq: number;
+}
 
+const convs = new Map<string, ConvSub>();
 let bindSeq = 0;
 
-async function bindConversation(): Promise<void> {
+async function bindConversation(id: string): Promise<void> {
+  const sub = convs.get(id);
+  if (!sub) return;
   const seq = ++bindSeq;
-  if (convUnsub) {
-    convUnsub();
-    convUnsub = null;
+  sub.seq = seq;
+  if (sub.unsub) {
+    sub.unsub();
+    sub.unsub = null;
   }
-  if (!convId || !convHandler || !getToken()) return;
-  const unsub = await subscribeConversation(convId, convHandler, convDeleteHandler ?? undefined);
-  if (seq !== bindSeq) {
+  if (!getToken()) return;
+  const unsub = await subscribeConversation(id, sub.handler, sub.onDelete);
+  const current = convs.get(id);
+  // Пока ходили за подпиской, беседу могли закрыть или перепривязать.
+  if (!current || current.seq !== seq) {
     unsub();
     return;
   }
-  convUnsub = unsub;
+  current.unsub = unsub;
+}
+
+async function bindAllConversations(): Promise<void> {
+  await Promise.all([...convs.keys()].map((id) => bindConversation(id)));
+}
+
+function dropConversation(id: string): void {
+  const sub = convs.get(id);
+  if (!sub) return;
+  // Номер меняем до снятия: привязка, которая сейчас в полёте, увидит
+  // несовпадение и отпишется сама.
+  sub.seq = ++bindSeq;
+  if (sub.unsub) sub.unsub();
+  convs.delete(id);
 }
 
 /** Re-subscribe personal channels after socket (re)connect. */
@@ -52,7 +89,7 @@ export async function resubscribeRealtime(): Promise<void> {
   resetPresence();
   await initPresence(hubUser);
   startPresenceHeartbeat();
-  await bindConversation();
+  await bindAllConversations();
   syncIncomingOffer();
 }
 
@@ -99,16 +136,21 @@ export async function startRealtimeHub(userUuid: string): Promise<void> {
   await resubscribeRealtime();
 }
 
-/** Active chat — re-bound automatically after reconnect. */
-export function setHubConversation(
-  id: string | null,
-  onMessage?: (m: Message) => void,
+/**
+ * Открыть живую подписку на беседу. Возвращает снятие — вызывать в уборке
+ * эффекта, и только оно снимает именно эту беседу.
+ *
+ * Подписки переживают переподключение сокета: `resubscribeRealtime`
+ * привязывает заново все открытые.
+ */
+export function openHubConversation(
+  id: string,
+  onMessage: (m: Message) => void,
   onMessageDeleted?: (messageUuid: string) => void,
-): void {
-  convId = id;
-  convHandler = onMessage ?? null;
-  convDeleteHandler = onMessageDeleted ?? null;
-  void bindConversation();
+): () => void {
+  convs.set(id, { handler: onMessage, onDelete: onMessageDeleted, unsub: null, seq: 0 });
+  void bindConversation(id);
+  return () => dropConversation(id);
 }
 
 export function stopRealtimeHub(): void {
@@ -117,13 +159,8 @@ export function stopRealtimeHub(): void {
     clearInterval(watchdogTimer);
     watchdogTimer = null;
   }
-  if (convUnsub) {
-    convUnsub();
-    convUnsub = null;
-  }
-  convId = null;
-  convHandler = null;
-  convDeleteHandler = null;
+  // Выход из учётки снимает все беседы разом — в отличие от закрытия одной.
+  [...convs.keys()].forEach(dropConversation);
   resetUserRealtime();
   resetPresence();
   stopPresenceHeartbeat();

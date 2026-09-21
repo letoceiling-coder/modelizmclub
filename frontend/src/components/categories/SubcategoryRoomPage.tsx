@@ -28,7 +28,7 @@ import { resolveLucideIcon, useLucideTail } from "@/lib/lucide-icon";
 import { userById } from "@/lib/user-registry";
 import type { Category, CategoryChild, Message, User, Ad } from "@/lib/mock";
 import { usePostCategories } from "@/lib/hooks/useCategories";
-import { setHubConversation } from "@/lib/realtime/hub";
+import { openHubConversation } from "@/lib/realtime/hub";
 import { toast } from "@/lib/toast";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useInsertAtCaret } from "@/lib/insert-at-caret";
@@ -780,12 +780,9 @@ function ChatTab({
 
   // Realtime: new messages from other users in the same room.
   useEffect(() => {
-    if (isDemoMode() || !conversationUuid || me.id === GUEST_USER.id) {
-      setHubConversation(null);
-      return;
-    }
+    if (isDemoMode() || !conversationUuid || me.id === GUEST_USER.id) return;
     let readTimer: ReturnType<typeof setTimeout> | null = null;
-    setHubConversation(conversationUuid, (m) => {
+    const close = openHubConversation(conversationUuid, (m) => {
       upsertRoomMessage(mapMessageToRoom(m));
       // Пришло, пока чат открыт и виден, — прочитано. Отметка раз в секунду,
       // а не на каждое сообщение: в живой комнате их бывает много подряд.
@@ -795,7 +792,7 @@ function ChatTab({
     });
     return () => {
       if (readTimer) clearTimeout(readTimer);
-      setHubConversation(null);
+      close();
     };
   }, [conversationUuid, me.id, upsertRoomMessage]);
 
