@@ -16,6 +16,7 @@ import {
   type DealType,
   type OrdinaryDeal,
 } from "@/lib/api/deals";
+import { useObjectUpdate } from "@/lib/hooks/useObjectUpdate";
 import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
 import { formatAbsoluteInZone } from "@/lib/format/date";
 import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
@@ -148,6 +149,14 @@ function DealsPage() {
   }, [role, type, reloadKey]);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+
+  /*
+   * Список обновляется сам: шаг меняет вторая сторона, и до 22.09 строка
+   * здесь держала прежний, пока страницу не перезагрузят. Идентификатор не
+   * сверяем намеренно — в списке лежат все сделки человека, и любая из них
+   * может сменить шаг.
+   */
+  useObjectUpdate({ kind: "deal" }, reload);
   const setSearch = (next: { role?: SafeDealRole; type?: DealType }) =>
     void navigate({
       search: (prev) => ({

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { API_ORIGIN, ApiError, getToken } from "@/lib/api/client";
 import { fetchPost, recordPostView } from "@/lib/api/feed";
+import { useObjectUpdate } from "@/lib/hooks/useObjectUpdate";
 import { ignoreFailure } from "@/lib/errors/handle";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { variantUrl } from "@/lib/media/variants";
@@ -202,6 +203,18 @@ function PostView({ uuid, initial }: { uuid: string; initial: Post | null }) {
    * проде, все гости с прямого захода под одним ключом. Новое число кладём в
    * кеш записи, чтобы счётчик под ней сразу показал этот заход.
    */
+  /*
+   * Модератор решил судьбу записи, пока она открыта, — страница
+   * перечитывается сама. Через `invalidateQueries`, а не через свой запрос:
+   * запись лежит в кеше react-query, и отдельная загрузка разошлась бы с
+   * тем, что показывает лента на соседней вкладке.
+   */
+  useObjectUpdate({ kind: "post", uuid }, () => {
+    void queryClient
+      .invalidateQueries({ queryKey: qk.post(uuid) })
+      .catch(ignoreFailure("перечитывание записи после живого обновления"));
+  });
+
   const hasPost = post !== null;
   useEffect(() => {
     if (!hasPost) return;

@@ -17,6 +17,7 @@ use App\Models\Message;
 use App\Models\Post;
 use App\Models\SafeDeal;
 use App\Models\SystemSetting;
+use App\Observers\RealtimeStatusObserver;
 use App\Policies\CommentPolicy;
 use App\Policies\CommunityPolicy;
 use App\Policies\ConversationPolicy;
@@ -227,6 +228,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Listing::class, ListingPolicy::class);
         Gate::policy(Community::class, CommunityPolicy::class);
         Gate::policy(ClubEvent::class, EventPolicy::class);
+
+        /*
+         * Живое обновление состояния: что сменило статус — то и уезжает
+         * владельцу. Список здесь полный намеренно, чтобы «кто вещает»
+         * читалось одним местом, а не искалось по моделям.
+         */
+        Listing::observe(RealtimeStatusObserver::class);
+        Post::observe(RealtimeStatusObserver::class);
+        SafeDeal::observe(RealtimeStatusObserver::class);
 
         Gate::define('viewApiDocs', function () {
             if (app()->environment(['local', 'development', 'staging'])) {

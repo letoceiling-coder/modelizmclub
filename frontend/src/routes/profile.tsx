@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { User as UserIcon } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -20,6 +20,8 @@ import {
   applyOwnProfilePatch,
 } from "@/lib/api/social";
 import { fetchUserRating } from "@/lib/api/rating";
+import { useObjectUpdate } from "@/lib/hooks/useObjectUpdate";
+import { ignoreFailure } from "@/lib/errors/handle";
 import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
 import i18n from "@/lib/i18n";
 import { resolveProfileCityId, splitInterests } from "@/lib/profile/edit";
@@ -80,23 +82,50 @@ function ProfilePage() {
     };
   }, []);
 
+  /*
+   * Объявления и записи читаются отдельными вызовами, а не только внутри
+   * общей загрузки ниже: их перечитывает живое обновление, когда модератор
+   * или админка меняет состояние. Перечитывать ради одной вкладки все пять
+   * запросов профиля — включая друзей и оценку — было бы расточительно.
+   */
+  const userId = currentUser?.id;
+  const numericId = currentUser?.numericId;
+
+  const loadMyAds = useCallback(
+    () =>
+      fetchMyListings().then((list) =>
+        setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) }))),
+      ),
+    [],
+  );
+
+  const loadMyPosts = useCallback(
+    () =>
+      numericId
+        ? fetchFeed({ authorId: numericId, perPage: 50 }).then((r) => setMyPosts(r.posts))
+        : fetchFeed({ perPage: 50 }).then((r) =>
+            setMyPosts(r.posts.filter((p) => p.authorId === userId)),
+          ),
+    [numericId, userId],
+  );
+
+  useObjectUpdate({ kind: "listing" }, () => {
+    loadMyAds().catch(ignoreFailure("перечитывание объявлений профиля после живого обновления"));
+  });
+
+  useObjectUpdate({ kind: "post" }, () => {
+    loadMyPosts().catch(ignoreFailure("перечитывание записей профиля после живого обновления"));
+  });
+
   useEffect(() => {
     let active = true;
     // Без токена все три запроса ниже уходят к /users/me/* и возвращают 401.
     if (!currentUser?.id || !getToken()) return;
     setLoading(true);
     const settle = Promise.allSettled([
-      fetchMyListings().then(
-        (list) => active && setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) }))),
-      ),
+      loadMyAds(),
       fetchCommunities().then((cs) => active && setMyCommunities(cs.filter((c) => c.joined))),
-      currentUser.numericId
-        ? fetchFeed({ authorId: currentUser.numericId, perPage: 50 }).then(
-            (r) => active && setMyPosts(r.posts),
-          )
-        : fetchFeed({ perPage: 50 }).then(
-            (r) => active && setMyPosts(r.posts.filter((p) => p.authorId === currentUser.id)),
-          ),
+      loadMyPosts(),
       fetchFriends().then((fr) => active && setFriendsCount(fr.length)),
       currentUser.numericId
         ? fetchUserRating(currentUser.numericId).then((r) => active && setRating(r))
@@ -108,7 +137,7 @@ function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.numericId, loadMyAds, loadMyPosts]);
 
   const removePost = (id: string) => {
     setMyPosts((prev) => prev.filter((p) => p.id !== id));

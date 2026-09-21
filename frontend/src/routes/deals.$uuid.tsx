@@ -45,7 +45,7 @@ import {
 } from "@/lib/api/safe-deals";
 import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
 import { dealCancel } from "@/lib/deals/cancel";
-import { onObjectUpdate } from "@/lib/realtime/user";
+import { useObjectUpdate } from "@/lib/hooks/useObjectUpdate";
 import { ignoreFailure } from "@/lib/errors/handle";
 import { formatDate } from "@/lib/format/date";
 
@@ -115,12 +115,9 @@ function DealDetailPage() {
    * статусом меняются сроки, трек-номер и набор доступных действий, и
    * подставлять одно поле значило бы разойтись с сервером в остальных.
    */
-  useEffect(() => {
-    return onObjectUpdate((u) => {
-      if (u.kind !== "deal" || u.uuid !== uuid) return;
-      void reload().catch(ignoreFailure("перечитывание сделки после живого обновления"));
-    });
-  }, [uuid]);
+  useObjectUpdate({ kind: "deal", uuid }, () => {
+    void reload().catch(ignoreFailure("перечитывание сделки после живого обновления"));
+  });
 
   useEffect(() => {
     let alive = true;
