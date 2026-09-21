@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Video;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Services\RealtimeObjectUpdate;
 use App\Support\ApplicationModerationQueue;
 use App\Support\CategoryScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -236,7 +237,53 @@ class ModerationService
             );
         }
 
+        /*
+         * Живое обновление — отдельно от уведомления в колокольчике.
+         *
+         * Владельца берём своим способом, а не из `decisionTarget`: у
+         * одобренного объявления тот возвращает `null`, потому что колокольчик
+         * на удачу намеренно молчит. Экран при этом обновить надо — объявление
+         * висело «на проверке» до перезагрузки страницы.
+         */
+        [$kind, $realtimeOwner] = $this->realtimeTarget($model);
+        if ($kind !== null) {
+            RealtimeObjectUpdate::notify(
+                $realtimeOwner,
+                $kind,
+                (string) $model->uuid,
+                $this->currentStatus($model),
+            );
+        }
+
         return $model;
+    }
+
+    /**
+     * Вид объекта и его владелец для живого обновления.
+     *
+     * Только то, что человек видит у себя на экране со статусом: объявления и
+     * записи. Сообщества, каналы и обзоры сюда не входят — у них решение
+     * приходит колокольчиком, а отдельного экрана «моё, на проверке» нет.
+     *
+     * @return array{0: ?string, 1: ?User}
+     */
+    private function realtimeTarget(Model $model): array
+    {
+        if ($model instanceof Listing) {
+            return [RealtimeObjectUpdate::LISTING, $model->author ?? User::query()->find($model->user_id)];
+        }
+        if ($model instanceof Post) {
+            return [RealtimeObjectUpdate::POST, $model->author ?? User::query()->find($model->user_id)];
+        }
+
+        return [null, null];
+    }
+
+    private function currentStatus(Model $model): ?string
+    {
+        $status = $model->fresh()?->status ?? $model->status;
+
+        return $status instanceof \BackedEnum ? (string) $status->value : (is_string($status) ? $status : null);
     }
 
     /** @return array{0: ?User, 1: string, 2: string, 3: string} */

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { onObjectUpdate } from "@/lib/realtime/user";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, m } from "framer-motion";
@@ -211,6 +212,26 @@ function MyAdsPage() {
     setLocalStatus(id, previous);
     reportActionFailure(error, title, { listing: id });
   };
+  /*
+   * Объявление прошло модерацию — список обновляется сам.
+   *
+   * Одобрение вообще не даёт уведомления в колокольчик: `decisionTarget` на
+   * удачу намеренно молчит. То есть до 21.09 человек, смотрящий на свой
+   * список, не узнавал об одобрении ничем — карточка висела «на проверке»
+   * до перезагрузки страницы.
+   *
+   * Перечитываем список целиком: вместе со статусом меняются вкладка, на
+   * которой карточка живёт, и её счётчик, а их из события не вывести.
+   */
+  useEffect(() => {
+    return onObjectUpdate((u) => {
+      if (u.kind !== "listing") return;
+      fetchMyListings()
+        .then(setItems)
+        .catch(ignoreFailure("перечитывание списка объявлений после живого обновления"));
+    });
+  }, []);
+
   const doArchive = (id: string) => {
     const previous = items.find((x) => x.ad.id === id)?.status ?? "active";
     setLocalStatus(id, "archived");
