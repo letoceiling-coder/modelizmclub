@@ -148,7 +148,22 @@ export function openHubConversation(
   onMessage: (m: Message) => void,
   onMessageDeleted?: (messageUuid: string) => void,
 ): () => void {
-  convs.set(id, { handler: onMessage, onDelete: onMessageDeleted, unsub: null, seq: 0 });
+  /*
+   * Повторное открытие той же беседы забирает прежнюю подписку с собой.
+   *
+   * Без этого новая запись затирала старую вместе со ссылкой на снятие, и
+   * прежняя подписка оставалась висеть: `bindConversation` видел уже пустой
+   * `unsub` и снимать ему было нечего. На практике эффект обычно успевал
+   * закрыть предыдущую сам, но опираться на порядок незачем — проверка
+   * «повторное открытие не плодит подписок» ловит это прямо.
+   */
+  const прежняя = convs.get(id);
+  convs.set(id, {
+    handler: onMessage,
+    onDelete: onMessageDeleted,
+    unsub: прежняя?.unsub ?? null,
+    seq: 0,
+  });
   void bindConversation(id);
   return () => dropConversation(id);
 }
