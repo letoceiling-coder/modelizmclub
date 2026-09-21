@@ -304,7 +304,7 @@ function resolvePublishCtaLabel(
     placementQuote: PlacementQuote | null;
   },
 ): string {
-  const решение = publishCta({
+  const cta = publishCta({
     editing: Boolean(opts.editId),
     editingDraft: Boolean(opts.editingDraft),
     paymentEnabled: opts.listingPaymentEnabled,
@@ -312,10 +312,10 @@ function resolvePublishCtaLabel(
     quoteLoading: opts.quoteLoading,
     quote: opts.placementQuote,
   });
-  if (решение.key === "payAndPublish") {
-    return t("pages.adsNew.payAndPublish", { price: `${formatQuoteRub(решение.priceCents)} ₽` });
+  if (cta.key === "payAndPublish") {
+    return t("pages.adsNew.payAndPublish", { price: `${formatQuoteRub(cta.priceCents)} ₽` });
   }
-  return t(`pages.adsNew.${решение.key}`);
+  return t(`pages.adsNew.${cta.key}`);
 }
 
 function phoneDigits(value: string): string {
@@ -439,6 +439,28 @@ function NewAdPage() {
       })
       .catch((e) => reportReadFailure(e, "направления объявлений"));
   }, []);
+
+  /*
+   * Смена объявления в адресе — это другое объявление, а не продолжение
+   * прежнего.
+   *
+   * При смене одной только строки запроса маршрут не перемонтируется:
+   * совпадение роутер считает по пути, а `loaderDeps` у `/ads/new` нет.
+   * Значит `payDraftRef` и `editingDraft` переживают переход
+   * `/ads/new?edit=X` → `/ads/new?edit=Y` и → `/ads/new` — например,
+   * кнопками «назад» и «вперёд» в браузере.
+   *
+   * Ссылка, пережившая своё объявление, опасна тем, что
+   * `completePaidListing` обновляет именно то, на что она указывает:
+   * оплата за Y ушла бы в черновик X, а X оказался бы затёрт содержимым Y.
+   * Живого перехода, который так делает, сейчас в интерфейсе нет — но
+   * ссылка на объявление не должна жить дольше самого объявления, и
+   * держать это на честном слове разметки незачем.
+   */
+  useEffect(() => {
+    payDraftRef.current = null;
+    setEditingDraft(false);
+  }, [editId]);
 
   useEffect(() => {
     if (!editId) return;
@@ -787,7 +809,7 @@ function NewAdPage() {
           setSubmitting(false);
           return;
         } else {
-          const поля = {
+          const fields = {
             title: form.title.trim(),
             description: form.description.trim(),
             priceCents,
@@ -812,15 +834,26 @@ function NewAdPage() {
              * `PATCH /listings` публиковать не умеет — за это отвечает
              * отдельный `POST /listings/{uuid}/publish`.
              */
-            const updated = await updateListing(editId, поля);
-            await publishListing(editId);
+            await updateListing(editId, fields);
+            /*
+             * Промокод передаём отдельно: `PATCH /listings` его не принимает
+             * вовсе, а `publish` принимает и считает по нему котировку. Без
+             * этого сервер пересчитал бы цену по полной и ответил «нужна
+             * оплата» на том, что со скидкой бесплатно.
+             *
+             * Текст читаем по ответу публикации, а не по ответу правки: до
+             * публикации объявление — черновик, и `moderation` у него всегда
+             * «на проверке». При включённой автопубликации человеку сказали
+             * бы ждать проверки того, что уже в каталоге.
+             */
+            const published = await publishListing(editId, { promocode });
             toast.success(
-              updated.moderation === "moderation"
-                ? t("pages.adsNew.sentModeration")
-                : t("pages.adsNew.published"),
+              published && published.moderation !== "moderation"
+                ? t("pages.adsNew.published")
+                : t("pages.adsNew.sentModeration"),
             );
           } else {
-            const created = await createListing({ ...поля, publish: true });
+            const created = await createListing({ ...fields, publish: true });
             toast.success(
               created.moderation === "moderation"
                 ? t("pages.adsNew.sentModeration")
@@ -877,11 +910,24 @@ function NewAdPage() {
         pickupAddress: job.pickupAddress || undefined,
         showPhone: job.showPhone,
       };
-      // Черновик от прошлой попытки оплаты переиспользуется, а не плодится.
+      /*
+       * Черновик от прошлой попытки оплаты переиспользуется, а не плодится.
+       *
+       * Запасное создание — только когда черновика на сервере больше нет
+       * (удалён из «Моих объявлений» в соседней вкладке) или он чужой. На
+       * любом другом отказе — сеть, 502, таймаут — мы обязаны упасть: раньше
+       * ссылка указывала на черновик, созданный этим же потоком секундой
+       * ранее, и «создать заново» было безобидно. Теперь она указывает на
+       * объявление, которое человек правит, и разовый сбой `PATCH` завёл бы
+       * второе, оплатил бы его, а правленое осталось бы неоплаченным.
+       */
       const draft = payDraftRef.current
-        ? await updateListing(payDraftRef.current, draftInput).catch(() =>
-            createListing(draftInput),
-          )
+        ? await updateListing(payDraftRef.current, draftInput).catch((e: unknown) => {
+            if (e instanceof ApiError && (e.status === 404 || e.status === 403)) {
+              return createListing(draftInput);
+            }
+            throw e;
+          })
         : await createListing(draftInput);
       payDraftRef.current = draft.id;
       const checkout = await createListingPlacementPayment({

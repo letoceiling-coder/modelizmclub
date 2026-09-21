@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { publishCta } from "@/lib/listings/publish-cta";
+import { publishCta, type PublishCta } from "@/lib/listings/publish-cta";
+import { ru } from "@/lib/i18n/locales/ru";
 
-const платно = { is_free: false, final_cents: 100 };
-const бесплатно = { is_free: true, final_cents: 0 };
-const готово = { paymentEnabled: true, flagsHydrated: true, quoteLoading: false };
+const paid = { is_free: false, final_cents: 100 };
+const free = { is_free: true, final_cents: 0 };
+const ready = { paymentEnabled: true, flagsHydrated: true, quoteLoading: false };
 
 describe("подпись главной кнопки формы объявления", () => {
   it("правка опубликованного — сохранение, не публикация", () => {
-    expect(publishCta({ ...готово, editing: true, editingDraft: false, quote: платно })).toEqual({
+    expect(publishCta({ ...ready, editing: true, editingDraft: false, quote: paid })).toEqual({
       key: "saveChanges",
     });
   });
@@ -16,20 +17,20 @@ describe("подпись главной кнопки формы объявлен
     // Ради этого случая всё и затевалось: до 21.09 здесь безусловно стояло
     // «Сохранить изменения», и черновик в платной категории не публиковался
     // ничем — ни из списка, ни из формы.
-    expect(publishCta({ ...готово, editing: true, editingDraft: true, quote: платно })).toEqual({
+    expect(publishCta({ ...ready, editing: true, editingDraft: true, quote: paid })).toEqual({
       key: "payAndPublish",
       priceCents: 100,
     });
   });
 
   it("правка черновика в бесплатной категории публикует без оплаты", () => {
-    expect(publishCta({ ...готово, editing: true, editingDraft: true, quote: бесплатно })).toEqual({
+    expect(publishCta({ ...ready, editing: true, editingDraft: true, quote: free })).toEqual({
       key: "publishFree",
     });
   });
 
   it("создание в платной категории ведёт к оплате", () => {
-    expect(publishCta({ ...готово, editing: false, editingDraft: false, quote: платно })).toEqual({
+    expect(publishCta({ ...ready, editing: false, editingDraft: false, quote: paid })).toEqual({
       key: "payAndPublish",
       priceCents: 100,
     });
@@ -39,24 +40,25 @@ describe("подпись главной кнопки формы объявлен
     // 20.09 форма правки обещала 30 ₽ в категории за 1 ₽ и те же 30 ₽ в
     // категории за 500: котировку в правке не запрашивали вовсе, и подпись
     // падала на значение из настройки.
-    const дорого = publishCta({
-      ...готово,
-      editing: true,
-      editingDraft: true,
-      quote: { is_free: false, final_cents: 50000 },
-    });
-    expect(дорого).toEqual({ key: "payAndPublish", priceCents: 50000 });
+    expect(
+      publishCta({
+        ...ready,
+        editing: true,
+        editingDraft: true,
+        quote: { is_free: false, final_cents: 50000 },
+      }),
+    ).toEqual({ key: "payAndPublish", priceCents: 50000 });
   });
 
   describe("пока данных нет, про деньги не утверждаем ничего", () => {
     it("флаги не приехали", () => {
       expect(
         publishCta({
-          ...готово,
+          ...ready,
           flagsHydrated: false,
           editing: true,
           editingDraft: true,
-          quote: платно,
+          quote: paid,
         }),
       ).toEqual({ key: "calculating" });
     });
@@ -64,7 +66,7 @@ describe("подпись главной кнопки формы объявлен
     it("котировка считается", () => {
       expect(
         publishCta({
-          ...готово,
+          ...ready,
           quoteLoading: true,
           editing: false,
           editingDraft: false,
@@ -76,7 +78,7 @@ describe("подпись главной кнопки формы объявлен
     it("но правка опубликованного ждать не должна — ей котировка не нужна", () => {
       expect(
         publishCta({
-          ...готово,
+          ...ready,
           flagsHydrated: false,
           quoteLoading: true,
           editing: true,
@@ -90,12 +92,34 @@ describe("подпись главной кнопки формы объявлен
   it("оплата выключена — публикуем без разговоров о цене", () => {
     expect(
       publishCta({
-        ...готово,
+        ...ready,
         paymentEnabled: false,
         editing: true,
         editingDraft: true,
-        quote: платно,
+        quote: paid,
       }),
     ).toEqual({ key: "publish" });
+  });
+});
+
+describe("каждому исходу есть перевод", () => {
+  /*
+   * Маршрут собирает ключ строкой — `t(`pages.adsNew.${cta.key}`)`, — и
+   * опечатку в нём не поймает ни tsc, ни поиск по литералу: на экране
+   * появится сама строка «pages.adsNew.publishFre», непустая, и проверки на
+   * непустую подпись останутся зелёными.
+   */
+  const keys: PublishCta["key"][] = [
+    "saveChanges",
+    "calculating",
+    "publish",
+    "publishFree",
+    "payAndPublish",
+  ];
+
+  it.each(keys)("%s", (key) => {
+    const strings = ru.pages.adsNew as Record<string, unknown>;
+    expect(strings).toHaveProperty(key);
+    expect(typeof strings[key]).toBe("string");
   });
 });

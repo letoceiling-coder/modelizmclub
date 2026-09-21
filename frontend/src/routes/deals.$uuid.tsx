@@ -189,9 +189,9 @@ function DealDetailPage() {
   const canMarkDelivered = isSeller && (s === "paid" || s === "shipped");
   const canConfirm = isBuyer && (s === "paid" || s === "shipped" || s === "delivered");
   // Право на отмену и её название — у `dealCancel`; там же и почему.
-  const отмена = dealCancel(deal);
-  const canCancel = отмена.allowed;
-  const cancelIsRefund = отмена.allowed && отмена.kind === "refund";
+  const cancel = dealCancel(deal);
+  const canCancel = cancel.allowed;
+  const cancelIsRefund = cancel.allowed && cancel.kind === "refund";
   const canDispute = (s === "paid" || s === "shipped" || s === "delivered") && holdOpen;
 
   return (

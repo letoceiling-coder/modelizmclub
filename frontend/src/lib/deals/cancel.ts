@@ -18,10 +18,10 @@ export type DealCancel =
   /** Оплаты не было — отмена означает просто отказ. */
   | { allowed: true; kind: "abandon" };
 
-const ОТМЕНЯЕМЫЕ = ["created", "paid", "shipped"];
+const CANCELLABLE = ["created", "paid", "shipped"];
 
 export function dealCancel(deal: { status: string; can?: { cancel?: boolean } }): DealCancel {
-  const allowed = deal.can?.cancel ?? ОТМЕНЯЕМЫЕ.includes(deal.status);
+  const allowed = deal.can?.cancel ?? CANCELLABLE.includes(deal.status);
   if (!allowed) return { allowed: false };
   return { allowed: true, kind: deal.status === "created" ? "abandon" : "refund" };
 }
