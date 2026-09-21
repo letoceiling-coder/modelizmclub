@@ -45,6 +45,8 @@ import {
 } from "@/lib/api/safe-deals";
 import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
 import { dealCancel } from "@/lib/deals/cancel";
+import { onObjectUpdate } from "@/lib/realtime/user";
+import { ignoreFailure } from "@/lib/errors/handle";
 import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/deals/$uuid")({
@@ -102,6 +104,23 @@ function DealDetailPage() {
     setDeal(d);
     return d;
   };
+
+  /*
+   * Шаг сделки меняет вторая сторона, и увидеть это вовремя важнее всего
+   * именно здесь. До 21.09 страница показывала прежний шаг, пока её не
+   * перезагрузят: колокольчик говорил «продавец отправил», а полоса состояния
+   * рядом оставалась на «оплачено».
+   *
+   * Перечитываем сделку целиком, а не правим по статусу из события: вместе со
+   * статусом меняются сроки, трек-номер и набор доступных действий, и
+   * подставлять одно поле значило бы разойтись с сервером в остальных.
+   */
+  useEffect(() => {
+    return onObjectUpdate((u) => {
+      if (u.kind !== "deal" || u.uuid !== uuid) return;
+      void reload().catch(ignoreFailure("перечитывание сделки после живого обновления"));
+    });
+  }, [uuid]);
 
   useEffect(() => {
     let alive = true;

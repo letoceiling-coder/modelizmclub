@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Models\UserReview;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Services\RealtimeObjectUpdate;
 use App\Services\NotificationPolicy;
 use App\Support\ParcelSize;
 use Illuminate\Support\Facades\DB;
@@ -1090,6 +1091,18 @@ class SafeDealService
         InAppNotify::sendQuiet(
             $user,
             new InAppNotification('deals', $title, $body, "/deals/{$deal->uuid}"),
+        );
+
+        /*
+         * Страница сделки обновляется сама: до 21.09 она показывала прежний
+         * шаг, пока её не перезагрузят, — а шаг меняет вторая сторона, и
+         * увидеть это вовремя важнее всего именно на ней.
+         */
+        RealtimeObjectUpdate::notify(
+            $user,
+            RealtimeObjectUpdate::DEAL,
+            $deal->uuid,
+            $deal->status instanceof \BackedEnum ? (string) $deal->status->value : null,
         );
 
         $this->mailDeal($deal, $user, $title, $body);
