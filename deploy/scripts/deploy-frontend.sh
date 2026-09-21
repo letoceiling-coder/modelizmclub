@@ -80,7 +80,12 @@ export VITE_DEMO_MODE="${VITE_DEMO_MODE:-false}"
 # окружения. Без него `isMetrikaConfigured()` отвечает «нет», счётчик молча
 # не грузится, выкатка проходит зелёной, и узнать об этом можно только по
 # пустым отчётам через несколько дней.
-METRIKA_FROM_ENV="$(grep -s '^METRIKA_ID=' "${BACKEND_ENV}" | cut -d= -f2- | tr -d '"' | tr -d "'")"
+#
+# `|| true` не для красоты: у скрипта `set -euo pipefail`, а `grep` без
+# совпадения отвечает единицей. Без него выкатка фронтенда молча падала
+# сразу после `git merge` — прод 21.09 остался на прежней сборке, при том
+# что бэкенд уже обновился, и в журнале была одна строка `frontend=1`.
+METRIKA_FROM_ENV="$(grep -s '^METRIKA_ID=' "${BACKEND_ENV}" | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
 export VITE_METRIKA_ID="${VITE_METRIKA_ID:-${METRIKA_FROM_ENV}}"
 if [[ -z "${VITE_METRIKA_ID}" ]]; then
   echo "предупреждение: VITE_METRIKA_ID не задан — сборка пойдёт без Метрики" >&2
