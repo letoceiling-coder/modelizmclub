@@ -14,7 +14,7 @@ import { swRoute } from "@/lib/sw/route";
  *  - прекеш оболочки (офлайн-страница, иконки, favicon) — список подставляет
  *    vite-plugin-pwa в self.__WB_MANIFEST при сборке;
  *  - /assets/** (файлы с хешем в имени) — stale-while-revalidate;
- *  - /api/v1/media/** — cache-first без сроков: это файлы, а не данные;
+ *  - /api/v1/media/** — мимо worker'а: кэшировать нельзя, гонка вредна;
  *  - /api/** — network-first: через NETWORK_TIMEOUT_MS отдаём последний
  *    удачный ответ, но саму сеть не бросаем — таймаут не отказ;
  *  - навигации — network-first с офлайн-страницей как запасным вариантом.
@@ -31,8 +31,7 @@ const VERSION = "v1";
 const SHELL_CACHE = `modelizm-shell-${VERSION}`;
 const ASSET_CACHE = `modelizm-assets-${VERSION}`;
 const API_CACHE = `modelizm-api-${VERSION}`;
-const MEDIA_CACHE = `modelizm-media-${VERSION}`;
-const KNOWN_CACHES = [SHELL_CACHE, ASSET_CACHE, API_CACHE, MEDIA_CACHE];
+const KNOWN_CACHES = [SHELL_CACHE, ASSET_CACHE, API_CACHE];
 
 const OFFLINE_URL = "/offline.html";
 /**
@@ -43,10 +42,15 @@ const OFFLINE_URL = "/offline.html";
  * ответ был неотличим от пропавшей сети — см. `networkFirstApi`.
  */
 const NETWORK_TIMEOUT_MS = 4000;
+/**
+ * Предел ожидания, за которым сеть считается мёртвой.
+ *
+ * Не четыре секунды: столько ждать нормально. Но и не бесконечность —
+ * см. `networkFirstApi`.
+ */
+const NETWORK_HARD_LIMIT_MS = 45_000;
 /** Ответы API стареют быстро — храним их только как «лучше, чем пустой экран». */
 const API_CACHE_MAX_ENTRIES = 60;
-/** Картинок на экране бывает полсотни разом, и они не стареют. */
-const MEDIA_CACHE_MAX_ENTRIES = 300;
 /* MEDIA_PATH живёт рядом с решением о маршруте — см. lib/sw/route.ts. */
 
 const PRECACHE_URLS = Array.from(
@@ -158,12 +162,19 @@ async function networkFirstApi(request: Request): Promise<Response> {
   const cached = await cache.match(request);
   if (cached) return cached;
 
-  // Кэша нет. Если это была лишь задержка — досматриваем сеть до конца.
+  /*
+   * Кэша нет. Если это была лишь задержка — досматриваем сеть, но не вечно.
+   *
+   * У `fetch` своего срока нет, и залипшее соединение — перехватывающий
+   * портал, потерянная сота посреди запроса — держало бы экран без конца:
+   * промис не отклоняется, значит «Повторить» человеку никто не покажет.
+   * Настоящий офлайн сюда не попадает: там `fetch` отклоняется сразу.
+   */
   if ("slow" in settled) {
     try {
-      return await network;
+      return (await Promise.race([network, timeout(NETWORK_HARD_LIMIT_MS)])) as Response;
     } catch {
-      /* сеть отказала уже после срока — ниже общий ответ */
+      /* сеть отказала или залипла — ниже общий ответ */
     }
   }
 
@@ -171,31 +182,6 @@ async function networkFirstApi(request: Request): Promise<Response> {
     status: 503,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
-}
-
-/**
- * Медиа: кэш вперёд, сеть следом, без всяких сроков.
- *
- * Картинка по адресу `/api/v1/media/{uuid}` — файл, а не ответ с данными: он
- * не устаревает (uuid не переиспользуется) и не должен участвовать в гонке.
- * Пока он лежал в общей ветке API, залп из полусотни изображений выбивал сам
- * себя: часть не укладывалась в срок и получала 503 вместо картинки.
- *
- * Отдельный кэш, а не общий с API: у того потолок в 60 записей, и одна
- * галерея вытеснила бы оттуда всё остальное.
- */
-async function mediaCacheFirst(request: Request): Promise<Response> {
-  const cache = await caches.open(MEDIA_CACHE);
-  const cached = await cache.match(request);
-  if (cached) return cached;
-
-  const response = await fetch(request);
-  if (response.ok) {
-    void cache
-      .put(request, response.clone())
-      .then(() => trimCache(MEDIA_CACHE, MEDIA_CACHE_MAX_ENTRIES));
-  }
-  return response;
 }
 
 /** Страницы всегда с сервера (SSR), офлайн — понятная заглушка. */
@@ -223,8 +209,32 @@ self.addEventListener("fetch", (event) => {
     selfOrigin: self.location.origin,
   });
 
+  /*
+   * Медиа уходит мимо worker'а — `respondWith` для него не зовём вовсе.
+   *
+   * Вся починка была в том, чтобы убрать его из гонки с таймаутом; кэшировать
+   * его нельзя, и попытка это сделать была бы хуже прежнего дефекта:
+   *
+   *  - картинки грузятся обычным `<img src>` на чужой origin без
+   *    `crossorigin`, то есть режимом `no-cors`. Ответ выходит opaque:
+   *    `status: 0`, `ok: false` — класть в кэш нечего, и «кэш вперёд» никогда
+   *    бы не сработал. Отсюда же и сам дефект: запасного ответа по истечении
+   *    четырёх секунд не находилось, и рождался синтезированный 503;
+   *  - зато вложения споров идут через `openAuthorizedMedia` заголовком
+   *    `Authorization` — режимом `cors`, с настоящим 200. Доступ к ним
+   *    проверяет сервер (`ServeMediaController::mayViewPrivate`), а Cache API
+   *    сопоставляет только по адресу: `Vary` прокси не шлёт. То есть в кэш
+   *    легло бы ровно то единственное, чего кэшировать нельзя, и следующий
+   *    человек в этом браузере получил бы файл, минуя проверку прав;
+   *  - и там же видео с запросами диапазонов: `cache.put` на 206 отклоняется,
+   *    а полный 200 из кэша в ответ на `Range` ломает перемотку.
+   *
+   * Решение видно в `swRoute` и проверено: маршрут «медиа» существует не как
+   * стратегия, а как явный отказ от неё.
+   */
+  if (route === "media") return;
+
   if (route === "page") event.respondWith(networkFirstPage(request));
-  else if (route === "media") event.respondWith(mediaCacheFirst(request));
   else if (route === "api") event.respondWith(networkFirstApi(request));
   else if (route === "asset") event.respondWith(staleWhileRevalidate(request));
 });

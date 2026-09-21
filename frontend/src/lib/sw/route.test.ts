@@ -6,6 +6,24 @@ const route = (url: string, extra: { method?: string; mode?: string } = {}) =>
   swRoute({ method: extra.method ?? "GET", mode: extra.mode ?? "cors", url, selfOrigin: ORIGIN });
 
 describe("маршрутизация в service worker", () => {
+  it("картинка приходит режимом no-cors — главный случай ветки", () => {
+    // Все картинки грузятся обычным `<img src>` на чужой origin без
+    // `crossorigin`. Именно этот режим делает ответ opaque, и именно поэтому
+    // кэшировать медиа нельзя — маршрут существует как отказ от стратегии.
+    expect(route("https://api.modelizmclub.ru/api/v1/media/5c988e33", { mode: "no-cors" })).toBe(
+      "media",
+    );
+  });
+
+  it("вложение спора приходит режимом cors и тоже считается медиа", () => {
+    // Идёт через openAuthorizedMedia с заголовком Authorization. Ответ
+    // настоящий, 200 — и лечь в кэш он не должен тем более: доступ к нему
+    // проверяет сервер, а Cache API сопоставляет только по адресу.
+    expect(route("https://api.modelizmclub.ru/api/v1/media/d1sput3", { mode: "cors" })).toBe(
+      "media",
+    );
+  });
+
   it("картинка по uuid — не данные, а файл", () => {
     // Ради этого случая всё и затевалось: до 21.09 адрес попадал под правило
     // для API, и залп из полусотни картинок половиной получал 503 при живом
