@@ -1,5 +1,6 @@
 import i18n from "@/lib/i18n";
 import { Outlet, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import { Analytics } from "@/components/analytics/Analytics";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -254,6 +255,7 @@ function RootComponent() {
             <GroupCallScreen />
             <GroupCallInviteDialog />
             <CookieBanner />
+            <Analytics />
             <PwaUpdatePrompt />
             {/*
               Тосты: справа снизу на широком экране, снизу во всю ширину минус

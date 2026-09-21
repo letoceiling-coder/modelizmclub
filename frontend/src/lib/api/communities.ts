@@ -3,6 +3,7 @@ import { api, getToken } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { mapPost, type ApiPost } from "./feed";
 import { useCallback, useEffect, useState } from "react";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 interface ApiCommunity {
   id: number;
@@ -223,7 +224,11 @@ export async function joinCommunity(slug: string): Promise<{ status: "member" | 
     return { status: "member" };
   }
   const res = await api<{ status?: string }>(`/communities/${slug}/join`, { method: "POST" });
-  return { status: res.status === "pending" ? "pending" : "member" };
+  const status = res.status === "pending" ? "pending" : "member";
+  // Заявка, ждущая одобрения, вступлением ещё не стала: у закрытых
+  // сообществ между `pending` и `member` бывают сутки и отказ.
+  if (status === "member") metrikaGoal(GOALS.communityJoined, { community: slug });
+  return { status };
 }
 
 export async function leaveCommunity(slug: string): Promise<void> {

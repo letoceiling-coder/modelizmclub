@@ -1,5 +1,6 @@
 import { api, ApiError } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 export interface DocumentRequisites {
   full_name: string;
@@ -105,5 +106,9 @@ export async function verifyPhoneCode(
     json: { phone, code },
   });
   const { mapApiUser } = await import("@/lib/api/auth");
+  // Цель ставится здесь, а не у кнопки: телефон подтверждают из трёх мест
+  // (регистрация, настройки, шлюз доступа), и у каждой кнопки это пришлось
+  // бы повторить. Ответ сервера — единственное доказательство события.
+  metrikaGoal(GOALS.phoneVerified);
   return mapApiUser(res.data);
 }

@@ -53,11 +53,19 @@ export function hasCookieChoice(): boolean {
   return readCookiePrefs() !== null;
 }
 
-/** Placeholder hooks for future analytics/ad scripts — gated by consent. */
+/**
+ * Подключить аналитику, если человек на неё согласился.
+ *
+ * Единственная дверь: счётчик не грузится ниоткуда больше. Пока согласия
+ * нет — ни одного запроса к Яндексу со страницы не уходит.
+ *
+ * Без номера счётчика (`VITE_METRIKA_ID`) функция тоже молчит, и это
+ * штатно: код приезжает раньше номера.
+ */
 export function loadAnalyticsIfConsented(): void {
   const prefs = readCookiePrefs();
   if (!prefs?.analytics) return;
-  // Yandex Metrika / GA would be injected here when configured.
+  void import("@/lib/analytics/metrika").then((m) => m.loadMetrika());
 }
 
 export function loadAdsIfConsented(): void {

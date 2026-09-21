@@ -8,6 +8,7 @@ import { categoryPlaceholder } from "@/lib/placeholder-image";
 
 import { toDisplayMedia, type MediaVariantSet } from "@/lib/media/variants";
 import { formatDate } from "@/lib/format/date";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 interface ApiListingAuthor {
   id?: number;
@@ -465,6 +466,7 @@ export async function publishListing(
     method: "POST",
     json: opts.promocode ? { promocode: opts.promocode } : {},
   });
+  metrikaGoal(GOALS.listingPublished);
   return mapListing(res.data);
 }
 

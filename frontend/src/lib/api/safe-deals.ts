@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 /**
  * Safe deal (escrow) client. Mirrors the backend Billing module (spec v4.0 §T5).
@@ -170,6 +171,7 @@ export async function createSafeDeal(
       delivery_method: input?.deliveryMethod || undefined,
     },
   });
+  metrikaGoal(GOALS.dealCreated, { listing: listingUuid });
   return res.data;
 }
 

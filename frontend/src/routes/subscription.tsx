@@ -1,6 +1,6 @@
 import { openRouteGate } from "@/lib/gate";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { Variants } from "framer-motion";
 import { m } from "framer-motion";
@@ -34,6 +34,7 @@ import {
 import i18n from "@/lib/i18n";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 import { Appear } from "@/components/ui/Appear";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 export const Route = createFileRoute("/subscription")({
   errorComponent: RouteErrorState,
@@ -190,6 +191,25 @@ function SubscriptionPage() {
   const [pending, setPending] = useState<PendingCheckout | null>(null);
   // Ключ попытки: переживает повторные нажатия, сбрасывается после успеха.
   const attempt = usePaymentAttempt();
+
+  /*
+   * Цель «подписка оформлена» — по переходу состояния, а не по возврату
+   * с формы банка.
+   *
+   * Оплату подтверждает сервер, и браузер узнаёт об этом только тем, что
+   * подписка стала активной. Считать по адресу `?payment=success` нельзя:
+   * туда возвращаются и те, у кого платёж потом отклонили, — а «оформил»
+   * и «вернулся с формы» разные вещи.
+   *
+   * Переход, а не сам факт активности: иначе цель срабатывала бы у каждого
+   * подписчика при каждом заходе на эту страницу.
+   */
+  const былаАктивна = useRef<boolean | null>(null);
+  useEffect(() => {
+    const активна = Boolean(sub?.is_active);
+    if (былаАктивна.current === false && активна) metrikaGoal(GOALS.subscribed);
+    былаАктивна.current = активна;
+  }, [sub?.is_active]);
 
   const openSubscribe = async (plan: { id: string; name: string; priceRub: number }) => {
     if (!requireAuthForCheckout(navigate)) return;
