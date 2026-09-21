@@ -20,8 +20,7 @@ import {
   applyOwnProfilePatch,
 } from "@/lib/api/social";
 import { fetchUserRating } from "@/lib/api/rating";
-import { useObjectUpdate } from "@/lib/hooks/useObjectUpdate";
-import { ignoreFailure } from "@/lib/errors/handle";
+import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { categoryIdByName, fetchPostCategories } from "@/lib/api/categories";
 import i18n from "@/lib/i18n";
 import { resolveProfileCityId, splitInterests } from "@/lib/profile/edit";
@@ -91,6 +90,19 @@ function ProfilePage() {
   const userId = currentUser?.id;
   const numericId = currentUser?.numericId;
 
+  /*
+   * Записи автора: с числовым идентификатором сервер отбирает их сам, без
+   * него отбираем из общей ленты. Возвращает список, а не пишет состояние, —
+   * так `useObjectReload` может отбросить поздний ответ, не трогая экран.
+   */
+  const fetchMyPostsPage = useCallback(
+    (): Promise<Post[]> =>
+      numericId
+        ? fetchFeed({ authorId: numericId, perPage: 50 }).then((r) => r.posts)
+        : fetchFeed({ perPage: 50 }).then((r) => r.posts.filter((p) => p.authorId === userId)),
+    [numericId, userId],
+  );
+
   const loadMyAds = useCallback(
     () =>
       fetchMyListings().then((list) =>
@@ -99,23 +111,21 @@ function ProfilePage() {
     [],
   );
 
-  const loadMyPosts = useCallback(
-    () =>
-      numericId
-        ? fetchFeed({ authorId: numericId, perPage: 50 }).then((r) => setMyPosts(r.posts))
-        : fetchFeed({ perPage: 50 }).then((r) =>
-            setMyPosts(r.posts.filter((p) => p.authorId === userId)),
-          ),
-    [numericId, userId],
+  const loadMyPosts = useCallback(() => fetchMyPostsPage().then(setMyPosts), [fetchMyPostsPage]);
+
+  useObjectReload(
+    { kind: "listing" },
+    fetchMyListings,
+    (list) => setMyAds(list.map((x) => ({ ad: x.ad, status: toAdStatus(x.status) }))),
+    "перечитывание объявлений профиля после живого обновления",
   );
 
-  useObjectUpdate({ kind: "listing" }, () => {
-    loadMyAds().catch(ignoreFailure("перечитывание объявлений профиля после живого обновления"));
-  });
-
-  useObjectUpdate({ kind: "post" }, () => {
-    loadMyPosts().catch(ignoreFailure("перечитывание записей профиля после живого обновления"));
-  });
+  useObjectReload(
+    { kind: "post" },
+    fetchMyPostsPage,
+    setMyPosts,
+    "перечитывание записей профиля после живого обновления",
+  );
 
   useEffect(() => {
     let active = true;

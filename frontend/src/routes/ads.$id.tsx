@@ -13,8 +13,8 @@ import {
   revealSellerPhone,
   setListingPhoneVisibility,
 } from "@/lib/api/listings";
-import { ignoreFailure, reportActionFailure } from "@/lib/errors/handle";
-import { useObjectUpdate } from "@/lib/hooks/useObjectUpdate";
+import { reportActionFailure } from "@/lib/errors/handle";
+import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { catalogSearchForListing } from "@/lib/catalog-filter";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
@@ -199,26 +199,25 @@ function AdDetailPage() {
    * стоило бы вещания на всех подряд — ровно того, чего в задаче 1.1
    * избегали.
    */
-  useObjectUpdate({ kind: "listing", uuid: id }, () => {
-    fetchListing(id)
-      .then((a) => {
-        setAd(a);
-        setState("ok");
-      })
-      .catch((e) => {
-        /*
-         * Объявление снесли из админки — показываем это, а не прежнюю
-         * карточку. Остальные отказы молчат: на экране лежит рабочая копия,
-         * и затирать её сорвавшимся перечитыванием незачем.
-         */
-        if (e instanceof ApiError && e.status === 404) {
-          setAd(null);
-          setState("notFound");
-          return;
-        }
-        ignoreFailure("перечитывание объявления после живого обновления")(e);
-      });
-  });
+  useObjectReload(
+    { kind: "listing", uuid: id },
+    /*
+     * Объявление снесли из админки — это тоже ответ, а не отказ: `null`
+     * доезжает до применения и превращается в «не найдено». Остальные отказы
+     * молчат — на экране лежит рабочая копия, и затирать её сорвавшимся
+     * перечитыванием незачем.
+     */
+    () =>
+      fetchListing(id).catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 404) return null;
+        throw e;
+      }),
+    (a) => {
+      setAd(a);
+      setState(a ? "ok" : "notFound");
+    },
+    "перечитывание объявления после живого обновления",
+  );
 
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
   const [ownerBusy, setOwnerBusy] = useState(false);

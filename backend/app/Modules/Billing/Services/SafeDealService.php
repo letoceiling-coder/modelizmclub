@@ -1011,12 +1011,24 @@ class SafeDealService
          * (`RealtimeStatusObserver`). Строка одна и по первичному ключу —
          * лишнего запроса это стоит ровно одного.
          */
-        $listing = Listing::query()->whereKey($deal->listing_id)->first();
+        $listing = Listing::query()->whereKey($deal->listing_id)->lockForUpdate()->first();
         if ($listing === null) {
             return;
         }
 
-        $listing->forceFill($attributes)->save();
+        $listing->forceFill($attributes);
+
+        /*
+         * Прежнее обновление построителем всегда двигало `updated_at`, даже
+         * когда менять было нечего. Сохранение модели без грязных колонок
+         * запроса не делает вовсе — а на свежесть строки завязаны сортировка
+         * каталога и карта сайта, и тихо её остановить нельзя.
+         */
+        if ($listing->isDirty()) {
+            $listing->save();
+        } else {
+            $listing->touch();
+        }
     }
 
     public function review(User $author, SafeDeal $deal, int $rating, ?string $text): UserReview

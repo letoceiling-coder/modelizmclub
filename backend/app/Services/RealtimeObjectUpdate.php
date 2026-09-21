@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\UserRealtimeEvent;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -50,8 +51,19 @@ class RealtimeObjectUpdate
                 'uuid' => $uuid,
                 'status' => $status,
             ]));
-        } catch (Throwable) {
-            // Reverb может быть недоступен — действие уже состоялось.
+        } catch (Throwable $e) {
+            /*
+             * Reverb может быть недоступен — действие уже состоялось, и
+             * падение вещания не должно превращать удачную модерацию в 500.
+             * Но молчать совсем нельзя: живое обновление теперь единственное,
+             * что держит экраны в согласии с базой, и его отказ обязан быть
+             * виден в журнале. Так же поступает `InAppNotify::broadcastSafely`.
+             */
+            Log::warning('realtime: не удалось разослать object.updated', [
+                'kind' => $kind,
+                'uuid' => $uuid,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

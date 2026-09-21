@@ -14,6 +14,7 @@ use App\Models\LandingCard;
 use App\Models\LandingSection;
 use App\Models\Listing;
 use App\Models\Message;
+use App\Models\OrdinaryDeal;
 use App\Models\Post;
 use App\Models\SafeDeal;
 use App\Models\SystemSetting;
@@ -237,6 +238,7 @@ class AppServiceProvider extends ServiceProvider
         Listing::observe(RealtimeStatusObserver::class);
         Post::observe(RealtimeStatusObserver::class);
         SafeDeal::observe(RealtimeStatusObserver::class);
+        OrdinaryDeal::observe(RealtimeStatusObserver::class);
 
         Gate::define('viewApiDocs', function () {
             if (app()->environment(['local', 'development', 'staging'])) {

@@ -192,6 +192,95 @@ class RealtimeStatusUpdatesTest extends TestCase
         $this->assertSame($expected, $this->updatesFor($seller));
     }
 
+    /**
+     * Два сохранения одной модели в одной транзакции дают одно событие.
+     *
+     * Так работают все три живых пути: владелец правит объявление (сначала
+     * поля, потом возврат на модерацию), публикация записи и разбор платежа,
+     * где объявление сохраняется трижды.
+     *
+     * Готовый `ShouldHandleEventsAfterCommit` на наблюдателе здесь и ломался:
+     * он откладывает весь вызов вместе с тем же объектом модели, а
+     * `performUpdate` на каждом сохранении перезаписывает набор изменений.
+     * Оба отложенных вызова видели изменения последнего сохранения — и при
+     * порядке «без статуса, потом со статусом» владелец получал два
+     * одинаковых события, а при обратном порядке не получал ни одного.
+     */
+    public function test_two_saves_in_one_transaction_say_it_once(): void
+    {
+        $seller = $this->seedUser();
+        $listing = $this->listingFor($seller, ListingStatus::Published);
+
+        DB::transaction(function () use ($listing): void {
+            $listing->forceFill(['title' => 'Новое название'])->save();
+            $listing->forceFill(['status' => ListingStatus::PendingModeration])->save();
+        });
+
+        $this->assertSame(
+            [['kind' => 'listing', 'uuid' => $listing->uuid, 'status' => 'pending_moderation']],
+            $this->updatesFor($seller),
+        );
+    }
+
+    /** Обратный порядок — событие всё равно ровно одно. */
+    public function test_a_later_save_without_status_does_not_swallow_the_event(): void
+    {
+        $seller = $this->seedUser();
+        $listing = $this->listingFor($seller, ListingStatus::Published);
+
+        DB::transaction(function () use ($listing): void {
+            $listing->forceFill(['status' => ListingStatus::Sold, 'sold_at' => now()])->save();
+            $listing->forceFill(['title' => 'Новое название'])->save();
+        });
+
+        $this->assertSame(
+            [['kind' => 'listing', 'uuid' => $listing->uuid, 'status' => 'sold']],
+            $this->updatesFor($seller),
+        );
+    }
+
+    /**
+     * Постороннему не приходит ничего.
+     *
+     * Проверка «автору пришло» держала бы и рассылку всем подряд: канал
+     * личный, но адресата выбирает этот код, и ошибка в нём выглядела бы на
+     * экране автора совершенно нормально.
+     */
+    public function test_a_stranger_hears_nothing(): void
+    {
+        $seller = $this->seedUser();
+        $посторонний = $this->seedUser();
+        $listing = $this->listingFor($seller, ListingStatus::Published);
+
+        $listing->forceFill(['status' => ListingStatus::Sold])->save();
+
+        $this->assertNotSame([], $this->updatesFor($seller));
+        $this->assertSame([], $this->updatesFor($посторонний));
+    }
+
+    /**
+     * Восстановление отменяет «удалено».
+     *
+     * Само по себе меняет только `deleted_at`, то есть смены статуса нет —
+     * без отдельного обработчика экран остался бы на «не найдено».
+     */
+    public function test_restoring_takes_back_the_removal(): void
+    {
+        $seller = $this->seedUser();
+        $listing = $this->listingFor($seller, ListingStatus::Published);
+
+        $listing->delete();
+        $listing->restore();
+
+        $this->assertSame(
+            [
+                ['kind' => 'listing', 'uuid' => $listing->uuid, 'status' => 'deleted'],
+                ['kind' => 'listing', 'uuid' => $listing->uuid, 'status' => 'published'],
+            ],
+            $this->updatesFor($seller),
+        );
+    }
+
     public function test_removal_reaches_the_author(): void
     {
         $seller = $this->seedUser();
