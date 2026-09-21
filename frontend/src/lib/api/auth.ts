@@ -1,6 +1,7 @@
 import type { User } from "@/lib/mock";
 import { api, setToken, getToken, ApiError } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 export interface ApiProfile {
   display_name?: string | null;
@@ -163,6 +164,15 @@ export async function verifyEmail(
     json: { email, code },
   });
   if (res.meta?.token) setToken(res.meta.token);
+  /*
+   * Регистрация считается завершённой здесь, а не в `register`.
+   *
+   * `register` только отправляет форму: токен выдаётся после кода с почты,
+   * и человек, бросивший письмо непрочитанным, зарегистрированным не стал.
+   * Считать его на отправке формы значило бы завышать воронку на всех,
+   * кто до почты не дошёл.
+   */
+  if (res.meta?.token) metrikaGoal(GOALS.signup);
   return { user: mapApiUser(res.data), token: res.meta?.token };
 }
 

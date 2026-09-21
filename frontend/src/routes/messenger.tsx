@@ -2234,6 +2234,15 @@ function MessengerPage() {
                 ref={scrollRef}
                 className="min-h-0 min-w-0 flex-1 overflow-y-auto px-[12px] py-[16px] sm:px-[20px]"
                 style={{ overflowAnchor: "auto" }}
+                /*
+                 * Переписка не попадает в запись Вебвизора.
+                 *
+                 * Закрытое поле ввода тут ни при чём: Вебвизор пишет разметку,
+                 * и отправленные сообщения — обычный текст на странице.
+                 * `data-private` помечает узел, а `markPrivateFields` вешает
+                 * на него класс Метрики `ym-hide-content`.
+                 */
+                data-private=""
               >
                 {chatLoading ? (
                   <MessageSkeleton />

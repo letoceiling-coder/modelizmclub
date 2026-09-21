@@ -6,6 +6,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { getGuestViewerId } from "@/lib/channels";
 import { rememberMediaAspect } from "@/lib/media/aspectCache";
 import type { MediaVariantSet, VideoDelivery } from "@/lib/media/variants";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 interface ApiPostAuthor {
   id?: number;
@@ -462,6 +463,9 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
  *  in demo mode rather than call it. */
 export async function publishPost(uuid: string): Promise<Post> {
   const res = await api<{ data: ApiPost }>(`/posts/${uuid}/publish`, { method: "POST" });
+  // Не в `createPost`: тот заводит только черновик, и считать его
+  // публикацией значило бы записывать в воронку брошенные наброски.
+  metrikaGoal(GOALS.postPublished);
   return mapPost(res.data);
 }
 

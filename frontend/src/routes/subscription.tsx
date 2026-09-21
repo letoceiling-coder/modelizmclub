@@ -1,6 +1,6 @@
 import { openRouteGate } from "@/lib/gate";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { Variants } from "framer-motion";
 import { m } from "framer-motion";
@@ -34,6 +34,7 @@ import {
 import i18n from "@/lib/i18n";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 import { Appear } from "@/components/ui/Appear";
+import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 export const Route = createFileRoute("/subscription")({
   errorComponent: RouteErrorState,
@@ -184,12 +185,45 @@ type PendingCheckout =
 function SubscriptionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { sub } = useMySubscription();
+  const { sub, loading: подпискаГрузится } = useMySubscription();
   const { placement } = Route.useLoaderData();
   const { registeredRub: placementPrice, paymentEnabled } = usePublicPlacementPricing(placement);
   const [pending, setPending] = useState<PendingCheckout | null>(null);
   // Ключ попытки: переживает повторные нажатия, сбрасывается после успеха.
   const attempt = usePaymentAttempt();
+
+  /*
+   * Цель «подписка оформлена» — по переходу состояния, а не по возврату
+   * с формы банка.
+   *
+   * Оплату подтверждает сервер, и браузер узнаёт об этом только тем, что
+   * подписка стала активной. Считать по адресу `?payment=success` нельзя:
+   * туда возвращаются и те, у кого платёж потом отклонили, — а «оформил»
+   * и «вернулся с формы» разные вещи.
+   *
+   * Переход, а не сам факт активности: иначе цель срабатывала бы у каждого
+   * подписчика при каждом заходе на эту страницу.
+   *
+   * Два состояния, которые нельзя считать за «не подписан», и на обоих цель
+   * ложно срабатывала до 22.09:
+   *
+   *  — **пока ответ не пришёл**, `sub` равен `null`, как у бесплатного
+   *    тарифа. Значит любой действующий подписчик, открывший страницу
+   *    прямой загрузкой, давал переход `null → активна` и цель «подписка
+   *    оформлена» без единой оплаты — столько раз, сколько заходил
+   *    посмотреть срок;
+   *  — **гость**: у него ответа нет вовсе, и вход подписчика прямо с этой
+   *    страницы дал бы тот же ложный переход.
+   *
+   * Поэтому состояние запоминается только разрешённое и только у вошедшего.
+   */
+  const былаАктивна = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (подпискаГрузится || !isAuthenticated()) return;
+    const активна = Boolean(sub?.is_active);
+    if (былаАктивна.current === false && активна) metrikaGoal(GOALS.subscribed);
+    былаАктивна.current = активна;
+  }, [подпискаГрузится, sub?.is_active]);
 
   const openSubscribe = async (plan: { id: string; name: string; priceRub: number }) => {
     if (!requireAuthForCheckout(navigate)) return;

@@ -75,10 +75,17 @@ class OAuthController extends Controller
             return $this->redirectToFrontend(['oauth_error' => 'auth_failed']);
         }
 
-        return $this->redirectToFrontend([
+        /*
+         * `oauth_new` — для воронки: вход через провайдера заводит учётку и
+         * возвращается токеном, неотличимым от входа существующего. Без
+         * признака цель «регистрация» считала бы только путь «почта + код»,
+         * и доля OAuth молча выпадала бы из отчётов.
+         */
+        return $this->redirectToFrontend(array_filter([
             'oauth_token' => $result['token'],
             'oauth_provider' => $provider,
-        ]);
+            'oauth_new' => ! empty($result['created']) ? '1' : null,
+        ], static fn ($v): bool => $v !== null));
     }
 
     private function isSupported(string $provider): bool

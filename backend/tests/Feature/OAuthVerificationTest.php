@@ -54,6 +54,49 @@ class OAuthVerificationTest extends TestCase
         $this->assertTrue($user->hasOAuthProvider('vk'));
     }
 
+    /**
+     * Признак «учётку завели прямо сейчас» — для воронки.
+     *
+     * Вход через провайдера возвращается токеном, неотличимым от входа
+     * существующего, и без этого признака цель «регистрация» считала бы
+     * только путь «почта + код»: доля OAuth молча выпадала бы из отчётов.
+     *
+     * Проверяются обе стороны. Одного «у новой true» мало: признак, всегда
+     * отвечающий true, прошёл бы такую проверку и завысил регистрации на
+     * каждый повторный вход.
+     */
+    public function test_oauth_reports_whether_the_account_was_just_created(): void
+    {
+        $social = $this->fakeSocialUser('777', 'fresh@yandex.ru', 'Новый');
+
+        $первый = app(OAuthService::class)->resolveUser('yandex', $social);
+        $this->assertTrue($первый['created'], 'учётки не было — это регистрация');
+
+        $второй = app(OAuthService::class)->resolveUser('yandex', $social);
+        $this->assertFalse($второй['created'], 'тот же человек вошёл снова — не регистрация');
+        $this->assertSame($первый['user']->id, $второй['user']->id);
+    }
+
+    /** Учётка нашлась по почте — это тоже вход, а не регистрация. */
+    public function test_linking_an_existing_account_by_email_is_not_a_signup(): void
+    {
+        $user = User::factory()->create(['email' => 'known@yandex.ru']);
+        UserProfile::create([
+            'user_id' => $user->id,
+            'display_name' => 'K',
+            'slug' => 'k-'.uniqid(),
+            'privacy_settings' => UserProfile::DEFAULT_PRIVACY,
+        ]);
+
+        $result = app(OAuthService::class)->resolveUser(
+            'yandex',
+            $this->fakeSocialUser('888', 'known@yandex.ru', 'Известный'),
+        );
+
+        $this->assertFalse($result['created']);
+        $this->assertSame($user->id, $result['user']->id);
+    }
+
     public function test_yandex_oauth_auto_verifies_email_on_create(): void
     {
         $social = $this->fakeSocialUser('555', 'person@yandex.ru', 'Yandex Person');

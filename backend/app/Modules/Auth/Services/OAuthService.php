@@ -81,7 +81,9 @@ class OAuthService
             $this->applyProviderVerification($user, $provider, $email);
             app(\Modules\Billing\Services\FirstHundredService::class)->tryGrant($user->fresh());
 
-            return $this->tokenResponse($user);
+            // Единственная ветка, которая заводит учётку: две выше находят
+            // существующую по связке провайдера или по почте.
+            return $this->tokenResponse($user, created: true);
         });
     }
 
@@ -243,13 +245,18 @@ class OAuthService
     }
 
     /** @return array{user: User, token: string} */
-    private function tokenResponse(User $user): array
+    /**
+     * @param  bool  $created  учётка заведена прямо сейчас, а не найдена
+     * @return array{user: User, token: string, created: bool}
+     */
+    private function tokenResponse(User $user, bool $created = false): array
     {
         $user->loadMissing(['profile', 'oauthAccounts']);
 
         return [
             'user' => $user,
             'token' => $user->createToken('api')->plainTextToken,
+            'created' => $created,
         ];
     }
 }

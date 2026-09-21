@@ -1,3 +1,5 @@
+import { ignoreFailure } from "@/lib/errors/handle";
+
 const KEY = "modelizm-cookie-key";
 
 export function getAnonymousCookieKey(): string {
@@ -53,11 +55,45 @@ export function hasCookieChoice(): boolean {
   return readCookiePrefs() !== null;
 }
 
-/** Placeholder hooks for future analytics/ad scripts — gated by consent. */
-export function loadAnalyticsIfConsented(): void {
+/**
+ * Подключить аналитику, если человек на неё согласился.
+ *
+ * Единственная дверь: счётчик не грузится ниоткуда больше. Пока согласия
+ * нет — ни одного запроса к Яндексу со страницы не уходит.
+ *
+ * Без номера счётчика (`VITE_METRIKA_ID`) функция тоже молчит, и это
+ * штатно: код приезжает раньше номера.
+ */
+const слушатели = new Set<() => void>();
+
+/**
+ * Согласие на аналитику разрешилось — счётчик либо запущен, либо нет.
+ *
+ * Нужно ровно одному месту — `Analytics`, — и ровно ради одного случая:
+ * человек нажал «Принять» в баннере, а страница с этого момента уже
+ * смонтирована. Без оповещения счётчик у него запустился бы, а первый
+ * просмотр не ушёл бы до следующей перезагрузки.
+ */
+export function onAnalyticsConsent(cb: () => void): () => void {
+  слушатели.add(cb);
+
+  return () => слушатели.delete(cb);
+}
+
+export async function loadAnalyticsIfConsented(): Promise<void> {
   const prefs = readCookiePrefs();
   if (!prefs?.analytics) return;
-  // Yandex Metrika / GA would be injected here when configured.
+  /*
+   * Отказ импорта молчит, но с причиной: чанк мог уехать предыдущей
+   * выкаткой или не отдаться в офлайне. Без обработчика это уходило в
+   * `unhandledrejection` и ложилось в журнал ошибок приложения как поломка —
+   * притом что аналитика не обязательна и подключится при следующем заходе.
+   */
+  await import("@/lib/analytics/metrika")
+    .then((m) => m.loadMetrika())
+    .catch(ignoreFailure("аналитика не обязательна: счётчик подключится при следующем заходе"));
+
+  слушатели.forEach((cb) => cb());
 }
 
 export function loadAdsIfConsented(): void {
