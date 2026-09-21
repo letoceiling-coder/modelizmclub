@@ -74,7 +74,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { setHubConversation } from "@/lib/realtime/hub";
+import { openHubConversation } from "@/lib/realtime/hub";
 import { onEchoConnection } from "@/lib/realtime/echo";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline, presenceLabel } from "@/lib/presence-status";
@@ -1198,16 +1198,13 @@ function MessengerPage() {
   }, [activeId, chatLoading]);
 
   useEffect(() => {
-    if (!activeId || meId === GUEST_USER.id) {
-      setHubConversation(null);
-      return;
-    }
-    setHubConversation(
+    if (!activeId || meId === GUEST_USER.id) return;
+    // Снимается ровно эта беседа: соседний чат, если он открыт, остаётся.
+    return openHubConversation(
       activeId,
       (m) => messengerCache.upsert(activeId, m),
       (messageUuid) => messengerCache.removeMessage(activeId, messageUuid),
     );
-    return () => setHubConversation(null);
   }, [activeId, meId]);
 
   const active = useMemo(() => dlgs.find((d) => d.id === activeId) ?? null, [dlgs, activeId]);
@@ -2334,6 +2331,28 @@ function MessengerPage() {
                     </m.div>
                   )}
                 </AnimatePresence>
+                {/*
+                  Собеседник вышел — говорим об этом над полем ввода.
+
+                  Писать не запрещаем: переписка остаётся, и человек может
+                  вернуться — тогда он всё прочитает. Запрещать было бы хуже:
+                  вернувшемуся нечего было бы читать. Но «отправлено» без этой
+                  строки означало бы «доставлено», а это не так: живых
+                  сообщений ушедший не получает, подписку на канал беседы даёт
+                  только участие без `left_at` (разведка 21.09).
+                */}
+                {active?.type === "direct" && active.peerLeft && (
+                  <div
+                    role="status"
+                    className="mx-[8px] mb-[4px] rounded-[var(--r-card-sm)] px-[12px] py-[8px] text-[13px] leading-[18px]"
+                    style={{
+                      background: "var(--background-surface)",
+                      color: "var(--foreground-70)",
+                    }}
+                  >
+                    {t("pages.messenger.peerLeft")}
+                  </div>
+                )}
                 {/* Composer: attach · emoji · input · mic/send — one optical
                     line (items-end), equal 44px tap targets, equal gaps. Attach
                     controls live outside the pill so the row reads as one set. */}
