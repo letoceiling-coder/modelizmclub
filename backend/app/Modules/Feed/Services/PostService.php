@@ -13,6 +13,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Services\RealtimeObjectUpdate;
 use App\Support\ScheduledPublishFailures;
 use App\Support\UserLabel;
 use App\Support\ViewerKey;
@@ -426,6 +427,24 @@ class PostService
         if ($returned !== 1) {
             return;
         }
+
+        /*
+         * Живое обновление здесь зовётся руками — единственное такое место.
+         *
+         * Обновление выше нарочно условное: оно же и защита от гонки с
+         * автором, который в эту же секунду перенёс запись. Переписать его на
+         * сохранение модели значило бы потерять проверку и выпустить запись
+         * вопреки решению автора — цена выше, чем одна явная строка.
+         *
+         * Без неё вкладка записей в профиле показывала бы «запланирована»
+         * после того, как колокольчик уже сказал «не опубликована».
+         */
+        RealtimeObjectUpdate::notify(
+            $author,
+            RealtimeObjectUpdate::POST,
+            (string) $post->uuid,
+            ContentStatus::Draft->value,
+        );
 
         InAppNotify::sendQuiet($author, new InAppNotification(
             'moderation',

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { onObjectUpdate } from "@/lib/realtime/user";
+import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, m } from "framer-motion";
@@ -223,14 +223,12 @@ function MyAdsPage() {
    * Перечитываем список целиком: вместе со статусом меняются вкладка, на
    * которой карточка живёт, и её счётчик, а их из события не вывести.
    */
-  useEffect(() => {
-    return onObjectUpdate((u) => {
-      if (u.kind !== "listing") return;
-      fetchMyListings()
-        .then(setItems)
-        .catch(ignoreFailure("перечитывание списка объявлений после живого обновления"));
-    });
-  }, []);
+  useObjectReload(
+    { kind: "listing" },
+    fetchMyListings,
+    setItems,
+    "перечитывание списка объявлений после живого обновления",
+  );
 
   const doArchive = (id: string) => {
     const previous = items.find((x) => x.ad.id === id)?.status ?? "active";

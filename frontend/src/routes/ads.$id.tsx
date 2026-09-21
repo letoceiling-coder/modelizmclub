@@ -14,6 +14,7 @@ import {
   setListingPhoneVisibility,
 } from "@/lib/api/listings";
 import { reportActionFailure } from "@/lib/errors/handle";
+import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { catalogSearchForListing } from "@/lib/catalog-filter";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
@@ -190,6 +191,33 @@ function AdDetailPage() {
       alive = false;
     };
   }, [id, adFromServer]);
+
+  /*
+   * Объявление решили, пока хозяин на него смотрит, — страница обновляется
+   * сама. Только своё: событие приходит личным каналом владельца, и
+   * покупатель на той же странице ничего не получит. Ему живое обновление
+   * стоило бы вещания на всех подряд — ровно того, чего в задаче 1.1
+   * избегали.
+   */
+  useObjectReload(
+    { kind: "listing", uuid: id },
+    /*
+     * Объявление снесли из админки — это тоже ответ, а не отказ: `null`
+     * доезжает до применения и превращается в «не найдено». Остальные отказы
+     * молчат — на экране лежит рабочая копия, и затирать её сорвавшимся
+     * перечитыванием незачем.
+     */
+    () =>
+      fetchListing(id).catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 404) return null;
+        throw e;
+      }),
+    (a) => {
+      setAd(a);
+      setState(a ? "ok" : "notFound");
+    },
+    "перечитывание объявления после живого обновления",
+  );
 
   const [previewAsBuyer, setPreviewAsBuyer] = useState(false);
   const [ownerBusy, setOwnerBusy] = useState(false);
