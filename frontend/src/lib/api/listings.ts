@@ -208,6 +208,7 @@ export function mapListing(l: ApiListing): Ad {
         : l.status === "rejected" || l.status === "revision"
           ? "rejected"
           : "moderation",
+    listingState: l.deleted_at ? "deleted" : mapListingStatus(l.status),
   };
 }
 
@@ -314,10 +315,10 @@ export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }
   const res = await api<Paginated<ApiListing>>("/users/me/listings", {
     query: { per_page: 100 },
   });
-  return (res.data ?? []).map((l) => ({
-    ad: mapListing(l),
-    status: l.deleted_at ? ("deleted" as const) : mapListingStatus(l.status),
-  }));
+  return (res.data ?? []).map((l) => {
+    const ad = mapListing(l);
+    return { ad, status: ad.listingState ?? mapListingStatus(l.status) };
+  });
 }
 
 export async function fetchListing(uuid: string): Promise<Ad> {
@@ -442,9 +443,29 @@ export async function setListingPhoneVisibility(uuid: string, showPhone: boolean
   return mapListing(res.data);
 }
 
-export async function publishListing(uuid: string): Promise<void> {
-  if (isDemoMode()) return;
-  await api(`/listings/${uuid}/publish`, { method: "POST" });
+/**
+ * Опубликовать существующее объявление.
+ *
+ * Возвращает объявление после публикации, а не `void`: по нему видно, ушло
+ * оно на проверку или опубликовалось сразу (настройка автопубликации), — и
+ * только так можно сказать человеку правду. До 21.09 ответ выбрасывался, и
+ * вызывающий гадал по состоянию *до* публикации, то есть всегда «черновик»,
+ * то есть всегда «отправлено на проверку».
+ *
+ * Промокод принимает `ListingStatusController::publish` и передаёт в расчёт
+ * котировки. Без него сервер считает цену заново по полной и на платной
+ * категории отвечает «нужна оплата» — даже если со скидкой было бесплатно.
+ */
+export async function publishListing(
+  uuid: string,
+  opts: { promocode?: string } = {},
+): Promise<Ad | null> {
+  if (isDemoMode()) return null;
+  const res = await api<{ data: ApiListing }>(`/listings/${uuid}/publish`, {
+    method: "POST",
+    json: opts.promocode ? { promocode: opts.promocode } : {},
+  });
+  return mapListing(res.data);
 }
 
 export async function archiveListing(uuid: string): Promise<void> {
