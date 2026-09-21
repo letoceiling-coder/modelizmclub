@@ -22,12 +22,25 @@ export function publishCta(opts: {
   editing: boolean;
   /** Правим именно черновик — его ещё предстоит опубликовать. */
   editingDraft: boolean;
+  /**
+   * Объявление ещё грузится, и черновик оно или нет — неизвестно.
+   *
+   * До ответа сервера `editingDraft` равен `false`, то есть неотличим от
+   * «правим опубликованное». Без этого входа страница успевала сказать
+   * «Сохранить изменения» и «платить не нужно» черновику, за который
+   * секундой позже попросит 500 ₽.
+   */
+  loading?: boolean;
   paymentEnabled: boolean;
   flagsHydrated: boolean;
   quoteLoading: boolean;
   quote: { is_free: boolean; final_cents: number } | null;
 }): PublishCta {
-  const { editing, editingDraft, paymentEnabled, flagsHydrated, quoteLoading, quote } = opts;
+  const { editing, editingDraft, loading, paymentEnabled, flagsHydrated, quoteLoading, quote } =
+    opts;
+
+  // Пока не знаем, что правим, про деньги не утверждаем ничего.
+  if (editing && loading) return { key: "calculating" };
 
   // Опубликованное объявление правят, а не публикуют: денег это не стоит.
   if (editing && !editingDraft) return { key: "saveChanges" };

@@ -87,6 +87,28 @@ describe("подпись главной кнопки формы объявлен
         }),
       ).toEqual({ key: "saveChanges" });
     });
+
+    it("объявление ещё грузится — не знаем даже, черновик ли это", () => {
+      // До ответа сервера `editingDraft` равен `false`, то есть неотличим
+      // от «правим опубликованное». Без входа `loading` страница успевала
+      // сказать «Сохранить изменения» черновику, за который секундой позже
+      // попросит 500 ₽.
+      expect(
+        publishCta({
+          ...ready,
+          loading: true,
+          editing: true,
+          editingDraft: false,
+          quote: paid,
+        }),
+      ).toEqual({ key: "calculating" });
+    });
+
+    it("создание ждать загрузки не должно — грузить нечего", () => {
+      expect(
+        publishCta({ ...ready, loading: true, editing: false, editingDraft: false, quote: paid }),
+      ).toEqual({ key: "payAndPublish", priceCents: 100 });
+    });
   });
 
   it("оплата выключена — публикуем без разговоров о цене", () => {
@@ -105,17 +127,27 @@ describe("подпись главной кнопки формы объявлен
 describe("каждому исходу есть перевод", () => {
   /*
    * Маршрут собирает ключ строкой — `t(`pages.adsNew.${cta.key}`)`, — и
-   * опечатку в нём не поймает ни tsc, ни поиск по литералу: на экране
-   * появится сама строка «pages.adsNew.publishFre», непустая, и проверки на
-   * непустую подпись останутся зелёными.
+   * пропажу перевода не поймает ни tsc, ни поиск по литералу: на экране
+   * появится сама строка «pages.adsNew.publishFree», непустая, и проверки
+   * на непустую подпись останутся зелёными.
+   *
+   * Проверяется именно набор ключей. Опечатка в самом шаблоне — в префиксе
+   * `pages.adsNew.` — отсюда не видна: для этого пришлось бы поднимать
+   * маршрут.
    */
-  const keys: PublishCta["key"][] = [
-    "saveChanges",
-    "calculating",
-    "publish",
-    "publishFree",
-    "payAndPublish",
-  ];
+  /*
+   * Контейнер — `Record` по союзу, а не массив: массив полноты не требует,
+   * и шестой исход, добавленный в `publish-cta.ts` и забытый в `ru.ts`,
+   * оставил бы проверку зелёной. Здесь забытый ключ роняет tsc.
+   */
+  const covered: Record<PublishCta["key"], true> = {
+    saveChanges: true,
+    calculating: true,
+    publish: true,
+    publishFree: true,
+    payAndPublish: true,
+  };
+  const keys = Object.keys(covered) as PublishCta["key"][];
 
   it.each(keys)("%s", (key) => {
     const strings = ru.pages.adsNew as Record<string, unknown>;

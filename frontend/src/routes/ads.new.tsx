@@ -298,6 +298,7 @@ function resolvePublishCtaLabel(
   opts: {
     editId?: string;
     editingDraft?: boolean;
+    loadingEdit?: boolean;
     listingPaymentEnabled: boolean;
     flagsHydrated: boolean;
     quoteLoading: boolean;
@@ -307,6 +308,7 @@ function resolvePublishCtaLabel(
   const cta = publishCta({
     editing: Boolean(opts.editId),
     editingDraft: Boolean(opts.editingDraft),
+    loading: opts.loadingEdit,
     paymentEnabled: opts.listingPaymentEnabled,
     flagsHydrated: opts.flagsHydrated,
     quoteLoading: opts.quoteLoading,
@@ -382,7 +384,7 @@ function NewAdPage() {
    * Разница только у платной категории: черновик ещё предстоит оплатить, и
    * форма должна вести к оплате, а не предлагать «Сохранить изменения». До
    * 21.09 разницы не было, и черновик в платной категории не публиковался
-   * ничем: в списке «Опубликовать» упиралось в 422 «нужна оплата», а формa
+   * ничем: в списке «Опубликовать» упиралось в 422 «нужна оплата», а форма
    * правки к оплате не вела вовсе (приёмка 20.09).
    */
   const [editingDraft, setEditingDraft] = useState(false);
@@ -450,16 +452,24 @@ function NewAdPage() {
    * `/ads/new?edit=X` → `/ads/new?edit=Y` и → `/ads/new` — например,
    * кнопками «назад» и «вперёд» в браузере.
    *
+   * Переход живой: пункт «Разместить объявление» в боковом меню и в
+   * бургере ведёт на `/ads/new` без строки запроса, а меню рисуется и на
+   * этой самой странице. Я сперва решил, что такого пункта нет, — искал по
+   * литералу `/ads/new`, а ссылка идёт через `ROUTES.adCreate`.
+   *
    * Ссылка, пережившая своё объявление, опасна тем, что
    * `completePaidListing` обновляет именно то, на что она указывает:
    * оплата за Y ушла бы в черновик X, а X оказался бы затёрт содержимым Y.
-   * Живого перехода, который так делает, сейчас в интерфейсе нет — но
-   * ссылка на объявление не должна жить дольше самого объявления, и
-   * держать это на честном слове разметки незачем.
+   *
+   * Вместе со ссылкой сбрасывается отложенная оплата: она несёт заголовок,
+   * фотографии и цену прежнего объявления и держит открытым выбор способа
+   * оплаты. Уцелев одна, она при пустой ссылке завела бы копию объявления и
+   * оплатила её, а исходный черновик остался бы неоплаченным.
    */
   useEffect(() => {
     payDraftRef.current = null;
     setEditingDraft(false);
+    setPendingPay(null);
   }, [editId]);
 
   useEffect(() => {
@@ -997,12 +1007,22 @@ function NewAdPage() {
       resolvePublishCtaLabel(t, {
         editId,
         editingDraft,
+        loadingEdit,
         listingPaymentEnabled,
         flagsHydrated,
         quoteLoading,
         placementQuote,
       }),
-    [t, editId, editingDraft, listingPaymentEnabled, flagsHydrated, quoteLoading, placementQuote],
+    [
+      t,
+      editId,
+      editingDraft,
+      loadingEdit,
+      listingPaymentEnabled,
+      flagsHydrated,
+      quoteLoading,
+      placementQuote,
+    ],
   );
 
   /*
@@ -1079,15 +1099,17 @@ function NewAdPage() {
               обещала 30 ₽, а в «Редких и коллекционных» за 500 ₽ — те же 30
               (приёмка 20.09).
             */}
-              {editId && !editingDraft
-                ? t("pages.adsNew.editListingHint")
-                : !flagsHydrated
-                  ? t("pages.adsNew.calculatingCost")
-                  : listingPaymentEnabled
-                    ? quoteLoading || !priceKnown
-                      ? t("pages.adsNew.calculatingCost")
-                      : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
-                    : t("pages.adsNew.freePlacement")}
+              {editId && loadingEdit
+                ? t("pages.adsNew.calculatingCost")
+                : editId && !editingDraft
+                  ? t("pages.adsNew.editListingHint")
+                  : !flagsHydrated
+                    ? t("pages.adsNew.calculatingCost")
+                    : listingPaymentEnabled
+                      ? quoteLoading || !priceKnown
+                        ? t("pages.adsNew.calculatingCost")
+                        : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
+                      : t("pages.adsNew.freePlacement")}
             </p>
           </header>
 
