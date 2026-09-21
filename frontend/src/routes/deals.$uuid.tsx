@@ -44,6 +44,7 @@ import {
   type SafeDealRole,
 } from "@/lib/api/safe-deals";
 import { DealsPageSkeleton } from "@/components/boot/PageSkeletons";
+import { dealCancel } from "@/lib/deals/cancel";
 import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/deals/$uuid")({
@@ -187,7 +188,10 @@ function DealDetailPage() {
   const canShip = isSeller && s === "paid";
   const canMarkDelivered = isSeller && (s === "paid" || s === "shipped");
   const canConfirm = isBuyer && (s === "paid" || s === "shipped" || s === "delivered");
-  const canCancel = s === "paid" || s === "shipped";
+  // Право на отмену и её название — у `dealCancel`; там же и почему.
+  const отмена = dealCancel(deal);
+  const canCancel = отмена.allowed;
+  const cancelIsRefund = отмена.allowed && отмена.kind === "refund";
   const canDispute = (s === "paid" || s === "shipped" || s === "delivered") && holdOpen;
 
   return (
@@ -395,20 +399,24 @@ function DealDetailPage() {
                 className="gap-[8px]"
                 onClick={() => {
                   void askConfirm({
-                    title: "Запросить возврат?",
-                    description: "Средства вернутся покупателю, сделка отменится.",
-                    confirmLabel: "Запросить возврат",
+                    title: cancelIsRefund ? "Запросить возврат?" : "Отменить сделку?",
+                    description: cancelIsRefund
+                      ? "Средства вернутся покупателю, сделка отменится."
+                      : "Сделка отменится. Оплаты не было, возвращать нечего.",
+                    confirmLabel: cancelIsRefund ? "Запросить возврат" : "Отменить сделку",
                     danger: true,
                   }).then((ok) => {
                     if (!ok) return;
                     void runAction(
                       () => cancelSafeDeal(uuid),
-                      "Возврат запрошен, средства возвращены покупателю",
+                      cancelIsRefund
+                        ? "Возврат запрошен, средства возвращены покупателю"
+                        : "Сделка отменена",
                     );
                   });
                 }}
               >
-                <XCircle size={16} /> Запросить возврат
+                <XCircle size={16} /> {cancelIsRefund ? "Запросить возврат" : "Отменить сделку"}
               </Button>
             )}
             {canDispute && (

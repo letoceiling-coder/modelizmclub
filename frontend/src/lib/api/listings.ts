@@ -208,6 +208,7 @@ export function mapListing(l: ApiListing): Ad {
         : l.status === "rejected" || l.status === "revision"
           ? "rejected"
           : "moderation",
+    listingState: l.deleted_at ? "deleted" : mapListingStatus(l.status),
   };
 }
 
@@ -314,10 +315,10 @@ export async function fetchMyListings(): Promise<{ ad: Ad; status: AdStatusKey }
   const res = await api<Paginated<ApiListing>>("/users/me/listings", {
     query: { per_page: 100 },
   });
-  return (res.data ?? []).map((l) => ({
-    ad: mapListing(l),
-    status: l.deleted_at ? ("deleted" as const) : mapListingStatus(l.status),
-  }));
+  return (res.data ?? []).map((l) => {
+    const ad = mapListing(l);
+    return { ad, status: ad.listingState ?? mapListingStatus(l.status) };
+  });
 }
 
 export async function fetchListing(uuid: string): Promise<Ad> {

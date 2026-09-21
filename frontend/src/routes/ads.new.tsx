@@ -12,7 +12,8 @@ import { searchCities } from "@/lib/api/cities";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { PickupAddressField, rememberPickupAddress } from "@/components/ads/PickupAddressField";
 import { uploadMediaDeduped } from "@/lib/api/media";
-import { createListing, fetchListing, updateListing } from "@/lib/api/listings";
+import { createListing, fetchListing, publishListing, updateListing } from "@/lib/api/listings";
+import { publishCta } from "@/lib/listings/publish-cta";
 import {
   fetchPlacementQuote,
   formatQuoteRub,
@@ -286,26 +287,35 @@ function deliveryDetailsValid(form: Form): string | null {
   return null;
 }
 
-/** Sticky footer CTA on step 3 — always returns visible text (PDF tests №16, №31). */
+/**
+ * Подпись главной кнопки формы. Решение — в `publishCta`, здесь только
+ * перевод: так развилку можно проверить, не поднимая i18n и маршрут.
+ *
+ * Строка обязана быть непустой на третьем шаге — проверки PDF №16 и №31.
+ */
 function resolvePublishCtaLabel(
   t: (key: string, opts?: Record<string, unknown>) => string,
   opts: {
     editId?: string;
+    editingDraft?: boolean;
     listingPaymentEnabled: boolean;
     flagsHydrated: boolean;
     quoteLoading: boolean;
     placementQuote: PlacementQuote | null;
   },
 ): string {
-  const { editId, listingPaymentEnabled, flagsHydrated, quoteLoading, placementQuote } = opts;
-  if (editId) return t("pages.adsNew.saveChanges");
-  if (!flagsHydrated) return t("pages.adsNew.calculating");
-  if (!listingPaymentEnabled) return t("pages.adsNew.publish");
-  if (quoteLoading) return t("pages.adsNew.calculating");
-  if (!placementQuote) return t("pages.adsNew.publish");
-  if (placementQuote.is_free) return t("pages.adsNew.publishFree");
-  const priceLabel = `${formatQuoteRub(placementQuote.final_cents)} ₽`;
-  return t("pages.adsNew.payAndPublish", { price: priceLabel });
+  const решение = publishCta({
+    editing: Boolean(opts.editId),
+    editingDraft: Boolean(opts.editingDraft),
+    paymentEnabled: opts.listingPaymentEnabled,
+    flagsHydrated: opts.flagsHydrated,
+    quoteLoading: opts.quoteLoading,
+    quote: opts.placementQuote,
+  });
+  if (решение.key === "payAndPublish") {
+    return t("pages.adsNew.payAndPublish", { price: `${formatQuoteRub(решение.priceCents)} ₽` });
+  }
+  return t(`pages.adsNew.${решение.key}`);
 }
 
 function phoneDigits(value: string): string {
@@ -366,6 +376,16 @@ function NewAdPage() {
   const attempt = usePaymentAttempt();
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
+  /*
+   * Правим черновик или уже опубликованное.
+   *
+   * Разница только у платной категории: черновик ещё предстоит оплатить, и
+   * форма должна вести к оплате, а не предлагать «Сохранить изменения». До
+   * 21.09 разницы не было, и черновик в платной категории не публиковался
+   * ничем: в списке «Опубликовать» упиралось в 422 «нужна оплата», а формa
+   * правки к оплате не вела вовсе (приёмка 20.09).
+   */
+  const [editingDraft, setEditingDraft] = useState(false);
   const { registeredRub, subscriberRub, loading: pricingLoading } = usePublicPlacementPricing();
   const { sub: mySubscription } = useMySubscription();
   const [placementQuote, setPlacementQuote] = useState<PlacementQuote | null>(null);
@@ -427,6 +447,7 @@ function NewAdPage() {
     fetchListing(editId)
       .then((ad) => {
         if (!alive) return;
+        setEditingDraft(ad.listingState === "draft");
         setForm((f) => ({
           photoItems: (ad.gallery ?? (ad.image ? [ad.image] : [])).map((url, i) => ({
             id: `existing-${i}-${url}`,
@@ -533,7 +554,10 @@ function NewAdPage() {
   }, [cats, editId]);
 
   useEffect(() => {
-    if (!listingPaymentEnabled || editId || step < 2) return;
+    // Правка опубликованного объявления оплаты не требует — котировка ей ни
+    // к чему. Правка черновика требует, и шага у неё нет: форма одна.
+    if (!listingPaymentEnabled) return;
+    if (editId ? !editingDraft : step < 2) return;
     const ids = listingIdsFromForm(form);
     if (!ids) {
       setQuoteLoading(false);
@@ -562,6 +586,7 @@ function NewAdPage() {
   }, [
     listingPaymentEnabled,
     editId,
+    editingDraft,
     step,
     form.categoryId,
     form.subcategoryId,
@@ -667,7 +692,7 @@ function NewAdPage() {
         const found = await searchCities(form.city.trim());
         resolvedCityId = found[0]?.id;
       }
-      if (editId) {
+      if (editId && !editingDraft) {
         const updated = await updateListing(editId, {
           title: form.title.trim(),
           description: form.description.trim(),
@@ -728,6 +753,15 @@ function NewAdPage() {
         }
 
         if (needsPayment) {
+          /*
+           * Платим за этот самый черновик, а не за новый.
+           *
+           * `completePaidListing` обновляет объявление, на которое указывает
+           * `payDraftRef`, и заводит новое, только если ссылка пуста. Для
+           * правки черновика ссылка уже известна — иначе оплата создала бы
+           * второе объявление, а первое осталось бы висеть неоплаченным.
+           */
+          if (editId) payDraftRef.current = editId;
           setPendingPay({
             mediaIds,
             taxonomyId,
@@ -753,7 +787,7 @@ function NewAdPage() {
           setSubmitting(false);
           return;
         } else {
-          const created = await createListing({
+          const поля = {
             title: form.title.trim(),
             description: form.description.trim(),
             priceCents,
@@ -765,19 +799,34 @@ function NewAdPage() {
             cityId: resolvedCityId,
             deliveryMethods: form.deliveries,
             mediaIds,
-            publish: true,
             promocode,
             packageSize: parcel.packageSize,
             weightKg: parcel.weightKg,
             dimensionsCm: parcel.dimensionsCm,
             pickupAddress: parcel.pickupAddress,
             showPhone: form.showPhone,
-          });
-          toast.success(
-            created.moderation === "moderation"
-              ? t("pages.adsNew.sentModeration")
-              : t("pages.adsNew.published"),
-          );
+          };
+          if (editId) {
+            /*
+             * Черновик бесплатной категории: сохраняем правки и публикуем.
+             * `PATCH /listings` публиковать не умеет — за это отвечает
+             * отдельный `POST /listings/{uuid}/publish`.
+             */
+            const updated = await updateListing(editId, поля);
+            await publishListing(editId);
+            toast.success(
+              updated.moderation === "moderation"
+                ? t("pages.adsNew.sentModeration")
+                : t("pages.adsNew.published"),
+            );
+          } else {
+            const created = await createListing({ ...поля, publish: true });
+            toast.success(
+              created.moderation === "moderation"
+                ? t("pages.adsNew.sentModeration")
+                : t("pages.adsNew.published"),
+            );
+          }
         }
       }
       void navigate({ to: "/my-ads" });
@@ -901,16 +950,24 @@ function NewAdPage() {
     () =>
       resolvePublishCtaLabel(t, {
         editId,
+        editingDraft,
         listingPaymentEnabled,
         flagsHydrated,
         quoteLoading,
         placementQuote,
       }),
-    [t, editId, listingPaymentEnabled, flagsHydrated, quoteLoading, placementQuote],
+    [t, editId, editingDraft, listingPaymentEnabled, flagsHydrated, quoteLoading, placementQuote],
   );
 
-  /** Block only while quote is actively loading; submit() re-fetches if needed. */
-  const paymentGatePending = !editId && (!flagsHydrated || (listingPaymentEnabled && quoteLoading));
+  /*
+   * Block only while quote is actively loading; submit() re-fetches if needed.
+   *
+   * Правка черновика тоже ждёт котировку: иначе кнопка «Оплатить … ₽»
+   * нажалась бы до того, как цена посчитана, и человек увидел бы сумму
+   * впервые на форме банка.
+   */
+  const paymentGatePending =
+    (!editId || editingDraft) && (!flagsHydrated || (listingPaymentEnabled && quoteLoading));
 
   return (
     <AppLayout>
@@ -968,13 +1025,23 @@ function NewAdPage() {
               бесплатное размещение. Обещание про деньги, данное по умолчанию,
               хуже отсутствия строки.
             */}
-              {!flagsHydrated
-                ? t("pages.adsNew.calculatingCost")
-                : listingPaymentEnabled
-                  ? quoteLoading || !priceKnown
-                    ? t("pages.adsNew.calculatingCost")
-                    : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
-                  : t("pages.adsNew.freePlacement")}
+              {/*
+              Правка опубликованного объявления ничего не стоит — про
+              размещение здесь говорить нечего. Раньше строка стояла и тут,
+              и называла цену из общей настройки, потому что котировку в
+              правке не запрашивали вовсе: в категории «ил 6» за 1 ₽ форма
+              обещала 30 ₽, а в «Редких и коллекционных» за 500 ₽ — те же 30
+              (приёмка 20.09).
+            */}
+              {editId && !editingDraft
+                ? t("pages.adsNew.editListingHint")
+                : !flagsHydrated
+                  ? t("pages.adsNew.calculatingCost")
+                  : listingPaymentEnabled
+                    ? quoteLoading || !priceKnown
+                      ? t("pages.adsNew.calculatingCost")
+                      : t("pages.adsNew.paidPlacement", { price: placementPriceLabel })
+                    : t("pages.adsNew.freePlacement")}
             </p>
           </header>
 
@@ -1069,7 +1136,14 @@ function NewAdPage() {
                   void submit();
                 }}
                 loading={submitting}
-                disabled={editId ? !valid : paymentGatePending}
+                /*
+                 * В правке ждём и загрузку объявления: пока она идёт, форма
+                 * пуста, а `editingDraft` ещё `false` — то есть кнопка
+                 * называлась бы «Сохранить изменения» даже у черновика.
+                 * Сейчас её держит незаполненность (`!valid`), но опираться
+                 * на это незачем: состояние загрузки у нас есть.
+                 */
+                disabled={editId ? loadingEdit || !valid || paymentGatePending : paymentGatePending}
                 aria-label={publishButtonLabel}
                 className="h-11 w-full shrink-0 rounded-[var(--r-button)] px-4 sm:min-w-[220px] sm:w-auto"
               >

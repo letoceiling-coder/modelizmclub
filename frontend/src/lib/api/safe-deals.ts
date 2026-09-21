@@ -81,6 +81,24 @@ export interface SafeDeal {
   escrow_holds_on_card?: boolean;
   /** Bank payment form — present only while the deal is awaiting payment. */
   checkout_url?: string | null;
+  /*
+   * Что сервер разрешает этому человеку на этой сделке.
+   *
+   * До 21.09 страница сделки считала доступные действия сама, по списку
+   * состояний, и на неоплаченной сделке расходилась с сервером: тот отмену
+   * разрешал, страница её не показывала. Список у сервера один и живёт в
+   * политике — читаем его, а не повторяем.
+   */
+  can?: {
+    view?: boolean;
+    pay?: boolean;
+    ship?: boolean;
+    markDelivered?: boolean;
+    confirmDelivery?: boolean;
+    cancel?: boolean;
+    openDispute?: boolean;
+    review?: boolean;
+  };
 }
 
 export interface SafeDealQuote {

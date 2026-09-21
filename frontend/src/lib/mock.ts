@@ -216,6 +216,15 @@ export interface Ad {
   /** ISO timestamp for sorting/filtering (display string is in createdAt). */
   publishedAt?: string;
   moderation?: "published" | "moderation" | "rejected";
+  /*
+   * Состояние публикации с сервера, как его называет сам сервер.
+   *
+   * `status` выше — про продажу («Продаю»), а `moderation` схлопывает
+   * черновик и ожидание модерации в одно значение. Форме правки нужно
+   * отличать именно черновик: только его ещё предстоит оплатить и
+   * опубликовать (приёмка 20.09).
+   */
+  listingState?: import("@/lib/store").AdStatusKey;
   /** Причина отклонения от модератора. Есть только у отклонённых объявлений. */
   rejectionReason?: string;
   /** Оплата размещения: видна только владельцу. Черновик без оплаты — не ошибка сайта. */
