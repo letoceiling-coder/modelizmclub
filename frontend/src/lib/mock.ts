@@ -242,7 +242,6 @@ export interface Ad {
   subcategoryId?: string;
   cityId?: number;
   mediaIds?: string[];
-  packageSize?: "s" | "m" | "l" | null;
   weightKg?: number | null;
   dimensionsCm?: { length?: number; width?: number; height?: number } | null;
   pickupAddress?: string | null;

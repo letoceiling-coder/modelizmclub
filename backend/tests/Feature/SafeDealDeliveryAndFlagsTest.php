@@ -73,30 +73,97 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
 
     // ── Пункт 4: габариты ────────────────────────────────────────────────
 
-    public function test_measured_parcel_wins_over_the_preset(): void
+    /**
+     * Габариты берутся как есть — домысливать нечего.
+     *
+     * До 22.09 здесь проверялся приоритет измеренного над типоразмером
+     * S/M/L. Типоразмеров больше нет: за ними стояла придуманная коробка,
+     * тариф считался по ней, а разницу с настоящей доплачивала площадка.
+     */
+    public function test_measured_parcel_goes_into_the_quote_as_is(): void
     {
-        $parcel = ParcelSize::resolve('m', ['length' => 45, 'width' => 30, 'height' => 20], 6.5);
+        $parcel = ParcelSize::resolve(['length' => 45, 'width' => 30, 'height' => 20], 6.5);
 
         $this->assertSame(['length' => 45, 'width' => 30, 'height' => 20], $parcel['dimensions_cm']);
         $this->assertSame(6.5, $parcel['weight_kg']);
-        $this->assertNull($parcel['package_size'], 'посылка измерена — типоразмер больше ничего не значит');
     }
 
-    public function test_preset_applies_only_when_nothing_was_measured(): void
+    /**
+     * Пустые данные не заменяются догадкой, а только полом в единицу.
+     *
+     * Форма такого не пропускает; сюда приходят импорт и старые строки, у
+     * которых исправить данные уже некому, — и делить на ноль в расчёте
+     * тарифа хуже, чем считать по сантиметру.
+     */
+    public function test_missing_measurements_get_a_floor_not_a_guess(): void
     {
-        $parcel = ParcelSize::resolve('m', null, null);
+        $parcel = ParcelSize::resolve(null, null);
 
-        $this->assertSame(['length' => 30, 'width' => 20, 'height' => 15], $parcel['dimensions_cm']);
-        $this->assertSame('m', $parcel['package_size']);
+        $this->assertSame(['length' => 1, 'width' => 1, 'height' => 1], $parcel['dimensions_cm']);
+        $this->assertSame(0.01, $parcel['weight_kg']);
     }
 
-    public function test_partial_measurements_fall_back_to_the_preset(): void
+    /** Забыт вес — пол ставится только ему, измеренное не трогается. */
+    public function test_a_floor_replaces_only_what_is_missing(): void
     {
-        // Введены габариты, но забыт вес: считать по половине данных нельзя.
-        $parcel = ParcelSize::resolve('l', ['length' => 45, 'width' => 30, 'height' => 20], 0);
+        $parcel = ParcelSize::resolve(['length' => 45, 'width' => 30, 'height' => 20], 0);
 
-        $this->assertSame('l', $parcel['package_size']);
-        $this->assertSame(5.0, $parcel['weight_kg']);
+        $this->assertSame(['length' => 45, 'width' => 30, 'height' => 20], $parcel['dimensions_cm']);
+        $this->assertSame(0.01, $parcel['weight_kg']);
+    }
+
+    /**
+     * Частичная правка не затирает измеренную коробку.
+     *
+     * `PATCH` с одними способами доставки — обычное дело. До поправки
+     * нормализация шла по сырому телу запроса: габаритов в нём нет, и
+     * 45×30×20 см с 6,5 кг превращались в 1×1×1 см и 10 граммов. Ответ 200,
+     * тариф со следующей сделки — за кубический сантиметр.
+     *
+     * Проверка на слитых данных этого не ловила: там габариты берутся из
+     * объявления, и всё на месте.
+     */
+    public function test_a_partial_update_keeps_the_measured_box(): void
+    {
+        DeliveryMethod::query()->firstOrCreate(
+            ['code' => 'cdek'],
+            ['name' => 'СДЭК', 'is_active' => true, 'is_integrated' => true, 'sort_order' => 1],
+        );
+        DeliveryMethod::query()->firstOrCreate(
+            ['code' => 'pickup'],
+            ['name' => 'Самовывоз', 'is_active' => true, 'is_integrated' => false, 'sort_order' => 2],
+        );
+
+        $seller = $this->seedUser('seller');
+        $city = \App\Models\City::query()->create(['name' => 'Москва', 'slug' => 'moskva-'.uniqid()]);
+        $listing = Listing::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'user_id' => $seller->id,
+            'city_id' => $city->id,
+            'category_id' => ListingCategory::query()->create([
+                'name' => 'RC', 'slug' => 'rc-'.uniqid(), 'sort_order' => 1,
+            ])->id,
+            'title' => 'Крупный набор',
+            'slug' => 'krupnyi-'.uniqid(),
+            'description' => 'Большая коробка, мерил сам.',
+            'price_cents' => 500000,
+            'currency' => 'RUB',
+            'status' => \App\Enums\ListingStatus::Published,
+            'delivery_methods' => ['СДЭК'],
+            'dimensions_cm' => ['length' => 45, 'width' => 30, 'height' => 20],
+            'weight_kg' => 6.5,
+        ]);
+
+        $this->actingAs($seller, 'sanctum')
+            ->patchJson("/api/v1/listings/{$listing->uuid}", [
+                'delivery_methods' => ['СДЭК', 'Самовывоз'],
+                'pickup_address' => 'Москва, ул. Ленина, 1',
+            ])
+            ->assertOk();
+
+        $listing->refresh();
+        $this->assertSame(['length' => 45, 'width' => 30, 'height' => 20], $listing->dimensions_cm);
+        $this->assertSame(6.5, (float) $listing->weight_kg);
     }
 
     public function test_listing_keeps_the_dimensions_the_seller_entered(): void
@@ -125,7 +192,6 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
                 ])->id,
                 'price_cents' => 500000,
                 'delivery_methods' => ['СДЭК'],
-                'package_size' => 'm',
                 'dimensions_cm' => ['length' => 45, 'width' => 30, 'height' => 20],
                 'weight_kg' => 6.5,
                 'accept_rules' => true,
@@ -137,10 +203,9 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $this->assertSame(
             ['length' => 45, 'width' => 30, 'height' => 20],
             $listing->dimensions_cm,
-            'введённые габариты не должны затираться пресетом при сохранении',
+            'введённые габариты должны доезжать до базы без изменений',
         );
         $this->assertSame(6.5, (float) $listing->weight_kg);
-        $this->assertNull($listing->package_size, 'посылка измерена — типоразмер не записывается');
     }
 
     // ── Пункт 6: выбор способа доставки ──────────────────────────────────

@@ -30,7 +30,6 @@ class Listing extends Model
         'status',
         'rejection_reason',
         'delivery_methods',
-        'package_size',
         'weight_kg',
         'dimensions_cm',
         'pickup_address',

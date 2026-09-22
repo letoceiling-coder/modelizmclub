@@ -4,15 +4,24 @@ namespace App\Support;
 
 use App\Models\Listing;
 
+/**
+ * Посылка объявления: что едет и сколько весит.
+ *
+ * До 22.09 габариты можно было не указывать — вместо них выбирался
+ * типоразмер S/M/L, за которым стояла придуманная коробка (M — 30×20×15 см,
+ * 2 кг). Тариф считался по ней, а в пункт приёма приезжала настоящая, и
+ * разницу доплачивала площадка.
+ *
+ * Решение убрать типоразмеры — продолжение поправки 07.09, а не разворот.
+ * Тогда выяснилось, что приоритет был обратным: пресет перекрывал введённые
+ * габариты, и они не доезжали до базы. На проде из семи объявлений с
+ * типоразмером у всех семи габариты совпадали с пресетом до сантиметра, а
+ * объявлений со своими габаритами не было ни одного — ни один продавец не
+ * смог сохранить измеренное. Приоритет тогда развернули; теперь у пресета
+ * отобрана и последняя роль.
+ */
 final class ParcelSize
 {
-    /** @var array<string, array{length: int, width: int, height: int, weight_kg: float, label: string}> */
-    public const PRESETS = [
-        's' => ['length' => 20, 'width' => 15, 'height' => 10, 'weight_kg' => 0.5, 'label' => 'S'],
-        'm' => ['length' => 30, 'width' => 20, 'height' => 15, 'weight_kg' => 2.0, 'label' => 'M'],
-        'l' => ['length' => 40, 'width' => 30, 'height' => 25, 'weight_kg' => 5.0, 'label' => 'L'],
-    ];
-
     public static function offersCdek(?array $methods): bool
     {
         foreach ($methods ?? [] as $method) {
@@ -38,86 +47,59 @@ final class ParcelSize
     }
 
     /**
+     * Привести габариты и вес к виду, в котором их принимает расчёт.
+     *
+     * Ничего не домысливает: что продавец измерил, то и едет в тариф.
+     * Отсутствующее значение не заменяется догадкой — форма такого не
+     * пропускает (`ListingService::assertDeliveryDetails`), а старым строкам
+     * и импорту оставлен пол в единицу, чтобы расчёт не падал делением на
+     * ноль там, где исправить данные уже некому.
+     *
      * @param  array<string, mixed>|null  $dimensions
-     * @return array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float, package_size: ?string}
+     * @return array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float}
      */
-    public static function resolve(?string $preset, ?array $dimensions, mixed $weightKg): array
+    public static function resolve(?array $dimensions, mixed $weightKg): array
     {
-        $length = (int) ($dimensions['length'] ?? 0);
-        $width = (int) ($dimensions['width'] ?? 0);
-        $height = (int) ($dimensions['height'] ?? 0);
-        $weight = (float) $weightKg;
-
-        // Измеренное побеждает типоразмер. До 07.09 приоритет был обратным:
-        // пресет перекрывал введённые габариты, и они не доезжали даже до
-        // базы — ListingService::normalizeParcelFields() пропускает данные
-        // через этот метод при сохранении и записывает результат. На проде из
-        // семи объявлений с типоразмером у всех семи габариты совпадали с
-        // пресетом до сантиметра, а объявлений со своими габаритами не было
-        // ни одного: ни один продавец не смог сохранить измеренное.
-        //
-        // Разницу между «M по умолчанию» и реальной коробкой при приёмке
-        // доплачивает площадка, поэтому измеренное важнее удобного.
-        if ($length > 0 && $width > 0 && $height > 0 && $weight > 0) {
-            return [
-                'dimensions_cm' => [
-                    'length' => $length,
-                    'width' => $width,
-                    'height' => $height,
-                ],
-                'weight_kg' => $weight,
-                'package_size' => null,
-            ];
-        }
-
-        $key = is_string($preset) ? strtolower($preset) : '';
-        if (isset(self::PRESETS[$key])) {
-            $row = self::PRESETS[$key];
-
-            return [
-                'dimensions_cm' => [
-                    'length' => $row['length'],
-                    'width' => $row['width'],
-                    'height' => $row['height'],
-                ],
-                'weight_kg' => $row['weight_kg'],
-                'package_size' => $key,
-            ];
-        }
-
-        // Ни измерений, ни типоразмера: минимальная посылка, чтобы расчёт не
-        // упал. Форма такого не пропускает — сюда приходят только импорт и
-        // старые строки.
         return [
             'dimensions_cm' => [
-                'length' => max(1, $length),
-                'width' => max(1, $width),
-                'height' => max(1, $height),
+                'length' => max(1, (int) ($dimensions['length'] ?? 0)),
+                'width' => max(1, (int) ($dimensions['width'] ?? 0)),
+                'height' => max(1, (int) ($dimensions['height'] ?? 0)),
             ],
-            'weight_kg' => max(0.01, $weight),
-            'package_size' => null,
+            'weight_kg' => max(0.01, (float) $weightKg),
         ];
     }
 
     /**
-     * @return array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float, package_size: ?string}
+     * Продавец измерил коробку — по-настоящему, а не полом из `resolve`.
+     *
+     * Спрашивается у объявления, а не у нормализованной посылки: после
+     * `resolve` пустое значение уже равно единице, и отличить его от
+     * настоящего сантиметра там нельзя.
+     *
+     * Нужно ровно там, где по коробке считают деньги. Объявления, заведённые
+     * до появления колонок габаритов, и демо-строки предлагают СДЭК, не имея
+     * ни одного измерения: без этой проверки покупателю посчитали бы доставку
+     * кубического сантиметра, а в пункт приёма приехала бы настоящая коробка.
      */
-    public static function fromListing(Listing $listing): array
+    public static function measured(Listing $listing): bool
     {
-        return self::resolve(
-            $listing->package_size,
-            is_array($listing->dimensions_cm) ? $listing->dimensions_cm : null,
-            $listing->weight_kg,
-        );
-    }
-
-    public static function isComplete(array $parcel): bool
-    {
-        $dims = $parcel['dimensions_cm'] ?? [];
+        $dims = is_array($listing->dimensions_cm) ? $listing->dimensions_cm : [];
 
         return (int) ($dims['length'] ?? 0) > 0
             && (int) ($dims['width'] ?? 0) > 0
             && (int) ($dims['height'] ?? 0) > 0
-            && (float) ($parcel['weight_kg'] ?? 0) > 0;
+            && (float) $listing->weight_kg > 0;
+    }
+
+    /**
+     * @return array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float}
+     */
+    public static function fromListing(Listing $listing): array
+    {
+        return self::resolve(
+            is_array($listing->dimensions_cm) ? $listing->dimensions_cm : null,
+            $listing->weight_kg,
+        );
     }
 }

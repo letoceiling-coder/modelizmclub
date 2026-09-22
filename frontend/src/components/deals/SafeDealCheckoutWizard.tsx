@@ -35,11 +35,11 @@ interface Props {
 }
 
 function parcelLabel(ad: Ad): string {
-  const size = ad.packageSize?.toUpperCase();
+  // Типоразмер S/M/L убран 22.09: за ним стояла придуманная коробка, тариф
+  // считался по ней, а в пункт приёма приезжала настоящая.
   const dims = ad.dimensionsCm;
   const weight = ad.weightKg;
   const parts: string[] = [];
-  if (size) parts.push(`Типоразмер ${size}`);
   if (dims?.length && dims.width && dims.height) {
     parts.push(`${dims.length}×${dims.width}×${dims.height} см`);
   }

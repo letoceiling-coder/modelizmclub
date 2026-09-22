@@ -157,6 +157,24 @@ class SafeDealService
         $destinationPoint = $this->normalizeDestination($destination);
 
         if ($offersCdek) {
+            /*
+             * Нельзя считать доставку коробки, которой никто не мерил.
+             *
+             * Такие объявления есть: колонки габаритов появились 25.08, и всё,
+             * что заведено до этого со СДЭК, живёт с тремя пустыми полями;
+             * демо-строки — тоже. `ParcelSize::resolve` отдаёт им пол в
+             * единицу, и тариф вышел бы за кубический сантиметр и десять
+             * граммов, а в пункт приёма приехала бы настоящая коробка.
+             *
+             * Отказ адресован покупателю, но чинит его продавец — поэтому он
+             * называет причину, а не «попробуйте позже».
+             */
+            if (! ParcelSize::measured($listing)) {
+                throw ValidationException::withMessages([
+                    'delivery_method' => ['Продавец не указал габариты посылки — доставка СДЭК по этому объявлению пока недоступна.'],
+                ]);
+            }
+
             if ($destinationPoint === null) {
                 throw ValidationException::withMessages([
                     'destination_point' => ['Выберите пункт выдачи СДЭК.'],
@@ -1289,7 +1307,7 @@ class SafeDealService
 
     /**
      * @param  array<string, mixed>  $destination
-     * @param  array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float, package_size: ?string}  $parcel
+     * @param  array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float}  $parcel
      * @return array{price_cents: int, tariff_code: ?string, origin: array<string, mixed>}
      */
     private function quoteCdekDelivery(Listing $listing, array $destination, array $parcel): array

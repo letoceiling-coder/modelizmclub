@@ -122,7 +122,6 @@ export interface SafeDealQuote {
   parcel: {
     dimensions_cm: { length: number; width: number; height: number };
     weight_kg: number;
-    package_size: string | null;
   };
   destination_point?: SafeDealDestination | null;
 }
