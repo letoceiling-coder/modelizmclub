@@ -2,6 +2,7 @@
 
 namespace Modules\Delivery\Services;
 
+use AntistressStore\CdekSDK2\Constants;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -120,6 +121,16 @@ class CdekApiExtension
     }
 
     /**
+     * Снять заказ. СДЭК отвечает 202 и кладёт исход в `requests[]`.
+     *
+     * @return array<string, mixed>
+     */
+    public function deleteOrder(string $uuid): array
+    {
+        return $this->request('DELETE', 'orders/'.$uuid);
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
@@ -195,8 +206,8 @@ class CdekApiExtension
         $test = (bool) config('cdek.test', true);
 
         if ($test) {
-            $account = \AntistressStore\CdekSDK2\Constants::TEST_ACCOUNT;
-            $secure = \AntistressStore\CdekSDK2\Constants::TEST_SECURE;
+            $account = Constants::TEST_ACCOUNT;
+            $secure = Constants::TEST_SECURE;
             $accountType = 'TEST';
         } else {
             $account = (string) config('cdek.account');

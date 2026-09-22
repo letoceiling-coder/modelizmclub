@@ -186,6 +186,30 @@ class YandexDeliveryAdapter implements DeliveryCarrierContract
         return $url;
     }
 
+    public function cancelShipment(Shipment $shipment): array
+    {
+        if ($shipment->external_id === null) {
+            return [];
+        }
+
+        /*
+         * Отмена у Яндекса не реализована, и это пробел, а не решение.
+         *
+         * У `YandexGateway` нет метода отмены: есть listPickupPoints,
+         * detectLocation, calculatePrice, createOffer, confirmOffer,
+         * getRequestInfo — и всё. Написать вызов вслепую я не могу:
+         * проверить его нечем, ключей Яндекса нет, отправлений Яндекса
+         * тоже — на 22.09 все 19 отправлений на площадке от СДЭК.
+         *
+         * Доставка Яндекса при этом **включена** (`yandex-delivery.enabled`
+         * на проде true), то есть отправление появиться может. Поэтому не
+         * молчим: отказ поднимается выше, `ShipmentService::cancel` его
+         * запишет, отменит у себя и оставит след, что перевозчику не
+         * сообщили.
+         */
+        throw new RuntimeException('Отмена заказа у Яндекс.Доставки не реализована.');
+    }
+
     public function fetchStatus(Shipment $shipment): array
     {
         if ($shipment->external_id === null) {

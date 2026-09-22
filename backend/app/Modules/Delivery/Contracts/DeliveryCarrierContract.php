@@ -34,5 +34,17 @@ interface DeliveryCarrierContract
      */
     public function fetchStatus(Shipment $shipment): array;
 
+    /**
+     * Снять заказ у перевозчика.
+     *
+     * До 22.09 отмены в контракте не было вовсе: `ShipmentService::cancel`
+     * менял статус только у нас, а заказ у перевозчика оставался живым —
+     * посылку можно было сдать, и доставку бы посчитали. Проверено на
+     * учебном контуре СДЭК: `DELETE /v2/orders/{uuid}` отвечает 202.
+     *
+     * @return array<string, mixed> сырой ответ перевозчика — в `raw_payload`
+     */
+    public function cancelShipment(Shipment $shipment): array;
+
     public function mapProviderStatus(string $status): ?ShipmentStatus;
 }

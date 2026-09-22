@@ -159,6 +159,17 @@ class CdekDeliveryAdapter implements DeliveryCarrierContract
         ];
     }
 
+    public function cancelShipment(Shipment $shipment): array
+    {
+        if ($shipment->external_id === null) {
+            // Заказа у перевозчика нет — снимать нечего, и это не отказ:
+            // отправление могло не дойти до создания (draft, error).
+            return [];
+        }
+
+        return $this->api->deleteOrder($shipment->external_id);
+    }
+
     public function fetchStatus(Shipment $shipment): array
     {
         if ($shipment->external_id === null) {
