@@ -12,8 +12,10 @@ use App\Models\SafeDeal;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -144,8 +146,9 @@ class CdekShipmentWebhookTest extends TestCase
     /**
      * Подписка на уведомления заводится и не плодится.
      *
-     * Адрес существовал с 25.08, но СДЭК о нём не знал: подписки никто не
-     * создавал, и статусы приезжали только пятнадцатиминутным опросом.
+     * Успехом считается не код ответа, а перечитанный список: последний
+     * `GET` в череде ниже — это проверка `убедиться()`, и без неё тест
+     * подтверждал бы только то, что запрос ушёл.
      */
     public function test_webhook_registration_is_idempotent(): void
     {
@@ -156,7 +159,8 @@ class CdekShipmentWebhookTest extends TestCase
             '*/v2/oauth/token*' => Http::response(['access_token' => 't', 'expires_in' => 3600]),
             '*/v2/webhooks' => Http::sequence()
                 ->push(['entity' => []])
-                ->push(['entity' => ['uuid' => 'new']]),
+                ->push(['requests' => [['state' => 'SUCCESSFUL', 'errors' => []]]])
+                ->push(['entity' => [['type' => 'ORDER_STATUS', 'url' => $url, 'uuid' => 'new']]]),
         ]);
 
         $this->artisan('cdek:register-webhook')->assertSuccessful();
@@ -167,10 +171,109 @@ class CdekShipmentWebhookTest extends TestCase
             && ($request->data()['type'] ?? null) === 'ORDER_STATUS');
     }
 
+    /**
+     * СДЭК отказал внутри ответа с кодом 200 — это отказ, а не успех.
+     *
+     * `decode()` бросает только на 4xx/5xx, поэтому `state=INVALID` при
+     * HTTP 200 проходил насквозь и команда печатала «Готово».
+     */
+    public function test_webhook_registration_fails_on_invalid_state(): void
+    {
+        config(['app.url' => 'https://modelizmclub.ru']);
+
+        Http::fake([
+            '*/v2/oauth/token*' => Http::response(['access_token' => 't', 'expires_in' => 3600]),
+            '*/v2/webhooks' => Http::sequence()
+                ->push(['entity' => []])
+                ->push(['requests' => [[
+                    'state' => 'INVALID',
+                    'errors' => [['code' => 'v2_entity_invalid', 'message' => 'url is not reachable']],
+                ]]]),
+        ]);
+
+        $this->artisan('cdek:register-webhook')
+            ->expectsOutputToContain('url is not reachable')
+            ->assertFailed();
+    }
+
+    /**
+     * Случай 22.09: ответ успешный, а в списке осталась прежняя подписка.
+     *
+     * Ровно это и произошло на проде — команда отчиталась «Готово», а uuid
+     * и адрес не изменились. Без перечитывания списка отличить одно от
+     * другого нельзя.
+     */
+    public function test_webhook_registration_fails_when_list_did_not_change(): void
+    {
+        config(['app.url' => 'https://api.modelizmclub.ru']);
+        $чужой = 'https://modelizmclub.ru/api/v1/webhooks/cdek/order-status';
+
+        Http::fake([
+            '*/v2/oauth/token*' => Http::response(['access_token' => 't', 'expires_in' => 3600]),
+            '*/v2/webhooks*' => Http::sequence()
+                ->push(['entity' => [['type' => 'ORDER_STATUS', 'url' => $чужой, 'uuid' => 'old']]])
+                ->push([])
+                ->push(['requests' => [['state' => 'SUCCESSFUL', 'errors' => []]]])
+                ->push(['entity' => [['type' => 'ORDER_STATUS', 'url' => $чужой, 'uuid' => 'old']]]),
+        ]);
+
+        $this->artisan('cdek:register-webhook')
+            ->expectsOutputToContain($чужой)
+            ->assertFailed();
+    }
+
     /** На http СДЭК не стучится — лучше отказать, чем завести мёртвую подписку. */
     public function test_webhook_registration_refuses_plain_http(): void
     {
         $this->artisan('cdek:register-webhook', ['--url' => 'http://modelizmclub.ru/hook'])
             ->assertFailed();
+    }
+
+    /**
+     * Первое настоящее уведомление видно сразу, а не раскопками в журналах.
+     *
+     * Что именно проверяется: отметка одноразовая — первое уведомление
+     * уходит в `warning`, следующее в `info`. Иначе «первое» затеряется
+     * среди остальных ровно так же, как терялось молчание до 22.09.
+     */
+    public function test_first_cdek_webhook_is_logged_loudly_once(): void
+    {
+        Cache::forget('cdek:webhook:first-seen-at');
+        Log::spy();
+
+        $тело = ['uuid' => 'нет-такого-отправления', 'status' => ['code' => 'RECEIVED_AT_SHIPMENT_WAREHOUSE']];
+
+        $this->postJson('/api/v1/webhooks/cdek/order-status', $тело)->assertOk();
+        $this->postJson('/api/v1/webhooks/cdek/order-status', $тело)->assertOk();
+
+        Log::shouldHaveReceived('warning')
+            ->with('СДЭК: пришло ПЕРВОЕ уведомление о статусе отправления', \Mockery::any())
+            ->once();
+
+        Log::shouldHaveReceived('info')
+            ->with('СДЭК: уведомление о статусе отправления', \Mockery::any())
+            ->once();
+    }
+
+    /**
+     * Пустое тело отметку не сжигает.
+     *
+     * На этот адрес шлёт кто угодно: свой же `curl` при проверке связи —
+     * в журналах nginx их 150 штук, — чужой сканер. Посчитать такое
+     * «первым уведомлением от СДЭК» значит потерять единственный сигнал.
+     */
+    public function test_an_empty_body_does_not_burn_the_first_marker(): void
+    {
+        Cache::forget('cdek:webhook:first-seen-at');
+        Log::spy();
+
+        $this->postJson('/api/v1/webhooks/cdek/order-status', [])->assertOk();
+
+        $this->assertNull(
+            Cache::get('cdek:webhook:first-seen-at'),
+            'отметка сгорела на пустом теле — первое настоящее уведомление уже не будет первым',
+        );
+
+        Log::shouldNotHaveReceived('warning', ['СДЭК: пришло ПЕРВОЕ уведомление о статусе отправления', \Mockery::any()]);
     }
 }
