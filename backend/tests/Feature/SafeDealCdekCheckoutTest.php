@@ -85,7 +85,6 @@ class SafeDealCdekCheckoutTest extends TestCase
             'status' => ListingStatus::Published,
             'published_at' => now(),
             'delivery_methods' => ['СДЭК'],
-            'package_size' => 'm',
             'weight_kg' => 2,
             'dimensions_cm' => ['length' => 30, 'width' => 20, 'height' => 15],
         ]);
@@ -113,7 +112,14 @@ class SafeDealCdekCheckoutTest extends TestCase
         ]);
     }
 
-    public function test_cdek_listing_requires_parcel_or_preset(): void
+    /**
+     * Отказ называет недостающее поимённо.
+     *
+     * До 22.09 на все четыре значения была одна строка про типоразмер
+     * S/M/L: на форме с тремя заполненными полями из четырёх она не
+     * говорила человеку, какое поле осталось.
+     */
+    public function test_cdek_listing_names_every_missing_measurement(): void
     {
         $user = $this->seedUser('seller');
         $categoryId = ListingCategory::query()->create([
@@ -133,7 +139,38 @@ class SafeDealCdekCheckoutTest extends TestCase
                 'publish' => false,
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['package_size']);
+            ->assertJsonValidationErrors([
+                'dimensions_cm.length',
+                'dimensions_cm.width',
+                'dimensions_cm.height',
+                'weight_kg',
+            ]);
+    }
+
+    /** Три стороны из четырёх — тоже отказ, и он про одно оставшееся поле. */
+    public function test_cdek_listing_rejects_measurements_without_weight(): void
+    {
+        $user = $this->seedUser('seller');
+        $categoryId = ListingCategory::query()->create([
+            'name' => 'Kits',
+            'slug' => 'kits-'.uniqid(),
+            'sort_order' => 1,
+            'is_active' => true,
+        ])->id;
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/listings', [
+                'title' => 'Без веса',
+                'description' => str_repeat('Описание объявления. ', 5),
+                'category_id' => $categoryId,
+                'price_cents' => 10_000,
+                'delivery_methods' => ['СДЭК'],
+                'dimensions_cm' => ['length' => 30, 'width' => 20, 'height' => 15],
+                'publish' => false,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['weight_kg'])
+            ->assertJsonMissingValidationErrors(['dimensions_cm.length']);
     }
 
     public function test_pickup_requires_address(): void

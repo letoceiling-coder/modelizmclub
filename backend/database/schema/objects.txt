@@ -616,7 +616,6 @@ COLUMN|listings.expires_at|timestamp without time zone|YES
 COLUMN|listings.favorites_count|integer|NO
 COLUMN|listings.id|bigint|NO
 COLUMN|listings.moderated_by|bigint|YES
-COLUMN|listings.package_size|character varying|YES
 COLUMN|listings.paid_until|timestamp without time zone|YES
 COLUMN|listings.pickup_address|character varying|YES
 COLUMN|listings.placement_amount_cents|integer|YES

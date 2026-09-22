@@ -336,7 +336,6 @@ class ListingService
                 'condition' => $data['condition'] ?? null,
                 'city_id' => $data['city_id'] ?? null,
                 'delivery_methods' => $data['delivery_methods'] ?? [],
-                'package_size' => $data['package_size'] ?? null,
                 'weight_kg' => $data['weight_kg'] ?? null,
                 'dimensions_cm' => $data['dimensions_cm'] ?? null,
                 'pickup_address' => $data['pickup_address'] ?? null,
@@ -372,7 +371,6 @@ class ListingService
         $this->assertAuthor($listing, $user);
         $this->assertDeliveryDetails(array_merge([
             'delivery_methods' => $listing->delivery_methods,
-            'package_size' => $listing->package_size,
             'weight_kg' => $listing->weight_kg,
             'dimensions_cm' => $listing->dimensions_cm,
             'pickup_address' => $listing->pickup_address,
@@ -407,9 +405,6 @@ class ListingService
 
             if (array_key_exists('delivery_methods', $data)) {
                 $listing->delivery_methods = $data['delivery_methods'] ?? [];
-            }
-            if (array_key_exists('package_size', $data)) {
-                $listing->package_size = $data['package_size'];
             }
             if (array_key_exists('weight_kg', $data)) {
                 $listing->weight_kg = $data['weight_kg'];
@@ -1058,15 +1053,25 @@ class ListingService
         $errors = [];
 
         if (ParcelSize::offersCdek($methods)) {
-            $preset = is_string($data['package_size'] ?? null) ? strtolower((string) $data['package_size']) : '';
+            /*
+             * Габариты и вес обязательны — все четыре значения.
+             *
+             * До 22.09 их заменял типоразмер S/M/L, за которым стояла
+             * придуманная коробка. Тариф считался по ней, в пункт приёма
+             * приезжала настоящая, и разницу доплачивала площадка.
+             *
+             * Отказ называет недостающее поимённо, а не одной строкой на все
+             * четыре: «укажите габариты» на форме, где заполнено три поля из
+             * четырёх, не говорит человеку, какое поле осталось.
+             */
             $dims = is_array($data['dimensions_cm'] ?? null) ? $data['dimensions_cm'] : [];
-            $hasCustom = (int) ($dims['length'] ?? 0) > 0
-                && (int) ($dims['width'] ?? 0) > 0
-                && (int) ($dims['height'] ?? 0) > 0
-                && (float) ($data['weight_kg'] ?? 0) > 0;
-
-            if ($preset === '' && ! $hasCustom) {
-                $errors['package_size'] = ['Для доставки СДЭК укажите типоразмер S/M/L или габариты и вес посылки.'];
+            foreach (['length' => 'длину', 'width' => 'ширину', 'height' => 'высоту'] as $key => $что) {
+                if ((int) ($dims[$key] ?? 0) <= 0) {
+                    $errors['dimensions_cm.'.$key] = ['Для доставки СДЭК укажите '.$что.' посылки в сантиметрах.'];
+                }
+            }
+            if ((float) ($data['weight_kg'] ?? 0) <= 0) {
+                $errors['weight_kg'] = ['Для доставки СДЭК укажите вес посылки в килограммах.'];
             }
 
             // Город отправки нужен СДЭК, чтобы вообще посчитать тариф. Раньше
@@ -1105,11 +1110,9 @@ class ListingService
         }
 
         $parcel = ParcelSize::resolve(
-            is_string($data['package_size'] ?? null) ? $data['package_size'] : null,
             is_array($data['dimensions_cm'] ?? null) ? $data['dimensions_cm'] : null,
             $data['weight_kg'] ?? null,
         );
-        $data['package_size'] = $parcel['package_size'];
         $data['dimensions_cm'] = $parcel['dimensions_cm'];
         $data['weight_kg'] = $parcel['weight_kg'];
 

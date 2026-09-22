@@ -14,6 +14,7 @@ import { PickupAddressField, rememberPickupAddress } from "@/components/ads/Pick
 import { uploadMediaDeduped } from "@/lib/api/media";
 import { createListing, fetchListing, publishListing, updateListing } from "@/lib/api/listings";
 import { publishCta } from "@/lib/listings/publish-cta";
+import { parcelFromForm, parcelMissing, parcelSummary } from "@/lib/listings/parcel";
 import {
   fetchPlacementQuote,
   formatQuoteRub,
@@ -197,94 +198,12 @@ interface Form {
   /** «Показывать мой номер» — по умолчанию включено. */
   showPhone: boolean;
   deliveries: string[];
-  packageSize: "" | "s" | "m" | "l";
   weightKg: string;
   dimL: string;
   dimW: string;
   dimH: string;
   pickupAddress: string;
   promocode: string;
-}
-
-/**
- * Что уйдёт в расчёт СДЭК, если продавец ничего не мерил.
- *
- * Те же три пресета, что в App\Support\ParcelSize на сервере. Показываем их
- * прямо в подсказках полей: продавец должен видеть, какие цифры поедут в
- * тариф вместо его собственных, а не догадываться по букве.
- */
-const PARCEL_PRESETS = {
-  s: { length: 20, width: 15, height: 10, weight: 0.5 },
-  m: { length: 30, width: 20, height: 15, weight: 2 },
-  l: { length: 40, width: 30, height: 25, weight: 5 },
-} as const;
-
-/** Одна строка о том, по каким данным посчитается доставка. */
-function parcelSummary(form: Form): string {
-  const l = Number(form.dimL);
-  const w = Number(form.dimW);
-  const h = Number(form.dimH);
-  const kg = Number(String(form.weightKg).replace(",", "."));
-
-  if (l > 0 && w > 0 && h > 0 && kg > 0) {
-    return `Тариф посчитаем по вашим размерам: ${l}×${w}×${h} см, ${kg} кг.`;
-  }
-
-  const preset = PARCEL_PRESETS[form.packageSize as keyof typeof PARCEL_PRESETS];
-  if (preset) {
-    return `Тариф посчитаем по типоразмеру ${form.packageSize.toUpperCase()}: ${preset.length}×${preset.width}×${preset.height} см, ${preset.weight} кг.`;
-  }
-
-  return "Выберите типоразмер или укажите все четыре значения — иначе тариф не посчитать.";
-}
-
-function parcelFromForm(
-  form: Pick<
-    Form,
-    "deliveries" | "packageSize" | "weightKg" | "dimL" | "dimW" | "dimH" | "pickupAddress"
-  >,
-): {
-  packageSize?: "s" | "m" | "l";
-  weightKg?: number;
-  dimensionsCm?: { length: number; width: number; height: number };
-  pickupAddress?: string;
-} {
-  const cdek = form.deliveries.some(isCdekDelivery);
-  const pickup = form.deliveries.some(isPickupDelivery);
-  const preset =
-    form.packageSize === "s" || form.packageSize === "m" || form.packageSize === "l"
-      ? form.packageSize
-      : undefined;
-  const length = Number(form.dimL);
-  const width = Number(form.dimW);
-  const height = Number(form.dimH);
-  const weight = Number(String(form.weightKg).replace(",", "."));
-  const custom = length > 0 && width > 0 && height > 0 && weight > 0;
-  // Измеренное побеждает типоразмер — тот же порядок, что в ParcelSize::resolve
-  // на сервере. Иначе форма и расчёт разошлись бы в том, по каким данным
-  // считается тариф.
-  return {
-    packageSize: cdek && !custom ? preset : undefined,
-    weightKg: cdek && custom ? weight : undefined,
-    dimensionsCm: cdek && custom ? { length, width, height } : undefined,
-    pickupAddress: pickup ? form.pickupAddress.trim() : undefined,
-  };
-}
-
-function deliveryDetailsValid(form: Form): string | null {
-  if (form.deliveries.some(isCdekDelivery)) {
-    const preset = form.packageSize === "s" || form.packageSize === "m" || form.packageSize === "l";
-    const custom =
-      Number(form.dimL) > 0 &&
-      Number(form.dimW) > 0 &&
-      Number(form.dimH) > 0 &&
-      Number(form.weightKg.replace(",", ".")) > 0;
-    if (!preset && !custom) return "Для СДЭК укажите типоразмер S/M/L или габариты и вес посылки.";
-  }
-  if (form.deliveries.some(isPickupDelivery) && form.pickupAddress.trim().length < 3) {
-    return "Укажите адрес или ориентир для самовывоза.";
-  }
-  return null;
 }
 
 /**
@@ -348,7 +267,6 @@ const initial: Form = {
   contact: "",
   showPhone: true,
   deliveries: ["СДЭК"],
-  packageSize: "m",
   weightKg: "",
   dimL: "",
   dimW: "",
@@ -414,7 +332,6 @@ function NewAdPage() {
     title: string;
     description: string;
     deliveries: string[];
-    packageSize: "" | "s" | "m" | "l";
     weightKg: string;
     dimL: string;
     dimW: string;
@@ -501,7 +418,6 @@ function NewAdPage() {
           deliveries: (ad.delivery.length ? ad.delivery : ["СДЭК"]).filter(
             (d) => !/boxberry|боксберри/i.test(d),
           ),
-          packageSize: ad.packageSize ?? (ad.delivery.some(isCdekDelivery) ? "m" : ""),
           weightKg: ad.weightKg != null ? String(ad.weightKg) : "",
           dimL: ad.dimensionsCm?.length != null ? String(ad.dimensionsCm.length) : "",
           dimW: ad.dimensionsCm?.width != null ? String(ad.dimensionsCm.width) : "",
@@ -639,11 +555,11 @@ function NewAdPage() {
       form.city.trim().length >= 2 &&
       (form.cityId != null || form.city.trim().length >= 3) &&
       phonesMatch(form.contact, verifiedPhone) &&
-      deliveryDetailsValid(form) === null;
+      parcelMissing(form) === null;
     if (editId) return dataOk;
     if (step === 1) return photosOk;
     if (step === 2) return dataOk;
-    return photosOk && deliveryDetailsValid(form) === null;
+    return photosOk && parcelMissing(form) === null;
   }, [step, form, verifiedPhone, editId, nestedCategories.length]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -677,7 +593,7 @@ function NewAdPage() {
       return;
     }
 
-    const deliveryError = deliveryDetailsValid(form);
+    const deliveryError = parcelMissing(form);
     if (deliveryError) {
       toast.error(deliveryError);
       return;
@@ -737,7 +653,6 @@ function NewAdPage() {
           cityId: resolvedCityId,
           deliveryMethods: form.deliveries,
           mediaIds,
-          packageSize: parcel.packageSize,
           weightKg: parcel.weightKg,
           dimensionsCm: parcel.dimensionsCm,
           pickupAddress: parcel.pickupAddress,
@@ -808,7 +723,6 @@ function NewAdPage() {
             title: form.title.trim(),
             description: form.description.trim(),
             deliveries: form.deliveries,
-            packageSize: parcel.packageSize ?? "",
             weightKg: form.weightKg,
             dimL: form.dimL,
             dimW: form.dimW,
@@ -832,7 +746,6 @@ function NewAdPage() {
             deliveryMethods: form.deliveries,
             mediaIds,
             promocode,
-            packageSize: parcel.packageSize,
             weightKg: parcel.weightKg,
             dimensionsCm: parcel.dimensionsCm,
             pickupAddress: parcel.pickupAddress,
@@ -914,7 +827,6 @@ function NewAdPage() {
         mediaIds: job.mediaIds,
         publish: false,
         promocode: job.promocode,
-        packageSize: job.packageSize || undefined,
         weightKg: jobParcel.weightKg,
         dimensionsCm: jobParcel.dimensionsCm,
         pickupAddress: job.pickupAddress || undefined,
@@ -1651,11 +1563,7 @@ function StepData({
               const others = deliveryMethods.filter(
                 (m) => !cdek.includes(m) && !pickup.includes(m),
               );
-              const presetHint = PARCEL_PRESETS[form.packageSize as keyof typeof PARCEL_PRESETS];
               const toggle = (m: { id: string; label: string }) => {
-                // Типоразмер больше не выбирается сам. Раньше отметка СДЭК
-                // ставила «M» за продавца, и введённые ниже габариты уходили в
-                // никуда: при отправке выигрывал пресет. Пусть решает человек.
                 set("deliveries", toggleDeliveryMethod(form.deliveries, m));
               };
               return (
@@ -1709,81 +1617,33 @@ function StepData({
                           style={{ background: "var(--background-surface)" }}
                         >
                           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-                            От этих данных считается тариф СДЭК. Померьте коробку — так точнее;
-                            типоразмер возьмём, если мерить нечем.
+                            От этих данных считается тариф СДЭК. Померьте коробку — все четыре
+                            значения обязательны.
                           </p>
-                          <div className="flex flex-wrap gap-[8px]">
-                            {(["s", "m", "l"] as const).map((size) => (
-                              <button
-                                key={size}
-                                type="button"
-                                className="min-h-[40px] rounded-[var(--r-tag)] border px-[14px] text-[13px] font-semibold"
-                                style={{
-                                  borderColor:
-                                    form.packageSize === size ? "var(--accent)" : "var(--border)",
-                                  background:
-                                    form.packageSize === size
-                                      ? "var(--accent-soft)"
-                                      : "var(--background-elevated)",
-                                  color:
-                                    form.packageSize === size
-                                      ? "var(--accent)"
-                                      : "var(--foreground-70)",
-                                }}
-                                onClick={() => {
-                                  const next = form.packageSize === size ? "" : size;
-                                  set("packageSize", next);
-                                  // Выбор типоразмера убирает введённое, а не
-                                  // молча его перекрывает: раньше цифры
-                                  // оставались в полях и отбрасывались при
-                                  // отправке.
-                                  if (next) {
-                                    set("dimL", "");
-                                    set("dimW", "");
-                                    set("dimH", "");
-                                    set("weightKg", "");
-                                  }
-                                }}
-                              >
-                                {size.toUpperCase()}
-                              </button>
-                            ))}
-                          </div>
-                          <div
-                            className="grid grid-cols-2 gap-[8px] transition-opacity sm:grid-cols-4"
-                            // Пресет выбран — поля приглушены и показывают его
-                            // значения подсказкой. Не заблокированы: начать
-                            // вводить свои размеры можно прямо отсюда, чип
-                            // снимется сам.
-                            style={{ opacity: form.packageSize ? 0.55 : 1 }}
-                          >
+                          <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-4">
                             {(
                               [
-                                ["dimL", "Д, см", presetHint?.length],
-                                ["dimW", "Ш, см", presetHint?.width],
-                                ["dimH", "В, см", presetHint?.height],
+                                ["dimL", "Д, см"],
+                                ["dimW", "Ш, см"],
+                                ["dimH", "В, см"],
                               ] as const
-                            ).map(([field, label, hint]) => (
+                            ).map(([field, label]) => (
                               <Input
                                 key={field}
                                 value={form[field]}
-                                onChange={(e) => {
-                                  set("packageSize", "");
-                                  set(field, e.target.value.replace(/\D/g, "").slice(0, 3));
-                                }}
-                                placeholder={hint ? `${label} · ${hint}` : label}
+                                onChange={(e) =>
+                                  set(field, e.target.value.replace(/\D/g, "").slice(0, 3))
+                                }
+                                placeholder={label}
                                 inputMode="numeric"
                               />
                             ))}
                             <Input
                               value={form.weightKg}
-                              onChange={(e) => {
-                                set("packageSize", "");
-                                set("weightKg", e.target.value.replace(/[^\d.,]/g, "").slice(0, 6));
-                              }}
-                              placeholder={
-                                presetHint ? `Вес, кг · ${presetHint.weight}` : "Вес, кг"
+                              onChange={(e) =>
+                                set("weightKg", e.target.value.replace(/[^\d.,]/g, "").slice(0, 6))
                               }
+                              placeholder="Вес, кг"
                               inputMode="decimal"
                             />
                           </div>

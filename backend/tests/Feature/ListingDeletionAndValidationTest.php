@@ -98,7 +98,8 @@ class ListingDeletionAndValidationTest extends TestCase
                 'category_id' => $this->category()->id,
                 'price_cents' => 100000,
                 'delivery_methods' => ['СДЭК'],
-                'package_size' => 'm',
+                'dimensions_cm' => ['length' => 30, 'width' => 20, 'height' => 15],
+                'weight_kg' => 2,
                 'accept_rules' => true,
             ])
             ->assertStatus(422)

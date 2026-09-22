@@ -73,30 +73,43 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
 
     // ── Пункт 4: габариты ────────────────────────────────────────────────
 
-    public function test_measured_parcel_wins_over_the_preset(): void
+    /**
+     * Габариты берутся как есть — домысливать нечего.
+     *
+     * До 22.09 здесь проверялся приоритет измеренного над типоразмером
+     * S/M/L. Типоразмеров больше нет: за ними стояла придуманная коробка,
+     * тариф считался по ней, а разницу с настоящей доплачивала площадка.
+     */
+    public function test_measured_parcel_goes_into_the_quote_as_is(): void
     {
-        $parcel = ParcelSize::resolve('m', ['length' => 45, 'width' => 30, 'height' => 20], 6.5);
+        $parcel = ParcelSize::resolve(['length' => 45, 'width' => 30, 'height' => 20], 6.5);
 
         $this->assertSame(['length' => 45, 'width' => 30, 'height' => 20], $parcel['dimensions_cm']);
         $this->assertSame(6.5, $parcel['weight_kg']);
-        $this->assertNull($parcel['package_size'], 'посылка измерена — типоразмер больше ничего не значит');
     }
 
-    public function test_preset_applies_only_when_nothing_was_measured(): void
+    /**
+     * Пустые данные не заменяются догадкой, а только полом в единицу.
+     *
+     * Форма такого не пропускает; сюда приходят импорт и старые строки, у
+     * которых исправить данные уже некому, — и делить на ноль в расчёте
+     * тарифа хуже, чем считать по сантиметру.
+     */
+    public function test_missing_measurements_get_a_floor_not_a_guess(): void
     {
-        $parcel = ParcelSize::resolve('m', null, null);
+        $parcel = ParcelSize::resolve(null, null);
 
-        $this->assertSame(['length' => 30, 'width' => 20, 'height' => 15], $parcel['dimensions_cm']);
-        $this->assertSame('m', $parcel['package_size']);
+        $this->assertSame(['length' => 1, 'width' => 1, 'height' => 1], $parcel['dimensions_cm']);
+        $this->assertSame(0.01, $parcel['weight_kg']);
     }
 
-    public function test_partial_measurements_fall_back_to_the_preset(): void
+    /** Забыт вес — пол ставится только ему, измеренное не трогается. */
+    public function test_a_floor_replaces_only_what_is_missing(): void
     {
-        // Введены габариты, но забыт вес: считать по половине данных нельзя.
-        $parcel = ParcelSize::resolve('l', ['length' => 45, 'width' => 30, 'height' => 20], 0);
+        $parcel = ParcelSize::resolve(['length' => 45, 'width' => 30, 'height' => 20], 0);
 
-        $this->assertSame('l', $parcel['package_size']);
-        $this->assertSame(5.0, $parcel['weight_kg']);
+        $this->assertSame(['length' => 45, 'width' => 30, 'height' => 20], $parcel['dimensions_cm']);
+        $this->assertSame(0.01, $parcel['weight_kg']);
     }
 
     public function test_listing_keeps_the_dimensions_the_seller_entered(): void
@@ -125,7 +138,6 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
                 ])->id,
                 'price_cents' => 500000,
                 'delivery_methods' => ['СДЭК'],
-                'package_size' => 'm',
                 'dimensions_cm' => ['length' => 45, 'width' => 30, 'height' => 20],
                 'weight_kg' => 6.5,
                 'accept_rules' => true,
@@ -137,10 +149,9 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $this->assertSame(
             ['length' => 45, 'width' => 30, 'height' => 20],
             $listing->dimensions_cm,
-            'введённые габариты не должны затираться пресетом при сохранении',
+            'введённые габариты должны доезжать до базы без изменений',
         );
         $this->assertSame(6.5, (float) $listing->weight_kg);
-        $this->assertNull($listing->package_size, 'посылка измерена — типоразмер не записывается');
     }
 
     // ── Пункт 6: выбор способа доставки ──────────────────────────────────

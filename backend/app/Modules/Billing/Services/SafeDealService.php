@@ -1289,7 +1289,7 @@ class SafeDealService
 
     /**
      * @param  array<string, mixed>  $destination
-     * @param  array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float, package_size: ?string}  $parcel
+     * @param  array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float}  $parcel
      * @return array{price_cents: int, tariff_code: ?string, origin: array<string, mixed>}
      */
     private function quoteCdekDelivery(Listing $listing, array $destination, array $parcel): array

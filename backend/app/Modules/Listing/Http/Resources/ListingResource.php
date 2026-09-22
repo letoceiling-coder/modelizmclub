@@ -33,7 +33,6 @@ class ListingResource extends JsonResource
             'currency' => $this->currency,
             'status' => $this->status->value,
             'delivery_methods' => $this->delivery_methods ?? [],
-            'package_size' => $this->package_size,
             'weight_kg' => $this->weight_kg,
             'dimensions_cm' => $this->dimensions_cm,
             'pickup_address' => $this->pickup_address,
