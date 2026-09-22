@@ -27,6 +27,7 @@ import { toast } from "@/lib/toast";
 import { firstFieldError } from "@/lib/api/validationErrors";
 import { искатьПункты } from "@/lib/delivery/pvz-search";
 import { isYandexMapsConfigured } from "@/lib/delivery/yandex-maps";
+import { pvzBounds } from "@/lib/delivery/pvz-features";
 import { PickupPointsMap } from "@/components/deals/PickupPointsMap";
 import { reportReadFailure } from "@/lib/errors/handle";
 
@@ -87,6 +88,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const [pointsFailed, setPointsFailed] = useState(false);
   const [pointsReload, setPointsReload] = useState(0);
   const [pointsView, setPointsView] = useState<"list" | "map">("list");
+  const [mapBroken, setMapBroken] = useState(false);
   const [quote, setQuote] = useState<SafeDealQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -101,6 +103,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     setSelectedCity(null);
     setPoints([]);
     setPointsFailed(false);
+    setMapBroken(false);
     setPointQuery("");
     setPointsView("list");
     setSelectedPoint(null);
@@ -154,6 +157,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   useEffect(() => {
     setPointQuery("");
     setPointsFailed(false);
+    setPointsView("list");
     if (!selectedCity) {
       setPoints([]);
       return;
@@ -188,6 +192,15 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   }, [selectedCity, pointsReload]);
 
   const visiblePoints = useMemo(() => искатьПункты(points, pointQuery), [points, pointQuery]);
+
+  /*
+   * Карту показываем, только когда её есть чем наполнить. Переключатель и
+   * сама карта раньше считали это по-разному: переключатель — по числу
+   * пунктов, карта — по числу пунктов **с координатами**. В городе, где СДЭК
+   * координат не проставил, человек нажимал «На карте» и видел пустоту, а
+   * список в этот момент был скрыт.
+   */
+  const картаВозможна = isYandexMapsConfigured() && !mapBroken && pvzBounds(visiblePoints) !== null;
 
   const destination: SafeDealDestination | undefined = useMemo(() => {
     if (!selectedCity || !selectedPoint) return undefined;
@@ -515,12 +528,8 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               список помещаются вместе, и прятать одно за другим значило бы
               отнимать у человека то, что и так видно.
             */}
-            {points.length > 0 && isYandexMapsConfigured() && (
-              <div
-                className="flex gap-[6px] sm:hidden"
-                role="tablist"
-                aria-label="Вид выбора пункта"
-              >
+            {картаВозможна && (
+              <div className="flex gap-1.5 sm:hidden">
                 {(
                   [
                     ["list", "Списком"],
@@ -530,8 +539,12 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
                   <button
                     key={вид}
                     type="button"
-                    role="tab"
-                    aria-selected={pointsView === вид}
+                    /*
+                     * Кнопки, а не вкладки. `role="tab"` без `tabpanel` и
+                     * без стрелок на клавиатуре — обещание, которого нет:
+                     * диктор объявляет вкладки, которые ничем не управляют.
+                     */
+                    aria-pressed={pointsView === вид}
                     className="min-h-[36px] flex-1 rounded-[var(--r-tag)] border text-[13px] font-semibold"
                     style={{
                       borderColor: pointsView === вид ? "var(--accent)" : "var(--border)",
@@ -547,15 +560,23 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               </div>
             )}
 
-            <PickupPointsMap
-              points={visiblePoints}
-              selectedId={selectedPoint?.id ?? null}
-              onSelect={(p) => {
-                setSelectedPoint(p);
-                setQuote(null);
-              }}
-              className={pointsView === "map" ? "" : "hidden sm:block"}
-            />
+            {картаВозможна && (
+              <PickupPointsMap
+                points={visiblePoints}
+                selectedId={selectedPoint?.id ?? null}
+                onSelect={(p) => {
+                  setSelectedPoint(p);
+                  setQuote(null);
+                }}
+                onUnavailable={() => {
+                  // Список снова становится единственным путём — и он должен
+                  // быть на экране, а не за переключателем.
+                  setMapBroken(true);
+                  setPointsView("list");
+                }}
+                className={pointsView === "map" ? "" : "hidden sm:block"}
+              />
+            )}
 
             {points.length > 0 && (
               <div className={pointsView === "map" ? "hidden sm:block" : "space-y-[6px]"}>

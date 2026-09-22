@@ -11,9 +11,7 @@
  * сборкой, как номер счётчика Метрики.
  */
 
-const KEY = String(
-  (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_YANDEX_MAPS_KEY ?? "",
-).trim();
+import { yandexMapsKey } from "@/lib/delivery/maps-key";
 
 interface YMapsWindow extends Window {
   ymaps?: {
@@ -27,6 +25,12 @@ interface YMapsWindow extends Window {
 export interface YMap {
   geoObjects: { add: (o: unknown) => void };
   setBounds: (bounds: number[][], options?: unknown) => Promise<void>;
+  /**
+   * Контейнер карты. Нужен ровно ради `fitToViewport`: карта, построенная в
+   * скрытом узле, имеет нулевой размер и остаётся серым прямоугольником, пока
+   * ей об этом не скажут.
+   */
+  container: { fitToViewport: () => void };
   destroy: () => void;
 }
 
@@ -36,12 +40,13 @@ export interface YObjectManager {
   objects: {
     events: { add: (name: string, cb: (e: { get: (k: string) => unknown }) => void) => void };
     options: { set: (options: Record<string, unknown>) => void };
+    setObjectOptions: (id: string, options: Record<string, unknown>) => void;
   };
   clusters: { options: { set: (options: Record<string, unknown>) => void } };
 }
 
 export function isYandexMapsConfigured(): boolean {
-  return KEY !== "";
+  return yandexMapsKey() !== "";
 }
 
 let загрузка: Promise<YMapsWindow["ymaps"]> | null = null;
@@ -69,11 +74,18 @@ export function loadYandexMaps(): Promise<YMapsWindow["ymaps"]> {
     }
 
     const s = document.createElement("script");
-    s.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(KEY)}&lang=ru_RU`;
+    s.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(yandexMapsKey())}&lang=ru_RU`;
     s.async = true;
     s.onload = () => {
       const ymaps = (window as YMapsWindow).ymaps;
       if (!ymaps) {
+        /*
+         * Сбрасывается и здесь, а не только в `onerror`. Скрипт, который
+         * отдался, но не создал `ymaps` — так бывает на отозванном или
+         * чужом ключе, — оставлял бы обещание отклонённым навсегда, и карта
+         * не появилась бы до перезагрузки вкладки.
+         */
+        загрузка = null;
         reject(new Error("Карты Яндекса загрузились, но объект ymaps не появился"));
 
         return;
