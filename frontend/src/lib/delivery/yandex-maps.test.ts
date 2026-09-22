@@ -83,8 +83,10 @@ describe("с ключом", () => {
     await expect(первый).rejects.toThrow(/Не удалось загрузить/);
 
     // Следующая попытка пробует снова, а не отдаёт прежний отказ.
-    m.loadYandexMaps().catch(() => {});
+    const второй = m.loadYandexMaps();
     expect(теги).toHaveLength(2);
+    теги[1].onerror?.();
+    await expect(второй).rejects.toThrow(/Не удалось загрузить/);
   });
 
   it("скрипт отдался, но ymaps не появился — тоже не навсегда", async () => {
@@ -95,7 +97,9 @@ describe("с ключом", () => {
     теги[0].onload?.();
     await expect(первый).rejects.toThrow(/объект ymaps не появился/);
 
-    m.loadYandexMaps().catch(() => {});
+    const второй = m.loadYandexMaps();
     expect(теги).toHaveLength(2);
+    теги[1].onerror?.();
+    await expect(второй).rejects.toThrow(/Не удалось загрузить/);
   });
 });
