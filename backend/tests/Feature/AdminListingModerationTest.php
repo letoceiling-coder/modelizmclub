@@ -7,7 +7,6 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Listing;
 use App\Models\ListingCategory;
-use App\Models\ModerationAction;
 use App\Models\ModerationQueue;
 use App\Models\User;
 use App\Models\UserProfile;
@@ -211,6 +210,85 @@ class AdminListingModerationTest extends TestCase
      * `where uuid = 97`, отвечал «invalid input syntax for type uuid», и
      * админка показывала «Server Error».
      */
+    /**
+     * Четыре случая — четыре ответа, и ни один не притворяется другим.
+     *
+     * Разбор 22.09. Жалоба была «модератор получает 404 на объявление из
+     * своего списка»; замер её не подтвердил — все 110 объявлений из его
+     * списка отдали 200. Но нашлось другое: удалённое объявление отвечало
+     * «Объявление не найдено» — дословно тем же, чем выдуманный uuid, —
+     * хотя оно есть, модератор вправе его восстановить
+     * (`ListingPolicy::restore`), и `assertOwner` его не держит. На проде
+     * таких было 38 из 148, и добраться до них было нечем: списка без
+     * фильтра, карточки — 404.
+     */
+    public function test_a_deleted_listing_is_not_the_same_answer_as_a_missing_one(): void
+    {
+        $moderator = $this->seedUser(UserRole::Moderator);
+        $seller = $this->seedUser();
+        $listing = $this->pendingListing($seller);
+        $listing->delete();
+
+        // Удалённое: карточка открывается и признаётся удалённой.
+        $карточка = $this->actingAs($moderator, 'sanctum')
+            ->getJson("/api/v1/admin/listings/{$listing->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.uuid', $listing->uuid);
+
+        $this->assertNotNull(
+            $карточка->json('data.deleted_at'),
+            'карточка открылась, но не сказала, что объявление удалено',
+        );
+
+        // Выдуманного не существует — вот это «не найдено».
+        $this->actingAs($moderator, 'sanctum')
+            ->getJson('/api/v1/admin/listings/00000000-0000-4000-8000-000000000999')
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Объявление не найдено.');
+    }
+
+    /** Правка удалённого говорит, что мешает, а не «не найдено». */
+    public function test_editing_a_deleted_listing_says_it_is_deleted(): void
+    {
+        $moderator = $this->seedUser(UserRole::Moderator);
+        $listing = $this->pendingListing($this->seedUser());
+        $listing->delete();
+
+        $this->actingAs($moderator, 'sanctum')
+            ->patchJson("/api/v1/admin/listings/{$listing->uuid}", ['title' => 'Другое'])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Объявление удалено — чтобы править, сначала восстановите его.');
+
+        $this->actingAs($moderator, 'sanctum')
+            ->deleteJson("/api/v1/admin/listings/{$listing->uuid}")
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Объявление удалено — чтобы удалить, сначала восстановите его.');
+    }
+
+    /**
+     * До удалённых можно добраться списком — иначе право на восстановление
+     * мёртвое: uuid брать неоткуда.
+     */
+    public function test_deleted_listings_are_reachable_through_the_list(): void
+    {
+        $moderator = $this->seedUser(UserRole::Moderator);
+        $живое = $this->pendingListing($this->seedUser());
+        $удалённое = $this->pendingListing($this->seedUser());
+        $удалённое->delete();
+
+        $uuids = fn (string $query): array => $this->actingAs($moderator, 'sanctum')
+            ->getJson('/api/v1/admin/listings?'.$query)
+            ->assertOk()
+            ->json('data.*.uuid');
+
+        $this->assertSame([$живое->uuid], $uuids(''), 'без фильтра список как был');
+        $this->assertSame([$удалённое->uuid], $uuids('trashed=only'));
+        $this->assertEqualsCanonicalizing(
+            [$живое->uuid, $удалённое->uuid],
+            $uuids('trashed=with'),
+        );
+    }
+
     public function test_queue_id_instead_of_uuid_is_not_a_server_error(): void
     {
         $admin = $this->seedUser(UserRole::Owner);
