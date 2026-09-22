@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Sleep;
 use Modules\Delivery\Services\CdekApiExtension;
 use Throwable;
 
@@ -45,6 +46,15 @@ class RegisterCdekWebhookCommand extends Command
 
     /** Тип уведомления СДЭК: смена статуса заказа. */
     private const TYPE = 'ORDER_STATUS';
+
+    /** Сколько раз перечитывать список, прежде чем признать неподтверждённым. */
+    private const ПОПЫТОК = 3;
+
+    /**
+     * Пауза между перечитываниями. Короткая: длинную ждать в консоли незачем.
+     * Через `Sleep`, а не `sleep()`, — иначе прогон тестов встанет на ней всерьёз.
+     */
+    private const ПАУЗА_СЕК = 3;
 
     public function handle(CdekApiExtension $api): int
     {
@@ -124,31 +134,46 @@ class RegisterCdekWebhookCommand extends Command
      */
     private function убедиться(CdekApiExtension $api, string $url): int
     {
-        try {
-            $свои = array_values(array_filter(
-                $this->rows($api->listWebhooks()),
-                fn (array $row): bool => ($row['type'] ?? null) === self::TYPE,
-            ));
-        } catch (Throwable $e) {
-            $this->error('Изменения внесены, но перечитать список не удалось: '.$e->getMessage());
+        $адреса = [];
 
-            return self::FAILURE;
+        for ($попытка = 1; $попытка <= self::ПОПЫТОК; $попытка++) {
+            if ($попытка > 1) {
+                Sleep::for(self::ПАУЗА_СЕК)->seconds();
+            }
+
+            try {
+                $свои = array_values(array_filter(
+                    $this->rows($api->listWebhooks()),
+                    fn (array $row): bool => ($row['type'] ?? null) === self::TYPE,
+                ));
+            } catch (Throwable $e) {
+                $this->error('Изменения внесены, но перечитать список не удалось: '.$e->getMessage());
+
+                return self::FAILURE;
+            }
+
+            $адреса = array_map(static fn (array $row): string => (string) ($row['url'] ?? '?'), $свои);
+
+            if ($адреса === [$url]) {
+                $this->info('Готово: подписка одна, на '.$url);
+
+                return self::SUCCESS;
+            }
         }
 
-        $адреса = array_map(static fn (array $row): string => (string) ($row['url'] ?? '?'), $свои);
-
-        if ($адреса === [$url]) {
-            $this->info('Готово: подписка одна, на '.$url);
-
-            return self::SUCCESS;
-        }
-
-        $this->error(sprintf(
-            'СДЭК ответил успехом, но в списке %d подписк(а/и) типа %s: %s',
-            count($свои),
+        // Осторожно с формулировкой: это «не подтвердилось», а не «не вышло».
+        // 22.09 на проде список отдавал прежнюю подписку и после успешного
+        // прогона, а через некоторое время — уже новую. Сколько длится
+        // расхождение, мы не знаем: замеров нет, известны только две точки.
+        // Говорить здесь «СДЭК не завёл подписку» значит утверждать больше
+        // известного и посылать человека чинить то, что могло уже работать.
+        $this->warn(sprintf(
+            'Изменения приняты, но список их пока не показывает: %d подписк(а/и) типа %s — %s',
+            count($адреса),
             self::TYPE,
             $адреса === [] ? '(ни одной)' : implode(', ', $адреса),
         ));
+        $this->warn('У СДЭК список обновляется не сразу. Перезапустите команду через несколько минут: если адрес станет нужным — всё вышло с первого раза.');
 
         return self::FAILURE;
     }
