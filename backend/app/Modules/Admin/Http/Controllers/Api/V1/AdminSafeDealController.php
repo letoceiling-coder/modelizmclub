@@ -54,6 +54,7 @@ class AdminSafeDealController extends Controller
                 'Комиссия (₽)',
                 'К выплате (₽)',
                 'Доставка (₽)',
+                'Надбавка площадки (₽)',
                 'Способ доставки',
                 'Трек-номер',
                 'Оплачена',
@@ -78,6 +79,7 @@ class AdminSafeDealController extends Controller
                         $this->rub($deal->platform_fee_kopecks),
                         $this->rub($deal->seller_payout_kopecks),
                         $this->rub($deal->delivery_cost_kopecks),
+                        $this->rub((int) ($deal->metadata['delivery_markup_kopecks'] ?? 0)),
                         $deal->delivery_method,
                         $deal->tracking_number,
                         $deal->paid_at?->toDateTimeString(),
@@ -168,6 +170,14 @@ class AdminSafeDealController extends Controller
         $row['id'] = $deal->id;
         $row['buyer'] = ['uuid' => $deal->buyer?->uuid, 'name' => $deal->buyer?->name, 'email' => $deal->buyer?->email];
         $row['seller'] = ['uuid' => $deal->seller?->uuid, 'name' => $deal->seller?->name, 'email' => $deal->seller?->email];
+        /*
+         * Надбавка площадки к доставке. Покупателю она не показывается — он
+         * видит одну строку «Доставка» с итогом, — а здесь показывается: иначе
+         * через месяц никто не ответит, сколько на доставке заработано и с
+         * какой настройкой считалась эта сделка. Снимок берётся из сделки, а
+         * не пересчитывается по текущей настройке.
+         */
+        $row['delivery_markup_kopecks'] = (int) ($deal->metadata['delivery_markup_kopecks'] ?? 0);
 
         return $row;
     }

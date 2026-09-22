@@ -23,6 +23,18 @@ function useSettingMeta() {
   const { t } = useTranslation();
   return useMemo<Record<string, SettingMeta>>(
     () => ({
+      "delivery.markup.enabled": {
+        label: t("pages.adminSettings.settingMeta.delivery_markup_enabled.label"),
+        hint: t("pages.adminSettings.settingMeta.delivery_markup_enabled.hint"),
+      },
+      "delivery.markup.percent": {
+        label: t("pages.adminSettings.settingMeta.delivery_markup_percent.label"),
+        hint: t("pages.adminSettings.settingMeta.delivery_markup_percent.hint"),
+      },
+      "delivery.markup.fixed_cents": {
+        label: t("pages.adminSettings.settingMeta.delivery_markup_fixed_cents.label"),
+        hint: t("pages.adminSettings.settingMeta.delivery_markup_fixed_cents.hint"),
+      },
       "feature.reviews_enabled": {
         label: t("pages.adminSettings.settingMeta.feature_reviews_enabled.label"),
         hint: t("pages.adminSettings.settingMeta.feature_reviews_enabled.hint"),
