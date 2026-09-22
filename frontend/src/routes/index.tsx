@@ -27,6 +27,7 @@ import {
   removeFavoriteListing,
 } from "@/lib/api/listings";
 import { toast } from "@/lib/toast";
+import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import { fetchLandingStats, formatLandingStat, getCachedLandingStats } from "@/lib/api/landing";
 import {
   fetchLandingBlocks,
@@ -1065,7 +1066,8 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
       {/* favorite */}
       <button
         aria-label={fav ? t("landing.card.favRemove") : t("landing.card.favAdd")}
-        onClick={() => {
+        onClick={(e) => {
+          const кнопка = e.currentTarget;
           requireAccount(() => {
             void (async () => {
               const next = !fav;
@@ -1080,9 +1082,8 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
                   return;
                 }
               }
-              toast.success(next ? t("landing.card.favAdd") : t("landing.card.favRemove"), {
-                id: "favorite-toggle",
-              });
+              // У сердечка, а не в углу экрана.
+              inlineFeedback(кнопка, next ? t("landing.card.favAdd") : t("landing.card.favRemove"));
             })();
           });
         }}

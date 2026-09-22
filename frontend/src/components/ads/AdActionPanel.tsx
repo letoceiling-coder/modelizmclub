@@ -30,7 +30,7 @@ interface AdActionPanelProps {
   ad: Ad;
   saved: boolean;
   onWrite: () => void;
-  onToggleSave: () => void;
+  onToggleSave: (anchor: Element | null) => void;
   onShare: () => void;
   onSafeDeal?: () => void;
   safeDealBusy?: boolean;
@@ -163,7 +163,7 @@ export function AdActionPanel({
         <div className="grid grid-cols-2 gap-[8px]">
           <Button
             variant="outline"
-            onClick={onToggleSave}
+            onClick={(e) => onToggleSave(e.currentTarget)}
             aria-pressed={saved}
             className={cn(
               "rounded-[var(--r-button)]",

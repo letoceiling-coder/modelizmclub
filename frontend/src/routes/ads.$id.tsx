@@ -14,6 +14,7 @@ import {
   setListingPhoneVisibility,
 } from "@/lib/api/listings";
 import { reportActionFailure } from "@/lib/errors/handle";
+import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { catalogSearchForListing } from "@/lib/catalog-filter";
 import { AdGallery } from "@/components/ads/AdGallery";
@@ -406,7 +407,7 @@ function AdDetailPage() {
     ? { phone: revealedPhone, loading: phoneLoading, onReveal: revealPhone }
     : undefined;
 
-  const toggleSave = () => {
+  const toggleSave = (кнопка: Element | null = null) => {
     requireAccount(
       () => {
         void (async () => {
@@ -426,10 +427,15 @@ function AdDetailPage() {
               return;
             }
           }
-          toast.success(
-            saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"),
-            { id: "favorite-toggle" },
-          );
+          /*
+           * У сердечка, если оно известно. Без кнопки — тостом: сюда ведёт и
+           * путь через окно входа, где исходного элемента на экране уже нет.
+           */
+          const текст = saved
+            ? t("pages.adDetail.removedFromFavorites")
+            : t("pages.adDetail.addedToFavorites");
+          if (кнопка) inlineFeedback(кнопка, текст);
+          else toast.success(текст, { id: "favorite-toggle" });
         })();
       },
       undefined,

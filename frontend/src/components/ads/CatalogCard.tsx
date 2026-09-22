@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
@@ -89,6 +90,7 @@ export function CatalogCard({
           aria-label={fav ? "Убрать из избранного" : "В избранное"}
           onClick={(e) => {
             e.preventDefault();
+            const кнопка = e.currentTarget;
             const run = async () => {
               if (!getToken() && !isDemoMode()) return;
               const next = !fav;
@@ -103,9 +105,13 @@ export function CatalogCard({
                   return;
                 }
               }
-              toast.success(next ? "В избранное" : "Убрано из избранного", {
-                id: "favorite-toggle",
-              });
+              /*
+               * У сердечка, а не в углу экрана: человек смотрит на кнопку,
+               * по которой только что нажал, и искать ответ на другом конце
+               * экрана ему незачем. Отказ ниже остаётся тостом — он требует
+               * объяснения и живёт дольше.
+               */
+              inlineFeedback(кнопка, next ? "В избранное" : "Убрано из избранного");
             };
             if (guest) {
               guest.requireAccount(() => {

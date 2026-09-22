@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { InlineFeedbackHost } from "@/lib/ui/inline-feedback";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
@@ -262,6 +263,12 @@ function RootComponent() {
               отступы на телефоне — над нижней навигацией (`bottomToastOffset`).
               Автоскрытие 4 секунды, в стопке не больше трёх, новые сверху.
             */}
+            {/*
+              Отклик на действие — у кнопки, тост — для остального. Хост
+              один на приложение и рядом с тостами намеренно: оба живут в
+              портале и делят слой `--z-toast`.
+            */}
+            <InlineFeedbackHost />
             <Toaster
               position="bottom-right"
               closeButton

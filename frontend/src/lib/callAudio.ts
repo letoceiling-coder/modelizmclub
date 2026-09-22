@@ -191,7 +191,54 @@ export function playRejected(): void {
 }
 
 /** Short ping for a new incoming chat message. Does not stop call sounds. */
+/**
+ * Пинг нового сообщения.
+ *
+ * Раздражал не тон, а щелчки. `playDualTone` включает и выключает синус
+ * рывком: разрыв в форме волны слышен как щелчок на каждом краю, а нот было
+ * две по 90 мс — то есть четыре щелчка подряд. Замена — одна мягкая нота с
+ * тихой квинтой, с нарастанием за 12 мс и затуханием до нуля.
+ *
+ * Тише прежнего вдвое: пинг сообщает, а не требует внимания.
+ */
 export function playMessagePing(): void {
-  playDualTone([660, 880], 90, 0.07);
-  setTimeout(() => playDualTone([880, 990], 90, 0.07), 110);
+  const audio = ensureCtx();
+  if (!audio) return;
+  if (audio.state === "suspended") void audio.resume();
+
+  const t0 = audio.currentTime;
+  const master = audio.createGain();
+  master.connect(audio.destination);
+
+  /*
+   * Нарастание линейное, затухание степенное — так слышит ухо. Ноль в
+   * `exponentialRampToValueAtTime` недопустим, поэтому затухаем до
+   * неслышимого и только потом обрываем.
+   */
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.linearRampToValueAtTime(0.035, t0 + 0.012);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32);
+
+  // Ля второй октавы и квинта над ней, вдвое тише: интервал слышен как одна
+  // нота с окраской, а не как два сигнала.
+  for (const [freq, доля] of [
+    [880, 1],
+    [1320, 0.45],
+  ] as const) {
+    const gain = audio.createGain();
+    gain.gain.value = доля;
+    gain.connect(master);
+
+    const osc = audio.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    osc.start(t0);
+    osc.stop(t0 + 0.34);
+    activeOscillators.push(osc);
+  }
+
+  setTimeout(() => {
+    activeOscillators = activeOscillators.filter((o) => o.context === audio);
+  }, 400);
 }
