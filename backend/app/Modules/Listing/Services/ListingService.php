@@ -376,7 +376,7 @@ class ListingService
             'pickup_address' => $listing->pickup_address,
             'city_id' => $listing->city_id,
         ], $data), true, $user);
-        $data = $this->normalizeParcelFields($data);
+        $data = $this->normalizeParcelFields($data, $listing);
 
         if (! empty($data['taxonomy_id']) || (array_key_exists('category_id', $data) && $data['category_id'] !== null)) {
             $data = $this->resolveCategoryIds($data);
@@ -1102,19 +1102,42 @@ class ListingService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function normalizeParcelFields(array $data): array
+    private function normalizeParcelFields(array $data, ?Listing $listing = null): array
     {
-        $methods = $data['delivery_methods'] ?? [];
+        $methods = array_key_exists('delivery_methods', $data)
+            ? $data['delivery_methods']
+            : $listing?->delivery_methods;
+
         if (! ParcelSize::offersCdek(is_array($methods) ? $methods : [])) {
             return $data;
         }
 
+        /*
+         * Трогаем только то, что прислали.
+         *
+         * Правка частичная: `PATCH /listings/{uuid}` с одними способами
+         * доставки — обычное дело. Нормализация всего подряд превращала такой
+         * запрос в затирание измеренной коробки полом в единицу: 45×30×20 см
+         * и 6,5 кг становились 1×1×1 см и 10 граммами, ответ 200, а тариф
+         * СДЭК со следующей сделки считался за кубический сантиметр. Ровно
+         * та потеря, ради которой убирали типоразмеры.
+         *
+         * Проверка выше этого не ловит: она смотрит слитые данные, где
+         * габариты берутся из объявления и всё на месте.
+         */
         $parcel = ParcelSize::resolve(
-            is_array($data['dimensions_cm'] ?? null) ? $data['dimensions_cm'] : null,
-            $data['weight_kg'] ?? null,
+            array_key_exists('dimensions_cm', $data)
+                ? (is_array($data['dimensions_cm']) ? $data['dimensions_cm'] : null)
+                : (is_array($listing?->dimensions_cm) ? $listing->dimensions_cm : null),
+            array_key_exists('weight_kg', $data) ? $data['weight_kg'] : $listing?->weight_kg,
         );
-        $data['dimensions_cm'] = $parcel['dimensions_cm'];
-        $data['weight_kg'] = $parcel['weight_kg'];
+
+        if (array_key_exists('dimensions_cm', $data)) {
+            $data['dimensions_cm'] = $parcel['dimensions_cm'];
+        }
+        if (array_key_exists('weight_kg', $data)) {
+            $data['weight_kg'] = $parcel['weight_kg'];
+        }
 
         return $data;
     }

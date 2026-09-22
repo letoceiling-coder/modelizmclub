@@ -14,7 +14,12 @@ import { PickupAddressField, rememberPickupAddress } from "@/components/ads/Pick
 import { uploadMediaDeduped } from "@/lib/api/media";
 import { createListing, fetchListing, publishListing, updateListing } from "@/lib/api/listings";
 import { publishCta } from "@/lib/listings/publish-cta";
-import { parcelFromForm, parcelMissing, parcelSummary } from "@/lib/listings/parcel";
+import {
+  parcelFieldErrors,
+  parcelFromForm,
+  parcelMissing,
+  parcelSummary,
+} from "@/lib/listings/parcel";
 import {
   fetchPlacementQuote,
   formatQuoteRub,
@@ -1563,6 +1568,7 @@ function StepData({
               const others = deliveryMethods.filter(
                 (m) => !cdek.includes(m) && !pickup.includes(m),
               );
+              const parcelErrors = parcelFieldErrors(form);
               const toggle = (m: { id: string; label: string }) => {
                 set("deliveries", toggleDeliveryMethod(form.deliveries, m));
               };
@@ -1621,6 +1627,13 @@ function StepData({
                             значения обязательны.
                           </p>
                           <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-4">
+                            {/*
+                              Ошибка стоит у поля, а не одной строкой под
+                              блоком: «укажите габариты» на форме с тремя
+                              заполненными полями из четырёх не говорит, какое
+                              поле осталось, — а в режиме правки до тоста и
+                              вовсе не доходят, там кнопка просто выключена.
+                            */}
                             {(
                               [
                                 ["dimL", "Д, см"],
@@ -1628,24 +1641,30 @@ function StepData({
                                 ["dimH", "В, см"],
                               ] as const
                             ).map(([field, label]) => (
-                              <Input
-                                key={field}
-                                value={form[field]}
-                                onChange={(e) =>
-                                  set(field, e.target.value.replace(/\D/g, "").slice(0, 3))
-                                }
-                                placeholder={label}
-                                inputMode="numeric"
-                              />
+                              <Field key={field} label={label} required error={parcelErrors[field]}>
+                                <Input
+                                  value={form[field]}
+                                  onChange={(e) =>
+                                    set(field, e.target.value.replace(/\D/g, "").slice(0, 3))
+                                  }
+                                  placeholder={label}
+                                  inputMode="numeric"
+                                />
+                              </Field>
                             ))}
-                            <Input
-                              value={form.weightKg}
-                              onChange={(e) =>
-                                set("weightKg", e.target.value.replace(/[^\d.,]/g, "").slice(0, 6))
-                              }
-                              placeholder="Вес, кг"
-                              inputMode="decimal"
-                            />
+                            <Field label="Вес, кг" required error={parcelErrors.weightKg}>
+                              <Input
+                                value={form.weightKg}
+                                onChange={(e) =>
+                                  set(
+                                    "weightKg",
+                                    e.target.value.replace(/[^\d.,]/g, "").slice(0, 6),
+                                  )
+                                }
+                                placeholder="Вес, кг"
+                                inputMode="decimal"
+                              />
+                            </Field>
                           </div>
                           <p className="text-[12px]" style={{ color: "var(--foreground-70)" }}>
                             {parcelSummary(form)}

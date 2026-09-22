@@ -393,9 +393,8 @@ Accept: application/json
 | `price_cents` | копейки, 0…99_999_999_900 (макс. 999 999 999 ₽) |
 | `city_id` | город |
 | `delivery_methods[]` | активные имена из справочника (`pickup`, `cdek`, …) |
-| `package_size` | `s` \| `m` \| `l` |
-| `weight_kg` | 0.01–100 |
-| `dimensions_cm.{length,width,height}` | 1–200 см |
+| `weight_kg` | 0.01–100, обязателен при СДЭК |
+| `dimensions_cm.{length,width,height}` | 1–200 см, обязательны при СДЭК |
 | `pickup_address` | для самовывоза |
 | `media_ids[]` | UUID фото |
 | `publish` | сразу отправить на публикацию |
@@ -1016,7 +1015,7 @@ Sandbox эквайринга: `https://vtb.rbsuat.com/payment/rest/`.
 ### 5.4. Как клиенту провести сделку
 
 1. Объявление `published`, цена > 0, покупатель ≠ продавец, объявление не зарезервировано.
-2. Продавец заполнил точку отправки СДЭК, если товар едет СДЭК; указал габариты/`package_size`.
+2. Продавец заполнил точку отправки СДЭК, если товар едет СДЭК; указал габариты и вес посылки — все четыре значения.
 3. Покупатель: `POST /listings/{uuid}/safe-deal/quote` с ПВЗ.
 4. Покупатель: `POST /listings/{uuid}/safe-deal` с `accept_terms=true` и тем же `destination_point`.
 5. Если escrow = **wallet** — нужны деньги на кошельке, статус сразу `paid`.

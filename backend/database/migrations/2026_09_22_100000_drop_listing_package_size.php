@@ -33,24 +33,44 @@ return new class extends Migration
             return;
         }
 
+        /*
+         * Две колонки — два отдельных обновления, каждое со своим условием.
+         *
+         * Одно на обе затирало бы измеренное: строка, попавшая в выборку
+         * только из-за пустого веса, теряла бы настоящие габариты и получала
+         * взамен пресет.
+         */
         foreach (self::PRESETS as $key => $row) {
             DB::table('listings')
                 ->where('package_size', $key)
-                ->where(function ($q): void {
-                    $q->whereNull('dimensions_cm')
-                        ->orWhereNull('weight_kg')
-                        ->orWhere('weight_kg', '<=', 0);
-                })
-                ->update([
-                    'dimensions_cm' => json_encode([
-                        'length' => $row['length'],
-                        'width' => $row['width'],
-                        'height' => $row['height'],
-                    ]),
-                    'weight_kg' => $row['weight'],
-                ]);
+                ->where(fn ($q) => $q->whereNull('dimensions_cm')
+                    ->orWhereRaw("dimensions_cm->>'length' is null")
+                    ->orWhereRaw("(dimensions_cm->>'length')::int <= 0"))
+                ->update(['dimensions_cm' => json_encode([
+                    'length' => $row['length'],
+                    'width' => $row['width'],
+                    'height' => $row['height'],
+                ])]);
+
+            DB::table('listings')
+                ->where('package_size', $key)
+                ->where(fn ($q) => $q->whereNull('weight_kg')->orWhere('weight_kg', '<=', 0))
+                ->update(['weight_kg' => $row['weight']]);
         }
 
+        /*
+         * Остаются объявления со СДЭК, у которых нет ни габаритов, ни
+         * типоразмера: колонки габаритов появились 25.08, и всё, что заведено
+         * до этого, живёт с тремя пустыми полями; демо-строки — тоже.
+         *
+         * Их миграция намеренно не трогает. Подставить им «типичную коробку»
+         * значило бы завести ту самую придуманную посылку, ради избавления от
+         * которой всё и делается, а снять СДЭК — молча переписать предложение
+         * продавца. Вместо этого расчёт доставки по такому объявлению
+         * отказывается считать и называет причину
+         * (`SafeDealService`, `ParcelSize::measured`), а продавец дозаполняет
+         * габариты правкой — форма теперь их требует.
+         */
         Schema::table('listings', function (Blueprint $table): void {
             $table->dropColumn('package_size');
         });
@@ -64,8 +84,8 @@ return new class extends Migration
 
         /*
          * Колонка возвращается пустой. Восстановить в ней что-либо
-         * осмысленное нельзя и не нужно: габариты после `up()` заданы у всех
-         * строк, и именно они — источник правды для тарифа.
+         * осмысленное нельзя: у строк с типоразмером габариты после `up()`
+         * равны его значениям, а у остальных типоразмера и не было.
          */
         Schema::table('listings', function (Blueprint $table): void {
             $table->string('package_size', 8)->nullable()->after('delivery_methods');

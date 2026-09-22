@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  parcelFieldErrors,
   parcelFromForm,
   parcelMissing,
   parcelSummary,
@@ -106,5 +107,35 @@ describe("строка о том, по чему посчитается тари�
     const s = parcelSummary({ ...пусто, deliveries: ["СДЭК"] });
     expect(s).toBe("Укажите все четыре значения — иначе тариф не посчитать.");
     expect(s).not.toMatch(/типоразмер/i);
+  });
+});
+
+describe("ошибка стоит у своего поля", () => {
+  it("всё заполнено — ошибок нет", () => {
+    expect(parcelFieldErrors(сдэк())).toEqual({});
+  });
+
+  /*
+   * Ради этого случая разбор и завёлся. Одна строка под блоком не говорит,
+   * какое из четырёх полей пустое, а в режиме правки до тоста и вовсе не
+   * доходят: кнопка там просто выключена.
+   */
+  it("пустое поле называет себя само", () => {
+    expect(parcelFieldErrors(сдэк({ dimH: "" }))).toEqual({ dimH: "Укажите высоту посылки" });
+  });
+
+  it("верхний предел тот же, что на сервере", () => {
+    // Без него 250 см проходили проверку формы и возвращались отказом
+    // сервера по ключу `dimensions_cm.length`, которого форма не знает.
+    expect(parcelFieldErrors(сдэк({ dimL: "250" }))).toEqual({ dimL: "Не больше 200 см" });
+    expect(parcelFieldErrors(сдэк({ weightKg: "150" }))).toEqual({ weightKg: "Не больше 100 кг" });
+  });
+
+  it("без СДЭК полей нет и ошибок нет", () => {
+    expect(parcelFieldErrors({ ...пусто, deliveries: ["Почта России"] })).toEqual({});
+  });
+
+  it("превышение попадает и в строку для тоста", () => {
+    expect(parcelMissing(сдэк({ dimL: "250" }))).toContain("Не больше 200 см");
   });
 });

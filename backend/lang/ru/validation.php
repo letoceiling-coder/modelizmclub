@@ -152,6 +152,11 @@ return [
         'description' => 'описание',
         'destination_point' => 'пункт выдачи',
         'dimensions_cm' => 'габариты',
+        // По частям: отказ приходит по ключу конкретной стороны, и без этих
+        // строк человек видел бы «dimensions_cm.length» вместо «длина».
+        'dimensions_cm.length' => 'длина',
+        'dimensions_cm.width' => 'ширина',
+        'dimensions_cm.height' => 'высота',
         'email' => 'почта',
         'file' => 'файл',
         'name' => 'название',

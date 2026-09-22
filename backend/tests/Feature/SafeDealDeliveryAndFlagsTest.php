@@ -112,6 +112,60 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $this->assertSame(0.01, $parcel['weight_kg']);
     }
 
+    /**
+     * Частичная правка не затирает измеренную коробку.
+     *
+     * `PATCH` с одними способами доставки — обычное дело. До поправки
+     * нормализация шла по сырому телу запроса: габаритов в нём нет, и
+     * 45×30×20 см с 6,5 кг превращались в 1×1×1 см и 10 граммов. Ответ 200,
+     * тариф со следующей сделки — за кубический сантиметр.
+     *
+     * Проверка на слитых данных этого не ловила: там габариты берутся из
+     * объявления, и всё на месте.
+     */
+    public function test_a_partial_update_keeps_the_measured_box(): void
+    {
+        DeliveryMethod::query()->firstOrCreate(
+            ['code' => 'cdek'],
+            ['name' => 'СДЭК', 'is_active' => true, 'is_integrated' => true, 'sort_order' => 1],
+        );
+        DeliveryMethod::query()->firstOrCreate(
+            ['code' => 'pickup'],
+            ['name' => 'Самовывоз', 'is_active' => true, 'is_integrated' => false, 'sort_order' => 2],
+        );
+
+        $seller = $this->seedUser('seller');
+        $city = \App\Models\City::query()->create(['name' => 'Москва', 'slug' => 'moskva-'.uniqid()]);
+        $listing = Listing::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'user_id' => $seller->id,
+            'city_id' => $city->id,
+            'category_id' => ListingCategory::query()->create([
+                'name' => 'RC', 'slug' => 'rc-'.uniqid(), 'sort_order' => 1,
+            ])->id,
+            'title' => 'Крупный набор',
+            'slug' => 'krupnyi-'.uniqid(),
+            'description' => 'Большая коробка, мерил сам.',
+            'price_cents' => 500000,
+            'currency' => 'RUB',
+            'status' => \App\Enums\ListingStatus::Published,
+            'delivery_methods' => ['СДЭК'],
+            'dimensions_cm' => ['length' => 45, 'width' => 30, 'height' => 20],
+            'weight_kg' => 6.5,
+        ]);
+
+        $this->actingAs($seller, 'sanctum')
+            ->patchJson("/api/v1/listings/{$listing->uuid}", [
+                'delivery_methods' => ['СДЭК', 'Самовывоз'],
+                'pickup_address' => 'Москва, ул. Ленина, 1',
+            ])
+            ->assertOk();
+
+        $listing->refresh();
+        $this->assertSame(['length' => 45, 'width' => 30, 'height' => 20], $listing->dimensions_cm);
+        $this->assertSame(6.5, (float) $listing->weight_kg);
+    }
+
     public function test_listing_keeps_the_dimensions_the_seller_entered(): void
     {
         DeliveryMethod::query()->firstOrCreate(

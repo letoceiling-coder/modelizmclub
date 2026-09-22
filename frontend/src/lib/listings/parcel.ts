@@ -58,23 +58,64 @@ export function parcelSummary(form: ParcelForm): string {
   return "Укажите все четыре значения — иначе тариф не посчитать.";
 }
 
+/** Пределы совпадают с серверными (`ListingFormRules`). */
+const СМ_МАКС = 200;
+const КГ_МАКС = 100;
+
+export type ParcelField = "dimL" | "dimW" | "dimH" | "weightKg";
+
 /**
- * Чего не хватает для отправки. `null` — всё на месте.
+ * Что не так с каждым полем посылки. Пустой объект — всё в порядке.
  *
- * Называет недостающее поимённо, а не одной строкой на все четыре поля: на
- * форме, где заполнено три из четырёх, «укажите габариты» не говорит
- * человеку, какое поле осталось. Тот же порядок, что у отказа сервера в
+ * Поимённо, а не одной строкой на четыре поля: на форме, где заполнено три из
+ * четырёх, «укажите габариты» не говорит человеку, какое поле осталось, — он
+ * видит выключенную кнопку и не понимает, что от него хотят.
+ *
+ * Верхние пределы здесь те же, что на сервере. Без них 250 см проходили
+ * проверку формы и возвращались отказом сервера, привязанным к ключу
+ * `dimensions_cm.length`, — а форма про такой ключ ничего не знает.
+ */
+export function parcelFieldErrors(form: ParcelForm): Partial<Record<ParcelField, string>> {
+  if (!form.deliveries.some(isCdekDelivery)) return {};
+
+  const значения: Array<[ParcelField, number, string, number, string]> = [
+    ["dimL", Number(form.dimL), "длину", СМ_МАКС, "см"],
+    ["dimW", Number(form.dimW), "ширину", СМ_МАКС, "см"],
+    ["dimH", Number(form.dimH), "высоту", СМ_МАКС, "см"],
+    ["weightKg", число(form.weightKg), "вес", КГ_МАКС, "кг"],
+  ];
+
+  const ошибки: Partial<Record<ParcelField, string>> = {};
+  for (const [поле, значение, что, максимум, единица] of значения) {
+    if (!(значение > 0)) ошибки[поле] = `Укажите ${что} посылки`;
+    else if (значение > максимум) ошибки[поле] = `Не больше ${максимум} ${единица}`;
+  }
+
+  return ошибки;
+}
+
+/**
+ * Одной строкой — для тоста при отправке. `null` — всё на месте.
+ *
+ * Тот же порядок, что у отказа сервера в
  * `ListingService::assertDeliveryDetails`.
  */
 export function parcelMissing(form: ParcelForm): string | null {
-  if (form.deliveries.some(isCdekDelivery)) {
-    const { length, width, height, weight } = измерения(form);
-    const нет: string[] = [];
-    if (!(length > 0)) нет.push("длину");
-    if (!(width > 0)) нет.push("ширину");
-    if (!(height > 0)) нет.push("высоту");
-    if (!(weight > 0)) нет.push("вес");
-    if (нет.length > 0) return `Для СДЭК укажите ${нет.join(", ")} посылки.`;
+  const ошибки = parcelFieldErrors(form);
+  const поля = Object.keys(ошибки) as ParcelField[];
+  if (поля.length > 0) {
+    const имена: Record<ParcelField, string> = {
+      dimL: "длину",
+      dimW: "ширину",
+      dimH: "высоту",
+      weightKg: "вес",
+    };
+    const плохие = поля.filter((п) => ошибки[п]?.startsWith("Укажите"));
+    if (плохие.length > 0) {
+      return `Для СДЭК укажите ${плохие.map((п) => имена[п]).join(", ")} посылки.`;
+    }
+
+    return `Проверьте габариты посылки: ${поля.map((п) => ошибки[п]).join("; ")}.`;
   }
 
   if (form.deliveries.some(isPickupDelivery) && form.pickupAddress.trim().length < 3) {

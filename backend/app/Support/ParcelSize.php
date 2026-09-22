@@ -71,6 +71,28 @@ final class ParcelSize
     }
 
     /**
+     * Продавец измерил коробку — по-настоящему, а не полом из `resolve`.
+     *
+     * Спрашивается у объявления, а не у нормализованной посылки: после
+     * `resolve` пустое значение уже равно единице, и отличить его от
+     * настоящего сантиметра там нельзя.
+     *
+     * Нужно ровно там, где по коробке считают деньги. Объявления, заведённые
+     * до появления колонок габаритов, и демо-строки предлагают СДЭК, не имея
+     * ни одного измерения: без этой проверки покупателю посчитали бы доставку
+     * кубического сантиметра, а в пункт приёма приехала бы настоящая коробка.
+     */
+    public static function measured(Listing $listing): bool
+    {
+        $dims = is_array($listing->dimensions_cm) ? $listing->dimensions_cm : [];
+
+        return (int) ($dims['length'] ?? 0) > 0
+            && (int) ($dims['width'] ?? 0) > 0
+            && (int) ($dims['height'] ?? 0) > 0
+            && (float) $listing->weight_kg > 0;
+    }
+
+    /**
      * @return array{dimensions_cm: array{length: int, width: int, height: int}, weight_kg: float}
      */
     public static function fromListing(Listing $listing): array
