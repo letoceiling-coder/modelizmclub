@@ -82,6 +82,8 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const [pointsLoading, setPointsLoading] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<CdekPickupPoint | null>(null);
   const [pointQuery, setPointQuery] = useState("");
+  const [pointsFailed, setPointsFailed] = useState(false);
+  const [pointsReload, setPointsReload] = useState(0);
   const [quote, setQuote] = useState<SafeDealQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -95,6 +97,8 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     setCities([]);
     setSelectedCity(null);
     setPoints([]);
+    setPointsFailed(false);
+    setPointQuery("");
     setSelectedPoint(null);
     setQuote(null);
     setAcceptTerms(false);
@@ -145,6 +149,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
 
   useEffect(() => {
     setPointQuery("");
+    setPointsFailed(false);
     if (!selectedCity) {
       setPoints([]);
       return;
@@ -159,10 +164,16 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
         /*
          * Пустой список и «не загрузилось» на экране неразличимы, а решения
          * человек принимает разные: в первом случае он меняет город, во
-         * втором — повторяет. Молчать здесь нельзя.
+         * втором — повторяет.
+         *
+         * `reportReadFailure` только записывает отказ — отрисовка на месте
+         * вызова. Без неё шаг оставался пустым: ни списка, ни поля поиска, ни
+         * единого слова, и «Далее» заблокирована — тупик посреди оформления.
          */
         reportReadFailure(e, "пункты выдачи СДЭК");
-        if (alive) setPoints([]);
+        if (!alive) return;
+        setPoints([]);
+        setPointsFailed(true);
       })
       .finally(() => {
         if (alive) setPointsLoading(false);
@@ -170,7 +181,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     return () => {
       alive = false;
     };
-  }, [selectedCity]);
+  }, [selectedCity, pointsReload]);
 
   const visiblePoints = useMemo(() => искатьПункты(points, pointQuery), [points, pointQuery]);
 
@@ -455,6 +466,58 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               />
             )}
 
+            {pointsFailed && (
+              <div
+                className="flex items-start justify-between gap-[10px] rounded-[10px] px-[10px] py-[8px]"
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "var(--background-elevated)",
+                }}
+                role="status"
+              >
+                <span className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
+                  Не удалось загрузить пункты выдачи.
+                </span>
+                <button
+                  type="button"
+                  className="shrink-0 text-[13px] font-semibold"
+                  style={{ color: "var(--accent)" }}
+                  onClick={() => setPointsReload((n) => n + 1)}
+                >
+                  Повторить
+                </button>
+              </div>
+            )}
+
+            {/*
+              Выбранный пункт остаётся на виду, даже когда фильтр его прячет.
+              Иначе человек, выбравший ПВЗ на Ленина и набравший потом
+              «Тверская», видит список без единой подсветки — и кнопку
+              «Далее», которая уводит дальше с прежним, невидимым выбором.
+            */}
+            {selectedPoint && !visiblePoints.some((p) => p.id === selectedPoint.id) && (
+              <div
+                className="flex items-start justify-between gap-[10px] rounded-[10px] px-[10px] py-[8px]"
+                style={{ border: "1px solid var(--accent)", background: "var(--accent-soft)" }}
+              >
+                <span className="min-w-0 text-[12px]" style={{ color: "var(--foreground-70)" }}>
+                  Выбрано: {selectedPoint.name}
+                  {selectedPoint.address ? ` · ${selectedPoint.address}` : ""}
+                </span>
+                <button
+                  type="button"
+                  className="shrink-0 text-[12px] font-semibold"
+                  style={{ color: "var(--accent)" }}
+                  onClick={() => {
+                    setSelectedPoint(null);
+                    setQuote(null);
+                  }}
+                >
+                  Сбросить
+                </button>
+              </div>
+            )}
+
             {points.length > 0 && (
               <div className="space-y-[6px]">
                 {/*
@@ -464,12 +527,22 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
                   а названия у СДЭК служебные («MSK1234»).
                 */}
                 <Input
+                  type="search"
                   value={pointQuery}
                   onChange={(e) => setPointQuery(e.target.value)}
                   placeholder="Улица или дом — например, Ленина 12"
                   aria-label="Поиск пункта выдачи по адресу"
                 />
-                <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                {/*
+                  Живая область: список меняется молча, и без неё экранный
+                  диктор не сообщает, что нашлось, а что нет.
+                */}
+                <p
+                  className="text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                  role="status"
+                  aria-live="polite"
+                >
                   {pointQuery.trim()
                     ? `Найдено ${visiblePoints.length} из ${points.length}`
                     : `Пунктов в городе: ${points.length}`}
@@ -478,8 +551,21 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
             )}
 
             {points.length > 0 && visiblePoints.length === 0 && (
-              <p className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
-                По этому адресу пунктов нет. Проверьте написание или очистите поиск.
+              <p
+                className="text-[13px]"
+                style={{ color: "var(--foreground-70)" }}
+                role="status"
+                aria-live="polite"
+              >
+                По этому адресу пунктов нет.{" "}
+                <button
+                  type="button"
+                  className="font-semibold"
+                  style={{ color: "var(--accent)" }}
+                  onClick={() => setPointQuery("")}
+                >
+                  Очистить поиск
+                </button>
               </p>
             )}
 
