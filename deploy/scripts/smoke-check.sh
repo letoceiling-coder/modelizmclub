@@ -118,7 +118,9 @@ if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_NGINX_DRIFT:-0}" != "1" ]]; then
   NGINX_DRIFT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/nginx-drift.sh"
   if [[ -x "${NGINX_DRIFT}" && -d /etc/nginx/sites-enabled ]]; then
     echo ""
-    "${NGINX_DRIFT}" || true
+    NGINX_DRIFT_OUT="$("${NGINX_DRIFT}" 2>&1 || true)"
+    echo "${NGINX_DRIFT_OUT}"
+    NGINX_DRIFT_COUNT="$(printf '%s\n' "${NGINX_DRIFT_OUT}" | grep -c 'РАСХОДИТСЯ' || true)"
   fi
 fi
 
@@ -171,4 +173,21 @@ if [[ "${FAILED}" != "0" ]]; then
   echo "smoke check FAILED" >&2
   exit 1
 fi
-echo "smoke check passed"
+
+#
+# Итог одной строкой — и предупреждения в ней.
+#
+# Выкатка печатает из всего вывода smoke ровно последнюю строку
+# (`smoke-check.sh | tail -1` в `deploy-remote.sh`). Значит всё, что скрипт
+# сообщает выше, до журнала выкатки не доходит: расхождение nginx честно
+# находилось с 08.09 и ни разу никем не было прочитано. Домены Яндекс.Метрики
+# в политике безопасности пролежали в репозитории два дня, не доехав до
+# сервера, — и узнал я об этом не из выкатки, а из ревью.
+#
+# Поэтому счётчик расхождений уезжает в ту самую строку.
+#
+if [[ "${NGINX_DRIFT_COUNT:-0}" != "0" ]]; then
+  echo "smoke check passed — ВНИМАНИЕ: nginx расходится с репозиторием (${NGINX_DRIFT_COUNT}), примените deploy/scripts/nginx-apply.sh"
+else
+  echo "smoke check passed"
+fi
