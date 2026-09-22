@@ -25,6 +25,8 @@ import {
 import { topupWallet } from "@/lib/api/wallet";
 import { toast } from "@/lib/toast";
 import { firstFieldError } from "@/lib/api/validationErrors";
+import { искатьПункты } from "@/lib/delivery/pvz-search";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 const FEE_PERCENT = 5;
 
@@ -79,6 +81,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const [points, setPoints] = useState<CdekPickupPoint[]>([]);
   const [pointsLoading, setPointsLoading] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<CdekPickupPoint | null>(null);
+  const [pointQuery, setPointQuery] = useState("");
   const [quote, setQuote] = useState<SafeDealQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -141,6 +144,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   }, [cityQuery, open]);
 
   useEffect(() => {
+    setPointQuery("");
     if (!selectedCity) {
       setPoints([]);
       return;
@@ -151,7 +155,13 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
       .then((rows) => {
         if (alive) setPoints(rows);
       })
-      .catch(() => {
+      .catch((e) => {
+        /*
+         * Пустой список и «не загрузилось» на экране неразличимы, а решения
+         * человек принимает разные: в первом случае он меняет город, во
+         * втором — повторяет. Молчать здесь нельзя.
+         */
+        reportReadFailure(e, "пункты выдачи СДЭК");
         if (alive) setPoints([]);
       })
       .finally(() => {
@@ -161,6 +171,8 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
       alive = false;
     };
   }, [selectedCity]);
+
+  const visiblePoints = useMemo(() => искатьПункты(points, pointQuery), [points, pointQuery]);
 
   const destination: SafeDealDestination | undefined = useMemo(() => {
     if (!selectedCity || !selectedPoint) return undefined;
@@ -443,8 +455,36 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               />
             )}
 
+            {points.length > 0 && (
+              <div className="space-y-[6px]">
+                {/*
+                  Поиск по адресам, которые уже пришли в ответе: геокодер тут
+                  не нужен. В Москве и Петербурге пунктов под две сотни, и до
+                  этого человек листал их глазами — притом что ищет он улицу,
+                  а названия у СДЭК служебные («MSK1234»).
+                */}
+                <Input
+                  value={pointQuery}
+                  onChange={(e) => setPointQuery(e.target.value)}
+                  placeholder="Улица или дом — например, Ленина 12"
+                  aria-label="Поиск пункта выдачи по адресу"
+                />
+                <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+                  {pointQuery.trim()
+                    ? `Найдено ${visiblePoints.length} из ${points.length}`
+                    : `Пунктов в городе: ${points.length}`}
+                </p>
+              </div>
+            )}
+
+            {points.length > 0 && visiblePoints.length === 0 && (
+              <p className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
+                По этому адресу пунктов нет. Проверьте написание или очистите поиск.
+              </p>
+            )}
+
             <div className="flex max-h-[220px] flex-col gap-[6px] overflow-y-auto">
-              {points.map((p) => (
+              {visiblePoints.map((p) => (
                 <button
                   key={p.id}
                   type="button"
