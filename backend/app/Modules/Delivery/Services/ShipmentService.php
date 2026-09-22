@@ -7,12 +7,15 @@ use App\Enums\ShipmentStatus;
 use App\Models\Conversation;
 use App\Models\DeliveryQuote;
 use App\Models\Listing;
+use App\Models\SafeDeal;
 use App\Models\SellerDeliveryProfile;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\User;
+use App\Support\DeliveryPointSnapshot;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
+use Modules\Billing\Services\SafeDealService;
 
 class ShipmentService
 {
@@ -324,9 +327,9 @@ class ShipmentService
         }
 
         $fresh = $shipment->fresh() ?? $shipment;
-        $deal = $fresh->safeDeal ?? \App\Models\SafeDeal::query()->where('shipment_id', $fresh->id)->first();
+        $deal = $fresh->safeDeal ?? SafeDeal::query()->where('shipment_id', $fresh->id)->first();
         if ($deal !== null) {
-            app(\Modules\Billing\Services\SafeDealService::class)->syncFromShipment($fresh);
+            app(SafeDealService::class)->syncFromShipment($fresh);
         }
 
         return $fresh;
@@ -355,7 +358,16 @@ class ShipmentService
      */
     private function resolveSourcePoint(Shipment $shipment): array
     {
-        if ($shipment->source_point !== null) {
+        /*
+         * Спрашиваем «что в снимке», а не «есть ли снимок».
+         *
+         * До 22.09 здесь стояло `!== null`. Расчёт цены записывал в
+         * `source_point` город без пункта — снимок непустой, ранний возврат
+         * срабатывал, профиль продавца не читался, и отказ ниже становился
+         * недостижим. Заказ уезжал к СДЭК с `shipment_point: null` и падал
+         * там. Из девятнадцати отправлений так не завелось ни одного.
+         */
+        if (DeliveryPointSnapshot::hasPickupPoint($shipment->source_point)) {
             return $shipment->source_point;
         }
 
@@ -371,9 +383,9 @@ class ShipmentService
             $shipment->provider,
         );
 
-        if ($default === null) {
+        if ($default === null || ! DeliveryPointSnapshot::hasPickupPoint($default->toPointSnapshot())) {
             throw ValidationException::withMessages([
-                'source_point' => ['Продавец не указал точку отправки. Добавьте склад/ПВЗ в профиле доставки.'],
+                'source_point' => ['Продавец не указал пункт отправки СДЭК. Добавьте пункт в профиле доставки.'],
             ]);
         }
 

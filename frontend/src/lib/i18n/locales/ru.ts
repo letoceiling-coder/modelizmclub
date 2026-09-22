@@ -786,6 +786,7 @@ export const ru = {
       wallet: "Баланс и история",
       paymentMethods: "Способы оплаты",
       requisites: "Реквизиты",
+      delivery: "Доставка",
       rating: "Рейтинг и отзывы",
       spaces: "Мой канал и сообщество",
       history: "История просмотров",

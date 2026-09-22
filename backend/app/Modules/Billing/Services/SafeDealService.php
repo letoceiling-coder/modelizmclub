@@ -23,6 +23,7 @@ use App\Models\UserReview;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
 use App\Services\NotificationPolicy;
+use App\Support\DeliveryPointSnapshot;
 use App\Support\ParcelSize;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -31,7 +32,6 @@ use Illuminate\Validation\ValidationException;
 use Modules\Billing\Exceptions\InsufficientFundsException;
 use Modules\Billing\Notifications\SafeDealStatusNotification;
 use Modules\Delivery\Services\Carriers\CdekDeliveryAdapter;
-use Modules\Delivery\Services\CdekApiExtension;
 use Modules\Delivery\Services\DeliveryMarkupPolicy;
 use Modules\Delivery\Services\SellerDeliveryProfileService;
 use Modules\Delivery\Services\ShipmentService;
@@ -1360,26 +1360,27 @@ class SafeDealService
         );
         if ($profile instanceof SellerDeliveryProfile) {
             $snap = $profile->toPointSnapshot();
-            if ((int) ($snap['city_code'] ?? 0) > 0) {
+            if (DeliveryPointSnapshot::hasPickupPoint($snap)) {
                 return $snap;
             }
         }
 
-        $cityName = trim((string) ($listing->city?->name ?? ''));
-        if ($cityName !== '') {
-            $rows = app(CdekApiExtension::class)->listCities(['city' => $cityName, 'country_codes' => 'RU']);
-            foreach ($rows as $row) {
-                if (is_array($row) && isset($row['code'])) {
-                    return [
-                        'city_code' => (int) $row['code'],
-                        'label' => $cityName,
-                    ];
-                }
-            }
-        }
-
+        /*
+         * Здесь до 22.09 стоял запасной путь: не найдя профиля, искали город
+         * объявления в справочнике СДЭК и возвращали `{city_code, label}`.
+         * Цену по городу СДЭК считает, и расчёт проходил — а заказ падал с
+         * `[shipment_point] is empty`, потому что города ему мало.
+         *
+         * Хуже того, этот огрызок записывался в `shipment.source_point` и
+         * глушил проверку в `ShipmentService::resolveSourcePoint()`: снимок
+         * непустой, значит «точка есть». Отказ ниже так и не срабатывал ни
+         * разу — на 22.09 ни одно из 19 отправлений не заведено у СДЭК.
+         *
+         * Поэтому запасного пути больше нет: лучше отказать здесь понятными
+         * словами, чем взять деньги и упасть у перевозчика.
+         */
         throw ValidationException::withMessages([
-            'listing' => ['Продавец не указал город отправки для СДЭК. Попросите добавить пункт в профиле доставки.'],
+            'delivery_method' => ['Продавец не выбрал пункт отправки СДЭК — доставка по этому объявлению пока недоступна.'],
         ]);
     }
 
