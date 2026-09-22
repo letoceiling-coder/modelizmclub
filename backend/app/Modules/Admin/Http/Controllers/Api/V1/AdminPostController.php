@@ -18,6 +18,7 @@ use Illuminate\Validation\Rule;
 use Modules\Admin\Services\AuditService;
 use Modules\Channel\Services\ChannelPostService;
 use Modules\Feed\Http\Resources\PostResource;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Admin — Content', weight: 45)]
@@ -50,11 +51,7 @@ class AdminPostController extends Controller
     public function update(string $uuid, AuditService $audit, ChannelPostService $channelPosts): PostResource
     {
         $post = Post::query()->where('uuid', $uuid)->first();
-        $scope = CategoryScope::for(request()->user());
-
-        if (! $post || ($scope !== null && ! $scope->allowsPost($post))) {
-            throw new NotFoundHttpException('Публикация не найдена.');
-        }
+        $scope = $this->assertReachable($post);
 
         $data = request()->validate([
             'status' => ['required', Rule::enum(ContentStatus::class)],
@@ -100,15 +97,40 @@ class AdminPostController extends Controller
     public function destroy(string $uuid, AuditService $audit): JsonResponse
     {
         $post = Post::query()->where('uuid', $uuid)->first();
-        $scope = CategoryScope::for(request()->user());
-
-        if (! $post || ($scope !== null && ! $scope->allowsPost($post))) {
-            throw new NotFoundHttpException('Публикация не найдена.');
-        }
+        $this->assertReachable($post);
 
         $post->delete();
         $audit->log(request()->user(), 'admin.posts.delete', $post, $post->toArray(), null, request());
 
         return response()->json(['data' => ['message' => 'Публикация удалена.']]);
+    }
+
+    /**
+     * Публикация есть и она в зоне ответственности этого сотрудника.
+     *
+     * Два разных ответа на два разных случая. До 22.09 оба были «не
+     * найдено», и администратор направления читал отказ как поломку: он
+     * только что видел эту запись в ленте.
+     *
+     * Возвращает область видимости: вызывающему она нужна дальше, чтобы
+     * ограничить набор решений, и считать её второй раз незачем.
+     *
+     * @throws NotFoundHttpException публикации нет вовсе
+     * @throws AccessDeniedHttpException публикация есть, но не его
+     */
+    private function assertReachable(?Post $post): ?CategoryScope
+    {
+        if (! $post) {
+            throw new NotFoundHttpException('Публикация не найдена.');
+        }
+
+        $scope = CategoryScope::for(request()->user());
+        if ($scope !== null && ! $scope->allowsPost($post)) {
+            throw new AccessDeniedHttpException(
+                'Публикация вне ваших направлений — её ведёт другой администратор.',
+            );
+        }
+
+        return $scope;
     }
 }
