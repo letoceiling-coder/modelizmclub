@@ -192,13 +192,56 @@ class CategoryAdminTest extends TestCase
         $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/posts/{$own->uuid}/approve")->assertOk();
         $this->assertSame(ContentStatus::Published, $own->fresh()->status);
 
-        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/posts/{$foreign->uuid}/approve")->assertNotFound();
-        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/posts/{$foreign->uuid}/reject", ['reason' => 'Не по теме направления'])->assertNotFound();
-        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/listings/{$foreignListing->uuid}/revision", ['comment' => 'Уточните масштаб модели'])->assertNotFound();
-        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/communities/{$community->uuid}/approve")->assertNotFound();
+        // Чужое — отказ, и он говорит почему (см. `test_refusal_says_no_rights_and_absence_says_missing`).
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/posts/{$foreign->uuid}/approve")->assertForbidden();
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/posts/{$foreign->uuid}/reject", ['reason' => 'Не по теме направления'])->assertForbidden();
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/listings/{$foreignListing->uuid}/revision", ['comment' => 'Уточните масштаб модели'])->assertForbidden();
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/moderation/communities/{$community->uuid}/approve")->assertForbidden();
 
         $this->assertSame(ContentStatus::PendingModeration, $foreign->fresh()->status);
         $this->assertSame(CommunityStatus::Pending, $community->fresh()->status);
+    }
+
+    /**
+     * Отказ в правах и отсутствие объекта — два разных ответа.
+     *
+     * До 22.09 оба были «не найдено»: администратор направления, открывший
+     * ссылку на чужое объявление, читал это как поломку — он только что
+     * видел это объявление в каталоге. Единственное, чего он не понимал, —
+     * что делать дальше.
+     *
+     * Проверяются обе стороны. «Всегда 403» прошло бы проверку только на
+     * чужом объекте и сломало бы ответ на выдуманный uuid.
+     */
+    public function test_refusal_says_no_rights_and_absence_says_missing(): void
+    {
+        $foreignListing = $this->pendingListing($this->armor);
+        $foreignPost = $this->pendingPost($this->armor);
+        $admin = $this->categoryAdmin($this->aviation);
+        $выдуманный = (string) \Illuminate\Support\Str::uuid();
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/admin/listings/{$foreignListing->uuid}")
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Объявление вне ваших направлений — его ведёт другой администратор.');
+
+        $this->actingAs($admin, 'sanctum')
+            ->patchJson("/api/v1/admin/posts/{$foreignPost->uuid}", ['status' => 'hidden'])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Публикация вне ваших направлений — её ведёт другой администратор.');
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/moderation/listings/{$foreignListing->uuid}/approve")
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Этот объект вне ваших направлений — его ведёт другой администратор.');
+
+        // Несуществующее остаётся «не найдено» — это не про права.
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/admin/listings/{$выдуманный}")
+            ->assertNotFound();
+        $this->actingAs($admin, 'sanctum')
+            ->patchJson("/api/v1/admin/posts/{$выдуманный}", ['status' => 'hidden'])
+            ->assertNotFound();
     }
 
     public function test_lists_and_direct_links_hide_foreign_posts_and_listings(): void
@@ -217,9 +260,9 @@ class CategoryAdminTest extends TestCase
         $this->assertContains($ownListing->uuid, $listings);
         $this->assertNotContains($foreignListing->uuid, $listings);
 
-        $this->actingAs($admin, 'sanctum')->getJson("/api/v1/admin/listings/{$foreignListing->uuid}")->assertNotFound();
-        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/listings/{$foreignListing->uuid}", ['title' => 'Чужое'])->assertNotFound();
-        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/posts/{$foreign->uuid}", ['status' => 'hidden'])->assertNotFound();
+        $this->actingAs($admin, 'sanctum')->getJson("/api/v1/admin/listings/{$foreignListing->uuid}")->assertForbidden();
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/listings/{$foreignListing->uuid}", ['title' => 'Чужое'])->assertForbidden();
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/posts/{$foreign->uuid}", ['status' => 'hidden'])->assertForbidden();
 
         // Своё — правит и снимает, но не удаляет.
         $this->actingAs($admin, 'sanctum')->getJson("/api/v1/admin/listings/{$ownListing->uuid}")->assertOk();
@@ -294,7 +337,7 @@ class CategoryAdminTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/posts/{$mirror->uuid}", ['status' => 'published'])->assertNotFound();
+        $this->actingAs($admin, 'sanctum')->patchJson("/api/v1/admin/posts/{$mirror->uuid}", ['status' => 'published'])->assertForbidden();
         $posts = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/posts')->json('data'))->pluck('uuid')->all();
         $this->assertNotContains($mirror->uuid, $posts);
     }

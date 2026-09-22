@@ -18,6 +18,7 @@ use Modules\Admin\Services\AuditService;
 use Modules\Admin\Services\ModerationService;
 use Modules\Listing\Http\Resources\ListingResource;
 use Modules\Listing\Services\ListingService;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Admin — Content', weight: 46)]
@@ -52,9 +53,7 @@ class AdminListingController extends Controller
             ->where('uuid', $uuid)
             ->first();
 
-        if (! $listing || ! $this->visible($listing)) {
-            throw new NotFoundHttpException('Объявление не найдено.');
-        }
+        $this->assertReachable($listing);
 
         return new ListingResource($listing);
     }
@@ -66,9 +65,7 @@ class AdminListingController extends Controller
     {
         $listing = Listing::query()->where('uuid', $uuid)->first();
 
-        if (! $listing || ! $this->visible($listing)) {
-            throw new NotFoundHttpException('Объявление не найдено.');
-        }
+        $this->assertReachable($listing);
 
         $data = request()->validate([
             'status' => ['sometimes', Rule::enum(ListingStatus::class)],
@@ -174,9 +171,7 @@ class AdminListingController extends Controller
     {
         $listing = Listing::query()->where('uuid', $uuid)->first();
 
-        if (! $listing || ! $this->visible($listing)) {
-            throw new NotFoundHttpException('Объявление не найдено.');
-        }
+        $this->assertReachable($listing);
 
         $listing->delete();
         $audit->log(request()->user(), 'admin.listings.delete', $listing, $listing->toArray(), null, request());
@@ -185,10 +180,28 @@ class AdminListingController extends Controller
     }
 
     /** Чужое объявление для администратора направления — «не найдено». */
-    private function visible(Listing $listing): bool
+    /**
+     * Объявление есть и оно в зоне ответственности этого сотрудника.
+     *
+     * Два разных ответа на два разных случая. До 22.09 оба были «не
+     * найдено»: администратор направления, открывший ссылку на чужое
+     * объявление, читал это как поломку — он только что видел это
+     * объявление в каталоге. Отказ обязан говорить, что он отказ.
+     *
+     * @throws NotFoundHttpException объявления нет вовсе
+     * @throws AccessDeniedHttpException объявление есть, но не его
+     */
+    private function assertReachable(?Listing $listing): void
     {
-        $scope = CategoryScope::for(request()->user());
+        if (! $listing) {
+            throw new NotFoundHttpException('Объявление не найдено.');
+        }
 
-        return $scope === null || $scope->allowsListing($listing);
+        $scope = CategoryScope::for(request()->user());
+        if ($scope !== null && ! $scope->allowsListing($listing)) {
+            throw new AccessDeniedHttpException(
+                'Объявление вне ваших направлений — его ведёт другой администратор.',
+            );
+        }
     }
 }

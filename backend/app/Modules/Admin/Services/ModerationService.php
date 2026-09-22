@@ -29,6 +29,7 @@ use Modules\Channel\Services\ChannelPostService;
 use Modules\Community\Services\CommunityService;
 use Modules\Feed\Services\PostService;
 use Modules\Listing\Services\ListingService;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ModerationService
@@ -193,7 +194,16 @@ class ModerationService
         $model = $this->resolver->resolve($type, $id);
         $scope = CategoryScope::for($actor);
         if ($scope !== null && ! $scope->allowsModeratable($model)) {
-            throw new NotFoundHttpException('Объект модерации не найден.');
+            /*
+             * Отказ, а не «не найдено». Объект существует, и человек его
+             * видел — в очереди, в ленте, в каталоге. До 22.09 ответ был
+             * «не найдено», и это читалось как поломка, а не как граница
+             * прав: единственное, чего человек не понимал, — что делать
+             * дальше.
+             */
+            throw new AccessDeniedHttpException(
+                'Этот объект вне ваших направлений — его ведёт другой администратор.',
+            );
         }
 
         return $model;
