@@ -65,11 +65,34 @@ class RealtimeStatusObserver
      */
     public function updated(Model $model): void
     {
-        if (! $model->wasChanged('status')) {
+        if (! $model->wasChanged($this->важное($model))) {
             return;
         }
 
         $this->announce($model, $this->statusOf($model));
+    }
+
+    /**
+     * Колонки, смена которых видна человеку на экране.
+     *
+     * У сделки это не только её собственный шаг. Посылка едет своим чередом:
+     * принята, в пути, ждёт в пункте, вручена, — и всё это время шаг сделки
+     * остаётся «отправлено». До 22.09 полоса доставки на странице сделки
+     * обновлялась только перезагрузкой, притом что статусы приезжают с
+     * уведомлениями СДЭК сами. Трек-номер — оттуда же: он появляется не в
+     * момент оформления, а когда перевозчик завёл заказ.
+     *
+     * @return list<string>
+     */
+    private function важное(Model $model): array
+    {
+        // Только безопасная сделка: у обычной ни доставки, ни трек-номера
+        // нет вовсе — её ведут перепиской.
+        if ($model instanceof SafeDeal) {
+            return ['status', 'delivery_status', 'tracking_number'];
+        }
+
+        return ['status'];
     }
 
     /**
