@@ -19,6 +19,7 @@ use Modules\Admin\Services\ModerationService;
 use Modules\Listing\Http\Resources\ListingResource;
 use Modules\Listing\Services\ListingService;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Admin — Content', weight: 46)]
@@ -33,7 +34,24 @@ class AdminListingController extends Controller
 
         $scope = CategoryScope::for(request()->user());
 
+        /*
+         * Удалённые объявления показываются по запросу, а не всегда.
+         *
+         * До 22.09 их нельзя было увидеть вовсе: список их не отдавал,
+         * карточка отвечала «не найдено» — тем же ответом, что на выдуманный
+         * uuid. При этом `can.restore` у модератора `true` и ручка
+         * восстановления его пускает: право было, а добраться до объявления
+         * нечем. Замер на проде: 148 объявлений, 38 удалённых, в списке
+         * ровно 110.
+         *
+         * `with` — вместе с удалёнными, `only` — одни удалённые, пусто —
+         * как было.
+         */
+        $trashed = (string) request()->query('trashed', '');
+
         $items = Listing::query()
+            ->when($trashed === 'with', fn ($query) => $query->withTrashed())
+            ->when($trashed === 'only', fn ($query) => $query->onlyTrashed())
             ->with(['author.profile', 'category', 'city'])
             // Администратор направления — только свои направления.
             ->when($scope !== null, fn ($query) => $scope->constrainListings($query))
@@ -48,7 +66,17 @@ class AdminListingController extends Controller
     #[PathParameter('uuid', description: 'UUID объявления')]
     public function show(string $uuid): ListingResource
     {
+        /*
+         * Удалённое объявление сотрудник видит.
+         *
+         * Оно существует, оно в его ведении, и он вправе его восстановить —
+         * `ListingPolicy::restore` пускает модератора, а `assertOwner` в
+         * `findOwnedTrashed` его не останавливает. Отвечать «не найдено» на
+         * то, что есть и что он может вернуть, — неправда; в карточке
+         * `deleted_at` не пуст, и по нему видно, что объявление удалено.
+         */
         $listing = Listing::query()
+            ->withTrashed()
             ->with(['author.profile', 'category', 'subcategory', 'city', 'mediaItems.media'])
             ->where('uuid', $uuid)
             ->first();
@@ -63,9 +91,10 @@ class AdminListingController extends Controller
     #[BodyParameter('status', description: 'Новый статус', example: 'unpublished')]
     public function update(string $uuid, AuditService $audit, ModerationService $moderation, ListingService $listings): ListingResource
     {
-        $listing = Listing::query()->where('uuid', $uuid)->first();
+        $listing = Listing::query()->withTrashed()->where('uuid', $uuid)->first();
 
         $this->assertReachable($listing);
+        $this->assertNotTrashed($listing, 'править');
 
         $data = request()->validate([
             'status' => ['sometimes', Rule::enum(ListingStatus::class)],
@@ -169,9 +198,10 @@ class AdminListingController extends Controller
     #[PathParameter('uuid', description: 'UUID объявления')]
     public function destroy(string $uuid, AuditService $audit): JsonResponse
     {
-        $listing = Listing::query()->where('uuid', $uuid)->first();
+        $listing = Listing::query()->withTrashed()->where('uuid', $uuid)->first();
 
         $this->assertReachable($listing);
+        $this->assertNotTrashed($listing, 'удалить');
 
         $listing->delete();
         $audit->log(request()->user(), 'admin.listings.delete', $listing, $listing->toArray(), null, request());
@@ -201,6 +231,25 @@ class AdminListingController extends Controller
         if ($scope !== null && ! $scope->allowsListing($listing)) {
             throw new AccessDeniedHttpException(
                 'Объявление вне ваших направлений — его ведёт другой администратор.',
+            );
+        }
+    }
+
+    /**
+     * Удалённое объявление показываем, но не правим и не удаляем повторно.
+     *
+     * Карточка удалённого теперь открывается, и без этой проверки кнопки
+     * «сохранить» и «удалить» отвечали бы «не найдено» — тем же, чем
+     * выдуманный uuid. Третий случай заслуживает третьего ответа: объект
+     * есть, права есть, мешает состояние — и сказано, чем именно.
+     *
+     * @throws ConflictHttpException объявление в корзине
+     */
+    private function assertNotTrashed(Listing $listing, string $действие): void
+    {
+        if ($listing->trashed()) {
+            throw new ConflictHttpException(
+                'Объявление удалено — чтобы '.$действие.', сначала восстановите его.',
             );
         }
     }
