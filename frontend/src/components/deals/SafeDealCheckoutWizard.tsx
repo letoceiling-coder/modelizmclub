@@ -26,6 +26,9 @@ import { topupWallet } from "@/lib/api/wallet";
 import { toast } from "@/lib/toast";
 import { firstFieldError } from "@/lib/api/validationErrors";
 import { искатьПункты } from "@/lib/delivery/pvz-search";
+import { isYandexMapsConfigured } from "@/lib/delivery/yandex-maps";
+import { pvzBounds } from "@/lib/delivery/pvz-features";
+import { PickupPointsMap } from "@/components/deals/PickupPointsMap";
 import { reportReadFailure } from "@/lib/errors/handle";
 
 const FEE_PERCENT = 5;
@@ -84,6 +87,8 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const [pointQuery, setPointQuery] = useState("");
   const [pointsFailed, setPointsFailed] = useState(false);
   const [pointsReload, setPointsReload] = useState(0);
+  const [pointsView, setPointsView] = useState<"list" | "map">("list");
+  const [mapBroken, setMapBroken] = useState(false);
   const [quote, setQuote] = useState<SafeDealQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -98,7 +103,9 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     setSelectedCity(null);
     setPoints([]);
     setPointsFailed(false);
+    setMapBroken(false);
     setPointQuery("");
+    setPointsView("list");
     setSelectedPoint(null);
     setQuote(null);
     setAcceptTerms(false);
@@ -150,6 +157,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   useEffect(() => {
     setPointQuery("");
     setPointsFailed(false);
+    setPointsView("list");
     if (!selectedCity) {
       setPoints([]);
       return;
@@ -184,6 +192,15 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   }, [selectedCity, pointsReload]);
 
   const visiblePoints = useMemo(() => искатьПункты(points, pointQuery), [points, pointQuery]);
+
+  /*
+   * Карту показываем, только когда её есть чем наполнить. Переключатель и
+   * сама карта раньше считали это по-разному: переключатель — по числу
+   * пунктов, карта — по числу пунктов **с координатами**. В городе, где СДЭК
+   * координат не проставил, человек нажимал «На карте» и видел пустоту, а
+   * список в этот момент был скрыт.
+   */
+  const картаВозможна = isYandexMapsConfigured() && !mapBroken && pvzBounds(visiblePoints) !== null;
 
   const destination: SafeDealDestination | undefined = useMemo(() => {
     if (!selectedCity || !selectedPoint) return undefined;
@@ -293,10 +310,6 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   const holdsOnCard = quote?.escrow_holds_on_card ?? true;
   // Кошелёк площадки: карты в этой сделке не будет ни на одном шаге.
   const payFromWallet = quote?.escrow_provider === "wallet";
-  const mapSrc =
-    selectedPoint?.latitude && selectedPoint?.longitude
-      ? `https://www.openstreetmap.org/export/embed.html?bbox=${selectedPoint.longitude - 0.03}%2C${selectedPoint.latitude - 0.02}%2C${selectedPoint.longitude + 0.03}%2C${selectedPoint.latitude + 0.02}&layer=mapnik&marker=${selectedPoint.latitude}%2C${selectedPoint.longitude}`
-      : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -458,14 +471,6 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               </div>
             )}
 
-            {mapSrc && (
-              <iframe
-                title="Карта ПВЗ СДЭК"
-                src={mapSrc}
-                className="h-[180px] w-full rounded-[12px] border-0"
-              />
-            )}
-
             {pointsFailed && (
               <div
                 className="flex items-start justify-between gap-[10px] rounded-[10px] px-[10px] py-[8px]"
@@ -518,8 +523,63 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               </div>
             )}
 
+            {/*
+              Переключатель — только на телефоне. На широком экране карта и
+              список помещаются вместе, и прятать одно за другим значило бы
+              отнимать у человека то, что и так видно.
+            */}
+            {картаВозможна && (
+              <div className="flex gap-1.5 sm:hidden">
+                {(
+                  [
+                    ["list", "Списком"],
+                    ["map", "На карте"],
+                  ] as const
+                ).map(([вид, подпись]) => (
+                  <button
+                    key={вид}
+                    type="button"
+                    /*
+                     * Кнопки, а не вкладки. `role="tab"` без `tabpanel` и
+                     * без стрелок на клавиатуре — обещание, которого нет:
+                     * диктор объявляет вкладки, которые ничем не управляют.
+                     */
+                    aria-pressed={pointsView === вид}
+                    className="min-h-[36px] flex-1 rounded-[var(--r-tag)] border text-[13px] font-semibold"
+                    style={{
+                      borderColor: pointsView === вид ? "var(--accent)" : "var(--border)",
+                      background:
+                        pointsView === вид ? "var(--accent-soft)" : "var(--background-elevated)",
+                      color: pointsView === вид ? "var(--accent)" : "var(--foreground-70)",
+                    }}
+                    onClick={() => setPointsView(вид)}
+                  >
+                    {подпись}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {картаВозможна && (
+              <PickupPointsMap
+                points={visiblePoints}
+                selectedId={selectedPoint?.id ?? null}
+                onSelect={(p) => {
+                  setSelectedPoint(p);
+                  setQuote(null);
+                }}
+                onUnavailable={() => {
+                  // Список снова становится единственным путём — и он должен
+                  // быть на экране, а не за переключателем.
+                  setMapBroken(true);
+                  setPointsView("list");
+                }}
+                className={pointsView === "map" ? "" : "hidden sm:block"}
+              />
+            )}
+
             {points.length > 0 && (
-              <div className="space-y-[6px]">
+              <div className={pointsView === "map" ? "hidden sm:block" : "space-y-[6px]"}>
                 {/*
                   Поиск по адресам, которые уже пришли в ответе: геокодер тут
                   не нужен. В Москве и Петербурге пунктов под две сотни, и до
@@ -569,7 +629,13 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               </p>
             )}
 
-            <div className="flex max-h-[220px] flex-col gap-[6px] overflow-y-auto">
+            <div
+              className={
+                pointsView === "map"
+                  ? "hidden sm:flex sm:max-h-[220px] sm:flex-col sm:gap-[6px] sm:overflow-y-auto"
+                  : "flex max-h-[220px] flex-col gap-[6px] overflow-y-auto"
+              }
+            >
               {visiblePoints.map((p) => (
                 <button
                   key={p.id}
