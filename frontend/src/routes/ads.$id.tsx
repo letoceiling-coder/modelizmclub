@@ -412,6 +412,17 @@ function AdDetailPage() {
       () => {
         void (async () => {
           actions.toggleFavoriteAd(id);
+          /*
+           * Сразу по нажатию, а не после ответа сервера: прямоугольник
+           * кнопки снимается в момент показа, и на медленной сети подпись
+           * всплывала бы там, где кнопки уже нет. Если показать не вышло —
+           * говорим тостом: молчание на экране неотличимо от «ничего не
+           * произошло».
+           */
+          const текст = saved
+            ? t("pages.adDetail.removedFromFavorites")
+            : t("pages.adDetail.addedToFavorites");
+          if (!inlineFeedback(кнопка, текст)) toast.success(текст, { id: "favorite-toggle" });
           if (!isDemoMode()) {
             try {
               let favoritesCount = ad.likes ?? 0;
@@ -427,15 +438,6 @@ function AdDetailPage() {
               return;
             }
           }
-          /*
-           * У сердечка, если оно известно. Без кнопки — тостом: сюда ведёт и
-           * путь через окно входа, где исходного элемента на экране уже нет.
-           */
-          const текст = saved
-            ? t("pages.adDetail.removedFromFavorites")
-            : t("pages.adDetail.addedToFavorites");
-          if (кнопка) inlineFeedback(кнопка, текст);
-          else toast.success(текст, { id: "favorite-toggle" });
         })();
       },
       undefined,

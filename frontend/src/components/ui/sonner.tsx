@@ -13,11 +13,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // to beat un-flagged Tailwind classes — hence the `!` on radius/font
           // here (matches the pattern the border-left override below already
           // used for the same reason).
-          // Компактнее прежнего: отступы 12/14 вместо 16, минимальная высота
-          // снята. Тост на телефоне занимал почти восьмую часть экрана — при
-          // трёх подряд это половина того, ради чего человек пришёл.
+          // Отступы и размеры живут в `styles.css`, а не здесь: у варианта
+          // Tailwind специфичность выше, и дублирование молча делало бы тот
+          // блок мёртвым — правящий его не видел бы никакого эффекта.
           toast:
-            "group toast font-sans group-[.toaster]:!rounded-[12px] group-[.toaster]:!p-3 group-[.toaster]:!min-h-0 group-[.toaster]:!gap-2 group-[.toaster]:bg-[var(--background-elevated)] group-[.toaster]:text-[var(--foreground)] group-[.toaster]:border-[var(--border)] group-[.toaster]:shadow-[var(--shadow-card)]",
+            "group toast font-sans group-[.toaster]:!rounded-[12px] group-[.toaster]:bg-[var(--background-elevated)] group-[.toaster]:text-[var(--foreground)] group-[.toaster]:border-[var(--border)] group-[.toaster]:shadow-[var(--shadow-card)]",
           // Размер по дизайн-системе: 14 у заголовка, 13 у пояснения. Было
           // 12 и 11 — тосты выглядели мельче всего остального на экране.
           title:

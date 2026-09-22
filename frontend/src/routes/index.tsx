@@ -1072,6 +1072,16 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
             void (async () => {
               const next = !fav;
               actions.toggleFavoriteAd(ad.id);
+              // Сразу по нажатию: см. `CatalogCard`. Подписи — подтверждения
+              // («Убрано из избранного»), а не надписи кнопки («Убрать»):
+              // повелительное наклонение у самой кнопки читается как
+              // «нажатие не сработало».
+              inlineFeedback(
+                кнопка,
+                next
+                  ? t("pages.adDetail.addedToFavorites")
+                  : t("pages.adDetail.removedFromFavorites"),
+              );
               if (!isDemoMode()) {
                 try {
                   if (next) await addFavoriteListing(ad.id);
@@ -1082,8 +1092,6 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
                   return;
                 }
               }
-              // У сердечка, а не в углу экрана.
-              inlineFeedback(кнопка, next ? t("landing.card.favAdd") : t("landing.card.favRemove"));
             })();
           });
         }}

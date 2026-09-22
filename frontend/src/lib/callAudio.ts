@@ -236,9 +236,22 @@ export function playMessagePing(): void {
     osc.start(t0);
     osc.stop(t0 + 0.34);
     activeOscillators.push(osc);
+
+    /*
+     * Уборка по ссылке, а не отбором по контексту.
+     *
+     * Прежняя строка (`filter(o => o.context === audio)`) не убирала ничего:
+     * контекст — модульный синглтон и нигде не обнуляется, значит условие
+     * истинно для всех. Массив рос на две записи с каждым сообщением, узлы
+     * усиления оставались подключёнными к выходу, и `stopCallSounds` потом
+     * перебирал сотни давно замолчавших осциллятров.
+     */
+    osc.onended = () => {
+      activeOscillators = activeOscillators.filter((o) => o !== osc);
+      osc.disconnect();
+      gain.disconnect();
+    };
   }
 
-  setTimeout(() => {
-    activeOscillators = activeOscillators.filter((o) => o.context === audio);
-  }, 400);
+  setTimeout(() => master.disconnect(), 400);
 }

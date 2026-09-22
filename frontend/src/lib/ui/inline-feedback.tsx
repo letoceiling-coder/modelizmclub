@@ -8,16 +8,19 @@ import { разместитьОтклик } from "@/lib/ui/inline-feedback-place
  * «Добавлено в избранное» в правом нижнем углу заставляет человека искать
  * глазами ответ на другом конце экрана — и это при том, что он смотрит на
  * сердечко, по которому только что нажал. На телефоне тост вдобавок
- * перекрывает содержимое и наезжает на соседние.
+ * перекрывает содержимое.
  *
  * Тосты остаются для того, чего у кнопки не скажешь: отказов с объяснением,
  * фоновых событий, сообщений без источника на экране.
- *
- * Подпись живёт полторы секунды и ничего не перекрывает: она уже вне потока
- * (портал в `body`) и не ловит указатель.
  */
 
-const ЖИВЁТ_МС = 1500;
+const ЖИВЁТ_МС = 2200;
+
+/**
+ * На сервере `useLayoutEffect` ругается в консоль, а `useEffect` не успевает
+ * до кадра. Приём уже принят в проекте — `lib/ui/clamp-text.ts`.
+ */
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 interface Отклик {
   id: number;
@@ -29,14 +32,23 @@ let показать: ((text: string, кнопка: DOMRect) => void) | null = n
 let счётчик = 0;
 
 /**
- * Показать отклик у элемента.
+ * Показать отклик у элемента. Возвращает, получилось ли.
  *
- * Молча выходит, когда хоста нет: на сервере и до первого кадра показывать
- * некуда, а падать из-за подписи, которой человек не увидит, незачем.
+ * `false` — хоста нет (сервер, первый кадр) или элемента не существует. По
+ * этому ответу вызывающий может сказать то же тостом, а не промолчать:
+ * молчание на экране неотличимо от «ничего не произошло».
  */
-export function inlineFeedback(anchor: Element | null, text: string): void {
-  if (!anchor || !показать) return;
-  показать(text, anchor.getBoundingClientRect());
+export function inlineFeedback(anchor: Element | null, text: string): boolean {
+  if (!anchor || !показать) return false;
+
+  const кнопка = anchor.getBoundingClientRect();
+  // Открепившийся или скрытый узел даёт нулевой прямоугольник — подпись
+  // встала бы в левом верхнем углу, у чужого содержимого.
+  if (кнопка.width === 0 && кнопка.height === 0) return false;
+
+  показать(text, кнопка);
+
+  return true;
 }
 
 /** Хост монтируется один раз, рядом с тостами. */
@@ -59,10 +71,10 @@ export function InlineFeedbackHost() {
 
   /*
    * Размер подписи известен только после отрисовки, поэтому место считается
-   * в `useLayoutEffect` — до кадра. Иначе подпись успевала бы мигнуть в
-   * левом верхнем углу и только потом встать на место.
+   * до кадра. Иначе подпись успевала бы мигнуть в левом верхнем углу и
+   * только потом встать на место.
    */
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const узел = подписьRef.current;
     if (!отклик || !узел) return;
 
@@ -77,35 +89,70 @@ export function InlineFeedbackHost() {
 
   useEffect(() => {
     if (!отклик) return;
-    const t = setTimeout(() => setОтклик(null), ЖИВЁТ_МС);
 
-    return () => clearTimeout(t);
+    const убрать = () => setОтклик(null);
+    const t = setTimeout(убрать, ЖИВЁТ_МС);
+
+    /*
+     * Прокрутка и поворот снимают подпись, а не двигают её.
+     *
+     * Координаты сняты один раз, ссылки на кнопку здесь нет. За две секунды
+     * инерционная прокрутка уводит список на пол-экрана, и подпись осталась
+     * бы висеть на старом месте — поверх постороннего содержимого и у чужой
+     * кнопки. Снять дешевле и честнее, чем пересчитывать: действие уже
+     * состоялось, а сердечко закрашено.
+     */
+    window.addEventListener("scroll", убрать, { passive: true, capture: true });
+    window.addEventListener("resize", убрать);
+    window.addEventListener("orientationchange", убрать);
+
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("scroll", убрать, { capture: true });
+      window.removeEventListener("resize", убрать);
+      window.removeEventListener("orientationchange", убрать);
+    };
   }, [отклик]);
 
-  if (!отклик || typeof document === "undefined") return null;
+  if (typeof document === "undefined") return null;
 
   return createPortal(
+    /*
+     * Живая область смонтирована всегда, меняется только текст. Область,
+     * вставленная в дерево вместе с содержимым, экранным диктором не
+     * объявляется — так «Добавлено в избранное» для незрячего пропало бы
+     * совсем: у карточки каталога другого сообщения об этом нет.
+     */
     <div
-      key={отклик.id}
-      ref={подписьRef}
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed z-[var(--z-toast)] rounded-[var(--r-tag)] px-3 py-1.5 text-[13px] font-medium"
+      className="pointer-events-none fixed z-[var(--z-toast)]"
       style={{
         top: место?.top ?? 0,
         left: место?.left ?? 0,
-        // До расчёта места подпись не видна: иначе она мигала бы в углу.
-        opacity: место ? 1 : 0,
-        background: "var(--foreground)",
-        color: "var(--background)",
-        boxShadow: "var(--shadow-card)",
-        maxWidth: "calc(100vw - 16px)",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
+        // До расчёта места и без отклика подпись не видна: иначе она мигала
+        // бы в углу.
+        opacity: отклик && место ? 1 : 0,
       }}
     >
-      {отклик.text}
+      {отклик && (
+        <div
+          key={отклик.id}
+          ref={подписьRef}
+          className="rounded-[var(--r-tag)] px-3 py-1.5 text-[13px] font-medium"
+          style={{
+            background: "var(--foreground)",
+            color: "var(--background)",
+            boxShadow: "var(--shadow-card)",
+            maxWidth: "calc(100vw - 16px)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {отклик.text}
+        </div>
+      )}
     </div>,
     document.body,
   );
