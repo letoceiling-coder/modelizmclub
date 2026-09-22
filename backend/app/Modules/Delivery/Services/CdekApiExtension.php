@@ -102,6 +102,39 @@ class CdekApiExtension
     }
 
     /**
+     * Подписки на уведомления СДЭК.
+     *
+     * Без подписки адрес `POST /webhooks/cdek/order-status` существует, но
+     * СДЭК о нём не знает и никогда не постучится: до 22.09 статусы
+     * отправлений приезжали только пятнадцатиминутным опросом
+     * (`delivery:sync-statuses`), то есть покупатель узнавал об отгрузке в
+     * среднем через семь минут после неё, а о вручении — так же.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listWebhooks(): array
+    {
+        $result = $this->request('GET', 'webhooks');
+
+        return is_array($result) ? $result : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function addWebhook(array $payload): array
+    {
+        return $this->request('POST', 'webhooks', json: $payload);
+    }
+
+    /** @return array<string, mixed> */
+    public function deleteWebhook(string $uuid): array
+    {
+        return $this->request('DELETE', 'webhooks/'.$uuid);
+    }
+
+    /**
      * @param  array<string, scalar|null>  $query
      * @param  array<string, mixed>|null  $json
      * @return array<string, mixed>
