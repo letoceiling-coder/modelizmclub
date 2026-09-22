@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -199,14 +200,47 @@ class CdekShipmentWebhookTest extends TestCase
     /**
      * Случай 22.09: ответ успешный, а в списке осталась прежняя подписка.
      *
-     * Ровно это и произошло на проде — команда отчиталась «Готово», а uuid
-     * и адрес не изменились. Без перечитывания списка отличить одно от
-     * другого нельзя.
+     * Список перечитывается трижды — у СДЭК он обновляется не сразу, и
+     * одного чтения мало, чтобы отличить задержку от незаведённой подписки.
+     * Здесь прежняя подписка держится во всех трёх ответах: это уже не
+     * задержка, и команда не должна отчитываться успехом.
      */
     public function test_webhook_registration_fails_when_list_did_not_change(): void
     {
         config(['app.url' => 'https://api.modelizmclub.ru']);
+        Sleep::fake();
         $чужой = 'https://modelizmclub.ru/api/v1/webhooks/cdek/order-status';
+        $прежняя = ['entity' => [['type' => 'ORDER_STATUS', 'url' => $чужой, 'uuid' => 'old']]];
+
+        Http::fake([
+            '*/v2/oauth/token*' => Http::response(['access_token' => 't', 'expires_in' => 3600]),
+            '*/v2/webhooks*' => Http::sequence()
+                ->push($прежняя)
+                ->push([])
+                ->push(['requests' => [['state' => 'SUCCESSFUL', 'errors' => []]]])
+                ->push($прежняя)
+                ->push($прежняя)
+                ->push($прежняя),
+        ]);
+
+        $this->artisan('cdek:register-webhook')
+            ->expectsOutputToContain($чужой)
+            ->assertFailed();
+    }
+
+    /**
+     * Задержка списка — не отказ: со второго чтения подписка видна.
+     *
+     * Именно это, похоже, и было на проде 22.09: прогон отработал, список
+     * ещё показывал прежнюю подписку, а позже — уже новую. Признать такое
+     * провалом значит послать человека чинить работающее.
+     */
+    public function test_webhook_registration_survives_a_lagging_list(): void
+    {
+        config(['app.url' => 'https://api.modelizmclub.ru']);
+        Sleep::fake();
+        $чужой = 'https://modelizmclub.ru/api/v1/webhooks/cdek/order-status';
+        $нужный = 'https://api.modelizmclub.ru/api/v1/webhooks/cdek/order-status';
 
         Http::fake([
             '*/v2/oauth/token*' => Http::response(['access_token' => 't', 'expires_in' => 3600]),
@@ -214,12 +248,13 @@ class CdekShipmentWebhookTest extends TestCase
                 ->push(['entity' => [['type' => 'ORDER_STATUS', 'url' => $чужой, 'uuid' => 'old']]])
                 ->push([])
                 ->push(['requests' => [['state' => 'SUCCESSFUL', 'errors' => []]]])
-                ->push(['entity' => [['type' => 'ORDER_STATUS', 'url' => $чужой, 'uuid' => 'old']]]),
+                ->push(['entity' => [['type' => 'ORDER_STATUS', 'url' => $чужой, 'uuid' => 'old']]])
+                ->push(['entity' => [['type' => 'ORDER_STATUS', 'url' => $нужный, 'uuid' => 'new']]]),
         ]);
 
         $this->artisan('cdek:register-webhook')
-            ->expectsOutputToContain($чужой)
-            ->assertFailed();
+            ->expectsOutputToContain($нужный)
+            ->assertSuccessful();
     }
 
     /** На http СДЭК не стучится — лучше отказать, чем завести мёртвую подписку. */
