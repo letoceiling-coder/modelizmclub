@@ -91,6 +91,15 @@ if [[ -z "${VITE_METRIKA_ID}" ]]; then
   echo "предупреждение: VITE_METRIKA_ID не задан — сборка пойдёт без Метрики" >&2
 fi
 
+# Карты Яндекса: ключ JavaScript API. Без него карта пунктов выдачи не
+# показывается, и выбор идёт списком с поиском по адресу — это рабочий режим,
+# а не поломка, поэтому предупреждение, а не отказ.
+YANDEX_MAPS_FROM_ENV="$(grep -s '^YANDEX_MAPS_KEY=' "${BACKEND_ENV}" | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
+export VITE_YANDEX_MAPS_KEY="${VITE_YANDEX_MAPS_KEY:-${YANDEX_MAPS_FROM_ENV}}"
+if [[ -z "${VITE_YANDEX_MAPS_KEY}" ]]; then
+  echo "предупреждение: VITE_YANDEX_MAPS_KEY не задан — карта ПВЗ не появится" >&2
+fi
+
 # Build in an isolated git worktree instead of the live frontend/ directory.
 # The old script ran `bun run build` straight into the live .output the
 # running Node process was still serving from — a request landing mid-build
