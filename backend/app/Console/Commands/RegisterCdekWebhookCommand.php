@@ -9,16 +9,31 @@ use Throwable;
 /**
  * Подписать СДЭК на уведомления о статусах отправлений.
  *
- * Адрес `POST /api/v1/webhooks/cdek/order-status` существовал с 25.08, но
- * СДЭК о нём не знал: подписки никто не создавал. Статусы приезжали
- * пятнадцатиминутным опросом (`delivery:sync-statuses`), то есть покупатель
- * узнавал об отгрузке в среднем через семь минут после неё, а продавец о
- * вручении — так же. Опрос остаётся запасным путём: уведомление может не
- * дойти, и тогда статус подтянется следующим прогоном.
+ * Здесь до 22.09 стояло «СДЭК о нём не знал: подписки никто не создавал».
+ * Это неверно: 22.09 в аккаунте нашлась подписка `ORDER_STATUS`
+ * `155a4d79-bfbe-46d9-bb34-d9e85bf76377` на `https://modelizmclub.ru/...`,
+ * то есть заведена она была, просто не на тот адрес — `APP_URL` сервиса
+ * `https://api.modelizmclub.ru`. Утверждение писалось по памяти, а не по
+ * запросу к API.
+ *
+ * Уведомлений действительно не приходило ни одного, но причина другая: на
+ * 22.09 из девятнадцати отправлений СДЭК ни одно не заведено у перевозчика
+ * (`external_id` пуст у всех девятнадцати, статусы `draft`, `error`,
+ * `cancelled`). Слать было не о чем, и адрес подписки тут ни при чём.
+ *
+ * Статусы приезжают пятнадцатиминутным опросом (`delivery:sync-statuses`).
+ * Опрос остаётся запасным путём: уведомление может не дойти, и тогда статус
+ * подтянется следующим прогоном.
  *
  * Команда идемпотентна: лишние и устаревшие подписки того же типа снимаются,
  * нужная заводится заново. Запускать руками после смены домена или ключей —
  * подписка живёт на стороне СДЭК и выкаткой не обновляется.
+ *
+ * Итог команда проверяет перечитыванием списка, а не доверием к коду ответа:
+ * СДЭК на `POST /webhooks` отвечает 200 и кладёт исход в
+ * `requests[].state` — `SUCCESSFUL` либо `INVALID` с массивом `errors`.
+ * Печатать «Готово» по одному лишь HTTP 200 значит сообщать об успехе,
+ * которого могло не быть.
  */
 class RegisterCdekWebhookCommand extends Command
 {
@@ -72,20 +87,113 @@ class RegisterCdekWebhookCommand extends Command
             $uuid = (string) ($row['uuid'] ?? '');
             $this->line('Снимаю устаревшую подписку '.$uuid.' → '.($row['url'] ?? '?'));
             if (! $dry && $uuid !== '') {
-                $api->deleteWebhook($uuid);
+                if (($беда = $this->отказ($api->deleteWebhook($uuid))) !== null) {
+                    $this->error('СДЭК не снял подписку '.$uuid.': '.$беда);
+
+                    return self::FAILURE;
+                }
             }
         }
 
         if ($уже === []) {
             $this->line('Завожу подписку на '.$url);
             if (! $dry) {
-                $api->addWebhook(['type' => self::TYPE, 'url' => $url]);
+                if (($беда = $this->отказ($api->addWebhook(['type' => self::TYPE, 'url' => $url]))) !== null) {
+                    $this->error('СДЭК не завёл подписку на '.$url.': '.$беда);
+
+                    return self::FAILURE;
+                }
             }
         }
 
-        $this->info($dry ? 'Сухой прогон: ничего не изменено.' : 'Готово.');
+        if ($dry) {
+            $this->info('Сухой прогон: ничего не изменено.');
 
-        return self::SUCCESS;
+            return self::SUCCESS;
+        }
+
+        return $this->убедиться($api, $url);
+    }
+
+    /**
+     * Перечитать список и убедиться, что вышло ровно то, чего добивались.
+     *
+     * Ответ на сам `POST` смотреть недостаточно: 22.09 команда отчиталась
+     * «Готово», а подписка осталась прежней — тот же uuid, тот же чужой
+     * адрес. Проверка со стороны данных отличает сделанное от отвеченного.
+     */
+    private function убедиться(CdekApiExtension $api, string $url): int
+    {
+        try {
+            $свои = array_values(array_filter(
+                $this->rows($api->listWebhooks()),
+                fn (array $row): bool => ($row['type'] ?? null) === self::TYPE,
+            ));
+        } catch (Throwable $e) {
+            $this->error('Изменения внесены, но перечитать список не удалось: '.$e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $адреса = array_map(static fn (array $row): string => (string) ($row['url'] ?? '?'), $свои);
+
+        if ($адреса === [$url]) {
+            $this->info('Готово: подписка одна, на '.$url);
+
+            return self::SUCCESS;
+        }
+
+        $this->error(sprintf(
+            'СДЭК ответил успехом, но в списке %d подписк(а/и) типа %s: %s',
+            count($свои),
+            self::TYPE,
+            $адреса === [] ? '(ни одной)' : implode(', ', $адреса),
+        ));
+
+        return self::FAILURE;
+    }
+
+    /**
+     * Исход операции СДЭК словами, либо null, если всё прошло.
+     *
+     * СДЭК отвечает 200 и на отказ тоже, складывая исход в `requests[]`:
+     * `state` бывает `SUCCESSFUL`, `ACCEPTED`, `WAITING` — и `INVALID`
+     * с массивом `errors`. Исключение из `decode()` ловит только коды 4xx
+     * и 5xx, то есть мимо него отказ проходит незамеченным.
+     *
+     * @param  array<string, mixed>  $ответ
+     */
+    private function отказ(array $ответ): ?string
+    {
+        $requests = $ответ['requests'] ?? null;
+        if (! is_array($requests)) {
+            // Поле необязательное: на `DELETE` СДЭК возвращает пустое тело.
+            // Отсутствие исхода — не отказ; настоящую проверку делает
+            // `убедиться()` перечитыванием списка.
+            return null;
+        }
+
+        foreach ($requests as $req) {
+            if (! is_array($req)) {
+                continue;
+            }
+            $state = (string) ($req['state'] ?? '');
+            if ($state === '' || $state !== 'INVALID') {
+                continue;
+            }
+
+            $errors = is_array($req['errors'] ?? null) ? $req['errors'] : [];
+            $слова = array_map(
+                static fn ($e): string => is_array($e)
+                    ? trim(((string) ($e['code'] ?? '')).' '.((string) ($e['message'] ?? '')))
+                    : (string) $e,
+                $errors,
+            );
+
+            return $слова === [] ? 'state=INVALID без пояснений' : implode('; ', $слова);
+        }
+
+        return null;
     }
 
     /**
