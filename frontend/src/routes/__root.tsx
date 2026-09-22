@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { InlineFeedbackHost } from "@/lib/ui/inline-feedback";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CallScreen } from "@/components/calls/CallScreen";
 import { GroupCallScreen } from "@/components/calls/GroupCallScreen";
@@ -188,6 +189,18 @@ function RootShell({ children }: { children: ReactNode }) {
  * Toasts anchor bottom-right — out of the way of headers, cards and the main
  * content grid. On mobile, sit above the fixed bottom nav.
  */
+/**
+ * Отступ снизу: над нижней навигацией там, где она есть.
+ *
+ * Порог ровно тот, при котором навигация показана, — `md:hidden`, то есть до
+ * 767 включительно. До 22.09 порогов было четыре и все разные: этот считал
+ * мобильным до 1023, ширину тостера правил медиазапрос до 640, а библиотека
+ * применяет свой мобильный отступ только до 600. В полосе 601–767 — альбомный
+ * iPhone SE и узкое окно на планшете — навигация на экране, а тост вставал в
+ * шестнадцати пикселях от низа, то есть прямо на неё.
+ */
+const МОБИЛЬНЫЙ = "(max-width: 767px)";
+
 function useBottomToastOffset(): number {
   const [offset, setOffset] = useState(16);
   useEffect(() => {
@@ -197,12 +210,9 @@ function useBottomToastOffset(): number {
     const navSpace = probe.getBoundingClientRect().height;
     document.body.removeChild(probe);
 
-    const sync = () => {
-      const mobile = window.matchMedia("(max-width: 1023px)").matches;
-      setOffset(mobile && navSpace > 0 ? navSpace + 12 : 16);
-    };
+    const mq = window.matchMedia(МОБИЛЬНЫЙ);
+    const sync = () => setOffset(mq.matches && navSpace > 0 ? navSpace + 12 : 16);
     sync();
-    const mq = window.matchMedia("(max-width: 1023px)");
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
@@ -262,12 +272,31 @@ function RootComponent() {
               отступы на телефоне — над нижней навигацией (`bottomToastOffset`).
               Автоскрытие 4 секунды, в стопке не больше трёх, новые сверху.
             */}
+            {/*
+              Отклик на действие — у кнопки, тост — для остального. Хост
+              один на приложение и рядом с тостами намеренно: оба живут в
+              портале и делят слой `--z-toast`.
+            */}
+            <InlineFeedbackHost />
             <Toaster
               position="bottom-right"
               closeButton
               duration={4000}
               visibleToasts={3}
-              offset={{ bottom: 16, right: 16 }}
+              /*
+               * `expand` обязателен. Без него стопка свёрнута: видно только
+               * верхний тост, а два других — пустые карточки, выглядывающие
+               * из-под него, и разворачиваются они по наведению, которого на
+               * телефоне нет. То есть «накладываются друг на друга» —
+               * жалоба, с которой всё началось, — оставалось бы в силе.
+               */
+              expand
+              /*
+               * Один и тот же отступ в обоих полях: библиотека применяет
+               * `mobileOffset` только до 600 px, а навигация видна до 767.
+               * Разные значения и давали полосу, где тост садился на неё.
+               */
+              offset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
               mobileOffset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
             />
           </ThemeProvider>

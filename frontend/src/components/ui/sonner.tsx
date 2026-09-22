@@ -13,6 +13,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // to beat un-flagged Tailwind classes — hence the `!` on radius/font
           // here (matches the pattern the border-left override below already
           // used for the same reason).
+          // Отступы и размеры живут в `styles.css`, а не здесь: у варианта
+          // Tailwind специфичность выше, и дублирование молча делало бы тот
+          // блок мёртвым — правящий его не видел бы никакого эффекта.
           toast:
             "group toast font-sans group-[.toaster]:!rounded-[12px] group-[.toaster]:bg-[var(--background-elevated)] group-[.toaster]:text-[var(--foreground)] group-[.toaster]:border-[var(--border)] group-[.toaster]:shadow-[var(--shadow-card)]",
           // Размер по дизайн-системе: 14 у заголовка, 13 у пояснения. Было

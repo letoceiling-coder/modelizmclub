@@ -14,6 +14,7 @@ import {
   setListingPhoneVisibility,
 } from "@/lib/api/listings";
 import { reportActionFailure } from "@/lib/errors/handle";
+import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { catalogSearchForListing } from "@/lib/catalog-filter";
 import { AdGallery } from "@/components/ads/AdGallery";
@@ -406,11 +407,22 @@ function AdDetailPage() {
     ? { phone: revealedPhone, loading: phoneLoading, onReveal: revealPhone }
     : undefined;
 
-  const toggleSave = () => {
+  const toggleSave = (кнопка: Element | null = null) => {
     requireAccount(
       () => {
         void (async () => {
           actions.toggleFavoriteAd(id);
+          /*
+           * Сразу по нажатию, а не после ответа сервера: прямоугольник
+           * кнопки снимается в момент показа, и на медленной сети подпись
+           * всплывала бы там, где кнопки уже нет. Если показать не вышло —
+           * говорим тостом: молчание на экране неотличимо от «ничего не
+           * произошло».
+           */
+          const текст = saved
+            ? t("pages.adDetail.removedFromFavorites")
+            : t("pages.adDetail.addedToFavorites");
+          if (!inlineFeedback(кнопка, текст)) toast.success(текст, { id: "favorite-toggle" });
           if (!isDemoMode()) {
             try {
               let favoritesCount = ad.likes ?? 0;
@@ -426,10 +438,6 @@ function AdDetailPage() {
               return;
             }
           }
-          toast.success(
-            saved ? t("pages.adDetail.removedFromFavorites") : t("pages.adDetail.addedToFavorites"),
-            { id: "favorite-toggle" },
-          );
         })();
       },
       undefined,

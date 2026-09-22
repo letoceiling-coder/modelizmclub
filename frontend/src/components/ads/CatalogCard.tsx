@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
@@ -89,10 +90,19 @@ export function CatalogCard({
           aria-label={fav ? "Убрать из избранного" : "В избранное"}
           onClick={(e) => {
             e.preventDefault();
+            const кнопка = e.currentTarget;
             const run = async () => {
               if (!getToken() && !isDemoMode()) return;
               const next = !fav;
               actions.toggleFavoriteAd(ad.id);
+              /*
+               * Сразу по нажатию, а не после ответа сервера. Прямоугольник
+               * кнопки снимается в момент показа: на медленной сети человек
+               * успевает пролистать список, и подпись всплывала бы у чужой
+               * карточки — той, что оказалась в этих координатах. Состояние
+               * и так оптимистичное, а отказ ниже откатывает его тостом.
+               */
+              inlineFeedback(кнопка, next ? "В избранное" : "Убрано из избранного");
               if (!isDemoMode()) {
                 try {
                   if (next) await addFavoriteListing(ad.id);
@@ -103,9 +113,6 @@ export function CatalogCard({
                   return;
                 }
               }
-              toast.success(next ? "В избранное" : "Убрано из избранного", {
-                id: "favorite-toggle",
-              });
             };
             if (guest) {
               guest.requireAccount(() => {
