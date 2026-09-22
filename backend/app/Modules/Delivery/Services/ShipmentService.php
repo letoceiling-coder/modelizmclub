@@ -14,8 +14,10 @@ use App\Models\ShipmentEvent;
 use App\Models\User;
 use App\Support\DeliveryPointSnapshot;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Modules\Billing\Services\SafeDealService;
+use Throwable;
 
 class ShipmentService
 {
@@ -210,7 +212,7 @@ class ShipmentService
                 'Заказ создан у провайдера доставки',
                 $result['raw'],
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $shipment->update([
                 'status' => ShipmentStatus::Error,
                 'error_message' => $e->getMessage(),
@@ -231,11 +233,53 @@ class ShipmentService
             throw ValidationException::withMessages(['status' => ['Отправление уже завершено.']]);
         }
 
+        /*
+         * Сначала перевозчик, потом мы.
+         *
+         * До 22.09 отмена меняла статус только у нас: в контракте
+         * перевозчика метода отмены не было вовсе. Заказ у СДЭК оставался
+         * живым — посылку можно было сдать, и доставку бы посчитали, тогда
+         * как у нас уже написано «отменено». Проверено на учебном контуре:
+         * `DELETE /v2/orders/{uuid}` отвечает 202.
+         */
+        $переданоПеревозчику = true;
+        $беда = null;
+
+        if ($shipment->external_id !== null) {
+            try {
+                $this->carriers->get($shipment->provider)->cancelShipment($shipment);
+            } catch (Throwable $e) {
+                /*
+                 * Отменяем у себя всё равно: человек нажал отмену, и оставить
+                 * его со «Отменить не вышло, попробуйте позже» при недоступном
+                 * перевозчике — хуже. Но молчать нельзя: расхождение «у нас
+                 * отменено, у перевозчика нет» и есть тот самый дефект.
+                 */
+                $переданоПеревозчику = false;
+                $беда = $e->getMessage();
+
+                Log::warning('Отмена не дошла до перевозчика', [
+                    'shipment' => $shipment->uuid,
+                    'provider' => $shipment->provider->value,
+                    'external_id' => $shipment->external_id,
+                    'ошибка' => $беда,
+                ]);
+            }
+        }
+
         $shipment->update([
             'status' => ShipmentStatus::Cancelled,
             'cancelled_at' => now(),
+            'error_message' => $переданоПеревозчику ? $shipment->error_message : 'Отмена не дошла до перевозчика: '.$беда,
         ]);
-        $this->recordEvent($shipment, ShipmentStatus::Cancelled, null, 'Отправление отменено');
+        $this->recordEvent(
+            $shipment,
+            ShipmentStatus::Cancelled,
+            null,
+            $переданоПеревозчику
+                ? 'Отправление отменено'
+                : 'Отправление отменено у нас, но перевозчику сообщить не удалось',
+        );
 
         return $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
     }

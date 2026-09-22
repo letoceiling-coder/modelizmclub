@@ -365,6 +365,101 @@ class DeliveryIntegrationTest extends TestCase
         ]);
     }
 
+    /**
+     * Отмена доходит до перевозчика, а не только до нашей базы.
+     *
+     * До 22.09 в контракте перевозчика метода отмены не было вовсе:
+     * `ShipmentService::cancel` менял статус у нас, а заказ у СДЭК
+     * оставался живым — посылку можно сдать, и доставку посчитают, тогда
+     * как в сделке написано «отменено». Проверено на учебном контуре
+     * СДЭК: `DELETE /v2/orders/{uuid}` отвечает 202.
+     */
+    public function test_cancelling_reaches_the_carrier(): void
+    {
+        Http::fake([
+            'api.edu.cdek.ru/v2/oauth/token*' => Http::response(['access_token' => 't', 'expires_in' => 3600]),
+            'api.edu.cdek.ru/v2/orders/*' => Http::response([
+                'requests' => [['type' => 'DELETE', 'state' => 'ACCEPTED', 'errors' => []]],
+            ], 202),
+        ]);
+
+        [$seller, $buyer] = $this->sellerAndBuyer();
+        $shipment = $this->отправлениеУПеревозчика($seller, $buyer, 'cdek-order-uuid');
+
+        $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/shipments/{$shipment->uuid}/cancel")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+
+        Http::assertSent(fn ($request): bool => $request->method() === 'DELETE'
+            && str_ends_with($request->url(), '/v2/orders/cdek-order-uuid'));
+
+        $this->assertNull($shipment->fresh()->error_message, 'перевозчику сообщили — жаловаться не на что');
+    }
+
+    /**
+     * Перевозчик недоступен — отменяем у себя, но след остаётся.
+     *
+     * Молча расходиться нельзя: «у нас отменено, у перевозчика нет» и есть
+     * тот самый дефект. Отказ не блокирует отмену — человек её нажал, — но
+     * записывается в отправление и в журнал.
+     */
+    public function test_a_carrier_failure_is_recorded_not_swallowed(): void
+    {
+        Http::fake([
+            'api.edu.cdek.ru/v2/oauth/token*' => Http::response(['access_token' => 't', 'expires_in' => 3600]),
+            'api.edu.cdek.ru/v2/orders/*' => Http::response(['message' => 'СДЭК недоступен'], 503),
+        ]);
+
+        [$seller, $buyer] = $this->sellerAndBuyer();
+        $shipment = $this->отправлениеУПеревозчика($seller, $buyer, 'cdek-order-uuid');
+
+        $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/shipments/{$shipment->uuid}/cancel")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+
+        $свежее = $shipment->fresh();
+        $this->assertNotNull($свежее->error_message, 'расхождение с перевозчиком не записано');
+        $this->assertStringContainsString('Отмена не дошла до перевозчика', (string) $свежее->error_message);
+    }
+
+    /** Отправления у перевозчика не было — снимать нечего, и это не отказ. */
+    public function test_cancelling_a_draft_does_not_call_the_carrier(): void
+    {
+        Http::fake();
+
+        [$seller, $buyer] = $this->sellerAndBuyer();
+        $shipment = $this->отправлениеУПеревозчика($seller, $buyer, null);
+
+        $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/shipments/{$shipment->uuid}/cancel")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled');
+
+        Http::assertNothingSent();
+        $this->assertNull($shipment->fresh()->error_message);
+    }
+
+    private function отправлениеУПеревозчика(User $seller, User $buyer, ?string $externalId): Shipment
+    {
+        $listing = $this->listing($seller);
+
+        return Shipment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'listing_id' => $listing->id,
+            'seller_id' => $seller->id,
+            'buyer_id' => $buyer->id,
+            'provider' => 'cdek',
+            'status' => $externalId === null ? 'draft' : 'created',
+            'external_id' => $externalId,
+            'source_point' => ['city_code' => 44, 'external_point_id' => 'MSK1'],
+            'destination_point' => ['city_code' => 137, 'external_point_id' => 'SPB1'],
+            'weight_kg' => 0.5,
+            'dimensions_cm' => ['length' => 20, 'width' => 15, 'height' => 10],
+        ]);
+    }
+
     public function test_admin_delivery_stats(): void
     {
         [$seller, $buyer] = $this->sellerAndBuyer();
