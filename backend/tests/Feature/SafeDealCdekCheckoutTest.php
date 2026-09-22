@@ -196,6 +196,60 @@ class SafeDealCdekCheckoutTest extends TestCase
             ->assertJsonValidationErrors(['pickup_address']);
     }
 
+    /**
+     * Надбавка площадки уходит в итог, но не в ответ покупателю.
+     *
+     * Покупатель видит одну строку «Доставка»: разбивка «тариф перевозчика +
+     * надбавка» ему ничего не даёт, торговаться с перевозчиком он не может.
+     * Площадке она нужна — и лежит в сделке снимком, потому что настройку
+     * меняют, а вопрос «с какой считалась эта сделка» задают потом.
+     */
+    public function test_markup_reaches_the_total_but_not_the_buyer(): void
+    {
+        $this->fakeCdekQuote(351.0);
+        \App\Models\SystemSetting::query()->updateOrCreate(
+            ['key' => 'delivery.markup.enabled'],
+            ['value' => ['enabled' => true], 'group' => 'delivery'],
+        );
+        \App\Models\SystemSetting::query()->updateOrCreate(
+            ['key' => 'delivery.markup.percent'],
+            ['value' => ['percent' => 10], 'group' => 'delivery'],
+        );
+
+        $seller = $this->seedUser('seller');
+        $buyer = $this->seedUser('buyer');
+        $listing = $this->seedCdekListing($seller);
+        app(WalletService::class)->credit($buyer, 200000, WalletTransactionType::Topup, 'test');
+
+        $destination = [
+            'city_code' => 137,
+            'external_point_id' => 'SPB1',
+            'name' => 'ПВЗ СПб',
+            'address' => 'Невский, 1',
+        ];
+
+        // Тариф округляется до 400 ₽, надбавка 10 % — 40 ₽ сверху.
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal/quote", [
+                'destination_point' => $destination,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.delivery_cost_kopecks', 44000)
+            ->assertJsonPath('data.hold_kopecks', 144000)
+            ->assertJsonMissingPath('data.delivery_markup_kopecks');
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+                'destination_point' => $destination,
+            ])
+            ->assertCreated();
+
+        $deal = \App\Models\SafeDeal::query()->where('buyer_id', $buyer->id)->firstOrFail();
+        $this->assertSame(44000, (int) $deal->delivery_cost_kopecks);
+        $this->assertSame(4000, (int) ($deal->metadata['delivery_markup_kopecks'] ?? 0));
+    }
+
     public function test_quote_and_create_holds_item_plus_rounded_delivery(): void
     {
         $this->fakeCdekQuote(351.0);

@@ -32,6 +32,7 @@ use Modules\Billing\Exceptions\InsufficientFundsException;
 use Modules\Billing\Notifications\SafeDealStatusNotification;
 use Modules\Delivery\Services\Carriers\CdekDeliveryAdapter;
 use Modules\Delivery\Services\CdekApiExtension;
+use Modules\Delivery\Services\DeliveryMarkupPolicy;
 use Modules\Delivery\Services\SellerDeliveryProfileService;
 use Modules\Delivery\Services\ShipmentService;
 use Modules\User\Services\UserRatingService;
@@ -152,6 +153,7 @@ class SafeDealService
         $offersCdek = $method !== null && ParcelSize::offersCdek([$method]);
 
         $delivery = 0;
+        $markup = 0;
         $origin = null;
         $tariff = null;
         $destinationPoint = $this->normalizeDestination($destination);
@@ -181,7 +183,16 @@ class SafeDealService
                 ]);
             }
             $quoted = $this->quoteCdekDelivery($listing, $destinationPoint, $parcel);
-            $delivery = (int) $quoted['price_cents'];
+            $carrier = (int) $quoted['price_cents'];
+            /*
+             * Надбавка площадки поверх тарифа перевозчика. Покупатель видит
+             * одну строку «Доставка» с итогом: разбивка «тариф + надбавка»
+             * ему ничего не даёт — торговаться с перевозчиком он не может.
+             * Размер надбавки уезжает в сделку, чтобы владелец потом мог
+             * ответить, сколько на доставке заработано.
+             */
+            $markup = app(DeliveryMarkupPolicy::class)->markupFor($carrier);
+            $delivery = $carrier + $markup;
             $origin = $quoted['origin'];
             $tariff = $quoted['tariff_code'];
         }
@@ -191,6 +202,8 @@ class SafeDealService
             'platform_fee_percent' => $feePercent,
             'platform_fee_kopecks' => $fee,
             'delivery_cost_kopecks' => $delivery,
+            // Не в ответе покупателю: строка уходит в `metadata` сделки.
+            'delivery_markup_kopecks' => $markup,
             'total_kopecks' => $item + $delivery,
             'hold_kopecks' => $item + $delivery,
             'seller_payout_kopecks' => $item - $fee,
@@ -313,6 +326,12 @@ class SafeDealService
                         // остаться читаемой в истории обеих сторон.
                         'listing_title' => (string) $listing->title,
                         'tariff_code' => $quote['tariff_code'] ?? null,
+                        /*
+                         * Надбавка площадки к доставке — снимком, а не пересчётом по
+                         * текущей настройке. Настройку меняют, и без снимка через месяц
+                         * нельзя было бы сказать, с какой считалась эта сделка.
+                         */
+                        'delivery_markup_kopecks' => (int) ($quote['delivery_markup_kopecks'] ?? 0),
                         'escrow_provider' => $vtb ? SafeDealSettlementService::PROVIDER_VTB : SafeDealSettlementService::PROVIDER_WALLET,
                     ],
                 ]);

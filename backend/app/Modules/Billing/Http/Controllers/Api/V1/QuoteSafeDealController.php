@@ -25,12 +25,23 @@ class QuoteSafeDealController extends Controller
             'destination_point.longitude' => ['nullable', 'numeric'],
         ]);
 
-        return response()->json([
-            'data' => $deals->quoteForListing(
-                $listing,
-                $data['destination_point'] ?? [],
-                $data['delivery_method'] ?? null,
-            ),
-        ]);
+        $quote = $deals->quoteForListing(
+            $listing,
+            $data['destination_point'] ?? [],
+            $data['delivery_method'] ?? null,
+        );
+
+        /*
+         * Надбавка площадки покупателю не показывается: он видит одну строку
+         * «Доставка» с итогом. Разбивка «тариф перевозчика + надбавка» ему
+         * ничего не даёт — торговаться с перевозчиком он не может, — а
+         * площадке она нужна, и лежит в `metadata` сделки.
+         *
+         * Вычёркивается здесь, у самой границы наружу: внутри расчёта строка
+         * нужна, чтобы доехать до сделки.
+         */
+        unset($quote['delivery_markup_kopecks']);
+
+        return response()->json(['data' => $quote]);
     }
 }
