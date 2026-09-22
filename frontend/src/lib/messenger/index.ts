@@ -2,6 +2,7 @@ import { markConversationRead } from "@/lib/api/chat";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { Dialog, Message } from "@/lib/mock";
 import { useCurrentUser } from "@/lib/session";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useStore } from "@/lib/store";
 import { getSessionUserId } from "@/lib/session/cache";
 import { getSessionQueryClient } from "@/lib/session/queryClient";
@@ -69,9 +70,28 @@ export function useUnreadMessagesTotal(): number {
   const me = useCurrentUser();
   const deleted = useStore((s) => s.dialogMeta);
   const q = useQuery({ ...conversationsQuery(me.id) });
-  return unreadMessagesTotal(
-    (q.data ?? EMPTY_DIALOGS).filter((d) => !deleted[d.id]?.deletedLocally),
-  );
+
+  /*
+   * До гидрации — ноль, как на сервере.
+   *
+   * Счётчик берётся из кэша запросов. На сервере кэш пуст, значок не
+   * рисуется; в браузере он мог быть уже полон — от перехода внутри
+   * приложения или от предыдущей страницы, — и первый кадр приходил со
+   * значком. React сравнивал `<span>` значка с его отсутствием и бросал
+   * #418: полная перерисовка страницы.
+   *
+   * Расхождение непостоянное — оно зависит от того, успел ли ответ прийти
+   * до гидрации, — и потому ловилось не каждым заходом. Замер 22.09 на
+   * `/settings/requisites`: два расхождения на шесть заходов.
+   *
+   * Ноль здесь живёт один кадр: `useHydrated()` становится true сразу
+   * после гидрации, и значок появляется следующим кадром.
+   */
+  const готов = useHydrated();
+
+  return готов
+    ? unreadMessagesTotal((q.data ?? EMPTY_DIALOGS).filter((d) => !deleted[d.id]?.deletedLocally))
+    : 0;
 }
 
 const EMPTY_DIALOGS: Dialog[] = [];
