@@ -35,7 +35,7 @@ class SellerDeliveryProfileService
             $this->clearDefault($user, $provider);
         }
 
-        return SellerDeliveryProfile::query()->create([
+        $profile = SellerDeliveryProfile::query()->create([
             'user_id' => $user->id,
             'provider' => $provider,
             'point_type' => $pointType,
@@ -46,6 +46,14 @@ class SellerDeliveryProfileService
             'is_default' => (bool) ($data['is_default'] ?? false),
             'meta' => $data['meta'] ?? null,
         ]);
+
+        /*
+         * Перечитываем: `is_active` объявлен в схеме `default true not null`,
+         * но в теле запроса его нет, и свежесозданный объект отдаёт по нему
+         * `null`. В базе при этом `true` — то есть ответ ручки расходился с
+         * данными. Замер 22.09: ответ `"is_active": null`, строка в базе `t`.
+         */
+        return $profile->refresh();
     }
 
     /**

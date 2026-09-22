@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Radio,
   Shield,
+  Truck,
 } from "lucide-react";
 
 type Row = { to: string; labelKey: string; icon: typeof UserCog };
@@ -35,6 +36,7 @@ const ROWS: Row[] = [
     icon: CreditCard,
   },
   { to: "/settings/requisites", labelKey: "components.settingsNav.requisites", icon: FileText },
+  { to: "/settings/delivery", labelKey: "components.settingsNav.delivery", icon: Truck },
   { to: "/settings/rating", labelKey: "components.settingsNav.rating", icon: Star },
   { to: "/settings/spaces", labelKey: "components.settingsNav.spaces", icon: Radio },
   { to: "/settings/history", labelKey: "components.settingsNav.history", icon: History },

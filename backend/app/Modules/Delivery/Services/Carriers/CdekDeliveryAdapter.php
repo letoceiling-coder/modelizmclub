@@ -5,6 +5,7 @@ namespace Modules\Delivery\Services\Carriers;
 use App\Enums\DeliveryCarrier;
 use App\Enums\ShipmentStatus;
 use App\Models\Shipment;
+use App\Support\DeliveryPointSnapshot;
 use App\Support\DeliveryQuoteRounding;
 use Modules\Delivery\Contracts\DeliveryCarrierContract;
 use Modules\Delivery\Services\CdekApiExtension;
@@ -115,8 +116,13 @@ class CdekDeliveryAdapter implements DeliveryCarrierContract
             'type' => 1,
             'number' => 'MZ-'.$shipment->uuid,
             'tariff_code' => (int) ($shipment->raw_payload['tariff_code'] ?? 136),
-            'shipment_point' => $source['external_point_id'] ?? null,
-            'delivery_point' => $destination['external_point_id'] ?? null,
+            // Пункт либо адрес — СДЭК требует на каждом конце что-то одно и
+            // отвечает `[shipment_point] is empty` + `[from_location] is
+            // empty`, когда нет ни того, ни другого. Раньше адреса не
+            // передавались вовсе: ключей `from_location`/`to_location` в
+            // теле не было, и тариф «от двери» сломался бы о то же самое.
+            ...$this->конец('shipment_point', 'from_location', $source),
+            ...$this->конец('delivery_point', 'to_location', $destination),
             'recipient' => [
                 'name' => $buyer->profile?->display_name ?? 'Получатель',
                 'phones' => [['number' => $buyer->phone ?? '+70000000000']],
@@ -168,6 +174,38 @@ class CdekDeliveryAdapter implements DeliveryCarrierContract
             'tracking_number' => isset($entity['cdek_number']) ? (string) $entity['cdek_number'] : $shipment->tracking_number,
             'raw' => $raw,
         ];
+    }
+
+    /**
+     * Один конец маршрута: пункт, если выбран, иначе адрес.
+     *
+     * Возвращает готовый кусок тела — либо `[$point => код]`, либо
+     * `[$location => {code, address}]`, либо пустой массив, если в снимке
+     * нет ни того, ни другого. Пустой ключ слать незачем: СДЭК на него
+     * отвечает тем же `is empty`, что и на отсутствие.
+     *
+     * @param  array<string, mixed>  $snapshot
+     * @return array<string, mixed>
+     */
+    private function конец(string $point, string $location, array $snapshot): array
+    {
+        if (DeliveryPointSnapshot::hasPickupPoint($snapshot)) {
+            return [$point => (string) $snapshot['external_point_id']];
+        }
+
+        if (! DeliveryPointSnapshot::hasAddress($snapshot)) {
+            return [];
+        }
+
+        $address = $snapshot['address'];
+        if (is_array($address)) {
+            $address = $address['address'] ?? $address['full_address'] ?? '';
+        }
+
+        return [$location => array_filter([
+            'code' => (int) ($snapshot['city_code'] ?? 0) > 0 ? (int) $snapshot['city_code'] : null,
+            'address' => (string) $address,
+        ], static fn ($v): bool => $v !== null && $v !== '')];
     }
 
     /**

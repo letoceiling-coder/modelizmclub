@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\Listing;
 use App\Models\ListingCategory;
+use App\Models\SafeDeal;
 use App\Models\SellerDeliveryProfile;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -207,11 +208,11 @@ class SafeDealCdekCheckoutTest extends TestCase
     public function test_markup_reaches_the_total_but_not_the_buyer(): void
     {
         $this->fakeCdekQuote(351.0);
-        \App\Models\SystemSetting::query()->updateOrCreate(
+        SystemSetting::query()->updateOrCreate(
             ['key' => 'delivery.markup.enabled'],
             ['value' => ['enabled' => true], 'group' => 'delivery'],
         );
-        \App\Models\SystemSetting::query()->updateOrCreate(
+        SystemSetting::query()->updateOrCreate(
             ['key' => 'delivery.markup.percent'],
             ['value' => ['percent' => 10], 'group' => 'delivery'],
         );
@@ -245,7 +246,7 @@ class SafeDealCdekCheckoutTest extends TestCase
             ])
             ->assertCreated();
 
-        $deal = \App\Models\SafeDeal::query()->where('buyer_id', $buyer->id)->firstOrFail();
+        $deal = SafeDeal::query()->where('buyer_id', $buyer->id)->firstOrFail();
         $this->assertSame(44000, (int) $deal->delivery_cost_kopecks);
         $this->assertSame(4000, (int) ($deal->metadata['delivery_markup_kopecks'] ?? 0));
     }
@@ -288,6 +289,52 @@ class SafeDealCdekCheckoutTest extends TestCase
         $wallet = app(WalletService::class)->wallet($buyer->fresh());
         $this->assertSame(60000, (int) $wallet->balance_kopecks);
         $this->assertSame(140000, (int) $wallet->held_kopecks);
+    }
+
+    /**
+     * Нет пункта у продавца — сделка не оформляется, и человек знает почему.
+     *
+     * До 22.09 здесь брались деньги: расчёт СДЭК проходил по коду города,
+     * сделка создавалась, а заказ у перевозчика падал с
+     * `[shipment_point] is empty`. На проде так и вышло — 19 отправлений,
+     * ни одного заведённого.
+     *
+     * Продавец без профиля — не редкость, а единственное, что было:
+     * `seller_delivery_profiles` на 22.09 пуста, 0 строк. Оснастка же
+     * (`seedCdekListing`) профиль заводила всегда, поэтому ни одна
+     * проверка этого пути не видела. Здесь профиля нарочно нет.
+     */
+    public function test_a_seller_without_a_pickup_point_cannot_sell_via_cdek(): void
+    {
+        $this->fakeCdekQuote();
+        $seller = $this->seedUser('seller');
+        $buyer = $this->seedUser('buyer');
+        $listing = $this->seedCdekListing($seller);
+
+        SellerDeliveryProfile::query()->where('user_id', $seller->id)->delete();
+        app(WalletService::class)->credit($buyer, 200000, WalletTransactionType::Topup, 'test');
+
+        $destination = ['city_code' => 137, 'external_point_id' => 'SPB1', 'name' => 'ПВЗ СПб'];
+        $отказ = 'Продавец не выбрал пункт отправки СДЭК — доставка по этому объявлению пока недоступна.';
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal/quote", ['destination_point' => $destination])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.delivery_method.0', $отказ);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+                'destination_point' => $destination,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.delivery_method.0', $отказ);
+
+        // Деньги на месте, сделки нет: отказали до списания, а не после.
+        $wallet = app(WalletService::class)->wallet($buyer->fresh());
+        $this->assertSame(200000, (int) $wallet->balance_kopecks);
+        $this->assertSame(0, (int) $wallet->held_kopecks);
+        $this->assertDatabaseCount('safe_deals', 0);
     }
 
     public function test_cdek_create_requires_terms_and_pvz(): void
