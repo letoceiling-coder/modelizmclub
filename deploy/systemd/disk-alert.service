@@ -1,0 +1,15 @@
+[Unit]
+Description=ModelizmClub: сторож места на диске
+Documentation=file:///var/www/modelizmclub/deploy/README.md
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/var/www/modelizmclub
+ExecStart=/var/www/modelizmclub/deploy/scripts/disk-alert.sh --quiet
+# Проверка занимает секунды; `du` по всему диску — минуты в худшем случае.
+TimeoutStartSec=600
+Nice=10
+IOSchedulingClass=idle
+# Ненулевой код означал бы поломку сторожа, а не полный диск: решение
+# тревожиться скрипт принимает сам и сам себе не даёт спамить.
