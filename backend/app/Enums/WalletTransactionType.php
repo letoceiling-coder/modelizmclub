@@ -21,6 +21,20 @@ enum WalletTransactionType: string
     case Withdrawal = 'withdrawal';
     case WithdrawalRefund = 'withdrawal_refund';
 
+    /**
+     * Правка баланса решением владельца: списание или начисление, за
+     * которым не стоит ни платёж, ни сделка.
+     *
+     * Заведён 25.09 под обнуление учётных записей приёмки перед запуском:
+     * на них оставалось 22 660 ₽ игровых денег. Натянуть на это `Withdrawal`
+     * было нельзя — он означает настоящую выплату и испортил бы отчёт по
+     * выводам, показав два вывода, которых не было.
+     *
+     * Проводки при таком обнулении не удаляются: добавляется новая строка,
+     * а история остаётся. Удалять проводки — рвать сведение баланса.
+     */
+    case AdminAdjustment = 'admin_adjustment';
+
     public function label(): string
     {
         return match ($this) {
@@ -36,6 +50,7 @@ enum WalletTransactionType: string
             self::PromoBonus => 'Промо-бонус',
             self::Withdrawal => 'Вывод средств',
             self::WithdrawalRefund => 'Возврат вывода средств',
+            self::AdminAdjustment => 'Правка баланса администратором',
         };
     }
 
