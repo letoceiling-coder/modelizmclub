@@ -217,6 +217,15 @@ function UploadPage() {
           buildSchedulePayload(scheduleDate, scheduleTime, scheduleTimezone),
         );
         toast.success(t("components.createPostForm.scheduled"));
+      } else if (video.status === "processing") {
+        /*
+         * Обзор от не-владельца уходит на модерацию, а не в ленту:
+         * `VideoService::upload` ставит `status: processing` и заводит
+         * задачу в очереди. До 25.09 здесь в обоих случаях говорилось
+         * «Обзор опубликован» — человек шёл его смотреть, не находил и
+         * считал это поломкой. Ответ ручки статус несёт, спрашиваем его.
+         */
+        toast.success(t("pages.reviews.sentToModeration"));
       } else {
         toast.success(t("pages.reviews.published"));
       }
