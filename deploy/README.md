@@ -41,6 +41,43 @@
 | `modelizmclub-scheduler.timer` + `.service` | Тик планировщика Laravel раз в минуту (`schedule:run`) |
 | `backup-db-failure@.service` | Уведомление о неудачном дампе, вызывается через `OnFailure` |
 | `disk-alert.timer` + `.service` | Сторож места на диске: проверка раз в 15 минут, пороги 80% и 90% |
+
+### Тревоги сторожа диска
+
+Четыре канала: журнал (`journalctl -t disk-alert`), отметка
+`/var/lib/modelizmclub/DISK.log`, письмо и Telegram. Первые два работают
+всегда, два последних — если настроены.
+
+Проверить, не заполняя диск:
+
+```bash
+/var/www/modelizmclub/deploy/scripts/disk-alert.sh --force-percent 91
+```
+
+Письмо уходит один раз на уровень. Адрес по умолчанию берётся из
+`MAIL_FROM_ADDRESS`; свой задаётся `DISK_ALERT_TO`.
+
+**Telegram** необязателен и без ключей просто пропускается. Чтобы включить:
+
+1. в Telegram написать `@BotFather`, команда `/newbot` — он выдаст токен
+   вида `123456789:AA…`;
+2. написать своему новому боту любое сообщение (иначе он не вправе писать
+   первым);
+3. узнать номер чата:
+   `curl -s "https://api.telegram.org/bot<ТОКЕН>/getUpdates" | grep -o '"id":[-0-9]*' | head -1`
+4. положить оба значения в юнит:
+
+```bash
+systemctl edit disk-alert.service
+# [Service]
+# Environment=DISK_ALERT_TG_TOKEN=123456789:AA…
+# Environment=DISK_ALERT_TG_CHAT=123456789
+systemctl daemon-reload
+/var/www/modelizmclub/deploy/scripts/disk-alert.sh --force-percent 91
+```
+
+Неверный токен виден сразу: канал печатает код и ответ Telegram
+(`401 Unauthorized`), а не молчит.
 | `neeklo-*` | То же для dev-контура `neeklo.modelizmclub.ru` |
 
 ### Установка на новом сервере или после правки юнита

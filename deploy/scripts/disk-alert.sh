@@ -117,12 +117,13 @@ if [[ -z "${TO}" && -f "${APP_DIR}/backend/.env" ]]; then
   TO="$(grep -E '^MAIL_FROM_ADDRESS=' "${APP_DIR}/backend/.env" | head -1 | cut -d= -f2- | tr -d '"'"'"'' | xargs)"
 fi
 
+# Каналы независимы: ненастроенная почта не должна отменять телеграм.
+# До 25.09 здесь стоял `exit 0`, и телеграм не срабатывал вовсе, если
+# адрес получателя не задан. Нашлось запуском — разбор синтаксиса такое
+# не видит.
 if [[ -z "${TO}" ]]; then
   [[ -n "${QUIET}" ]] || echo "  адрес получателя не задан — письмо не шлю (журнал и отметка записаны)"
-  exit 0
-fi
-
-if command -v php >/dev/null 2>&1; then
+elif command -v php >/dev/null 2>&1; then
   # Помощник называется backup-db-notify.php, но шлёт любое письмо через
   # почту приложения. Второй такой же заводить незачем.
   if printf '%s' "${body}" | php "$(dirname "$0")/backup-db-notify.php" "${TO}" "Диск ${level} ${worst}% — ${HOST}"; then
@@ -133,5 +134,42 @@ if command -v php >/dev/null 2>&1; then
     [[ -n "${QUIET}" ]] || echo "  ПИСЬМО НЕ УШЛО (журнал и отметка на диске всё равно записаны)"
   fi
 fi
+
+# Telegram — четвёртый канал, необязательный.
+#
+# Без ключей тихо пропускается: сторож не должен падать оттого, что канал
+# не настроен. Отказ Telegram тоже не роняет прогон — письмо и журнал уже
+# ушли, и терять их из-за недоступного телеграма было бы хуже.
+TG_TOKEN="${DISK_ALERT_TG_TOKEN:-}"
+TG_CHAT="${DISK_ALERT_TG_CHAT:-}"
+if [[ -z "${TG_TOKEN}" || -z "${TG_CHAT}" ]]; then
+  [[ -n "${QUIET}" ]] || echo "  telegram не настроен (DISK_ALERT_TG_TOKEN/CHAT) — пропускаю"
+  exit 0
+fi
+
+# Коротко: в телефоне читают заголовок, а не простыню. Подробности — в
+# письме и в `journalctl -t disk-alert`.
+tg_text="$(printf '%s: диск %s%%
+хост: %s
+занято на %s
+подробности — в письме и journalctl -t disk-alert' \
+  "${level}" "${worst}" "${HOST}" "${worst_mount}")"
+
+tg_code="$(curl -s -o /tmp/tg-disk-alert.out -w '%{http_code}' --max-time 15 \
+  -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+  --data-urlencode "chat_id=${TG_CHAT}" \
+  --data-urlencode "text=${tg_text}" 2>/dev/null || echo 000)"
+
+if [[ "${tg_code}" == "200" ]]; then
+  logger -t disk-alert "оповещение отправлено в telegram (чат ${TG_CHAT})"
+  [[ -n "${QUIET}" ]] || echo "  telegram: отправлено"
+else
+  # Причину печатаем: «не ушло» без причины заставляет гадать между
+  # неверным токеном, чужим чатом и отсутствием сети.
+  tg_why="$(head -c 200 /tmp/tg-disk-alert.out 2>/dev/null)"
+  logger -t disk-alert -p daemon.err "telegram не принял (${tg_code}): ${tg_why}"
+  [[ -n "${QUIET}" ]] || echo "  telegram: НЕ ушло (${tg_code}) ${tg_why}"
+fi
+rm -f /tmp/tg-disk-alert.out
 
 exit 0
