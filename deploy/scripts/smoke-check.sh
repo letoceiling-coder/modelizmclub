@@ -186,8 +186,29 @@ fi
 #
 # Поэтому счётчик расхождений уезжает в ту самую строку.
 #
+#
+# Место на диске и отметки сторожей — в ту же строку, по той же причине.
+#
+# `disk-alert.sh` пишет в журнал, в отметку на диске и письмом. Все три
+# канала смотрят наружу: журнал надо открыть, письмо — прочитать. Выкатка
+# же происходит регулярно и печатается всегда, поэтому пусть она и
+# спрашивает: сколько места осталось и не жаловался ли кто.
+#
+DISK_PCT="$(df -P / 2>/dev/null | awk 'NR==2{gsub(/%/,"",$5); print $5}')"
+DISK_NOTE=""
+if [[ "${DISK_PCT:-0}" =~ ^[0-9]+$ ]] && (( DISK_PCT >= 80 )); then
+  DISK_NOTE=" — ВНИМАНИЕ: диск занят на ${DISK_PCT}%"
+fi
+
+ALERTS=0
+for m in /var/lib/modelizmclub/DISK.log /root/backups/auto/FAILURES.log; do
+  [[ -s "${m}" ]] && ALERTS=$(( ALERTS + $(grep -c '^=== ' "${m}" 2>/dev/null || echo 0) ))
+done
+ALERT_NOTE=""
+(( ALERTS > 0 )) && ALERT_NOTE=" — записей в отметках сторожей: ${ALERTS} (журнал: journalctl -t disk-alert -t backup-db)"
+
 if [[ "${NGINX_DRIFT_COUNT:-0}" != "0" ]]; then
-  echo "smoke check passed — ВНИМАНИЕ: nginx расходится с репозиторием (${NGINX_DRIFT_COUNT}), примените deploy/scripts/nginx-apply.sh"
+  echo "smoke check passed — ВНИМАНИЕ: nginx расходится с репозиторием (${NGINX_DRIFT_COUNT}), примените deploy/scripts/nginx-apply.sh${DISK_NOTE}${ALERT_NOTE}"
 else
-  echo "smoke check passed"
+  echo "smoke check passed${DISK_NOTE}${ALERT_NOTE}"
 fi

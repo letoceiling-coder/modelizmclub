@@ -40,6 +40,7 @@
 | `backup-db.timer` + `backup-db.service` | Ночной дамп базы в 04:00 с выгрузкой в S3 |
 | `modelizmclub-scheduler.timer` + `.service` | Тик планировщика Laravel раз в минуту (`schedule:run`) |
 | `backup-db-failure@.service` | Уведомление о неудачном дампе, вызывается через `OnFailure` |
+| `disk-alert.timer` + `.service` | Сторож места на диске: проверка раз в 15 минут, пороги 80% и 90% |
 | `neeklo-*` | То же для dev-контура `neeklo.modelizmclub.ru` |
 
 ### Установка на новом сервере или после правки юнита
@@ -55,12 +56,15 @@ install -m 644 deploy/systemd/backup-db.timer            /etc/systemd/system/
 install -m 644 deploy/systemd/backup-db-failure@.service /etc/systemd/system/
 install -m 644 deploy/systemd/modelizmclub-scheduler.service /etc/systemd/system/
 install -m 644 deploy/systemd/modelizmclub-scheduler.timer   /etc/systemd/system/
+install -m 644 deploy/systemd/disk-alert.service             /etc/systemd/system/
+install -m 644 deploy/systemd/disk-alert.timer               /etc/systemd/system/
 
 systemctl daemon-reload
 systemctl enable --now modelizmclub-frontend modelizmclub-reverb \
                        modelizmclub-worker modelizmclub-media-worker
 systemctl enable --now backup-db.timer
 systemctl enable --now modelizmclub-scheduler.timer
+systemctl enable --now disk-alert.timer
 ```
 
 `daemon-reload` обязателен: без него systemd продолжит использовать прежнюю
@@ -74,13 +78,14 @@ for u in modelizmclub-frontend.service modelizmclub-reverb.service \
          modelizmclub-worker.service modelizmclub-media-worker.service \
          backup-db.service backup-db.timer \
          modelizmclub-scheduler.service modelizmclub-scheduler.timer \
+         disk-alert.service disk-alert.timer \
          "backup-db-failure@.service"; do
   diff -q "/var/www/modelizmclub/deploy/systemd/$u" "/etc/systemd/system/$u" >/dev/null 2>&1 \
     && echo "ok         $u" || echo "РАСХОДИТСЯ $u"
 done
 
 # таймеры живые и знают, когда сработают
-systemctl list-timers backup-db.timer modelizmclub-scheduler.timer --no-pager
+systemctl list-timers backup-db.timer modelizmclub-scheduler.timer disk-alert.timer --no-pager
 ```
 
 Первая команда 04.09 сразу нашла расхождение: установленный

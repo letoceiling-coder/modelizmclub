@@ -1,0 +1,13 @@
+[Unit]
+Description=ModelizmClub: проверять место на диске каждые 15 минут
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+# Пропущенный прогон (машина была выключена) отрабатывает сразу после
+# подъёма: диск мог заполниться как раз тогда, когда сторож молчал.
+Persistent=true
+Unit=disk-alert.service
+
+[Install]
+WantedBy=timers.target
