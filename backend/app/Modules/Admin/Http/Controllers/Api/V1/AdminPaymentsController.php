@@ -95,6 +95,27 @@ class AdminPaymentsController extends Controller
             $query->where('status', $status);
         }
 
+        if ($provider = $request->string('provider')->toString()) {
+            $query->where('provider', $provider);
+        }
+
+        /*
+         * Поиск по идентификатору заказа.
+         *
+         * Человек приходит с номером из письма банка или из переписки с
+         * покупателем и хочет найти этот платёж. Номеров у платежа три:
+         * свой uuid, идентификатор у провайдера и ключ идемпотентности —
+         * и заранее неизвестно, какой именно дали. Ищем по всем трём, а
+         * не заставляем угадывать.
+         */
+        if ($search = trim($request->string('search')->toString())) {
+            $query->where(function (Builder $q) use ($search): void {
+                $q->where('uuid', $search)
+                    ->orWhere('provider_payment_id', 'ilike', '%'.$search.'%')
+                    ->orWhere('idempotency_key', 'ilike', '%'.$search.'%');
+            });
+        }
+
         if ($from = $request->date('from')) {
             $query->whereDate('created_at', '>=', $from);
         }

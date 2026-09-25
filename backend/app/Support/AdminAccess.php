@@ -63,7 +63,18 @@ final class AdminAccess
         'reviews' => 'moderator',
         'notifications' => 'moderator',
         'media' => 'moderator',
+        /*
+         * Монетизация разделена на четыре вкладки 25.09. Права те же —
+         * только Владелец: деньги площадки не показываем даже модератору.
+         *
+         * Прежний ключ оставлен: по нему проверяется достижимость старых
+         * ссылок `?section=monetization`, которые ведут на «Тарифы и цены».
+         */
         'monetization' => 'owner',
+        'monetizationPricing' => 'owner',
+        'monetizationPayments' => 'owner',
+        'monetizationLedger' => 'owner',
+        'monetizationPromos' => 'owner',
         'feedBanners' => 'owner',
         'events' => 'owner',
         'feedGuestAccess' => 'owner',

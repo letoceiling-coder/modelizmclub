@@ -28,6 +28,10 @@ export const ruAdmin = {
         moderation: "Модерация",
         applications: "Заявки",
         monetization: "Монетизация",
+        monetizationPricing: "Тарифы и цены",
+        monetizationPayments: "Оплаты",
+        monetizationLedger: "Бухгалтерия",
+        monetizationPromos: "Акции и промокоды",
         feedBanners: "Рекламный блок",
         events: "Мероприятия",
         feedGuestAccess: "Права доступа /feed",
@@ -705,6 +709,10 @@ export const ruAdmin = {
       },
     },
     adminMonetization: {
+      pricingTitle: "Тарифы и цены",
+      paymentsTitle: "Оплаты",
+      ledgerTitle: "Бухгалтерия",
+      promosTitle: "Акции и промокоды",
       title: "Монетизация",
       escrowProviderTitle: "Безопасная сделка: где держатся деньги",
       escrowProviderHint:

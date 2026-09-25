@@ -125,6 +125,17 @@ const CARD_MANAGED_SETTING_KEYS = new Set([
   "feature.listing_payment_enabled",
   "first_hundred_stats",
   "notifications.policy",
+  /*
+   * Надбавка к доставке переехала в «Тарифы и цены» 25.09.
+   *
+   * Общее «Сохранить» на этой странице отправляет все незаисключённые
+   * ключи из черновика, загруженного при открытии. Вкладка, открытая до
+   * правки надбавки в карточке, молча вернула бы прежние значения — тот
+   * самый случай, ради которого этот список и заведён.
+   */
+  "delivery.markup.enabled",
+  "delivery.markup.percent",
+  "delivery.markup.fixed_cents",
 ]);
 
 export function SettingsSection() {
