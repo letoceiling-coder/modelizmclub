@@ -50,7 +50,18 @@ class ListingResource extends JsonResource
             'weight_kg' => $this->weight_kg,
             'dimensions_cm' => $this->dimensions_cm,
             'pickup_address' => $this->pickup_address,
-            'offers_cdek' => CdekReadiness::ready($this->resource),
+            /*
+             * «Предлагает СДЭК» — именно предлагает, а не «ничто не мешает».
+             *
+             * `CdekReadiness::ready()` отвечает «мешать нечему» и для
+             * объявления без СДЭК вовсе — так и задумано, этим ответом
+             * пользуется отбор способов ниже. Но поле называется
+             * `offers_cdek`, и 25.09 после подключения готовности оно стало
+             * `true` у 48 объявлений из 50 на странице, ни одно из которых
+             * СДЭК не предлагает. Спрашиваем оба условия.
+             */
+            'offers_cdek' => ParcelSize::offersCdek($this->delivery_methods ?? [])
+                && CdekReadiness::ready($this->resource),
             /* Подсказка видна только владельцу: покупателю чужие недоделки ни к чему. */
             'cdek_hint' => $this->when(
                 $request->user() !== null && (int) $request->user()->id === (int) $this->user_id,
