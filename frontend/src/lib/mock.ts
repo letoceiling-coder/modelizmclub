@@ -2838,14 +2838,24 @@ export interface AdminUser {
   registeredAt: string;
 }
 
+/** Состояние акции во времени и по местам. Считает сервер (C4). */
+export type PromoState = "disabled" | "scheduled" | "active" | "exhausted" | "expired";
+
 export interface PromoCode {
   id: string;
   code: string;
   discount: number;
   usedCount: number;
   limit: number;
+  startsAt: string; // ISO date, пусто — действует сразу
   expiresAt: string; // ISO date
-  status?: "active" | "expired";
+  state: PromoState;
+  /** null — предел мест не задан. */
+  seatsLeft: number | null;
+  /** null — срок не задан. В последний день — 1, а не 0. */
+  daysLeft: number | null;
+  /** null — уже началась. */
+  daysUntilStart: number | null;
 }
 
 export const subscriptionPlans: SubscriptionPlan[] = [
@@ -3189,8 +3199,12 @@ export const promoCodes: PromoCode[] = [
     discount: 20,
     usedCount: 34,
     limit: 100,
+    startsAt: "",
     expiresAt: "2026-12-31",
-    status: "active",
+    state: "active",
+    seatsLeft: 66,
+    daysLeft: 97,
+    daysUntilStart: null,
   },
   {
     id: "pr2",
@@ -3198,8 +3212,12 @@ export const promoCodes: PromoCode[] = [
     discount: 15,
     usedCount: 128,
     limit: 500,
+    startsAt: "",
     expiresAt: "2026-09-30",
-    status: "active",
+    state: "active",
+    seatsLeft: 372,
+    daysLeft: 5,
+    daysUntilStart: null,
   },
   {
     id: "pr3",
@@ -3207,8 +3225,12 @@ export const promoCodes: PromoCode[] = [
     discount: 50,
     usedCount: 5,
     limit: 20,
+    startsAt: "",
     expiresAt: "2026-03-01",
-    status: "expired",
+    state: "expired",
+    seatsLeft: 15,
+    daysLeft: 0,
+    daysUntilStart: null,
   },
 ];
 

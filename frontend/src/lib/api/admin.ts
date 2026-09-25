@@ -380,7 +380,7 @@ export async function fetchModerationQueue(status = "pending"): Promise<Moderati
 }
 
 // ---- Plans (tariffs) ----
-import type { Tariff, PromoCode, Banner } from "@/lib/mock";
+import type { Tariff, PromoCode, PromoState, Banner } from "@/lib/mock";
 
 interface ApiPlan {
   id?: number;
@@ -456,8 +456,13 @@ interface ApiPromocode {
   usages_count?: number;
   max_usages?: number | null;
   listing_category_id?: number | null;
+  valid_from?: string | null;
   valid_until?: string | null;
   is_active?: boolean;
+  state?: PromoState;
+  seats_left?: number | null;
+  days_left?: number | null;
+  days_until_start?: number | null;
 }
 
 export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
@@ -469,16 +474,32 @@ export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
     // десять знаков — введённый день. Истёк ли — по моменту, не по строкам:
     // сравнение дат-строк с UTC-«сегодня» гасило промокод на три часа раньше.
     const expiresAt = p.valid_until ? p.valid_until.slice(0, 10) : "";
+    const startsAt = p.valid_from ? p.valid_from.slice(0, 10) : "";
     const expired = p.valid_until ? new Date(p.valid_until).getTime() < now : false;
-    const status: "active" | "expired" = p.is_active === false || expired ? "expired" : "active";
+    // Состояние считает сервер (C4). Запасной расчёт — на случай ответа
+    // старого сервера при частичной выкатке: он знает меньше, но не врёт
+    // в ту сторону, где акция выглядела бы идущей, не начавшись.
+    const state: PromoState =
+      p.state ??
+      (p.is_active === false
+        ? "disabled"
+        : expired
+          ? "expired"
+          : p.valid_from && new Date(p.valid_from).getTime() > now
+            ? "scheduled"
+            : "active");
     return {
       id: p.code,
       code: p.code,
       discount: p.value ?? 0,
       usedCount: p.usages_count ?? p.used_count ?? 0,
       limit: p.max_usages ?? 0,
+      startsAt,
       expiresAt,
-      status,
+      state,
+      seatsLeft: p.seats_left ?? null,
+      daysLeft: p.days_left ?? null,
+      daysUntilStart: p.days_until_start ?? null,
     };
   });
 }
@@ -489,6 +510,8 @@ export async function createPromocode(input: {
   scope?: "listing_placement" | "subscription" | "boost" | "all";
   value: number;
   max_usages: number;
+  /** Пусто — акция действует сразу. Непустое — запуск с будущей даты (C4). */
+  valid_from?: string;
   valid_until: string;
   listing_category_id?: number | null;
   notify_mode?: "none" | "all" | "selected";
@@ -504,6 +527,8 @@ export async function createPromocode(input: {
       scope: input.scope ?? "listing_placement",
       value: input.value,
       max_usages: input.max_usages,
+      // Пустую строку не шлём: сервер отличает «с начала» от «не задано».
+      valid_from: input.valid_from || null,
       valid_until: input.valid_until,
       listing_category_id: input.listing_category_id ?? null,
       is_active: true,

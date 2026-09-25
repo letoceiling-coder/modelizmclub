@@ -23,7 +23,15 @@ class UpsertPromocodeRequest extends FormRequest
             'max_usages_per_user' => ['nullable', 'integer', 'min:1'],
             'listing_category_id' => ['nullable', 'integer', 'exists:listing_categories,id'],
             'valid_from' => ['nullable', 'date'],
-            'valid_until' => ['nullable', 'date', 'after:valid_from'],
+            /*
+             * `after_or_equal`, а не `after`: акция на один день — обычное
+             * дело, а сеттеры кладут начало в 00:00, конец в 23:59:59
+             * московских суток, так что окно «с 5-го по 5-е» корректно.
+             * Правило было мёртвым, пока форма не слала дату начала, и
+             * ожило вместе с C4. У баннеров рядом стоит `after_or_equal`
+             * с той же семантикой «по дату».
+             */
+            'valid_until' => ['nullable', 'date', 'after_or_equal:valid_from'],
             'is_active' => ['nullable', 'boolean'],
             'notify_mode' => ['nullable', 'string', Rule::in(['none', 'all', 'selected'])],
             'notify_title' => ['nullable', 'string', 'max:160'],

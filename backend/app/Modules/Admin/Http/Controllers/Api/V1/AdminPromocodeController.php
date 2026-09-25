@@ -4,6 +4,7 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Promocode;
+use App\Support\PromoCalendar;
 use App\Support\SwaggerFixtures;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -21,6 +22,24 @@ class AdminPromocodeController extends Controller
     public function index(): JsonResponse
     {
         $items = Promocode::query()->withCount('usages')->latest()->paginate(20);
+
+        /*
+         * Состояние и остатки считает сервер, а не браузер. До C4 статус
+         * выводился по одному сроку окончания: акция с будущим началом
+         * выглядела идущей, а выбравшая все места — активной до последнего
+         * дня. Теперь ответ несёт то же, что видит человек.
+         */
+        $items->getCollection()->transform(function (Promocode $promo): array {
+            $использовано = (int) ($promo->usages_count ?? 0);
+
+            return array_merge($promo->withoutRelations()->toArray(), [
+                'usages_count' => $использовано,
+                'state' => PromoCalendar::state($promo, $использовано),
+                'seats_left' => PromoCalendar::seatsLeft($promo, $использовано),
+                'days_left' => PromoCalendar::daysLeft($promo),
+                'days_until_start' => PromoCalendar::daysUntilStart($promo),
+            ]);
+        });
 
         return response()->json(['data' => $items]);
     }
