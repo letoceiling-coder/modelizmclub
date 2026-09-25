@@ -93,7 +93,11 @@ class QaAccountsTest extends TestCase
     public function test_anonymize_refuses_a_qa_account_without_force(): void
     {
         $this->artisan('qa:seed-accounts')->assertSuccessful();
-        $user = User::query()->where('is_qa_account', true)->first();
+        // По адресу, а не первую попавшуюся: `first()` без сортировки
+        // отдаёт строку в том порядке, в каком она лежит в таблице, а он
+        // зависит от того, что выполнялось в этом процессе раньше. Так
+        // тест и упал — на прогоне всей суиты, в одиночку проходя.
+        $user = User::query()->where('email', 'qa-registered@qa.modelizmclub.ru')->firstOrFail();
 
         $this->artisan('users:anonymize', ['users' => [$user->id]])
             ->expectsOutputToContain('учётка приёмки')
@@ -106,7 +110,7 @@ class QaAccountsTest extends TestCase
     public function test_force_still_anonymizes(): void
     {
         $this->artisan('qa:seed-accounts')->assertSuccessful();
-        $user = User::query()->where('is_qa_account', true)->first();
+        $user = User::query()->where('email', 'qa-registered@qa.modelizmclub.ru')->firstOrFail();
 
         $this->artisan('users:anonymize', ['users' => [$user->id], '--force' => true])
             ->assertSuccessful();

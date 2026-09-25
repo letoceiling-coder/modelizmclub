@@ -45,6 +45,12 @@ class PostCategory extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    /** Записи ленты в этом направлении. Нужна для счётчика в админке. */
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class, 'category_id');
+    }
+
     /**
      * Полка этого направления в каталоге объявлений.
      *

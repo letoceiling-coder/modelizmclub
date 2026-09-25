@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { registerAskHost, type PendingRequest } from "@/lib/ui/ask";
 
 /** Единственный хост окон подтверждения и ввода. Смонтирован в __root. */
@@ -21,7 +22,17 @@ export function AskHost() {
   useEffect(() => registerAskHost((req) => setQueue((q) => [...q, req])), []);
 
   useEffect(() => {
-    setDraft(current !== null && current.kind === "prompt" ? (current.defaultValue ?? "") : "");
+    if (current === null || current.kind === "confirm") {
+      setDraft("");
+
+      return;
+    }
+    // У выбора значение по умолчанию — первый пункт, а не пустая строка:
+    // селект и так покажет его, и «Сохранить» без касания списка должно
+    // вернуть то же, что человек видит.
+    setDraft(
+      current.defaultValue ?? (current.kind === "choice" ? (current.options[0]?.value ?? "") : ""),
+    );
   }, [current]);
 
   const close = (value: string | boolean | null) => {
@@ -32,13 +43,15 @@ export function AskHost() {
   if (!current) return null;
 
   const isPrompt = current.kind === "prompt";
+  // Ввод и выбор возвращают значение или null; подтверждение — да или нет.
+  const хочетЗначение = current.kind !== "confirm";
 
   return (
     <AlertDialog
       open
       onOpenChange={(open) => {
         // Закрытие по Esc или клику мимо — это отказ, а не подтверждение.
-        if (!open) close(isPrompt ? null : false);
+        if (!open) close(хочетЗначение ? null : false);
       }}
     >
       <AlertDialogContent className="max-w-[420px]">
@@ -64,19 +77,28 @@ export function AskHost() {
           />
         ) : null}
 
+        {current.kind === "choice" ? (
+          <NativeSelect
+            value={draft}
+            onChange={setDraft}
+            options={current.options}
+            aria-label={current.title}
+          />
+        ) : null}
+
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => close(isPrompt ? null : false)}>
+          <AlertDialogCancel onClick={() => close(хочетЗначение ? null : false)}>
             {current.cancelLabel ?? "Отмена"}
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={() => close(isPrompt ? draft : true)}
+            onClick={() => close(хочетЗначение ? draft : true)}
             style={
-              !isPrompt && current.danger
+              current.kind === "confirm" && current.danger
                 ? { background: "var(--danger)", color: "var(--danger-foreground, #fff)" }
                 : undefined
             }
           >
-            {current.confirmLabel ?? (isPrompt ? "Сохранить" : "Подтвердить")}
+            {current.confirmLabel ?? (хочетЗначение ? "Сохранить" : "Подтвердить")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

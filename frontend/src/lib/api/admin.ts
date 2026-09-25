@@ -969,6 +969,18 @@ export interface AdminCategory {
   listingPriceCents: number | null;
   subscriberListingPriceCents: number | null;
   videosCount?: number;
+  /**
+   * Сколько в узле. Счётчики нужны, чтобы перенос или удаление решались
+   * с числом перед глазами, а не вслепую.
+   *
+   * Записи считаются по самому направлению, объявления — по его полке в
+   * каталоге; полки может не быть вовсе, и тогда объявлений ноль, а не
+   * «неизвестно».
+   */
+  postsCount?: number;
+  listingsCount?: number;
+  /** Есть ли у направления администратор — не число, а ответ «да/нет». */
+  hasAdmin?: boolean;
   /** Где виден узел дерева направлений: лента, объявления, сообщества. */
   inFeed?: boolean;
   inListings?: boolean;
@@ -989,6 +1001,9 @@ interface ApiAdminCategory {
   in_listings?: boolean;
   in_communities?: boolean;
   videos_count?: number;
+  posts_count?: number;
+  listings_count?: number;
+  has_admin?: boolean;
 }
 
 function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
@@ -1003,6 +1018,9 @@ function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
     listingPriceCents: c.listing_price_cents ?? null,
     subscriberListingPriceCents: c.subscriber_listing_price_cents ?? null,
     videosCount: c.videos_count,
+    postsCount: c.posts_count,
+    listingsCount: c.listings_count,
+    hasAdmin: c.has_admin,
     inFeed: c.in_feed,
     inListings: c.in_listings,
     inCommunities: c.in_communities,
@@ -1074,6 +1092,19 @@ export async function updateAdminCategory(
 
 export async function deleteAdminCategory(kind: CategoryKind, id: number): Promise<void> {
   await api(`/admin/categories/${kind}/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Порядок одного ряда дерева направлений — одним запросом.
+ *
+ * Ряд присылается целиком: сервер проверяет, что это все дети одного
+ * родителя, и отказывает, если список пришёл обрезанным.
+ */
+export async function reorderAdminPostCategories(ids: number[]): Promise<void> {
+  await api("/admin/categories/post/reorder", {
+    method: "PATCH",
+    json: { ids },
+  });
 }
 
 export async function reorderAdminVideoCategories(ids: number[]): Promise<void> {

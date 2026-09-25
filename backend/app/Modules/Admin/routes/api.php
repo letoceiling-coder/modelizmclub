@@ -133,6 +133,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         // Цены размещения в строке категории — только Владелец
         // (AdminPostCategoryController::guardOwnerOnlyFields).
         Route::prefix('categories')->group(function (): void {
+            // До apiResource: иначе «reorder» попадёт в {post} как идентификатор.
+            Route::patch('post/reorder', [AdminPostCategoryController::class, 'reorder']);
             Route::apiResource('post', AdminPostCategoryController::class);
             Route::apiResource('community', AdminCommunityCategoryController::class);
             Route::apiResource('listing', AdminListingCategoryController::class);
