@@ -1,18 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, m } from "framer-motion";
-import { Plus, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
+import { Plus, Eye, EyeOff, Pencil, Trash2, ChevronUp, ChevronDown, UserCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
   fetchAdminCategories,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
+  reorderAdminPostCategories,
   type AdminCategory,
   type CategoryKind,
+  type UpsertCategoryInput,
 } from "@/lib/api/admin";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
-import { askConfirm, askText } from "@/lib/ui/ask";
+import { askChoice, askConfirm, askText } from "@/lib/ui/ask";
+import { reportActionFailure } from "@/lib/errors/handle";
+import {
+  byOrder,
+  canMove as canMoveIn,
+  childrenOf as childrenIn,
+  depthOf as depthIn,
+  parentOptions,
+  reordered,
+  sortOrderAt,
+} from "@/lib/category-tree";
 import { useAdminAccess } from "@/lib/admin-access";
 
 /*
@@ -88,6 +100,8 @@ export function CategoriesSection() {
   const [items, setItems] = useState<AdminCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<number, boolean>>({});
+  /* Пока ряд сохраняется, стрелки выключены — см. объяснение у `move`. */
+  const [переставляем, setПереставляем] = useState(false);
 
   const load = (k: CategoryKind) => {
     setLoading(true);
@@ -101,22 +115,17 @@ export function CategoriesSection() {
     load(kind);
   }, [kind]);
 
+  /*
+   * Порядок на экране считаем сами, а не полагаемся на порядок в `items`:
+   * после перестановки список не перечитывается, и без своей сортировки
+   * узел оставался бы на прежнем месте до перезагрузки страницы.
+   */
   const roots = useMemo(
-    () => (kind === "video" ? items : items.filter((c) => c.parentId === null)),
+    () => (kind === "video" ? [...items].sort(byOrder) : childrenIn(items, null)),
     [items, kind],
   );
-  const childrenOf = (id: number) => items.filter((c) => c.parentId === id);
-  const depthOf = (id: number) => {
-    let depth = 0;
-    let cur = items.find((x) => x.id === id);
-    const seen = new Set<number>();
-    while (cur?.parentId && !seen.has(cur.id)) {
-      seen.add(cur.id);
-      depth += 1;
-      cur = items.find((x) => x.id === cur!.parentId);
-    }
-    return depth;
-  };
+  const childrenOf = (id: number) => childrenIn(items, id);
+  const depthOf = (id: number) => depthIn(items, id);
 
   const addRoot = async () => {
     const name = (await askText({ title: t("pages.adminCategories.promptName") }))?.trim();
@@ -126,13 +135,100 @@ export function CategoriesSection() {
     )?.trim();
     if (!slug) return;
     try {
-      const created = await createAdminCategory(kind, { name, slug, sortOrder: roots.length });
+      const created = await createAdminCategory(kind, {
+        name,
+        slug,
+        // Тем же шагом, что и перестановка: в ряду с номерами 10…80
+        // восьмёрка встала бы первой, а не последней, как задумано.
+        sortOrder: sortOrderAt(roots.length),
+      });
       setItems((p) => [...p, created]);
       toast.success(t("pages.adminCategories.added"));
     } catch {
       toast.error(t("pages.adminCategories.addFailed"));
     }
   };
+
+  const canMove = (c: AdminCategory, delta: -1 | 1) => canMoveIn(items, c, delta);
+
+  /** Список родителей с «верхним уровнем» первым пунктом. */
+  const родители = (c: AdminCategory) => [
+    { value: "", label: t("pages.adminCategories.parentNone") },
+    ...parentOptions(items, c),
+  ];
+
+  /**
+   * Узел целиком — для PATCH.
+   *
+   * Запрос не частичный: `categoryBody` подставляет пустые значения всему,
+   * чего в нём нет, и правка одного поля стёрла бы остальные. Поэтому
+   * меняем поверх полного состава, а не вместо него.
+   */
+  const bodyOf = (c: AdminCategory): UpsertCategoryInput => ({
+    name: c.name,
+    slug: c.slug,
+    parentId: c.parentId,
+    icon: c.icon,
+    sortOrder: c.sortOrder,
+    isActive: c.isActive,
+    listingPriceCents: c.listingPriceCents,
+    subscriberListingPriceCents: c.subscriberListingPriceCents,
+    inFeed: c.inFeed,
+    inListings: c.inListings,
+    inCommunities: c.inCommunities,
+  });
+
+  /**
+   * Поменять узел местами с соседом.
+   *
+   * Ряд уходит целиком одной ручкой перестановки, а не рядом обычных
+   * сохранений узла: каждое такое сохранение тянет за собой перестройку
+   * всего поддерева, сброс кеша каталога и отдельную строку аудита — на
+   * ряду из десяти направлений это десять перестроек там, где человек
+   * сделал одно движение.
+   *
+   * На время запроса кнопки выключены. Иначе второй клик считал бы новый
+   * порядок от ряда, который ещё переставляется, и два ответа легли бы
+   * друг на друга — на экране оказался бы порядок, которого нет в базе.
+   */
+  const move = async (c: AdminCategory, delta: -1 | 1) => {
+    const ряд = reordered(items, c, delta);
+    if (ряд.length === 0 || переставляем) return;
+
+    setПереставляем(true);
+    try {
+      await reorderAdminPostCategories(ряд.map((x) => x.id));
+      const порядок = new Map(ряд.map((x, i) => [x.id, sortOrderAt(i)]));
+      setItems((prev) =>
+        prev.map((x) => (порядок.has(x.id) ? { ...x, sortOrder: порядок.get(x.id)! } : x)),
+      );
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.moveFailed"));
+      load(kind);
+    } finally {
+      setПереставляем(false);
+    }
+  };
+
+  /** Кнопки порядка — одинаковые на всех трёх уровнях. */
+  const moveButtons = (c: AdminCategory) => (
+    <>
+      <IconBtn
+        onClick={() => void move(c, -1)}
+        title={t("pages.adminCategories.actionMoveUp", { name: c.name })}
+        disabled={переставляем || !canMove(c, -1)}
+      >
+        <ChevronUp size={14} />
+      </IconBtn>
+      <IconBtn
+        onClick={() => void move(c, 1)}
+        title={t("pages.adminCategories.actionMoveDown", { name: c.name })}
+        disabled={переставляем || !canMove(c, 1)}
+      >
+        <ChevronDown size={14} />
+      </IconBtn>
+    </>
+  );
 
   const addSub = async (parent: AdminCategory) => {
     if (depthOf(parent.id) >= 2) {
@@ -154,7 +250,7 @@ export function CategoriesSection() {
         name,
         slug,
         parentId: parent.id,
-        sortOrder: childrenOf(parent.id).length,
+        sortOrder: sortOrderAt(childrenOf(parent.id).length),
       });
       setItems((p) => [...p, created]);
       setOpen((p) => ({ ...p, [parent.id]: true }));
@@ -183,18 +279,18 @@ export function CategoriesSection() {
       defaultValue: String(c.sortOrder),
     });
     const sortOrder = sortRaw != null && sortRaw !== "" ? Number(sortRaw) : c.sortOrder;
-    const parentRaw = await askText({
-      title: t("pages.adminCategories.promptParent"),
-      defaultValue: c.parentId != null ? String(c.parentId) : "",
-    });
+    // Список видео плоский: вкладка рисует его одним уровнем, и родитель,
+    // выбранный здесь, на экране всё равно нигде не проявится.
     let parentId = c.parentId;
-    if (parentRaw !== null) {
-      const trimmed = parentRaw.trim();
-      parentId = trimmed === "" ? null : Number(trimmed);
-      if (parentId != null && (!Number.isInteger(parentId) || parentId < 1 || parentId === c.id)) {
-        toast.error(t("pages.adminCategories.parentInvalid"));
-        return;
-      }
+    if (kind !== "video") {
+      const выбор = await askChoice({
+        title: t("pages.adminCategories.promptParent"),
+        options: родители(c),
+        defaultValue: c.parentId != null ? String(c.parentId) : "",
+      });
+      // Отказ здесь означает «родителя не меняю», а не «забудь всё, что
+      // я ввёл в трёх предыдущих окнах»: так же ведёт себя вопрос об иконке.
+      if (выбор !== null) parentId = выбор === "" ? null : Number(выбор);
     }
     try {
       const updated = await updateAdminCategory(kind, c.id, {
@@ -220,17 +316,8 @@ export function CategoriesSection() {
   const toggleActive = async (c: AdminCategory) => {
     try {
       const updated = await updateAdminCategory(kind, c.id, {
-        name: c.name,
-        slug: c.slug,
-        parentId: c.parentId,
-        icon: c.icon,
-        sortOrder: c.sortOrder,
+        ...bodyOf(c),
         isActive: !c.isActive,
-        listingPriceCents: c.listingPriceCents,
-        subscriberListingPriceCents: c.subscriberListingPriceCents,
-        inFeed: c.inFeed,
-        inListings: c.inListings,
-        inCommunities: c.inCommunities,
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
       toast.success(t("pages.adminCommon.saved"));
@@ -488,6 +575,7 @@ export function CategoriesSection() {
                   <button
                     onClick={() => setOpen((p) => ({ ...p, [c.id]: !p[c.id] }))}
                     className="flex items-center gap-[8px] flex-1"
+                    aria-expanded={subs.length > 0 ? Boolean(open[c.id]) : undefined}
                   >
                     <m.span
                       animate={{ rotate: open[c.id] ? 90 : 0 }}
@@ -512,8 +600,10 @@ export function CategoriesSection() {
                         ({subs.length})
                       </span>
                     )}
+                    <NodeCounts c={c} />
                   </button>
                   <div className="flex gap-[4px]">
+                    {moveButtons(c)}
                     <IconBtn
                       onClick={() => addSub(c)}
                       title={t("pages.adminCategories.actionAddSub", { name: c.name })}
@@ -570,8 +660,10 @@ export function CategoriesSection() {
                               className="flex items-center justify-between"
                               style={{ padding: "6px 0" }}
                             >
-                              <span
-                                className="flex items-center gap-[8px]"
+                              <NodeTitle
+                                expandable={thirds.length > 0}
+                                expanded={Boolean(open[s.id])}
+                                onToggle={() => setOpen((p) => ({ ...p, [s.id]: !p[s.id] }))}
                                 style={{ fontSize: "14px", color: "var(--foreground-70)" }}
                               >
                                 {s.name}
@@ -585,8 +677,10 @@ export function CategoriesSection() {
                                     ({thirds.length})
                                   </span>
                                 )}
-                              </span>
+                                <NodeCounts c={s} />
+                              </NodeTitle>
                               <div className="flex gap-[4px]">
+                                {moveButtons(s)}
                                 {depthOf(s.id) < 2 && (
                                   <IconBtn
                                     onClick={() => addSub(s)}
@@ -627,65 +721,68 @@ export function CategoriesSection() {
                             </div>
                             {flagFields(s)}
                             {listingPriceFields(s)}
-                            {thirds.map((n) => (
-                              <div
-                                key={n.id}
-                                style={{
-                                  borderLeft: "1px solid var(--border)",
-                                  marginLeft: "8px",
-                                  paddingLeft: "16px",
-                                }}
-                              >
+                            {open[s.id] &&
+                              thirds.map((n) => (
                                 <div
-                                  className="flex items-center justify-between"
-                                  style={{ padding: "4px 0" }}
+                                  key={n.id}
+                                  style={{
+                                    borderLeft: "1px solid var(--border)",
+                                    marginLeft: "8px",
+                                    paddingLeft: "16px",
+                                  }}
                                 >
-                                  <span
-                                    className="flex items-center gap-[8px]"
-                                    style={{ fontSize: "13px", color: "var(--foreground-50)" }}
+                                  <div
+                                    className="flex items-center justify-between"
+                                    style={{ padding: "4px 0" }}
                                   >
-                                    {n.name}
-                                    {!n.isActive && (
-                                      <span style={{ fontSize: "11px" }}>
-                                        {t("pages.adminCategories.hidden")}
-                                      </span>
-                                    )}
-                                  </span>
-                                  <div className="flex gap-[4px]">
-                                    <IconBtn
-                                      onClick={() => void toggleActive(n)}
-                                      title={t(
-                                        n.isActive
-                                          ? "pages.adminCategories.actionHide"
-                                          : "pages.adminCategories.actionShow",
-                                        { name: n.name },
+                                    <span
+                                      className="flex items-center gap-[8px]"
+                                      style={{ fontSize: "13px", color: "var(--foreground-50)" }}
+                                    >
+                                      {n.name}
+                                      {!n.isActive && (
+                                        <span style={{ fontSize: "11px" }}>
+                                          {t("pages.adminCategories.hidden")}
+                                        </span>
                                       )}
-                                    >
-                                      {n.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
-                                    </IconBtn>
-                                    <IconBtn
-                                      onClick={() => edit(n)}
-                                      title={t("pages.adminCategories.actionEditCategory", {
-                                        name: n.name,
-                                      })}
-                                    >
-                                      <Pencil size={14} />
-                                    </IconBtn>
-                                    <IconBtn
-                                      danger
-                                      onClick={() => remove(n)}
-                                      title={t("pages.adminCategories.actionRemove", {
-                                        name: n.name,
-                                      })}
-                                    >
-                                      <Trash2 size={14} />
-                                    </IconBtn>
+                                      <NodeCounts c={n} />
+                                    </span>
+                                    <div className="flex gap-[4px]">
+                                      {moveButtons(n)}
+                                      <IconBtn
+                                        onClick={() => void toggleActive(n)}
+                                        title={t(
+                                          n.isActive
+                                            ? "pages.adminCategories.actionHide"
+                                            : "pages.adminCategories.actionShow",
+                                          { name: n.name },
+                                        )}
+                                      >
+                                        {n.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
+                                      </IconBtn>
+                                      <IconBtn
+                                        onClick={() => edit(n)}
+                                        title={t("pages.adminCategories.actionEditCategory", {
+                                          name: n.name,
+                                        })}
+                                      >
+                                        <Pencil size={14} />
+                                      </IconBtn>
+                                      <IconBtn
+                                        danger
+                                        onClick={() => remove(n)}
+                                        title={t("pages.adminCategories.actionRemove", {
+                                          name: n.name,
+                                        })}
+                                      >
+                                        <Trash2 size={14} />
+                                      </IconBtn>
+                                    </div>
                                   </div>
+                                  {flagFields(n)}
+                                  {listingPriceFields(n)}
                                 </div>
-                                {flagFields(n)}
-                                {listingPriceFields(n)}
-                              </div>
-                            ))}
+                              ))}
                           </div>
                         );
                       })}
@@ -698,5 +795,113 @@ export function CategoriesSection() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Заголовок узла второго уровня: кнопка, если есть что раскрывать.
+ *
+ * У листа кнопки нет. Кнопка, которая ничего не делает, забирает себе таб
+ * при обходе с клавиатуры и называется диктору «кнопка» — а подкатегорий
+ * без третьего уровня в дереве большинство.
+ */
+function NodeTitle({
+  expandable,
+  expanded,
+  onToggle,
+  style,
+  children,
+}: {
+  expandable: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  style: CSSProperties;
+  children: ReactNode;
+}) {
+  if (!expandable) {
+    return (
+      <span className="flex items-center gap-[8px] flex-1" style={style}>
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-[8px] flex-1"
+      style={style}
+      aria-expanded={expanded}
+    >
+      <m.span
+        animate={{ rotate: expanded ? 90 : 0 }}
+        style={{ display: "inline-block", color: "var(--foreground-50)", fontSize: "9px" }}
+      >
+        ▶
+      </m.span>
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Что в узле есть, кроме имени: записи, объявления, администратор.
+ *
+ * Отсутствие числа и ноль — разные ответы. Счётчиков нет у вкладки
+ * обзоров, и тогда не показывается ничего; ноль же показывается, потому
+ * что «здесь пусто» — как раз то, что нужно знать перед удалением.
+ *
+ * Числа прямые: считается то, что лежит в самом узле, без подкатегорий.
+ * Поэтому у направления, все записи которого разложены по подкатегориям,
+ * будет ноль — а числа подкатегорий видны в них самих, при раскрытии.
+ */
+function NodeCounts({ c }: { c: AdminCategory }) {
+  const { t } = useTranslation();
+  const посты = c.postsCount;
+  const лоты = c.listingsCount;
+
+  if (посты === undefined && лоты === undefined && !c.hasAdmin) return null;
+
+  const подпись = t(
+    c.hasAdmin
+      ? "pages.adminCategories.nodeCountsLabelWithAdmin"
+      : "pages.adminCategories.nodeCountsLabel",
+    { posts: посты ?? 0, listings: лоты ?? 0 },
+  );
+
+  return (
+    <span
+      /*
+       * Роль нужна, чтобы подпись вообще прочиталась. У голого `span`
+       * роль `generic`, а её именовать нельзя: на первом уровне узел
+       * лежит внутри кнопки и имя собралось бы из содержимого, а на
+       * втором и третьем — нет, и диктор молчал бы вовсе.
+       */
+      role="img"
+      title={подпись}
+      style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}
+      // Иначе диктор прочитает «0 0» без объяснения, что это за числа.
+      aria-label={подпись}
+    >
+      {посты !== undefined && (
+        <span style={{ color: "var(--foreground-50)" }} aria-hidden>
+          {t("pages.adminCategories.countPosts", { count: посты })}
+        </span>
+      )}
+      {лоты !== undefined && (
+        <span style={{ color: "var(--foreground-50)" }} aria-hidden>
+          {t("pages.adminCategories.countListings", { count: лоты })}
+        </span>
+      )}
+      {c.hasAdmin && (
+        <span
+          title={t("pages.adminCategories.hasAdmin")}
+          style={{ color: "var(--success)", display: "inline-flex" }}
+          aria-hidden
+        >
+          <UserCheck size={13} />
+        </span>
+      )}
+    </span>
   );
 }

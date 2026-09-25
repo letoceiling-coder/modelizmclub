@@ -33,7 +33,17 @@ export type PromptRequest = {
   cancelLabel?: string;
 };
 
-export type PendingRequest = (ConfirmRequest | PromptRequest) & {
+export type ChoiceRequest = {
+  kind: "choice";
+  title: string;
+  description?: string;
+  options: { value: string; label: string }[];
+  defaultValue?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+};
+
+export type PendingRequest = (ConfirmRequest | PromptRequest | ChoiceRequest) & {
   resolve: (value: string | boolean | null) => void;
 };
 
@@ -73,6 +83,25 @@ export function askText(request: Omit<PromptRequest, "kind">): Promise<string | 
     enqueue!({
       ...request,
       kind: "prompt",
+      resolve: (value) => resolve(typeof value === "string" ? value : null),
+    });
+  });
+}
+
+/**
+ * Выбор одного значения из списка. Возвращает выбранное или null при отказе.
+ *
+ * Нативной замены нет — `prompt()` со списком идентификаторов это не выбор,
+ * а диктант. Поэтому без хоста (SSR, тест) отвечаем отказом: беззвучно
+ * выбрать за человека хуже, чем не выбрать вовсе.
+ */
+export function askChoice(request: Omit<ChoiceRequest, "kind">): Promise<string | null> {
+  if (!enqueue) return Promise.resolve(null);
+
+  return new Promise<string | null>((resolve) => {
+    enqueue!({
+      ...request,
+      kind: "choice",
       resolve: (value) => resolve(typeof value === "string" ? value : null),
     });
   });

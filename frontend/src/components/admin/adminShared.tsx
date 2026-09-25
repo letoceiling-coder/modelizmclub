@@ -54,17 +54,21 @@ export function IconBtn({
   danger,
   success,
   title,
+  disabled,
 }: {
   children: ReactNode;
   onClick: () => void;
   danger?: boolean;
   success?: boolean;
   title?: string;
+  /** Недоступна — например, первый узел нельзя поднять выше. */
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       title={title}
       // Кнопка-иконка без подписи для экранного чтения — просто «кнопка».
       aria-label={title}
@@ -74,17 +78,27 @@ export function IconBtn({
         borderRadius: "var(--r-card-sm)",
         border: "1px solid var(--border)",
         background: "transparent",
-        color: danger ? "var(--error)" : success ? "var(--success)" : "var(--foreground-70)",
+        color: disabled
+          ? "var(--foreground-30)"
+          : danger
+            ? "var(--error)"
+            : success
+              ? "var(--success)"
+              : "var(--foreground-70)",
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.45 : 1,
         display: "grid",
         placeItems: "center",
         transition: "background 150ms ease",
       }}
       onMouseEnter={(e) =>
-        (e.currentTarget.style.background = danger
-          ? "var(--error-soft)"
-          : success
-            ? "var(--success-soft)"
-            : "var(--background-surface)")
+        (e.currentTarget.style.background = disabled
+          ? "transparent"
+          : danger
+            ? "var(--error-soft)"
+            : success
+              ? "var(--success-soft)"
+              : "var(--background-surface)")
       }
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
