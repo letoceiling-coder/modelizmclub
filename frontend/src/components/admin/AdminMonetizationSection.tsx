@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { AnimatePresence, m } from "framer-motion";
 import { Plus, Trash2, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
-import type { PromoCode } from "@/lib/mock";
+import type { PromoCode, PromoState } from "@/lib/mock";
+import { useHydrated } from "@/hooks/use-hydrated";
 import {
   fetchAdminPlansDetailed,
   updateAdminPlan,
@@ -397,6 +398,62 @@ export function MonetizationLedgerSection() {
   );
 }
 
+/**
+ * Сколько осталось: мест и дней.
+ *
+ * Пустое место и пустой срок — разные вещи, и «—» означает «предела нет»,
+ * а не «ноль». Ноль мест показывается словами, иначе строка «0» рядом с
+ * числом использованных читается как опечатка.
+ */
+function PromoRemaining({ promo }: { promo: PromoCode }) {
+  const { t } = useTranslation();
+  const части: string[] = [];
+
+  if (promo.state === "scheduled" && promo.daysUntilStart !== null) {
+    части.push(t("pages.adminPromocodes.startsIn", { count: promo.daysUntilStart }));
+  }
+  if (promo.seatsLeft !== null) {
+    части.push(
+      promo.seatsLeft === 0
+        ? t("pages.adminPromocodes.seatsNone")
+        : t("pages.adminPromocodes.seatsLeft", { count: promo.seatsLeft }),
+    );
+  }
+  // У завершившейся и у выключенной остаток дней не показывается: «0
+  // дней» читается как «осталось нисколько», а не «срок вышел».
+  if (promo.daysLeft !== null && promo.daysLeft > 0 && promo.state !== "expired") {
+    части.push(t("pages.adminPromocodes.daysLeft", { count: promo.daysLeft }));
+  }
+
+  return <>{части.length > 0 ? части.join(" · ") : "—"}</>;
+}
+
+/** Состояние акции. Пять значений, а не два: «идёт» и «истёк» их не покрывали. */
+function PromoStateChip({ state }: { state: PromoState }) {
+  const { t } = useTranslation();
+  const идёт = state === "active";
+  const ждёт = state === "scheduled";
+
+  return (
+    <span
+      style={{
+        fontSize: "11px",
+        fontWeight: 600,
+        padding: "3px 8px",
+        borderRadius: "var(--r-pill)",
+        background: идёт
+          ? "var(--success-soft, rgba(34,197,94,0.12))"
+          : ждёт
+            ? "var(--accent-soft)"
+            : "var(--background-surface)",
+        color: идёт ? "var(--success, #16a34a)" : ждёт ? "var(--accent)" : "var(--foreground-50)",
+      }}
+    >
+      {t(`pages.adminPromocodes.state.${state}`)}
+    </span>
+  );
+}
+
 function PromoCodesBlock({
   promos,
   setPromos,
@@ -412,7 +469,8 @@ function PromoCodesBlock({
       t("pages.adminPromocodes.columns.code"),
       t("pages.adminPromocodes.columns.discount"),
       t("pages.adminPromocodes.columns.used"),
-      t("pages.adminPromocodes.columns.expires"),
+      t("pages.adminPromocodes.columns.period"),
+      t("pages.adminPromocodes.columns.left"),
       t("pages.adminPromocodes.columns.status"),
       "",
     ],
@@ -420,10 +478,11 @@ function PromoCodesBlock({
   );
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "expired">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "scheduled" | "expired">("all");
   const [form, setForm] = useState({
     code: "",
     discount: 10,
+    startsAt: "",
     expiresAt: "",
     limit: 100,
     type: "percent" as "percent" | "fixed" | "free",
@@ -433,14 +492,29 @@ function PromoCodesBlock({
     notifyBody: "",
   });
 
-  const today = new Date().toISOString().slice(0, 10);
-  const enriched = promos.map((p) => ({
-    ...p,
-    status: (p.status ?? (p.expiresAt >= today ? "active" : "expired")) as "active" | "expired",
-  }));
+  /*
+   * Нижняя граница дат — московский день, и только после гидрации.
+   * Сервер живёт в UTC, человек в Москве: посчитай мы день в теле
+   * компонента, первый кадр в браузере разошёлся бы с серверным (React
+   * #418), а поздним вечером `min` ещё и разрешал бы уже прошедший день.
+   */
+  const готов = useHydrated();
+  const today = готов
+    ? new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Moscow" })
+    : undefined;
 
-  const filtered = enriched.filter((p) => {
-    if (filter !== "all" && p.status !== filter) return false;
+  /*
+   * Отбор — по состоянию с сервера. Прежний расчёт «истёк ли» шёл по
+   * строке даты против UTC-«сегодня» и гасил акцию на три часа раньше,
+   * а про будущее начало и кончившиеся места не знал вовсе.
+   */
+  const filtered = promos.filter((p) => {
+    if (filter === "active" && p.state !== "active") return false;
+    if (filter === "scheduled" && p.state !== "scheduled") return false;
+    // «Завершились» — всё, что не идёт и не ждёт запуска: истёкшие,
+    // выбравшие места и выключенные руками. Иначе выключенная акция
+    // пропадала бы из всех отборов, кроме «Все».
+    if (filter === "expired" && (p.state === "active" || p.state === "scheduled")) return false;
     if (q && !p.code.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
@@ -451,6 +525,9 @@ function PromoCodesBlock({
     if (form.type === "percent" && (form.discount < 1 || form.discount > 100))
       return toast.error(t("pages.adminPromocodes.errDiscount"));
     if (form.limit < 1) return toast.error(t("pages.adminPromocodes.errLimit"));
+    // Строго больше: акция на один день — обычное дело.
+    if (form.startsAt && form.startsAt > form.expiresAt)
+      return toast.error(t("pages.adminPromocodes.errOrder"));
     try {
       const notifyMode = form.notifyUserIds.trim() ? "selected" : form.notifyAll ? "all" : "none";
       const result = await createPromocode({
@@ -459,6 +536,7 @@ function PromoCodesBlock({
         scope: "listing_placement",
         value: form.type === "free" ? 100 : form.discount,
         max_usages: form.limit,
+        valid_from: form.startsAt,
         valid_until: form.expiresAt,
         notify_mode: notifyMode,
         notify_title: form.notifyTitle.trim() || undefined,
@@ -471,6 +549,7 @@ function PromoCodesBlock({
       setForm({
         code: "",
         discount: 10,
+        startsAt: "",
         expiresAt: "",
         limit: 100,
         type: "percent",
@@ -579,13 +658,30 @@ function PromoCodesBlock({
                   <span
                     style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}
                   >
+                    {t("pages.adminPromocodes.fieldStarts")}
+                  </span>
+                  <input
+                    type="date"
+                    value={form.startsAt}
+                    min={today}
+                    onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+                    style={inputStyle}
+                  />
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                    {t("pages.adminPromocodes.fieldStartsHint")}
+                  </span>
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span
+                    style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}
+                  >
                     {t("pages.adminPromocodes.fieldExpires")}
                   </span>
                   <input
                     type="date"
                     required
                     value={form.expiresAt}
-                    min={today}
+                    min={form.startsAt || today}
                     onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
                     style={inputStyle}
                   />
@@ -721,7 +817,7 @@ function PromoCodesBlock({
             borderRadius: "var(--r-pill)",
           }}
         >
-          {(["all", "active", "expired"] as const).map((f) => (
+          {(["all", "active", "scheduled", "expired"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -779,30 +875,16 @@ function PromoCodesBlock({
                   {p.discount}%
                 </td>
                 <td style={{ padding: "10px 12px", color: "var(--foreground-70)" }}>
-                  {p.usedCount} / {p.limit}
+                  {p.limit > 0 ? `${p.usedCount} / ${p.limit}` : p.usedCount}
                 </td>
                 <td style={{ padding: "10px 12px", color: "var(--foreground-70)" }}>
-                  {p.expiresAt}
+                  {p.startsAt ? `${p.startsAt} — ${p.expiresAt}` : p.expiresAt}
+                </td>
+                <td style={{ padding: "10px 12px", color: "var(--foreground-70)" }}>
+                  <PromoRemaining promo={p} />
                 </td>
                 <td style={{ padding: "10px 12px" }}>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      padding: "3px 8px",
-                      borderRadius: "var(--r-pill)",
-                      background:
-                        p.status === "active"
-                          ? "var(--success-soft, rgba(34,197,94,0.12))"
-                          : "var(--background-surface)",
-                      color:
-                        p.status === "active" ? "var(--success, #16a34a)" : "var(--foreground-50)",
-                    }}
-                  >
-                    {p.status === "active"
-                      ? t("pages.adminPromocodes.statusActive")
-                      : t("pages.adminPromocodes.statusExpired")}
-                  </span>
+                  <PromoStateChip state={p.state} />
                 </td>
                 <td style={{ padding: "10px 12px", textAlign: "right" }}>
                   <IconBtn
@@ -825,7 +907,7 @@ function PromoCodesBlock({
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   style={{ padding: "24px", textAlign: "center", color: "var(--foreground-50)" }}
                 >
                   {t("pages.adminPromocodes.empty")}
