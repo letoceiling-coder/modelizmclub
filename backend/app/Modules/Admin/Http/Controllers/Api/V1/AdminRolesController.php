@@ -69,6 +69,13 @@ class AdminRolesController extends Controller
                 'free_listings_unlimited' => (bool) $u->free_listings_unlimited,
                 'free_listings_used' => (int) $u->free_listings_used,
                 'listing_placement_credits' => (int) $u->listing_placement_credits,
+                // Что выдано отдельно, поверх роли (C3). Пустой список —
+                // «только роль», и это обычное состояние сотрудника.
+                'granted_sections' => AdminAccess::grantsOf($u),
+                // Что даёт роль — по всем ключам, не только по разделам
+                // меню: иначе жалобы и удаление записей показывались бы
+                // невыданными у модератора, у которого они есть.
+                'role_sections' => AdminAccess::keysForRole($u->role),
                 'categories' => ($categories[$u->id] ?? collect())->map(fn ($c) => [
                     'id' => (int) $c->id,
                     'name' => (string) $c->name,
@@ -77,6 +84,7 @@ class AdminRolesController extends Controller
             ])->all(),
             'roles' => $roles,
             'section_levels' => AdminAccess::sectionLevels(),
+            'grantable_sections' => AdminAccess::grantableKeys(),
             'max_per_category' => CategoryAdminService::maxPerCategory(),
         ]]);
     }

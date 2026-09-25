@@ -1,3 +1,9 @@
+COLUMN|admin_permission_grants.created_at|timestamp without time zone|YES
+COLUMN|admin_permission_grants.granted_by|bigint|YES
+COLUMN|admin_permission_grants.id|bigint|NO
+COLUMN|admin_permission_grants.section|character varying|NO
+COLUMN|admin_permission_grants.updated_at|timestamp without time zone|YES
+COLUMN|admin_permission_grants.user_id|bigint|NO
 COLUMN|admin_two_factor.created_at|timestamp without time zone|YES
 COLUMN|admin_two_factor.enabled_at|timestamp without time zone|YES
 COLUMN|admin_two_factor.recovery_codes|json|YES
@@ -1377,6 +1383,8 @@ COLUMN|withdrawal_requests.updated_at|timestamp without time zone|YES
 COLUMN|withdrawal_requests.user_id|bigint|NO
 COLUMN|withdrawal_requests.uuid|uuid|NO
 COLUMN|withdrawal_requests.wallet_transaction_id|bigint|YES
+FK|admin_permission_grants|admin_permission_grants_granted_by_foreign
+FK|admin_permission_grants|admin_permission_grants_user_id_foreign
 FK|admin_two_factor|admin_two_factor_user_id_foreign
 FK|audit_logs|audit_logs_user_id_foreign
 FK|banner_event_daily|banner_event_daily_banner_id_foreign
@@ -1619,6 +1627,8 @@ FK|wallet_transactions|wallet_transactions_wallet_id_foreign
 FK|wallets|wallets_user_id_foreign
 FK|withdrawal_requests|withdrawal_requests_user_id_foreign
 FK|withdrawal_requests|withdrawal_requests_wallet_transaction_id_foreign
+INDEX|admin_permission_grants|admin_permission_grants_pkey
+INDEX|admin_permission_grants|admin_permission_grants_user_id_section_unique
 INDEX|admin_two_factor|admin_two_factor_pkey
 INDEX|audit_logs|audit_logs_auditable_type_auditable_id_index
 INDEX|audit_logs|audit_logs_pkey
@@ -1959,6 +1969,7 @@ INDEX|wallets|wallets_user_id_unique
 INDEX|withdrawal_requests|withdrawal_requests_pkey
 INDEX|withdrawal_requests|withdrawal_requests_user_id_status_index
 INDEX|withdrawal_requests|withdrawal_requests_uuid_unique
+SEQ|admin_permission_grants_id_seq
 SEQ|audit_logs_id_seq
 SEQ|banner_event_daily_id_seq
 SEQ|banner_events_id_seq
@@ -2074,6 +2085,7 @@ SEQ|videos_id_seq
 SEQ|wallet_transactions_id_seq
 SEQ|wallets_id_seq
 SEQ|withdrawal_requests_id_seq
+TABLE|admin_permission_grants
 TABLE|admin_two_factor
 TABLE|audit_logs
 TABLE|banner_event_daily

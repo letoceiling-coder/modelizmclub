@@ -207,7 +207,8 @@ class AdminPostCategoryController extends AdminCategoryController
      */
     private function guardOwnerOnlyFields(array $validated, ?PostCategory $current): void
     {
-        if (AdminAccess::isOwner(request()->user())) {
+        // По ключу, а не по роли: право на цены выдаётся и отдельно (C3).
+        if (AdminAccess::allows(request()->user(), 'categories.prices')) {
             return;
         }
         $mirror = $current?->listing_category_id ? ListingCategory::query()->find($current->listing_category_id) : null;
@@ -218,7 +219,7 @@ class AdminPostCategoryController extends AdminCategoryController
             $was = $mirror?->{$field};
             $now = $validated[$field];
             if ($now !== null && (int) $now !== (int) $was || $now === null && $was !== null) {
-                abort(403, 'Цены размещения меняет только Владелец.');
+                abort(403, 'Цены размещения меняет Владелец или тот, кому это право выдано.');
             }
         }
     }

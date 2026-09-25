@@ -53,6 +53,8 @@ class AdminUserController extends Controller
     #[BodyParameter('status', description: 'active|blocked|pending_verification', example: 'active')]
     public function store(StoreAdminUserRequest $request, AuditService $audit): JsonResponse
     {
+        $this->guardStaffRole($request->user(), $request->input('role'));
+
         $user = User::query()->create([
             'uuid' => (string) Str::uuid(),
             'email' => $request->string('email')->toString(),
@@ -124,6 +126,10 @@ class AdminUserController extends Controller
             abort(422, 'Нельзя удалить собственный аккаунт.');
         }
 
+        // Сотрудника удаляет только Владелец — по той же причине, что и
+        // заводит: иначе обладатель раздела учёток сносит Владельцев.
+        $this->guardStaffRole($actor, $user->role->value);
+
         if ($user->role === UserRole::Owner && $this->otherActiveOwnersCount($user) === 0) {
             abort(422, 'Нельзя удалить последнего Владельца.');
         }
@@ -163,6 +169,23 @@ class AdminUserController extends Controller
     }
 
     /**
+     * Сотрудника заводит и удаляет только Владелец по роли.
+     *
+     * Раздел «Учётки: создание и удаление» галочкой не выдаётся, но
+     * держать это единственной защитой нельзя: список выдаваемого
+     * меняется одной строкой, а здесь роль пишется в базу как есть —
+     * создав учётку с ролью Владельца, дальше можно всё.
+     */
+    private function guardStaffRole(?User $actor, mixed $role): void
+    {
+        if ($role === null || $role === UserRole::User->value || AdminAccess::isOwner($actor)) {
+            return;
+        }
+
+        abort(403, 'Сотрудника заводит только Владелец.');
+    }
+
+    /**
      * Модератор правит обычных пользователей — статус и имя. Роль, почта и
      * пароль, а также любые сотрудники, включая администраторов направлений,
      * — у Владельца (AdminAccess). Администратора направления назначает
@@ -177,9 +200,26 @@ class AdminUserController extends Controller
         if ($target->role !== UserRole::User) {
             abort(403, 'Сотрудников правит только Владелец.');
         }
+        /*
+         * По ключу, а не по роли: право на учётные поля выдаётся и
+         * отдельно (C3). Сотрудники выше остаются за ролью Владельца —
+         * выдача прав не должна открывать правку других сотрудников.
+         *
+         * Роль этим правом не открывается. Она стоит в том же списке
+         * owner-only полей, но сменой роли выдают Владельца — в том
+         * числе себе через вторую учётку. Право на льготы и почту не
+         * должно становиться правом раздавать роли.
+         */
+        if (AdminAccess::allows($actor, 'users.fields')) {
+            if ($request->has('role')) {
+                abort(403, 'Роль меняет только Владелец.');
+            }
+
+            return;
+        }
         foreach (AdminAccess::OWNER_ONLY_USER_FIELDS as $field) {
             if ($request->has($field)) {
-                abort(403, 'Роль, почту, пароль и льготы меняет только Владелец.');
+                abort(403, 'Роль, почту, пароль и льготы меняет Владелец или тот, кому это право выдано.');
             }
         }
     }

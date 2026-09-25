@@ -9,6 +9,7 @@ import { useCurrentUser } from "@/lib/session";
 import { fetchAdminCategories, fetchAdminUsers, type AdminUserRow } from "@/lib/api/admin";
 import {
   fetchRolesOverview,
+  saveStaffPermissions,
   setStaffCategories,
   updateCategoryAdminLimit,
   updateStaff,
@@ -138,6 +139,8 @@ export function AdminRolesSection() {
             member={member}
             directions={directions}
             maxPerCategory={overview.maxPerCategory}
+            grantable={overview.grantableSections}
+            byRole={new Set(member.roleSections)}
             onChanged={load}
           />
         ))}
@@ -327,11 +330,15 @@ function StaffCard({
   member,
   directions,
   maxPerCategory,
+  grantable,
+  byRole,
   onChanged,
 }: {
   member: StaffMember;
   directions: Direction[];
   maxPerCategory: number;
+  grantable: string[];
+  byRole: Set<string>;
   onChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -530,6 +537,156 @@ function StaffCard({
                 </option>
               ))}
           </select>
+        </div>
+      )}
+
+      <GrantsBlock member={member} grantable={grantable} byRole={byRole} onChanged={onChanged} />
+    </div>
+  );
+}
+
+/**
+ * Отдельные права поверх роли (C3).
+ *
+ * Показываются только те разделы, которых роль не даёт: отмечать уже
+ * открытое незачем, а снять его галочкой всё равно нельзя — роль остаётся
+ * умолчанием. Владельцу блок не нужен вовсе: ему открыто всё.
+ */
+function GrantsBlock({
+  member,
+  grantable,
+  byRole,
+  onChanged,
+}: {
+  member: StaffMember;
+  grantable: string[];
+  /** Что даёт роль: эти разделы в списке не показываются. */
+  byRole: Set<string>;
+  onChanged: () => void;
+}) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState<string[]>(member.grantedSections);
+  const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  /*
+   * Сброс только когда сохранять нечего. `onChanged` перезагружает всю
+   * сводку, и любое действие в соседней карточке пересоздаёт `member` —
+   * без этой проверки непоставленные галочки исчезали бы молча.
+   *
+   * Если же набор изменился на сервере, пока черновик тронут, — молчать
+   * нельзя: на экране остались бы мои галочки, а чужая выдача выглядела
+   * бы снятой, и сохранение отозвало бы её без единого слова.
+   */
+  const сохранено = useRef<string[]>(member.grantedSections);
+  const [разошлось, setРазошлось] = useState(false);
+
+  useEffect(() => {
+    const тот = (a: string[], b: string[]) =>
+      a.length === b.length && a.every((x) => b.includes(x));
+    const чисто = тот(сохранено.current, draft);
+    const чужаяПравка = !тот(сохранено.current, member.grantedSections);
+    сохранено.current = member.grantedSections;
+
+    if (чисто) {
+      setDraft(member.grantedSections);
+      setРазошлось(false);
+    } else if (чужаяПравка) {
+      setРазошлось(true);
+    }
+  }, [member.grantedSections, draft]);
+
+  if (member.role === "owner") return null;
+
+  const выбор = new Set(draft);
+  const dirty =
+    draft.length !== member.grantedSections.length ||
+    member.grantedSections.some((x) => !выбор.has(x));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveStaffPermissions(member.uuid, draft);
+      toast.success(t("pages.adminRoles.saved"));
+      onChanged();
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminRoles.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: "14px" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={`grants-${member.uuid}`}
+        className="flex items-center"
+        style={{ gap: "8px", fontSize: "13px", fontWeight: 600 }}
+      >
+        {t("pages.adminRoles.grantsTitle")}
+        <span style={muted}>
+          {draft.length === 0
+            ? t("pages.adminRoles.grantsNone")
+            : t("pages.adminRoles.grantsCount", { count: draft.length })}
+        </span>
+      </button>
+
+      {open && (
+        <div id={`grants-${member.uuid}`}>
+          <p style={{ ...muted, fontSize: "12px", margin: "6px 0 8px", maxWidth: "640px" }}>
+            {t("pages.adminRoles.grantsHint")}
+          </p>
+          <div className="flex flex-wrap" style={{ gap: "10px 18px" }}>
+            {grantable
+              .filter((id) => !byRole.has(id))
+              .map((id) => (
+                <label
+                  key={id}
+                  className="flex items-center"
+                  style={{ gap: "8px", fontSize: "13px" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={выбор.has(id)}
+                    disabled={saving}
+                    onChange={(e) =>
+                      setDraft((d) => (e.target.checked ? [...d, id] : d.filter((x) => x !== id)))
+                    }
+                  />
+                  {t(`pages.adminRoles.section.${id}`, { defaultValue: id })}
+                </label>
+              ))}
+          </div>
+          <div className="flex flex-wrap items-center" style={{ gap: "12px", marginTop: "12px" }}>
+            <button
+              type="button"
+              disabled={!dirty || saving || разошлось}
+              style={{ ...primaryBtn, opacity: !dirty || saving || разошлось ? 0.5 : 1 }}
+              onClick={() => void save()}
+            >
+              {t("pages.adminRoles.save")}
+            </button>
+            {разошлось && (
+              <span className="flex flex-wrap items-center" style={{ gap: "8px" }}>
+                <span style={{ ...muted, fontSize: "12px" }}>
+                  {t("pages.adminRoles.grantsStale")}
+                </span>
+                <button
+                  type="button"
+                  style={{ ...muted, textDecoration: "underline", background: "none" }}
+                  onClick={() => {
+                    setDraft(member.grantedSections);
+                    setРазошлось(false);
+                  }}
+                >
+                  {t("pages.adminRoles.grantsReload")}
+                </button>
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
