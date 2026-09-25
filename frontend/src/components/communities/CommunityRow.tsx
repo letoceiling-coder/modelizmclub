@@ -40,6 +40,9 @@ export function CommunityRow({ c, onChanged }: { c: Community; onChanged?: () =>
 
   const meta = [
     c.category,
+    // Город виден в строке: без него отбор по городу нечем проверить —
+    // выдача сужается, а почему именно так, по экрану не понять.
+    c.city?.name,
     c.members > 0
       ? t("pages.shared.members", { count: c.members, formatted: c.members.toLocaleString("ru") })
       : t("pages.shared.membersNew"),

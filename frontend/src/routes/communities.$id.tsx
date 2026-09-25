@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { reportReadFailure } from "@/lib/errors/handle";
 import { variantUrl } from "@/lib/media/variants";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -601,6 +602,8 @@ function CommunityRightRail({
   events,
   nearest,
   similar,
+  similarFailed,
+  onSimilarRetry,
   onSignup,
   containerRef,
 }: {
@@ -616,6 +619,9 @@ function CommunityRightRail({
   nearest: ClubEvent | null;
   /** Похожие приходят готовыми: страница грузит их, когда колонка показалась. */
   similar: Community[];
+  /** Загрузка не удалась — это не «похожих нет», и текст должен различаться. */
+  similarFailed: boolean;
+  onSimilarRetry: () => void;
   onSignup: (e: DemoCommunityEvent) => void;
   /**
    * Колонка спрятана до 1024 через `display: none`, но в разметке есть всегда.
@@ -795,7 +801,11 @@ function CommunityRightRail({
               {t("pages.communityDetail.similarCommunities")}
             </h3>
             <div className="mt-[10px]">
-              <SimilarCommunitiesList items={similar} />
+              <SimilarCommunitiesList
+                items={similar}
+                failed={similarFailed}
+                onRetry={onSimilarRetry}
+              />
             </div>
           </Card>
         )}
@@ -918,6 +928,7 @@ function CommunityDetailPage() {
   const [togglingNotifications, setTogglingNotifications] = useState(false);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
   const [similar, setSimilar] = useState<Community[]>([]);
+  const [similarFailed, setSimilarFailed] = useState(false);
   // Правая колонка сама сообщает, что показалась: до 1024 её нет, и грузить
   // для неё нечего.
   const { ref: railRef, visible: railVisible } = useVisibleOnce<HTMLElement>();
@@ -990,9 +1001,25 @@ function CommunityDetailPage() {
   const loadSimilar = useCallback(() => {
     if (similarRequested.current) return;
     similarRequested.current = true;
+    setSimilarFailed(false);
     fetchSimilarCommunities(id)
       .then(setSimilar)
-      .catch(() => setSimilar([]));
+      .catch((e) => {
+        /*
+         * Пустой список и несработавшая загрузка выглядят одинаково —
+         * «похожих нет». Поэтому отказ и записывается, и показывается:
+         * состояние `similarFailed` меняет текст на «не удалось» с
+         * кнопкой «Повторить».
+         *
+         * Метку «уже запрашивали» снимаем, иначе после одного отказа
+         * повтор стал бы невозможен: и карточка, и пункт меню навсегда
+         * говорили бы «похожих нет».
+         */
+        similarRequested.current = false;
+        setSimilarFailed(true);
+        reportReadFailure(e, "похожие сообщества");
+        setSimilar([]);
+      });
   }, [id]);
 
   useEffect(() => {
@@ -1404,6 +1431,8 @@ function CommunityDetailPage() {
       events={demo ? events : []}
       nearest={demo ? null : nearestEvent}
       similar={similar}
+      similarFailed={similarFailed}
+      onSimilarRetry={loadSimilar}
       onSignup={setSignupEvent}
       containerRef={railRef}
     />
@@ -1801,7 +1830,7 @@ function CommunityDetailPage() {
           <DialogHeader>
             <DialogTitle>{t("pages.communityDetail.similarCommunities")}</DialogTitle>
           </DialogHeader>
-          <SimilarCommunitiesList items={similar} />
+          <SimilarCommunitiesList items={similar} failed={similarFailed} onRetry={loadSimilar} />
         </DialogContent>
       </Dialog>
       <ComplaintDialog

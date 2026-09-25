@@ -35,6 +35,15 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
+  applyCommunityFilter,
+  categoriesOf,
+  citiesOf,
+  emptyReason,
+  reconcileFilter,
+  type EmptyReason,
+} from "@/lib/community-filters";
 import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
@@ -83,13 +92,26 @@ function EmptyMy({ onSwitch }: { onSwitch: () => void }) {
   );
 }
 
-function EmptySearch() {
+/**
+ * Пусто из-за отбора.
+ *
+ * Текст — по тому, что человек задал: советовать «измените запрос» тому,
+ * кто выбрал город и ничего не искал, значит говорить не о его действии.
+ * Сброс снимает всё сразу, включая строку поиска: кнопка «Сбросить» над
+ * списком её не трогает, и без этого выхода из пустоты не видно.
+ */
+function EmptySearch({ reason, onReset }: { reason: EmptyReason; onReset: () => void }) {
   const { t } = useTranslation();
   return (
     <EmptyState
       icon={Search}
       title={t("pages.shared.nothingFound")}
-      description={t("pages.communities.emptySearchDesc")}
+      description={t(
+        reason === "query"
+          ? "pages.communities.emptySearchDesc"
+          : "pages.communities.emptyFiltersDesc",
+      )}
+      action={{ label: t("pages.shared.resetFilters"), onClick: onReset }}
       variant="compact"
     />
   );
@@ -228,17 +250,45 @@ function CommunitiesPage() {
 
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [cityId, setCityId] = useState<number | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = debounced.trim().toLowerCase();
-    if (!q) return all;
-    return all.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.category.toLowerCase().includes(q) ||
-        c.description.toLowerCase().includes(q),
-    );
-  }, [all, debounced]);
+  const отбор = useMemo(
+    () => ({ query: debounced, categoryId, cityId }),
+    [debounced, categoryId, cityId],
+  );
+  const filtered = useMemo(() => applyCommunityFilter(all, отбор), [all, отбор]);
+
+  /*
+   * Варианты — из самого списка, а не из справочника: категория или город,
+   * в которых нет ни одного сообщества, дали бы отбор с заведомо пустой
+   * выдачей.
+   *
+   * Пока сообществ меньше пятидесяти, варианты и отбор говорят обо всех.
+   * Ровно пятьдесят — потолок одного запроса, и больше сервер не отдаёт
+   * (`min(per_page, 50)`). За краем окажутся самые мелкие и новые: список
+   * отсортирован официальными и крупными вперёд. То есть на шестидесяти
+   * сообществах город, где есть только маленький клуб, может не появиться
+   * в списке вовсе — и это не будет никак видно.
+   *
+   * Отбор по категории на сервере уже есть (`category_id`), по городу —
+   * нет. Переносить туда имеет смысл вместе: разъехавшись, отбор и
+   * варианты начнут спорить друг с другом.
+   */
+  const категории = useMemo(() => categoriesOf(all), [all]);
+  const города = useMemo(() => citiesOf(all), [all]);
+
+  /*
+   * Список перезапрашивается при смене направления в адресе и после
+   * удаления сообщества, а выбор живёт в состоянии страницы. Снимаем то,
+   * чего в новом списке нет: иначе поле рисуется пустым, выдача пуста, а
+   * причина не названа нигде.
+   */
+  useEffect(() => {
+    const свежий = reconcileFilter(отбор, all);
+    if (свежий.categoryId !== отбор.categoryId) setCategoryId(свежий.categoryId);
+    if (свежий.cityId !== отбор.cityId) setCityId(свежий.cityId);
+  }, [all, отбор]);
 
   // Sequential blocks: Мои (владелец/модератор) → Подписки (участник) → Рекомендованные.
   const mine = useMemo(
@@ -251,7 +301,8 @@ function CommunitiesPage() {
   );
   const recommended = useMemo(() => filtered.filter((c) => !viewerRole(c)), [filtered]);
 
-  const hasQuery = debounced.trim().length > 0;
+  const причинаПустоты = emptyReason(отбор);
+  const hasQuery = причинаПустоты !== "none";
   const nothing = filtered.length === 0;
   const noneJoined = mine.length === 0 && subscriptions.length === 0;
 
@@ -288,6 +339,50 @@ function CommunitiesPage() {
           placeholder={t("pages.communities.searchPlaceholder")}
         />
 
+        {/* Отбор по категории и городу. Показывается, только когда есть из
+            чего выбирать: один вариант — это не выбор. */}
+        {(категории.length > 1 || города.length > 1 || categoryId !== null || cityId !== null) && (
+          <div className="flex flex-wrap items-center gap-[8px]">
+            {категории.length > 1 && (
+              <NativeSelect
+                aria-label={t("pages.communities.filterCategory")}
+                className="max-w-[220px]"
+                value={categoryId === null ? "" : String(categoryId)}
+                onChange={(v) => setCategoryId(v === "" ? null : Number(v))}
+                options={[
+                  { value: "", label: t("pages.communities.filterCategoryAll") },
+                  ...категории.map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+              />
+            )}
+            {города.length > 1 && (
+              <NativeSelect
+                aria-label={t("pages.communities.filterCity")}
+                className="max-w-[220px]"
+                value={cityId === null ? "" : String(cityId)}
+                onChange={(v) => setCityId(v === "" ? null : Number(v))}
+                options={[
+                  { value: "", label: t("pages.communities.filterCityAll") },
+                  ...города.map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+              />
+            )}
+            {(categoryId !== null || cityId !== null) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryId(null);
+                  setCityId(null);
+                }}
+                className="text-[13px] font-semibold transition-colors hover:opacity-80"
+                style={{ color: "var(--accent)" }}
+              >
+                {t("pages.shared.resetFilters")}
+              </button>
+            )}
+          </div>
+        )}
+
         {loading && all.length === 0 ? (
           <div className="flex flex-col gap-[8px]">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -303,8 +398,15 @@ function CommunitiesPage() {
             variant="compact"
           />
         ) : nothing ? (
-          hasQuery ? (
-            <EmptySearch />
+          причинаПустоты !== "none" ? (
+            <EmptySearch
+              reason={причинаПустоты}
+              onReset={() => {
+                setQuery("");
+                setCategoryId(null);
+                setCityId(null);
+              }}
+            />
           ) : taxonomyId ? (
             // Пусто в отборе — не «у вас нет сообществ». До 18.09 сюда
             // попадали по «Авиации» из панели, и страница сообщала человеку
