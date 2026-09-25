@@ -28,6 +28,15 @@ export function CatalogCardSkeleton() {
           <br />
           <Skeleton className="inline-block h-[0.8em] w-[72%] align-middle" />
         </div>
+        {/*
+          Строка продавца: кружок аватара 16 px и имя. Резерв той же
+          высоты, что у карточки, — иначе сетка дёрнется, когда данные
+          приедут.
+        */}
+        <div className="flex items-center gap-[4px] pt-[4px] text-caption">
+          <Skeleton className="h-[16px] w-[16px] shrink-0 rounded-full" />
+          <Skeleton className="inline-block h-[0.8em] w-[40%] align-middle" />
+        </div>
         <div className="text-caption">
           <Skeleton className="inline-block h-[0.8em] w-[58%] align-middle" />
         </div>

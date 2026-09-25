@@ -569,9 +569,12 @@ body {
   contain-intrinsic-size: auto 420px;
 }
 
+/* 337 px — высота карточки со строкой продавца; расчёт в CatalogCard.
+   Число здесь и в карточке должны совпадать: заниженный резерв сбивает
+   оценку прокрутки, пока карточка ни разу не отрисована. */
 .catalog-virtual-item {
   content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
+  contain-intrinsic-size: auto 340px;
 }
 
 /* Нижняя шторка при выключенной анимации.

@@ -5,6 +5,7 @@ import type { AdSeller } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { hasSellerRating, formatSellerRating, reviewsNoun } from "@/lib/seller-rating";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -47,28 +48,14 @@ function SellerAvatar({ seller }: { seller: AdSeller }) {
   );
 }
 
-function reviewsNoun(n: number): string {
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return "отзывов";
-  switch (n % 10) {
-    case 1:
-      return "отзыв";
-    case 2:
-    case 3:
-    case 4:
-      return "отзыва";
-    default:
-      return "отзывов";
-  }
-}
-
 /** Compact — identity + rating only. Contact actions (Написать/Позвонить)
  *  live solely in the sticky AdActionPanel now, so this doesn't duplicate
  *  them; tapping the row just opens the seller's profile. */
 export function SellerCard({ seller }: { seller: AdSeller }) {
   const guest = useGuestAccessOptional();
-  const hasRating = seller.rating > 0;
   const reviews = seller.reviews ?? 0;
+  // Общее правило: рейтинг показывается, только когда за ним есть отзывы.
+  const hasRating = hasSellerRating(seller.rating, reviews);
   const hasDeals = seller.deals > 0;
   const hasSince = Boolean(seller.since && seller.since.trim());
   const hasStats = hasRating || hasDeals;
@@ -126,12 +113,13 @@ export function SellerCard({ seller }: { seller: AdSeller }) {
                 {hasRating && (
                   <span className="inline-flex items-center gap-[3px]">
                     <Star size={11} fill="currentColor" style={{ color: "var(--warning)" }} />
-                    <span style={{ color: "var(--foreground)" }}>{seller.rating.toFixed(1)}</span>
-                    {reviews > 0 && (
-                      <span>
-                        · {reviews} {reviewsNoun(reviews)}
-                      </span>
-                    )}
+                    <span style={{ color: "var(--foreground)" }}>
+                      {formatSellerRating(seller.rating)}
+                    </span>
+                    {/* Отзывы здесь есть всегда: без них не было бы и рейтинга. */}
+                    <span>
+                      · {reviews} {reviewsNoun(reviews)}
+                    </span>
                   </span>
                 )}
                 {hasDeals && <span>{seller.deals} сделок</span>}
