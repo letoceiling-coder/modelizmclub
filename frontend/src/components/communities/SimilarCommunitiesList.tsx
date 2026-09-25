@@ -11,8 +11,37 @@ import type { Community } from "@/lib/mock";
  * Один и тот же на карточке правой колонки и в окне из меню «Ещё»: на узком
  * экране правой колонки нет, а пункт меню там есть.
  */
-export function SimilarCommunitiesList({ items }: { items: Community[] }) {
+export function SimilarCommunitiesList({
+  items,
+  failed,
+  onRetry,
+}: {
+  items: Community[];
+  /** Загрузка не удалась — это не то же самое, что «похожих нет». */
+  failed?: boolean;
+  onRetry?: () => void;
+}) {
   const { t } = useTranslation();
+
+  if (failed) {
+    return (
+      <div className="flex flex-wrap items-center gap-[8px] py-[8px] text-[13px]">
+        <span style={{ color: "var(--foreground-50)" }}>
+          {t("pages.communityDetail.similarFailed")}
+        </span>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="font-semibold transition-colors hover:opacity-80"
+            style={{ color: "var(--accent)" }}
+          >
+            {t("pages.shared.retry")}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

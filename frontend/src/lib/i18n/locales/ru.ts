@@ -1010,6 +1010,9 @@ export const ru = {
     shared: {
       showAll: "Показать все",
       collapse: "Свернуть",
+      // Та же надпись, что в каталоге и «Моих объявлениях»: четвёртого
+      // написания одного и того же заводить незачем.
+      resetFilters: "Сбросить фильтры",
       nothingFound: "Ничего не найдено",
       members_one: "{{formatted}} участник",
       members_few: "{{formatted}} участника",
@@ -1167,6 +1170,11 @@ export const ru = {
       title: "Сообщества",
       subtitle: "Клубы, кружки, школы и магазины моделизма",
       searchPlaceholder: "Поиск по названию, категории или описанию",
+      filterCategory: "Категория",
+      filterCategoryAll: "Все категории",
+      filterCity: "Город",
+      filterCityAll: "Все города",
+      emptyFiltersDesc: "Попробуйте изменить или сбросить фильтры",
       emptyMineTitle: "Вы пока не в одном сообществе",
       emptyTaxonomyTitle: "В этом направлении сообществ пока нет",
       emptyTaxonomyDesc: "Список отобран по направлению из адреса страницы.",
@@ -1264,6 +1272,7 @@ export const ru = {
       inviteSelected: "Выбрано: {{count}} из {{max}}",
       inviteLimit: "За раз можно пригласить не больше {{count}}",
       similarEmpty: "Похожих сообществ пока нет",
+      similarFailed: "Не удалось загрузить похожие сообщества.",
       categoryLabel: "Категория",
       membersCard: "Участники",
       aboutCard: "О сообществе",
