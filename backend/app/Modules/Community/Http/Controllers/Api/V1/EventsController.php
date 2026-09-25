@@ -104,6 +104,43 @@ class EventsController extends Controller
         return response()->json(['message' => 'Мероприятие удалено.']);
     }
 
+    /**
+     * Напомнить отметившимся сейчас, не дожидаясь суток до начала.
+     *
+     * Отказ — с объяснением и кодом: «ещё рано», «некому», «не
+     * опубликовано». Человек нажал кнопку и ждёт ответа, а молчание
+     * здесь читается как «сработало».
+     */
+    public function remind(string $uuid, Request $request, ClubEventService $events, AuditService $audit): JsonResponse
+    {
+        $event = $this->find($uuid);
+        $user = $request->user();
+        if (! Gate::forUser($user)->allows('remind', $event)) {
+            throw new AccessDeniedHttpException('Напомнить участникам может организатор мероприятия.');
+        }
+
+        $итог = $events->remindNow($event);
+        if (! $итог['sent']) {
+            return response()->json([
+                'message' => match ($итог['reason']) {
+                    'too_soon' => 'Напоминание уже отправлено недавно. Следующее — позже.',
+                    'no_attendees' => 'Пока никто не отметился «пойду» — напоминать некому.',
+                    'past' => 'Мероприятие уже прошло.',
+                    default => 'Напомнить можно только по опубликованному мероприятию.',
+                },
+                'reason' => $итог['reason'],
+                'next_at' => $итог['next_at'],
+            ], 422);
+        }
+
+        $audit->log($user, 'event.remind', $event, null, ['attendees' => $event->attendees()->count()], $request);
+
+        return response()->json([
+            'message' => 'Напоминание отправлено отметившимся.',
+            'next_at' => $итог['next_at'],
+        ]);
+    }
+
     public function attend(string $uuid, Request $request, ClubEventService $events): JsonResponse
     {
         $event = $this->visible($uuid, $request);

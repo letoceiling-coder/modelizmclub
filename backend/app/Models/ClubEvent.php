@@ -55,6 +55,7 @@ class ClubEvent extends Model
         'cancelled_at',
         'cancel_reason',
         'reminder_sent_at',
+        'manual_reminder_at',
     ];
 
     protected function casts(): array
@@ -63,6 +64,7 @@ class ClubEvent extends Model
             'starts_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'reminder_sent_at' => 'datetime',
+            'manual_reminder_at' => 'datetime',
             'latitude' => 'float',
             'longitude' => 'float',
         ];

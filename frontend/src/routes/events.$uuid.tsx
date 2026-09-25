@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Ban,
+  BellRing,
   CalendarDays,
   Check,
   ExternalLink,
@@ -27,11 +28,17 @@ import {
   eventErrors,
   fetchEvent,
   fetchEventAttendees,
+  remindEventAttendees,
   updateEvent,
   type ClubEvent,
   type EventAttendee,
 } from "@/lib/api/events";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
+import { reportActionFailure } from "@/lib/errors/handle";
+import { formatAbsoluteInZone } from "@/lib/format/date";
+
+/** Штатный отказ на «напомнить»: почему нельзя и когда можно. */
+type ОтказНапоминания = { message?: string; reason?: string; next_at?: string | null };
 import { askConfirm } from "@/lib/ui/ask";
 import { toast } from "@/lib/toast";
 import { ROUTES } from "@/lib/routes";
@@ -99,6 +106,9 @@ function EventView({ uuid, initial }: { uuid: string; initial: ClubEvent | null 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [editOpen, setEditOpen] = useState(false);
+  // Рядом с остальными состояниями: ниже по файлу есть условный возврат,
+  // и хук под ним нарушал бы порядок вызовов между отрисовками.
+  const [reminding, setReminding] = useState(false);
   const [attendees, setAttendees] = useState<EventAttendee[]>([]);
   const [attendeesPage, setAttendeesPage] = useState({ page: 1, lastPage: 1, total: 0 });
   const [attendeesLoading, setAttendeesLoading] = useState(false);
@@ -168,6 +178,51 @@ function EventView({ uuid, initial }: { uuid: string; initial: ClubEvent | null 
   const status = eventStatusLabel(event);
   const hasMap = event.latitude != null && event.longitude != null;
   const canAttend = event.going || event.can.attend;
+
+  /**
+   * Напомнить отметившимся сейчас.
+   *
+   * С подтверждением: рассылка уходит людям, а отменить её нельзя.
+   * Сколько человек её получит, говорим заранее — «напомнить» без числа
+   * не даёт понять масштаб.
+   *
+   * Отказ показываем словами сервера: он единственный знает, рано ещё
+   * или некому.
+   */
+  const onRemind = async () => {
+    const ok = await askConfirm({
+      title: "Напомнить участникам?",
+      description: `Уведомление получат отметившиеся: ${event.attendeesCount}. Отменить рассылку нельзя.`,
+      confirmLabel: "Напомнить",
+    });
+    if (!ok) return;
+    setReminding(true);
+    try {
+      const { message } = await remindEventAttendees(event.uuid);
+      toast.success(message || "Напоминание отправлено");
+    } catch (e) {
+      /*
+       * «Ещё рано» и «некому» — не поломка, а штатный ответ: показываем
+       * его тостом и не шлём в сборщик ошибок, иначе он завалится шумом.
+       *
+       * Время — `formatAbsoluteInZone`: сервер отвечает в UTC, человек в
+       * Москве, а `formatDate(…, "absolute")` пишет в поясе того, кто
+       * рисует.
+       */
+      const отказ = e instanceof ApiError ? (e.payload as ОтказНапоминания | null) : null;
+      if (отказ?.reason) {
+        toast.error(
+          отказ.next_at
+            ? `${отказ.message ?? "Напоминание уже отправлено"} Следующее — после ${formatAbsoluteInZone(отказ.next_at)}.`
+            : (отказ.message ?? "Напомнить сейчас нельзя"),
+        );
+      } else {
+        reportActionFailure(e, "Не удалось отправить напоминание");
+      }
+    } finally {
+      setReminding(false);
+    }
+  };
 
   const onCancel = async () => {
     const ok = await askConfirm({
@@ -368,6 +423,20 @@ function EventView({ uuid, initial }: { uuid: string; initial: ClubEvent | null 
                   className="gap-1.5"
                 >
                   <Pencil size={15} aria-hidden /> Изменить
+                </Button>
+              )}
+              {event.can.remind && event.displayStatus === "published" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  // Некому напоминать — кнопка не предлагает действие,
+                  // которое заведомо ответит отказом.
+                  disabled={reminding || event.attendeesCount === 0}
+                  title={event.attendeesCount === 0 ? "Пока никто не отметился «пойду»" : undefined}
+                  onClick={() => void onRemind()}
+                  className="gap-1.5"
+                >
+                  <BellRing size={15} aria-hidden /> Напомнить
                 </Button>
               )}
               {event.can.cancel &&
