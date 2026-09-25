@@ -20,10 +20,29 @@
  *  4. **Поля ввода в записи закрыты.** См. `markPrivateFields` ниже.
  */
 
-/** Номер счётчика. Без него модуль ничего не делает — и это штатно. */
-const COUNTER = Number(
-  (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_METRIKA_ID ?? "",
-);
+import { getPublicBootstrapSync } from "@/lib/api/bootstrap";
+
+/**
+ * Номер счётчика. Без него модуль ничего не делает — и это штатно.
+ *
+ * Функция, а не константа: значение приходит с `/public/bootstrap`, и на
+ * момент загрузки модуля его ещё нет. Константа вычислилась бы нулём
+ * навсегда, и счётчик молча не заводился бы даже после вставки номера в
+ * админке — а заметить это можно было бы только по отсутствию визитов
+ * через сутки.
+ *
+ * `import.meta.env` остаётся запасным путём: для сборок, где номер вшит.
+ */
+function counter(): number {
+  const изНастроек = Number(
+    String(getPublicBootstrapSync()?.integration_keys?.metrika_id ?? "").trim(),
+  );
+  if (Number.isFinite(изНастроек) && изНастроек > 0) return изНастроек;
+
+  return Number(
+    (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_METRIKA_ID ?? "",
+  );
+}
 
 /**
  * Разметка Метрики: не записывать вводимое в поле.
@@ -67,7 +86,9 @@ let started = false;
 
 /** Счётчик настроен — то есть номер задан сборкой. */
 export function isMetrikaConfigured(): boolean {
-  return Number.isFinite(COUNTER) && COUNTER > 0;
+  const n = counter();
+
+  return Number.isFinite(n) && n > 0;
 }
 
 /**
@@ -167,7 +188,7 @@ export function loadMetrika(): void {
   markPrivateFields();
 
   const ym = queue();
-  ym?.(COUNTER, "init", INIT_OPTIONS);
+  ym?.(counter(), "init", INIT_OPTIONS);
 
   const добавить = (): void => {
     const s = document.createElement("script");
@@ -201,7 +222,7 @@ export function loadMetrika(): void {
  */
 export function metrikaHit(url: string, referer?: string): void {
   if (!started) return;
-  (window as YandexMetrikaWindow).ym?.(COUNTER, "hit", url, referer ? { referer } : undefined);
+  (window as YandexMetrikaWindow).ym?.(counter(), "hit", url, referer ? { referer } : undefined);
 }
 
 /**
@@ -245,5 +266,5 @@ export type Goal = (typeof GOALS)[keyof typeof GOALS];
 
 export function metrikaGoal(goal: Goal, params?: Record<string, unknown>): void {
   if (!started) return;
-  (window as YandexMetrikaWindow).ym?.(COUNTER, "reachGoal", goal, params);
+  (window as YandexMetrikaWindow).ym?.(counter(), "reachGoal", goal, params);
 }

@@ -13,6 +13,7 @@ use App\Support\FeatureFlags;
 use App\Support\FirstHundredPromo;
 use App\Support\FooterContacts;
 use App\Support\ReferralProgramConfig;
+use App\Support\IntegrationKeys;
 use App\Support\SiteBranding;
 use Illuminate\Support\Facades\Cache;
 use Modules\Catalog\Services\CatalogService;
@@ -95,6 +96,12 @@ class PublicBootstrapService
                 'listing_payment_enabled' => FeatureFlags::enabled('feature.listing_payment_enabled'),
                 'voice_transcription_enabled' => VoiceTranscriber::available(),
             ],
+            /*
+             * Ключи сторонних сервисов — здесь, а не в сборке фронтенда.
+             * Вставка значения в админке включает карту и счётчик со
+             * следующей загрузки страницы, без выкатки.
+             */
+            'integration_keys' => IntegrationKeys::publicPayload(),
             'branding' => SiteBranding::publicPayload(is_array($brandingRaw) ? $brandingRaw : null),
             'footer_contacts' => FooterContacts::publicPayload(is_array($contactsRaw) ? $contactsRaw : null),
             'footer_links' => $this->footerLinks(),
