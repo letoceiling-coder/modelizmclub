@@ -32,6 +32,8 @@ class AdminAccessController extends Controller
             'is_owner' => AdminAccess::isOwner($user),
             'sections' => $sections,
             'capabilities' => AdminAccess::capabilitiesFor($user),
+            // Что из доступного пришло не от роли, а выдано отдельно (C3).
+            'granted' => AdminAccess::grantsOf($user),
             'categories' => PostCategory::query()
                 ->whereIn('id', $categoryIds)
                 ->orderBy('name')

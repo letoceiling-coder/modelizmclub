@@ -46,6 +46,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminUserCategoriesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserListingCreditsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserPayoutRequisitesController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUserPermissionsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserSubscriptionController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminVideoCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminVideoController;
@@ -313,6 +314,14 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
     Route::middleware('admin.section:roles')->group(function (): void {
         Route::get('roles', [AdminRolesController::class, 'show']);
         Route::put('roles/category-admin-limit', [AdminRolesController::class, 'updateLimit']);
+        /*
+         * Отдельные права поверх роли (C3). Внутри — ещё и проверка на
+         * роль Владельца: право раздавать права не выдаётся.
+         *
+         * Только запись: что выдано, видно в сводке `GET /admin/roles`, и
+         * второй способ спросить то же самое разошёлся бы с первым.
+         */
+        Route::put('roles/permissions/{uuid}', [AdminUserPermissionsController::class, 'update'])->where('uuid', '[0-9a-f-]{36}');
     });
 
     // Вопросы и ответы редактируются в разделе «Главная страница».

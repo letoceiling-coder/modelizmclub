@@ -29,6 +29,10 @@ export interface StaffMember extends Privileges {
   freeListingsUsed: number;
   listingCredits: number;
   categories: DirectionRef[];
+  /** Разделы, выданные отдельно поверх роли (C3). Пусто — «только роль». */
+  grantedSections: string[];
+  /** Что даёт сама роль — по всем ключам, включая служебные. */
+  roleSections: string[];
 }
 
 export interface RoleSummary {
@@ -41,6 +45,8 @@ export interface RolesOverview {
   staff: StaffMember[];
   roles: RoleSummary[];
   sectionLevels: Record<string, StaffRole>;
+  /** Что вообще можно выдать галочкой: список приходит с сервера. */
+  grantableSections: string[];
   maxPerCategory: number;
 }
 
@@ -59,6 +65,8 @@ interface ApiStaff extends ApiPrivileges {
   free_listings_used: number;
   listing_placement_credits: number;
   categories: DirectionRef[];
+  granted_sections?: string[];
+  role_sections: string[];
 }
 
 function mapPrivileges(p: ApiPrivileges): Privileges {
@@ -75,6 +83,7 @@ export async function fetchRolesOverview(): Promise<RolesOverview> {
       staff: ApiStaff[];
       roles: Array<{ role: StaffRole; defaults: ApiPrivileges; sections: string[] }>;
       section_levels: Record<string, StaffRole>;
+      grantable_sections?: string[];
       max_per_category: number;
     };
   }>("/admin/roles");
@@ -90,6 +99,8 @@ export async function fetchRolesOverview(): Promise<RolesOverview> {
       freeListingsUsed: s.free_listings_used,
       listingCredits: s.listing_placement_credits,
       categories: s.categories,
+      grantedSections: s.granted_sections ?? [],
+      roleSections: s.role_sections,
     })),
     roles: d.roles.map((r) => ({
       role: r.role,
@@ -97,6 +108,7 @@ export async function fetchRolesOverview(): Promise<RolesOverview> {
       sections: r.sections,
     })),
     sectionLevels: d.section_levels,
+    grantableSections: d.grantable_sections ?? [],
     maxPerCategory: d.max_per_category,
   };
 }
@@ -129,4 +141,9 @@ export async function updateCategoryAdminLimit(value: number): Promise<number> {
     { method: "PUT", json: { value } },
   );
   return res.data.max_per_category;
+}
+
+/** Порядок одного ряда прав. Список присылается целиком: чего в нём нет — то отзывается. */
+export async function saveStaffPermissions(uuid: string, sections: string[]): Promise<void> {
+  await api(`/admin/roles/permissions/${uuid}`, { method: "PUT", json: { sections } });
 }
