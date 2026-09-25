@@ -162,6 +162,43 @@ class CdekReadinessTest extends TestCase
         );
     }
 
+    /**
+     * У объявления без СДЭК поле `offers_cdek` ложно.
+     *
+     * 25.09, подключив готовность, я сделал его равным «мешать нечему» —
+     * и оно стало истинным у 48 объявлений из 50 на странице каталога,
+     * ни одно из которых СДЭК не предлагает.
+     */
+    public function test_offers_cdek_is_false_for_a_listing_without_cdek(): void
+    {
+        $seller = $this->продавец();
+        $this->пункт($seller);
+        $listing = $this->объявление($seller, true);
+        $listing->forceFill(['delivery_methods' => ['Самовывоз', 'Почта России']])->save();
+        $buyer = User::factory()->create(['status' => UserStatus::Active]);
+
+        $ответ = $this->actingAs($buyer, 'sanctum')
+            ->getJson('/api/v1/listings/'.$listing->uuid)
+            ->assertOk();
+
+        $this->assertFalse($ответ->json('data.offers_cdek'));
+        $this->assertSame(['Самовывоз', 'Почта России'], $ответ->json('data.delivery_methods'));
+    }
+
+    /** А у готового — истинно. */
+    public function test_offers_cdek_is_true_when_everything_is_in_place(): void
+    {
+        $seller = $this->продавец();
+        $this->пункт($seller);
+        $listing = $this->объявление($seller, true);
+        $buyer = User::factory()->create(['status' => UserStatus::Active]);
+
+        $this->actingAs($buyer, 'sanctum')
+            ->getJson('/api/v1/listings/'.$listing->uuid)
+            ->assertOk()
+            ->assertJsonPath('data.offers_cdek', true);
+    }
+
     /** Объявление без СДЭК эти условия не касаются. */
     public function test_a_listing_without_cdek_is_never_blocked(): void
     {
