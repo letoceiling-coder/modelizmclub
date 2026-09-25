@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MoreHorizontal,
@@ -17,6 +17,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import { actions } from "@/lib/store";
 import { deletePost } from "@/lib/api/feed";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -111,6 +112,21 @@ export function PostActionMenu({
     return `${origin}/?post=${postId}`;
   };
 
+  /*
+   * Якорь отклика — кнопка «…», а не пункт меню.
+   *
+   * Меню закрывается раньше, чем показывается подтверждение, и пункт к
+   * этому моменту уже откреплён: его прямоугольник нулевой, и
+   * `inlineFeedback` вернул бы false. Кнопка остаётся на месте — и она же
+   * то место, куда человек смотрел, когда нажимал.
+   */
+  const кнопкаМеню = useRef<HTMLButtonElement>(null);
+
+  /** Отклик у кнопки; если её не видно — обычный тост в углу. */
+  const сказать = (текст: string) => {
+    if (!inlineFeedback(кнопкаМеню.current, текст)) toast.success(текст);
+  };
+
   const close = () => setOpen(false);
 
   const handleSave = () => {
@@ -118,7 +134,7 @@ export function PostActionMenu({
     const run = () => {
       if (onToggleSave) onToggleSave();
       else actions.savePost(postId, !saved);
-      toast.success(
+      сказать(
         saved
           ? t("components.postActionMenu.savedRemoved")
           : t("components.postActionMenu.savedAdded"),
@@ -132,7 +148,7 @@ export function PostActionMenu({
     close();
     const run = () => {
       onHide?.();
-      toast.success(t("components.postActionMenu.hidden"));
+      сказать(t("components.postActionMenu.hidden"));
     };
     if (guest) guest.requireAccount(run);
     else run();
@@ -149,7 +165,7 @@ export function PostActionMenu({
     try {
       await navigator.clipboard.writeText(buildUrl());
       setCopied(true);
-      toast.success(t("components.postActionMenu.linkCopied"));
+      сказать(t("components.postActionMenu.linkCopied"));
       setTimeout(() => setCopied(false), 1200);
     } catch {
       toast.error(t("components.postActionMenu.copyFailed"));
@@ -213,6 +229,7 @@ export function PostActionMenu({
       <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
         <DropdownMenuTrigger asChild>
           <button
+            ref={кнопкаМеню}
             type="button"
             className="relative grid h-[32px] w-[32px] place-items-center rounded-[8px] hover:bg-[var(--background-surface)] before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
             style={{ color: "var(--foreground-70)" }}
