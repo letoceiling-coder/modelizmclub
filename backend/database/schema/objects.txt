@@ -213,6 +213,7 @@ COLUMN|club_events.id|bigint|NO
 COLUMN|club_events.latitude|numeric|YES
 COLUMN|club_events.location_name|character varying|YES
 COLUMN|club_events.longitude|numeric|YES
+COLUMN|club_events.manual_reminder_at|timestamp without time zone|YES
 COLUMN|club_events.reminder_sent_at|timestamp without time zone|YES
 COLUMN|club_events.scope|character varying|NO
 COLUMN|club_events.starts_at|timestamp without time zone|NO

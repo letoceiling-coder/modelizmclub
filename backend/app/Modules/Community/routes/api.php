@@ -66,6 +66,7 @@ Route::prefix('events')->middleware(['optionalAuth'])->group(function (): void {
         Route::patch('{uuid}', [EventsController::class, 'update'])->whereUuid('uuid');
         Route::delete('{uuid}', [EventsController::class, 'destroy'])->whereUuid('uuid');
         Route::post('{uuid}/cancel', [EventsController::class, 'cancel'])->whereUuid('uuid');
+        Route::post('{uuid}/remind', [EventsController::class, 'remind'])->whereUuid('uuid');
         Route::post('{uuid}/attendance', [EventsController::class, 'attend'])->whereUuid('uuid');
         Route::delete('{uuid}/attendance', [EventsController::class, 'unattend'])->whereUuid('uuid');
     });

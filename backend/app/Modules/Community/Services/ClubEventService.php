@@ -190,6 +190,69 @@ class ClubEventService
         return $count;
     }
 
+    /** Не чаще раза в такой срок: кнопка не должна превращаться в рассылку. */
+    public const MANUAL_REMINDER_COOLDOWN_HOURS = 6;
+
+    /**
+     * Напомнить по кнопке организатора.
+     *
+     * `reminder_sent_at` не трогаем: им помечено автоматическое
+     * напоминание за сутки. Запиши мы туда — организатор, напомнивший за
+     * пять дней, отменил бы участникам напоминание накануне, то есть
+     * самое нужное.
+     *
+     * Отказ возвращается словами, а не молчанием: человек нажал кнопку и
+     * ждёт ответа.
+     *
+     * @return array{sent: bool, reason: ?string, next_at: ?string}
+     */
+    public function remindNow(ClubEvent $event): array
+    {
+        if ($event->status !== ClubEvent::STATUS_PUBLISHED || $event->trashed()) {
+            return ['sent' => false, 'reason' => 'not_published', 'next_at' => null];
+        }
+        if ($event->isPast()) {
+            return ['sent' => false, 'reason' => 'past', 'next_at' => null];
+        }
+        if ($event->attendees()->count() === 0) {
+            return ['sent' => false, 'reason' => 'no_attendees', 'next_at' => null];
+        }
+
+        /*
+         * Выдержка берётся одним условным UPDATE, а не проверкой и записью
+         * по отдельности. Два запроса в один момент — две вкладки, два
+         * модератора сообщества, повтор после таймаута сети — иначе оба
+         * видят пустую колонку, и рассылка уходит дважды.
+         *
+         * Напомнили внутри суточного окна — помечаем и автоматическое:
+         * иначе ежечасный сторож через полчаса пришлёт то же самое второй
+         * раз. Вне окна `reminder_sent_at` не трогаем, ради чего колонки и
+         * разведены.
+         */
+        $граница = now()->copy()->subHours(self::MANUAL_REMINDER_COOLDOWN_HOURS);
+        $пометки = ['manual_reminder_at' => now()];
+        if ($event->starts_at !== null && $event->starts_at->lte(now()->addDay())) {
+            $пометки['reminder_sent_at'] = now();
+        }
+
+        $взяли = ClubEvent::query()
+            ->whereKey($event->id)
+            ->where(fn ($q) => $q->whereNull('manual_reminder_at')->orWhere('manual_reminder_at', '<=', $граница))
+            ->update($пометки);
+
+        $event->refresh();
+
+        if ($взяли === 0) {
+            $когдаМожно = $event->manual_reminder_at?->copy()->addHours(self::MANUAL_REMINDER_COOLDOWN_HOURS);
+
+            return ['sent' => false, 'reason' => 'too_soon', 'next_at' => $когдаМожно?->toIso8601String()];
+        }
+
+        SendClubEventNotificationsJob::dispatch($event->id, SendClubEventNotificationsJob::REMINDER)->afterCommit();
+
+        return ['sent' => true, 'reason' => null, 'next_at' => now()->addHours(self::MANUAL_REMINDER_COOLDOWN_HOURS)->toIso8601String()];
+    }
+
     /** Ночная задача: события удалённых сообществ отменяются, отметившиеся узнают. */
     public function cancelForDeletedCommunities(): int
     {

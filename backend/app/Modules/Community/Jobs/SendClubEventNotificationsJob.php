@@ -77,10 +77,35 @@ class SendClubEventNotificationsJob implements ShouldQueue
                 ? new InAppNotification('event', 'Новое мероприятие: '.$event->title, trim($where.' · '.$when, ' ·'), $link)
                 : null,
             self::REMINDER => $event->status === ClubEvent::STATUS_PUBLISHED && ! $event->trashed()
-                ? new InAppNotification('event', 'Завтра: '.$event->title, trim($when.' · '.($event->location_name ?? ''), ' ·'), $link)
+                ? new InAppNotification('event', $this->напоминание($event).$event->title, trim($when.' · '.($event->location_name ?? ''), ' ·'), $link)
                 : null,
             self::CANCELLED => new InAppNotification('event', 'Мероприятие отменено: '.$event->title, (string) ($event->cancel_reason ?? ''), $link),
             default => null,
+        };
+    }
+
+    /**
+     * Начало заголовка напоминания — по расстоянию до события, а не по
+     * тому, кто его отправил.
+     *
+     * «Завтра» было записано в текст намертво: напоминание слал только
+     * ежечасный сторож за сутки до начала. С кнопкой организатора то же
+     * уведомление уходит и за пять дней — и говорило бы людям неверный
+     * день, а в теле стояла бы настоящая дата. Что из двух человек
+     * запомнит, решала бы случайность.
+     *
+     * Заодно чинится и сторож: тик в 00:30 для события сегодня в 23:00
+     * тоже писал «Завтра».
+     */
+    private function напоминание(ClubEvent $event): string
+    {
+        $когда = $event->starts_at?->timezone(config('app.timezone'));
+
+        return match (true) {
+            $когда === null => 'Напоминание: ',
+            $когда->isToday() => 'Сегодня: ',
+            $когда->isTomorrow() => 'Завтра: ',
+            default => 'Напоминание: ',
         };
     }
 

@@ -35,7 +35,15 @@ export interface ClubEvent {
   attendeesCount: number;
   going: boolean;
   /** cancel — отменить: команда сообщества или модерация площадки; update — только команда. */
-  can: { update: boolean; delete: boolean; cancel: boolean; attend: boolean; manage: boolean };
+  can: {
+    update: boolean;
+    delete: boolean;
+    cancel: boolean;
+    attend: boolean;
+    manage: boolean;
+    /** Напомнить отметившимся кнопкой — только организатору (C7). */
+    remind: boolean;
+  };
   deletedAt: string | null;
 }
 
@@ -130,6 +138,7 @@ export function mapEvent(e: ApiEvent): ClubEvent {
     attendeesCount: e.attendees_count ?? 0,
     going: Boolean(e.going),
     can: {
+      remind: Boolean(e.can?.remind),
       update: Boolean(e.can?.update),
       delete: Boolean(e.can?.delete),
       cancel: Boolean(e.can?.cancel),
@@ -230,6 +239,22 @@ export async function cancelEvent(uuid: string, reason?: string): Promise<ClubEv
     json: { reason: reason || null },
   });
   return mapEvent(res.data);
+}
+
+/**
+ * Напомнить отметившимся сейчас.
+ *
+ * Отказ приходит с кодом и текстом (`reason`, `next_at`): «ещё рано»,
+ * «некому», «не опубликовано». Возвращаем как есть — вызывающий показывает
+ * человеку то, что ответил сервер, а не своё предположение.
+ */
+export async function remindEventAttendees(
+  uuid: string,
+): Promise<{ message: string; nextAt: string | null }> {
+  const res = await api<{ message?: string; next_at?: string | null }>(`/events/${uuid}/remind`, {
+    method: "POST",
+  });
+  return { message: res.message ?? "", nextAt: res.next_at ?? null };
 }
 
 export async function deleteEvent(uuid: string): Promise<void> {
