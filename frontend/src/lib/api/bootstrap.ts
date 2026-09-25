@@ -24,8 +24,15 @@ export interface BootstrapStats {
   referral?: { enabled?: boolean; per_invite?: number; max_bonus?: number };
 }
 
+/** Ключи сторонних сервисов, приходящие во время работы, а не из сборки. */
+export interface IntegrationKeys {
+  yandex_maps_key: string;
+  metrika_id: string;
+}
+
 export interface PublicBootstrapPayload {
   feature_flags: BootstrapFeatureFlags;
+  integration_keys?: IntegrationKeys;
   branding: SiteBranding;
   footer_contacts: FooterContacts;
   footer_links: FooterLinksGrouped;
