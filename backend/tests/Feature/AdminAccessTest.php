@@ -238,4 +238,53 @@ class AdminAccessTest extends TestCase
         $this->actingAs($owner, 'sanctum')->patchJson("/api/v1/admin/categories/post/{$post->id}", [...$row, 'listing_price_cents' => 100])->assertOk();
         $this->assertSame(100, (int) $listing->fresh()->listing_price_cents);
     }
+
+    /**
+     * Четыре вкладки монетизации доступны Владельцу и никому больше.
+     *
+     * Деньги площадки — поступления, выплаты, комиссия, остатки в
+     * кошельках — модератору не показываем: у него другая работа, а
+     * лишний доступ к числам никто потом не снимает (см. разбор ролей
+     * 24.09 в CLAUDE.md).
+     */
+    public function test_monetization_tabs_are_owner_only(): void
+    {
+        $вкладки = [
+            'monetizationPricing',
+            'monetizationPayments',
+            'monetizationLedger',
+            'monetizationPromos',
+        ];
+
+        $owner = $this->actingAs($this->staff(UserRole::Owner), 'sanctum')
+            ->getJson('/api/v1/admin/access')->assertOk()->json('data.sections');
+
+        foreach ($вкладки as $вкладка) {
+            $this->assertContains($вкладка, $owner, $вкладка.' должна быть у Владельца');
+            $this->assertSame('owner', AdminAccess::SECTIONS[$вкладка] ?? null);
+        }
+
+        $moderator = $this->actingAs($this->staff(UserRole::Moderator), 'sanctum')
+            ->getJson('/api/v1/admin/access')->assertOk()->json('data.sections');
+
+        foreach ($вкладки as $вкладка) {
+            $this->assertNotContains($вкладка, $moderator, $вкладка.' модератору не положена');
+        }
+    }
+
+    /**
+     * Прежний адрес монетизации остаётся известным разделом.
+     *
+     * Фронтенд уводит `?section=monetization` на «Тарифы и цены», но
+     * только если раздел вообще числится разрешённым: иначе проверка
+     * достижимости подменяет его дашбордом, и ссылка из письма молча
+     * открывает не то.
+     */
+    public function test_the_old_monetization_section_is_still_known(): void
+    {
+        $owner = $this->actingAs($this->staff(UserRole::Owner), 'sanctum')
+            ->getJson('/api/v1/admin/access')->assertOk()->json('data.sections');
+
+        $this->assertContains('monetization', $owner);
+    }
 }

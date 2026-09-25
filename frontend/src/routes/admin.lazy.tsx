@@ -75,6 +75,21 @@ const ApplicationsSection = lazy(() =>
     default: m.ApplicationsSection,
   })),
 );
+const MonetizationPromosSection = lazy(() =>
+  import("@/components/admin/AdminMonetizationSection").then((m) => ({
+    default: m.MonetizationPromosSection,
+  })),
+);
+const MonetizationPaymentsSection = lazy(() =>
+  import("@/components/admin/AdminMonetizationSection").then((m) => ({
+    default: m.MonetizationPaymentsSection,
+  })),
+);
+const MonetizationLedgerSection = lazy(() =>
+  import("@/components/admin/AdminMonetizationSection").then((m) => ({
+    default: m.MonetizationLedgerSection,
+  })),
+);
 const MonetizationSection = lazy(() =>
   import("@/components/admin/AdminMonetizationSection").then((m) => ({
     default: m.MonetizationSection,
@@ -158,6 +173,14 @@ const SettingsSection = lazy(() =>
 /** Разделы-вкладки без своего пункта меню → пункт, внутри которого они открываются. */
 const SECTION_HOSTS: Partial<Record<Section, Section>> = {
   reviewCategories: "reviews",
+  /*
+   * Прежний адрес монетизации. 25.09 раздел разделён на четыре вкладки, и
+   * `monetization` из навигации ушёл — а значит стал «недостижимым», и
+   * проверка ниже уводила такую ссылку на дашборд. Ссылки из писем,
+   * закладок и старых задач должны открывать «Тарифы и цены», а не
+   * молча подменяться дашбордом.
+   */
+  monetization: "monetizationPricing",
 };
 
 const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
@@ -182,8 +205,23 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
     icon: Inbox,
   },
   {
-    id: "monetization",
-    labelKey: "pages.adminShell.nav.monetization",
+    id: "monetizationPricing",
+    labelKey: "pages.adminShell.nav.monetizationPricing",
+    icon: DollarSign,
+  },
+  {
+    id: "monetizationPayments",
+    labelKey: "pages.adminShell.nav.monetizationPayments",
+    icon: DollarSign,
+  },
+  {
+    id: "monetizationLedger",
+    labelKey: "pages.adminShell.nav.monetizationLedger",
+    icon: DollarSign,
+  },
+  {
+    id: "monetizationPromos",
+    labelKey: "pages.adminShell.nav.monetizationPromos",
     icon: DollarSign,
   },
   {
@@ -277,7 +315,16 @@ function SectionViewInner({
   if (section === "delivery") return <DeliverySection />;
   if (section === "moderation") return <ModerationAdminSection />;
   if (section === "applications") return <ApplicationsSection />;
-  if (section === "monetization") return <MonetizationSection />;
+  /*
+   * `monetization` без уточнения ведёт на «Тарифы и цены»: ссылки на
+   * прежний адрес из писем, закладок и задач не должны упираться в пустой
+   * экран.
+   */
+  if (section === "monetization" || section === "monetizationPricing")
+    return <MonetizationSection />;
+  if (section === "monetizationPromos") return <MonetizationPromosSection />;
+  if (section === "monetizationPayments") return <MonetizationPaymentsSection />;
+  if (section === "monetizationLedger") return <MonetizationLedgerSection />;
   if (section === "feedBanners") return <FeedBannersSection />;
   if (section === "events") return <AdminEventsSection />;
   if (section === "feedGuestAccess") return <FeedGuestAccessSection />;

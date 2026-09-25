@@ -1398,6 +1398,14 @@ export interface AdminPaymentRow {
 export type AdminPaymentsQuery = {
   type?: AdminPaymentType | string;
   status?: AdminPaymentStatus | string;
+  /** Поставщик оплаты: vtb, yookassa и прочие — значения из колонки `provider`. */
+  provider?: string;
+  /**
+   * Номер заказа. Ищется по uuid платежа, идентификатору у поставщика и
+   * ключу идемпотентности: человек приходит с номером из письма банка и
+   * заранее не знает, какой из трёх ему дали.
+   */
+  search?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -1883,6 +1891,29 @@ export interface AdminWalletRow {
   user: { uuid: string | null; name: string | null; email: string | null };
   balance_kopecks: number;
   held_kopecks: number;
+}
+
+export interface AdminLedgerTotals {
+  received_kopecks: number;
+  paid_out_kopecks: number;
+  commission_kopecks: number;
+  wallets_balance_kopecks: number;
+  wallets_held_kopecks: number;
+  period: { from: string | null; to: string | null };
+}
+
+/**
+ * Итоги по деньгам за период.
+ *
+ * Отдельной ручкой, а не сложением на месте: списки кошельков и сделок
+ * приходят страницами, и сумма по текущей странице — случайное число,
+ * похожее на итог.
+ */
+export async function fetchAdminLedgerTotals(
+  query: { from?: string; to?: string } = {},
+): Promise<AdminLedgerTotals> {
+  const res = await api<{ data: AdminLedgerTotals }>("/admin/ledger/totals", { query });
+  return res.data;
 }
 
 export async function fetchAdminWallets(

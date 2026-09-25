@@ -22,31 +22,24 @@ import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCar
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { EscrowProviderAdminCard } from "@/components/admin/EscrowProviderAdminCard";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
+import { DeliveryMarkupAdminCard } from "@/components/admin/DeliveryMarkupAdminCard";
+import { LedgerTotalsCard } from "@/components/admin/LedgerTotalsCard";
 import { reportReadFailure } from "@/lib/errors/handle";
 
 export function MonetizationSection() {
   const { t } = useTranslation();
   const [plans, setPlans] = useState<AdminPlanRow[]>([]);
-  const [promos, setPromos] = useState<PromoCode[]>([]);
   const [defaultPlacementRub, setDefaultPlacementRub] = useState(30);
   const [registeredPlacementRub, setRegisteredPlacementRub] = useState(20);
   const [guestPlacementRub, setGuestPlacementRub] = useState(30);
   const [subscriberPlacementRub, setSubscriberPlacementRub] = useState(20);
   const [savingPlacement, setSavingPlacement] = useState(false);
 
-  const reloadPromos = () =>
-    fetchAdminPromocodes()
-      .then(setPromos)
-      .catch((e) => reportReadFailure(e, "монетизация"));
-
   useEffect(() => {
     let active = true;
     fetchAdminPlansDetailed()
       .then((p) => active && setPlans(p))
-      .catch((e) => reportReadFailure(e, "монетизация"));
-    fetchAdminPromocodes()
-      .then((p) => active && setPromos(p))
-      .catch((e) => reportReadFailure(e, "монетизация"));
+      .catch((e) => reportReadFailure(e, "тарифы"));
     fetchAdminSettings()
       .then((s) => {
         if (!active) return;
@@ -126,10 +119,7 @@ export function MonetizationSection() {
 
   return (
     <div>
-      <H>{t("pages.adminMonetization.title")}</H>
-
-      <PromoPoolsAdminCard cardStyle={card} />
-      <FirstHundredAdminCard cardStyle={card} />
+      <H>{t("pages.adminMonetization.pricingTitle")}</H>
 
       <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
         <h4
@@ -333,13 +323,75 @@ export function MonetizationSection() {
         </button>
       </div>
 
-      {/* Promocodes */}
+      <DeliveryMarkupAdminCard cardStyle={card} />
+    </div>
+  );
+}
+
+/**
+ * Монетизация разделена на четыре вкладки 25.09.
+ *
+ * Было одно полотно на 788 строк: цены, тарифы, промокоды, акции,
+ * реферальная программа, поставщик эскроу, список платежей и вся
+ * бухгалтерия вперемешку. Найти в нём нужное можно было только
+ * прокруткой, а дать ссылку на нужное место — никак.
+ *
+ * Разделение по тому, что человек в этот момент делает: меняет числа,
+ * смотрит поступления, сводит деньги или запускает акцию. Каждая вкладка
+ * — свой адрес.
+ *
+ * Состояние у вкладок раздельное: тарифы, промокоды и цены загружаются
+ * каждая своей, и открытая вкладка не тянет данные трёх остальных.
+ */
+export function MonetizationPromosSection() {
+  const { t } = useTranslation();
+  const [promos, setPromos] = useState<PromoCode[]>([]);
+
+  const reloadPromos = () =>
+    fetchAdminPromocodes()
+      .then(setPromos)
+      .catch((e) => reportReadFailure(e, "промокоды"));
+
+  useEffect(() => {
+    let active = true;
+    fetchAdminPromocodes()
+      .then((p) => active && setPromos(p))
+      .catch((e) => reportReadFailure(e, "промокоды"));
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <div>
+      <H>{t("pages.adminMonetization.promosTitle")}</H>
+      <PromoPoolsAdminCard cardStyle={card} />
+      <FirstHundredAdminCard cardStyle={card} />
       <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
-
       <ReferralProgramAdminCard cardStyle={card} />
+    </div>
+  );
+}
 
+export function MonetizationPaymentsSection() {
+  const { t } = useTranslation();
+
+  return (
+    <div>
+      <H>{t("pages.adminMonetization.paymentsTitle")}</H>
       <AdminPaymentsAdminCard cardStyle={card} />
+    </div>
+  );
+}
 
+export function MonetizationLedgerSection() {
+  const { t } = useTranslation();
+
+  return (
+    <div>
+      <H>{t("pages.adminMonetization.ledgerTitle")}</H>
+      <LedgerTotalsCard cardStyle={card} />
       <AdminBillingOpsCard cardStyle={card} />
     </div>
   );

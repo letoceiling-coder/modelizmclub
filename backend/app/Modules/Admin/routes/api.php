@@ -22,6 +22,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminIconAssetController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIconMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminIndexShipmentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLandingBlocksController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminLedgerTotalsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminLegalPageController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
@@ -253,6 +254,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
 
     Route::middleware('admin.section:monetization')->group(function (): void {
         // Wallets, safe deals and disputes (spec v4.0 §T12).
+        Route::get('ledger/totals', AdminLedgerTotalsController::class);
         Route::get('wallets', [AdminWalletController::class, 'index']);
         Route::get('wallets/{uuid}', [AdminWalletController::class, 'show'])->where('uuid', '[0-9a-f-]{36}');
         Route::get('withdrawals', [AdminWithdrawalController::class, 'index']);

@@ -9,6 +9,7 @@ import {
   type AdminPaymentType,
 } from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
+import { reportReadFailure } from "@/lib/errors/handle";
 
 type CardStyle = React.CSSProperties;
 
@@ -44,9 +45,19 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
   const [status, setStatus] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [provider, setProvider] = useState("");
+  /*
+   * Поиск отделён от поля ввода: запрос уходит по нажатию, а не на каждую
+   * букву. Номер заказа набирают целиком, и десять запросов по дороге к
+   * нему — это десять бесполезных обращений и мигающий список.
+   */
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [failed, setFailed] = useState(false);
 
   const reload = useCallback(() => {
     setLoading(true);
+    setFailed(false);
     fetchAdminPayments({
       page,
       per_page: 30,
@@ -54,6 +65,8 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
       ...(status ? { status } : {}),
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
+      ...(provider ? { provider } : {}),
+      ...(search ? { search } : {}),
     })
       .then(({ data, meta, filters }) => {
         setRows(data);
@@ -61,9 +74,13 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
         setTotal(meta.total);
         setTypeLabels(filters.types);
       })
-      .catch(() => toast.error("Не удалось загрузить платежи"))
+      .catch((e) => {
+        setRows([]);
+        setFailed(true);
+        reportReadFailure(e, "список платежей");
+      })
       .finally(() => setLoading(false));
-  }, [page, type, status, from, to]);
+  }, [page, type, status, from, to, provider, search]);
 
   useEffect(() => {
     reload();
@@ -204,9 +221,65 @@ export function AdminPaymentsAdminCard({ cardStyle }: { cardStyle: CardStyle }) 
             style={inputStyle}
           />
         </label>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Провайдер</span>
+          <select
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value);
+              setPage(1);
+            }}
+            style={inputStyle}
+          >
+            <option value="">Любой</option>
+            <option value="vtb">ВТБ</option>
+            <option value="wallet">Кошелёк</option>
+            <option value="yookassa">ЮKassa</option>
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 4, minWidth: 220 }}>
+          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Номер заказа</span>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="search"
+              value={searchInput}
+              placeholder="uuid, номер у провайдера…"
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setSearch(searchInput.trim());
+                  setPage(1);
+                }
+              }}
+              style={{ ...inputStyle, flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setSearch(searchInput.trim());
+                setPage(1);
+              }}
+              style={{
+                height: 38,
+                padding: "0 12px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "var(--background-surface)",
+                fontSize: 13,
+              }}
+            >
+              Найти
+            </button>
+          </div>
+        </label>
       </div>
 
       <div className="mt-4 overflow-x-auto">
+        {failed && (
+          <p style={{ fontSize: 13, color: "var(--danger, #c0392b)", marginBottom: 8 }}>
+            Не удалось загрузить платежи. Проверьте связь и попробуйте ещё раз.
+          </p>
+        )}
         {loading ? (
           <p style={{ fontSize: 13, color: "var(--foreground-50)" }}>Загрузка…</p>
         ) : rows.length === 0 ? (
