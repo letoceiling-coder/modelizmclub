@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { formatSellerRating } from "@/lib/seller-rating";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -422,7 +423,7 @@ export function ProfileView({
                   >
                     <Star size={12} fill="currentColor" style={{ color: "var(--warning)" }} />
                     <span style={{ color: "var(--foreground)", fontWeight: 600 }}>
-                      {(stats?.rating ?? 0).toFixed(1)}
+                      {formatSellerRating(stats?.rating ?? 0)}
                     </span>
                     {(stats?.reviews ?? 0) > 0 && (
                       <span>{t("pages.profile.reviewsCount", { count: stats?.reviews ?? 0 })}</span>

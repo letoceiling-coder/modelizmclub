@@ -45,8 +45,23 @@ export interface ApiUser {
   last_seen_at?: string | null;
 }
 
+/** Хост, который рисует заглушку по имени. Знание держится здесь же. */
+const ГЕНЕРАТОР_АВАТАРОВ = "api.dicebear.com";
+
+/**
+ * Это заглушка, а не загруженный человеком аватар.
+ *
+ * Нужно там, где запрос к стороннему домену дороже пользы: в карточке
+ * списка вместо заглушки рисуются локальные инициалы, и запрос не уходит
+ * вовсе. Проверять приходится по адресу — отсутствие аватара к этому
+ * моменту уже заменено на ссылку и другого признака не осталось.
+ */
+export function isGeneratedAvatar(url: string | null | undefined): boolean {
+  return typeof url === "string" && url.includes(ГЕНЕРАТОР_АВАТАРОВ);
+}
+
 function avatarFallback(name: string): string {
-  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c8102e,1f2937,374151,6b7280`;
+  return `https://${ГЕНЕРАТОР_АВАТАРОВ}/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c8102e,1f2937,374151,6b7280`;
 }
 
 function profileAvatarUrl(profile: ApiProfile | null | undefined, name: string): string {

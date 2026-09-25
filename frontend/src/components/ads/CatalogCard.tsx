@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Heart, MapPin } from "lucide-react";
+import { Heart, MapPin, Star } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import type { Ad } from "@/lib/mock";
@@ -16,6 +16,78 @@ import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia } from "@/lib/media/variants";
 import { Img } from "@/components/ui/Img";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { hasSellerRating, formatSellerRating, reviewsNoun } from "@/lib/seller-rating";
+import { isGeneratedAvatar } from "@/lib/api/auth";
+
+/**
+ * Продавец в карточке каталога: аватар, имя, звёзды, число отзывов.
+ *
+ * Рейтинг показывается, только когда он есть. Ноль отзывов дал бы «0,0»
+ * рядом со звездой — это читается как плохая оценка, а не как «оценок
+ * пока нет». Так же ведёт себя карточка продавца на странице объявления.
+ *
+ * Ссылки внутрь нет намеренно: карточка целиком ведёт на объявление, и
+ * вложенная ссылка на профиль была бы вторым интерактивным элементом
+ * внутри первого.
+ */
+function SellerLine({ ad }: { ad: Ad }) {
+  const seller = ad.seller;
+  const отзывы = seller?.reviews ?? 0;
+  const естьРейтинг = seller ? hasSellerRating(seller.rating, отзывы) : false;
+
+  /*
+   * Заглушку не запрашиваем.
+   *
+   * У продавца без аватара в `seller.avatar` лежит не пустая строка, а
+   * ссылка на сторонний генератор картинок по имени. В карточке товара
+   * это один запрос, в каталоге — до полусотни на чужой домен, и уходят
+   * они не лениво: Radix грузит аватар через `new Image()` в layout-
+   * эффекте, то есть все разом и одновременно с фотографиями объявлений,
+   * которым на первом экране выставлен высокий приоритет ради LCP.
+   *
+   * Без адреса `UserAvatar` рисует собственные инициалы — без единого
+   * запроса.
+   */
+  const аватар = seller && !isGeneratedAvatar(seller.avatar) ? seller.avatar : null;
+
+  /*
+   * Обёртка рисуется всегда, даже без продавца: на ней держится `mt-auto`,
+   * прижимающий город к низу, и те 20 px, которые резервирует заглушка.
+   * Пропади она — карточка без продавца стала бы короче заглушки, а город
+   * уехал бы вверх на растянутом ряду сетки.
+   */
+  return (
+    <div
+      className="mt-auto flex min-w-0 items-center gap-[4px] pt-[4px] text-caption"
+      style={{ color: "var(--foreground-50)", minHeight: "20px" }}
+    >
+      {seller && (
+        <>
+          {/* Картинка и число — для глаза; диктору ниже сказано словами. */}
+          <span aria-hidden className="flex shrink-0">
+            <UserAvatar src={аватар} name={seller.name} size={16} />
+          </span>
+          <span className="truncate">{seller.name}</span>
+          {естьРейтинг && (
+            <span aria-hidden className="ml-auto flex shrink-0 items-center gap-[2px] tabular-nums">
+              <Star size={11} fill="currentColor" style={{ color: "var(--warning)" }} />
+              <span style={{ color: "var(--foreground-70)" }}>
+                {formatSellerRating(seller.rating)}
+              </span>
+              <span>({отзывы})</span>
+            </span>
+          )}
+          {естьРейтинг && (
+            <span className="sr-only">
+              рейтинг {formatSellerRating(seller.rating)} по {отзывы} {reviewsNoun(отзывы)}
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 export function CatalogCard({
   ad,
@@ -139,10 +211,18 @@ export function CatalogCard({
         полужирным, название text-meta, город text-caption.
 
         Высота считана, а не на глаз: 8 + 24 (цена) + 4 + 39,2 (две строки
-        названия) + 15,6 (город) + 8 = 98,8 px. С картинкой 4:3 и рамкой
-        карточка на самой широкой колонке каталога (288 px, 1024) выходит
-        317 px — под потолок в 320. Название держит две строки даже если
-        короткое: ряды сетки одной высоты, заглушка совпадает с карточкой.
+        названия) + 4 + 16 (продавец) + 15,6 (город) + 8 = 118,8 px. С
+        картинкой 4:3 и рамкой карточка на колонке 288 px (сетка 1024)
+        выходит 337 px. Это не потолок: при `auto-fill` колонка шире всего
+        не на круглом экране, а прямо под порогом следующей колонки —
+        около 297 px, и тогда карточка 343,5. Название держит две строки
+        даже если короткое: ряды сетки одной высоты, заглушка совпадает
+        с карточкой.
+
+        Строка продавца добавила 20 px, и это же число стоит в двух других
+        местах: `contain-intrinsic-size` для невидимых карточек в styles.css
+        и заглушка CatalogCardSkeleton. Разойдись они — список дёрнется при
+        загрузке или прокрутка начнёт промахиваться.
       */}
       <div className="flex flex-1 flex-col p-[8px]">
         <div
@@ -161,8 +241,10 @@ export function CatalogCard({
           {ad.title}
         </Link>
 
+        <SellerLine ad={ad} />
+
         <div
-          className="mt-auto flex min-w-0 items-center gap-[4px] text-caption"
+          className="flex min-w-0 items-center gap-[4px] text-caption"
           style={{ color: "var(--foreground-50)" }}
         >
           <MapPin size={12} className="shrink-0" />

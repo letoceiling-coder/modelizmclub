@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { formatSellerRating } from "@/lib/seller-rating";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Star } from "lucide-react";
@@ -125,7 +126,7 @@ function RatingSection() {
           className="font-display text-[40px] font-bold leading-none"
           style={{ color: "var(--foreground)" }}
         >
-          {rating.average.toFixed(1)}
+          {formatSellerRating(rating.average)}
         </div>
         <div>
           <Stars value={rating.average} size={18} />
