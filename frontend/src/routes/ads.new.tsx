@@ -316,6 +316,15 @@ function NewAdPage() {
   const [placementQuote, setPlacementQuote] = useState<PlacementQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   /*
+   * Расчёт не пришёл — это надо сказать, а не показывать ноль.
+   *
+   * До 25.09 отказ запроса молча оставлял `placementQuote` пустым, и
+   * строка ниже выводила «К оплате 0 ₽»: `is_free` у null ложно, а
+   * `final_cents ?? 0` даёт ноль. То есть человек видел цену, которой
+   * не называл никто, — и она была заманчиво неправильной.
+   */
+  const [quoteFailed, setQuoteFailed] = useState(false);
+  /*
    * Черновик, созданный для оплаты, живёт до её завершения.
    *
    * Мастер создаёт объявление черновиком и только потом ведёт на оплату.
@@ -518,6 +527,7 @@ function NewAdPage() {
     }
     let alive = true;
     setQuoteLoading(true);
+    setQuoteFailed(false);
     fetchPlacementQuote({
       taxonomyId: ids.taxonomyId,
       categoryId: ids.categoryId,
@@ -527,8 +537,11 @@ function NewAdPage() {
       .then((q) => {
         if (alive) setPlacementQuote(q);
       })
-      .catch(() => {
-        if (alive) setPlacementQuote(null);
+      .catch((e) => {
+        if (!alive) return;
+        setPlacementQuote(null);
+        setQuoteFailed(true);
+        reportReadFailure(e, "расчёт стоимости размещения");
       })
       .finally(() => {
         if (alive) setQuoteLoading(false);
@@ -1086,6 +1099,7 @@ function NewAdPage() {
                   publishButtonLabel={publishButtonLabel}
                   placementQuote={placementQuote}
                   quoteLoading={quoteLoading}
+                  quoteFailed={quoteFailed}
                 />
               )}
             </ReducedMotionSwitch>
@@ -1745,6 +1759,7 @@ function StepPreview({
   publishButtonLabel,
   placementQuote,
   quoteLoading,
+  quoteFailed,
 }: {
   form: Form;
   set: <K extends keyof Form>(k: K, v: Form[K]) => void;
@@ -1754,6 +1769,8 @@ function StepPreview({
   publishButtonLabel: string;
   placementQuote: PlacementQuote | null;
   quoteLoading: boolean;
+  /** Расчёт не пришёл — цену показывать нечем, и ноль тут был бы враньём. */
+  quoteFailed: boolean;
 }) {
   const { t } = useTranslation();
   const sub = cat?.subcategories.find((s) => s.id === form.subcategoryId);
@@ -1824,11 +1841,13 @@ function StepPreview({
           {listingPaymentEnabled
             ? quoteLoading
               ? t("pages.adsNew.calculatingCost")
-              : placementQuote?.is_free
-                ? t("pages.adsNew.moderationNoteFree")
-                : t("pages.adsNew.moderationNotePaid", {
-                    price: formatQuoteRub(placementQuote?.final_cents ?? 0),
-                  })
+              : quoteFailed || !placementQuote
+                ? t("pages.adsNew.quoteFailed")
+                : placementQuote.is_free
+                  ? t("pages.adsNew.moderationNoteFree")
+                  : t("pages.adsNew.moderationNotePaid", {
+                      price: formatQuoteRub(placementQuote.final_cents),
+                    })
             : t("pages.adsNew.moderationNoteDefault")}
         </AlertDescription>
       </Alert>
