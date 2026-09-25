@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DeliveryCarrier;
 use App\Enums\DeliveryPointType;
+use App\Support\CdekReadiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -32,6 +33,21 @@ class SellerDeliveryProfile extends Model
             'is_default' => 'boolean',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Памятка о готовности к СДЭК живёт в пределах запроса и должна
+     * забываться, как только профиль изменился.
+     *
+     * Без этого продавец, добавивший пункт, увидел бы прежний ответ до
+     * конца запроса: сохранение и перечитывание карточки идут одним
+     * обращением, и подсказка продолжала бы требовать пункт, который он
+     * только что выбрал.
+     */
+    protected static function booted(): void
+    {
+        static::saved(static fn () => CdekReadiness::forget());
+        static::deleted(static fn () => CdekReadiness::forget());
     }
 
     public function user(): BelongsTo

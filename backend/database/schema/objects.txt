@@ -1285,6 +1285,7 @@ COLUMN|users.free_listings_unlimited|boolean|NO
 COLUMN|users.free_listings_used|integer|NO
 COLUMN|users.id|bigint|NO
 COLUMN|users.is_first_hundred|boolean|NO
+COLUMN|users.is_qa_account|boolean|NO
 COLUMN|users.last_seen_at|timestamp without time zone|YES
 COLUMN|users.listing_placement_credits|integer|NO
 COLUMN|users.locale|character varying|NO
@@ -1931,6 +1932,7 @@ INDEX|user_view_history|user_view_history_pkey
 INDEX|user_view_history|user_view_history_user_id_kind_target_uuid_unique
 INDEX|user_view_history|user_view_history_user_id_viewed_at_index
 INDEX|users|users_email_unique
+INDEX|users|users_is_qa_account_index
 INDEX|users|users_phone_unique
 INDEX|users|users_pkey
 INDEX|users|users_referral_code_unique

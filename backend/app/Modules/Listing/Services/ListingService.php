@@ -2,7 +2,6 @@
 
 namespace Modules\Listing\Services;
 
-use App\Enums\DeliveryCarrier;
 use App\Enums\ListingStatus;
 use App\Enums\SafeDealStatus;
 use App\Models\Listing;
@@ -17,6 +16,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
+use App\Support\CdekReadiness;
 use App\Support\ParcelSize;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,7 +27,6 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Billing\Services\PromocodeService;
 use Modules\Catalog\Services\CategoryTaxonomyService;
-use Modules\Delivery\Services\SellerDeliveryProfileService;
 use Modules\Listing\Support\ListingPlacementConfig;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -316,7 +315,7 @@ class ListingService
     {
         $data = $this->resolveCategoryIds($data);
         $this->assertCategory($data['category_id'] ?? null);
-        $this->assertDeliveryDetails($data, false, $user);
+        $this->assertDeliveryDetails($data, $user);
         $data = $this->normalizeParcelFields($data);
 
         return DB::transaction(function () use ($user, $data): Listing {
@@ -375,7 +374,7 @@ class ListingService
             'dimensions_cm' => $listing->dimensions_cm,
             'pickup_address' => $listing->pickup_address,
             'city_id' => $listing->city_id,
-        ], $data), true, $user);
+        ], $data), $user);
         $data = $this->normalizeParcelFields($data, $listing);
 
         if (! empty($data['taxonomy_id']) || (array_key_exists('category_id', $data) && $data['category_id'] !== null)) {
@@ -1043,7 +1042,7 @@ class ListingService
      * Ошибки собираются и выбрасываются разом: продавцу незачем узнавать про
      * забытый город после того, как он вернулся и дозаполнил габариты.
      */
-    private function assertDeliveryDetails(array $data, bool $updating = false, ?User $seller = null): void
+    private function assertDeliveryDetails(array $data, ?User $seller = null): void
     {
         $methods = $data['delivery_methods'] ?? [];
         if (! is_array($methods)) {
@@ -1074,17 +1073,31 @@ class ListingService
                 $errors['weight_kg'] = ['Для доставки СДЭК укажите вес посылки в килограммах.'];
             }
 
-            // Город отправки нужен СДЭК, чтобы вообще посчитать тариф. Раньше
-            // это не проверялось нигде: объявление публиковалось без него, а
-            // отказ «Продавец не указал город отправки» получал покупатель,
-            // уже открывший оформление сделки. Спрашиваем у того, кто может
-            // исправить.
+            /*
+             * Пункт отправки обязателен, и города вместо него мало.
+             *
+             * Здесь до 25.09 годился город: профиля нет — назовите город, и
+             * объявление сохранится. Цену по городу СДЭК считает, а заказ
+             * требует пункта, и падал он уже у покупателя, дошедшего до
+             * оформления. Тот же запасной путь убран из расчёта 22.09;
+             * здесь он оставался и продолжал пропускать объявления, которые
+             * заведомо нельзя отправить.
+             *
+             * Профиля мало самого по себе: строка без `external_point_id`
+             * — это город под другим именем.
+             */
             if ($seller !== null) {
-                $hasProfile = app(SellerDeliveryProfileService::class)
-                    ->defaultFor($seller, DeliveryCarrier::Cdek) !== null;
+                // Тот же вопрос, что у карточки объявления, — и тот же
+                // ответчик. Своя копия проверки разошлась бы с ним при
+                // первой правке условий, и форма с карточкой остались бы
+                // при разных мнениях о том, возможен ли СДЭК.
+                $пробный = new Listing(['user_id' => $seller->id]);
+                $пробный->user_id = $seller->id;
 
-                if (! $hasProfile && (int) ($data['city_id'] ?? 0) <= 0) {
-                    $errors['city_id'] = ['Для доставки СДЭК укажите город отправки или добавьте пункт в профиле доставки.'];
+                if (! CdekReadiness::sellerHasPoint($пробный)) {
+                    $errors['delivery_methods'] = [
+                        'Для доставки СДЭК выберите пункт отправки в настройках доставки — без него заказ у перевозчика не создаётся.',
+                    ];
                 }
             }
         }

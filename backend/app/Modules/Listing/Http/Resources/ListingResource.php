@@ -5,6 +5,7 @@ namespace Modules\Listing\Http\Resources;
 use App\Http\Resources\Concerns\HasCanFlags;
 use App\Models\Listing;
 use App\Models\Payment;
+use App\Support\CdekReadiness;
 use App\Support\ParcelSize;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,11 +33,29 @@ class ListingResource extends JsonResource
             'condition' => $this->condition?->value,
             'currency' => $this->currency,
             'status' => $this->status->value,
-            'delivery_methods' => $this->delivery_methods ?? [],
+            /*
+             * Покупателю — только выполнимые способы.
+             *
+             * СДЭК остаётся в `delivery_methods` продавца, но из списка для
+             * покупателя убирается, пока нет габаритов или пункта отправки.
+             * До 25.09 способ показывали всегда: человек его выбирал,
+             * доходил до расчёта и получал отказ — честный, но после того,
+             * как он уже выбрал. На 25.09 так было у всех четырёх
+             * объявлений с СДЭК.
+             *
+             * Чистки данных это не требует: сойдутся условия — способ
+             * появится сам.
+             */
+            'delivery_methods' => $this->доступныеСпособы($request),
             'weight_kg' => $this->weight_kg,
             'dimensions_cm' => $this->dimensions_cm,
             'pickup_address' => $this->pickup_address,
-            'offers_cdek' => ParcelSize::offersCdek($this->delivery_methods ?? []),
+            'offers_cdek' => CdekReadiness::ready($this->resource),
+            /* Подсказка видна только владельцу: покупателю чужие недоделки ни к чему. */
+            'cdek_hint' => $this->when(
+                $request->user() !== null && (int) $request->user()->id === (int) $this->user_id,
+                fn () => CdekReadiness::hint($this->resource),
+            ),
             'contact_via_messenger' => $this->contact_via_messenger,
             /*
              * Только знак, что номер есть. Сам номер — отдельным запросом
@@ -103,5 +122,31 @@ class ListingResource extends JsonResource
             'promoted_until' => $promotedUntil?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
         ];
+    }
+
+    /**
+     * Способы доставки, которые продавец действительно может выполнить.
+     *
+     * Владельцу отдаём список как есть — он правит объявление и должен
+     * видеть, что выбрал, иначе СДЭК исчезал бы у него из формы сам собой.
+     *
+     * @return list<string>
+     */
+    private function доступныеСпособы(Request $request): array
+    {
+        $methods = $this->delivery_methods ?? [];
+        if (! is_array($methods)) {
+            return [];
+        }
+
+        $владелец = $request->user() !== null && (int) $request->user()->id === (int) $this->user_id;
+        if ($владелец || CdekReadiness::ready($this->resource)) {
+            return array_values($methods);
+        }
+
+        return array_values(array_filter(
+            $methods,
+            static fn ($m): bool => ! ParcelSize::offersCdek([$m]),
+        ));
     }
 }
