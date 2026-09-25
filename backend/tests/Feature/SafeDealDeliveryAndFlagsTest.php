@@ -6,10 +6,13 @@ use App\Enums\ListingStatus;
 use App\Enums\SafeDealStatus;
 use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
+use App\Models\City;
 use App\Models\DeliveryMethod;
 use App\Models\Listing;
 use App\Models\ListingCategory;
 use App\Models\SafeDeal;
+use App\Models\SellerDeliveryProfile;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Support\ParcelSize;
@@ -123,6 +126,26 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
      * Проверка на слитых данных этого не ловила: там габариты берутся из
      * объявления, и всё на месте.
      */
+    /**
+     * Пункт отправки у продавца.
+     *
+     * С 25.09 объявление с СДЭК без него не сохраняется. Обе проверки ниже
+     * про сохранность габаритов, а не про пункт — поэтому он просто есть.
+     */
+    private function пунктОтправки(User $seller): void
+    {
+        SellerDeliveryProfile::query()->create([
+            'user_id' => $seller->id,
+            'provider' => 'cdek',
+            'point_type' => 'pickup_point',
+            'external_point_id' => 'MSK1',
+            'label' => 'Отправка',
+            'address' => ['city_code' => 44],
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+    }
+
     public function test_a_partial_update_keeps_the_measured_box(): void
     {
         DeliveryMethod::query()->firstOrCreate(
@@ -135,9 +158,10 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         );
 
         $seller = $this->seedUser('seller');
-        $city = \App\Models\City::query()->create(['name' => 'Москва', 'slug' => 'moskva-'.uniqid()]);
+        $this->пунктОтправки($seller);
+        $city = City::query()->create(['name' => 'Москва', 'slug' => 'moskva-'.uniqid()]);
         $listing = Listing::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'user_id' => $seller->id,
             'city_id' => $city->id,
             'category_id' => ListingCategory::query()->create([
@@ -148,7 +172,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
             'description' => 'Большая коробка, мерил сам.',
             'price_cents' => 500000,
             'currency' => 'RUB',
-            'status' => \App\Enums\ListingStatus::Published,
+            'status' => ListingStatus::Published,
             'delivery_methods' => ['СДЭК'],
             'dimensions_cm' => ['length' => 45, 'width' => 30, 'height' => 20],
             'weight_kg' => 6.5,
@@ -173,14 +197,15 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
             ['name' => 'СДЭК', 'is_active' => true, 'is_integrated' => true, 'sort_order' => 1],
         );
 
-        \App\Models\SystemSetting::query()->updateOrCreate(
+        SystemSetting::query()->updateOrCreate(
             ['key' => 'feature.listing_payment_enabled'],
             ['value' => ['enabled' => false], 'group' => 'feature'],
         );
 
         $seller = $this->seedUser('seller');
-        // Со СДЭК объявлению нужен город отправки — см. пункт 9.
-        $city = \App\Models\City::query()->create(['name' => 'Москва', 'slug' => 'moskva-'.uniqid()]);
+        $this->пунктОтправки($seller);
+        // Город отправки со СДЭК больше не спасает — нужен пункт, см. выше.
+        $city = City::query()->create(['name' => 'Москва', 'slug' => 'moskva-'.uniqid()]);
 
         $this->actingAs($seller, 'sanctum')
             ->postJson('/api/v1/listings', [

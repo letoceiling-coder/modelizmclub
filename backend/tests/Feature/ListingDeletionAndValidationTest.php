@@ -9,7 +9,7 @@ use App\Enums\WalletTransactionType;
 use App\Models\DeliveryMethod;
 use App\Models\Listing;
 use App\Models\ListingCategory;
-use App\Models\SafeDeal;
+use App\Models\SellerDeliveryProfile;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
@@ -85,12 +85,18 @@ class ListingDeletionAndValidationTest extends TestCase
 
     // ── Пункт 9: город отправки ──────────────────────────────────────────
 
-    public function test_cdek_listing_without_an_origin_city_is_rejected_at_creation(): void
+    /**
+     * Без пункта отправки объявление с СДЭК не сохраняется.
+     *
+     * До 25.09 годился город: профиля нет — назовите город, и объявление
+     * публиковалось. Цену по городу СДЭК считает, а заказ требует пункта,
+     * и падало это уже у покупателя, дошедшего до оформления. На 25.09 так
+     * стояли все четыре объявления с СДЭК на проде.
+     */
+    public function test_cdek_listing_without_a_pickup_point_is_rejected_at_creation(): void
     {
         $seller = $this->seedUser('seller');
 
-        // Раньше такое объявление публиковалось, а отказ «Продавец не указал
-        // город отправки» получал покупатель уже на расчёте сделки.
         $this->actingAs($seller, 'sanctum')
             ->postJson('/api/v1/listings', [
                 'title' => 'Набор',
@@ -103,7 +109,36 @@ class ListingDeletionAndValidationTest extends TestCase
                 'accept_rules' => true,
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['city_id']);
+            ->assertJsonValidationErrors(['delivery_methods']);
+    }
+
+    /** С выбранным пунктом то же объявление сохраняется. */
+    public function test_cdek_listing_with_a_pickup_point_is_accepted(): void
+    {
+        $seller = $this->seedUser('seller');
+        SellerDeliveryProfile::query()->create([
+            'user_id' => $seller->id,
+            'provider' => 'cdek',
+            'point_type' => 'pickup_point',
+            'external_point_id' => 'MSK1',
+            'label' => 'Отправка',
+            'address' => ['city_code' => 44],
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($seller, 'sanctum')
+            ->postJson('/api/v1/listings', [
+                'title' => 'Набор',
+                'description' => 'Описание',
+                'category_id' => $this->category()->id,
+                'price_cents' => 100000,
+                'delivery_methods' => ['СДЭК'],
+                'dimensions_cm' => ['length' => 30, 'width' => 20, 'height' => 15],
+                'weight_kg' => 2,
+                'accept_rules' => true,
+            ])
+            ->assertCreated();
     }
 
     public function test_pickup_listing_needs_no_origin_city(): void
