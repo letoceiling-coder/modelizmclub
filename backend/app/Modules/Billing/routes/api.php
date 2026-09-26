@@ -5,12 +5,12 @@ use Modules\Billing\Http\Controllers\Api\V1\CancelSubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreateSafeDealController;
-use Modules\Billing\Http\Controllers\Api\V1\QuoteSafeDealController;
-use Modules\Billing\Http\Controllers\Api\V1\ReviewSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexPlansController;
 use Modules\Billing\Http\Controllers\Api\V1\IndexSafeDealsController;
 use Modules\Billing\Http\Controllers\Api\V1\MyPaymentsController;
 use Modules\Billing\Http\Controllers\Api\V1\MySubscriptionController;
+use Modules\Billing\Http\Controllers\Api\V1\QuoteSafeDealController;
+use Modules\Billing\Http\Controllers\Api\V1\ReviewSafeDealController;
 use Modules\Billing\Http\Controllers\Api\V1\SafeDealActionsController;
 use Modules\Billing\Http\Controllers\Api\V1\SafeDealDeliveryWebhookController;
 use Modules\Billing\Http\Controllers\Api\V1\SafeDealPayoutWebhookController;
@@ -71,7 +71,11 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('wallet/topup', WalletTopupController::class);
     Route::post('wallet/withdraw', WalletWithdrawController::class);
 
-    Route::post('listings/{uuid}/safe-deal/quote', QuoteSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
+    // Расчёт уходит в СДЭК и стоит денег на каждом вызове — см. лимитер
+    // delivery-quote в AppServiceProvider.
+    Route::middleware('throttle:delivery-quote')
+        ->post('listings/{uuid}/safe-deal/quote', QuoteSafeDealController::class)
+        ->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/safe-deal', CreateSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/ship', [SafeDealActionsController::class, 'ship'])->where('uuid', '[0-9a-f-]{36}');
     Route::post('safe-deals/{uuid}/delivered', [SafeDealActionsController::class, 'delivered'])->where('uuid', '[0-9a-f-]{36}');

@@ -256,6 +256,57 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(90)->by('max-status-ip:'.$request->ip()),
         ]);
 
+        /*
+         * Платные обращения к перевозчикам и открытый канал обращений.
+         *
+         * Общий лимитер закрывает все маршруты группы `api`
+         * (`throttleApi('api')` в bootstrap/app.php) — 120 в минуту с адреса у
+         * гостя, 300 у вошедшего. Вне группы остался один маршрут,
+         * `api/v1/broadcasting/auth`: `Broadcast::routes` задаёт middleware
+         * списком и тем заменяет группу целиком. Для Echo так и надо — иначе
+         * подписка на десяток каналов упирается в лимит.
+         *
+         * Расчёт доставки стоит денег на каждом вызове, и 120 в минуту здесь
+         * ни к чему. Важно, на каких именно маршрутах: в первой редакции этой
+         * правки лимит стоял на `delivery/cdek/quote` и `delivery/yandex/quote`,
+         * которых не зовёт никто — ни фронтенд, ни скрипты. Оформление сделки
+         * ходит в `listings/{uuid}/safe-deal/quote`, а кабинет продавца — в
+         * `shipments/{shipment}/quote`; оба доходят до `CdekDeliveryAdapter::quote`
+         * без кеша. Найдено ревью 26.09.
+         *
+         * Подсказки городов и пунктов выдачи нарочно не тронуты: их дёргают на
+         * ввод с задержкой 280 мс, то есть несколько раз за слово, и потолок в
+         * двадцать сломал бы обычный набор адреса. Их держит общий лимит.
+         *
+         * У обратной связи потолок 10: тем же маршрутом идут жалобы на
+         * пользователей (`ComplaintDialog`), и человек, жалующийся на волну
+         * спама, отправляет их подряд. Считается каждый запрос, доехавший до
+         * маршрута, включая отказы валидации — замерено: пять отказов подряд
+         * исчерпывали лимит из пяти, и следующая правильная отправка получала
+         * 429.
+         *
+         * Ключ — пользователь или адрес. У открытых маршрутов пользователя нет,
+         * и гости за одним адресом счётчик делят; для `safe-deal/quote` и
+         * `feedback` из формы вход есть, и там счётчики раздельные.
+         */
+        RateLimiter::for('delivery-quote', fn (Request $request) => Limit::perMinute(20)
+            ->by('delivery-quote:'.($request->user()?->id ?? 'guest').'|'.$request->ip())
+            ->response(fn (Request $request, array $headers) => response()->json([
+                'message' => 'Слишком много расчётов доставки. Повторите через '
+                    .(int) ($headers['Retry-After'] ?? 60).' сек.',
+                'code' => 'delivery_quote_rate_limited',
+                'retry_after' => (int) ($headers['Retry-After'] ?? 60),
+            ], 429, $headers)));
+
+        RateLimiter::for('feedback-send', fn (Request $request) => Limit::perMinute(10)
+            ->by('feedback:'.($request->user()?->id ?? 'guest').'|'.$request->ip())
+            ->response(fn (Request $request, array $headers) => response()->json([
+                'message' => 'Слишком много обращений. Повторите через '
+                    .(int) ($headers['Retry-After'] ?? 60).' сек.',
+                'code' => 'feedback_rate_limited',
+                'retry_after' => (int) ($headers['Retry-After'] ?? 60),
+            ], 429, $headers)));
+
         // Global API limiter. The media proxy (image loads) and payment webhooks
         // are exempt so normal browsing and provider callbacks are never throttled.
         RateLimiter::for('api', function (Request $request) {

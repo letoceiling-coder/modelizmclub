@@ -69,7 +69,7 @@ Route::prefix('users')->group(function (): void {
     Route::get('{slug}', ShowProfileController::class);
 });
 
-Route::post('feedback', [FeedbackController::class, 'store']);
+Route::middleware('throttle:feedback-send')->post('feedback', [FeedbackController::class, 'store']);
 
 Route::middleware(['auth:sanctum', 'verified'])->prefix('friend-requests')->group(function (): void {
     Route::post('{id}/accept', [FriendController::class, 'accept'])->whereNumber('id');
