@@ -1,5 +1,9 @@
 <?php
 
+use App\Services\Sms\IqSmsClient;
+use App\Services\Sms\LogSmsClient;
+use App\Services\Sms\MtsMarketologSmsClient;
+
 return [
 
     /*
@@ -9,10 +13,11 @@ return [
     | Какой шлюз шлёт сообщения. Меняется одним значением в `.env`,
     | пересборкой кеша конфигурации и перезагрузкой php-fpm — без выкатки.
     |
-    | iqsms       — JSON API https://api.iqsms.ru (iqsms.ru/api/api_about/)
-    | mts         — MTS Marketolog REST API (Рассылки по своей базе PRO)
-    | smsdiscount — https://smsdiscount.ru, договор заключён, доступы позже
-    | log         — пишет в laravel.log и никуда не шлёт (местная разработка)
+    | iqsms — JSON API https://api.iqsms.ru. Это и есть «СМС Дисконт»:
+    |         iqsms.ru — сайт этой компании, и кабинет в `.env.example`
+    |         называется так же. Двух разных провайдеров здесь нет.
+    | mts   — MTS Marketolog REST API (Рассылки по своей базе PRO)
+    | log   — пишет в laravel.log и никуда не шлёт (местная разработка)
     */
     'driver' => env('SMS_DRIVER', 'iqsms'),
 
@@ -24,15 +29,19 @@ return [
     | этом списке, а не правкой выбора в AppServiceProvider: раньше там
     | стоял `match`, и третий шлюз означал правку кода.
     |
-    | Неизвестное имя — это отказ при запуске, а не тихий откат к первому
-    | попавшемуся. Опечатка в `SMS_DRIVER` иначе означала бы, что письма
-    | уходят не тем шлюзом и никто об этом не узнает.
+    | Неизвестное имя — отказ, а не тихий откат к первому попавшемуся:
+    | опечатка в `SMS_DRIVER` иначе означала бы, что сообщения уходят не
+    | тем шлюзом и никто об этом не узнает.
+    |
+    | Отказ происходит при первой отправке, а не при запуске: привязка
+    | ленивая. Чтобы опечатку нашёл не первый живой человек, имя драйвера
+    | проверяет `deploy/scripts/check-sms-driver.sh` — он вызывается из
+    | `smoke-check.sh` после каждой выкатки.
     */
     'drivers' => [
-        'iqsms' => App\Services\Sms\IqSmsClient::class,
-        'mts' => App\Services\Sms\MtsMarketologSmsClient::class,
-        'smsdiscount' => App\Services\Sms\SmsDiscountClient::class,
-        'log' => App\Services\Sms\LogSmsClient::class,
+        'iqsms' => IqSmsClient::class,
+        'mts' => MtsMarketologSmsClient::class,
+        'log' => LogSmsClient::class,
     ],
 
     'iqsms' => [
@@ -52,30 +61,6 @@ return [
         'sender' => env('MTS_SENDER', 'MODELIZM'),
         'omnichannel_url' => rtrim(env('MTS_OMNICHANNEL_URL', 'https://omnichannel.mts.ru/http-api/v1'), '/'),
         'token_api_url' => rtrim(env('MTS_TOKEN_API_URL', 'https://api.mts.ru/client-omni-adapter_production/1.0.2/mcom/messageManagement/messages'), '/'),
-    ],
-
-    /*
-    | SMS-дисконт. Доступов пока нет — значения появятся в `.env`.
-    |
-    | Имена полей запроса вынесены сюда намеренно: проверить их на живом
-    | шлюзе нельзя, и если в документации провайдера они окажутся иными,
-    | это правка настроек, а не кода.
-    */
-    'smsdiscount' => [
-        'url' => env('SMSDISCOUNT_URL', 'https://smsdiscount.ru/sys/send.php'),
-        'login' => env('SMSDISCOUNT_LOGIN'),
-        'password' => env('SMSDISCOUNT_PASSWORD'),
-        'sender' => env('SMSDISCOUNT_SENDER', 'MODELIZM'),
-        'format' => env('SMSDISCOUNT_FORMAT', '3'),
-        'timeout' => (int) env('SMSDISCOUNT_TIMEOUT', 15),
-        'fields' => [
-            'login' => env('SMSDISCOUNT_FIELD_LOGIN', 'login'),
-            'password' => env('SMSDISCOUNT_FIELD_PASSWORD', 'psw'),
-            'phone' => env('SMSDISCOUNT_FIELD_PHONE', 'phones'),
-            'text' => env('SMSDISCOUNT_FIELD_TEXT', 'mes'),
-            'sender' => env('SMSDISCOUNT_FIELD_SENDER', 'sender'),
-            'format' => env('SMSDISCOUNT_FIELD_FORMAT', 'fmt'),
-        ],
     ],
 
     'verification' => [

@@ -15,6 +15,11 @@ class IqSmsClient implements SmsSender
     /** @var list<string> Per-message statuses that mean the gateway accepted the SMS. */
     private const ACCEPTED_MESSAGE_STATUSES = ['accepted', 'queued'];
 
+    public function isConfigured(): bool
+    {
+        return filled(config('sms.iqsms.login')) && filled(config('sms.iqsms.password'));
+    }
+
     public function send(string $phone, string $text): array
     {
         $login = (string) config('sms.iqsms.login');

@@ -76,7 +76,7 @@ import {
   CircleHelp,
 } from "lucide-react";
 import { fetchMe } from "@/lib/api/auth";
-import { sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
+import { readSmsRefusal, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
 import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { isPhoneVerified } from "@/lib/auth/verification";
@@ -1990,11 +1990,23 @@ function ListingContactPhoneField({
     }
     setSmsSending(true);
     try {
-      await sendPhoneVerificationCode(value);
+      /*
+       * Паузу называет сервер, а не клиент. Зашитые 60 секунд расходились
+       * с его сроком в обе стороны — то же, что чинили в настройках 12.09;
+       * сюда правка тогда не дошла.
+       */
+      const { resend_after } = await sendPhoneVerificationCode(value);
       setSmsSent(true);
-      setSmsCooldown(60);
+      setSmsCooldown(resend_after);
       toast.success(t("pages.settings.smsSent"));
     } catch (err) {
+      /*
+       * Отказ бывает трёх видов, и у двух есть срок. Без этого разбора
+       * кнопка оставалась деятельной, следующий тап снова жёг слот ограничителя
+       * — тот самый круг, из которого вырастали 125 секунд.
+       */
+      const refusal = readSmsRefusal(err);
+      if (refusal.retryAfter > 0) setSmsCooldown(refusal.retryAfter);
       toast.error(err instanceof ApiError ? err.message : t("pages.settings.smsSendFailed"));
     } finally {
       setSmsSending(false);
