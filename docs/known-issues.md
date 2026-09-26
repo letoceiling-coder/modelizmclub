@@ -7,6 +7,93 @@ source.
 Закрытые записи вынесены в `docs/known-issues-closed.md` — здесь только
 то, что открыто. Каждая запись помечена датой обнаружения.
 
+## Laravel 11 небезопасен целиком — заплатки в ветке нет (26.09)
+
+`composer audit` показывает три предупреждения на `laravel/framework`.
+В отчёте аудита от 26.09 это было записано как «обновить Laravel до патча,
+полчаса». Оценка неверна: **защищённого выпуска в ветке 11 не существует.**
+Composer отказывается ставить любой из них:
+
+```
+Root composer.json requires laravel/framework ^11.31, found
+laravel/framework[v11.31.0, ..., v11.56.1] but these were not loaded,
+because they are affected by security advisories.
+```
+
+Исправлено только в 12.60/12.61.1, то есть настоящая починка — переход
+с 11 на 12, мажорная версия, а не патч.
+
+**Чем мы задеты на деле — замерено 26.09:**
+
+| Предупреждение | Уровень | Наша выставленность |
+| --- | --- | --- |
+| CRLF injection в правиле `email` (GHSA-5vg9-5847-vvmq) | high | закрыто своим правилом `App\Rules\SafeEmail` |
+| Temporary Signed URL Path Confusion (GHSA-crmm-hgp2-wgrp) | medium | **не применимо**: подписанные ссылки в проекте не используются вовсе — ни `signedRoute`, ни `temporarySignedRoute`, ни `hasValidSignature` |
+| CVE-2026-48019 — та же CRLF | — | то же, что первое |
+
+То есть к запуску ни одно из трёх не оставляет открытого пути. Но
+`composer audit` останется красным до перехода на 12, и это надо помнить,
+а не удивляться.
+
+**Одно поле было забыто** и найдено при этой проверке: `guest_email` у
+обратной связи (`FeedbackController`) стоял с `email` без `SafeEmail`, на
+открытом маршруте. Через заголовки письма оттуда было не достать — адрес
+идёт в текст обращения, — но правило существует ровно для того, чтобы
+следующий `Reply-To` на обращении не сделал маршрут проходом. Закрыто, и
+теперь за правилом следит `SafeEmailRuleEverywhereTest`: он обходит
+исходники и падает, если поле с правилом `email` осталось без `SafeEmail`.
+
+**Что делать с переходом.** Это отдельная работа на несколько дней, не
+предпусковая: 1189 тестов, смена мажорной версии фреймворка и всех пакетов
+экосистемы. Решение — за заказчиком. Пока перехода нет, `composer audit`
+в воротах остаётся красным по построению, и `block-insecure` трогать не
+надо: именно он не даёт поставить уязвимый выпуск молча.
+
+## ~~`deploy-neeklo-frontend.sh` does not `git pull`~~ — закрыто 10.09.2026
+
+**Починено.** В скрипт добавлен тот же блок, что был у бэкендового
+`deploy-neeklo.sh`: переключение на ветку `NEEKLO_GIT_BRANCH` (по умолчанию
+`neeklo`) и `git pull`. Переменная общая у обоих скриптов — иначе два
+скрипта одного стенда собирали бы разный код.
+
+**Почему это чинили, а не выбросили.** Стенд жив: `neeklo.modelizmclub.ru`
+отвечает 200, каталог `/var/www/modelizmclub-neeklo` на месте. Проверено
+10.09.
+
+Ниже — как было записано 13.07.
+
+
+**Found:** 2026-07-13, while deploying a hotfix for a production crash on `/feed`.
+
+`deploy/scripts/deploy-neeklo-frontend.sh` builds and restarts the frontend
+from whatever is *currently checked out* on the server — it never runs
+`git pull`. Only `deploy/scripts/deploy-neeklo.sh` (the backend script) pulls.
+
+Consequence: running the frontend-only deploy script after pushing new
+frontend commits silently rebuilds the **old** code. The build succeeds,
+the service restarts, everything reports "OK" — but the live site doesn't
+change. This is easy to miss because there is no error; the deployed
+JS chunk hashes just don't change.
+
+**What happened concretely:** a hotfix commit was pushed, the frontend
+deploy script was run, it reported success, but the site kept crashing
+with the exact same error and the exact same JS chunk hash as before the
+fix. Only checking `git log -1` on the server (and comparing asset
+filenames) revealed the script had built stale code.
+
+**Suggested fix:** add a `git pull origin <branch>` step to
+`deploy-neeklo-frontend.sh` (mirroring what `deploy-neeklo.sh` already
+does), or document clearly that the backend script must always run first
+even for frontend-only changes.
+
+**Workaround until fixed:** always run `git -C /var/www/modelizmclub-neeklo
+pull origin neeklo` manually before invoking
+`deploy-neeklo-frontend.sh`, and verify by diffing `git log -1` before/after
+or checking that the built asset hash for a known-changed file actually
+changed.
+
+---
+
 ## Pre-deploy audit findings — 2026-07-14 (frontend)
 
 Собрано в аудит-проходе перед финальным деплоем. Ничего из этого не блокирует
