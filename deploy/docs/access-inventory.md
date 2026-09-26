@@ -224,6 +224,8 @@
 ```
 ~/.config/modelizmclub/qa-secrets.json     {"password": "…"}
 ~/.config/modelizmclub/qa-tokens.json      токены четырёх состояний
+                                           (1274, 1275, 1276 и 1207;
+                                            перевыдать — qa:seed-accounts)
 ```
 
 Оба с правами 600, на машине разработчика. Подробности и порядок
