@@ -273,9 +273,10 @@ function FeedPage() {
     : filter === "all";
   const needsCategoryPick = filter === "categories" && !activeCategory && !taxonomyFromUrl;
 
-  // "saved" and "categories" both read the "all" endpoint (saved is a viewer
-  // flag, not a server filter), so their cache entries are keyed apart by the
-  // key below rather than by the request.
+  // "categories" читает тот же адрес, что и "all", поэтому их записи в кеше
+  // разведены ключом ниже, а не запросом. «Сохранённое» с 27.09 ходит на
+  // собственный адрес закладок: прежний отбор по загруженной странице
+  // показывал лишь часть отложенного.
   const categoryKey = taxonomyFromUrl ? String(taxonomyFromUrl) : activeCategory;
   // Memoised: the key is a dependency of the cache writer below, and a fresh
   // array every render would re-run every effect that writes to the cache.
@@ -289,17 +290,19 @@ function FeedPage() {
       const base: FeedQuery =
         filter === "following"
           ? { filter: "following" }
-          : filter === "scheduled"
-            ? { filter: "scheduled" }
-            : filter === "categories" && (activeCategory || taxonomyFromUrl)
-              ? {
-                  filter: "category",
-                  categoryId:
-                    taxonomyFromUrl ??
-                    (activeCategory ? categoryIdByName(activeCategory) : undefined),
-                  categoryName: activeCategory ?? undefined,
-                }
-              : { filter: "all" };
+          : filter === "saved"
+            ? { filter: "saved" }
+            : filter === "scheduled"
+              ? { filter: "scheduled" }
+              : filter === "categories" && (activeCategory || taxonomyFromUrl)
+                ? {
+                    filter: "category",
+                    categoryId:
+                      taxonomyFromUrl ??
+                      (activeCategory ? categoryIdByName(activeCategory) : undefined),
+                    categoryName: activeCategory ?? undefined,
+                  }
+                : { filter: "all" };
       return { ...base, hashtag: tag, page, perPage: PAGE_SIZE };
     },
     [filter, activeCategory, taxonomyFromUrl, tag],
@@ -361,7 +364,9 @@ function FeedPage() {
 
   const filtered = useMemo(() => {
     const visiblePosts = posts.filter((p) => !hiddenIds.has(p.id));
-    if (filter === "saved") return visiblePosts.filter((p) => p.isSaved);
+    // «Сохранённое» приходит с сервера уже отобранным — фильтровать нечего.
+    // Прежняя строка отбирала по признаку `isSaved` среди загруженных, и
+    // отложенное вне первой страницы в список не попадало.
     return visiblePosts;
   }, [posts, filter, hiddenIds]);
 

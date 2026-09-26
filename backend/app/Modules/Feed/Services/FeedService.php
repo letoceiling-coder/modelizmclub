@@ -2,11 +2,13 @@
 
 namespace Modules\Feed\Services;
 
+use App\Enums\ContentStatus;
 use App\Models\Channel;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Modules\Catalog\Services\CategoryTaxonomyService;
 
 class FeedService
@@ -15,6 +17,47 @@ class FeedService
         private readonly PostService $posts,
         private readonly CategoryTaxonomyService $taxonomy,
     ) {}
+
+    /**
+     * Сохранённые записи — с сервера, а не отбором по загруженной странице.
+     *
+     * Закладки всегда хранились в `post_bookmarks`, но списка не было: вкладка
+     * «Сохранённое» брала общую ленту и отбирала из неё те, у которых поднят
+     * признак `viewer.bookmarked`. Приёмка 27.09 замерила последствие — в
+     * ленте 154 записи по 20 на страницу, значит на первом экране вкладка
+     * показывала сохранённое только из первых двадцати. Запись, сохранённая
+     * давно, не появлялась, пока человек не долистает до неё; запись, ушедшая
+     * из ленты, не появлялась никогда.
+     *
+     * Порядок — по времени сохранения, а не публикации: человек ищет то, что
+     * отложил последним, а не то, что свежее написано.
+     */
+    public function bookmarked(User $viewer, int $perPage = 20): LengthAwarePaginator
+    {
+        /*
+         * Без `join`: `visibleTo` пишет `status` и `user_id` без префикса
+         * таблицы, и соединение делает их неоднозначными — первая редакция
+         * падала с «column reference user_id is ambiguous». Отбор
+         * подзапросом, время сохранения — отдельной колонкой, чтобы по нему
+         * сортировать.
+         */
+        return Post::query()
+            ->with($this->posts->defaultRelations())
+            ->visibleTo($viewer)
+            ->whereIn('posts.id', function ($q) use ($viewer): void {
+                $q->select('post_id')
+                    ->from('post_bookmarks')
+                    ->where('user_id', $viewer->id);
+            })
+            ->addSelect(['bookmarked_at' => DB::table('post_bookmarks')
+                ->select('created_at')
+                ->whereColumn('post_bookmarks.post_id', 'posts.id')
+                ->where('post_bookmarks.user_id', $viewer->id)
+                ->limit(1),
+            ])
+            ->orderByDesc('bookmarked_at')
+            ->paginate($perPage);
+    }
 
     public function list(array $filters, ?User $viewer, int $perPage = 20): LengthAwarePaginator
     {
@@ -69,7 +112,7 @@ class FeedService
             }
 
             $query->where('user_id', $viewer->id)
-                ->where('status', \App\Enums\ContentStatus::Scheduled)
+                ->where('status', ContentStatus::Scheduled)
                 ->orderBy('scheduled_at');
         }
 
