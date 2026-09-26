@@ -109,7 +109,7 @@ export function SubmitPostSheet({ open, onOpenChange, communityName }: Props) {
                 height: 40,
                 padding: "0 20px",
                 borderRadius: 10,
-                background: "var(--accent)",
+                background: "var(--accent-fill)",
                 color: "white",
                 fontSize: 14,
               }}

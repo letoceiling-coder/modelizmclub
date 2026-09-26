@@ -871,7 +871,7 @@ function MyAdsPage() {
         className="fixed right-[20px] z-[var(--z-modal)] grid h-[56px] w-[56px] place-items-center md:hidden"
         style={{
           bottom: "calc(var(--bottom-nav-space) + 16px)",
-          background: "var(--accent)",
+          background: "var(--accent-fill)",
           color: "#fff",
           borderRadius: "var(--r-pill)",
           boxShadow: "var(--shadow-glow-accent), var(--shadow-float)",

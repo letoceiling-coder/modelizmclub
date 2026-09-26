@@ -245,7 +245,7 @@ function PreviewTile({
       {isMain && (
         <span
           className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
-          style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
+          style={{ background: "var(--accent-fill)", color: "#fff", borderRadius: "var(--r-pill)" }}
         >
           <Star size={9} fill="currentColor" /> {t("components.imageUploadGrid.mainBadge")}
         </span>
@@ -343,7 +343,7 @@ function DragOverlay({
       {isMain && (
         <span
           className="absolute left-[6px] top-[6px] inline-flex items-center gap-[3px] px-[8px] py-[3px] text-[10px] font-semibold uppercase"
-          style={{ background: "var(--accent)", color: "#fff", borderRadius: "var(--r-pill)" }}
+          style={{ background: "var(--accent-fill)", color: "#fff", borderRadius: "var(--r-pill)" }}
         >
           <Star size={9} fill="currentColor" /> {mainLabel}
         </span>

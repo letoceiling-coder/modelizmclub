@@ -72,7 +72,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, filterC
               className="absolute -right-[6px] -top-[6px] grid min-w-[18px] place-items-center rounded-full px-[5px] text-[10px] font-bold sm:static sm:min-w-[20px] sm:px-[6px] sm:text-[11px]"
               style={{
                 height: 18,
-                background: "var(--accent)",
+                background: "var(--accent-fill)",
                 color: "var(--accent-foreground)",
                 boxShadow: "0 0 0 2px var(--background)",
               }}

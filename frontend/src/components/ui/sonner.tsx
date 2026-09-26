@@ -23,7 +23,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           title:
             "group-[.toast]:text-[14px] group-[.toast]:font-semibold group-[.toast]:leading-[1.35]",
           description: "group-[.toast]:text-[13px] group-[.toast]:text-[var(--foreground-70)]",
-          actionButton: "group-[.toast]:bg-[var(--accent)] group-[.toast]:text-white",
+          actionButton: "group-[.toast]:bg-[var(--accent-fill)] group-[.toast]:text-white",
           cancelButton:
             "group-[.toast]:bg-[var(--background-surface)] group-[.toast]:text-[var(--foreground-70)]",
           // Sonner's default close button is a hardcoded white/gray circle —

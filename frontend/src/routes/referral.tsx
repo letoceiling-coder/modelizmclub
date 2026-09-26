@@ -52,7 +52,7 @@ function GuestCard() {
         <Link
           to="/register"
           className="inline-flex h-[44px] items-center justify-center rounded-[var(--r-pill)] px-[20px] text-[14px] font-semibold"
-          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+          style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
         >
           Создать аккаунт
         </Link>

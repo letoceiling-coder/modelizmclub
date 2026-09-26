@@ -184,7 +184,7 @@ export function BoostSheet({
           onClick={pay}
           disabled={paying}
           className="mt-[16px] inline-flex h-[48px] w-full items-center justify-center gap-[8px] rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
-          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+          style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
         >
           {paying && <Loader2 size={16} className="animate-spin" />}
           Оплатить

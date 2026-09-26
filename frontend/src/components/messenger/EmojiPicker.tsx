@@ -461,7 +461,7 @@ export function EmojiPicker({ onPick, align = "start", compact = false, onBefore
                 type="button"
                 onClick={() => setAttempt((n) => n + 1)}
                 className="h-8 rounded-[var(--r-button)] px-3 text-[13px] font-semibold"
-                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
               >
                 Повторить
               </button>

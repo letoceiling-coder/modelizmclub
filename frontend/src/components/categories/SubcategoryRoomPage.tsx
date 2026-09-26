@@ -1387,7 +1387,7 @@ function ChatTab({
             (!isDemoMode() && !conversationUuid)
           }
           className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[10px] transition-opacity disabled:opacity-40"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--accent-fill)", color: "#fff" }}
           aria-label={t("common.send")}
         >
           <Send className="h-[16px] w-[16px]" />
@@ -1528,7 +1528,7 @@ function AdsTab({ ads: subAds, subName }: { ads: Ad[]; subName: string }) {
           actionKey="layout.nav.ad_create"
           to="/ads/new"
           className="mt-[6px] inline-flex items-center rounded-[10px] px-[14px] py-[8px] text-[13px] font-semibold"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--accent-fill)", color: "#fff" }}
         >
           {t("pages.subcategoryDetail.postAd")}
         </GuestGuardLink>
@@ -1662,7 +1662,7 @@ function MembersTab({
                 type="button"
                 onClick={() => void openPrivateChat(u)}
                 className="shrink-0 rounded-[8px] px-[10px] py-[6px] text-[12px] font-medium transition-colors"
-                style={{ background: "var(--accent)", color: "#fff" }}
+                style={{ background: "var(--accent-fill)", color: "#fff" }}
               >
                 {t("pages.subcategoryDetail.writeMessage")}
               </button>

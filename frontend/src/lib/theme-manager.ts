@@ -72,6 +72,40 @@ function readableForeground(hex: string): string {
   return L > 0.45 ? "#0F1519" : "#FFFFFF";
 }
 
+/**
+ * Заливка, на которой текст `ink` проходит AA (4,5 для текста мельче 18,66 px).
+ *
+ * Свободный выбор цвета — путь для отладки, но и там заливка не должна
+ * оказываться светлее, чем читается. Затемняем шагами по 6% и берём первый
+ * годный; если не сошлось за десять шагов, отдаём последний — он всё равно
+ * контрастнее исходного.
+ */
+function accentFill(hex: string, ink: string): string {
+  let текущий = hex;
+
+  for (let шаг = 0; шаг < 10; шаг++) {
+    if (contrastRatio(текущий, ink) >= 4.5) return текущий;
+    текущий = mix(текущий, "black", 0.06);
+  }
+
+  return текущий;
+}
+
+function contrastRatio(a: string, b: string): number {
+  const L = (hex: string) => {
+    const { r, g, b: bb } = hexToRgb(hex);
+    const lin = (c: number) => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(bb);
+  };
+  const la = L(a);
+  const lb = L(b);
+
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
 export function generateVariations(baseHex: string): AccentSwatch[] {
   const lighter = [0.12, 0.24, 0.36, 0.5, 0.65].map((a, i) => ({
     id: `light-${i + 1}`,
@@ -128,6 +162,7 @@ export function applyAccent(hex: string) {
   const active = mix(hex, "black", 0.2);
   const fg = readableForeground(hex);
   root.style.setProperty("--accent", hex);
+  root.style.setProperty("--accent-fill", accentFill(hex, fg));
   root.style.setProperty("--accent-hover", hover);
   root.style.setProperty("--accent-active", active);
   root.style.setProperty("--accent-muted", active); // back-compat alias
@@ -151,6 +186,7 @@ export function applyAccentPreset(id: AccentPresetId) {
   const root = document.documentElement;
   root.setAttribute("data-accent", id);
   root.style.setProperty("--accent", p.primary);
+  root.style.setProperty("--accent-fill", p.fill);
   root.style.setProperty("--accent-hover", p.hover);
   root.style.setProperty("--accent-active", p.active);
   root.style.setProperty("--accent-muted", p.active); // back-compat alias

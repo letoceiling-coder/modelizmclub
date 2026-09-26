@@ -1681,7 +1681,7 @@ function ProfileAvatar({
                 disabled={uploading || pickingFile}
                 className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] md:h-[36px] md:w-[36px]"
                 style={{
-                  background: "var(--accent)",
+                  background: "var(--accent-fill)",
                   color: "#fff",
                   borderColor: "var(--background)",
                 }}

@@ -236,6 +236,13 @@
      runtime for the "menthol" preset. --accent-foreground is the text/icon
      color that sits on an accent fill (white for blue, dark ink for menthol). */
   --accent: #627fff;
+  /* Заливка под текстом --accent-foreground. Отдельно от --accent:
+     белый на #627fff даёт 3,50 при норме AA 4,5 для 14 px, а сам
+     --accent нужен светлым — он же цвет ссылок на тёмном фоне.
+     Замерено 26.09. Значение дублирует пресет blue в
+     src/lib/theme/accent-presets.ts: до гидрации переменные берутся
+     отсюда, после — оттуда. */
+  --accent-fill: #4b6ae0;
   --accent-hover: #4f66e8;
   --accent-active: #3f4fbf;
   --accent-soft: rgba(98, 127, 255, 0.14);
@@ -312,6 +319,13 @@
   --foreground-15: rgba(26, 26, 30, 0.1);
 
   --accent: #627fff;
+  /* Заливка под текстом --accent-foreground. Отдельно от --accent:
+     белый на #627fff даёт 3,50 при норме AA 4,5 для 14 px, а сам
+     --accent нужен светлым — он же цвет ссылок на тёмном фоне.
+     Замерено 26.09. Значение дублирует пресет blue в
+     src/lib/theme/accent-presets.ts: до гидрации переменные берутся
+     отсюда, после — оттуда. */
+  --accent-fill: #4b6ae0;
   --accent-hover: #4f66e8;
   --accent-active: #3f4fbf;
   --accent-soft: rgba(98, 127, 255, 0.1);

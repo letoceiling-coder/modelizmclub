@@ -6,7 +6,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const primaryClasses =
-  "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-button)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none";
+  "bg-[var(--accent-fill)] text-[var(--accent-foreground)] shadow-[var(--shadow-button)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--neutral-200)] disabled:text-[var(--neutral-400)] disabled:shadow-none";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-button)] text-sm font-medium cursor-pointer transition-[color,background-color,border-color,box-shadow,transform] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",

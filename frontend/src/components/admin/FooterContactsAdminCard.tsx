@@ -225,7 +225,7 @@ export function FooterContactsAdminCard({ cardStyle }: { cardStyle: CSSPropertie
           padding: "0 32px",
           fontSize: "14px",
           borderRadius: "var(--r-button)",
-          background: "var(--accent)",
+          background: "var(--accent-fill)",
           color: "var(--accent-foreground)",
           fontWeight: 600,
           opacity: saving || loading ? 0.7 : 1,

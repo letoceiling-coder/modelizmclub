@@ -173,7 +173,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
           style={{
             height: 36,
             borderRadius: "var(--r-pill)",
-            background: "var(--accent)",
+            background: "var(--accent-fill)",
             color: "#fff",
             border: "none",
           }}

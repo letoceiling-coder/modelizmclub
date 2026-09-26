@@ -55,7 +55,7 @@ export function InvitedFriendsSection() {
               height: 36,
               padding: "0 16px",
               borderRadius: 10,
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "white",
               fontSize: 13,
             }}

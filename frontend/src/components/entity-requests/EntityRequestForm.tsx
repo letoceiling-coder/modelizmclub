@@ -516,7 +516,7 @@ export function EntityRequestForm({ kind, onClose, onSubmitted }: Props) {
               onClick={submit}
               disabled={submitting}
               className="h-12 w-full rounded-[12px] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
             >
               {submitting ? "Отправляем…" : "Отправить заявку"}
             </button>

@@ -11,7 +11,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         // ТОП — filled accent (preset-aware text color)
-        top: "border-transparent bg-[var(--accent)] text-[var(--accent-foreground)]",
+        top: "border-transparent bg-[var(--accent-fill)] text-[var(--accent-foreground)]",
         // ТОП — outline accent
         "top-outline": "border-[var(--border-accent)] bg-transparent text-[var(--accent)]",
         // Активен — green
@@ -30,7 +30,7 @@ const badgeVariants = cva(
         // Черновик
         draft: "border-[var(--border)] bg-[var(--background-surface)] text-[var(--foreground-70)]",
         // shadcn-compat fallbacks (kept for existing call sites)
-        default: "border-transparent bg-[var(--accent)] text-[var(--accent-foreground)]",
+        default: "border-transparent bg-[var(--accent-fill)] text-[var(--accent-foreground)]",
         secondary: "border-transparent bg-[var(--background-surface)] text-[var(--foreground)]",
         destructive: "border-transparent bg-[var(--danger)] text-white",
         outline: "border-[var(--border)] text-[var(--foreground)]",

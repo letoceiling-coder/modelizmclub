@@ -217,7 +217,7 @@ function BestBadge() {
     <span
       className="z-10 block whitespace-nowrap rounded-full px-[8px] py-[2px] text-[9px] font-bold uppercase tracking-wide"
       style={{
-        background: "var(--accent)",
+        background: "var(--accent-fill)",
         color: "var(--accent-foreground)",
         boxShadow: "0 0 0 3px var(--background)",
         transform: "translateX(-50%) rotate(-3deg)",

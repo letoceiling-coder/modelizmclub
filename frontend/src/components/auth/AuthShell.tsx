@@ -173,7 +173,7 @@ export const inputStyle: React.CSSProperties = {
 
 export const primaryBtn: React.CSSProperties = {
   width: "100%",
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "#fff",
   fontWeight: 600,
   fontSize: "var(--fs-sm)",

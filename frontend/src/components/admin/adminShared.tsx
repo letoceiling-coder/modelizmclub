@@ -39,7 +39,7 @@ export const inputStyle: CSSProperties = {
   color: "var(--foreground)",
 };
 export const primaryBtn: CSSProperties = {
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "var(--accent-foreground)",
   fontWeight: 600,
   fontSize: "13px",

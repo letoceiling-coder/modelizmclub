@@ -212,7 +212,7 @@ function TopNav() {
               <Link
                 to="/feed"
                 className="hit-target inline-flex h-[34px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:px-[18px] sm:text-sm"
-                style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
+                style={{ background: "var(--accent-fill)", boxShadow: "var(--shadow-button)" }}
               >
                 {t("landing.nav.cabinet")}
                 <ArrowRight size={15} className="hidden shrink-0 sm:block" />
@@ -234,7 +234,7 @@ function TopNav() {
               <Link
                 to={enter.register}
                 className="hit-target landing-nav-cta-primary inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:px-[18px] sm:text-sm"
-                style={{ background: "var(--accent)", boxShadow: "var(--shadow-button)" }}
+                style={{ background: "var(--accent-fill)", boxShadow: "var(--shadow-button)" }}
               >
                 {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
                 <ArrowRight size={15} className="hidden shrink-0 sm:block" />
@@ -659,7 +659,7 @@ const ctaPrimary: React.CSSProperties = {
   justifyContent: "center",
   gap: 10,
   borderRadius: "var(--r-pill)",
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "var(--accent-foreground)",
   fontWeight: 700,
   border: "none",
@@ -1335,7 +1335,7 @@ function StepsTimeline() {
                     width: 54,
                     height: 54,
                     borderRadius: "var(--r-pill)",
-                    background: "var(--accent)",
+                    background: "var(--accent-fill)",
                     color: "var(--accent-foreground)",
                     boxShadow: "var(--shadow-button)",
                     zIndex: 1,
@@ -1410,7 +1410,7 @@ function PricingSection() {
             <Link
               to="/subscription"
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--r-pill)] text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
             >
               {t("landing.pricing.more")} <ArrowRight size={15} />
             </Link>
@@ -1420,7 +1420,7 @@ function PricingSection() {
               <Link
                 to="/subscription"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-[var(--r-pill)] px-6 text-sm font-semibold transition-opacity hover:opacity-90"
-                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
               >
                 {t("landing.pricing.more")} <ArrowRight size={15} />
               </Link>

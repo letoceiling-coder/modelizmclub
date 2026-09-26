@@ -426,7 +426,7 @@ function HelpPage() {
               style={{
                 height: "48px",
                 padding: "0 32px",
-                background: "var(--accent)",
+                background: "var(--accent-fill)",
                 color: "#fff",
                 fontWeight: 600,
                 fontSize: "15px",

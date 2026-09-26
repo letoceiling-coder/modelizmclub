@@ -669,7 +669,7 @@ const countPill: CSSProperties = {
   fontWeight: 700,
   padding: "1px 6px",
   borderRadius: "var(--r-pill)",
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "var(--accent-foreground)",
 };
 

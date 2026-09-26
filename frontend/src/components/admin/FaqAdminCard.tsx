@@ -42,7 +42,7 @@ const primaryBtn: CSSProperties = {
   height: "36px",
   padding: "0 14px",
   borderRadius: "var(--r-button)",
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "var(--accent-foreground)",
   fontSize: "13px",
   fontWeight: 600,

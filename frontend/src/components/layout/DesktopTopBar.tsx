@@ -77,7 +77,7 @@ export function DesktopTopBar() {
                   fontSize: 9,
                   fontWeight: 700,
                   color: "#fff",
-                  background: "var(--accent)",
+                  background: "var(--accent-fill)",
                   boxShadow: "0 0 0 2px var(--background)",
                 }}
               >
@@ -100,7 +100,7 @@ export function DesktopTopBar() {
                     fontSize: 9,
                     fontWeight: 700,
                     color: "#fff",
-                    background: "var(--accent)",
+                    background: "var(--accent-fill)",
                     boxShadow: "0 0 0 2px var(--background)",
                   }}
                 >
@@ -123,7 +123,7 @@ export function DesktopTopBar() {
                   fontSize: 9,
                   fontWeight: 700,
                   color: "#fff",
-                  background: "var(--accent)",
+                  background: "var(--accent-fill)",
                   boxShadow: "0 0 0 2px var(--background)",
                 }}
               >

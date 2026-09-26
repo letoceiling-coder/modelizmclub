@@ -233,7 +233,7 @@ export function MediaManagerCard() {
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 600,
-            background: "var(--accent)",
+            background: "var(--accent-fill)",
             color: "var(--accent-foreground)",
             opacity: uploading ? 0.6 : 1,
           }}

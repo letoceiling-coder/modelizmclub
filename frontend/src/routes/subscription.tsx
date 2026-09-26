@@ -525,7 +525,7 @@ function SubscriptionPage() {
                 }}
                 disabled={plan.price <= 0}
                 className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--r-pill)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
-                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
               >
                 {plan.price <= 0
                   ? t("pages.subscription.freePlan")
@@ -593,7 +593,7 @@ function SubscriptionPage() {
                   style={{
                     height: 40,
                     padding: "0 20px",
-                    background: "var(--accent)",
+                    background: "var(--accent-fill)",
                     color: "#fff",
                     fontWeight: 600,
                     fontSize: 13,

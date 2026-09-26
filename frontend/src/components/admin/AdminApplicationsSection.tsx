@@ -226,7 +226,7 @@ export function ApplicationsSection() {
                       borderRadius: "9px",
                       fontSize: "13px",
                       fontWeight: 600,
-                      background: "var(--accent)",
+                      background: "var(--accent-fill)",
                       color: "var(--accent-foreground)",
                       border: "none",
                     }}

@@ -38,7 +38,7 @@ export function GroupCallScreen() {
             style={{
               top: "max(12px, env(safe-area-inset-top))",
               right: 12,
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "white",
               boxShadow: "0 8px 24px -6px rgba(0,0,0,0.5)",
             }}

@@ -403,7 +403,7 @@ export function GroupCallInviteDialog() {
                 onClick={confirm}
                 className="flex-1 rounded-[10px] py-[11px] text-center text-[14px] font-semibold transition-opacity"
                 style={{
-                  background: "var(--accent)",
+                  background: "var(--accent-fill)",
                   color: "white",
                   opacity: selected.size === 0 ? 0.5 : 1,
                 }}
