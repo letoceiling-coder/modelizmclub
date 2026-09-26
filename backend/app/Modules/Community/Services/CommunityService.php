@@ -5,6 +5,7 @@ namespace Modules\Community\Services;
 use App\Enums\CommunityApplicationStatus;
 use App\Enums\CommunityMemberRole;
 use App\Enums\CommunityStatus;
+use App\Enums\UserStatus;
 use App\Models\Community;
 use App\Models\CommunityApplication;
 use App\Models\CommunityCategory;
@@ -304,6 +305,10 @@ class CommunityService
         $this->assertActiveCommunity($community);
 
         return $community->members()
+            // Заблокированных и удалённых в списке не показываем — там же, где
+            // и в комнатах направлений. Строки участия остаются: обезличивание
+            // обратимо, и восстановленная учётка вернётся сама.
+            ->whereNotIn('users.status', [UserStatus::Blocked->value, UserStatus::Deleted->value])
             ->with(['profile.avatar', 'profile.city'])
             ->orderByRaw("case community_members.role when 'owner' then 0 when 'moderator' then 1 else 2 end")
             ->orderByDesc('community_members.joined_at')

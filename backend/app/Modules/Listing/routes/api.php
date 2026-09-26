@@ -47,11 +47,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::patch('listings/{uuid}', UpdateListingController::class);
     Route::delete('listings/{uuid}', DestroyListingController::class);
     Route::post('listings/{uuid}/restore', RestoreListingController::class)->where('uuid', '[0-9a-f-]{36}');
-    // Номер отдаётся по одному запросу — см. лимитер reveal-phone
-    // в AppServiceProvider: собрать каталог иначе это цикл по списку.
-    Route::middleware('throttle:reveal-phone')
-        ->post('listings/{uuid}/reveal-phone', RevealPhoneController::class)
-        ->where('uuid', '[0-9a-f-]{36}');
+    Route::post('listings/{uuid}/reveal-phone', RevealPhoneController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::put('listings/{uuid}/phone-visibility', ListingPhoneVisibilityController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/promote', PromoteListingController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/publish', [ListingStatusController::class, 'publish']);
