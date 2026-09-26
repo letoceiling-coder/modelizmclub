@@ -80,7 +80,7 @@ function readableForeground(hex: string): string {
  * годный; если не сошлось за десять шагов, отдаём последний — он всё равно
  * контрастнее исходного.
  */
-function accentFill(hex: string, ink: string): string {
+export function accentFill(hex: string, ink: string): string {
   let текущий = hex;
 
   for (let шаг = 0; шаг < 10; шаг++) {
@@ -91,7 +91,7 @@ function accentFill(hex: string, ink: string): string {
   return текущий;
 }
 
-function contrastRatio(a: string, b: string): number {
+export function contrastRatio(a: string, b: string): number {
   const L = (hex: string) => {
     const { r, g, b: bb } = hexToRgb(hex);
     const lin = (c: number) => {
@@ -158,11 +158,18 @@ export function saveTheme(state: ThemeState) {
 export function applyAccent(hex: string) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  const hover = mix(hex, "white", 0.12);
-  const active = mix(hex, "black", 0.2);
   const fg = readableForeground(hex);
+  const fill = accentFill(hex, fg);
+  /*
+   * Наведение считается от заливки, а не от исходного цвета, и тоже
+   * доводится до AA. Прежнее `mix(hex, "white", 0.12)` делало цвет светлее
+   * исходного: та же кнопка рисует им свой hover, и при заливке 4,86
+   * наведение давало 2,97. Само затемнение заливки этого не покрывало.
+   */
+  const hover = accentFill(mix(fill, "white", 0.12), fg);
+  const active = mix(fill, "black", 0.2);
   root.style.setProperty("--accent", hex);
-  root.style.setProperty("--accent-fill", accentFill(hex, fg));
+  root.style.setProperty("--accent-fill", fill);
   root.style.setProperty("--accent-hover", hover);
   root.style.setProperty("--accent-active", active);
   root.style.setProperty("--accent-muted", active); // back-compat alias

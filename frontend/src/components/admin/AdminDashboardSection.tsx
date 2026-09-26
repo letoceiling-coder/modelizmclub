@@ -219,7 +219,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
                       transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
                       style={{
                         width: "36px",
-                        background: "var(--accent)",
+                        background: "var(--accent-fill)",
                         borderRadius: "4px 4px 0 0",
                         minHeight: "4px",
                       }}

@@ -41,8 +41,13 @@
   --color-card-foreground: var(--foreground);
   --color-popover: var(--background-elevated);
   --color-popover-foreground: var(--foreground);
-  --color-primary: var(--accent);
-  --color-primary-foreground: #ffffff;
+  /* `bg-primary text-primary-foreground` — по определению заливка под
+     текстом, значит заливочный токен, а не --accent: тот светлый, он цвет
+     ссылок. Так покрыты подсказки и кнопки страниц ошибок.
+     Цвет текста тоже через токен: жёсткий #ffffff на пресете «ментол» давал
+     2,05 — ментольная заливка светлая, на ней стоят тёмные чернила. */
+  --color-primary: var(--accent-fill);
+  --color-primary-foreground: var(--accent-foreground);
   --color-secondary: var(--background-surface);
   --color-secondary-foreground: var(--foreground);
   --color-muted: var(--background-surface);

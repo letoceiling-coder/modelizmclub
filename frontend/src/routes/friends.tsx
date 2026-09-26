@@ -560,7 +560,7 @@ function FriendsPage() {
             })}
             <m.div
               className="absolute bottom-0 h-[3px]"
-              style={{ background: "var(--accent)", borderRadius: "3px 3px 0 0" }}
+              style={{ background: "var(--accent-fill)", borderRadius: "3px 3px 0 0" }}
               animate={{ x: indicator.x, width: indicator.w }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             />

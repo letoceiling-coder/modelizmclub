@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { ACCENT_PRESET_LIST } from "./accent-presets";
+import { accentFill, contrastRatio as contrastFromManager } from "@/lib/theme-manager";
+
+import { ACCENT_PRESET_LIST, ACCENT_PRESETS } from "./accent-presets";
 
 /**
  * Текст на заливке акцента должен проходить WCAG AA.
@@ -18,7 +21,9 @@ import { ACCENT_PRESET_LIST } from "./accent-presets";
 function relativeLuminance(hex: string): number {
   const clean = hex.replace("#", "");
   const channels = [0, 2, 4].map((i) => parseInt(clean.slice(i, i + 2), 16) / 255);
-  const linear = channels.map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+  const linear = channels.map((c) =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4),
+  );
 
   return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
 }
@@ -78,4 +83,46 @@ describe("контраст пресетов акцента", () => {
       ).toBeGreaterThanOrEqual(4.5);
     },
   );
+
+  /**
+   * Статическое умолчание в styles.css должно совпадать с пресетом blue.
+   *
+   * Значение продублировано: до гидрации переменные берутся из CSS, после —
+   * из пресета через theme-manager. Расхождение даст перекраску кнопок на
+   * первом же кадре, и заметить её можно только глазами. Правило, за которым
+   * никто не следит, — не правило; поэтому следит тест. Найдено ревью 26.09.
+   */
+  it("умолчание в styles.css совпадает с пресетом blue", () => {
+    const css = readFileSync(new URL("../../styles.css", import.meta.url), "utf8");
+    const значения = [...css.matchAll(/--accent-fill:\s*(#[0-9a-fA-F]{6})/g)].map((m) =>
+      m[1].toLowerCase(),
+    );
+
+    expect(значения.length, "--accent-fill должен быть объявлен в обеих темах").toBe(2);
+
+    for (const значение of значения) {
+      expect(значение).toBe(ACCENT_PRESETS.blue.fill.toLowerCase());
+    }
+  });
+
+  /**
+   * Свободный выбор цвета — путь отладки, но заливка и там обязана читаться.
+   * Проверяются края: очень светлый цвет, очень тёмный и уже годный.
+   */
+  it.each([
+    ["светлый", "#00BAED"],
+    ["почти белый", "#FAFAFA"],
+    ["уже годный", "#3F4FBF"],
+    ["чёрный", "#000000"],
+  ])("свободный цвет (%s): заливка доводится до AA", (_имя, hex) => {
+    const ink =
+      contrastFromManager(hex, "#FFFFFF") > contrastFromManager(hex, "#0F1519")
+        ? "#FFFFFF"
+        : "#0F1519";
+    const fill = accentFill(hex, ink);
+
+    expect(contrastFromManager(fill, ink), `${ink} на ${fill} (из ${hex})`).toBeGreaterThanOrEqual(
+      4.5,
+    );
+  });
 });

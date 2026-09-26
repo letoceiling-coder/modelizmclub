@@ -112,7 +112,7 @@ function NotificationItem({
       {!n.read && (
         <span
           className="mt-[6px] h-[8px] w-[8px] shrink-0 rounded-full group-hover:hidden"
-          style={{ background: "var(--accent)" }}
+          style={{ background: "var(--accent-fill)" }}
         />
       )}
       <button

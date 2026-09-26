@@ -75,7 +75,7 @@ export function ConfirmCallDialog({ open, peerId, onCancel, onConfirm }: Props) 
                   type="button"
                   onClick={() => onConfirm("audio")}
                   className="inline-flex h-[44px] flex-1 items-center justify-center gap-[6px] rounded-[10px] text-[14px] font-semibold text-white transition-transform active:scale-[0.98]"
-                  style={{ background: "var(--accent)" }}
+                  style={{ background: "var(--accent-fill)" }}
                 >
                   <Phone size={16} />
                   {t("components.confirmCall.audio")}

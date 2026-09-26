@@ -198,7 +198,7 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
           style={{
             height: 36,
             padding: "0 14px",
-            background: copied ? "var(--success)" : "var(--accent)",
+            background: copied ? "var(--success)" : "var(--accent-fill)",
             color: "#fff",
             fontWeight: 600,
             fontSize: 13,

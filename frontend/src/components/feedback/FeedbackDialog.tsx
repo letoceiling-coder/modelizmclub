@@ -103,7 +103,7 @@ export function FeedbackForm({ onSent }: { onSent?: () => void }) {
           type="submit"
           disabled={sending || !consentPd}
           className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          style={{ background: "var(--accent)" }}
+          style={{ background: "var(--accent-fill)" }}
         >
           {sending ? "Отправка…" : "Отправить"}
         </button>

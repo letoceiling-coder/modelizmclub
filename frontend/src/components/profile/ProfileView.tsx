@@ -723,7 +723,9 @@ export function ProfileView({
                               height: 32,
                               padding: "0 14px",
                               borderRadius: "var(--r-pill)",
-                              background: active ? "var(--accent)" : "var(--background-surface)",
+                              background: active
+                                ? "var(--accent-fill)"
+                                : "var(--background-surface)",
                               color: active ? "#fff" : "var(--foreground-70)",
                               fontWeight: active ? 600 : 500,
                               border: active
@@ -1142,7 +1144,7 @@ function ProfileReviewsTab({ numericUserId, isOwn }: { numericUserId?: number; i
               height: 32,
               padding: "0 14px",
               borderRadius: "var(--r-pill)",
-              background: sort === key ? "var(--accent)" : "var(--background-surface)",
+              background: sort === key ? "var(--accent-fill)" : "var(--background-surface)",
               color: sort === key ? "#fff" : "var(--foreground-70)",
               fontWeight: sort === key ? 600 : 500,
               border: `1px solid ${sort === key ? "var(--accent)" : "var(--border)"}`,

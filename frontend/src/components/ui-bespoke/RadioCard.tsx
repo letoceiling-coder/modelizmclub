@@ -54,7 +54,7 @@ export function RadioCard({ selected, onClick, icon: Icon, title, description, c
           selected ? "border-[var(--accent)]" : "border-[var(--border-strong)]",
         )}
       >
-        {selected && <div className="h-[8px] w-[8px] rounded-full bg-[var(--accent)]" />}
+        {selected && <div className="h-[8px] w-[8px] rounded-full bg-[var(--accent-fill)]" />}
       </div>
     </button>
   );

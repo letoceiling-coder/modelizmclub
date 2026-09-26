@@ -321,7 +321,7 @@ export function VoiceRecorder({ onSend }: { onSend: (blob: Blob, durationSec: nu
                   }}
                   className="h-[4px] min-w-[2px] flex-1 rounded-[2px]"
                   style={{
-                    background: cancelReady ? "var(--error, #e11d48)" : "var(--accent)",
+                    background: cancelReady ? "var(--error, #e11d48)" : "var(--accent-fill)",
                     transition: "height 90ms linear, background 120ms ease",
                   }}
                 />

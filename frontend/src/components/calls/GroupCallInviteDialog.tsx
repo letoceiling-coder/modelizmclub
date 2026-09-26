@@ -252,7 +252,7 @@ export function GroupCallInviteDialog() {
                   onClick={() => setTab(tabKey)}
                   className="rounded-full px-[12px] py-[5px] text-[12px] font-medium transition-colors"
                   style={{
-                    background: tab === tabKey ? "var(--accent)" : "var(--background-surface)",
+                    background: tab === tabKey ? "var(--accent-fill)" : "var(--background-surface)",
                     color: tab === tabKey ? "white" : "var(--foreground-70)",
                   }}
                 >
@@ -348,7 +348,7 @@ export function GroupCallInviteDialog() {
                       <span
                         className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full"
                         style={{
-                          background: checked ? "var(--accent)" : "transparent",
+                          background: checked ? "var(--accent-fill)" : "transparent",
                           border: checked ? "none" : "2px solid var(--border)",
                           color: "white",
                         }}
@@ -376,7 +376,7 @@ export function GroupCallInviteDialog() {
                     onClick={() => setMedia("video")}
                     className="grid h-[30px] w-[34px] place-items-center rounded-full"
                     style={{
-                      background: media === "video" ? "var(--accent)" : "transparent",
+                      background: media === "video" ? "var(--accent-fill)" : "transparent",
                       color: media === "video" ? "white" : "var(--foreground-50)",
                     }}
                     aria-label={t("components.groupCall.video")}
@@ -388,7 +388,7 @@ export function GroupCallInviteDialog() {
                     onClick={() => setMedia("audio")}
                     className="grid h-[30px] w-[34px] place-items-center rounded-full"
                     style={{
-                      background: media === "audio" ? "var(--accent)" : "transparent",
+                      background: media === "audio" ? "var(--accent-fill)" : "transparent",
                       color: media === "audio" ? "white" : "var(--foreground-50)",
                     }}
                     aria-label={t("components.groupCall.audioOnly")}

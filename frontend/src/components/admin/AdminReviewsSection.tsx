@@ -286,7 +286,7 @@ export function ReviewsSection({
               fontWeight: 600,
               borderRadius: "var(--r-button)",
               border: "1px solid var(--border)",
-              background: subTab === id ? "var(--accent)" : "transparent",
+              background: subTab === id ? "var(--accent-fill)" : "transparent",
               color: subTab === id ? "var(--accent-foreground)" : "var(--foreground-70)",
             }}
           >

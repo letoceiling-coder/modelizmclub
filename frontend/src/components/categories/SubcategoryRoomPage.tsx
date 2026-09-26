@@ -1018,7 +1018,7 @@ function ChatTab({
               aria-pressed={caseSensitive}
               className="shrink-0 rounded-[6px] px-[5px] py-[2px] text-[10px] font-bold transition-colors"
               style={{
-                background: caseSensitive ? "var(--accent)" : "var(--background-elevated)",
+                background: caseSensitive ? "var(--accent-fill)" : "var(--background-elevated)",
                 color: caseSensitive ? "#fff" : "var(--foreground-50)",
               }}
               title={t("pages.subcategoryDetail.matchCase")}
@@ -1031,7 +1031,7 @@ function ChatTab({
               aria-pressed={exactMatch}
               className="shrink-0 rounded-[6px] px-[5px] py-[2px] text-[10px] font-bold transition-colors"
               style={{
-                background: exactMatch ? "var(--accent)" : "var(--background-elevated)",
+                background: exactMatch ? "var(--accent-fill)" : "var(--background-elevated)",
                 color: exactMatch ? "#fff" : "var(--foreground-50)",
               }}
               title={t("pages.subcategoryDetail.exactMatch")}
@@ -1140,7 +1140,7 @@ function ChatTab({
                   <div
                     className="group relative rounded-[12px] px-[12px] py-[8px] text-[14px] leading-[1.4] transition-shadow"
                     style={{
-                      background: mine ? "var(--accent)" : "var(--background-surface)",
+                      background: mine ? "var(--accent-fill)" : "var(--background-surface)",
                       color: mine ? "#fff" : "var(--foreground)",
                       boxShadow: isActive ? "0 0 0 2px #f59e0b" : "none",
                     }}

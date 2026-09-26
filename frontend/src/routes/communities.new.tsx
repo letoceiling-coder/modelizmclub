@@ -236,7 +236,7 @@ function CommunityWizard({ onCancel }: { onCancel: () => void }) {
             type="button"
             onClick={() => setStep(i)}
             className="h-[6px] flex-1 rounded-full"
-            style={{ background: i <= step ? "var(--accent)" : "var(--border)" }}
+            style={{ background: i <= step ? "var(--accent-fill)" : "var(--border)" }}
             aria-label={t("pages.communityWizard.stepAria", { n: i + 1 })}
           />
         ))}

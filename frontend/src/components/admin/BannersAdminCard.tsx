@@ -810,6 +810,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                     <button
                       type="button"
                       onClick={() => removeBanner(b.id)}
+                      aria-label="Удалить баннер"
                       style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }}
                     >
                       <Trash2 size={14} />

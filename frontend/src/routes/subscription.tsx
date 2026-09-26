@@ -505,7 +505,7 @@ function SubscriptionPage() {
                   style={{
                     height: "100%",
                     width: `${Math.min(100, Math.max(0, (daysLeft / totalDays) * 100))}%`,
-                    background: "var(--accent)",
+                    background: "var(--accent-fill)",
                     borderRadius: 3,
                   }}
                 />
@@ -600,7 +600,7 @@ function SubscriptionPage() {
                     borderRadius: "var(--r-button)",
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent-fill)")}
                 >
                   {t("pages.subscription.oneTimeCta")}
                 </button>

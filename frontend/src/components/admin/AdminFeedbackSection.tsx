@@ -118,7 +118,7 @@ export function FeedbackSection() {
               fontWeight: 600,
               borderRadius: "var(--r-button)",
               border: "1px solid var(--border)",
-              background: filter === f.id ? "var(--accent)" : "transparent",
+              background: filter === f.id ? "var(--accent-fill)" : "transparent",
               color: filter === f.id ? "var(--accent-foreground)" : "var(--foreground-70)",
             }}
           >

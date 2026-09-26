@@ -722,7 +722,7 @@ const MessageBubble = memo(function MessageBubble({
         <div
           className="px-[12px] py-[8px] transition-shadow duration-300"
           style={{
-            background: isMe ? "var(--accent)" : "var(--background-surface)",
+            background: isMe ? "var(--accent-fill)" : "var(--background-surface)",
             color: isMe ? "white" : "var(--foreground)",
             borderRadius: radius,
             boxShadow: isSearchHit

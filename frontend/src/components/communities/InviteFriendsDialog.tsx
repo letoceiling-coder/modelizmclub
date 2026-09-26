@@ -150,7 +150,7 @@ export function InviteFriendsDialog({ open, onOpenChange, slug, communityName }:
                       className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border"
                       style={{
                         borderColor: on ? "var(--accent)" : "var(--border)",
-                        background: on ? "var(--accent)" : "transparent",
+                        background: on ? "var(--accent-fill)" : "transparent",
                       }}
                     >
                       {on && <Check size={14} style={{ color: "#fff" }} />}

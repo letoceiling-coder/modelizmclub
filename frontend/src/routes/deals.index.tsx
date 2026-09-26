@@ -107,7 +107,7 @@ function PillGroup<T extends string>({
           onClick={() => onChange(o.key)}
           className="rounded-[var(--r-pill)] px-[14px] py-[8px] text-[14px] font-semibold transition-colors"
           style={{
-            background: value === o.key ? "var(--accent)" : "transparent",
+            background: value === o.key ? "var(--accent-fill)" : "transparent",
             color: value === o.key ? "var(--accent-foreground)" : "var(--foreground-70)",
           }}
         >

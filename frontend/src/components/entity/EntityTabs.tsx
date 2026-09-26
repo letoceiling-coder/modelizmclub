@@ -116,7 +116,7 @@ export function EntityTabs<K extends string>({
               <m.span
                 layoutId={layoutId}
                 className="absolute bottom-[-1px] left-0 right-0"
-                style={{ height: 2, background: "var(--accent)" }}
+                style={{ height: 2, background: "var(--accent-fill)" }}
               />
             )}
           </button>

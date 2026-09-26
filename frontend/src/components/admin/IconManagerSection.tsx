@@ -645,6 +645,7 @@ export function IconManagerSection() {
                 type="button"
                 disabled={uploading}
                 onClick={() => fileRef.current?.click()}
+                aria-label="Загрузить значок"
                 style={{
                   width: 48,
                   height: 48,

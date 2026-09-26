@@ -114,7 +114,7 @@ export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTe
                 onClick={() => setTermId(p.id)}
                 className="hit-target relative flex min-h-[44px] items-center justify-center rounded-[var(--r-pill)] px-[6px] text-[14px] font-semibold transition-colors"
                 style={{
-                  background: active ? "var(--accent)" : "transparent",
+                  background: active ? "var(--accent-fill)" : "transparent",
                   color: active ? "var(--accent-foreground)" : "var(--foreground-70)",
                 }}
               >

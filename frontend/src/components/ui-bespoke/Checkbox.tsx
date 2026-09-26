@@ -29,7 +29,7 @@ export function Checkbox({ checked, onChange, label }: Props) {
       <span
         className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] border-[1.5px] text-white transition-colors"
         style={{
-          background: checked ? "var(--accent)" : "transparent",
+          background: checked ? "var(--accent-fill)" : "transparent",
           borderColor: checked ? "var(--accent)" : "var(--border-strong)",
         }}
       >

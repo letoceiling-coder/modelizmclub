@@ -53,7 +53,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
       <div className="flex items-start gap-[12px] px-[16px] pt-[14px]">
         <div
           className="grid h-[40px] w-[40px] shrink-0 place-items-center text-[13px] font-bold text-white"
-          style={{ background: "var(--accent)", borderRadius: 12 }}
+          style={{ background: "var(--accent-fill)", borderRadius: 12 }}
           aria-hidden
         >
           AD
@@ -178,7 +178,7 @@ export function SponsoredPostCard({ banner, onDismiss }: Props) {
             border: "none",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent-fill)")}
         >
           {banner.cta}
           <ExternalLink size={14} />

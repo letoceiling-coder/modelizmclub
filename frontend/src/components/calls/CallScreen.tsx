@@ -480,7 +480,7 @@ function PeerAvatar({ avatar, name, initial }: { avatar?: string; name: string; 
     <div
       className="relative grid h-[120px] w-[120px] sm:h-[160px] sm:w-[160px] place-items-center rounded-full font-display text-[44px] sm:text-[56px] font-bold text-white"
       style={{
-        background: "var(--accent)",
+        background: "var(--accent-fill)",
         boxShadow: "0 12px 40px -8px rgba(0,0,0,0.45)",
         border: "4px solid var(--background-elevated)",
       }}
