@@ -15,13 +15,6 @@ class MtsMarketologSmsClient implements SmsSender
 {
     public function send(string $phone, string $text): array
     {
-        $driver = (string) config('sms.driver', 'iqsms');
-        if ($driver === 'log') {
-            Log::info('SMS (log driver)', ['phone' => $phone, 'text' => $text]);
-
-            return ['status' => 'logged'];
-        }
-
         $auth = (string) config('sms.mts.auth', 'basic');
         if ($auth === 'token') {
             return $this->sendWithToken($phone, $text);

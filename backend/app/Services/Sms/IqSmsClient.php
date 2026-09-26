@@ -17,14 +17,6 @@ class IqSmsClient implements SmsSender
 
     public function send(string $phone, string $text): array
     {
-        $driver = (string) config('sms.driver', 'iqsms');
-
-        if ($driver === 'log') {
-            Log::info('SMS (log driver)', ['phone' => $phone, 'text' => $text]);
-
-            return ['status' => 'logged'];
-        }
-
         $login = (string) config('sms.iqsms.login');
         $password = (string) config('sms.iqsms.password');
         $sender = (string) config('sms.iqsms.sender');
