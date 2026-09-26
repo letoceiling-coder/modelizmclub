@@ -71,7 +71,7 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
     height: 36,
     padding: "0 16px",
     borderRadius: 8,
-    background: "var(--accent)",
+    background: "var(--accent-fill)",
     color: "#fff",
     fontWeight: 600,
     fontSize: 13,

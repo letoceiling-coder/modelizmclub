@@ -70,7 +70,7 @@ export function FeedFilterTabs({ value, onChange }: Props) {
                   : "font-medium text-[var(--foreground-70)] hover:border-[color-mix(in_oklab,var(--border)_70%,var(--foreground)_30%)] hover:bg-[var(--background-surface-hover)]",
               )}
               style={{
-                background: active ? "var(--accent)" : "var(--background-surface)",
+                background: active ? "var(--accent-fill)" : "var(--background-surface)",
                 borderColor: active ? "var(--accent)" : "var(--border)",
                 boxShadow: active ? "var(--shadow-button)" : undefined,
               }}

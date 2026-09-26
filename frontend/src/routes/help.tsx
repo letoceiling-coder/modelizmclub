@@ -199,7 +199,7 @@ function HelpPage() {
                   fontSize: "13px",
                   fontWeight: active ? 600 : 500,
                   color: active ? "#fff" : "var(--foreground-70)",
-                  background: active ? "var(--accent)" : "transparent",
+                  background: active ? "var(--accent-fill)" : "transparent",
                   borderRadius: "var(--r-pill)",
                   whiteSpace: "nowrap",
                   transition: "background 150ms ease, color 150ms ease",
@@ -426,7 +426,7 @@ function HelpPage() {
               style={{
                 height: "48px",
                 padding: "0 32px",
-                background: "var(--accent)",
+                background: "var(--accent-fill)",
                 color: "#fff",
                 fontWeight: 600,
                 fontSize: "15px",
@@ -436,7 +436,7 @@ function HelpPage() {
                 transition: "background 200ms ease",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent-fill)")}
             >
               {sending ? t("pages.help.sending", "Отправка…") : t("pages.help.send")}
             </button>

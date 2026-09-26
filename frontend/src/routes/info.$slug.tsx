@@ -23,7 +23,7 @@ function InfoFeedback() {
         type="button"
         onClick={() => requireLogin(() => undefined)}
         className="rounded-lg px-4 py-2 text-sm font-medium text-white"
-        style={{ background: "var(--accent)" }}
+        style={{ background: "var(--accent-fill)" }}
       >
         Войти и написать
       </button>

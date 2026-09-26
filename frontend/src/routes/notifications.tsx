@@ -112,7 +112,7 @@ function NotificationItem({
       {!n.read && (
         <span
           className="mt-[6px] h-[8px] w-[8px] shrink-0 rounded-full group-hover:hidden"
-          style={{ background: "var(--accent)" }}
+          style={{ background: "var(--accent-fill)" }}
         />
       )}
       <button
@@ -315,7 +315,7 @@ function NotificationsPage() {
               <span
                 className="inline-flex h-[22px] min-w-[22px] items-center justify-center px-[6px] text-[11px] font-bold"
                 style={{
-                  background: "var(--accent)",
+                  background: "var(--accent-fill)",
                   color: "white",
                   borderRadius: "var(--r-pill)",
                 }}

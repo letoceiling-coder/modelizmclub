@@ -86,7 +86,7 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
     return (
       <div
         className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full text-[13px] font-bold text-white"
-        style={{ background: "var(--accent)" }}
+        style={{ background: "var(--accent-fill)" }}
         aria-label={name}
       >
         {initials}
@@ -489,7 +489,7 @@ function WatchPageInner() {
                 >
                   <span
                     className="grid h-[64px] w-[64px] place-items-center rounded-full"
-                    style={{ background: "var(--accent)" }}
+                    style={{ background: "var(--accent-fill)" }}
                   >
                     <Play size={28} fill="#fff" color="#fff" />
                   </span>

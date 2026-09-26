@@ -198,7 +198,7 @@ function ComposerActions({
                 "grid h-[36px] w-[36px] shrink-0 cursor-pointer place-items-center rounded-full transition-opacity hover:opacity-90 disabled:pointer-events-none",
               )}
               style={{
-                background: "var(--accent)",
+                background: "var(--accent-fill)",
                 color: "var(--accent-foreground)",
                 pointerEvents: showSend ? "auto" : "none",
               }}
@@ -225,7 +225,7 @@ function ComposerActions({
             {attachmentCount > 0 && (
               <span
                 className="absolute -right-0.5 -top-0.5 grid min-h-[16px] min-w-[16px] place-items-center rounded-full px-[4px] text-[10px] font-bold leading-none"
-                style={{ background: "var(--accent)", color: "#fff" }}
+                style={{ background: "var(--accent-fill)", color: "#fff" }}
               >
                 {attachmentCount}
               </span>

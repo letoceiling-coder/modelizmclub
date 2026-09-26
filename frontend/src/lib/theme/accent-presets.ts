@@ -10,8 +10,22 @@ export type AccentPresetId = "blue" | "menthol";
 export interface AccentPreset {
   id: AccentPresetId;
   label: string;
-  /** primary accent — CTAs, active states, links, focus */
+  /** primary accent — links, focus, borders, active states, tints */
   primary: string;
+  /**
+   * Заливка, на которой стоит текст цвета `foreground`.
+   *
+   * Отдельно от `primary`, потому что требования противоположны: текст
+   * ссылки должен отличаться от фона страницы, а текст на заливке — от
+   * самой заливки. Один цвет оба требования не выполняет.
+   *
+   * Замерено 26.09: белый на `#627FFF` даёт 3,50 при норме AA 4,5 для
+   * текста мельче 18,66 px. Текст кнопки — `text-sm`, то есть 14 px, так
+   * что послабление для крупного текста не применяется. Состояния hover
+   * и active проходили и раньше (4,77 и 6,81) — не дотягивало только
+   * состояние покоя.
+   */
+  fill: string;
   hover: string;
   active: string;
   /** rgba tints */
@@ -29,6 +43,8 @@ export const ACCENT_PRESETS: Record<AccentPresetId, AccentPreset> = {
     id: "blue",
     label: "Blue",
     primary: "#627FFF",
+    // на полтона темнее primary: белый на ней даёт 4,73
+    fill: "#4B6AE0",
     hover: "#4F66E8",
     active: "#3F4FBF",
     soft: "rgba(98, 127, 255, 0.14)",
@@ -41,6 +57,8 @@ export const ACCENT_PRESETS: Record<AccentPresetId, AccentPreset> = {
     id: "menthol",
     label: "Menthol",
     primary: "#69C6AB",
+    // ментол светлый, на нём стоят тёмные чернила — 8,99, менять нечего
+    fill: "#69C6AB",
     hover: "#55B79C",
     active: "#3F9B85",
     soft: "rgba(105, 198, 171, 0.14)",

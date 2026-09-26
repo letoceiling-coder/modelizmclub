@@ -547,7 +547,7 @@ function AdminPage() {
                 fontWeight: 500,
                 padding: "8px 16px",
                 borderRadius: "var(--r-card-sm)",
-                background: "var(--accent)",
+                background: "var(--accent-fill)",
                 color: "var(--accent-foreground)",
               }}
             >

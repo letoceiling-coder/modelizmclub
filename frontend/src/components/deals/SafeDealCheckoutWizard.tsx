@@ -332,7 +332,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
                 key={s}
                 className="rounded-full px-[10px] py-[4px]"
                 style={{
-                  background: step === s ? "var(--accent)" : "var(--background-surface)",
+                  background: step === s ? "var(--accent-fill)" : "var(--background-surface)",
                   color: step === s ? "var(--accent-foreground)" : "var(--foreground-50)",
                 }}
               >

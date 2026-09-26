@@ -484,7 +484,7 @@ function FeedPage() {
                   }
                   className={CATEGORY_CHIP_CLASS}
                   style={{
-                    background: active ? "var(--accent)" : "var(--background-elevated)",
+                    background: active ? "var(--accent-fill)" : "var(--background-elevated)",
                     color: active ? "#fff" : "var(--foreground)",
                     borderColor: active ? "var(--accent)" : "var(--border)",
                     fontWeight: active ? 600 : 500,

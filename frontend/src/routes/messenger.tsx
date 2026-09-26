@@ -244,7 +244,7 @@ function TabCount({ count }: { count: number }) {
       // min-w-[28px] — место под «99+» целиком: «9» → «12» → «99+» не
       // расширяют вкладку. Свои поля 6 px — цифры не касаются края кружка.
       className={`grid h-[18px] min-w-[28px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
-      style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+      style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
     >
       {count > 99 ? "99+" : count}
     </span>
@@ -722,7 +722,7 @@ const MessageBubble = memo(function MessageBubble({
         <div
           className="px-[12px] py-[8px] transition-shadow duration-300"
           style={{
-            background: isMe ? "var(--accent)" : "var(--background-surface)",
+            background: isMe ? "var(--accent-fill)" : "var(--background-surface)",
             color: isMe ? "white" : "var(--foreground)",
             borderRadius: radius,
             boxShadow: isSearchHit
@@ -1958,7 +1958,7 @@ function MessengerPage() {
                             <span
                               className="grid h-[18px] min-w-[28px] place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums"
                               style={{
-                                background: "var(--accent)",
+                                background: "var(--accent-fill)",
                                 color: "var(--accent-foreground)",
                               }}
                             >

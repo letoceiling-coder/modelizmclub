@@ -140,7 +140,7 @@ export function SchedulePostDialog({ post, open, onOpenChange, onUpdated }: Prop
             disabled={saving}
             onClick={save}
             className="mt-[4px] h-[44px] rounded-[var(--r-button)] text-[14px] font-semibold disabled:opacity-60"
-            style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+            style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
           >
             {saving ? t("components.postSchedule.saving") : t("components.postSchedule.save")}
           </button>

@@ -622,7 +622,7 @@ function RatingForm({
             type="button"
             className="h-[36px] w-[36px] rounded-full text-[14px] font-bold"
             style={{
-              background: rating >= n ? "var(--accent)" : "var(--background-surface)",
+              background: rating >= n ? "var(--accent-fill)" : "var(--background-surface)",
               color: rating >= n ? "var(--accent-foreground)" : "var(--foreground-50)",
             }}
             onClick={() => setRating(n)}
@@ -747,7 +747,7 @@ function DealReviewDialog({
                 type="button"
                 className="h-[40px] w-[40px] rounded-full text-[14px] font-bold"
                 style={{
-                  background: rating >= n ? "var(--accent)" : "var(--background-surface)",
+                  background: rating >= n ? "var(--accent-fill)" : "var(--background-surface)",
                   color: rating >= n ? "var(--accent-foreground)" : "var(--foreground-50)",
                 }}
                 onClick={() => setRating(n)}

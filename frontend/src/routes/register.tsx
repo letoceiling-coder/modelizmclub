@@ -127,7 +127,7 @@ function RegisterPage() {
             <div key={text} className="flex items-center gap-[12px]">
               <div
                 className="grid shrink-0 place-items-center rounded-full"
-                style={{ width: 36, height: 36, background: "var(--accent)", color: "#fff" }}
+                style={{ width: 36, height: 36, background: "var(--accent-fill)", color: "#fff" }}
               >
                 <Icon size={18} />
               </div>
@@ -176,7 +176,7 @@ function RegisterPage() {
         >
           <div
             className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-full"
-            style={{ background: "var(--accent)", color: "#fff" }}
+            style={{ background: "var(--accent-fill)", color: "#fff" }}
           >
             <UserPlus size={16} />
           </div>

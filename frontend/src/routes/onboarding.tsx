@@ -146,7 +146,7 @@ function OnboardingPage() {
                       width: 24,
                       height: 24,
                       borderRadius: "var(--r-pill)",
-                      background: "var(--accent)",
+                      background: "var(--accent-fill)",
                       color: "#fff",
                     }}
                   >
@@ -188,7 +188,7 @@ function OnboardingPage() {
           <button
             onClick={finish}
             style={{
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "#fff",
               fontWeight: 600,
               fontSize: "var(--fs-sm)",

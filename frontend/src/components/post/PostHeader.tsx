@@ -29,7 +29,7 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
     return (
       <div
         className="grid h-[36px] w-[36px] shrink-0 place-items-center rounded-full text-[13px] font-bold text-white md:h-[40px] md:w-[40px]"
-        style={{ background: "var(--accent)" }}
+        style={{ background: "var(--accent-fill)" }}
         aria-label={name}
       >
         {initials}

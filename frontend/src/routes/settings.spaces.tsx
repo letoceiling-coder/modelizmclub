@@ -106,7 +106,7 @@ const secondaryActionClass =
   "inline-flex h-10 w-full min-w-[220px] items-center justify-center gap-1.5 rounded-[10px] border px-4 text-[14px] font-semibold whitespace-nowrap transition-colors hover:bg-[var(--background-surface)] sm:w-[220px]";
 
 const primaryActionStyle = {
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "var(--accent-foreground)",
 } as const;
 const secondaryActionStyle = { borderColor: "var(--border)", color: "var(--foreground)" } as const;

@@ -148,6 +148,7 @@ function DesignSystemPage() {
           <h3 className="mb-3 text-sm font-semibold text-[var(--foreground-70)]">Акценты</h3>
           <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Swatch name="Primary accent" hex="var(--accent)" varName="--accent" />
+            <Swatch name="Accent fill" hex="var(--accent-fill)" varName="--accent-fill" />
             <Swatch name="Primary hover" hex="#4F66E8" varName="--accent-hover" />
             <Swatch
               name="Commercial accent"
@@ -318,7 +319,7 @@ function DesignSystemPage() {
                     {step}
                   </code>
                   <div
-                    className="h-4 shrink-0 rounded-sm bg-[var(--accent)]"
+                    className="h-4 shrink-0 rounded-sm bg-[var(--accent-fill)]"
                     style={{ width: `${px}px` }}
                     aria-hidden
                   />
@@ -594,7 +595,7 @@ function DesignSystemPage() {
                 Post card
               </div>
               <div className="flex items-center gap-2">
-                <div className="grid size-8 place-items-center rounded-full bg-[var(--accent)] text-xs font-semibold text-[var(--accent-foreground)]">
+                <div className="grid size-8 place-items-center rounded-full bg-[var(--accent-fill)] text-xs font-semibold text-[var(--accent-foreground)]">
                   АТ
                 </div>
                 <div className="text-sm font-semibold">Анастасия Т.</div>
@@ -681,7 +682,7 @@ function DesignSystemPage() {
                 onClick={() => setTab(t.id)}
                 className="rounded-[calc(var(--r-button)-2px)] px-4 py-1.5 text-sm font-medium transition-colors"
                 style={{
-                  background: tab === t.id ? "var(--accent)" : "transparent",
+                  background: tab === t.id ? "var(--accent-fill)" : "transparent",
                   color: tab === t.id ? "var(--accent-foreground)" : "var(--foreground-70)",
                 }}
               >
@@ -698,7 +699,7 @@ function DesignSystemPage() {
                 onClick={() => setPage(n)}
                 className="grid size-9 place-items-center rounded-[var(--r-button)] text-sm font-medium transition-colors"
                 style={{
-                  background: page === n ? "var(--accent)" : "transparent",
+                  background: page === n ? "var(--accent-fill)" : "transparent",
                   color: page === n ? "var(--accent-foreground)" : "var(--foreground-70)",
                   border: page === n ? "none" : "1px solid var(--border)",
                 }}

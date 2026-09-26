@@ -100,7 +100,7 @@ export function VideoUploadField({
               >
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${progress}%`, background: "var(--accent)" }}
+                  style={{ width: `${progress}%`, background: "var(--accent-fill)" }}
                 />
               </div>
             </div>

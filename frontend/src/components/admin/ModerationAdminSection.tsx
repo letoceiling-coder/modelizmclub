@@ -658,7 +658,7 @@ function filterBtn(active: boolean): CSSProperties {
     fontWeight: 600,
     borderRadius: "var(--r-button)",
     border: "1px solid var(--border)",
-    background: active ? "var(--accent)" : "transparent",
+    background: active ? "var(--accent-fill)" : "transparent",
     color: active ? "var(--accent-foreground)" : "var(--foreground-70)",
     cursor: "pointer",
   };
@@ -669,7 +669,7 @@ const countPill: CSSProperties = {
   fontWeight: 700,
   padding: "1px 6px",
   borderRadius: "var(--r-pill)",
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "var(--accent-foreground)",
 };
 

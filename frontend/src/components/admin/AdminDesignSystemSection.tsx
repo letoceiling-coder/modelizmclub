@@ -275,7 +275,7 @@ function ModeBtn({
         borderRadius: 10,
         fontSize: 13,
         fontWeight: 600,
-        background: active ? "var(--accent)" : "var(--background-surface)",
+        background: active ? "var(--accent-fill)" : "var(--background-surface)",
         color: active ? "var(--accent-foreground)" : "var(--foreground-70)",
         border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
         boxShadow: active ? "var(--shadow-button)" : "none",

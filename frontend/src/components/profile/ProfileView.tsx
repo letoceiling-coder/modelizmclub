@@ -723,7 +723,9 @@ export function ProfileView({
                               height: 32,
                               padding: "0 14px",
                               borderRadius: "var(--r-pill)",
-                              background: active ? "var(--accent)" : "var(--background-surface)",
+                              background: active
+                                ? "var(--accent-fill)"
+                                : "var(--background-surface)",
                               color: active ? "#fff" : "var(--foreground-70)",
                               fontWeight: active ? 600 : 500,
                               border: active
@@ -1142,7 +1144,7 @@ function ProfileReviewsTab({ numericUserId, isOwn }: { numericUserId?: number; i
               height: 32,
               padding: "0 14px",
               borderRadius: "var(--r-pill)",
-              background: sort === key ? "var(--accent)" : "var(--background-surface)",
+              background: sort === key ? "var(--accent-fill)" : "var(--background-surface)",
               color: sort === key ? "#fff" : "var(--foreground-70)",
               fontWeight: sort === key ? 600 : 500,
               border: `1px solid ${sort === key ? "var(--accent)" : "var(--border)"}`,
@@ -1681,7 +1683,7 @@ function ProfileAvatar({
                 disabled={uploading || pickingFile}
                 className="absolute bottom-0 right-0 grid h-[30px] w-[30px] place-items-center rounded-full border-2 transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] md:h-[36px] md:w-[36px]"
                 style={{
-                  background: "var(--accent)",
+                  background: "var(--accent-fill)",
                   color: "#fff",
                   borderColor: "var(--background)",
                 }}

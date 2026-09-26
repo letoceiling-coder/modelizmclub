@@ -509,7 +509,7 @@ function MyAdsPage() {
                   <m.span
                     layoutId="ads-tab-underline"
                     className="absolute bottom-0 left-[8px] right-[8px] md:left-[12px] md:right-[12px]"
-                    style={{ height: 3, background: "var(--accent)", borderRadius: 2 }}
+                    style={{ height: 3, background: "var(--accent-fill)", borderRadius: 2 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -573,7 +573,7 @@ function MyAdsPage() {
             {filtersDirty && (
               <span
                 className="absolute right-[6px] top-[6px] h-[6px] w-[6px] rounded-full"
-                style={{ background: "var(--accent)" }}
+                style={{ background: "var(--accent-fill)" }}
               />
             )}
           </button>
@@ -871,7 +871,7 @@ function MyAdsPage() {
         className="fixed right-[20px] z-[var(--z-modal)] grid h-[56px] w-[56px] place-items-center md:hidden"
         style={{
           bottom: "calc(var(--bottom-nav-space) + 16px)",
-          background: "var(--accent)",
+          background: "var(--accent-fill)",
           color: "#fff",
           borderRadius: "var(--r-pill)",
           boxShadow: "var(--shadow-glow-accent), var(--shadow-float)",

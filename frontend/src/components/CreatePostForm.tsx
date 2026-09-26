@@ -481,7 +481,7 @@ export function CreatePostForm({
                 type="button"
                 onClick={restoreDraft}
                 className="h-[32px] min-w-[44px] flex-1 rounded-[var(--r-button)] px-[12px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:flex-none sm:h-[34px] sm:px-[14px] sm:text-[13px]"
-                style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
               >
                 {t("components.createPostForm.continueDraft")}
               </button>
@@ -717,7 +717,7 @@ export function CreatePostForm({
           onClick={publish}
           disabled={publishing}
           className="h-[48px] w-full rounded-[var(--r-button)] text-[15px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
-          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+          style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
         >
           {publishing
             ? t("components.createPostForm.publishing")

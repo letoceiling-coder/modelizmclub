@@ -213,7 +213,7 @@ export function SiteBrandingAdminCard({ cardStyle }: { cardStyle: CSSProperties 
         onClick={save}
         disabled={saving || loading}
         className="mt-4 rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold text-[var(--accent-foreground)]"
-        style={{ background: "var(--accent)", opacity: saving ? 0.7 : 1 }}
+        style={{ background: "var(--accent-fill)", opacity: saving ? 0.7 : 1 }}
       >
         {saving ? "…" : t("pages.adminCommon.save")}
       </button>

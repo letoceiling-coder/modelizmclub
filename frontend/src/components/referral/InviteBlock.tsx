@@ -97,7 +97,7 @@ function InviteGuestCta() {
         <Link
           to="/register"
           className="inline-flex h-[44px] items-center justify-center rounded-[var(--r-pill)] px-[20px] text-[14px] font-semibold transition-opacity hover:opacity-90"
-          style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+          style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
         >
           Создать аккаунт
         </Link>
@@ -198,7 +198,7 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
           style={{
             height: 36,
             padding: "0 14px",
-            background: copied ? "var(--success)" : "var(--accent)",
+            background: copied ? "var(--success)" : "var(--accent-fill)",
             color: "#fff",
             fontWeight: 600,
             fontSize: 13,

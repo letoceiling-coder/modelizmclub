@@ -33,7 +33,7 @@ export function PreviewArea() {
             style={{
               padding: "10px 18px",
               borderRadius: 10,
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "var(--accent-foreground)",
               fontSize: 13,
               fontWeight: 600,
@@ -87,7 +87,7 @@ export function PreviewArea() {
               width: 40,
               height: 40,
               borderRadius: 10,
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "var(--accent-foreground)",
               display: "grid",
               placeItems: "center",
@@ -290,7 +290,7 @@ export function PreviewArea() {
             style={{
               padding: "10px 18px",
               borderRadius: 10,
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "var(--accent-foreground)",
               fontSize: 13,
               fontWeight: 600,

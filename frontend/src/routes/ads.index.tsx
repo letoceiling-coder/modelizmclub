@@ -332,7 +332,7 @@ function CatalogPage() {
               height: 38,
               padding: "0 14px",
               borderRadius: "var(--r-button)",
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "var(--accent-foreground)",
             }}
           >

@@ -365,7 +365,7 @@ export function IconManagerSection() {
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 600,
-              background: "var(--accent)",
+              background: "var(--accent-fill)",
               color: "var(--accent-foreground)",
               opacity: publishing ? 0.6 : 1,
             }}
@@ -645,6 +645,7 @@ export function IconManagerSection() {
                 type="button"
                 disabled={uploading}
                 onClick={() => fileRef.current?.click()}
+                aria-label="Загрузить значок"
                 style={{
                   width: 48,
                   height: 48,

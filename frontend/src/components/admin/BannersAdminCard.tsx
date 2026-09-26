@@ -69,7 +69,7 @@ const primaryBtn: CSSProperties = {
   height: "40px",
   padding: "0 18px",
   borderRadius: "var(--r-button)",
-  background: "var(--accent)",
+  background: "var(--accent-fill)",
   color: "var(--accent-foreground)",
   fontSize: "13px",
   fontWeight: 600,
@@ -810,6 +810,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                     <button
                       type="button"
                       onClick={() => removeBanner(b.id)}
+                      aria-label="Удалить баннер"
                       style={{ ...ghostBtn, color: "var(--destructive, #c0392b)" }}
                     >
                       <Trash2 size={14} />

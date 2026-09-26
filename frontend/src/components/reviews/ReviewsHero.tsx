@@ -51,7 +51,7 @@ export function ReviewsHero({ videos }: { videos: Video[] }) {
               <div className="absolute inset-x-0 bottom-0 flex items-center gap-[12px] p-[16px] sm:p-[24px]">
                 <span
                   className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full"
-                  style={{ background: "var(--accent)" }}
+                  style={{ background: "var(--accent-fill)" }}
                 >
                   <Play size={20} fill="#fff" color="#fff" />
                 </span>

@@ -200,7 +200,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
             fontSize: compact ? 9 : 11,
             fontWeight: 700,
             color: "var(--accent-foreground)",
-            background: "var(--accent)",
+            background: "var(--accent-fill)",
             boxShadow: compact ? "0 0 0 2px var(--background)" : undefined,
           }}
         >

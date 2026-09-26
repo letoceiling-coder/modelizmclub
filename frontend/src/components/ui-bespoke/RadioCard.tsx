@@ -34,7 +34,7 @@ export function RadioCard({ selected, onClick, icon: Icon, title, description, c
         className={cn(
           "grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[var(--r-card-sm)] transition-colors",
           selected
-            ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+            ? "bg-[var(--accent-fill)] text-[var(--accent-foreground)]"
             : "bg-[var(--background-surface)] text-[var(--foreground-70)]",
         )}
       >
@@ -54,7 +54,7 @@ export function RadioCard({ selected, onClick, icon: Icon, title, description, c
           selected ? "border-[var(--accent)]" : "border-[var(--border-strong)]",
         )}
       >
-        {selected && <div className="h-[8px] w-[8px] rounded-full bg-[var(--accent)]" />}
+        {selected && <div className="h-[8px] w-[8px] rounded-full bg-[var(--accent-fill)]" />}
       </div>
     </button>
   );

@@ -610,8 +610,23 @@ function CommentItem({
                       disabled={
                         replyPhotos.uploading || (!draft.trim() && replyPhotos.photos.length === 0)
                       }
+                      // Подпись обязательна: внутри только иконка, и без неё
+                      // читающий с экрана слышит «кнопка». Тот же ключ, что у
+                      // отправки основного комментария ниже. Найдено аудитом
+                      // 26.09.
+                      //
+                      // В первой редакции здесь стояло «одна такая кнопка из
+                      // 727 в приложении». Оба числа были неверны: разбор
+                      // считал и составные кнопки, а таких же кнопок без
+                      // подписи ревью нашло ещё две — в управлении значками и
+                      // в баннерах. Обе подписаны тем же коммитом. Считать
+                      // «одна» без полного обхода было нельзя.
+                      aria-label={t("components.commentSection.send")}
                       className="grid h-[34px] w-[34px] place-items-center rounded-[10px] disabled:opacity-40"
-                      style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+                      style={{
+                        background: "var(--accent-fill)",
+                        color: "var(--accent-foreground)",
+                      }}
                     >
                       <Send className="h-[14px] w-[14px]" />
                     </button>
@@ -930,7 +945,7 @@ export function CommentSection({
               onClick={submit}
               disabled={photos.uploading || (!draft.trim() && photos.photos.length === 0)}
               className="relative grid h-[30px] w-[30px] place-items-center rounded-[10px] transition-opacity disabled:opacity-40 before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
               aria-label={t("components.commentSection.send")}
             >
               <Send className="h-[14px] w-[14px]" />

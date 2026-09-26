@@ -20,7 +20,7 @@ export function StepIndicator({ current, labels }: Props) {
                 animate={{ scale: active ? 1.05 : 1 }}
                 className="grid h-[36px] w-[36px] place-items-center text-[13px] font-semibold"
                 style={{
-                  background: done || active ? "var(--accent)" : "var(--background-surface)",
+                  background: done || active ? "var(--accent-fill)" : "var(--background-surface)",
                   color: done || active ? "#fff" : "var(--foreground-50)",
                   border: `2px solid ${active ? "var(--accent)" : "transparent"}`,
                   borderRadius: "var(--r-pill)",
@@ -46,7 +46,7 @@ export function StepIndicator({ current, labels }: Props) {
                   animate={{ scaleX: done ? 1 : 0 }}
                   transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute inset-0 origin-left"
-                  style={{ background: "var(--accent)" }}
+                  style={{ background: "var(--accent-fill)" }}
                 />
               </div>
             )}
