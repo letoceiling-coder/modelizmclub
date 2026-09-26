@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -160,10 +161,39 @@ class BillingRequiresVerifiedPhoneTest extends TestCase
 
     public function test_provider_webhooks_stay_open(): void
     {
-        // У вебхука нет пользователя: он не должен попасть под verified.
-        $status = $this->postJson('/api/v1/safe-deals/webhooks/delivery', [])->getStatusCode();
+        /*
+         * У вебхука нет пользователя: он не должен попасть под verified.
+         *
+         * Раньше это проверялось кодом ответа — «не 401 и не 403». Признак
+         * перестал годиться 26.09, когда вебхук доставки закрыли общим
+         * секретом: теперь 401 — его собственный законный ответ на неверную
+         * подпись, и по коду уже не отличить «требует входа» от «не та
+         * подпись». Смотрим прямо на middleware маршрута.
+         */
+        $route = collect(Route::getRoutes()->getRoutes())
+            ->first(fn ($r) => $r->uri() === 'api/v1/safe-deals/webhooks/delivery');
 
-        $this->assertNotSame(401, $status, 'вебхук не должен требовать вход');
-        $this->assertNotSame(403, $status, 'вебхук не должен требовать подтверждённый телефон');
+        $this->assertNotNull($route, 'маршрут вебхука доставки не найден');
+
+        $middleware = $route->gatherMiddleware();
+
+        /*
+         * Сравнение по началу строки, а не точное: `auth`, `auth:web`,
+         * `auth.session` — всё это вход, и точное сравнение с `auth:sanctum`
+         * их пропускало. FQCN `Authenticate::class` в списке не проверяется:
+         * в маршрутах этого проекта его не пишут, а написали бы — он пришёл
+         * бы с суффиксом guard, и точное сравнение всё равно бы не поймало.
+         */
+        foreach ($middleware as $слой) {
+            $this->assertFalse(
+                str_starts_with($слой, 'auth'),
+                "вебхук не должен проходить через вход: {$слой}",
+            );
+            $this->assertStringNotContainsString(
+                'verified',
+                $слой,
+                "вебхук не должен требовать подтверждённый телефон: {$слой}",
+            );
+        }
     }
 }

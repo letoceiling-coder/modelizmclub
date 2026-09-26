@@ -209,6 +209,9 @@ return [
         'checkout_ttl_minutes' => (int) env('SAFE_DEAL_CHECKOUT_TTL_MINUTES', 30),
         // Window after payment during which a dispute can be opened.
         'hold_days' => (int) env('SAFE_DEAL_HOLD_DAYS', 14),
+        // Общий секрет вебхука доставки. Пустой закрывает адрес: отметка о
+        // доставке заводит авто-выплату, и принимать её от кого попало нельзя.
+        'delivery_webhook_secret' => (string) env('SAFE_DEAL_DELIVERY_WEBHOOK_SECRET', ''),
     ],
 
 ];
