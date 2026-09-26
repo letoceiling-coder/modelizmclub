@@ -4,6 +4,7 @@ namespace Modules\User\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Feedback;
+use App\Rules\SafeEmail;
 use App\Services\StaffNotify;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -26,10 +27,17 @@ class FeedbackController extends Controller
             'subject' => ['nullable', 'string', 'max:120'],
             'message' => ['required', 'string', 'max:4000'],
             'page' => ['nullable', 'string', 'max:255'],
+            // SafeEmail — рядом со стандартным `email`, как на всех прочих
+            // полях с адресом извне. Сегодня этот адрес идёт только в текст
+            // обращения, а не в заголовок письма, то есть дыра из
+            // GHSA-5vg9-5847-vvmq отсюда не достаётся. Но правило одно на все
+            // поля, и первый же `Reply-To` на обращение — очевидная будущая
+            // правка — сделал бы этот маршрут проходом. Он к тому же открыт.
             'guest_email' => [
                 Rule::requiredIf($user === null),
                 'nullable',
                 'email',
+                new SafeEmail,
                 'max:255',
             ],
         ]);
