@@ -328,7 +328,8 @@ class ShipmentService
     public function paginateForUser(User $user, array $filters): LengthAwarePaginator
     {
         $query = Shipment::query()
-            ->with(['listing', 'seller.profile', 'buyer.profile'])
+            ->with(['listing' => fn ($q) => $q->withMax('promotions', 'paid_until'),
+                'seller.profile', 'buyer.profile'])
             ->where(function ($q) use ($user, $filters): void {
                 if (($filters['role'] ?? null) === 'seller') {
                     $q->where('seller_id', $user->id);

@@ -51,7 +51,13 @@ class ListingIndexQueryCountTest extends TestCase
                 'published_at' => now()->subMinutes($i),
             ]);
 
-            if ($сАкциями) {
+            // Акция не у каждого: важен именно случай «объявление без акций».
+            // Предзагруженный атрибут у такого равен null, и признак
+            // предзагрузки должен быть `array_key_exists`, а не `isset` —
+            // с `isset` путь уходил бы в запрос на каждое объявление без
+            // акции, то есть почти на весь каталог, и все проверки числа
+            // запросов остались бы зелёными. Найдено ревью 26.09.
+            if ($сАкциями && $i % 2 === 0) {
                 ListingPromotion::query()->create([
                     'listing_id' => $listing->id,
                     'type' => 'boost',
@@ -97,18 +103,29 @@ class ListingIndexQueryCountTest extends TestCase
      */
     public function test_предзагруженное_значение_совпадает_с_запросом(): void
     {
-        $this->засеять(3, сАкциями: true);
+        $this->засеять(4, сАкциями: true);
 
-        $лента = $this->getJson('/api/v1/listings?per_page=3')->assertOk()->json('data');
+        $лента = $this->getJson('/api/v1/listings?per_page=4')->assertOk()->json('data');
 
-        $this->assertCount(3, $лента);
+        $this->assertCount(4, $лента);
+
+        $сАкцией = 0;
 
         foreach ($лента as $карточка) {
+            if ($карточка['promoted_until'] === null) {
+                $this->assertFalse(
+                    $карточка['is_promoted'],
+                    'объявление без акции не должно считаться продвигаемым',
+                );
+
+                continue;
+            }
+
+            $сАкцией++;
             $this->assertTrue(
                 $карточка['is_promoted'],
                 'объявление с действующей акцией должно считаться продвигаемым',
             );
-            $this->assertNotNull($карточка['promoted_until']);
 
             $одно = $this->getJson("/api/v1/listings/{$карточка['uuid']}")->assertOk()->json('data');
 
@@ -118,6 +135,8 @@ class ListingIndexQueryCountTest extends TestCase
                 'срок продвижения в ленте и в карточке должен совпадать',
             );
         }
+
+        $this->assertSame(2, $сАкцией, 'в посеве должно быть ровно две акции из четырёх');
     }
 
     /**

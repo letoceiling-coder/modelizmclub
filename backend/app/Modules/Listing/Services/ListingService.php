@@ -32,7 +32,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ListingService
 {
-    /** @return list<string> */
     /**
      * Загрузки для списка объявлений.
      *
@@ -41,11 +40,23 @@ class ListingService
      * Замерено на `/api/v1/listings` 26.09: per_page 1 — 10 запросов,
      * 5 — 15, 20 — 30, 50 — 60. Рост линейный от числа карточек.
      */
+    /**
+     * @param  Builder<Listing>  $query
+     * @return Builder<Listing>
+     */
     private function forList(Builder $query): Builder
     {
-        return $query->with($this->relations())->withMax('promotions', 'paid_until');
+        return $query
+            ->with($this->relations())
+            ->withMax('promotions', 'paid_until')
+            // `withMax` каста не ставит — Eloquent зовёт `withCasts` только для
+            // `exists`. Без этой строки атрибут приезжает сырой строкой, и
+            // `->isFuture()` по нему падает. `promotedUntil` это переживает
+            // (`Carbon::parse`), следующий читатель — не обязательно.
+            ->withCasts(['promotions_max_paid_until' => 'datetime']);
     }
 
+    /** @return list<string> */
     private function relations(): array
     {
         return ['author.profile.avatar', 'category', 'subcategory', 'city', 'mediaItems.media', 'placementPayment'];

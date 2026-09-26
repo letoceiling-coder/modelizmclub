@@ -84,7 +84,8 @@ class AdminDeliveryStatsService
     public function paginate(array $filters): LengthAwarePaginator
     {
         return Shipment::query()
-            ->with(['listing', 'seller.profile', 'buyer.profile'])
+            ->with(['listing' => fn ($q) => $q->withMax('promotions', 'paid_until'),
+                'seller.profile', 'buyer.profile'])
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($filters['provider'] ?? null, fn ($q, $provider) => $q->where('provider', $provider))
             ->when($filters['seller_id'] ?? null, fn ($q, $id) => $q->where('seller_id', $id))

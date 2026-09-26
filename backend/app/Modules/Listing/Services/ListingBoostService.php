@@ -116,11 +116,15 @@ class ListingBoostService
      * если список запрашивал его через `withMax('promotions', 'paid_until')`
      * (см. `ListingService::forList`). Иначе — отдельным запросом.
      *
-     * `$allowPreloaded: false` нужен там, где значение решает, сколько дней
-     * человек получит за оплату: предзагруженное могло устареть, а продление
-     * считается от текущего срока.
+     * Умолчание — запрос. Предзагруженное берётся только там, где об этом
+     * попросили явно, то есть в чтении списка. Иначе следующий вызов, которому
+     * нужен свежий срок, промолчал бы и ошибся: продление акции считается от
+     * текущего срока, и устаревшее значение дало бы человеку не то число дней,
+     * за которое он заплатил. Живого дефекта на 26.09 не было — `activate()`
+     * получает объявление из `Listing::query()->find()`, — эта расстановка
+     * на будущее.
      */
-    public function promotedUntil(Listing $listing, bool $allowPreloaded = true): ?Carbon
+    public function promotedUntil(Listing $listing, bool $allowPreloaded = false): ?Carbon
     {
         $until = collect([
             $listing->paid_until,
@@ -146,7 +150,7 @@ class ListingBoostService
     public function activate(Listing $listing, int $durationDays): void
     {
         $starts = now();
-        $currentUntil = $this->promotedUntil($listing, allowPreloaded: false);
+        $currentUntil = $this->promotedUntil($listing);
         $paidUntil = ($currentUntil && $currentUntil->isFuture())
             ? $currentUntil->copy()->addDays($durationDays)
             : $starts->copy()->addDays($durationDays);

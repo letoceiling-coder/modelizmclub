@@ -53,6 +53,10 @@ class AdminListingController extends Controller
             ->when($trashed === 'with', fn ($query) => $query->withTrashed())
             ->when($trashed === 'only', fn ($query) => $query->onlyTrashed())
             ->with(['author.profile', 'category', 'city'])
+            // Срок продвижения — сразу, а не по запросу на карточку:
+            // `ListingResource` спрашивает его у каждой. Здесь это хуже,
+            // чем в публичной ленте: `per_page` тут ничем не ограничен.
+            ->withMax('promotions', 'paid_until')
             // Администратор направления — только свои направления.
             ->when($scope !== null, fn ($query) => $scope->constrainListings($query))
             ->when(ListingStatus::tryFrom($status), fn ($query, $s) => $query->where('status', $s))
