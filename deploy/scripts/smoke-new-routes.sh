@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Smoke-test new API routes on production (api.modelizmclub.ru).
 set -euo pipefail
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
+QA_PASSWORD="$(qa_password)"
 
 API="${API_BASE:-https://api.modelizmclub.ru/api/v1}"
 PASS=0
@@ -48,7 +50,7 @@ echo "==> Login demo user"
 LOGIN=$(curl -sS -X POST "${API}/auth/login" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json' \
-  -d '{"email":"demo@modelizmclub.ru","password":"password123"}')
+  -d '{"email":"demo@modelizmclub.ru","password":"'"${QA_PASSWORD}"'"}')
 TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('meta',{}).get('token','') or d.get('data',{}).get('token',''))" 2>/dev/null || true)
 if [[ -z "$TOKEN" ]]; then
   echo "WARN: demo login failed, seeding demo user..."
@@ -56,7 +58,7 @@ if [[ -z "$TOKEN" ]]; then
   LOGIN=$(curl -sS -X POST "${API}/auth/login" \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json' \
-    -d '{"email":"demo@modelizmclub.ru","password":"password123"}')
+    -d '{"email":"demo@modelizmclub.ru","password":"'"${QA_PASSWORD}"'"}')
   TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('meta',{}).get('token','') or d.get('data',{}).get('token',''))" 2>/dev/null || true)
 fi
 if [[ -z "$TOKEN" ]]; then
@@ -123,7 +125,7 @@ echo "==> Admin payout requisites"
 ADMIN_LOGIN=$(curl -sS -X POST "${API}/auth/login" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json' \
-  -d '{"email":"admin@modelizmclub.ru","password":"password123"}')
+  -d '{"email":"admin@modelizmclub.ru","password":"'"${QA_PASSWORD}"'"}')
 ADMIN_TOKEN=$(echo "$ADMIN_LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('meta',{}).get('token','') or d.get('data',{}).get('token',''))" 2>/dev/null || true)
 if [[ -n "$ADMIN_TOKEN" && -n "$USER_ID" ]]; then
   OLD_TOKEN="$TOKEN"

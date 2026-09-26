@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
 
 BASE="${BASE_URL:-https://dev.modelizmclub.ru}"
 EMAIL="${SMOKE_EMAIL:-demo@modelizmclub.ru}"
-PASSWORD="${SMOKE_PASSWORD:-password123}"
+PASSWORD="$(qa_password)"
 
 echo "==> login"
 printf '%s\n' "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}" > /tmp/smoke-login.json

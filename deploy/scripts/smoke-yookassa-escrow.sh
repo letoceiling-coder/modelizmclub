@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Smoke-test YooKassa config + escrow routes on production.
 set -euo pipefail
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
+QA_PASSWORD="$(qa_password)"
 
 API="${API_BASE:-https://api.modelizmclub.ru/api/v1}"
 
@@ -12,7 +14,7 @@ echo "$FLAGS" | grep -q 'escrow_enabled' && echo "OK  feature-flags has escrow_e
 login() {
   curl -sf "${API}/auth/login" \
     -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"password123\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${QA_PASSWORD}\"}" \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['meta']['token'])"
 }
 

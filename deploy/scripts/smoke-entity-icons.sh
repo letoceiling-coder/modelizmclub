@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Smoke-test §26 (icon assets/overrides) and §27 (entity applications) routes.
 set -euo pipefail
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
+QA_PASSWORD="$(qa_password)"
 
 API="${API_BASE:-https://api.modelizmclub.ru/api/v1}"
 PASS=0
@@ -37,7 +39,7 @@ check() {
 login() {
   curl -sS -X POST "${API}/auth/login" \
     -H 'Content-Type: application/json' -H 'Accept: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"password123\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${QA_PASSWORD}\"}" \
     | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('meta',{}).get('token','') or d.get('data',{}).get('token',''))" 2>/dev/null || true
 }
 

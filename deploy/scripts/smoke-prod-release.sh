@@ -3,10 +3,11 @@
 # of throwaway feed posts and toggles feature.feed_auto_publish (restored at end).
 # Does NOT complete a real payment — only generates the YooKassa checkout URL.
 set -u
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
 
 API="https://dev.modelizmclub.ru/api/v1"
 FRONT="https://modelizmclub.ru"
-PASS="password123"
+PASS="$(qa_password)"
 
 pv() { python3 -c 'import sys,json,functools;
 d=json.load(sys.stdin)
