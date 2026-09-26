@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -178,11 +177,22 @@ class BillingRequiresVerifiedPhoneTest extends TestCase
 
         $middleware = $route->gatherMiddleware();
 
-        foreach (['verified', 'auth:sanctum', Authenticate::class] as $запрет) {
-            $this->assertNotContains(
-                $запрет,
-                $middleware,
-                "вебхук не должен проходить через {$запрет}",
+        /*
+         * Сравнение по началу строки, а не точное: `auth`, `auth:web`,
+         * `auth.session` — всё это вход, и точное сравнение с `auth:sanctum`
+         * их пропускало. FQCN `Authenticate::class` в списке не проверяется:
+         * в маршрутах этого проекта его не пишут, а написали бы — он пришёл
+         * бы с суффиксом guard, и точное сравнение всё равно бы не поймало.
+         */
+        foreach ($middleware as $слой) {
+            $this->assertFalse(
+                str_starts_with($слой, 'auth'),
+                "вебхук не должен проходить через вход: {$слой}",
+            );
+            $this->assertStringNotContainsString(
+                'verified',
+                $слой,
+                "вебхук не должен требовать подтверждённый телефон: {$слой}",
             );
         }
     }

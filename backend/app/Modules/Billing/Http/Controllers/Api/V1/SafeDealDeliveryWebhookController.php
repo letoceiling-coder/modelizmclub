@@ -14,10 +14,18 @@ use Modules\Billing\Services\SafeDealService;
  * Delivery provider webhook (spec v4.0 §T5): when a parcel is delivered we
  * flip the safe deal to `delivered` and start the auto-release timer.
  *
- * Тело этого вызова доверенное — в отличие от вебхуков ВТБ и СДЭК, которые
- * берут из тела только идентификатор и перечитывают состояние у провайдера.
- * Здесь перечитывать не у кого: адрес общий, провайдер заранее не известен.
+ * Тело этого вызова доверенное — в отличие от вебхуков ВТБ, которые берут из
+ * тела только идентификатор и перечитывают состояние у банка. Здесь
+ * перечитывать не у кого: адрес общий, провайдер заранее не известен.
  * Значит доверять телу можно только после проверки общего секрета.
+ *
+ * Про СДЭК в первой редакции этого комментария было сказано, что он тоже
+ * перечитывает. Это было неверно: до 26.09 он принимал статус из тела, если
+ * тот там был, и перечитывал только когда статуса не было. То есть рядом
+ * лежал тот же путь к авто-выплате, без входа и без подписи. Утверждение
+ * было сделано без чтения контроллера целиком — ровно то, что запрещено
+ * правилом «отрицательное утверждение о коде требует полного чтения».
+ * Закрыто тем же коммитом.
  *
  * Без секрета вызов отбивается. Номер отправления не тайна — он напечатан
  * на этикетке и отдаётся обеим сторонам в `ShipmentResource`, — а отметка
@@ -40,7 +48,7 @@ class SafeDealDeliveryWebhookController extends Controller
         if ($secret === '') {
             Log::warning('Вебхук доставки закрыт: секрет не настроен', ['ip' => $request->ip()]);
 
-            return response()->json(['message' => 'Not found.'], 404);
+            return response()->json(['message' => __('Not found.')], 404);
         }
 
         $header = (string) $request->header(self::SIGNATURE_HEADER, '');
@@ -48,7 +56,7 @@ class SafeDealDeliveryWebhookController extends Controller
         if (! hash_equals($secret, $header)) {
             Log::warning('Вебхук доставки отклонён: неверная подпись', ['ip' => $request->ip()]);
 
-            return response()->json(['message' => 'Unauthorized.'], 401);
+            return response()->json(['message' => __('Unauthorized.')], 401);
         }
 
         $tracking = (string) $request->input('tracking_number', '');

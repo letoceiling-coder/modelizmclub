@@ -319,6 +319,22 @@ class ShipmentService
             $this->recordEvent($shipment, $mapped, $result['external_status'], 'Статус обновлён', $result['raw']);
         }
 
+        /*
+         * Перечитанный статус доводится до сделки — так же, как статус из
+         * уведомления в `applyWebhookUpdate`.
+         *
+         * До 26.09 этого здесь не было, и «доставлено», найденное опросом
+         * или перечитыванием, до сделки не доходило вовсе: сделка двигалась
+         * только по статусу из тела уведомления. Именно поэтому тело и
+         * приходилось считать доверенным, а вместе с ним — открытый адрес
+         * СДЭК путём к авто-выплате.
+         */
+        $fresh = $shipment->fresh() ?? $shipment;
+
+        if ($mapped !== null && ($fresh->safeDeal ?? SafeDeal::query()->where('shipment_id', $fresh->id)->first()) !== null) {
+            app(SafeDealService::class)->syncFromShipment($fresh);
+        }
+
         return $shipment->fresh(['listing', 'seller', 'buyer', 'events']);
     }
 

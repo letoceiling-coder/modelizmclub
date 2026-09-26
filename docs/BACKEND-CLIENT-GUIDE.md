@@ -460,7 +460,7 @@ Accept: application/json
 | POST | `/safe-deals/{uuid}/review` | Bearer | Отзыв после `completed` |
 | GET\|POST | `/safe-deals/webhooks/vtb` | Webhook | Оплата/холд по сделке |
 | POST | `/safe-deals/webhooks/vtb-payout` | Webhook | Статус выплаты СБП |
-| POST | `/safe-deals/webhooks/delivery` | Webhook | Статус доставки |
+| POST | `/safe-deals/webhooks/delivery` | Webhook | Статус доставки. Требует заголовок `X-Delivery-Signature` с общим секретом (`SAFE_DEAL_DELIVERY_WEBHOOK_SECRET`). Секрет не задан — адрес отвечает 404 |
 
 Параметры quote/create и статусы — в [главе 5](#5-платёжная-система-втб-и-безопасная-сделка).
 

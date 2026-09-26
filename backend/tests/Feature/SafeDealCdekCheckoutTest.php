@@ -91,12 +91,26 @@ class SafeDealCdekCheckoutTest extends TestCase
         ]);
     }
 
-    private function fakeCdekQuote(float $sum = 350.0): void
+    /**
+     * @param  string  $статусЗаказа  что СДЭК отвечает на перечитывание заказа
+     *
+     * Перечитывание понадобилось всем путям с 26.09: контроллер уведомлений
+     * больше не берёт статус из тела, а спрашивает его у СДЭК. Без этой
+     * заглушки запрос уходит в настоящий API и падает на авторизации.
+     */
+    private function fakeCdekQuote(float $sum = 350.0, string $статусЗаказа = 'CREATED'): void
     {
         Http::fake([
             'api.edu.cdek.ru/v2/oauth/token*' => Http::response([
                 'access_token' => 'cdek-token',
                 'expires_in' => 3600,
+            ]),
+            'api.edu.cdek.ru/v2/orders/*' => Http::response([
+                'entity' => [
+                    'uuid' => 'cdek-order-uuid',
+                    'cdek_number' => '1234567890',
+                    'statuses' => [['code' => $статусЗаказа]],
+                ],
             ]),
             'api.edu.cdek.ru/v2/calculator/tarifflist' => Http::response([
                 'tariff_codes' => [
@@ -357,9 +371,17 @@ class SafeDealCdekCheckoutTest extends TestCase
             ->assertJsonValidationErrors(['destination_point']);
     }
 
+    /**
+     * Статус берётся из перечитанного у СДЭК заказа, а не из тела.
+     *
+     * До 26.09 тело было источником статуса, и этот тест его туда и кладёл.
+     * Теперь тело — только повод перечитать: в нём ниже стоит «доставлено»,
+     * а СДЭК отвечает «принято в пункте выдачи», и сделка должна пойти за
+     * СДЭК. Так открытый адрес перестал быть путём к авто-выплате.
+     */
     public function test_cdek_webhook_updates_deal_delivery_status(): void
     {
-        $this->fakeCdekQuote(350.0);
+        $this->fakeCdekQuote(350.0, статусЗаказа: 'ACCEPTED_AT_PICK_UP_POINT');
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedCdekListing($seller);
@@ -385,7 +407,7 @@ class SafeDealCdekCheckoutTest extends TestCase
         $this->postJson('/api/v1/webhooks/cdek/order-status', [
             'uuid' => 'cdek-order-uuid',
             'cdek_number' => '1234567890',
-            'status' => ['code' => 'ACCEPTED_AT_PICK_UP_POINT'],
+            'status' => ['code' => 'DELIVERED'],
         ])->assertOk();
 
         $this->actingAs($buyer, 'sanctum')

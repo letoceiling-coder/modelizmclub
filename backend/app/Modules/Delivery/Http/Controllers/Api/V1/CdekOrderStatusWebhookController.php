@@ -81,20 +81,24 @@ class CdekOrderStatusWebhookController extends Controller
             return response()->json(['message' => 'ignored'], 200);
         }
 
-        if (! is_string($status) || $status === '') {
-            $shipments->syncStatus($shipment);
+        /*
+         * Статус из тела не берётся — он только повод перечитать у СДЭК.
+         *
+         * Подписи у колбэков СДЭК нет, адрес открыт и намеренно исключён из
+         * общего лимита. Пока статус принимался из тела, до 26.09, этого было
+         * достаточно, чтобы пометить посылку доставленной: дальше
+         * `applyWebhookUpdate` → `syncFromShipment` → `markDelivered` заводил
+         * `auto_release_at`, и через `auto_release_days` деньги уходили
+         * продавцу. Ключи отбора — трек-номер и `external_id`, оба не тайна:
+         * отдаются обеим сторонам в `ShipmentResource`, трек ещё и напечатан
+         * на этикетке.
+         *
+         * Теперь подделка даёт максимум лишнее перечитывание — ровно та же
+         * расстановка, что у вебхуков ВТБ.
+         */
+        $shipments->syncStatus($shipment);
 
-            return response()->json(['message' => 'ok', 'synced' => true], 200);
-        }
-
-        $shipments->applyWebhookUpdate(
-            $shipment,
-            $status,
-            $cdekNumber !== null ? (string) $cdekNumber : null,
-            $payload,
-        );
-
-        return response()->json(['message' => 'ok'], 200);
+        return response()->json(['message' => 'ok', 'synced' => true], 200);
     }
 
     /**
