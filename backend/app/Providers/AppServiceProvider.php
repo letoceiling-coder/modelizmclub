@@ -29,7 +29,6 @@ use App\Policies\MessagePolicy;
 use App\Policies\PostPolicy;
 use App\Policies\SafeDealPolicy;
 use App\Services\Sms\IqSmsClient;
-use App\Services\Sms\MtsMarketologSmsClient;
 use App\Services\Sms\SmsSender;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
@@ -45,6 +44,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Modules\Auth\Services\MaxNotificationService;
 use Modules\Auth\Socialite\MaxProvider;
 use Modules\Auth\Socialite\VkIdProvider;
@@ -110,13 +110,28 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(YandexDeliveryService::class);
         $this->app->bind(YandexGateway::class, YandexDeliveryService::class);
 
+        /*
+         * Шлюз выбирается по реестру из `config/sms.php`, а не перечислением
+         * здесь. Раньше стоял `match` с `default => IqSmsClient`, и это
+         * значило две вещи: третий провайдер требовал правки кода, а
+         * опечатка в `SMS_DRIVER` молча уводила отправку в iqsms — включая
+         * `SMS_DRIVER=log`, который был описан в настройках, но обработчика
+         * не имел и слал настоящие сообщения.
+         *
+         * Неизвестное имя теперь — отказ, а не подстановка.
+         */
         $this->app->bind(SmsSender::class, function ($app): SmsSender {
             $driver = (string) config('sms.driver', 'iqsms');
+            $реестр = (array) config('sms.drivers', []);
 
-            return match ($driver) {
-                'mts' => $app->make(MtsMarketologSmsClient::class),
-                default => $app->make(IqSmsClient::class),
-            };
+            if (! isset($реестр[$driver])) {
+                throw new InvalidArgumentException(
+                    "Неизвестный SMS-драйвер «{$driver}». Известные: "
+                        .implode(', ', array_keys($реестр)).'.'
+                );
+            }
+
+            return $app->make($реестр[$driver]);
         });
     }
 
@@ -172,9 +187,29 @@ class AppServiceProvider extends ServiceProvider
             (int) config('auth.rate_limits.reset_password_per_minute', 20)
         )->by($request->ip().'|'.Str::lower((string) $request->input('email'))));
 
-        RateLimiter::for('auth-phone-send', fn (Request $request) => Limit::perMinute(6)->by(
-            ($request->user()?->id ?? 'guest').'|'.$request->ip()
-        ));
+        /*
+         * Поверх этого ограничителя лежат ещё два: пауза между отправками
+         * (60 с) и счётчики в `sms.rate_limits`. Человек, нажавший кнопку
+         * семь раз за минуту, получал шесть отказов «ждите 60 секунд», а
+         * затем 429 — ещё на 60, отсчитанных заново. Итого около двух
+         * минут вместо обещанной одной.
+         *
+         * Хуже, что 429 говорил на другом языке: ни `code`, ни
+         * `retry_after` в теле, только заголовок. Разбор на клиенте
+         * (`readSmsRefusal`) понимает 422 и на 429 отвечал нулём —
+         * кнопка разблокировалась, пока сервер ещё отказывал.
+         *
+         * Теперь отказ один и тот же по форме, откуда бы ни пришёл.
+         */
+        RateLimiter::for('auth-phone-send', fn (Request $request) => Limit::perMinute(6)
+            ->by(($request->user()?->id ?? 'guest').'|'.$request->ip())
+            ->response(fn (Request $request, array $headers) => response()->json([
+                'message' => 'Слишком много запросов SMS. Повторите через '
+                    .(int) ($headers['Retry-After'] ?? 60).' сек.',
+                'code' => 'sms_rate_limited',
+                'retry_after' => (int) ($headers['Retry-After'] ?? 60),
+                'errors' => ['phone' => ['Слишком много запросов SMS.']],
+            ], 429, $headers)));
         RateLimiter::for('auth-phone-verify', fn (Request $request) => Limit::perMinute(15)->by(
             ($request->user()?->id ?? 'guest').'|'.$request->ip()
         ));

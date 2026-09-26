@@ -84,8 +84,18 @@ export type SmsRefusalCode = "sms_cooldown" | "sms_rate_limited" | "sms_provider
  * жди, этот номер не примут. Поэтому `retryAfter` там `0` — кнопку блокировать
  * не надо, надо дать исправить номер.
  */
+/**
+ * Отказ в отправке SMS: почему и сколько ждать.
+ *
+ * Читаются и 422 (пауза, счётчик, отказ оператора), и 429 от маршрутного
+ * ограничителя. Раньше 429 не разбирался и отвечал нулём — кнопка
+ * разблокировалась, пока сервер ещё отказывал, и человек получал новый
+ * отказ вместо кода.
+ */
 export function readSmsRefusal(err: unknown): { code?: SmsRefusalCode; retryAfter: number } {
-  if (!(err instanceof ApiError) || err.status !== 422) return { retryAfter: 0 };
+  if (!(err instanceof ApiError) || (err.status !== 422 && err.status !== 429)) {
+    return { retryAfter: 0 };
+  }
   const payload = err.payload as { code?: SmsRefusalCode; retry_after?: number | null } | undefined;
   return {
     code: payload?.code,
