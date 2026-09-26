@@ -32,13 +32,13 @@ Route::prefix('delivery')->group(function (): void {
     Route::prefix('cdek')->group(function (): void {
         Route::get('pickup-points', CdekPickupPointsController::class);
         Route::get('cities', CdekCitiesController::class);
-        Route::post('quote', CdekQuoteController::class);
+        Route::middleware('throttle:delivery-quote')->post('quote', CdekQuoteController::class);
     });
 
     Route::prefix('yandex')->group(function (): void {
         Route::get('pickup-points', YandexPickupPointsController::class);
         Route::post('location/detect', YandexDetectLocationController::class);
-        Route::post('quote', YandexQuoteController::class);
+        Route::middleware('throttle:delivery-quote')->post('quote', YandexQuoteController::class);
     });
 });
 

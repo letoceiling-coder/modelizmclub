@@ -227,6 +227,42 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(90)->by('max-status-ip:'.$request->ip()),
         ]);
 
+        /*
+         * Платные обращения к внешним API и открытый канал писем.
+         *
+         * Общий лимитер закрывает их, как и все API-маршруты
+         * (`throttleApi('api')` в bootstrap/app.php) — то есть 120 в минуту с
+         * адреса у гостя. Для расчёта доставки это много: каждый вызов уходит
+         * в СДЭК или Яндекс и стоит денег, а посчитать доставку человеку нужно
+         * несколько раз за визит, не сто двадцать. Для обратной связи столько
+         * же — это поток писем с одного адреса.
+         *
+         * Аудит 26.09 записал эти маршруты как «без ограничителя». Это было
+         * неверно: замер искал слово `throttle` у самого маршрута и не видел
+         * групповой. Лимит был, просто общий и слишком щедрый для платного
+         * вызова.
+         *
+         * Ключ — пользователь или адрес: у вошедшего свой счётчик, чтобы
+         * несколько человек за одним адресом не мешали друг другу.
+         */
+        RateLimiter::for('delivery-quote', fn (Request $request) => Limit::perMinute(20)
+            ->by('delivery-quote:'.($request->user()?->id ?? 'guest').'|'.$request->ip())
+            ->response(fn (Request $request, array $headers) => response()->json([
+                'message' => 'Слишком много расчётов доставки. Повторите через '
+                    .(int) ($headers['Retry-After'] ?? 60).' сек.',
+                'code' => 'delivery_quote_rate_limited',
+                'retry_after' => (int) ($headers['Retry-After'] ?? 60),
+            ], 429, $headers)));
+
+        RateLimiter::for('feedback-send', fn (Request $request) => Limit::perMinute(5)
+            ->by('feedback:'.($request->user()?->id ?? 'guest').'|'.$request->ip())
+            ->response(fn (Request $request, array $headers) => response()->json([
+                'message' => 'Слишком много обращений. Повторите через '
+                    .(int) ($headers['Retry-After'] ?? 60).' сек.',
+                'code' => 'feedback_rate_limited',
+                'retry_after' => (int) ($headers['Retry-After'] ?? 60),
+            ], 429, $headers)));
+
         // Global API limiter. The media proxy (image loads) and payment webhooks
         // are exempt so normal browsing and provider callbacks are never throttled.
         RateLimiter::for('api', function (Request $request) {
