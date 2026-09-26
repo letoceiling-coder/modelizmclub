@@ -39,6 +39,7 @@ use Illuminate\Http\Request;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -121,7 +122,9 @@ class AppServiceProvider extends ServiceProvider
          * Неизвестное имя теперь — отказ, а не подстановка.
          */
         $this->app->bind(SmsSender::class, function ($app): SmsSender {
-            $driver = (string) config('sms.driver', 'iqsms');
+            // `?:`, а не второй довод: ключ в конфиге есть всегда, и
+            // пустое значение в `.env` иначе считалось бы именем драйвера.
+            $driver = (string) (config('sms.driver') ?: 'iqsms');
             $реестр = (array) config('sms.drivers', []);
 
             if (! isset($реестр[$driver])) {
@@ -131,7 +134,15 @@ class AppServiceProvider extends ServiceProvider
                 );
             }
 
-            return $app->make($реестр[$driver]);
+            $класс = $реестр[$driver];
+            if (! is_string($класс) || ! is_a($класс, SmsSender::class, true)) {
+                throw new InvalidArgumentException(
+                    "SMS-драйвер «{$driver}» указывает на «".(is_string($класс) ? $класс : gettype($класс))
+                        .'», а это не SmsSender.'
+                );
+            }
+
+            return $app->make($класс);
         });
     }
 
@@ -203,13 +214,31 @@ class AppServiceProvider extends ServiceProvider
          */
         RateLimiter::for('auth-phone-send', fn (Request $request) => Limit::perMinute(6)
             ->by(($request->user()?->id ?? 'guest').'|'.$request->ip())
-            ->response(fn (Request $request, array $headers) => response()->json([
-                'message' => 'Слишком много запросов SMS. Повторите через '
-                    .(int) ($headers['Retry-After'] ?? 60).' сек.',
-                'code' => 'sms_rate_limited',
-                'retry_after' => (int) ($headers['Retry-After'] ?? 60),
-                'errors' => ['phone' => ['Слишком много запросов SMS.']],
-            ], 429, $headers)));
+            ->response(function (Request $request, array $headers) {
+                /*
+                 * Называем больший из двух сроков.
+                 *
+                 * Окно этого ограничителя всегда стартует не позже удачной
+                 * отправки, значит его остаток всегда не больше остатка
+                 * паузы между отправками. Назови мы только его — человек
+                 * дождался бы озвученного срока, нажал и получил новый
+                 * отказ, снова спалив попытку.
+                 */
+                $изЗаголовка = (int) ($headers['Retry-After'] ?? 60);
+                $доКонцаПаузы = 0;
+                $ключ = 'phone-verify:cooldown:'.($request->user()?->id ?? '');
+                if ($request->user() !== null && Cache::has($ключ)) {
+                    $доКонцаПаузы = max(0, (int) Cache::get($ключ) - time());
+                }
+                $срок = max($изЗаголовка, $доКонцаПаузы);
+
+                return response()->json([
+                    'message' => "Слишком много запросов SMS. Повторите через {$срок} сек.",
+                    'code' => 'sms_rate_limited',
+                    'retry_after' => $срок,
+                    'errors' => ['phone' => ['Слишком много запросов SMS.']],
+                ], 429, $headers);
+            }));
         RateLimiter::for('auth-phone-verify', fn (Request $request) => Limit::perMinute(15)->by(
             ($request->user()?->id ?? 'guest').'|'.$request->ip()
         ));

@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Services\Sms\IqSmsClient;
 use App\Services\Sms\LogSmsClient;
 use App\Services\Sms\MtsMarketologSmsClient;
-use App\Services\Sms\SmsDiscountClient;
 use App\Services\Sms\SmsSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -30,7 +30,6 @@ class SmsDriverRegistryTest extends TestCase
         foreach ([
             'iqsms' => IqSmsClient::class,
             'mts' => MtsMarketologSmsClient::class,
-            'smsdiscount' => SmsDiscountClient::class,
             'log' => LogSmsClient::class,
         ] as $имя => $класс) {
             Config::set('sms.driver', $имя);
@@ -105,5 +104,55 @@ class SmsDriverRegistryTest extends TestCase
         $this->assertSame('sms_rate_limited', $ответ->json('code'));
         $this->assertGreaterThan(0, $ответ->json('retry_after'));
         $this->assertNotEmpty($ответ->json('errors.phone.0'));
+    }
+
+    /**
+     * Диагностика спрашивает драйвер, а не перечисляет их сама.
+     *
+     * До этого у неё был свой список имён с откатом к iqsms: у
+     * незнакомого драйвера с пустыми доступами страница показывала
+     * «настроен: да», глядя на чужие ключи.
+     */
+    public function test_диагностика_не_врёт_про_незнакомый_драйвер(): void
+    {
+        Config::set('sms.iqsms.login', 'есть');
+        Config::set('sms.iqsms.password', 'есть');
+        Config::set('sms.driver', 'опечатка');
+
+        $owner = User::factory()->create([
+            'role' => UserRole::Owner,
+            'status' => UserStatus::Active,
+            'email_verified_at' => now(),
+            'phone_verified_at' => now(),
+        ]);
+
+        $ответ = $this->actingAs($owner)->getJson('/api/v1/admin/diagnostics');
+        $ответ->assertOk();
+
+        $this->assertSame('опечатка', $ответ->json('data.integrations.sms_driver'));
+        $this->assertFalse(
+            $ответ->json('data.integrations.sms_configured'),
+            'диагностика назвала незнакомый драйвер настроенным',
+        );
+    }
+
+    /** Класс в реестре обязан быть SmsSender, иначе отказ понятный, а не TypeError. */
+    public function test_класс_не_того_типа_даёт_понятный_отказ(): void
+    {
+        Config::set('sms.drivers.кривой', \stdClass::class);
+        Config::set('sms.driver', 'кривой');
+        $this->app->forgetInstance(SmsSender::class);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->app->make(SmsSender::class);
+    }
+
+    /** Пустое значение в `.env` — это «по умолчанию», а не имя драйвера. */
+    public function test_пустой_драйвер_берёт_умолчание(): void
+    {
+        Config::set('sms.driver', '');
+        $this->app->forgetInstance(SmsSender::class);
+
+        $this->assertInstanceOf(IqSmsClient::class, $this->app->make(SmsSender::class));
     }
 }

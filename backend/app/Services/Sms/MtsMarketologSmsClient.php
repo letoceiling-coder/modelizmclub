@@ -13,6 +13,15 @@ use Illuminate\Support\Facades\Log;
  */
 class MtsMarketologSmsClient implements SmsSender
 {
+    public function isConfigured(): bool
+    {
+        if ((string) config('sms.mts.auth', 'basic') === 'token') {
+            return filled(config('sms.mts.token'));
+        }
+
+        return filled(config('sms.mts.login')) && filled(config('sms.mts.password'));
+    }
+
     public function send(string $phone, string $text): array
     {
         $auth = (string) config('sms.mts.auth', 'basic');

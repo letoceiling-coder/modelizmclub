@@ -76,17 +76,28 @@ class AdminDiagnosticsController extends Controller
         return ['ok' => $ok];
     }
 
+    /**
+     * Настроен ли шлюз — спрашиваем сам драйвер.
+     *
+     * Здесь стоял свой список драйверов по именам с откатом к iqsms:
+     * у незнакомого драйвера с пустыми доступами страница показывала
+     * «настроен: да», глядя на чужие ключи. Неизвестное имя теперь
+     * честно отвечает «нет», а не проваливается в первый попавшийся.
+     */
     private function smsConfigured(string $driver): bool
     {
-        if ($driver === 'mts') {
-            $auth = (string) config('sms.mts.auth', 'basic');
-            if ($auth === 'token') {
-                return filled(config('sms.mts.token'));
-            }
-
-            return filled(config('sms.mts.login')) && filled(config('sms.mts.password'));
+        $реестр = (array) config('sms.drivers', []);
+        if (! isset($реестр[$driver])) {
+            return false;
         }
 
-        return filled(config('sms.iqsms.login')) && filled(config('sms.iqsms.password'));
+        try {
+            return app($реестр[$driver])->isConfigured();
+        } catch (\Throwable) {
+            // Класса нет или он не тот — это «не настроен», а не 500 на
+            // странице диагностики, которую открывают именно тогда,
+            // когда что-то сломалось.
+            return false;
+        }
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -29,35 +30,64 @@ abstract class TestCase extends BaseTestCase
      */
     private const TEST_DATABASE_PREFIX = 'modelizmclub_test';
 
-    protected function setUp(): void
+    /**
+     * Проверка окружения — до миграций, а не после.
+     *
+     * Раньше она стояла в `setUp()` после `parent::setUp()`. Но
+     * `parent::setUp()` внутри себя зовёт `setUpTraits()`, а тот —
+     * `RefreshDatabase::refreshDatabase()`, то есть `migrate:fresh`.
+     * Значит защита срабатывала уже после того, как база вычищена.
+     *
+     * На что это влияло. `DB_DATABASE` в `phpunit.xml` задан без
+     * `force="true"`, и переменная оболочки его перебивает — это сделано
+     * нарочно, чтобы у каждого рабочего дерева была своя база. Но та же
+     * дорога вела и к боевой: `DB_DATABASE=modelizmclub php artisan test`
+     * в каталоге прода сносил бы боевую схему, а сообщение «база должна
+     * называться modelizmclub_test*» человек прочёл бы после.
+     *
+     * `refreshApplication()` вызывается раньше `setUpTraits()`, поэтому
+     * проверка здесь стоит до первой миграции. И бросает исключение, а не
+     * `$this->fail()`: прогон должен остановиться целиком, а не выдать
+     * тысячу красных тестов, среди которых причина теряется.
+     */
+    protected function refreshApplication(): void
     {
-        parent::setUp();
+        parent::refreshApplication();
 
+        $this->assertEnvironmentIsSafeForTests();
+    }
+
+    private function assertEnvironmentIsSafeForTests(): void
+    {
         // Прогон с боевым окружением — это прогон против боевых доступов:
         // SMS, банк, почта. Имя базы проверяется ниже, но база — не единственное,
         // что тесты трогают снаружи.
         if (! app()->environment('testing')) {
-            $this->fail('Tests must run with APP_ENV=testing, got: '.app()->environment());
+            throw new RuntimeException('Tests must run with APP_ENV=testing, got: '.app()->environment());
         }
 
         if ((string) config('sms.iqsms.login') !== '' || (string) config('sms.mts.login') !== '' || (string) config('sms.mts.token') !== '') {
-            $this->fail('Tests must not see real SMS credentials (IQSMS_LOGIN / MTS_LOGIN / MTS_TOKEN). See phpunit.xml.');
+            throw new RuntimeException('Tests must not see real SMS credentials (IQSMS_LOGIN / MTS_LOGIN / MTS_TOKEN). See phpunit.xml.');
         }
 
         if (config('database.default') !== 'pgsql') {
-            $this->fail(
-                'Tests must run on PostgreSQL (DB_CONNECTION=pgsql). '
-                .'Got: '.config('database.default')
+            throw new RuntimeException(
+                'Tests must run on PostgreSQL (DB_CONNECTION=pgsql). Got: '.config('database.default')
             );
         }
 
         $database = (string) config('database.connections.pgsql.database');
         if (! str_starts_with($database, self::TEST_DATABASE_PREFIX)) {
-            $this->fail(
+            throw new RuntimeException(
                 'Tests must use an isolated database named '.self::TEST_DATABASE_PREFIX.'*, got: '.$database.'. '
                 .'Run deploy/scripts/setup-test-db.sh and php artisan config:clear before testing.'
             );
         }
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
 
         if (Schema::hasTable('system_settings')) {
             SystemSetting::query()->firstOrCreate(

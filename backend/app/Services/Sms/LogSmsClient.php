@@ -17,6 +17,12 @@ use Illuminate\Support\Facades\Log;
  */
 class LogSmsClient implements SmsSender
 {
+    /** Доступы не нужны: этот драйвер никуда не ходит. */
+    public function isConfigured(): bool
+    {
+        return true;
+    }
+
     public function send(string $phone, string $text): array
     {
         Log::info('SMS (log driver)', ['phone' => $phone, 'text' => $text]);
