@@ -132,12 +132,46 @@ class CatalogService
         return [$out, $union];
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * Категории сообществ — «своя» ось, а не зеркала направлений.
+     *
+     * В таблице `community_categories` лежат два разных набора. Своя ось
+     * (идентификаторы 1–16) — то, чем сообщества размечены на самом деле:
+     * «По масштабу» с 1/72, 1/48, 1/35, «По тематике» с Исторической и
+     * Sci-Fi, «Региональные клубы», «Официальные сообщества». Зеркала
+     * направлений (100+) заводит механизм зеркалирования, и на них
+     * указывает `post_categories.community_category_id`.
+     *
+     * До 27.09 здесь отдавались зеркала, то есть выбирать предлагали из
+     * одной оси, а поле `category_id` заполнялось из другой. Приёмка
+     * замерила последствие: пересечение пусто, ноль из восемнадцати
+     * сообществ относится хоть к одной предлагаемой категории, и фильтр по
+     * категории не находит ничего.
+     *
+     * Своя ось определяется через отрицание: всё, на что не указывает ни
+     * одно направление. Отдельного признака в таблице нет, и заводить его
+     * ради одного места незачем. Исключаются **все** зеркала, а не только
+     * видимые: скрытое зеркало иначе осталось бы в выдаче и снова смешало
+     * бы две оси.
+     *
+     * Переход на ось направлений — отдельное решение, оно требует
+     * переразметки восемнадцати сообществ. Разбор в `docs/known-issues.md`.
+     *
+     * @return list<array<string, mixed>>
+     */
     public function communityCategoryTree(): array
     {
-        return Cache::remember(self::KEY_TREE_COMMUNITY, self::TTL, fn () => $this->categoryTree(
-            CommunityCategory::query()->whereIn('id', app(CategoryTaxonomyService::class)->visibleMirrorIds(CommunityCategory::class)),
-        ));
+        return Cache::remember(self::KEY_TREE_COMMUNITY, self::TTL, function () {
+            $зеркала = app(CategoryTaxonomyService::class)->allMirrorIds(CommunityCategory::class);
+
+            $запрос = CommunityCategory::query();
+
+            if ($зеркала !== []) {
+                $запрос->whereNotIn('id', $зеркала);
+            }
+
+            return $this->categoryTree($запрос);
+        });
     }
 
     /** @return list<array<string, mixed>> */
