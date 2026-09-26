@@ -109,22 +109,44 @@ class ListingBoostService
             ->exists();
     }
 
-    public function promotedUntil(Listing $listing): ?Carbon
+    /**
+     * До какого момента объявление продвигается, или null.
+     *
+     * Наибольший `paid_until` по акциям берётся из предзагруженного значения,
+     * если список запрашивал его через `withMax('promotions', 'paid_until')`
+     * (см. `ListingService::forList`). Иначе — отдельным запросом.
+     *
+     * `$allowPreloaded: false` нужен там, где значение решает, сколько дней
+     * человек получит за оплату: предзагруженное могло устареть, а продление
+     * считается от текущего срока.
+     */
+    public function promotedUntil(Listing $listing, bool $allowPreloaded = true): ?Carbon
     {
         $until = collect([
             $listing->paid_until,
-            ListingPromotion::query()
-                ->where('listing_id', $listing->id)
-                ->max('paid_until'),
+            $this->maxPromotionPaidUntil($listing, $allowPreloaded),
         ])->filter()->map(fn ($v) => $v instanceof Carbon ? $v : Carbon::parse($v))->max();
 
         return $until && $until->isFuture() ? $until : null;
     }
 
+    private function maxPromotionPaidUntil(Listing $listing, bool $allowPreloaded): mixed
+    {
+        $поле = 'promotions_max_paid_until';
+
+        if ($allowPreloaded && array_key_exists($поле, $listing->getAttributes())) {
+            return $listing->getAttribute($поле);
+        }
+
+        return ListingPromotion::query()
+            ->where('listing_id', $listing->id)
+            ->max('paid_until');
+    }
+
     public function activate(Listing $listing, int $durationDays): void
     {
         $starts = now();
-        $currentUntil = $this->promotedUntil($listing);
+        $currentUntil = $this->promotedUntil($listing, allowPreloaded: false);
         $paidUntil = ($currentUntil && $currentUntil->isFuture())
             ? $currentUntil->copy()->addDays($durationDays)
             : $starts->copy()->addDays($durationDays);
