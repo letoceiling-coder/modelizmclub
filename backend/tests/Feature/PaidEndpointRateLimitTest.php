@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserStatus;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -29,9 +31,11 @@ class PaidEndpointRateLimitTest extends TestCase
     public static function ограниченные(): array
     {
         return [
-            'расчёт СДЭК' => ['api/v1/delivery/cdek/quote', 'delivery-quote', 20],
-            'расчёт Яндекса' => ['api/v1/delivery/yandex/quote', 'delivery-quote', 20],
-            'обратная связь' => ['api/v1/feedback', 'feedback-send', 5],
+            'расчёт при оформлении' => ['api/v1/listings/{uuid}/safe-deal/quote', 'delivery-quote', 20],
+            'расчёт отправления' => ['api/v1/shipments/{shipment}/quote', 'delivery-quote', 20],
+            'калькулятор СДЭК' => ['api/v1/delivery/cdek/quote', 'delivery-quote', 20],
+            'калькулятор Яндекса' => ['api/v1/delivery/yandex/quote', 'delivery-quote', 20],
+            'обратная связь' => ['api/v1/feedback', 'feedback-send', 10],
         ];
     }
 
@@ -55,15 +59,22 @@ class PaidEndpointRateLimitTest extends TestCase
         $limit = $ограничитель(Request::create("/{$uri}", 'POST'));
         $limit = is_array($limit) ? $limit[0] : $limit;
 
-        $this->assertSame(
-            $потолок,
-            $limit->maxAttempts,
-            "потолок у {$лимитер} должен быть заметно ниже общих 120",
-        );
+        /*
+         * Сравнивать потолок с числом из того же набора данных бессмысленно —
+         * это утверждение о себе. Проверяется то, что от лимитера нужно:
+         * он заметно ниже общих 120, иначе не меняет ничего, и не настолько
+         * низок, чтобы порезать обычную работу.
+         */
         $this->assertLessThan(
             120,
             $limit->maxAttempts,
             'иначе отдельный лимитер ничего не меняет по сравнению с общим',
+        );
+        $this->assertGreaterThanOrEqual(
+            10,
+            $limit->maxAttempts,
+            'ниже десяти начинает мешать обычной работе: расчёт при смене пункта, '
+            .'повтор обращения после отказа валидации, несколько жалоб подряд',
         );
     }
 
@@ -97,14 +108,56 @@ class PaidEndpointRateLimitTest extends TestCase
      * Иначе несколько человек за одним адресом делят счётчик, и один
      * расчётливый покупатель отбирает расчёт доставки у остальных.
      */
-    public function test_счётчик_у_вошедшего_свой(): void
+    public function test_счётчик_у_вошедшего_отдельный_от_гостевого(): void
     {
         $ограничитель = RateLimiter::limiter('delivery-quote');
 
-        $гость = Request::create('/api/v1/delivery/cdek/quote', 'POST');
-        $ключГостя = ($ограничитель($гость))->key ?? null;
+        $гость = Request::create('/api/v1/listings/x/safe-deal/quote', 'POST');
+        $ключГостя = $ограничитель($гость)->key;
 
-        $this->assertNotNull($ключГостя);
-        $this->assertStringContainsString('guest', $ключГостя);
+        $пользователь = User::factory()->create(['status' => UserStatus::Active]);
+        $вошедший = Request::create('/api/v1/listings/x/safe-deal/quote', 'POST');
+        $вошедший->setUserResolver(fn () => $пользователь);
+        $ключВошедшего = $ограничитель($вошедший)->key;
+
+        /*
+         * Прежняя редакция этого теста строила только гостевой запрос и
+         * проверяла, что в ключе есть слово «guest». Правку, выкинувшую
+         * идентификатор пользователя из ключа целиком, она бы прошла.
+         */
+        $this->assertNotSame(
+            $ключГостя,
+            $ключВошедшего,
+            'у вошедшего должен быть свой счётчик, иначе он делит его с гостями за тем же адресом',
+        );
+        $this->assertStringContainsString((string) $пользователь->id, $ключВошедшего);
+    }
+
+    /**
+     * Отказ приходит на запросе сверх потолка — не «лимитер зарегистрирован»,
+     * а он действительно отбивает.
+     *
+     * Считается каждый запрос, доехавший до маршрута: `ThrottleRequests` стоит
+     * до контроллера, поэтому отказы валидации тратят попытки наравне с
+     * удачными отправками. Ровно это и проверяется — тело заведомо пустое.
+     */
+    public function test_обратная_связь_отбивает_сверх_потолка(): void
+    {
+        $потолок = 10;
+
+        for ($i = 1; $i <= $потолок; $i++) {
+            $ответ = $this->postJson('/api/v1/feedback', []);
+            $this->assertNotSame(
+                429,
+                $ответ->getStatusCode(),
+                "запрос {$i} из {$потолок} не должен отбиваться",
+            );
+        }
+
+        $этот = $this->postJson('/api/v1/feedback', []);
+
+        $this->assertSame(429, $этот->getStatusCode(), 'запрос сверх потолка должен отбиваться');
+        $этот->assertJsonPath('code', 'feedback_rate_limited');
+        $this->assertGreaterThan(0, $этот->json('retry_after'));
     }
 }

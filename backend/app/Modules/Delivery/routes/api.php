@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('shipments', StoreShipmentController::class);
     Route::get('shipments/{shipment}', ShowShipmentController::class);
     Route::patch('shipments/{shipment}', UpdateShipmentController::class);
-    Route::post('shipments/{shipment}/quote', QuoteShipmentController::class);
+    Route::middleware('throttle:delivery-quote')->post('shipments/{shipment}/quote', QuoteShipmentController::class);
     Route::post('shipments/{shipment}/request-seller', RequestShipmentSellerController::class);
     Route::post('shipments/{shipment}/confirm', ConfirmShipmentController::class);
     Route::post('shipments/{shipment}/cancel', CancelShipmentController::class);
