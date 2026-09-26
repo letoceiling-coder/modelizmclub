@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
+QA_PASSWORD="$(qa_password)"
 
 cat > /tmp/login.json <<'EOF'
-{"email":"demo@modelizmclub.ru","password":"password123"}
+{"email":"demo@modelizmclub.ru","password":"'"${QA_PASSWORD}"'"}
 EOF
 
 echo "==> login"

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Verify core API CRUD flows against dev (or BASE_URL).
 set -euo pipefail
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
+QA_PASSWORD="$(qa_password)"
 
 BASE="${BASE_URL:-https://dev.modelizmclub.ru}"
 EMAIL="${SMOKE_EMAIL:-demo@modelizmclub.ru}"
-PASSWORD="${SMOKE_PASSWORD:-password123}"
+PASSWORD="$(qa_password)"
 FAIL=0
 
 check() {
@@ -100,7 +102,7 @@ CODE=$(curl -sS -o /dev/null -w '%{http_code}' "${BASE}/docs/api")
 check "GET /docs/api (Swagger UI)" "${CODE}" "200"
 
 echo "==> Admin API (admin@modelizmclub.ru)"
-printf '%s\n' '{"email":"admin@modelizmclub.ru","password":"password123"}' > /tmp/smoke-admin-login.json
+printf '%s\n' '{"email":"admin@modelizmclub.ru","password":"'"${QA_PASSWORD}"'"}' > /tmp/smoke-admin-login.json
 ADMIN_LOGIN=$(curl -sS -H 'Accept: application/json' -H 'Content-Type: application/json' \
   -d @/tmp/smoke-admin-login.json \
   "${BASE}/api/v1/auth/login")
@@ -133,7 +135,7 @@ else
 fi
 
 echo "==> Moderation API (moderator@modelizmclub.ru)"
-printf '%s\n' '{"email":"moderator@modelizmclub.ru","password":"password123"}' > /tmp/smoke-mod-login.json
+printf '%s\n' '{"email":"moderator@modelizmclub.ru","password":"'"${QA_PASSWORD}"'"}' > /tmp/smoke-mod-login.json
 MOD_LOGIN=$(curl -sS -H 'Accept: application/json' -H 'Content-Type: application/json' \
   -d @/tmp/smoke-mod-login.json \
   "${BASE}/api/v1/auth/login")

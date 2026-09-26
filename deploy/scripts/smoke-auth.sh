@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
+QA_PASSWORD="$(qa_password)"
 
-cat > /tmp/register.json <<'EOF'
-{"email":"demo@modelizmclub.ru","password":"password123","password_confirmation":"password123","registration_track":"community","display_name":"Demo User"}
+# Heredoc без кавычек вокруг метки: иначе подстановка не сработает и в
+# запрос уйдёт литеральное «${QA_PASSWORD}».
+cat > /tmp/register.json <<EOF
+{"email":"demo@modelizmclub.ru","password":"${QA_PASSWORD}","password_confirmation":"${QA_PASSWORD}","registration_track":"community","display_name":"Demo User"}
 EOF
 
 echo "==> register"

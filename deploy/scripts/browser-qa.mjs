@@ -3,12 +3,36 @@
  * Usage: cd deploy && npm install && npx playwright install chromium && npm run qa
  */
 import { chromium } from "playwright";
-import { writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
 
 const BASE = process.env.QA_BASE || "https://modelizmclub.ru";
 const EMAIL = process.env.QA_EMAIL || "admin@modelizmclub.ru";
-const PASSWORD = process.env.QA_PASSWORD || "password123";
+/**
+ * Пароль — из защищённого файла, а не из кода.
+ *
+ * Прежнее умолчание с паролем в коде опаснее прямой записи: пароль
+ * сменили, переменную не выставили — и прогон молча пробует старый,
+ * сообщая «вход не работает».
+ */
+function qaPassword() {
+  if (process.env.QA_PASSWORD) return process.env.QA_PASSWORD;
+  const file =
+    process.env.QA_SECRETS_FILE ||
+    join(process.env.HOME || "", ".config", "modelizmclub", "qa-secrets.json");
+  try {
+    const { password } = JSON.parse(readFileSync(file, "utf8"));
+    if (!password) throw new Error("нет поля password");
+    return password;
+  } catch (e) {
+    console.error(`qa-secrets: не прочитан ${file} — ${e.message}`);
+    console.error("  Создайте его с правами 600 и содержимым {\"password\": \"…\"},");
+    console.error("  либо задайте QA_PASSWORD. Подробности — deploy/README.md.");
+    process.exit(1);
+  }
+}
+
+const PASSWORD = qaPassword();
 const OUT_DIR = join(process.cwd(), "qa-artifacts", new Date().toISOString().slice(0, 10));
 
 const BOUNDARY_MARKERS = [
