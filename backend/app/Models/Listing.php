@@ -96,4 +96,9 @@ class Listing extends Model
     {
         return $this->hasMany(ListingMedia::class)->orderBy('sort_order');
     }
+
+    public function promotions(): HasMany
+    {
+        return $this->hasMany(ListingPromotion::class);
+    }
 }

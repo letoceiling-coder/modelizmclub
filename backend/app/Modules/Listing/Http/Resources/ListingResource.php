@@ -21,7 +21,9 @@ class ListingResource extends JsonResource
     public function toArray(Request $request): array
     {
         $boost = app(ListingBoostService::class);
-        $promotedUntil = $boost->promotedUntil($this->resource);
+        // Предзагруженное значение — если список его попросил
+        // (`ListingService::forList`). Иначе будет запрос на карточку.
+        $promotedUntil = $boost->promotedUntil($this->resource, allowPreloaded: true);
 
         return [
             'uuid' => $this->uuid,

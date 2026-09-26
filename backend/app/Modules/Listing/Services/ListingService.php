@@ -32,6 +32,30 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ListingService
 {
+    /**
+     * Загрузки для списка объявлений.
+     *
+     * `withMax` здесь не украшение. Без него `ListingResource` спрашивает
+     * наибольший `paid_until` по акциям отдельно на каждую карточку.
+     * Замерено на `/api/v1/listings` 26.09: per_page 1 — 10 запросов,
+     * 5 — 15, 20 — 30, 50 — 60. Рост линейный от числа карточек.
+     */
+    /**
+     * @param  Builder<Listing>  $query
+     * @return Builder<Listing>
+     */
+    private function forList(Builder $query): Builder
+    {
+        return $query
+            ->with($this->relations())
+            ->withMax('promotions', 'paid_until')
+            // `withMax` каста не ставит — Eloquent зовёт `withCasts` только для
+            // `exists`. Без этой строки атрибут приезжает сырой строкой, и
+            // `->isFuture()` по нему падает. `promotedUntil` это переживает
+            // (`Carbon::parse`), следующий читатель — не обязательно.
+            ->withCasts(['promotions_max_paid_until' => 'datetime']);
+    }
+
     /** @return list<string> */
     private function relations(): array
     {
@@ -55,8 +79,7 @@ class ListingService
      */
     public function list(array $filters, int $perPage = 20): LengthAwarePaginator
     {
-        $query = Listing::query()
-            ->with($this->relations())
+        $query = $this->forList(Listing::query())
             ->where('status', ListingStatus::Published)
             ->when($filters['city_id'] ?? null, fn ($q, $id) => $q->where('city_id', $id))
             ->when(! empty($filters['taxonomy_id']), function ($q) use ($filters): void {
@@ -101,8 +124,7 @@ class ListingService
     /** Published listings for a user's public profile. */
     public function publicByUser(User $user, int $perPage = 20): LengthAwarePaginator
     {
-        return Listing::query()
-            ->with($this->relations())
+        return $this->forList(Listing::query())
             ->where('user_id', $user->id)
             ->where('status', ListingStatus::Published)
             ->orderByDesc('published_at')
@@ -117,9 +139,7 @@ class ListingService
      */
     public function myListings(User $user, array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = Listing::query()
-            ->withTrashed()
-            ->with($this->relations())
+        $query = $this->forList(Listing::query()->withTrashed())
             ->where('user_id', $user->id)
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($filters['q'] ?? null, fn ($q, $term) => $this->applyTextSearch($q, (string) $term, titleOnly: true));
@@ -222,8 +242,7 @@ class ListingService
     /** Объявления, добавленные пользователем в избранное. */
     public function favorites(User $user, int $perPage = 20): LengthAwarePaginator
     {
-        return Listing::query()
-            ->with($this->relations())
+        return $this->forList(Listing::query())
             ->whereIn('id', function ($q) use ($user): void {
                 $q->select('listing_id')->from('listing_favorites')->where('user_id', $user->id);
             })
