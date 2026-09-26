@@ -9,10 +9,12 @@ use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\Listing;
 use App\Models\ListingCategory;
+use App\Models\SafeDeal;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Modules\Billing\Http\Controllers\Api\V1\SafeDealDeliveryWebhookController;
 use Modules\Billing\Services\WalletService;
 use Tests\TestCase;
 
@@ -210,15 +212,102 @@ class EscrowDealTest extends TestCase
             ->postJson("/api/v1/safe-deals/{$uuid}/ship", ['tracking_number' => 'TRKWEB'])
             ->assertOk();
 
-        $this->postJson('/api/v1/safe-deals/webhooks/delivery', [
-            'tracking_number' => 'TRKWEB',
-            'status' => 'delivered',
-        ])->assertOk();
+        config(['billing.safe_deal.delivery_webhook_secret' => 'секрет-доставки']);
+
+        $this->withHeader(SafeDealDeliveryWebhookController::SIGNATURE_HEADER, 'секрет-доставки')
+            ->postJson('/api/v1/safe-deals/webhooks/delivery', [
+                'tracking_number' => 'TRKWEB',
+                'status' => 'delivered',
+            ])->assertOk();
 
         $this->actingAs($buyer, 'sanctum')
             ->getJson("/api/v1/safe-deals/{$uuid}")
             ->assertOk()
             ->assertJsonPath('data.status', 'delivered');
+    }
+
+    /**
+     * Отметка о доставке заводит `auto_release_at`, а через `auto_release_days`
+     * деньги уходят продавцу. Номер отправления не тайна — он на этикетке и в
+     * `ShipmentResource`, — поэтому открытый адрес позволял продавцу забрать
+     * оплату, не отправив посылку. Аудит 26.09.
+     */
+    private function подготовитьОтправленную(): string
+    {
+        $seller = $this->seedUser('seller');
+        $buyer = $this->seedUser('buyer');
+        $listing = $this->seedListing($seller);
+        $this->fund($buyer, 100000);
+
+        $uuid = $this->actingAs($buyer, 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
+                'accept_terms' => true,
+            ])
+            ->json('data.uuid');
+
+        $this->actingAs($seller, 'sanctum')
+            ->postJson("/api/v1/safe-deals/{$uuid}/ship", ['tracking_number' => 'TRKGUARD'])
+            ->assertOk();
+
+        return $uuid;
+    }
+
+    private function assertНеДоставлена(string $uuid): void
+    {
+        $deal = SafeDeal::query()->where('uuid', $uuid)->firstOrFail();
+
+        $this->assertSame(
+            SafeDealStatus::Shipped,
+            $deal->status,
+            'сделка не должна становиться доставленной по неподтверждённому вызову',
+        );
+        $this->assertNull(
+            $deal->auto_release_at,
+            'авто-выплата не должна заводиться по неподтверждённому вызову',
+        );
+    }
+
+    public function test_delivery_webhook_refuses_when_secret_not_configured(): void
+    {
+        $uuid = $this->подготовитьОтправленную();
+
+        config(['billing.safe_deal.delivery_webhook_secret' => '']);
+
+        $this->postJson('/api/v1/safe-deals/webhooks/delivery', [
+            'tracking_number' => 'TRKGUARD',
+            'status' => 'delivered',
+        ])->assertNotFound();
+
+        $this->assertНеДоставлена($uuid);
+    }
+
+    public function test_delivery_webhook_refuses_wrong_signature(): void
+    {
+        $uuid = $this->подготовитьОтправленную();
+
+        config(['billing.safe_deal.delivery_webhook_secret' => 'секрет-доставки']);
+
+        $this->withHeader(SafeDealDeliveryWebhookController::SIGNATURE_HEADER, 'не-тот-секрет')
+            ->postJson('/api/v1/safe-deals/webhooks/delivery', [
+                'tracking_number' => 'TRKGUARD',
+                'status' => 'delivered',
+            ])->assertUnauthorized();
+
+        $this->assertНеДоставлена($uuid);
+    }
+
+    public function test_delivery_webhook_refuses_without_signature_header(): void
+    {
+        $uuid = $this->подготовитьОтправленную();
+
+        config(['billing.safe_deal.delivery_webhook_secret' => 'секрет-доставки']);
+
+        $this->postJson('/api/v1/safe-deals/webhooks/delivery', [
+            'tracking_number' => 'TRKGUARD',
+            'status' => 'delivered',
+        ])->assertUnauthorized();
+
+        $this->assertНеДоставлена($uuid);
     }
 
     public function test_dispute_blocked_after_hold_expires(): void
