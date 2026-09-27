@@ -514,6 +514,7 @@ class SafeDealCdekCheckoutTest extends TestCase
             'buyer_id' => $buyer->id,
             'seller_id' => $seller->id,
             'amount_kopecks' => 100000,
+            'item_kopecks' => 100000,
             'platform_fee_kopecks' => 5000,
             'seller_payout_kopecks' => 95000,
             'currency' => 'RUB',
