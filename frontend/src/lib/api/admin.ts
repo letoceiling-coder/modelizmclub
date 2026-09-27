@@ -181,7 +181,7 @@ export interface AdminUserRow {
   city: string;
   createdAt: string;
   subscription: AdminUserSubscription;
-  /** Кредиты размещения: единица — одно объявление без оплаты. */
+  /** Запас размещений: штука — одно объявление без оплаты, не сгорает. */
   listingCredits: number;
 }
 
@@ -269,7 +269,7 @@ export async function setAdminUserSubscription(
   return mapAdminSubscription(res.data);
 }
 
-/** Начислить (amount > 0) или списать (amount < 0) кредиты размещения. Только Владелец. */
+/** Начислить (amount > 0) или списать (amount < 0) размещения из запаса. Только Владелец. */
 export async function changeAdminUserListingCredits(
   uuid: string,
   amount: number,
@@ -2085,4 +2085,162 @@ export async function resolveAdminDispute(
       seller_kopecks: split?.sellerKopecks,
     },
   });
+}
+
+/**
+ * Карточка пользователя — всё про одного человека одним запросом.
+ *
+ * Собиралась бы на фронте из восьми запросов; вместо этого одна ручка
+ * `admin/users/{uuid}/card`. Денежные поля приходят только Владельцу и
+ * отсутствуют вовсе у модератора — не нулями, а отсутствием, поэтому в
+ * типе они необязательные.
+ */
+export interface AdminUserCard {
+  uuid: string;
+  name: string;
+  displayName: string;
+  slug: string | null;
+  avatarUrl: string | null;
+  email: string;
+  phone: string | null;
+  phoneVerified: boolean;
+  emailVerified: boolean;
+  city: string | null;
+  role: AdminUserRole;
+  status: AdminUserStatus;
+  registeredAt: string | null;
+  lastSeenAt: string | null;
+  subscription: AdminUserSubscription;
+  placements: {
+    /** Запас штук: не сгорает, тратится по одной на объявление. */
+    stock: number;
+    personalQuotaRemaining: number | null;
+    personalQuotaUnlimited: boolean;
+    subscriptionExempt: boolean;
+  };
+  counts: { listings: number; posts: number; comments: number; safeDeals: number };
+  spaces: {
+    communitiesCreated: string[];
+    communitiesJoined: number;
+    channelsOwned: string[];
+    channelsSubscribed: number;
+  };
+  audit: Array<{
+    action: string;
+    by: string | null;
+    oldValues: Record<string, unknown> | null;
+    newValues: Record<string, unknown> | null;
+    createdAt: string | null;
+  }>;
+  /** Только Владельцу. */
+  wallet?: { balanceKopecks: number; heldKopecks: number };
+  /** Только Владельцу: откуда взялся запас размещений. */
+  placementGrants?: Array<{
+    amount: number;
+    type: string;
+    description: string | null;
+    createdAt: string | null;
+  }>;
+}
+
+interface ApiUserCard {
+  uuid: string;
+  name?: string | null;
+  display_name?: string | null;
+  slug?: string | null;
+  avatar_url?: string | null;
+  email?: string;
+  phone?: string | null;
+  phone_verified?: boolean;
+  email_verified?: boolean;
+  city?: string | null;
+  role?: string;
+  status?: string;
+  registered_at?: string | null;
+  last_seen_at?: string | null;
+  subscription?: ApiAdminSubscription | null;
+  placements?: {
+    stock?: number;
+    personal_quota_remaining?: number | null;
+    personal_quota_unlimited?: boolean;
+    subscription_exempt?: boolean;
+  };
+  counts?: { listings?: number; posts?: number; comments?: number; safe_deals?: number };
+  spaces?: {
+    communities_created?: string[];
+    communities_joined?: number;
+    channels_owned?: string[];
+    channels_subscribed?: number;
+  };
+  audit?: Array<{
+    action: string;
+    by?: string | null;
+    old_values?: Record<string, unknown> | null;
+    new_values?: Record<string, unknown> | null;
+    created_at?: string | null;
+  }>;
+  wallet?: { balance_kopecks?: number; held_kopecks?: number };
+  placement_grants?: Array<{
+    amount: number;
+    type: string;
+    description?: string | null;
+    created_at?: string | null;
+  }>;
+}
+
+export async function fetchAdminUserCard(uuid: string): Promise<AdminUserCard> {
+  const res = await api<{ data: ApiUserCard }>(`/admin/users/${uuid}/card`);
+  const d = res.data;
+
+  return {
+    uuid: d.uuid,
+    name: d.name ?? "",
+    displayName: d.display_name || d.name || "Пользователь",
+    slug: d.slug ?? null,
+    avatarUrl: d.avatar_url ?? null,
+    email: d.email ?? "",
+    phone: d.phone ?? null,
+    phoneVerified: Boolean(d.phone_verified),
+    emailVerified: Boolean(d.email_verified),
+    city: d.city ?? null,
+    role: (d.role as AdminUserRole) ?? "user",
+    status: (d.status as AdminUserStatus) ?? "active",
+    registeredAt: d.registered_at ?? null,
+    lastSeenAt: d.last_seen_at ?? null,
+    subscription: mapAdminSubscription(d.subscription ?? undefined),
+    placements: {
+      stock: d.placements?.stock ?? 0,
+      personalQuotaRemaining: d.placements?.personal_quota_remaining ?? null,
+      personalQuotaUnlimited: Boolean(d.placements?.personal_quota_unlimited),
+      subscriptionExempt: Boolean(d.placements?.subscription_exempt),
+    },
+    counts: {
+      listings: d.counts?.listings ?? 0,
+      posts: d.counts?.posts ?? 0,
+      comments: d.counts?.comments ?? 0,
+      safeDeals: d.counts?.safe_deals ?? 0,
+    },
+    spaces: {
+      communitiesCreated: d.spaces?.communities_created ?? [],
+      communitiesJoined: d.spaces?.communities_joined ?? 0,
+      channelsOwned: d.spaces?.channels_owned ?? [],
+      channelsSubscribed: d.spaces?.channels_subscribed ?? 0,
+    },
+    audit: (d.audit ?? []).map((a) => ({
+      action: a.action,
+      by: a.by ?? null,
+      oldValues: a.old_values ?? null,
+      newValues: a.new_values ?? null,
+      createdAt: a.created_at ?? null,
+    })),
+    wallet: d.wallet
+      ? { balanceKopecks: d.wallet.balance_kopecks ?? 0, heldKopecks: d.wallet.held_kopecks ?? 0 }
+      : undefined,
+    placementGrants: d.placement_grants?.map((g) => ({
+      amount: g.amount,
+      type: g.type,
+      description: g.description ?? null,
+      createdAt: g.created_at ?? null,
+    })),
+  };
 }

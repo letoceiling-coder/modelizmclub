@@ -17,6 +17,8 @@ import {
 import { H, card, inputStyle, IconBtn } from "@/components/admin/adminShared";
 import { SubscriptionCell } from "@/components/admin/AdminDashboardSection";
 import { askConfirm, askText } from "@/lib/ui/ask";
+import { AdminUserCardDialog } from "@/components/admin/AdminUserCard";
+import { Button } from "@/components/ui/button";
 import { reportReadFailure } from "@/lib/errors/handle";
 
 export function UsersSection() {
@@ -39,6 +41,9 @@ export function UsersSection() {
   const [savingRole, setSavingRole] = useState<string | null>(null);
   const [savingSubscription, setSavingSubscription] = useState<string | null>(null);
   const [deletingUuid, setDeletingUuid] = useState<string | null>(null);
+  // Какую карточку показываем. Окно, а не переход: список остаётся на месте,
+  // прокрутка не сбрасывается, и после действия видна та же строка.
+  const [cardUuid, setCardUuid] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -55,6 +60,24 @@ export function UsersSection() {
     if (!target || target.role === newRole) return;
     if (me.id === uuid) {
       toast.error(t("pages.adminUsers.cannotChangeOwnRole"));
+      return;
+    }
+    /*
+     * Роль меняет объём власти, и «на минуту посмотреть» её уже выдавали:
+     * 24.09 в базе нашлись три такие роли, которыми никто не воспользовался
+     * и которые никто не снял. Спрашиваем вслух, а Владельца — отдельно.
+     */
+    if (
+      !(await askConfirm({
+        title: `Сменить роль: ${target.name} → ${roleOptions.find((r) => r.value === newRole)?.label ?? newRole}`,
+        description:
+          newRole === "owner"
+            ? "Владелец может всё, включая выдачу и снятие ролей. Снять её сможет только другой Владелец."
+            : "Роль выдана до тех пор, пока её не снимут. Если это проверка — верните прежнюю в этом же заходе.",
+        confirmLabel: "Сменить роль",
+        danger: newRole === "owner",
+      }))
+    ) {
       return;
     }
     setSavingRole(uuid);
@@ -78,6 +101,30 @@ export function UsersSection() {
     action: "activate" | "extend" | "deactivate",
     days?: number,
   ) => {
+    /*
+     * Подписка — это деньги и доступ, и 23.09 её на живом человеке
+     * переключили четыре раза за сорок секунд, забрав у него год доступа.
+     * Спрашиваем перед каждым переключением, включая снятие.
+     */
+    const имя = users.find((u) => u.uuid === uuid)?.name ?? "пользователю";
+    if (
+      !(await askConfirm({
+        title:
+          action === "deactivate"
+            ? `Снять подписку: ${имя}`
+            : action === "extend"
+              ? `Продлить подписку на ${days ?? 30} дн.: ${имя}`
+              : `Выдать подписку на ${days ?? 30} дн.: ${имя}`,
+        description:
+          action === "deactivate"
+            ? "Доступ по подписке пропадёт сразу. Если это проверка — верните в этом же заходе."
+            : "Останется след в журнале изменений: кто выдал, кому и на сколько.",
+        confirmLabel: action === "deactivate" ? "Снять" : "Подтвердить",
+        danger: action === "deactivate",
+      }))
+    ) {
+      return;
+    }
     setSavingSubscription(uuid);
     try {
       const subscription = await setAdminUserSubscription(uuid, action, days);
@@ -90,8 +137,15 @@ export function UsersSection() {
     }
   };
 
-  // Кредит — оплаченное заранее размещение. Начислить или списать может
-  // только Владелец; причина обязательна и уходит в журнал изменений.
+  /*
+   * Запас размещений: штука — одно объявление без оплаты. Не «лимит
+   * бесплатных размещений»: лимиты — это личная квота и квота подписки,
+   * а запас копится и не сгорает, и часть его человек оплатил (оплата
+   * размещения, не привязавшаяся к объявлению). Разбор — в known-issues.
+   *
+   * Начислить или списать может только Владелец; причина обязательна и
+   * уходит в журнал изменений.
+   */
   const changeCredits = async (target: AdminUserRow) => {
     const raw = await askText({
       title: t("pages.adminUsers.creditsTitle", { name: target.name }),
@@ -356,10 +410,8 @@ export function UsersSection() {
                   <td style={{ padding: "10px 16px" }}>
                     <div className="flex gap-[6px]">
                       <IconBtn
-                        onClick={() =>
-                          toast.info(t("pages.adminUsers.previewToast", { name: u.name }))
-                        }
-                        title={t("pages.adminCommon.actionPreview")}
+                        onClick={() => setCardUuid(u.uuid)}
+                        title="Открыть карточку пользователя"
                       >
                         <Eye size={14} />
                       </IconBtn>
@@ -409,6 +461,79 @@ export function UsersSection() {
           </table>
         </div>
       </div>
+
+      {/*
+        Карточка пользователя. Действия в неё передаются, а не пишутся
+        заново: обработчики уже есть у списка вместе с подтверждениями и
+        обновлением строки, и вторая их копия разошлась бы при первой правке.
+      */}
+      <AdminUserCardDialog
+        uuid={cardUuid}
+        onClose={() => setCardUuid(null)}
+        actions={(card) => {
+          const строка = users.find((u) => u.uuid === card.uuid);
+          if (!строка) return null;
+
+          return (
+            <>
+              {isOwner && (
+                <select
+                  value={строка.role}
+                  onChange={(e) =>
+                    void changeRole(строка.uuid, e.target.value as AdminUserRow["role"])
+                  }
+                  disabled={savingRole === строка.uuid}
+                  style={{ ...inputStyle, padding: "0 12px" }}
+                  aria-label="Роль"
+                >
+                  {roleOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {isOwner && (
+                <Button
+                  variant="outline"
+                  disabled={savingSubscription === строка.uuid}
+                  onClick={() =>
+                    void changeSubscription(
+                      строка.uuid,
+                      строка.subscription.isActive ? "extend" : "activate",
+                      30,
+                    )
+                  }
+                >
+                  {строка.subscription.isActive ? "Продлить подписку" : "Выдать подписку"}
+                </Button>
+              )}
+              {isOwner && (
+                <Button variant="outline" onClick={() => void changeCredits(строка)}>
+                  Начислить размещения
+                </Button>
+              )}
+              {(isOwner || строка.role === "user") && (
+                <Button variant="outline" onClick={() => void toggle(строка.uuid)}>
+                  {строка.status === "blocked" ? "Разблокировать" : "Заблокировать"}
+                </Button>
+              )}
+              {isOwner && (
+                <Button
+                  variant="destructive"
+                  disabled={deletingUuid === строка.uuid}
+                  onClick={async () => {
+                    await remove(строка.uuid);
+                    setCardUuid(null);
+                  }}
+                >
+                  Удалить
+                </Button>
+              )}
+            </>
+          );
+        }}
+      />
     </div>
   );
 }
