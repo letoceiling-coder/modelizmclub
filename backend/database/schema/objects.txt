@@ -1251,7 +1251,7 @@ COLUMN|user_reviews.id|bigint|NO
 COLUMN|user_reviews.rating|smallint|NO
 COLUMN|user_reviews.replied_at|timestamp without time zone|YES
 COLUMN|user_reviews.reply|text|YES
-COLUMN|user_reviews.safe_deal_id|bigint|YES
+COLUMN|user_reviews.safe_deal_id|bigint|NO
 COLUMN|user_reviews.target_user_id|bigint|NO
 COLUMN|user_reviews.text|text|YES
 COLUMN|user_reviews.updated_at|timestamp without time zone|YES

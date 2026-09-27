@@ -117,8 +117,19 @@ final class CdekReadiness
      */
     public static function sellerHasPoint(Listing $listing): bool
     {
-        $id = (int) $listing->user_id;
+        return self::userHasPoint((int) $listing->user_id);
+    }
 
+    /**
+     * То же про человека, когда объявления ещё нет.
+     *
+     * Нужно форме создания: она спрашивает «смогу ли я вообще отправить
+     * СДЭК» до того, как объявление существует, и ответ обязан быть тем же,
+     * каким его потом даст карточка. Поэтому тут не вторая проверка, а тот
+     * же код — `sellerHasPoint` теперь зовёт эту.
+     */
+    public static function userHasPoint(int $id): bool
+    {
         if (array_key_exists($id, self::$память)) {
             return self::$память[$id];
         }

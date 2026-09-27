@@ -12,7 +12,7 @@ import { искатьПункты } from "@/lib/delivery/pvz-search";
 import { searchCdekCities, fetchCdekPickupPoints } from "@/lib/api/cdek";
 import type { CdekCity, CdekPickupPoint } from "@/lib/api/cdek";
 import {
-  fetchSellerDeliveryProfiles,
+  fetchSellerDelivery,
   saveSellerCdekPoint,
   type SellerDeliveryProfile,
 } from "@/lib/api/seller-delivery";
@@ -53,10 +53,10 @@ function DeliverySection() {
 
   useEffect(() => {
     let живо = true;
-    fetchSellerDeliveryProfiles()
-      .then((rows) => {
+    fetchSellerDelivery()
+      .then(({ profiles }) => {
         if (!живо) return;
-        setProfile(rows.find((r) => r.provider === "cdek" && r.is_default) ?? null);
+        setProfile(profiles.find((r) => r.provider === "cdek" && r.is_default) ?? null);
       })
       .catch((e) => {
         if (!живо) return;

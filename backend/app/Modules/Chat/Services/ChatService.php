@@ -3,6 +3,7 @@
 namespace Modules\Chat\Services;
 
 use App\Enums\ConversationType;
+use App\Enums\UserStatus;
 use App\Events\UserRealtimeEvent;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
@@ -216,6 +217,19 @@ class ChatService
         $members = ConversationParticipant::query()
             ->where('conversation_id', $conversation->id)
             ->whereNull('left_at')
+            /*
+             * Заблокированных и удалённых в списке участников не показываем.
+             *
+             * Приёмка 27.09: в комнате «Планеры» из семи участников три были
+             * «Удалённая учётная запись», и показывались они с сохранённым
+             * рейтингом 5 и семью сделками — то есть выглядели заслуженными
+             * участниками. Всего по базе таких участий нашлось 159, из них 87
+             * в чатах направлений.
+             *
+             * Строки участия не удаляются: обезличивание обратимо, и
+             * восстановленная учётка вернётся в свои комнаты сама.
+             */
+            ->whereHas('user', fn ($u) => $u->whereNotIn('status', [UserStatus::Blocked, UserStatus::Deleted]))
             ->with(['user.profile.avatar', 'user.profile.city'])
             ->get()
             ->sortByDesc(fn (ConversationParticipant $p) => $this->isRecentlyActive($p->user) ? 1 : 0)

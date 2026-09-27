@@ -56,6 +56,8 @@ interface ApiListing {
   dimensions_cm?: { length?: number; width?: number; height?: number } | null;
   pickup_address?: string | null;
   offers_cdek?: boolean;
+  /** Что продавцу доделать, чтобы СДЭК заработал. Приходит только автору. */
+  cdek_hint?: string | null;
   is_promoted?: boolean;
   is_reserved?: boolean;
   promoted_until?: string | null;
@@ -200,6 +202,7 @@ export function mapListing(l: ApiListing): Ad {
     dimensionsCm: l.dimensions_cm ?? null,
     pickupAddress: l.pickup_address ?? null,
     offersCdek: Boolean(l.offers_cdek),
+    cdekHint: l.cdek_hint ?? null,
     reserved: Boolean(l.is_reserved),
     moderation:
       l.status === "published"

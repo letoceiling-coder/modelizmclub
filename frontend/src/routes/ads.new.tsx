@@ -84,7 +84,8 @@ import { isPhoneVerified } from "@/lib/auth/verification";
 type NewAdSearch = { edit?: string; promo?: string };
 
 import i18n from "@/lib/i18n";
-import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
+import { ignoreFailure, reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
+import { fetchSellerDelivery } from "@/lib/api/seller-delivery";
 
 export const Route = createFileRoute("/ads/new")({
   head: () => ({ meta: [{ title: i18n.t("pages.adsNew.metaTitle") }] }),
@@ -1359,6 +1360,45 @@ function StepPhotos({
 }
 
 /* ────────── STEP 2: Data ────────── */
+/**
+ * Может ли продавец отправлять СДЭК. `null` — ответа ещё нет.
+ *
+ * Ответ приходит с сервера (`meta.cdek_ready`), а не выводится из списка
+ * профилей: условий три — перевозчик, активность профиля и собранный снимок
+ * точки, — и своя копия правила разошлась бы с карточкой объявления.
+ *
+ * Зачем спрашивать до сохранения. Проверка при сохранении есть и отказывает
+ * честно, но человек к этому моменту уже заполнил форму целиком: название,
+ * описание, фотографии, габариты. Приёмка 27.09 показала, чем это кончается
+ * на самом деле — во всей боевой базе **один** профиль доставки, и тот у
+ * заблокированной учётки, то есть пункт отправки не задал ни один живой
+ * продавец. Отказ в конце формы этого не изменил.
+ *
+ * Отказ чтения молчит нарочно: подсказка не появится, а проверка при
+ * сохранении никуда не делась и скажет то же самое.
+ */
+function useCdekSendingReady(): boolean | null {
+  const [готов, setГотов] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let живо = true;
+    fetchSellerDelivery()
+      .then(({ cdekReady }) => {
+        if (живо) setГотов(cdekReady);
+      })
+      .catch(
+        ignoreFailure(
+          "молчим: без ответа подсказка не появится, а проверка при сохранении скажет то же",
+        ),
+      );
+    return () => {
+      живо = false;
+    };
+  }, []);
+
+  return готов;
+}
+
 function StepData({
   form,
   set,
@@ -1390,6 +1430,7 @@ function StepData({
 }) {
   const { t } = useTranslation();
   const deliveryMethods = useDeliveryMethods();
+  const пунктОтправкиЕсть = useCdekSendingReady();
   const titleErr = touched.has("title") && form.title.trim().length < 4;
   const conditionOptions = useMemo(
     () =>
@@ -1636,6 +1677,47 @@ function StepData({
                           className="ml-[4px] space-y-[10px] rounded-[var(--r-card)] p-[12px]"
                           style={{ background: "var(--background-surface)" }}
                         >
+                          {/*
+                            Пункта отправки нет — объявление не сохранится, и
+                            сказать об этом надо здесь, а не после того, как
+                            форма заполнена целиком.
+
+                            `null` (ответа ещё нет) ничего не рисует: пустого
+                            места на первом кадре быть не должно, а ошибочная
+                            подсказка хуже отсутствующей.
+                          */}
+                          {пунктОтправкиЕсть === false && (
+                            <div
+                              className="flex items-start gap-[8px] rounded-[10px] px-[10px] py-[8px]"
+                              style={{
+                                background:
+                                  "var(--warning-soft, color-mix(in oklab, var(--warning, #b8860b) 12%, transparent))",
+                              }}
+                            >
+                              <Truck
+                                size={16}
+                                className="mt-[1px] shrink-0"
+                                style={{ color: "var(--warning, #b8860b)" }}
+                              />
+                              <div className="min-w-0">
+                                <p
+                                  className="text-[13px]"
+                                  style={{ color: "var(--foreground-80)" }}
+                                >
+                                  Пункт отправки не выбран — без него заказ у СДЭК не создаётся, и
+                                  объявление с этим способом не сохранится.
+                                </p>
+                                <Link
+                                  to="/settings/delivery"
+                                  target="_blank"
+                                  className="mt-[4px] inline-block text-[13px] font-medium"
+                                  style={{ color: "var(--accent)" }}
+                                >
+                                  Выбрать пункт отправки
+                                </Link>
+                              </div>
+                            </div>
+                          )}
                           <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
                             От этих данных считается тариф СДЭК. Померьте коробку — все четыре
                             значения обязательны.

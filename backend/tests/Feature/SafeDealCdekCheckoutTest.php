@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\ListingStatus;
+use App\Enums\SafeDealStatus;
 use App\Enums\UserStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\Listing;
@@ -493,13 +494,34 @@ class SafeDealCdekCheckoutTest extends TestCase
         ]);
         app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test');
 
-        // Строка в обход модели: с 17.09 UserReview сам отказывается
-        // создаваться без завершённой сделки, а проверяется здесь чтение —
-        // что такая строка из старых данных в рейтинг не попадает.
+        /*
+         * Строка в обход модели: с 17.09 UserReview сам отказывается
+         * создаваться, пока сделка не завершена, а проверяется здесь чтение —
+         * что такая строка из старых данных в рейтинг не попадает.
+         *
+         * Прежде она лежала вовсе без сделки. С 27.09 `safe_deal_id` объявлен
+         * NOT NULL, и отзыв без сделки база не принимает — воспроизвести то
+         * состояние больше нельзя. Проверяемое правило от этого не исчезло:
+         * сделка есть, но не завершена, и в рейтинг отзыв всё равно не идёт.
+         */
+        $незавершённая = SafeDeal::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'listing_id' => $listing->id,
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'amount_kopecks' => 100000,
+            'platform_fee_kopecks' => 5000,
+            'seller_payout_kopecks' => 95000,
+            'currency' => 'RUB',
+            'status' => SafeDealStatus::Paid,
+            'paid_at' => now(),
+        ]);
+
         DB::table('user_reviews')->insert([
             'uuid' => (string) Str::uuid(),
             'author_id' => $buyer->id,
             'target_user_id' => $seller->id,
+            'safe_deal_id' => $незавершённая->id,
             'rating' => 5,
             'text' => 'fake',
             'created_at' => now(),
