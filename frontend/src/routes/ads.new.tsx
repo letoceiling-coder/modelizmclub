@@ -1688,7 +1688,7 @@ function StepData({
                           */}
                           {пунктОтправкиЕсть === false && (
                             <div
-                              className="flex items-start gap-[8px] rounded-[10px] px-[10px] py-[8px]"
+                              className="flex items-start gap-2 rounded-[10px] px-2.5 py-2"
                               style={{
                                 background:
                                   "var(--warning-soft, color-mix(in oklab, var(--warning, #b8860b) 12%, transparent))",
@@ -1696,7 +1696,7 @@ function StepData({
                             >
                               <Truck
                                 size={16}
-                                className="mt-[1px] shrink-0"
+                                className="mt-px shrink-0"
                                 style={{ color: "var(--warning, #b8860b)" }}
                               />
                               <div className="min-w-0">
@@ -1710,7 +1710,7 @@ function StepData({
                                 <Link
                                   to="/settings/delivery"
                                   target="_blank"
-                                  className="mt-[4px] inline-block text-[13px] font-medium"
+                                  className="mt-1 inline-block text-[13px] font-medium"
                                   style={{ color: "var(--accent)" }}
                                 >
                                   Выбрать пункт отправки

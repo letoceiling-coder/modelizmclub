@@ -218,7 +218,7 @@ export function MyAdCard({
       */}
       {ad.cdekHint && !deleted && (
         <div
-          className="mt-[8px] flex items-start gap-[8px] rounded-[10px] px-[12px] py-[10px]"
+          className="mt-2 flex items-start gap-2 rounded-[10px] px-3 py-2.5"
           style={{
             background:
               "var(--warning-soft, color-mix(in oklab, var(--warning, #b8860b) 12%, transparent))",
@@ -227,15 +227,15 @@ export function MyAdCard({
         >
           <Truck
             size={16}
-            className="mt-[1px] shrink-0"
+            className="mt-px shrink-0"
             style={{ color: "var(--warning, #b8860b)" }}
           />
           <div className="min-w-0">
             <div className="text-[12px] font-semibold">{t("pages.myAds.cdekNotReadyTitle")}</div>
-            <p className="mt-[2px] text-[13px]">{ad.cdekHint}</p>
+            <p className="mt-0.5 text-[13px]">{ad.cdekHint}</p>
             <Link
               to="/settings/delivery"
-              className="mt-[6px] inline-block text-[13px] font-medium"
+              className="mt-1.5 inline-block text-[13px] font-medium"
               style={{ color: "var(--accent)" }}
             >
               {t("pages.myAds.cdekNotReadyAction")}

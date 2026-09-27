@@ -368,7 +368,8 @@ function FeedPage() {
     // Прежняя строка отбирала по признаку `isSaved` среди загруженных, и
     // отложенное вне первой страницы в список не попадало.
     return visiblePosts;
-  }, [posts, filter, hiddenIds]);
+    // `filter` в зависимостях больше не нужен: отбор по нему уехал на сервер.
+  }, [posts, hiddenIds]);
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = feedQuery;
   const sentinelRef = useRef<HTMLDivElement>(null);
