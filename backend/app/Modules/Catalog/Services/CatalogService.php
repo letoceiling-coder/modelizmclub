@@ -5,6 +5,7 @@ namespace Modules\Catalog\Services;
 use App\Enums\ConversationType;
 use App\Enums\ListingStatus;
 use App\Models\City;
+use App\Models\Community;
 use App\Models\CommunityCategory;
 use App\Models\ListingCategory;
 use App\Models\PostCategory;
@@ -132,12 +133,51 @@ class CatalogService
         return [$out, $union];
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * Категории сообществ: зеркала направлений плюс те, которыми размечены
+     * сами сообщества.
+     *
+     * Замысел — единый источник: дерево направлений зеркалится в категории
+     * сообществ по признаку `in_communities`, и справочник показывает
+     * зеркала. Это закреплено `CategorySingleSourceTest`.
+     *
+     * Но в `community_categories` есть и наследие, появившееся раньше
+     * зеркалирования: «По масштабу» с 1/72 и 1/35, «По тематике» с
+     * Исторической и Sci-Fi, «Региональные клубы», «Официальные
+     * сообщества» — идентификаторы 1–16. Ими размечены **все 18**
+     * сообществ на проде, а в справочник они не попадали.
+     *
+     * Приёмка 27.09 замерила последствие: пересечение справочника с
+     * реальными категориями пусто, ноль из восемнадцати, и фильтр по
+     * категории не находит ничего.
+     *
+     * Поэтому к зеркалам добавляются наследные категории, **которые
+     * используются**. Брошенные дубли, оставшиеся от переносов, не
+     * воскресают: их никто не выбрал, и предлагать их незачем.
+     *
+     * Переход на одну ось требует переразметки восемнадцати сообществ и
+     * отложен — разбор в `docs/known-issues.md`.
+     *
+     * @return list<array<string, mixed>>
+     */
     public function communityCategoryTree(): array
     {
-        return Cache::remember(self::KEY_TREE_COMMUNITY, self::TTL, fn () => $this->categoryTree(
-            CommunityCategory::query()->whereIn('id', app(CategoryTaxonomyService::class)->visibleMirrorIds(CommunityCategory::class)),
-        ));
+        return Cache::remember(self::KEY_TREE_COMMUNITY, self::TTL, function () {
+            $зеркала = app(CategoryTaxonomyService::class)->visibleMirrorIds(CommunityCategory::class);
+
+            $используемые = Community::query()
+                ->whereNotNull('category_id')
+                ->distinct()
+                ->pluck('category_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $показываем = array_values(array_unique([...$зеркала, ...$используемые]));
+
+            return $this->categoryTree(
+                CommunityCategory::query()->whereIn('id', $показываем),
+            );
+        });
     }
 
     /** @return list<array<string, mixed>> */

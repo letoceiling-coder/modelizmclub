@@ -416,6 +416,29 @@ class CategoryTaxonomyService
      * @param  class-string<Model>  $class
      * @return list<int>
      */
+    /**
+     * Все зеркала, а не только видимые.
+     *
+     * `visibleMirrorIds` отбирает по признаку видимости, и для своей задачи
+     * это верно. Но там, где зеркала нужно **исключить** (справочник
+     * категорий сообществ), видимости мало: скрытое зеркало осталось бы в
+     * выдаче и снова смешало бы две оси.
+     *
+     * @return list<int>
+     */
+    public function allMirrorIds(string $class): array
+    {
+        [$linkColumn] = $this->linkColumns($class);
+
+        return PostCategory::query()
+            ->whereNotNull($linkColumn)
+            ->pluck($linkColumn)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function visibleMirrorIds(string $class): array
     {
         [$linkColumn, $flagColumn] = $this->linkColumns($class);

@@ -3,6 +3,7 @@
 namespace Modules\Auth\Http\Requests;
 
 use App\Enums\RegistrationTrack;
+use App\Rules\PersonName;
 use App\Rules\SafeEmail;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -39,7 +40,7 @@ class RegisterRequest extends FormRequest
                 'string',
                 'min:2',
                 'max:120',
-                'regex:/^[A-Za-zА-Яа-яЁё\s\'\x{2019}-]+$/u',
+                new PersonName,
             ],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'referral_code' => ['nullable', 'string', 'max:40'],

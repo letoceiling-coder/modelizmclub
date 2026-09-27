@@ -218,7 +218,8 @@ export function mapPost(p: ApiPost): Post {
 }
 
 export interface FeedQuery {
-  filter?: "all" | "following" | "category" | "scheduled";
+  /** «saved» уходит на отдельный адрес закладок, остальные — на /feed. */
+  filter?: "all" | "following" | "category" | "scheduled" | "saved";
   categoryId?: number;
   authorId?: number;
   /** Demo-mode filtering only — mockPosts.category is a name string, not an
@@ -249,6 +250,27 @@ export async function fetchFeed(opts: FeedQuery = {}): Promise<FeedResult> {
       perPage: opts.perPage,
     });
   }
+  /*
+   * Сохранённое — отдельный адрес, а не отбор по загруженной странице.
+   *
+   * До 27.09 вкладка брала общую ленту и фильтровала её по признаку
+   * `isSaved`. Приёмка замерила последствие: в ленте 154 записи по 20 на
+   * страницу, значит вкладка показывала сохранённое только из первых
+   * двадцати, а ушедшее из ленты — никогда.
+   */
+  if (opts.filter === "saved") {
+    const saved = await api<Paginated<ApiPost>>("/posts/bookmarked", {
+      query: { page: opts.page, per_page: opts.perPage ?? 20 },
+    });
+
+    return {
+      posts: (saved.data ?? []).map(mapPost),
+      page: saved.meta?.current_page ?? 1,
+      lastPage: saved.meta?.last_page ?? 1,
+      total: saved.meta?.total ?? saved.data?.length ?? 0,
+    };
+  }
+
   const res = await api<Paginated<ApiPost>>("/feed", {
     auth: Boolean(getToken()),
     query: {

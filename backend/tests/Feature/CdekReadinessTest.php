@@ -199,6 +199,94 @@ class CdekReadinessTest extends TestCase
             ->assertJsonPath('data.offers_cdek', true);
     }
 
+    /**
+     * Форма объявления узнаёт про пункт отправки до сохранения.
+     *
+     * Проверка при сохранении была и раньше, но срабатывала в конце: человек
+     * заполнял название, описание, фотографии и габариты и только тогда
+     * узнавал, что отправлять нечем. Приёмка 27.09 показала, чем это
+     * кончилось на проде — профиль доставки во всей базе один, и тот у
+     * заблокированной учётки.
+     */
+    public function test_форма_узнаёт_готовность_у_сервера_до_сохранения(): void
+    {
+        $seller = $this->продавец();
+
+        $this->actingAs($seller, 'sanctum')
+            ->getJson('/api/v1/users/me/delivery-profile')
+            ->assertOk()
+            ->assertJsonPath('meta.cdek_ready', false);
+
+        $this->пункт($seller);
+
+        $this->actingAs($seller, 'sanctum')
+            ->getJson('/api/v1/users/me/delivery-profile')
+            ->assertOk()
+            ->assertJsonPath('meta.cdek_ready', true);
+    }
+
+    /**
+     * Форма и карточка отвечают одним и тем же.
+     *
+     * Условий три — перевозчик, активность профиля и собранный снимок точки.
+     * Своя копия правила на фронтенде разошлась бы с карточкой при первой же
+     * правке условий, и продавцу подсказывали бы не то. Поэтому проверяется
+     * не «ответ верный», а «ответы совпадают».
+     */
+    public function test_готовность_формы_совпадает_с_ответом_карточки(): void
+    {
+        $seller = $this->продавец();
+        $listing = $this->объявление($seller, true);
+
+        foreach ([false, true] as $шаг) {
+            if ($шаг) {
+                $this->пункт($seller);
+            }
+
+            $форма = $this->actingAs($seller, 'sanctum')
+                ->getJson('/api/v1/users/me/delivery-profile')
+                ->json('meta.cdek_ready');
+
+            CdekReadiness::forget();
+            $карточка = CdekReadiness::ready($listing->fresh());
+
+            $this->assertSame(
+                $карточка,
+                $форма,
+                'форма обещает одно, карточка показывает другое — значит правило раздвоилось',
+            );
+        }
+    }
+
+    /**
+     * Профиль другого перевозчика готовности СДЭК не даёт.
+     *
+     * Именно на таком различии и разъезжаются копии правила: список профилей
+     * непустой, и «профиль есть» выглядит как «отправить можно».
+     */
+    public function test_профиль_другого_перевозчика_не_считается(): void
+    {
+        $seller = $this->продавец();
+
+        SellerDeliveryProfile::query()->create([
+            'user_id' => $seller->id,
+            'provider' => 'yandex',
+            'point_type' => 'pickup_point',
+            'external_point_id' => 'YA1',
+            'label' => 'Яндекс',
+            'address' => ['city_code' => 44],
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+
+        $ответ = $this->actingAs($seller, 'sanctum')
+            ->getJson('/api/v1/users/me/delivery-profile')
+            ->assertOk();
+
+        $this->assertCount(1, $ответ->json('data'), 'профиль в списке есть');
+        $this->assertFalse($ответ->json('meta.cdek_ready'), 'а отправлять СДЭК всё равно нельзя');
+    }
+
     /** Объявление без СДЭК эти условия не касаются. */
     public function test_a_listing_without_cdek_is_never_blocked(): void
     {

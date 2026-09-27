@@ -9,6 +9,7 @@ import {
   Zap,
   RotateCcw,
   AlertTriangle,
+  Truck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
@@ -198,6 +199,47 @@ export function MyAdCard({
           <div className="min-w-0">
             <div className="text-[12px] font-semibold">{t("pages.myAds.placementUnpaidTitle")}</div>
             <p className="mt-[2px] text-[13px]">{t("pages.myAds.placementUnpaidDesc")}</p>
+          </div>
+        </div>
+      )}
+      {/*
+        СДЭК выбран, а отправить его нельзя.
+
+        Подсказку `cdek_hint` сервер считал с 25.09 и отдавал автору — и
+        никто её не показывал. Приёмка 27.09 замерила, чем это кончилось: в
+        боевой базе **один** профиль доставки на весь сервис, и тот у
+        заблокированной учётки. Двадцать четыре объявления предлагают СДЭК,
+        покупатель не видит способа ни у одного, и продавцу об этом нигде не
+        сказано — объявление выглядит опубликованным и целым.
+
+        Блок стоит у карточки, а не одной строкой сверху страницы: доделать
+        надо не «что-то», а конкретное объявление, и ссылка ведёт туда, где
+        это делается.
+      */}
+      {ad.cdekHint && !deleted && (
+        <div
+          className="mt-[8px] flex items-start gap-[8px] rounded-[10px] px-[12px] py-[10px]"
+          style={{
+            background:
+              "var(--warning-soft, color-mix(in oklab, var(--warning, #b8860b) 12%, transparent))",
+            color: "var(--foreground-80)",
+          }}
+        >
+          <Truck
+            size={16}
+            className="mt-[1px] shrink-0"
+            style={{ color: "var(--warning, #b8860b)" }}
+          />
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold">{t("pages.myAds.cdekNotReadyTitle")}</div>
+            <p className="mt-[2px] text-[13px]">{ad.cdekHint}</p>
+            <Link
+              to="/settings/delivery"
+              className="mt-[6px] inline-block text-[13px] font-medium"
+              style={{ color: "var(--accent)" }}
+            >
+              {t("pages.myAds.cdekNotReadyAction")}
+            </Link>
           </div>
         </div>
       )}

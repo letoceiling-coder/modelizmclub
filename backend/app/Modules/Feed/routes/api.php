@@ -6,6 +6,7 @@ use Modules\Feed\Http\Controllers\Api\V1\CommentReactionController;
 use Modules\Feed\Http\Controllers\Api\V1\CommentThreadController;
 use Modules\Feed\Http\Controllers\Api\V1\DestroyCommentController;
 use Modules\Feed\Http\Controllers\Api\V1\DestroyPostController;
+use Modules\Feed\Http\Controllers\Api\V1\IndexBookmarkedPostsController;
 use Modules\Feed\Http\Controllers\Api\V1\IndexFeedController;
 use Modules\Feed\Http\Controllers\Api\V1\PostBookmarkController;
 use Modules\Feed\Http\Controllers\Api\V1\PostCommentsController;
@@ -39,6 +40,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::delete('posts/{uuid}/schedule', CancelScheduledPostController::class);
     Route::post('posts/{uuid}/react', [PostReactionController::class, 'store']);
     Route::delete('posts/{uuid}/react', [PostReactionController::class, 'destroy']);
+    // Список сохранённого — отдельным адресом. Без него вкладка
+    // «Сохранённое» отбирала закладки из уже загруженной страницы ленты
+    // и показывала лишь часть отложенного.
+    Route::get('posts/bookmarked', IndexBookmarkedPostsController::class);
     Route::post('posts/{uuid}/bookmark', [PostBookmarkController::class, 'store']);
     Route::delete('posts/{uuid}/bookmark', [PostBookmarkController::class, 'destroy']);
     Route::post('posts/{uuid}/repost', RepostPostController::class)

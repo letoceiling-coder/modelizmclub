@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContentStatus;
+use App\Enums\UserStatus;
 use App\Models\Concerns\HasPublicUuid;
 use App\Models\Concerns\StoresDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Builder;
@@ -154,6 +155,23 @@ class Post extends Model
                 $query->whereNotIn('user_id', $blockedIds);
             }
         }
+
+        /*
+         * Записи заблокированных и удалённых учёток не показываем никому,
+         * включая их самих.
+         *
+         * Приёмка 27.09 открыла ленту гостем, и второй записью сверху стояло
+         * «Удалённая учётная запись · QA путь 8 — запись на модерацию ·
+         * Тестовая запись приёмки 19.09, будет снята». Её не сняли. Всего
+         * таких опубликованных нашлось шесть, ещё пять ждали модерации.
+         *
+         * Записи не удаляются, а перестают показываться: обезличивание
+         * обратимо, удаление — нет. Если учётку разблокируют, её записи
+         * вернутся сами.
+         */
+        $query->whereHas('author', function (Builder $author): void {
+            $author->whereNotIn('status', [UserStatus::Blocked, UserStatus::Deleted]);
+        });
 
         return $query;
     }
