@@ -128,7 +128,7 @@ class BillingRequiresVerifiedPhoneTest extends TestCase
         $listing = $this->listing($seller);
         $buyer = $this->user(true);
         app(\Modules\Billing\Services\WalletService::class)
-            ->credit($buyer, 100000, \App\Enums\WalletTransactionType::Topup, 'test');
+            ->credit($buyer, 105000, \App\Enums\WalletTransactionType::Topup, 'test');
 
         $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])

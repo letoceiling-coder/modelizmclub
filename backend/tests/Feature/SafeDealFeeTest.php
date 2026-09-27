@@ -81,7 +81,14 @@ class SafeDealFeeTest extends TestCase
 
             $this->assertSame($expected, $quote['platform_fee_kopecks'], "расчёт сделки на {$item}");
             $this->assertSame($expected, $this->feeFromTariffsPage($item), "страница тарифов на {$item}");
-            $this->assertSame($item - $expected, $quote['seller_payout_kopecks']);
+
+            /*
+             * С 27.09 комиссию платит покупатель: продавец получает полную
+             * цену товара, а комиссия прибавляется к сумме покупателя.
+             * Прежде здесь стояло `$item - $expected` — вычет из выплаты.
+             */
+            $this->assertSame($item, $quote['seller_payout_kopecks'], "выплата продавцу на {$item}");
+            $this->assertSame($item + $expected, $quote['total_kopecks'], "к оплате на {$item}");
         }
     }
 

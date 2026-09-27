@@ -73,6 +73,7 @@ class SafeDealSettlementAtomicityTest extends TestCase
             'seller_id' => $seller->id,
             'status' => SafeDealStatus::Created,
             'amount_kopecks' => 150000,
+            'item_kopecks' => 150000,
             'platform_fee_kopecks' => 0,
             'seller_payout_kopecks' => 150000,
             'currency' => 'RUB',

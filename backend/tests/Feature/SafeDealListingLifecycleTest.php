@@ -80,7 +80,9 @@ class SafeDealListingLifecycleTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, $priceCents);
-        $this->fund($buyer, $priceCents);
+        // Товар плюс комиссия 5%: с 27.09 её вносит покупатель, и денег ровно
+        // на цену объявления теперь не хватает.
+        $this->fund($buyer, (int) round($priceCents * 1.05));
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -129,7 +131,7 @@ class SafeDealListingLifecycleTest extends TestCase
             ->assertOk();
 
         $second = $this->seedUser('second');
-        $this->fund($second, 100000);
+        $this->fund($second, 105000);
 
         // Отказывает политика: `create` требует Published, поэтому проданный
         // лот не доходит до расчёта. Код 403, а не 422 — это её отказ.
@@ -175,7 +177,7 @@ class SafeDealListingLifecycleTest extends TestCase
 
         // И товар снова можно купить — иначе отмена стоила бы продавцу лота.
         $second = $this->seedUser('second');
-        $this->fund($second, 100000);
+        $this->fund($second, 105000);
         $this->actingAs($second, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
             ->assertCreated();

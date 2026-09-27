@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\SafeDealFeePayer;
 use App\Enums\SafeDealStatus;
 use App\Models\Concerns\HasPublicUuid;
 use Illuminate\Database\Eloquent\Model;
@@ -21,7 +22,9 @@ class SafeDeal extends Model
         'buyer_id',
         'seller_id',
         'amount_kopecks',
+        'item_kopecks',
         'platform_fee_kopecks',
+        'fee_payer',
         'seller_payout_kopecks',
         'delivery_cost_kopecks',
         'currency',
@@ -48,7 +51,9 @@ class SafeDeal extends Model
         return [
             'status' => SafeDealStatus::class,
             'amount_kopecks' => 'integer',
+            'item_kopecks' => 'integer',
             'platform_fee_kopecks' => 'integer',
+            'fee_payer' => SafeDealFeePayer::class,
             'seller_payout_kopecks' => 'integer',
             'delivery_cost_kopecks' => 'integer',
             'destination_point' => 'array',

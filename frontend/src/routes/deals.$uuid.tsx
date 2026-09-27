@@ -263,10 +263,32 @@ function DealDetailPage() {
           )}
 
           <div className="mt-[12px] grid gap-[8px] text-[13px]">
+            {/*
+              Пять величин сделки, а не три.
+              Прежде карточка показывала комиссию, доставку и выплату — и по
+              ней нельзя было сложить, сколько заплатил покупатель: цены товара
+              в ней не было вовсе. С 27.09 это стало важнее: комиссия входит в
+              сумму покупателя, и «выплата продавцу» с «комиссией» больше не
+              складываются в стоимость товара.
+            */}
+            {(deal.item_kopecks ?? 0) > 0 && (
+              <Row label="Стоимость товара" value={`${kopecksToRub(deal.item_kopecks ?? 0)} ₽`} />
+            )}
             <Row
               label="Комиссия платформы"
               value={`${kopecksToRub(deal.platform_fee_kopecks)} ₽`}
             />
+            {/*
+              Чья комиссия — из самой сделки, а не из сегодняшнего правила.
+              Сделки до 27.09 не пересчитывались: у них комиссия вычтена из
+              выплаты, и подписать их фразой «оплатил покупатель» значило бы
+              соврать про уже закрытые деньги.
+            */}
+            <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              {deal.fee_payer === "buyer"
+                ? "Оплачена покупателем при оформлении — продавец получает полную стоимость товара."
+                : "Удержана из выплаты продавцу."}
+            </p>
             {/* При самовывозе строки доставки нет вовсе: «Доставка СДЭК 0 ₽»
                 при способе «Самовывоз» в той же карточке — не ноль рублей,
                 а несуществующая услуга. */}
@@ -276,6 +298,7 @@ function DealDetailPage() {
                 value={`${kopecksToRub(deal.delivery_cost_kopecks ?? 0)} ₽`}
               />
             )}
+            <Row label="Оплатил покупатель" value={`${kopecksToRub(deal.amount_kopecks)} ₽`} />
             <Row label="Выплата продавцу" value={`${kopecksToRub(deal.seller_payout_kopecks)} ₽`} />
             {deal.tracking_number && <Row label="Трек-номер" value={deal.tracking_number} />}
             {deal.delivery_method && <Row label="Способ доставки" value={deal.delivery_method} />}

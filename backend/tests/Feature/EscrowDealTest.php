@@ -70,7 +70,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $response = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -89,7 +89,8 @@ class EscrowDealTest extends TestCase
         // Buyer balance held, not spendable.
         $wallet = app(WalletService::class)->wallet($buyer->fresh());
         $this->assertSame(0, (int) $wallet->balance_kopecks);
-        $this->assertSame(100000, (int) $wallet->held_kopecks);
+        // Удержание — товар плюс комиссия: с 27.09 её платит покупатель.
+        $this->assertSame(105000, (int) $wallet->held_kopecks);
 
         $uuid = $response->json('data.uuid');
         $this->actingAs($buyer, 'sanctum')
@@ -119,7 +120,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -137,8 +138,8 @@ class EscrowDealTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'completed');
 
-        // Seller receives 95%, platform keeps 5%.
-        $this->assertSame(95000, app(WalletService::class)->balanceKopecks($seller->fresh()));
+        // Продавец получает полную цену объявления: комиссию оплатил покупатель.
+        $this->assertSame(100000, app(WalletService::class)->balanceKopecks($seller->fresh()));
         $this->assertSame(0, (int) app(WalletService::class)->wallet($buyer->fresh())->held_kopecks);
     }
 
@@ -147,7 +148,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -160,7 +161,7 @@ class EscrowDealTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'cancelled');
 
-        $this->assertSame(100000, app(WalletService::class)->balanceKopecks($buyer->fresh()));
+        $this->assertSame(105000, app(WalletService::class)->balanceKopecks($buyer->fresh()));
     }
 
     public function test_dispute_open_and_admin_resolves_for_buyer(): void
@@ -170,7 +171,7 @@ class EscrowDealTest extends TestCase
         $admin = $this->seedUser('admin');
         $admin->update(['role' => UserRole::Owner]);
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -191,7 +192,7 @@ class EscrowDealTest extends TestCase
             ->postJson("/api/v1/admin/disputes/{$disputeUuid}/resolve", ['in_favor_of' => 'buyer'])
             ->assertOk();
 
-        $this->assertSame(100000, app(WalletService::class)->balanceKopecks($buyer->fresh()));
+        $this->assertSame(105000, app(WalletService::class)->balanceKopecks($buyer->fresh()));
         $this->assertSame(0, app(WalletService::class)->balanceKopecks($seller->fresh()));
     }
 
@@ -200,7 +201,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -237,7 +238,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -315,7 +316,7 @@ class EscrowDealTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -343,7 +344,7 @@ class EscrowDealTest extends TestCase
         $admin = $this->seedUser('admin');
         $admin->update(['role' => UserRole::Owner]);
         $listing = $this->seedListing($seller);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -364,7 +365,16 @@ class EscrowDealTest extends TestCase
             ])
             ->assertOk();
 
-        $this->assertSame(40000, app(WalletService::class)->balanceKopecks($buyer->fresh()));
+        /*
+         * Делится товар с доставкой — 100 000, — а не всё удержание.
+         *
+         * Покупатель внёс 105 000: товар 100 000 и комиссия 5 000. Сделка не
+         * состоялась как задумано, комиссию площадка по ней не получает (см.
+         * Правила, 4.2), поэтому 5 000 возвращаются покупателю сверх его доли.
+         * Без этого «всё продавцу» отдало бы ему 105 000 — больше полной цены
+         * объявления, то есть площадка доплатила бы из своего.
+         */
+        $this->assertSame(45000, app(WalletService::class)->balanceKopecks($buyer->fresh()));
         $this->assertSame(60000, app(WalletService::class)->balanceKopecks($seller->fresh()));
     }
 }

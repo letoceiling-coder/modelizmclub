@@ -5,6 +5,7 @@ namespace Modules\Billing\Services;
 use App\Enums\DeliveryCarrier;
 use App\Enums\DisputeStatus;
 use App\Enums\ListingStatus;
+use App\Enums\SafeDealFeePayer;
 use App\Enums\SafeDealIncomingStatus;
 use App\Enums\SafeDealStatus;
 use App\Enums\ShipmentStatus;
@@ -204,9 +205,24 @@ class SafeDealService
             'delivery_cost_kopecks' => $delivery,
             // Не в ответе покупателю: строка уходит в `metadata` сделки.
             'delivery_markup_kopecks' => $markup,
-            'total_kopecks' => $item + $delivery,
-            'hold_kopecks' => $item + $delivery,
-            'seller_payout_kopecks' => $item - $fee,
+            /*
+             * Комиссию платит покупатель — решение заказчика 27.09.
+             *
+             * Было: покупатель платил цену товара, комиссия вычиталась из
+             * выплаты. Товар 1 000 ₽ — покупатель 1 000, продавец 950.
+             * Стало: безопасную сделку выбирает покупатель, значит и платит
+             * он. Товар 1 000 ₽ — покупатель 1 050, продавец 1 000, то есть
+             * ровно ту цену, которую указал в объявлении.
+             *
+             * Комиссия внутри удержания нарочно: отмена возвращает
+             * `amount_kopecks` целиком, и покупателю приходит обратно всё
+             * вместе с комиссией — площадка ничего не заработала на сделке,
+             * которая не состоялась (Правила, 4.2).
+             */
+            'total_kopecks' => $item + $fee + $delivery,
+            'hold_kopecks' => $item + $fee + $delivery,
+            'seller_payout_kopecks' => $item,
+            'fee_payer' => SafeDealFeePayer::Buyer->value,
             'currency' => $listing->currency ?? 'RUB',
             // Обещание о деньгах, которое видит покупатель до оплаты. Условие
             // должно совпадать с тем, что стоит в карточке сделки ниже: до
@@ -263,6 +279,13 @@ class SafeDealService
         $payout = (int) $quote['seller_payout_kopecks'];
         $holdAmount = (int) $quote['hold_kopecks'];
 
+        /*
+         * Выплата продавцу — это цена товара, и ноль здесь означает лот без
+         * цены. Прежде проверка ловила другое: комиссия с минимумом могла
+         * съесть дешёвый лот целиком и сделать выплату нулевой. Теперь
+         * комиссия выплату не уменьшает, но условие остаётся — сделка на
+         * нулевую сумму не имеет смысла ни при какой схеме.
+         */
         if ($payout <= 0) {
             throw ValidationException::withMessages(['listing' => ['Сумма слишком мала для безопасной сделки.']]);
         }
@@ -299,7 +322,11 @@ class SafeDealService
                     'buyer_id' => $buyer->id,
                     'seller_id' => $listing->user_id,
                     'amount_kopecks' => $holdAmount,
+                    'item_kopecks' => $item,
                     'platform_fee_kopecks' => $fee,
+                    // Схема расчёта пишется в строку, а не выводится из даты:
+                    // старые сделки не пересчитываются и живут рядом.
+                    'fee_payer' => SafeDealFeePayer::Buyer,
                     'seller_payout_kopecks' => $payout,
                     'delivery_cost_kopecks' => $delivery,
                     'currency' => $listing->currency ?? 'RUB',
@@ -319,7 +346,6 @@ class SafeDealService
                         ? now()->addDays($this->autoReleaseDays())
                         : null,
                     'metadata' => [
-                        'item_kopecks' => $item,
                         // Снимок названия на момент сделки. Мягкое удаление
                         // связь переживает (listing() отдаёт withTrashed), но
                         // жёсткое — нет, а карточка завершённой сделки должна
@@ -756,7 +782,16 @@ class SafeDealService
             $this->log($deal, $actor, 'completed', (int) $deal->seller_payout_kopecks, $payout->id, $note);
 
             if ((int) $deal->platform_fee_kopecks > 0) {
-                $this->log($deal, null, 'commission', (int) $deal->platform_fee_kopecks, null, 'Комиссия платформы удержана.');
+                /*
+                 * Запись в журнал называет то, что произошло с деньгами, а не
+                 * одно и то же при двух разных схемах. У сделок до 27.09
+                 * комиссия вычиталась из выплаты продавцу; у новых её оплатил
+                 * покупатель при оформлении, и из выплаты ничего не вычтено.
+                 */
+                $this->log($deal, null, 'commission', (int) $deal->platform_fee_kopecks, null,
+                    ($deal->fee_payer ?? SafeDealFeePayer::Seller) === SafeDealFeePayer::Buyer
+                        ? 'Комиссия платформы оплачена покупателем при оформлении.'
+                        : 'Комиссия платформы удержана из выплаты продавцу.');
             }
 
             $this->settleListing($deal);
@@ -848,11 +883,38 @@ class SafeDealService
     private function splitPayout(SafeDeal $deal, ?User $actor, int $buyerKopecks, int $sellerKopecks, string $note, array $allowedFrom): SafeDeal
     {
         $total = (int) $deal->amount_kopecks;
-        if ($buyerKopecks < 0 || $sellerKopecks < 0 || $buyerKopecks + $sellerKopecks !== $total) {
+
+        /*
+         * Комиссию, оплаченную покупателем, делить нельзя.
+         *
+         * В удержании лежит `item + fee + delivery`. Спор со делением — это
+         * сделка, которая не состоялась как задумано, и комиссию площадка по
+         * ней не получает: так же, как при отмене (Правила, 4.2). Значит
+         * комиссия возвращается покупателю сверх его доли, а делится только
+         * `item + delivery`.
+         *
+         * Без этого «всё продавцу» отдало бы ему товар плюс комиссию — больше
+         * полной цены объявления, то есть площадка доплатила бы из своего.
+         *
+         * У сделок до 27.09 комиссия внутрь удержания не входила (её вычитали
+         * из выплаты), и делимое там — вся сумма. Отличие берётся из строки, а
+         * не из даты: см. `SafeDealFeePayer`.
+         */
+        $feeToBuyer = ($deal->fee_payer ?? SafeDealFeePayer::Seller) === SafeDealFeePayer::Buyer
+            ? (int) $deal->platform_fee_kopecks
+            : 0;
+        $делимое = $total - $feeToBuyer;
+
+        if ($buyerKopecks < 0 || $sellerKopecks < 0 || $buyerKopecks + $sellerKopecks !== $делимое) {
             throw ValidationException::withMessages([
-                'split' => ['Суммы покупателя и продавца должны в сумме равняться сумме сделки.'],
+                'split' => [$feeToBuyer > 0
+                    ? 'Суммы покупателя и продавца должны в сумме равняться сумме сделки без комиссии: комиссия возвращается покупателю целиком.'
+                    : 'Суммы покупателя и продавца должны в сумме равняться сумме сделки.'],
             ]);
         }
+
+        // Комиссия уезжает покупателю вместе с его долей — одной проводкой.
+        $buyerKopecks += $feeToBuyer;
 
         $incoming = $this->activeIncoming($deal);
         if ($incoming !== null) {
@@ -862,7 +924,7 @@ class SafeDealService
         }
         $this->assertHoldUsable($deal, $incoming);
 
-        $completed = DB::transaction(function () use ($deal, $actor, $buyerKopecks, $sellerKopecks, $note, $total, $allowedFrom): SafeDeal {
+        $completed = DB::transaction(function () use ($deal, $actor, $buyerKopecks, $sellerKopecks, $note, $total, $feeToBuyer, $allowedFrom): SafeDeal {
             $deal = $this->lockForTransition($deal, $allowedFrom, 'Разделение суммы по сделке в текущем статусе невозможно.');
 
             $buyer = $deal->buyer;
@@ -904,6 +966,8 @@ class SafeDealService
                     'split' => [
                         'buyer_kopecks' => $buyerKopecks,
                         'seller_kopecks' => $sellerKopecks,
+                        // Сколько из доли покупателя — возвращённая комиссия.
+                        'fee_returned_kopecks' => $feeToBuyer,
                     ],
                 ]),
             ]);
@@ -1211,7 +1275,16 @@ class SafeDealService
     public function toArray(SafeDeal $deal, ?User $viewer = null): array
     {
         $delivery = (int) ($deal->delivery_cost_kopecks ?? 0);
-        $item = (int) (($deal->metadata['item_kopecks'] ?? null) ?: max(0, (int) $deal->amount_kopecks - $delivery));
+        /*
+         * Цена товара — из колонки, а не из `metadata`.
+         *
+         * До 27.09 она лежала в JSON, и здесь стоял запасной путь вычитанием.
+         * Миграция `2026_09_27_140000` перенесла величину в колонку у всех
+         * строк и объявила её `NOT NULL`, так что запасной путь остался бы
+         * вторым ответом на один вопрос — и разошёлся бы с колонкой, потому
+         * что в новой схеме `amount` включает ещё и комиссию.
+         */
+        $item = (int) $deal->item_kopecks;
         $myReview = null;
         if ($viewer !== null) {
             $row = $deal->relationLoaded('reviews')
@@ -1238,6 +1311,12 @@ class SafeDealService
             'amount_kopecks' => (int) $deal->amount_kopecks,
             'platform_fee_percent' => $this->platformFeePercent(),
             'platform_fee_kopecks' => (int) $deal->platform_fee_kopecks,
+            /*
+             * Кто платил комиссию по этой сделке. Нужно карточке: у сделок до
+             * 27.09 комиссия вычтена из выплаты, и объяснять их новой фразой
+             * «продавец получает полную стоимость» было бы неправдой о них.
+             */
+            'fee_payer' => ($deal->fee_payer ?? SafeDealFeePayer::Seller)->value,
             'seller_payout_kopecks' => (int) $deal->seller_payout_kopecks,
             'delivery_cost_kopecks' => $delivery,
             'currency' => $deal->currency,

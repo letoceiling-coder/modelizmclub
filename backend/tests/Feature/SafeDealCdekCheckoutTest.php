@@ -250,7 +250,9 @@ class SafeDealCdekCheckoutTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.delivery_cost_kopecks', 44000)
-            ->assertJsonPath('data.hold_kopecks', 144000)
+            // Товар 1 000 + комиссия 50 + доставка 440. Комиссию с 27.09
+            // платит покупатель, поэтому она внутри удержания.
+            ->assertJsonPath('data.hold_kopecks', 149000)
             ->assertJsonMissingPath('data.delivery_markup_kopecks');
 
         $this->actingAs($buyer, 'sanctum')
@@ -288,7 +290,8 @@ class SafeDealCdekCheckoutTest extends TestCase
             ->assertJsonPath('data.item_kopecks', 100000)
             ->assertJsonPath('data.platform_fee_kopecks', 5000)
             ->assertJsonPath('data.delivery_cost_kopecks', 40000)
-            ->assertJsonPath('data.hold_kopecks', 140000);
+            // 1 000 товар + 50 комиссия + 400 доставка.
+            ->assertJsonPath('data.hold_kopecks', 145000);
 
         $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -298,11 +301,12 @@ class SafeDealCdekCheckoutTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.status', 'paid')
             ->assertJsonPath('data.delivery_cost_kopecks', 40000)
-            ->assertJsonPath('data.amount_kopecks', 140000);
+            ->assertJsonPath('data.amount_kopecks', 145000);
 
         $wallet = app(WalletService::class)->wallet($buyer->fresh());
-        $this->assertSame(60000, (int) $wallet->balance_kopecks);
-        $this->assertSame(140000, (int) $wallet->held_kopecks);
+        // Внесено 2 000, удержано 1 450 — товар, комиссия и доставка.
+        $this->assertSame(55000, (int) $wallet->balance_kopecks);
+        $this->assertSame(145000, (int) $wallet->held_kopecks);
     }
 
     /**
@@ -491,7 +495,7 @@ class SafeDealCdekCheckoutTest extends TestCase
             'status' => ListingStatus::Published,
             'published_at' => now(),
         ]);
-        app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test');
+        app(WalletService::class)->credit($buyer, 105000, WalletTransactionType::Topup, 'test');
 
         // Строка в обход модели: с 17.09 UserReview сам отказывается
         // создаваться без завершённой сделки, а проверяется здесь чтение —
