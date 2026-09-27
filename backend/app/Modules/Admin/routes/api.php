@@ -42,6 +42,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSettingsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminShowShipmentController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUpdateShipmentController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminUserCardController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserCategoriesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminUserListingCreditsController;
@@ -103,6 +104,12 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         // пользователей. Роль, почту, пароль и сотрудников — Владелец
         // (AdminUserController::guardModeratorEdit).
         Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid'])->only(['index', 'show', 'update']);
+        /*
+         * Карточка стоит перед `users/{uuid}` по смыслу, но не по порядку:
+         * `apiResource` объявлен выше, а его `show` ограничен маской uuid в
+         * самом ресурсе — «card» под неё не подходит и туда не уедет.
+         */
+        Route::get('users/{uuid}/card', AdminUserCardController::class)->where('uuid', '[0-9a-f-]{36}');
     });
 
     Route::middleware('admin.section:content')->group(function (): void {
