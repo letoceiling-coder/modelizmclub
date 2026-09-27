@@ -36,6 +36,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminPostController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromocodeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPromoPoolController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminReferralController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminRoleAccessController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminRolesController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminRulePageController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminSafeDealController;
@@ -321,6 +322,12 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
     Route::middleware('admin.section:roles')->group(function (): void {
         Route::get('roles', [AdminRolesController::class, 'show']);
         Route::put('roles/category-admin-limit', [AdminRolesController::class, 'updateLimit']);
+        /*
+         * Правка карты «что открывает роль». В разделе `roles`, то есть
+         * только Владелец: получивший её правит состав разделов у всех ролей,
+         * включая свою.
+         */
+        Route::put('roles/access', AdminRoleAccessController::class);
         /*
          * Отдельные права поверх роли (C3). Внутри — ещё и проверка на
          * роль Владельца: право раздавать права не выдаётся.

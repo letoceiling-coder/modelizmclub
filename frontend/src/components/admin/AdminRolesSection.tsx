@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, X } from "lucide-react";
+import { Check, Pencil, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { H, card, inputStyle, primaryBtn } from "@/components/admin/adminShared";
 import { askConfirm } from "@/lib/ui/ask";
@@ -9,6 +9,7 @@ import { useCurrentUser } from "@/lib/session";
 import { fetchAdminCategories, fetchAdminUsers, type AdminUserRow } from "@/lib/api/admin";
 import {
   fetchRolesOverview,
+  saveRoleAccess,
   saveStaffPermissions,
   setStaffCategories,
   updateCategoryAdminLimit,
@@ -147,7 +148,7 @@ export function AdminRolesSection() {
       </div>
 
       <LimitCard value={overview.maxPerCategory} onChanged={load} />
-      <RoleMatrix overview={overview} />
+      <RoleMatrix overview={overview} onSaved={load} />
     </div>
   );
 }
@@ -741,10 +742,176 @@ function LimitCard({ value, onChanged }: { value: number; onChanged: () => void 
   );
 }
 
-function RoleMatrix({ overview }: { overview: RolesOverview }) {
+/**
+ * Клетки, открытие которых другой роли — решение про власть, а не про удобство.
+ *
+ * Причины взяты не с потолка: это тот же список, который `AdminAccess`
+ * отказывается выдавать галочкой отдельному человеку, и по тем же основаниям.
+ * Здесь он не запрещает, а спрашивает: карту правит Владелец, и он вправе
+ * решить. Но молча такое не проходит.
+ */
+const КРИТИЧНЫЕ: Record<string, string> = {
+  roles: "получивший раздаёт права дальше, в том числе себе",
+  settings: "запись любого ключа настроек, включая маршрутизацию денег сделки",
+  "users.manage": "создание учётки с любой ролью и удаление сотрудников",
+  "users.fields": "правка роли, почты и пароля людей",
+  "categories.prices": "цены размещения — деньги площадки",
+  monetization: "деньги площадки",
+  monetizationPricing: "деньги площадки",
+  monetizationPayments: "деньги площадки",
+  monetizationLedger: "деньги площадки",
+  monetizationPromos: "деньги площадки",
+  "dashboard.full": "сводка с деньгами",
+  rulesPages: "страница принимает готовый HTML и рисуется как есть",
+  legalPages: "страница принимает готовый HTML и рисуется как есть",
+};
+
+/**
+ * Матрица «что открывает роль» — с правкой.
+ *
+ * До 28.09 она только показывала: состав разделов задавался константой в
+ * коде, и поменять его можно было выкаткой. Сервер теперь спрашивает
+ * настройку в единственной точке проверки, поэтому снятая галочка закрывает
+ * маршрут, а не прячет пункт меню.
+ *
+ * Правка ведётся по копии: пока не нажато «Сохранить», ничего не уходит, а
+ * «Отмена» просто выбрасывает копию.
+ */
+function RoleMatrix({ overview, onSaved }: { overview: RolesOverview; onSaved: () => void }) {
   const { t } = useTranslation();
   const columns = overview.roles.filter((r) => r.role !== "user");
   const sections = Object.keys(overview.sectionLevels);
+  /* Служебные ключи — те, у которых нет пункта меню. Их тоже правят: жалобы,
+     удаление записей и цены живут именно здесь. */
+  const service = useMemo(
+    () =>
+      Object.keys(overview.roleAccess.owner ?? {}).filter(
+        (k) => !Object.prototype.hasOwnProperty.call(overview.sectionLevels, k),
+      ),
+    [overview],
+  );
+
+  const [правим, setПравим] = useState(false);
+  const [копия, setКопия] = useState<Record<string, Record<string, boolean>>>({});
+  const [сохраняется, setСохраняется] = useState(false);
+
+  const начать = () => {
+    // Глубокая копия: иначе правка меняла бы то, что пришло с сервера, и
+    // «Отмена» было бы нечему отменять.
+    setКопия(
+      Object.fromEntries(
+        Object.entries(overview.roleAccess).map(([роль, ключи]) => [роль, { ...ключи }]),
+      ),
+    );
+    setПравим(true);
+  };
+
+  const заперта = (роль: string, ключ: string) =>
+    (overview.roleAccessLocked[роль] ?? []).includes(ключ);
+
+  const стоит = (роль: string, ключ: string) =>
+    правим ? (копия[роль]?.[ключ] ?? false) : (overview.roleAccess[роль]?.[ключ] ?? false);
+
+  const переключить = (роль: string, ключ: string) => {
+    if (заперта(роль, ключ)) {
+      toast.info("Этот доступ у Владельца снять нельзя: это единственная дверь к правке прав.");
+      return;
+    }
+    setКопия((prev) => ({ ...prev, [роль]: { ...prev[роль], [ключ]: !prev[роль]?.[ключ] } }));
+  };
+
+  const изменения = useMemo(
+    () =>
+      Object.entries(копия).flatMap(([роль, ключи]) =>
+        Object.entries(ключи)
+          .filter(([ключ, стало]) => (overview.roleAccess[роль]?.[ключ] ?? false) !== стало)
+          .map(([ключ, стало]) => ({ роль, ключ, стало })),
+      ),
+    [копия, overview],
+  );
+
+  const сохранить = async () => {
+    if (изменения.length === 0) {
+      setПравим(false);
+      return;
+    }
+
+    /*
+     * Подтверждение спрашивается один раз и перечисляет именно то, что
+     * человек сейчас отдаёт. Два отдельных повода: открыть власть роли ниже
+     * Владельца и забрать что-то у самого Владельца.
+     */
+    const опасные = изменения.filter(
+      ({ роль, ключ, стало }) => стало && роль !== "owner" && КРИТИЧНЫЕ[ключ],
+    );
+    const уВладельца = изменения.filter(({ роль, стало }) => роль === "owner" && !стало);
+
+    if (опасные.length > 0 || уВладельца.length > 0) {
+      const строки = [
+        ...опасные.map(
+          ({ роль, ключ }) =>
+            `• «${название(ключ, t)}» открывается роли «${t(`pages.adminRoles.role.${роль}`)}» — ${КРИТИЧНЫЕ[ключ]}`,
+        ),
+        ...уВладельца.map(({ ключ }) => `• «${название(ключ, t)}» снимается у Владельца`),
+      ];
+      if (
+        !(await askConfirm({
+          title: "Это изменение про власть, а не про удобство",
+          description: `${строки.join("\n")}\n\nПрименится сразу ко всем, у кого эта роль.`,
+          confirmLabel: "Всё равно применить",
+          danger: true,
+        }))
+      ) {
+        return;
+      }
+    }
+
+    setСохраняется(true);
+    try {
+      const { changed } = await saveRoleAccess(копия);
+      setПравим(false);
+      toast.success(
+        changed.length === 0
+          ? "Изменений не было"
+          : `Применено сразу: изменено клеток — ${changed.length}`,
+      );
+      onSaved();
+    } catch (e) {
+      reportActionFailure(e, "Не удалось сохранить права роли");
+    } finally {
+      setСохраняется(false);
+    }
+  };
+
+  const строкаМатрицы = (ключ: string, подпись: string) => (
+    <tr key={ключ} style={{ borderTop: "1px solid var(--border)" }}>
+      <td style={{ padding: "6px 8px" }}>{подпись}</td>
+      {columns.map((c) => {
+        const включено = стоит(c.role, ключ);
+        const locked = заперта(c.role, ключ);
+
+        return (
+          <td key={c.role} style={{ textAlign: "center", padding: "6px 8px" }}>
+            {правим ? (
+              <input
+                type="checkbox"
+                checked={включено}
+                disabled={locked || сохраняется}
+                onChange={() => переключить(c.role, ключ)}
+                aria-label={`${подпись} — ${t(`pages.adminRoles.role.${c.role}`)}`}
+                title={locked ? "Снять нельзя: единственная дверь к правке прав" : КРИТИЧНЫЕ[ключ]}
+                style={{ cursor: locked ? "not-allowed" : "pointer" }}
+              />
+            ) : включено ? (
+              <Check size={14} style={{ color: "var(--success)", display: "inline" }} />
+            ) : (
+              <span style={muted}>—</span>
+            )}
+          </td>
+        );
+      })}
+    </tr>
+  );
 
   const privilege = (p: Privileges) => [
     p.subscriptionExempt
@@ -757,7 +924,43 @@ function RoleMatrix({ overview }: { overview: RolesOverview }) {
 
   return (
     <div style={{ ...card, padding: "16px" }}>
-      <div style={sectionTitle}>{t("pages.adminRoles.matrixTitle")}</div>
+      <div className="flex flex-wrap items-center justify-between" style={{ gap: "8px" }}>
+        <div style={sectionTitle}>{t("pages.adminRoles.matrixTitle")}</div>
+        {правим ? (
+          <div className="flex" style={{ gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => setПравим(false)}
+              disabled={сохраняется}
+              style={{ ...inputStyle, padding: "0 14px", cursor: "pointer" }}
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              onClick={() => void сохранить()}
+              disabled={сохраняется}
+              style={{ ...primaryBtn, opacity: сохраняется ? 0.6 : 1 }}
+            >
+              {сохраняется
+                ? "Сохраняю…"
+                : изменения.length > 0
+                  ? `Сохранить (${изменения.length})`
+                  : "Сохранить"}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={начать}
+            className="inline-flex items-center"
+            style={{ ...inputStyle, gap: "6px", padding: "0 14px", cursor: "pointer" }}
+          >
+            <Pencil size={14} />
+            Редактировать
+          </button>
+        )}
+      </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ fontSize: "13px", minWidth: "520px", width: "100%" }}>
           <thead>
@@ -781,24 +984,51 @@ function RoleMatrix({ overview }: { overview: RolesOverview }) {
                 </td>
               ))}
             </tr>
-            {sections.map((id) => (
-              <tr key={id} style={{ borderTop: "1px solid var(--border)" }}>
-                <td style={{ padding: "6px 8px" }}>{t(`pages.adminShell.nav.${id}`)}</td>
-                {columns.map((c) => (
-                  <td key={c.role} style={{ textAlign: "center", padding: "6px 8px" }}>
-                    {c.sections.includes(id) ? (
-                      <Check size={14} style={{ color: "var(--success)", display: "inline" }} />
-                    ) : (
-                      <span style={muted}>—</span>
-                    )}
-                  </td>
-                ))}
+            {sections.map((id) => строкаМатрицы(id, t(`pages.adminShell.nav.${id}`)))}
+            {/*
+              Служебные ключи — отдельной группой и после разделов: у них нет
+              пункта меню, и смешивать их со разделами значило бы показывать
+              «жалобы» и «удаление записей» как будто это страницы админки.
+            */}
+            {service.length > 0 && (
+              <tr style={{ borderTop: "1px solid var(--border)" }}>
+                <td colSpan={columns.length + 1} style={{ padding: "10px 8px 4px", ...muted }}>
+                  Отдельные действия внутри разделов
+                </td>
               </tr>
-            ))}
+            )}
+            {service.map((ключ) => строкаМатрицы(ключ, название(ключ, t)))}
           </tbody>
         </table>
       </div>
       <p style={{ ...muted, marginTop: "10px" }}>{t("pages.adminRoles.matrixScopeHint")}</p>
+      {правим && (
+        <p style={{ ...muted, marginTop: "6px" }}>
+          Сохранённое применяется сразу ко всем, у кого эта роль. Роли людей при этом не меняются.
+        </p>
+      )}
     </div>
   );
+}
+
+/**
+ * Подпись ключа. У разделов меню она есть в словаре навигации, у служебных
+ * ключей — нет, и показывать «posts.delete» человеку незачем.
+ */
+function название(ключ: string, t: (k: string) => string): string {
+  const свои: Record<string, string> = {
+    reports: "Жалобы",
+    "posts.delete": "Удаление записей",
+    "listings.delete": "Удаление объявлений",
+    "dashboard.full": "Сводка с деньгами",
+    "users.manage": "Создание и удаление учёток",
+    "users.fields": "Правка роли, почты, пароля",
+    "categories.prices": "Цены размещения",
+    communities: "Правка сообществ напрямую",
+    diagnostics: "Диагностика сервера",
+  };
+  if (свои[ключ]) return свои[ключ];
+  const подпись = t(`pages.adminShell.nav.${ключ}`);
+
+  return подпись.startsWith("pages.") ? ключ : подпись;
 }

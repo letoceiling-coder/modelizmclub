@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Support\AdminAccess;
+use App\Support\RoleAccessOverrides;
 use App\Support\RolePrivileges;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -48,12 +49,21 @@ class AdminRolesController extends Controller
             ->get(['category_admins.user_id', 'post_categories.id', 'post_categories.name', 'post_categories.slug'])
             ->groupBy('user_id');
 
+        /*
+         * Состав разделов берётся из действующей карты, а не из ранга: с
+         * 28.09 её правят из админки, и ранг — только значение по умолчанию.
+         * Считать здесь по рангу значило бы показывать карту, по которой
+         * сервер уже не пускает.
+         */
+        $действующая = RoleAccessOverrides::effective();
+
         $roles = collect(UserRole::cases())->map(fn (UserRole $role) => [
             'role' => $role->value,
             'defaults' => RolePrivileges::defaultsFor($role),
             'sections' => array_keys(array_filter(
-                AdminAccess::sectionLevels(),
-                fn (string $min) => AdminAccess::rankOf($role) >= AdminAccess::rankOf($min),
+                $действующая[$role->value] ?? [],
+                fn (bool $открыт, string $ключ) => $открыт && array_key_exists($ключ, AdminAccess::sectionLevels()),
+                ARRAY_FILTER_USE_BOTH,
             )),
         ])->all();
 
@@ -84,6 +94,14 @@ class AdminRolesController extends Controller
             ])->all(),
             'roles' => $roles,
             'section_levels' => AdminAccess::sectionLevels(),
+            /*
+             * Действующая карта целиком — её правит экран и присылает обратно.
+             * Отдельно от `roles[].sections`: там только разделы меню, а
+             * править надо и служебные ключи (жалобы, удаление записей, цены).
+             */
+            'role_access' => $действующая,
+            // Клетки, которые нельзя выключить, и почему — см. RoleAccessOverrides.
+            'role_access_locked' => RoleAccessOverrides::LOCKED,
             'grantable_sections' => AdminAccess::grantableKeys(),
             'max_per_category' => CategoryAdminService::maxPerCategory(),
         ]]);
