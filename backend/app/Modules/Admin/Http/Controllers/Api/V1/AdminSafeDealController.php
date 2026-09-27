@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Enums\SafeDealFeePayer;
 use App\Http\Controllers\Controller;
 use App\Models\SafeDeal;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,9 +51,22 @@ class AdminSafeDealController extends Controller
                 'Email покупателя',
                 'Продавец',
                 'Email продавца',
-                'Сумма (₽)',
+                /*
+                 * Пять величин сделки — каждая своим столбцом.
+                 *
+                 * До 27.09 стоимости товара в выгрузке не было: бухгалтерия
+                 * получала «сумму» (товар + доставка) и восстанавливала товар
+                 * вычитанием. С 27.09 комиссия входит в сумму покупателя, и
+                 * вычитание дало бы неверное число — а по строкам двух схем
+                 * ещё и разное. Поэтому товар отдельным столбцом, и рядом
+                 * столбец «кто платит комиссию»: без него «комиссия» означала
+                 * бы то вычет из выплаты, то доплату покупателя.
+                 */
+                'Товар (₽)',
                 'Комиссия (₽)',
-                'К выплате (₽)',
+                'Комиссию платит',
+                'Итог покупателя (₽)',
+                'К выплате продавцу (₽)',
                 'Доставка (₽)',
                 'Надбавка площадки (₽)',
                 'Способ доставки',
@@ -75,8 +89,10 @@ class AdminSafeDealController extends Controller
                         $deal->buyer?->email,
                         $deal->seller?->name,
                         $deal->seller?->email,
-                        $this->rub($deal->amount_kopecks),
+                        $this->rub($deal->item_kopecks),
                         $this->rub($deal->platform_fee_kopecks),
+                        ($deal->fee_payer ?? SafeDealFeePayer::Seller)->label(),
+                        $this->rub($deal->amount_kopecks),
                         $this->rub($deal->seller_payout_kopecks),
                         $this->rub($deal->delivery_cost_kopecks),
                         $this->rub((int) ($deal->metadata['delivery_markup_kopecks'] ?? 0)),

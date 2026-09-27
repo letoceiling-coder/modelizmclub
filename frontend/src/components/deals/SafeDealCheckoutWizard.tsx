@@ -276,7 +276,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
     } catch (err) {
       const insufficient = err instanceof ApiError && Boolean(err.errors?.balance);
       if (insufficient) {
-        const hold = quote?.hold_kopecks ?? itemKopecks;
+        const hold = quote?.hold_kopecks ?? itemKopecks + feeKopecks;
         const needRub = Math.max(100, Math.ceil(hold / 100));
         toast.error("Недостаточно средств. Пополните баланс через ВТБ.");
         try {
@@ -306,7 +306,13 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
   };
 
   const delivery = quote?.delivery_cost_kopecks ?? 0;
-  const hold = quote?.hold_kopecks ?? itemKopecks + delivery;
+  /*
+   * Запасное значение до прихода расчёта. С 27.09 комиссию платит покупатель,
+   * и без неё сумма была бы меньше настоящей — то есть обещала бы человеку
+   * цену ниже той, что спишут. Настоящее число приходит в `hold_kopecks`;
+   * здесь только то, что показать, пока его нет.
+   */
+  const hold = quote?.hold_kopecks ?? itemKopecks + feeKopecks + delivery;
   const holdsOnCard = quote?.escrow_holds_on_card ?? true;
   // Кошелёк площадки: карты в этой сделке не будет ни на одном шаге.
   const payFromWallet = quote?.escrow_provider === "wallet";
@@ -377,8 +383,16 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
               label={`Комиссия платформы (${FEE_PERCENT}%)`}
               value={`${kopecksToRub(feeKopecks)} ₽`}
             />
+            {/*
+              Фраза сменилась вместе со схемой: до 27.09 комиссия вычиталась из
+              выплаты продавцу, теперь её платит покупатель сверх цены товара.
+              Оставить старый текст рядом с новым расчётом значило бы обещать
+              покупателю, что 1 000 ₽ — это всё, что с него возьмут.
+            */}
             <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
-              5% удерживается из выплаты продавцу и отображается здесь явно.
+              Комиссия Безопасной сделки — {FEE_PERCENT}% от стоимости товара. Комиссию оплачивает
+              покупатель при оформлении заказа. Продавец получает полную стоимость товара, указанную
+              в объявлении.
             </p>
             <Row label="Габариты и вес" value={parcelLabel(ad)} />
 

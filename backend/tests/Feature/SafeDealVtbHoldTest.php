@@ -191,8 +191,9 @@ class SafeDealVtbHoldTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'completed');
 
+        // Банк захватывает всё удержание: товар 1 000 и комиссия 50.
         Http::assertSent(fn (Request $request) => str_contains($request->url(), 'deposit.do')
-            && (int) $request['amount'] === 100000);
+            && (int) $request['amount'] === 105000);
 
         $this->assertDatabaseHas('safe_deal_incoming_payments', [
             'rbs_order_id' => 'RBS-ORDER-1',
@@ -200,7 +201,8 @@ class SafeDealVtbHoldTest extends TestCase
         ]);
 
         // Seller keeps 95% after commission; the buyer's wallet stayed empty.
-        $this->assertSame(95000, app(WalletService::class)->balanceKopecks($seller->fresh()));
+        // Продавцу — полная цена объявления: комиссию оплатил покупатель.
+        $this->assertSame(100000, app(WalletService::class)->balanceKopecks($seller->fresh()));
         $this->assertSame(0, app(WalletService::class)->balanceKopecks($buyer->fresh()));
         $this->assertNull($listing->fresh()->reserved_at);
     }
@@ -277,7 +279,8 @@ class SafeDealVtbHoldTest extends TestCase
 
         // Money is already on the settlement account, so nothing to capture.
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'deposit.do'));
-        $this->assertSame(95000, app(WalletService::class)->balanceKopecks($seller->fresh()));
+        // Продавцу — полная цена объявления: комиссию оплатил покупатель.
+        $this->assertSame(100000, app(WalletService::class)->balanceKopecks($seller->fresh()));
         $this->assertNull($listing->fresh()->reserved_at);
     }
 
@@ -293,8 +296,9 @@ class SafeDealVtbHoldTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'cancelled');
 
+        // Возврат целиком, вместе с комиссией.
         Http::assertSent(fn (Request $request) => str_contains($request->url(), 'refund.do')
-            && (int) $request['amount'] === 100000);
+            && (int) $request['amount'] === 105000);
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'reverse.do'));
 
         $this->assertDatabaseHas('safe_deal_incoming_payments', [

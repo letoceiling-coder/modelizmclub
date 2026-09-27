@@ -1049,9 +1049,11 @@ COLUMN|safe_deals.delivery_cost_kopecks|integer|NO
 COLUMN|safe_deals.delivery_method|character varying|YES
 COLUMN|safe_deals.delivery_status|character varying|YES
 COLUMN|safe_deals.destination_point|json|YES
+COLUMN|safe_deals.fee_payer|character varying|NO
 COLUMN|safe_deals.hold_expires_at|timestamp without time zone|YES
 COLUMN|safe_deals.hold_transaction_id|bigint|YES
 COLUMN|safe_deals.id|bigint|NO
+COLUMN|safe_deals.item_kopecks|bigint|NO
 COLUMN|safe_deals.listing_id|bigint|YES
 COLUMN|safe_deals.metadata|json|YES
 COLUMN|safe_deals.paid_at|timestamp without time zone|YES

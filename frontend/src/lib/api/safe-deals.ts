@@ -48,6 +48,15 @@ export interface SafeDeal {
   amount_kopecks: number;
   platform_fee_percent?: number;
   platform_fee_kopecks: number;
+  /**
+   * Кто платил комиссию по этой сделке.
+   *
+   * С 27.09 её платит покупатель сверх цены товара, а продавец получает
+   * полную цену объявления. Сделки до 27.09 не пересчитывались: у них
+   * комиссия вычтена из выплаты, и объяснять их новой фразой было бы
+   * неправдой — поэтому схема приходит в самой сделке, а не берётся из даты.
+   */
+  fee_payer?: "seller" | "buyer";
   seller_payout_kopecks: number;
   delivery_cost_kopecks?: number;
   currency: string;
@@ -110,6 +119,8 @@ export interface SafeDealQuote {
   total_kopecks: number;
   hold_kopecks: number;
   seller_payout_kopecks: number;
+  /** Схема расчёта, по которой посчитан этот расчёт. Новые сделки — `buyer`. */
+  fee_payer?: "seller" | "buyer";
   currency: string;
   escrow_holds_on_card?: boolean;
   /** Где будут ждать деньги: банк или кошелёк площадки. */

@@ -62,6 +62,7 @@ class CdekWebhookDoesNotTrustBodyTest extends TestCase
             'buyer_id' => $buyer->id,
             'seller_id' => $seller->id,
             'amount_kopecks' => 100_000,
+            'item_kopecks' => 100_000,
             'platform_fee_kopecks' => 5_000,
             'seller_payout_kopecks' => 95_000,
             'status' => SafeDealStatus::Shipped,

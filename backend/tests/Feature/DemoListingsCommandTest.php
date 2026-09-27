@@ -136,6 +136,7 @@ class DemoListingsCommandTest extends TestCase
             'buyer_id' => $buyer->id,
             'seller_id' => $listing->user_id,
             'amount_kopecks' => 100000,
+            'item_kopecks' => 100000,
             'seller_payout_kopecks' => 95000,
             'created_at' => now(),
             'updated_at' => now(),

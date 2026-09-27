@@ -240,7 +240,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -254,7 +254,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['СДЭК', 'Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         // Раньше здесь побеждал СДЭК и требовал ПВЗ: ветвление шло по набору
         // продавца, а выбора покупателя в модели сделки не было вовсе.
@@ -273,7 +273,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['СДЭК', 'Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -286,7 +286,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", [
@@ -302,7 +302,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -325,7 +325,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         // Кошелёк списывает сумму на счёт площадки; заморозки на карте нет.
         // Экран оформления и карточка сделки обязаны говорить одно и то же.
@@ -350,7 +350,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -382,7 +382,7 @@ class SafeDealDeliveryAndFlagsTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller, ['Самовывоз']);
-        $this->fund($buyer, 100000);
+        $this->fund($buyer, 105000);
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])

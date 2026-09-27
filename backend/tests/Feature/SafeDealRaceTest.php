@@ -79,7 +79,7 @@ class SafeDealRaceTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test top-up');
+        app(WalletService::class)->credit($buyer, 105000, WalletTransactionType::Topup, 'test top-up');
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -118,7 +118,8 @@ class SafeDealRaceTest extends TestCase
         $this->assertSame(SafeDealStatus::Disputed, $deal->status);
         $this->assertNull($deal->payout_transaction_id);
         $this->assertSame(0, app(WalletService::class)->balanceKopecks($seller->fresh()));
-        $this->assertSame(100000, (int) app(WalletService::class)->wallet($buyer->fresh())->held_kopecks);
+        // Удержано товар + комиссия: одна сделка, а не две.
+        $this->assertSame(105000, (int) app(WalletService::class)->wallet($buyer->fresh())->held_kopecks);
     }
 
     public function test_dispute_started_before_confirm_does_not_open(): void

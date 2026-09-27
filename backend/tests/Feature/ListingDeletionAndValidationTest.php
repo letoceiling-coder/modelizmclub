@@ -165,7 +165,7 @@ class ListingDeletionAndValidationTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test');
+        app(WalletService::class)->credit($buyer, 105000, WalletTransactionType::Topup, 'test');
 
         $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -184,7 +184,7 @@ class ListingDeletionAndValidationTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test');
+        app(WalletService::class)->credit($buyer, 105000, WalletTransactionType::Topup, 'test');
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -207,7 +207,7 @@ class ListingDeletionAndValidationTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test');
+        app(WalletService::class)->credit($buyer, 105000, WalletTransactionType::Topup, 'test');
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
@@ -237,7 +237,7 @@ class ListingDeletionAndValidationTest extends TestCase
         $seller = $this->seedUser('seller');
         $buyer = $this->seedUser('buyer');
         $listing = $this->seedListing($seller);
-        app(WalletService::class)->credit($buyer, 100000, WalletTransactionType::Topup, 'test');
+        app(WalletService::class)->credit($buyer, 105000, WalletTransactionType::Topup, 'test');
 
         $uuid = $this->actingAs($buyer, 'sanctum')
             ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
