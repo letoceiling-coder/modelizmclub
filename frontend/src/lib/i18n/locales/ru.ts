@@ -1861,6 +1861,8 @@ export const ru = {
       priceMaxError: "Укажите корректную цену — максимум {{max}} ₽",
     },
     myAds: {
+      cdekNotReadyTitle: "Доставка СДЭК пока не работает",
+      cdekNotReadyAction: "Открыть настройки доставки",
       placementUnpaidTitle: "Оплата размещения не завершена",
       placementUnpaidDesc:
         "Объявление сохранено черновиком. Откройте его и завершите оплату — публикация начнётся сразу после неё.",

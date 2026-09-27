@@ -20,9 +20,29 @@ export interface SellerDeliveryProfile {
   meta: Record<string, unknown> | null;
 }
 
-export async function fetchSellerDeliveryProfiles(): Promise<SellerDeliveryProfile[]> {
-  const res = await api<{ data: SellerDeliveryProfile[] }>("/users/me/delivery-profile");
-  return res.data ?? [];
+export interface SellerDeliveryState {
+  profiles: SellerDeliveryProfile[];
+  /**
+   * Может ли этот человек отправлять СДЭК — ответ сервера, не вывод по списку.
+   *
+   * Готовность складывается из трёх условий: перевозчик, активность профиля и
+   * собранный снимок точки. Считать её здесь значило бы держать вторую копию
+   * правила: карточка объявления и проверка при сохранении спрашивают
+   * `CdekReadiness`, и расхождение вылезло бы на первой же правке условий.
+   */
+  cdekReady: boolean;
+}
+
+export async function fetchSellerDelivery(): Promise<SellerDeliveryState> {
+  const res = await api<{
+    data: SellerDeliveryProfile[];
+    meta?: { cdek_ready?: boolean };
+  }>("/users/me/delivery-profile");
+
+  return {
+    profiles: res.data ?? [],
+    cdekReady: Boolean(res.meta?.cdek_ready),
+  };
 }
 
 export interface SaveSellerPointInput {

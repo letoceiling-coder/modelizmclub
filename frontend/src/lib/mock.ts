@@ -246,6 +246,13 @@ export interface Ad {
   dimensionsCm?: { length?: number; width?: number; height?: number } | null;
   pickupAddress?: string | null;
   offersCdek?: boolean;
+  /**
+   * Что доделать, чтобы СДЭК заработал, — словами с сервера (`cdek_hint`).
+   *
+   * Приходит только автору объявления. Покупателю чужие недоделки ни к чему:
+   * ему СДЭК просто не показывают, пока продавец не готов.
+   */
+  cdekHint?: string | null;
   /** A safe deal is holding this listing — shown as a «Забронировано» overlay. */
   reserved?: boolean;
 }
