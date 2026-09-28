@@ -881,6 +881,11 @@ COLUMN|posts.updated_at|timestamp without time zone|YES
 COLUMN|posts.user_id|bigint|NO
 COLUMN|posts.uuid|uuid|NO
 COLUMN|posts.views_count|integer|NO
+COLUMN|promo_pool_users.created_at|timestamp without time zone|YES
+COLUMN|promo_pool_users.id|bigint|NO
+COLUMN|promo_pool_users.promo_pool_id|bigint|NO
+COLUMN|promo_pool_users.user_id|bigint|NO
+COLUMN|promo_pools.audience|character varying|NO
 COLUMN|promo_pools.auto_assign_on_register|boolean|NO
 COLUMN|promo_pools.bonus_kopecks|integer|NO
 COLUMN|promo_pools.completed_at|timestamp with time zone|YES
@@ -893,6 +898,7 @@ COLUMN|promo_pools.max_activations|integer|NO
 COLUMN|promo_pools.name|character varying|NO
 COLUMN|promo_pools.paused_at|timestamp with time zone|YES
 COLUMN|promo_pools.plan_slug|character varying|NO
+COLUMN|promo_pools.starts_at|timestamp with time zone|YES
 COLUMN|promo_pools.updated_at|timestamp without time zone|YES
 COLUMN|promo_pools.uuid|uuid|NO
 COLUMN|promocode_usages.id|bigint|NO
@@ -900,6 +906,10 @@ COLUMN|promocode_usages.payment_id|bigint|YES
 COLUMN|promocode_usages.promocode_id|bigint|NO
 COLUMN|promocode_usages.used_at|timestamp without time zone|NO
 COLUMN|promocode_usages.user_id|bigint|NO
+COLUMN|promocode_users.created_at|timestamp without time zone|YES
+COLUMN|promocode_users.id|bigint|NO
+COLUMN|promocode_users.promocode_id|bigint|NO
+COLUMN|promocode_users.user_id|bigint|NO
 COLUMN|promocodes.code|character varying|NO
 COLUMN|promocodes.created_at|timestamp without time zone|YES
 COLUMN|promocodes.id|bigint|NO
@@ -1552,9 +1562,13 @@ FK|posts|posts_moderated_by_foreign
 FK|posts|posts_repost_of_id_foreign
 FK|posts|posts_subcategory_id_foreign
 FK|posts|posts_user_id_foreign
+FK|promo_pool_users|promo_pool_users_promo_pool_id_foreign
+FK|promo_pool_users|promo_pool_users_user_id_foreign
 FK|promocode_usages|promocode_usages_payment_id_foreign
 FK|promocode_usages|promocode_usages_promocode_id_foreign
 FK|promocode_usages|promocode_usages_user_id_foreign
+FK|promocode_users|promocode_users_promocode_id_foreign
+FK|promocode_users|promocode_users_user_id_foreign
 FK|promocodes|promocodes_listing_category_id_foreign
 FK|promocodes|promocodes_user_id_foreign
 FK|referrals|referrals_invitee_id_foreign
@@ -1861,9 +1875,13 @@ INDEX|posts|posts_status_published_at_index
 INDEX|posts|posts_status_scheduled_at_index
 INDEX|posts|posts_user_id_status_index
 INDEX|posts|posts_uuid_unique
+INDEX|promo_pool_users|promo_pool_users_pkey
+INDEX|promo_pool_users|promo_pool_users_promo_pool_id_user_id_unique
 INDEX|promo_pools|promo_pools_pkey
 INDEX|promo_pools|promo_pools_uuid_unique
 INDEX|promocode_usages|promocode_usages_pkey
+INDEX|promocode_users|promocode_users_pkey
+INDEX|promocode_users|promocode_users_promocode_id_user_id_unique
 INDEX|promocodes|promocodes_code_unique
 INDEX|promocodes|promocodes_pkey
 INDEX|referral_phone_awards|referral_phone_awards_phone_hash_unique
@@ -2060,8 +2078,10 @@ SEQ|post_media_id_seq
 SEQ|post_reactions_id_seq
 SEQ|post_reposts_id_seq
 SEQ|posts_id_seq
+SEQ|promo_pool_users_id_seq
 SEQ|promo_pools_id_seq
 SEQ|promocode_usages_id_seq
+SEQ|promocode_users_id_seq
 SEQ|promocodes_id_seq
 SEQ|referral_phone_awards_id_seq
 SEQ|referrals_id_seq
@@ -2194,8 +2214,10 @@ TABLE|post_media
 TABLE|post_reactions
 TABLE|post_reposts
 TABLE|posts
+TABLE|promo_pool_users
 TABLE|promo_pools
 TABLE|promocode_usages
+TABLE|promocode_users
 TABLE|promocodes
 TABLE|referral_phone_awards
 TABLE|referrals

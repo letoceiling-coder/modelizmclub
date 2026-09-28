@@ -93,6 +93,13 @@ if (config('billing.auto_poll.enabled', true)) {
 }
 
 Schedule::command('subscription:check-expired')->dailyAt('00:05');
+/*
+ * Акции закрываются по сроку и по кончившимся местам. Выдача мест от этой
+ * команды не зависит — scopeGranting сам смотрит на даты, — поэтому простой
+ * планировщика акцию не оживит и лишних мест не раздаст. Команда лишь
+ * проставляет дату закрытия, чтобы в админке было видно, когда именно.
+ */
+Schedule::command('promo:sync-pools')->everyFifteenMinutes()->withoutOverlapping(15);
 Schedule::command('communities:sync-counters')->dailyAt('03:30');
 // Мероприятия: напоминание за сутки — раз в час; отмена событий удалённых сообществ — ночью.
 Schedule::command('events:send-reminders')->hourly()->withoutOverlapping(30);

@@ -6,6 +6,7 @@ use App\Models\Promocode;
 use App\Models\PromocodeUsage;
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PromocodeService
@@ -66,6 +67,23 @@ class PromocodeService
         }
 
         if ($promocode->user_id && (int) $promocode->user_id !== (int) $user->id) {
+            throw ValidationException::withMessages(['promocode' => ['Промокод недоступен для вашего аккаунта.']]);
+        }
+
+        /*
+         * Круг людей, которым код доступен.
+         *
+         * Появился 28.09 вместе с подписью «Кому доступен промокод» в
+         * админке. До этого ограничение было только на одного человека
+         * (`user_id` выше), а поле в админке, похожее на список людей,
+         * управляло **уведомлениями** и ничего не запрещало. Подпись,
+         * обещающая запрет, требует запрета — вот он.
+         *
+         * Пустой список — код доступен всем: отсутствие ограничения и есть
+         * «всем», отдельного признака для этого не нужно.
+         */
+        $круг = DB::table('promocode_users')->where('promocode_id', $promocode->id);
+        if ($круг->exists() && ! (clone $круг)->where('user_id', $user->id)->exists()) {
             throw ValidationException::withMessages(['promocode' => ['Промокод недоступен для вашего аккаунта.']]);
         }
 

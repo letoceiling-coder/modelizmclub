@@ -254,6 +254,39 @@ export async function fetchAdminUsers(
   return (res.data ?? []).map(mapAdminUser);
 }
 
+/** Человек в выборе круга: подпись, по которой его узнают, и id для связи. */
+export interface AdminUserOption {
+  id: number;
+  name: string;
+  email: string;
+  /** Есть в ответе поиска; в сохранённом круге сервер его не отдаёт. */
+  phone?: string | null;
+}
+
+/**
+ * Поиск людей для выбора круга — по имени, почте или телефону.
+ *
+ * Отдаёт числовой id, а не uuid: связи «кому доступна акция» и «кому
+ * доступен промокод» хранят id, и переводить одно в другое на каждом
+ * сохранении значило бы держать два имени одного человека.
+ */
+export async function searchAdminUserOptions(q: string, limit = 10): Promise<AdminUserOption[]> {
+  const needle = q.trim();
+  if (!needle) return [];
+  type Row = ApiAdminUser & { id?: number; phone?: string | null };
+  const res = await api<Paginated<Row>>("/admin/users", {
+    query: { q: needle, per_page: limit },
+  });
+  return (res.data ?? [])
+    .filter((u): u is Row & { id: number } => typeof u.id === "number")
+    .map((u) => ({
+      id: u.id,
+      name: u.profile?.display_name || u.name || u.email || `Пользователь ${u.id}`,
+      email: u.email ?? "",
+      phone: u.phone ?? null,
+    }));
+}
+
 export async function updateAdminUser(
   uuid: string,
   patch: { name?: string; status?: AdminUserStatus; role?: AdminUserRole },
@@ -526,6 +559,9 @@ export async function createPromocode(input: {
   valid_from?: string;
   valid_until: string;
   listing_category_id?: number | null;
+  /** Кому доступен код: всем или только перечисленным. */
+  audience?: "all" | "selected";
+  user_ids?: number[];
   notify_mode?: "none" | "all" | "selected";
   notify_title?: string;
   notify_body?: string;
@@ -544,6 +580,8 @@ export async function createPromocode(input: {
       valid_until: input.valid_until,
       listing_category_id: input.listing_category_id ?? null,
       is_active: true,
+      audience: input.audience ?? "all",
+      user_ids: input.user_ids ?? [],
       notify_mode: input.notify_mode ?? "none",
       notify_title: input.notify_title,
       notify_body: input.notify_body,
@@ -1382,12 +1420,21 @@ export async function fetchAdminReferrals(): Promise<{
   };
 }
 
+/** Запланирована · идёт · завершена · на паузе. Считает сервер. */
+export type AdminPromoPoolState = "planned" | "active" | "completed" | "paused";
+
+export type AdminPromoAudience = "all" | "new" | "selected";
+
 export interface AdminPromoPool {
   uuid: string;
   name: string;
   max_activations: number;
   current_activations: number;
   seats_left: number;
+  state: AdminPromoPoolState;
+  audience: AdminPromoAudience;
+  audience_users: AdminUserOption[];
+  starts_at: string | null;
   expires_at: string | null;
   is_active: boolean;
   auto_assign_on_register: boolean;
@@ -1407,12 +1454,35 @@ export async function fetchAdminPromoPools(): Promise<AdminPromoPool[]> {
 export async function createAdminPromoPool(payload: {
   name: string;
   max_activations: number;
+  /** Пусто — акция идёт с этой минуты. Непустое — запуск по календарю. */
+  starts_at?: string | null;
   expires_at: string;
   auto_assign_on_register: boolean;
+  audience?: AdminPromoAudience;
+  user_ids?: number[];
 }): Promise<AdminPromoPool> {
   const res = await api<{ data: AdminPromoPool }>("/admin/promo-pools", {
     method: "POST",
     json: payload,
+  });
+  return res.data;
+}
+
+export async function updateAdminPromoPool(
+  uuid: string,
+  patch: {
+    name?: string;
+    max_activations?: number;
+    starts_at?: string | null;
+    expires_at?: string;
+    auto_assign_on_register?: boolean;
+    audience?: AdminPromoAudience;
+    user_ids?: number[];
+  },
+): Promise<AdminPromoPool> {
+  const res = await api<{ data: AdminPromoPool }>(`/admin/promo-pools/${uuid}`, {
+    method: "PATCH",
+    json: patch,
   });
   return res.data;
 }

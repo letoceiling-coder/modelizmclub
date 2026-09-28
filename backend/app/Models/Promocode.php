@@ -6,6 +6,7 @@ use App\Models\Concerns\StoresDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -72,6 +73,21 @@ class Promocode extends Model
     public function listingCategory(): BelongsTo
     {
         return $this->belongsTo(ListingCategory::class, 'listing_category_id');
+    }
+
+    /**
+     * Кому доступен промокод, когда доступ ограничен поимённо.
+     *
+     * Пустая связь — доступен всем: отдельного признака «всем» нет, потому
+     * что отсутствие ограничения и есть его отсутствие. Проверяет связь
+     * `PromocodeService::assertValid`, а не только админка: ограничение,
+     * которое видно, но не действует, хуже отсутствующего.
+     *
+     * Без withTimestamps: в таблице есть только created_at.
+     */
+    public function audienceUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'promocode_users');
     }
 
     public function usages(): HasMany
