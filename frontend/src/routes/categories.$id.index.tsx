@@ -249,20 +249,53 @@ function CategoryRoomsPage({ category: c }: { category: Category }) {
                 <li
                   key={s.id}
                   className="border-t first:border-t-0"
-                  style={{ borderColor: "var(--border)" }}
+                  /*
+                   * Разделитель — `--border-strong`, а не `--border`.
+                   * Обычная граница в светлой теме это #e8e8e8 на белом:
+                   * на строке высотой в семьдесят пикселей её почти не
+                   * видно, и полтора десятка комнат читались сплошным
+                   * полотном.
+                   *
+                   * Полоса через одну — второй признак, независимый от
+                   * границы. Вместе они держат строку даже там, где
+                   * граница теряется: на краю экрана, при мелком
+                   * масштабе, на плохой матрице.
+                   */
+                  style={{
+                    borderColor: "var(--border-strong)",
+                    background: i % 2 === 1 ? "var(--row-stripe)" : "transparent",
+                  }}
                 >
                   <Link
                     to="/categories/$id"
                     params={{ id: s.slug ?? s.id }}
-                    className="flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface)]"
+                    /*
+                     * `group` — чтобы значок комнаты при наведении не
+                     * растворился в строке: раньше и он, и подсветка
+                     * брали `--background-surface`, и на наведении
+                     * квадратик пропадал вместе с границей.
+                     *
+                     * Подсветка отдельным тоном (`--background-surface-hover`),
+                     * не совпадающим ни с белой строкой, ни с полосой:
+                     * иначе «наведено» было бы неотличимо от «просто
+                     * чётная строка».
+                     */
+                    className="group flex items-center gap-[12px] py-[12px] pr-[16px] transition-colors hover:bg-[var(--background-surface-hover)]"
                     // Шестнадцать на уровень — столько же, сколько в правой
                     // панели: один и тот же список в двух местах не должен
                     // отступать по-разному.
                     style={{ paddingLeft: 16 + depth * 16 }}
                   >
                     <span
-                      className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[12px] text-[14px] font-semibold"
-                      style={{ background: "var(--background-surface)", color: "var(--accent)" }}
+                      /*
+                       * Фон значка — классом, а не в `style`. Инлайновый
+                       * стиль сильнее класса, и `group-hover` до него не
+                       * дотягивался: замер показал, что на наведении
+                       * квадратик оставался #f5f5f5 при строке #f0f0f0 —
+                       * пять единиц разницы, то есть невидимо.
+                       */
+                      className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[12px] bg-[var(--background-surface)] text-[14px] font-semibold transition-colors group-hover:bg-[var(--background-elevated)]"
+                      style={{ color: "var(--accent)" }}
                     >
                       #
                     </span>
