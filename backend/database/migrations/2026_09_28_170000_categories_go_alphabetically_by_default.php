@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Modules\Catalog\Services\CatalogService;
 
 /**
  * Категории идут по алфавиту — это новое умолчание.
@@ -21,6 +22,17 @@ use Illuminate\Support\Facades\DB;
  *
  * Если строка уже есть — не трогаем: выкатка не должна отменять чужой
  * выбор.
+ *
+ * КЕШ СБРАСЫВАЕТСЯ ЗДЕСЬ ЖЕ, и это не перестраховка. При первой выкатке
+ * 28.09 его сброс не был предусмотрен: миграция прошла, настройка
+ * записалась, тесты и запрос к базе показывали алфавит — а сайт ещё
+ * двадцать минут отдавал прежний ряд из `Cache::remember`. Пришлось
+ * звать `CatalogService::flushCache()` руками.
+ *
+ * Врало это убедительно: HTTP-кеша нет (`cache-control: no-cache`),
+ * заголовки чистые, база права. Разошлись «что в базе» и «что отдаёт
+ * сайт» — то самое расхождение, которое ищут дольше всего, потому что
+ * обе половины по отдельности верны.
  *
  * ОТКАТ возвращает ручной порядок. Номера `sort_order` никуда не
  * девались, так что дерево вернётся ровно в прежний вид.
@@ -45,6 +57,8 @@ return new class extends Migration
             'updated_at' => now(),
         ]);
 
+        CatalogService::flushCache();
+
         echo "  порядок категорий: по алфавиту А–Я (было — по номеру sort_order)\n";
     }
 
@@ -56,6 +70,8 @@ return new class extends Migration
                 'value' => json_encode(['mode' => 'manual'], JSON_UNESCAPED_UNICODE),
                 'updated_at' => now(),
             ]);
+
+        CatalogService::flushCache();
 
         echo "  порядок категорий: возвращён ручной\n";
     }

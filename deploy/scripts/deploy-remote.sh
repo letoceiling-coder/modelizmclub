@@ -37,6 +37,21 @@ cd /var/www/modelizmclub
     chmod 640 backend/bootstrap/cache/routes-v7.php 2>/dev/null || true
     echo "route cache rebuilt"
   fi
+  # Кеш каталога — сбрасывается на каждой выкатке бэкенда.
+  #
+  # TTL у деревьев категорий и городов сутки, и до 28.09 выкатка его не
+  # трогала. В тот день это стоило двадцати минут разбора: миграция
+  # перевела категории на алфавит, база отвечала алфавитом, тесты были
+  # зелёные — а сайт отдавал прежний ряд из `Cache::remember`. HTTP-кеша
+  # нет, заголовки чистые, обе половины по отдельности правы: такое
+  # расхождение ищут дольше всего.
+  #
+  # По факту правок не проверяем, как с маршрутами: данные каталога
+  # меняет не только код, но и админка, и команды наполнения. Дерево
+  # пересобирается одним запросом, так что сбрасывать его всегда дешевле,
+  # чем гадать, надо ли.
+  (cd backend && sudo -u www-data php artisan tinker --execute='\Modules\Catalog\Services\CatalogService::flushCache();' >/dev/null 2>&1) \
+    && echo "catalog cache flushed" || echo "catalog cache flush failed"
   systemctl reload php8.3-fpm && systemctl restart modelizmclub-worker modelizmclub-media-worker && echo reloaded
   bash deploy/scripts/deploy-frontend.sh > "/tmp/deploy-fe-$SHA.log" 2>&1; echo "frontend=$?"; tail -1 "/tmp/deploy-fe-$SHA.log"
   bash deploy/scripts/smoke-check.sh 2>&1 | tail -1
