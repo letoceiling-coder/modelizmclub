@@ -11,6 +11,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Modules\Billing\Services\BonusPointsService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -38,6 +39,16 @@ class AdminUserCardController extends Controller
 {
     /** Сколько последних действий из журнала показывать. */
     private const ДЕЙСТВИЙ = 20;
+
+    /**
+     * Типы журнала, которые означают штуки размещений, а не баллы.
+     *
+     * `referral` — награда за друга до 28.09, одно размещение. После той
+     * даты награда стала баллами и пишется типом `referral_points`;
+     * старые строки не переписывались, и пересчитывать их в баллы задним
+     * числом было бы выдумкой.
+     */
+    private const ТИПЫ_РАЗМЕЩЕНИЙ = ['admin_grant', 'referral'];
 
     #[Endpoint(
         title: 'Карточка пользователя',
@@ -81,6 +92,7 @@ class AdminUserCardController extends Controller
 
         if ($владелец) {
             $data['wallet'] = $this->кошелёк($user);
+            $data['bonus'] = $this->баллы($user);
             $data['placement_grants'] = $this->начисления($user);
         }
 
@@ -201,15 +213,46 @@ class AdminUserCardController extends Controller
     }
 
     /**
-     * Журнал начислений запаса размещений.
+     * Бонусные баллы: остаток и сколько из него заработано приглашениями.
      *
-     * В `bonus_accounts.balance` смотреть незачем: его никто не увеличивает,
-     * он всегда ноль — проверено поиском по коду, единственные записи в эту
-     * таблицу создают строку со `balance => 0`. Живёт только журнал
-     * `bonus_transactions`, и в нём лежат именно штуки размещений: и награда
-     * за друга (`referral`), и выдача из админки (`admin_grant`). Показывать
-     * «Бонусы: 0» было бы хуже, чем не показывать: выглядит как «у человека
-     * бонусов нет», а верно — «бонусов нет в системе».
+     * ЭТОТ БЛОК ПОЯВИЛСЯ ПОЗЖЕ КАРТОЧКИ. Когда карточку делали 27.09,
+     * баллов в системе не было: `bonus_accounts.balance` никто не
+     * увеличивал, и здесь стояло обоснование, почему показывать «Бонусы:
+     * 0» хуже, чем не показывать вовсе. 28.09 баллы завели
+     * по-настоящему, обоснование истекло, а текст остался — и год
+     * спустя убедил бы следующего читателя, что баллов нет.
+     *
+     * Записано это нарочно: отменённый довод опаснее отсутствующего.
+     *
+     * Ноль теперь означает именно ноль — ответ на вопрос «сколько у
+     * человека баллов», а не отсутствие ответа.
+     *
+     * @return array<string, int>
+     */
+    private function баллы(User $user): array
+    {
+        $service = app(BonusPointsService::class);
+
+        return [
+            'balance' => $service->balance($user),
+            // Весь остаток и заработанное приглашениями — разные числа:
+            // баллы начисляют и из админки.
+            'earned_by_referrals' => $service->earned($user, BonusPointsService::TYPE_REFERRAL),
+        ];
+    }
+
+    /**
+     * Журнал начислений запаса размещений — только размещений.
+     *
+     * Журнал `bonus_transactions` общий на две разные величины. Выдача
+     * размещений пишет туда `admin_grant`, награда за друга до 28.09 —
+     * `referral` (штуки), после — `referral_points` (баллы). Раньше этот
+     * метод читал журнал целиком, и начисление ста баллов показывалось в
+     * разделе «Размещение объявлений» как сто размещений.
+     *
+     * Отбор по типу, а не по дате: строка сама говорит, чем она была, и
+     * решать это вычитанием суток из `created_at` значило бы завести
+     * вторую правду о том же.
      *
      * @return list<array<string, mixed>>
      */
@@ -217,6 +260,7 @@ class AdminUserCardController extends Controller
     {
         return DB::table('bonus_transactions')
             ->where('account_user_id', $user->id)
+            ->whereIn('type', self::ТИПЫ_РАЗМЕЩЕНИЙ)
             ->orderByDesc('created_at')
             ->limit(self::ДЕЙСТВИЙ)
             ->get(['amount', 'type', 'description', 'created_at'])

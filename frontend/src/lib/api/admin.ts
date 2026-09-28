@@ -2248,6 +2248,8 @@ export interface AdminUserCard {
   }>;
   /** Только Владельцу. */
   wallet?: { balanceKopecks: number; heldKopecks: number };
+  /** Бонусные баллы. Отсутствует у модератора — как и кошелёк. */
+  bonus?: { balance: number; earnedByReferrals: number };
   /** Только Владельцу: откуда взялся запас размещений. */
   placementGrants?: Array<{
     amount: number;
@@ -2294,6 +2296,7 @@ interface ApiUserCard {
     created_at?: string | null;
   }>;
   wallet?: { balance_kopecks?: number; held_kopecks?: number };
+  bonus?: { balance?: number; earned_by_referrals?: number };
   placement_grants?: Array<{
     amount: number;
     type: string;
@@ -2347,6 +2350,9 @@ export async function fetchAdminUserCard(uuid: string): Promise<AdminUserCard> {
       newValues: a.new_values ?? null,
       createdAt: a.created_at ?? null,
     })),
+    bonus: d.bonus
+      ? { balance: d.bonus.balance ?? 0, earnedByReferrals: d.bonus.earned_by_referrals ?? 0 }
+      : undefined,
     wallet: d.wallet
       ? { balanceKopecks: d.wallet.balance_kopecks ?? 0, heldKopecks: d.wallet.held_kopecks ?? 0 }
       : undefined,
