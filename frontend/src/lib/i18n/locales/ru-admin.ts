@@ -1244,6 +1244,17 @@ export const ruAdmin = {
       parentInvalid: "Некорректный родитель",
       actionMoveUp: "Поднять «{{name}}»",
       actionMoveDown: "Опустить «{{name}}»",
+      expand: "Раскрыть «{{name}}»: подкатегории и настройки",
+      collapse: "Свернуть «{{name}}»",
+      sortModeLabel: "Порядок:",
+      sortModeAlpha: "по алфавиту",
+      sortModeManual: "вручную",
+      sortModeAlphaHint:
+        "Категории идут А–Я на всех уровнях — и здесь, и на сайте. Новая встаёт на своё место сразу, переименованная переезжает сама.",
+      sortModeManualHint:
+        "Порядок задаётся стрелками в строке. Он же действует на сайте: в каталоге, в ленте, в сообществах и в форме подачи.",
+      sortModeSaved: "Порядок изменён",
+      sortModeFailed: "Не удалось переключить порядок",
       countPosts: "{{count}} зап.",
       countListings: "{{count}} объяв.",
       hasAdmin: "У направления есть администратор",

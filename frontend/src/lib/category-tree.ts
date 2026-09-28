@@ -22,8 +22,33 @@ export function byOrder(a: TreeNode, b: TreeNode): number {
   return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "ru");
 }
 
-export function childrenOf<T extends TreeNode>(items: T[], parentId: number | null): T[] {
-  return items.filter((x) => x.parentId === parentId).sort(byOrder);
+/**
+ * Дети узла в том порядке, в котором их рисовать.
+ *
+ * ПОЧЕМУ ПРИ АЛФАВИТЕ МЫ НЕ СОРТИРУЕМ САМИ. Соблазн сказать
+ * `localeCompare(name, "ru")` велик, и на глаз результат почти такой же.
+ * Но «почти» здесь и есть беда: сервер сортирует коллацией
+ * `ru-RU-x-icu` в Postgres, и два независимых алфавита расходятся не
+ * поломкой, а одной переставленной строкой — той, где `Ё`, дефис,
+ * цифра или латиница. Заметить такое можно только сверкой, а сверять
+ * пришлось бы каждый раз.
+ *
+ * Поэтому при алфавите порядок приходит с сервера, и список остаётся
+ * ровно таким, каким его отдали: `filter` порядок сохраняет. Это и есть
+ * ответ на «сверь, что порядок совпадает» — совпадает по построению,
+ * потому что он один.
+ *
+ * При ручном порядке сортируем сами: номера известны, и после
+ * перестановки узел должен встать на место без перезагрузки списка.
+ */
+export function childrenOf<T extends TreeNode>(
+  items: T[],
+  parentId: number | null,
+  mode: "alpha" | "manual" = "manual",
+): T[] {
+  const свои = items.filter((x) => x.parentId === parentId);
+
+  return mode === "alpha" ? свои : свои.sort(byOrder);
 }
 
 /** Соседи узла — ряд, в котором он нарисован. */
