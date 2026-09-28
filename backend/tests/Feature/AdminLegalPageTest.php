@@ -23,6 +23,14 @@ class AdminLegalPageTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'owner']);
         $page = LegalPage::query()->where('slug', 'safe-deal')->firstOrFail();
+        /*
+         * Версия берётся из страницы, а не пишется числом. Правку текста
+         * правил делает и миграция (29.09 — «комиссию платит покупатель»),
+         * и от этого номер растёт. Ждать здесь жёсткую двойку значило бы
+         * ронять проверку при каждой правке юридического текста, хотя
+         * проверяется не номер, а то, что он увеличился на единицу.
+         */
+        $былаВерсия = (int) $page->version;
 
         $this->actingAs($admin, 'sanctum')
             ->putJson("/api/v1/admin/legal-pages/{$page->id}", [
@@ -32,12 +40,12 @@ class AdminLegalPageTest extends TestCase
                 'content_html' => '<h2>Черновик</h2><p>Новая редакция.</p>',
             ])
             ->assertOk()
-            ->assertJsonPath('data.version', 2)
+            ->assertJsonPath('data.version', $былаВерсия + 1)
             ->assertJsonPath('data.status', LegalPageStatus::Draft->value);
 
         $this->assertDatabaseHas('legal_page_revisions', [
             'legal_page_id' => $page->id,
-            'version' => 1,
+            'version' => $былаВерсия,
         ]);
 
         $revisionId = (int) $this->actingAs($admin, 'sanctum')
@@ -48,7 +56,8 @@ class AdminLegalPageTest extends TestCase
         $this->actingAs($admin, 'sanctum')
             ->postJson("/api/v1/admin/legal-pages/{$page->id}/revisions/{$revisionId}/restore")
             ->assertOk()
-            ->assertJsonPath('data.version', 3)
+            // Возврат к версии — тоже правка, номер растёт ещё на единицу.
+            ->assertJsonPath('data.version', $былаВерсия + 2)
             ->assertJsonPath('data.title', 'Правила безопасной сделки');
     }
 
