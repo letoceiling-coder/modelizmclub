@@ -3,6 +3,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Copy, Check, Share2, Gift, Users, MousePointerClick, Phone, Sparkles } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { SHARE_TARGETS } from "@/lib/share-targets";
+import { runShareTarget, runSystemShare } from "@/lib/share-action";
+import { INVITE_TEXT } from "@/lib/referral";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useReferral } from "@/lib/api/referral";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -125,24 +128,15 @@ function Dashboard({ meId }: { meId: string }) {
     }
   };
 
-  const shareNative = async () => {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: "МоДелизМ Клуб",
-          text: "Присоединяйся к клубу моделистов",
-          url: link,
-        });
-        return;
-      } catch {
-        /* cancelled */
-      }
-    }
-    await copy();
-  };
-
-  const encoded = encodeURIComponent(link);
-  const text = encodeURIComponent("Присоединяйся к МоДелизМ Клубу");
+  /*
+   * Список способов — общий (`SHARE_TARGETS`), а не собранный здесь.
+   *
+   * Раньше он был собран здесь, и собран иначе: WhatsApp получал
+   * `?text=<ссылка>` — только адрес, без приглашения, — а VK уходил без
+   * подписи. Проверка вживую 28.09 это и показала: окно WhatsApp
+   * открывалось с голой ссылкой. Два списка на одно и то же расходятся
+   * молча, поэтому список теперь один.
+   */
 
   return (
     <div className="space-y-[16px]">
@@ -182,33 +176,23 @@ function Dashboard({ meId }: { meId: string }) {
           </button>
         </div>
         <div className="mt-[12px] flex flex-wrap gap-[8px]">
-          <button type="button" onClick={shareNative} style={shareBtn}>
+          <button
+            type="button"
+            onClick={() => void runSystemShare(link, INVITE_TEXT)}
+            style={shareBtn}
+          >
             <Share2 size={14} /> Поделиться
           </button>
-          <a
-            href={`https://t.me/share/url?url=${encoded}&text=${text}`}
-            target="_blank"
-            rel="noreferrer"
-            style={shareBtn}
-          >
-            Telegram
-          </a>
-          <a
-            href={`https://vk.com/share.php?url=${encoded}`}
-            target="_blank"
-            rel="noreferrer"
-            style={shareBtn}
-          >
-            VK
-          </a>
-          <a
-            href={`https://wa.me/?text=${encoded}`}
-            target="_blank"
-            rel="noreferrer"
-            style={shareBtn}
-          >
-            WhatsApp
-          </a>
+          {SHARE_TARGETS.map((target) => (
+            <button
+              key={target.id}
+              type="button"
+              onClick={() => void runShareTarget(target, link, INVITE_TEXT)}
+              style={shareBtn}
+            >
+              {target.label}
+            </button>
+          ))}
         </div>
       </section>
 

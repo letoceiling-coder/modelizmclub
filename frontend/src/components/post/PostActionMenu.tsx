@@ -35,7 +35,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
+import { SHARE_TARGETS, type ShareTarget } from "@/lib/share-targets";
+import { runShareTarget } from "@/lib/share-action";
 import { askConfirm } from "@/lib/ui/ask";
 
 interface Props {
@@ -172,8 +173,8 @@ export function PostActionMenu({
     }
   };
 
-  const handleShareTo = (href: string) => {
-    openShareTarget(href);
+  const handleShareTo = (target: ShareTarget) => {
+    void runShareTarget(target, buildUrl(), title);
     close();
   };
 
@@ -347,7 +348,7 @@ export function PostActionMenu({
                   {SHARE_TARGETS.map((target) => (
                     <MenuItem
                       key={target.id}
-                      onClick={() => handleShareTo(target.href(buildUrl(), title))}
+                      onClick={() => handleShareTo(target)}
                       icon={Share2}
                       label={target.label}
                     />

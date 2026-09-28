@@ -9,7 +9,8 @@ import { actions } from "@/lib/store";
 import { userById } from "@/lib/user-registry";
 import { sendPostShareMessage } from "@/lib/api/chat";
 import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
-import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
+import { SHARE_TARGETS, type ShareTarget } from "@/lib/share-targets";
+import { runShareTarget } from "@/lib/share-action";
 import { useDialogs } from "@/lib/messenger";
 
 interface Props {
@@ -92,8 +93,8 @@ export function RepostMenu({
     close();
   };
 
-  const shareTo = (href: string) => {
-    openShareTarget(href);
+  const shareTo = (target: ShareTarget) => {
+    void runShareTarget(target, url());
     close();
   };
 
@@ -196,7 +197,7 @@ export function RepostMenu({
                 {SHARE_TARGETS.map((target) => (
                   <Item
                     key={target.id}
-                    onClick={() => shareTo(target.href(url()))}
+                    onClick={() => shareTo(target)}
                     icon={Share2}
                     label={target.label}
                   />

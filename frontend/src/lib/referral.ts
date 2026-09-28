@@ -10,6 +10,16 @@ import type { User } from "./mock";
  */
 export const REFERRAL_POINTS_FALLBACK = 100;
 
+/**
+ * Текст приглашения — один на все способы отправки.
+ *
+ * Он уходит и в Telegram (`text=`), и в VK (`title=`), и в WhatsApp
+ * (перед ссылкой), и в системное окно. До 28.09 на странице приглашений
+ * его не было вовсе: WhatsApp получал голую ссылку. Держать строку в
+ * четырёх местах — способ снова её потерять в одном из них.
+ */
+export const INVITE_TEXT = "Присоединяйся к МоДелизМ Клубу";
+
 export interface InvitedFriend {
   userId: string;
   joinedAt: string;

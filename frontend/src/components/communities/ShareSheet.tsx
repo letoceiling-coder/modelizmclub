@@ -5,7 +5,8 @@ import { storePendingShare } from "@/components/messenger/ShareLinkDialog";
 import { getToken } from "@/lib/api/client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { toast } from "@/lib/toast";
-import { SHARE_TARGETS, openShareTarget } from "@/lib/share-targets";
+import { SHARE_TARGETS } from "@/lib/share-targets";
+import { runShareTarget } from "@/lib/share-action";
 
 interface Props {
   open: boolean;
@@ -63,7 +64,7 @@ export function ShareSheet({
       label: target.label,
       icon: Share2,
       onClick: () => {
-        openShareTarget(target.href(url, title));
+        void runShareTarget(target, url, title);
         onOpenChange(false);
       },
     })),

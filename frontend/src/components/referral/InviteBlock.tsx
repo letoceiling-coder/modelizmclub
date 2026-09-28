@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { getReferralLink, REFERRAL_POINTS_FALLBACK } from "@/lib/referral";
+import { getReferralLink, INVITE_TEXT, REFERRAL_POINTS_FALLBACK } from "@/lib/referral";
+import { SHARE_TARGETS } from "@/lib/share-targets";
+import { runShareTarget, runSystemShare } from "@/lib/share-action";
 import { словоБаллы } from "@/lib/format/plural";
 import { useReferral } from "@/lib/api/referral";
 import { isDemoMode } from "@/lib/demo-mode";
@@ -12,6 +14,21 @@ import { useCurrentUser } from "@/lib/session";
 import { ROUTES } from "@/lib/routes";
 import { fetchStats } from "@/lib/api/content";
 import { reportReadFailure } from "@/lib/errors/handle";
+
+/** Кнопка способа отправки — одинаковая у всех, как на странице приглашений. */
+const способ: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  height: 36,
+  padding: "0 14px",
+  background: "transparent",
+  border: "1px solid var(--border)",
+  color: "var(--foreground-70)",
+  fontWeight: 500,
+  fontSize: 13,
+  borderRadius: "var(--r-button)",
+};
 
 const sectionStyle = {
   background: "var(--background-elevated)",
@@ -153,25 +170,6 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
     }
   };
 
-  const share = async () => {
-    if (
-      typeof navigator !== "undefined" &&
-      (navigator as Navigator & { share?: (d: ShareData) => Promise<void> }).share
-    ) {
-      try {
-        await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({
-          title: "МоДелизМ Клуб",
-          text: "Присоединяйся к клубу моделистов",
-          url: link,
-        });
-      } catch {
-        /* отменено */
-      }
-    } else {
-      copy();
-    }
-  };
-
   return (
     <section
       id={ROUTES.subscriptionInviteHash}
@@ -230,23 +228,32 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={share}
-          className="inline-flex items-center gap-[6px] transition-colors"
-          style={{
-            height: 36,
-            padding: "0 14px",
-            background: "transparent",
-            border: "1px solid var(--border)",
-            color: "var(--foreground-70)",
-            fontWeight: 500,
-            fontSize: 13,
-            borderRadius: "var(--r-button)",
-          }}
-        >
+      </div>
+
+      {/*
+        Способы отправки перечислены поимённо, а не спрятаны за одной
+        кнопкой «Поделиться». До 28.09 здесь была только она, и на
+        рабочем столе, где системного окна нет, она молча копировала
+        ссылку — человек нажимал «поделиться» и не понимал, поделился ли.
+
+        MAX среди способов есть, но ведёт не по ссылке: веб-ручки
+        «поделиться» у него нет (разбор в `share-targets.ts`), и работает
+        он через системное окно.
+      */}
+      <div className="mt-[14px] flex flex-wrap gap-[8px]">
+        <button type="button" onClick={() => void runSystemShare(link, INVITE_TEXT)} style={способ}>
           <Share2 size={14} /> Поделиться
         </button>
+        {SHARE_TARGETS.map((target) => (
+          <button
+            key={target.id}
+            type="button"
+            onClick={() => void runShareTarget(target, link, INVITE_TEXT)}
+            style={способ}
+          >
+            {target.label}
+          </button>
+        ))}
       </div>
       <Link
         to="/referral"
