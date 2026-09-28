@@ -9,6 +9,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Billing\Services\BonusPointsService;
 use Tests\TestCase;
 
 class ReferralProgramTest extends TestCase
@@ -20,7 +21,7 @@ class ReferralProgramTest extends TestCase
         parent::setUp();
         SystemSetting::query()->updateOrCreate(
             ['key' => 'referral_program'],
-            ['value' => ['enabled' => true, 'per_invite' => 1, 'max_bonus' => 10], 'group' => 'marketing'],
+            ['value' => ['enabled' => true, 'points_per_invite' => 100, 'max_paid_invites' => 0], 'group' => 'marketing'],
         );
     }
 
@@ -66,20 +67,17 @@ class ReferralProgramTest extends TestCase
         BonusAccount::query()->firstOrCreate(['user_id' => $referrer->id]);
         BonusTransaction::query()->create([
             'account_user_id' => $referrer->id,
-            'amount' => 2,
-            'type' => 'referral',
+            'amount' => 200,
+            'type' => BonusPointsService::TYPE_REFERRAL,
             'description' => 'test',
             'created_at' => now(),
         ]);
-        $referrer->listing_placement_credits = 2;
-        $referrer->save();
 
         $this->actingAs($referrer, 'sanctum')
             ->getJson('/api/v1/users/me/referrals')
             ->assertOk()
-            ->assertJsonPath('data.bonus', 2)
-            ->assertJsonPath('data.listing_credits', 2)
-            ->assertJsonPath('data.per_invite', 1)
+            ->assertJsonPath('data.bonus', 200)
+            ->assertJsonPath('data.points_per_invite', 100)
             ->assertJsonPath('data.clicks', 0);
     }
 }

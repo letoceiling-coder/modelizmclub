@@ -8,7 +8,8 @@ import { useReferral } from "@/lib/api/referral";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
-import { getReferralLink, REFERRAL_BONUS_PER_INVITE, REFERRAL_MAX_BONUS } from "@/lib/referral";
+import { getReferralLink, REFERRAL_POINTS_FALLBACK } from "@/lib/referral";
+import { словоБаллы } from "@/lib/format/plural";
 import { formatDate } from "@/lib/format/date";
 
 export const Route = createFileRoute("/referral")({
@@ -40,7 +41,7 @@ function ReferralPage() {
 function GuestCard() {
   return (
     <section style={card}>
-      <Header perInvite={REFERRAL_BONUS_PER_INVITE} maxBonus={REFERRAL_MAX_BONUS} />
+      <Header pointsPerInvite={REFERRAL_POINTS_FALLBACK} />
       <p
         className="mt-[16px] text-[14px] leading-relaxed"
         style={{ color: "var(--foreground-70)" }}
@@ -69,7 +70,13 @@ function GuestCard() {
   );
 }
 
-function Header({ perInvite, maxBonus }: { perInvite: number; maxBonus: number }) {
+/**
+ * Награда и условия — из настроек, а не текстом в коде.
+ *
+ * До 28.09 здесь стояло «+1 бесплатное объявление за каждого друга».
+ * Поменять награду можно было только правкой кода и выкаткой.
+ */
+function Header({ pointsPerInvite, terms }: { pointsPerInvite: number; terms?: string }) {
   return (
     <div className="flex items-start gap-[12px]">
       <div
@@ -90,9 +97,12 @@ function Header({ perInvite, maxBonus }: { perInvite: number; maxBonus: number }
           Пригласи друга
         </h1>
         <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-          +{perInvite} бесплатное объявление за каждого друга с подтверждённым телефоном. Максимум —{" "}
-          {maxBonus}.
+          Получите {pointsPerInvite} {словоБаллы(pointsPerInvite)} за каждого друга с подтверждённым
+          телефоном.
         </p>
+        {terms ? (
+          <p style={{ fontSize: 12, color: "var(--foreground-50)", marginTop: 6 }}>{terms}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -102,8 +112,7 @@ function Dashboard({ meId }: { meId: string }) {
   const { data, loading } = useReferral();
   const [copied, setCopied] = useState(false);
   const link = data?.link ?? getReferralLink(meId);
-  const perInvite = data?.perInvite ?? REFERRAL_BONUS_PER_INVITE;
-  const maxBonus = data?.maxBonus ?? REFERRAL_MAX_BONUS;
+  const pointsPerInvite = data?.pointsPerInvite ?? REFERRAL_POINTS_FALLBACK;
 
   const copy = async () => {
     try {
@@ -138,7 +147,7 @@ function Dashboard({ meId }: { meId: string }) {
   return (
     <div className="space-y-[16px]">
       <section style={card}>
-        <Header perInvite={perInvite} maxBonus={maxBonus} />
+        <Header pointsPerInvite={pointsPerInvite} terms={data?.terms} />
         <div
           className="mt-[16px] flex items-center gap-[8px]"
           style={{
@@ -223,7 +232,7 @@ function Dashboard({ meId }: { meId: string }) {
           icon={<Sparkles size={16} />}
           label="Бонусов"
           value={loading ? "…" : String(data?.bonus ?? 0)}
-          unit={loading ? undefined : "объявл."}
+          unit={loading ? undefined : "баллов"}
         />
       </section>
 

@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Copy, Gift, Check, Share2 } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { getReferralLink, REFERRAL_MAX_BONUS, REFERRAL_BONUS_PER_INVITE } from "@/lib/referral";
+import { getReferralLink, REFERRAL_POINTS_FALLBACK } from "@/lib/referral";
+import { словоБаллы } from "@/lib/format/plural";
 import { useReferral } from "@/lib/api/referral";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GUEST_USER } from "@/lib/store";
@@ -19,7 +20,14 @@ const sectionStyle = {
   padding: 20,
 } as const;
 
-function InviteHeader({ perInvite, maxBonus }: { perInvite: number; maxBonus: number }) {
+/**
+ * Награда пишется из настроек, а не текстом в коде.
+ *
+ * До 28.09 здесь стояло «+1 бесплатное объявление»; поменять награду можно
+ * было только правкой кода. Теперь число приходит с сервера, и смена его в
+ * админке меняет эту строку сама.
+ */
+function InviteHeader({ pointsPerInvite }: { pointsPerInvite: number }) {
   return (
     <div className="flex items-start gap-[12px]">
       <div
@@ -40,8 +48,8 @@ function InviteHeader({ perInvite, maxBonus }: { perInvite: number; maxBonus: nu
           Пригласи друга
         </h3>
         <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 4 }}>
-          +{perInvite} бесплатное объявление за каждого друга с подтверждённым телефоном. Максимум —{" "}
-          {maxBonus} объявлений.
+          Получите {pointsPerInvite} {словоБаллы(pointsPerInvite)} за каждого друга с подтверждённым
+          телефоном.
         </p>
       </div>
     </div>
@@ -51,8 +59,7 @@ function InviteHeader({ perInvite, maxBonus }: { perInvite: number; maxBonus: nu
 function InviteGuestCta() {
   const [cfg, setCfg] = useState({
     enabled: true,
-    perInvite: REFERRAL_BONUS_PER_INVITE,
-    maxBonus: REFERRAL_MAX_BONUS,
+    pointsPerInvite: REFERRAL_POINTS_FALLBACK,
   });
   const [ready, setReady] = useState(isDemoMode());
 
@@ -64,8 +71,7 @@ function InviteGuestCta() {
         if (!active) return;
         setCfg({
           enabled: s.referral?.enabled ?? true,
-          perInvite: s.referral?.perInvite ?? REFERRAL_BONUS_PER_INVITE,
-          maxBonus: s.referral?.maxBonus ?? REFERRAL_MAX_BONUS,
+          pointsPerInvite: s.referral?.pointsPerInvite ?? REFERRAL_POINTS_FALLBACK,
         });
       })
       .catch((e) => reportReadFailure(e, "реферальная статистика"))
@@ -85,7 +91,7 @@ function InviteGuestCta() {
       className="mt-[40px] scroll-mt-[24px]"
       style={sectionStyle}
     >
-      <InviteHeader perInvite={cfg.perInvite} maxBonus={cfg.maxBonus} />
+      <InviteHeader pointsPerInvite={cfg.pointsPerInvite} />
       <p
         className="mt-[16px] text-[14px] leading-relaxed"
         style={{ color: "var(--foreground-70)" }}
@@ -133,10 +139,8 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
   const link = data?.link ?? getReferralLink(meId);
   const invitedCount = data?.invitedCount ?? 0;
   const bonus = data?.bonus ?? 0;
-  const perInvite = data?.perInvite ?? REFERRAL_BONUS_PER_INVITE;
-  const maxBonus = data?.maxBonus ?? REFERRAL_MAX_BONUS;
-  const listingCredits = data?.listingCredits ?? 0;
-  const remaining = Math.max(0, maxBonus - bonus);
+  const pointsPerInvite = data?.pointsPerInvite ?? REFERRAL_POINTS_FALLBACK;
+  const pointsBalance = data?.pointsBalance ?? 0;
 
   const copy = async () => {
     try {
@@ -174,7 +178,7 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
       className="mt-[40px] scroll-mt-[24px]"
       style={sectionStyle}
     >
-      <InviteHeader perInvite={perInvite} maxBonus={maxBonus} />
+      <InviteHeader pointsPerInvite={pointsPerInvite} />
 
       <div
         className="mt-[16px] flex items-center gap-[8px]"
@@ -215,18 +219,15 @@ function InviteBlockAuthenticated({ meId }: { meId: string }) {
           <span style={{ color: "var(--foreground-50)" }}>
             Приглашено: <b style={{ color: "var(--foreground)" }}>{invitedCount}</b>
           </span>
+          {/* Заработано приглашениями и весь остаток — разные числа:
+              баллы бывают начислены и другим путём, из админки. */}
           <span style={{ color: "var(--foreground-50)" }}>
-            Бонус: <b style={{ color: "var(--accent)" }}>+{bonus}</b> объявлений
+            Заработано: <b style={{ color: "var(--accent)" }}>+{bonus}</b> {словоБаллы(bonus)}
           </span>
           {!loading && (
             <span style={{ color: "var(--foreground-50)" }}>
-              Доступно: <b style={{ color: "var(--foreground)" }}>{listingCredits}</b>
+              Всего баллов: <b style={{ color: "var(--foreground)" }}>{pointsBalance}</b>
             </span>
-          )}
-          {remaining > 0 ? (
-            <span style={{ color: "var(--foreground-50)" }}>Осталось: {remaining}</span>
-          ) : (
-            <span style={{ color: "var(--success)", fontWeight: 600 }}>Лимит достигнут</span>
           )}
         </div>
         <button

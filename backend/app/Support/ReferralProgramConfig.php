@@ -4,52 +4,64 @@ namespace App\Support;
 
 use App\Models\SystemSetting;
 
+/**
+ * Настройки акции «Пригласи друга».
+ *
+ * ЧТО ИЗМЕНИЛОСЬ 28.09. Награда была зашита тремя разными способами сразу:
+ * штуки размещений (`reward_listing_credits`), дни подписки
+ * (`reward_subscription_days`) и **настоящие деньги в кошелёк**
+ * (`reward_kopecks` → `WalletService::credit`, откуда есть вывод). Последнее
+ * по умолчанию стояло нулём и не использовалось, но механика была живой.
+ *
+ * Теперь награда одна — бонусные баллы. Деньги за приглашение не
+ * начисляются вовсе: баллы выводу не подлежат, и держать рядом вторую
+ * награду, которая выводится, значило бы стирать эту границу.
+ *
+ * ПРЕДЕЛ СЧИТАЕТСЯ В ПРИГЛАШЕНИЯХ, А НЕ В НАГРАДЕ. Прежний `max_bonus`
+ * сравнивался с **суммой** начисленного. При награде «1 штука за друга» это
+ * случайно совпадало с числом приглашений, а при «100 баллов» предел в 10
+ * сработал бы после первого же друга. Поэтому `max_paid_invites` — счёт
+ * завершённых приглашений.
+ *
+ * СТАРЫЕ КЛЮЧИ ИЗ `system_settings` НЕ ЧИТАЮТСЯ. Перенос сделан миграцией
+ * `2026_09_28_120000_referral_reward_becomes_points`; читать их ещё и здесь
+ * значило бы держать два источника одной величины.
+ */
 final class ReferralProgramConfig
 {
     public const SETTING_KEY = 'referral_program';
 
+    /** Текст условий по умолчанию — то, что видно на странице до правки. */
+    public const DEFAULT_TERMS = 'Баллы начисляются за каждого друга, который зарегистрировался по вашей ссылке и подтвердил телефон. Переход по ссылке сам по себе награды не даёт. Баллы не выводятся деньгами.';
+
     /**
-     * @return array{
-     *   enabled: bool,
-     *   per_invite: int,
-     *   max_bonus: int,
-     *   reward_kopecks: int,
-     *   reward_listing_credits: bool,
-     *   reward_subscription_days: int
-     * }
+     * @return array{enabled: bool, points_per_invite: int, max_paid_invites: int, terms: string}
      */
     public static function get(): array
     {
-        $raw = SystemSetting::query()->where('key', self::SETTING_KEY)->value('value');
-        $base = is_array($raw) ? $raw : [];
-        $defaults = self::defaults();
-
-        return [
-            'enabled' => (bool) ($base['enabled'] ?? $defaults['enabled']),
-            'per_invite' => max(0, (int) ($base['per_invite'] ?? $defaults['per_invite'])),
-            'max_bonus' => max(0, (int) ($base['max_bonus'] ?? $defaults['max_bonus'])),
-            'reward_kopecks' => max(0, (int) ($base['reward_kopecks'] ?? $defaults['reward_kopecks'])),
-            'reward_listing_credits' => array_key_exists('reward_listing_credits', $base)
-                ? (bool) $base['reward_listing_credits']
-                : $defaults['reward_listing_credits'],
-            'reward_subscription_days' => max(0, (int) ($base['reward_subscription_days'] ?? $defaults['reward_subscription_days'])),
-        ];
+        return self::normalize(
+            SystemSetting::query()->where('key', self::SETTING_KEY)->value('value')
+        );
     }
 
-    /** @return array{enabled: bool, per_invite: int, max_bonus: int, reward_kopecks: int, reward_listing_credits: bool, reward_subscription_days: int} */
+    /** @return array{enabled: bool, points_per_invite: int, max_paid_invites: int, terms: string} */
     public static function defaults(): array
     {
         return [
             'enabled' => true,
-            'per_invite' => 1,
-            'max_bonus' => 10,
-            'reward_kopecks' => 0,
-            'reward_listing_credits' => true,
-            'reward_subscription_days' => 0,
+            'points_per_invite' => 100,
+            /*
+             * Ноль — «без предела». Отдельного флага не заводим: ноль
+             * оплачиваемых приглашений не имеет самостоятельного смысла
+             * (это то же самое, что выключить акцию), и значение занято
+             * под «сколько угодно».
+             */
+            'max_paid_invites' => 0,
+            'terms' => self::DEFAULT_TERMS,
         ];
     }
 
-    /** @return array{enabled: bool, per_invite: int, max_bonus: int, reward_kopecks: int, reward_listing_credits: bool, reward_subscription_days: int} */
+    /** @return array{enabled: bool, points_per_invite: int, max_paid_invites: int, terms: string} */
     public static function normalize(mixed $raw): array
     {
         $defaults = self::defaults();
@@ -60,20 +72,19 @@ final class ReferralProgramConfig
             $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
         }
 
-        $listing = array_key_exists('reward_listing_credits', $base)
-            ? $base['reward_listing_credits']
-            : $defaults['reward_listing_credits'];
-        if (is_string($listing)) {
-            $listing = filter_var($listing, FILTER_VALIDATE_BOOLEAN);
-        }
+        $terms = $base['terms'] ?? $defaults['terms'];
+        $terms = is_string($terms) ? trim($terms) : $defaults['terms'];
 
         return [
             'enabled' => (bool) $enabled,
-            'per_invite' => max(0, (int) ($base['per_invite'] ?? $defaults['per_invite'])),
-            'max_bonus' => max(0, (int) ($base['max_bonus'] ?? $defaults['max_bonus'])),
-            'reward_kopecks' => max(0, (int) ($base['reward_kopecks'] ?? $defaults['reward_kopecks'])),
-            'reward_listing_credits' => (bool) $listing,
-            'reward_subscription_days' => max(0, min(3650, (int) ($base['reward_subscription_days'] ?? $defaults['reward_subscription_days']))),
+            /*
+             * Потолок в десять тысяч — не про щедрость, а про опечатку:
+             * лишний ноль в поле админки иначе раздал бы людям баланс,
+             * который потом пришлось бы отбирать руками.
+             */
+            'points_per_invite' => max(0, min(10000, (int) ($base['points_per_invite'] ?? $defaults['points_per_invite']))),
+            'max_paid_invites' => max(0, min(100000, (int) ($base['max_paid_invites'] ?? $defaults['max_paid_invites']))),
+            'terms' => $terms === '' ? $defaults['terms'] : mb_substr($terms, 0, 1000),
         ];
     }
 }

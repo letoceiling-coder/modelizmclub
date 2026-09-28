@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Users, Gift } from "lucide-react";
-import { REFERRAL_MAX_BONUS } from "@/lib/referral";
 import { useReferral } from "@/lib/api/referral";
 import { formatDate } from "@/lib/format/date";
 
@@ -32,7 +31,7 @@ export function InvitedFriendsSection() {
             borderRadius: "var(--r-pill)",
           }}
         >
-          <Gift size={12} /> +{bonus} / {REFERRAL_MAX_BONUS}
+          <Gift size={12} /> +{bonus}
         </span>
       </div>
 

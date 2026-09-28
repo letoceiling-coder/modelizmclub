@@ -19,6 +19,7 @@ class Referral extends Model
         'invitee_id',
         'status',
         'listing_credits',
+        'points',
         'subscription_days',
         'completed_at',
     ];
@@ -28,6 +29,7 @@ class Referral extends Model
         return [
             'status' => ReferralStatus::class,
             'listing_credits' => 'integer',
+            'points' => 'integer',
             'subscription_days' => 'integer',
             'completed_at' => 'datetime',
         ];

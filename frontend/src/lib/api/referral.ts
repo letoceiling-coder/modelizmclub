@@ -17,6 +17,9 @@ export interface ReferralInvite {
   user: ReferralInvitedUser;
   joinedAt: string;
   status: ReferralInviteStatus;
+  /** Сколько баллов принесло это приглашение. */
+  points: number;
+  /** Старые приглашения помнят штуки размещений — их не переписываем. */
   listingCredits: number;
 }
 
@@ -27,10 +30,16 @@ export interface ReferralData {
   invitedCount: number;
   clicks: number;
   verified: number;
+  /** Баллов заработано приглашениями — фактически начисленное. */
   bonus: number;
-  listingCredits: number;
-  maxBonus: number;
-  perInvite: number;
+  /** Весь остаток баллов: бывают начислены и другим путём, из админки. */
+  pointsBalance: number;
+  /** Сколько баллов даёт один друг — из настроек акции. */
+  pointsPerInvite: number;
+  /** Сколько приглашений оплачивается; ноль — без предела. */
+  maxPaidInvites: number;
+  /** Текст условий из админки. Правится там — меняется здесь. */
+  terms: string;
   enabled: boolean;
 }
 
@@ -45,15 +54,17 @@ interface ApiReferral {
     };
     joined_at?: string;
     status?: string;
+    points?: number;
     listing_credits?: number;
   }>;
   invited_count?: number;
   clicks?: number;
   verified?: number;
   bonus?: number;
-  listing_credits?: number;
-  max_bonus?: number;
-  per_invite?: number;
+  points_balance?: number;
+  points_per_invite?: number;
+  max_paid_invites?: number;
+  terms?: string;
   enabled?: boolean;
 }
 
@@ -77,15 +88,17 @@ export async function fetchReferral(): Promise<ReferralData> {
       },
       joinedAt: i.joined_at ?? "",
       status: i.status === "completed" ? "completed" : "pending",
+      points: i.points ?? 0,
       listingCredits: i.listing_credits ?? 0,
     })),
     invitedCount: d.invited_count ?? 0,
     clicks: d.clicks ?? 0,
     verified: d.verified ?? 0,
     bonus: d.bonus ?? 0,
-    listingCredits: d.listing_credits ?? 0,
-    maxBonus: d.max_bonus ?? 10,
-    perInvite: d.per_invite ?? 1,
+    pointsBalance: d.points_balance ?? 0,
+    pointsPerInvite: d.points_per_invite ?? 0,
+    maxPaidInvites: d.max_paid_invites ?? 0,
+    terms: d.terms ?? "",
     enabled: d.enabled ?? true,
   };
 }

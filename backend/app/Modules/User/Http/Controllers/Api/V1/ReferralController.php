@@ -9,6 +9,7 @@ use App\Support\ReferralProgramConfig;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Billing\Services\BonusPointsService;
 use Modules\Billing\Services\ReferralService;
 
 #[Group('Referrals', weight: 31)]
@@ -27,7 +28,13 @@ class ReferralController extends Controller
             ->limit(100)
             ->get();
 
-        $bonusEarned = min($referrals->referralCreditsEarned($user->id), $config['max_bonus']);
+        /*
+         * Статистика «Бонусов» — фактически начисленное, без подрезки
+         * пределом. Прежде здесь стоял `min(..., max_bonus)`, и человек,
+         * которому начислили больше предела, видел не то, что у него есть.
+         * Предел теперь и так соблюдается при начислении.
+         */
+        $заработано = $referrals->referralPointsEarned($user->id);
 
         return response()->json([
             'data' => [
@@ -45,18 +52,23 @@ class ReferralController extends Controller
                     'status' => $row->status instanceof ReferralStatus
                         ? $row->status->value
                         : (string) $row->status,
+                    // Что принесло это приглашение. Старые строки помнят
+                    // штуки размещений — их не переписываем в баллы.
+                    'points' => (int) $row->points,
                     'listing_credits' => (int) $row->listing_credits,
-                    'subscription_days' => (int) $row->subscription_days,
                 ])->all(),
                 'invited_count' => $dashboard['registered'],
                 'clicks' => $dashboard['clicks'],
                 'verified' => $dashboard['verified'],
-                'bonus' => $bonusEarned,
-                'listing_credits' => (int) $user->listing_placement_credits,
-                'max_bonus' => $config['max_bonus'],
-                'per_invite' => $config['per_invite'],
-                'reward_listing_credits' => $config['reward_listing_credits'],
-                'reward_subscription_days' => $config['reward_subscription_days'],
+                // Заработано приглашениями — и весь баланс баллов целиком:
+                // баллы бывают начислены и другим путём, из админки.
+                'bonus' => $заработано,
+                'points_balance' => app(BonusPointsService::class)->balance($user),
+                // Настройки акции: страница пишет награду из них, а не из
+                // зашитого текста. Поменяли число в админке — текст сменился.
+                'points_per_invite' => $config['points_per_invite'],
+                'max_paid_invites' => $config['max_paid_invites'],
+                'terms' => $config['terms'],
                 'enabled' => $config['enabled'],
             ],
         ]);
