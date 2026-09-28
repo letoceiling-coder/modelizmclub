@@ -22,6 +22,7 @@ import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdmi
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { EscrowProviderAdminCard } from "@/components/admin/EscrowProviderAdminCard";
+import { AdminAccordion } from "@/components/admin/AdminAccordion";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
 import { DeliveryMarkupAdminCard } from "@/components/admin/DeliveryMarkupAdminCard";
 import { LedgerTotalsCard } from "@/components/admin/LedgerTotalsCard";
@@ -122,213 +123,269 @@ export function MonetizationSection() {
     <div>
       <H>{t("pages.adminMonetization.pricingTitle")}</H>
 
-      <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
-        <h4
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 600,
-            fontSize: "16px",
-            color: "var(--foreground)",
-          }}
-        >
-          {t("pages.adminMonetization.placementTitle")}
-        </h4>
-        <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "6px" }}>
-          {t("pages.adminMonetization.placementHint")}
-        </p>
-        <div className="flex flex-wrap items-end gap-[10px]" style={{ marginTop: "12px" }}>
-          <label style={{ display: "grid", gap: "4px" }}>
-            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-              {t("pages.adminMonetization.registeredPriceLabel")}
-            </span>
-            <input
-              type="number"
-              min={0}
-              value={registeredPlacementRub}
-              onChange={(e) => setRegisteredPlacementRub(+e.target.value)}
-              style={{ ...inputStyle, width: 140 }}
-            />
-          </label>
-          <label style={{ display: "grid", gap: "4px" }}>
-            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-              {t("pages.adminMonetization.guestPriceLabel")}
-            </span>
-            <input
-              type="number"
-              min={0}
-              value={guestPlacementRub}
-              onChange={(e) => setGuestPlacementRub(+e.target.value)}
-              style={{ ...inputStyle, width: 140 }}
-            />
-          </label>
-          <label style={{ display: "grid", gap: "4px" }}>
-            <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-              {t("pages.adminMonetization.subscriberPriceLabel")}
-            </span>
-            <input
-              type="number"
-              min={0}
-              value={subscriberPlacementRub}
-              onChange={(e) => setSubscriberPlacementRub(Math.max(0, +e.target.value))}
-              style={{ ...inputStyle, width: 140 }}
-            />
-          </label>
-          <button onClick={savePlacementPricing} disabled={savingPlacement} style={primaryBtn}>
-            {savingPlacement ? "…" : t("pages.adminCommon.save")}
-          </button>
-        </div>
-        <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "10px" }}>
-          {t("pages.adminMonetization.placementLegacyNote", { price: registeredPlacementRub })}
-        </p>
-      </div>
+      {/*
+        Страница свёрнута в секции 28.09: до этого здесь было три сотни строк
+        разметки подряд, и чтобы добраться до надбавки на доставку, надо было
+        пролистать цены размещения и четыре тарифа подписки.
 
-      <EscrowProviderAdminCard cardStyle={card} />
-
-      {/* Tariffs */}
-      <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
-        <h4
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 600,
-            fontSize: "16px",
-            color: "var(--foreground)",
-          }}
-        >
-          {t("pages.adminMonetization.tariffsTitle")}
-        </h4>
-        <div
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4"
-          style={{ gap: "12px", marginTop: "12px" }}
-        >
-          {plans.map((plan, i) => (
-            <div
-              key={plan.slug}
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-card-sm)",
-                padding: "12px",
-              }}
-            >
-              <input
-                value={plan.name}
-                onChange={(e) =>
-                  setPlans((p) => p.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
-                }
-                className="w-full"
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: "var(--foreground)",
-                  background: "transparent",
-                  border: "none",
-                  padding: 0,
-                }}
-              />
-              <input
-                type="number"
-                value={Math.round(plan.priceCents / 100)}
-                onChange={(e) =>
-                  setPlans((p) =>
-                    p.map((x, j) =>
-                      j === i ? { ...x, priceCents: Math.max(0, +e.target.value) * 100 } : x,
-                    ),
-                  )
-                }
-                className="w-full"
-                style={{
-                  fontSize: "20px",
-                  fontWeight: 700,
-                  color: "var(--accent)",
-                  background: "transparent",
-                  border: "none",
-                  padding: "4px 0",
-                  fontFamily: "var(--font-display)",
-                }}
-              />
-              <label
-                className="flex items-center gap-2"
-                style={{ marginTop: "8px", fontSize: "12px", color: "var(--foreground-70)" }}
-              >
-                <input
-                  type="checkbox"
-                  checked={plan.isActive}
-                  onChange={(e) =>
-                    setPlans((p) =>
-                      p.map((x, j) => (j === i ? { ...x, isActive: e.target.checked } : x)),
-                    )
-                  }
-                  style={{ accentColor: "var(--accent)" }}
-                />
-                {t("pages.adminMonetization.planActiveLabel")}
-              </label>
-              <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                  {t("pages.adminMonetization.periodDaysLabel")}
-                </span>
-                <input
-                  type="number"
-                  min={1}
-                  value={plan.periodDays}
-                  onChange={(e) =>
-                    setPlans((p) =>
-                      p.map((x, j) =>
-                        j === i ? { ...x, periodDays: Math.max(1, +e.target.value) } : x,
-                      ),
-                    )
-                  }
-                  style={inputStyle}
-                />
-              </label>
-              <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                  {t("pages.adminMonetization.freeListingsLabel")}
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  value={plan.freeListingsPerMonth}
-                  onChange={(e) =>
-                    setPlans((p) =>
-                      p.map((x, j) =>
-                        j === i ? { ...x, freeListingsPerMonth: +e.target.value } : x,
-                      ),
-                    )
-                  }
-                  style={inputStyle}
-                />
-              </label>
-              <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                  {t("pages.adminMonetization.discountLabel")}
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={plan.listingDiscountPercent}
-                  onChange={(e) =>
-                    setPlans((p) =>
-                      p.map((x, j) =>
-                        j === i ? { ...x, listingDiscountPercent: +e.target.value } : x,
-                      ),
-                    )
-                  }
-                  style={inputStyle}
-                />
-              </label>
-            </div>
-          ))}
-        </div>
-        <button onClick={savePlans} style={{ ...primaryBtn, marginTop: "12px" }}>
-          {t("pages.adminMonetization.savePlans")}
-        </button>
-      </div>
-
-      <DeliveryMarkupAdminCard cardStyle={card} />
+        Порядок — от того, что трогают чаще: безопасная сделка настраивается
+        один раз, но спрашивают про неё первой.
+      */}
+      <AdminAccordion
+        storageKey="monetization.pricing"
+        sections={[
+          {
+            id: "escrow",
+            title: "Безопасные сделки",
+            hint: "Кто держит деньги покупателя до подтверждения",
+            children: <EscrowProviderAdminCard cardStyle={card} />,
+          },
+          {
+            id: "placement",
+            title: "Цены размещения",
+            hint: "Сколько стоит опубликовать объявление",
+            children: (
+              <>
+                <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
+                  <h4
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 600,
+                      fontSize: "16px",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {t("pages.adminMonetization.placementTitle")}
+                  </h4>
+                  <p style={{ fontSize: "13px", color: "var(--foreground-50)", marginTop: "6px" }}>
+                    {t("pages.adminMonetization.placementHint")}
+                  </p>
+                  <div
+                    className="flex flex-wrap items-end gap-[10px]"
+                    style={{ marginTop: "12px" }}
+                  >
+                    <label style={{ display: "grid", gap: "4px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                        {t("pages.adminMonetization.registeredPriceLabel")}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={registeredPlacementRub}
+                        onChange={(e) => setRegisteredPlacementRub(+e.target.value)}
+                        style={{ ...inputStyle, width: 140 }}
+                      />
+                    </label>
+                    <label style={{ display: "grid", gap: "4px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                        {t("pages.adminMonetization.guestPriceLabel")}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={guestPlacementRub}
+                        onChange={(e) => setGuestPlacementRub(+e.target.value)}
+                        style={{ ...inputStyle, width: 140 }}
+                      />
+                    </label>
+                    <label style={{ display: "grid", gap: "4px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                        {t("pages.adminMonetization.subscriberPriceLabel")}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={subscriberPlacementRub}
+                        onChange={(e) => setSubscriberPlacementRub(Math.max(0, +e.target.value))}
+                        style={{ ...inputStyle, width: 140 }}
+                      />
+                    </label>
+                    <button
+                      onClick={savePlacementPricing}
+                      disabled={savingPlacement}
+                      style={primaryBtn}
+                    >
+                      {savingPlacement ? "…" : t("pages.adminCommon.save")}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: "12px", color: "var(--foreground-50)", marginTop: "10px" }}>
+                    {t("pages.adminMonetization.placementLegacyNote", {
+                      price: registeredPlacementRub,
+                    })}
+                  </p>
+                </div>
+              </>
+            ),
+          },
+          {
+            id: "tariffs",
+            title: "Тарифы подписки",
+            hint: "Планы, цены и что в них входит",
+            children: (
+              <>
+                {/* Tariffs */}
+                <div style={{ ...card, padding: "20px", marginBottom: "16px" }}>
+                  <h4
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 600,
+                      fontSize: "16px",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {t("pages.adminMonetization.tariffsTitle")}
+                  </h4>
+                  <div
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4"
+                    style={{ gap: "12px", marginTop: "12px" }}
+                  >
+                    {plans.map((plan, i) => (
+                      <div
+                        key={plan.slug}
+                        style={{
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--r-card-sm)",
+                          padding: "12px",
+                        }}
+                      >
+                        <input
+                          value={plan.name}
+                          onChange={(e) =>
+                            setPlans((p) =>
+                              p.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)),
+                            )
+                          }
+                          className="w-full"
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: "var(--foreground)",
+                            background: "transparent",
+                            border: "none",
+                            padding: 0,
+                          }}
+                        />
+                        <input
+                          type="number"
+                          value={Math.round(plan.priceCents / 100)}
+                          onChange={(e) =>
+                            setPlans((p) =>
+                              p.map((x, j) =>
+                                j === i
+                                  ? { ...x, priceCents: Math.max(0, +e.target.value) * 100 }
+                                  : x,
+                              ),
+                            )
+                          }
+                          className="w-full"
+                          style={{
+                            fontSize: "20px",
+                            fontWeight: 700,
+                            color: "var(--accent)",
+                            background: "transparent",
+                            border: "none",
+                            padding: "4px 0",
+                            fontFamily: "var(--font-display)",
+                          }}
+                        />
+                        <label
+                          className="flex items-center gap-2"
+                          style={{
+                            marginTop: "8px",
+                            fontSize: "12px",
+                            color: "var(--foreground-70)",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={plan.isActive}
+                            onChange={(e) =>
+                              setPlans((p) =>
+                                p.map((x, j) =>
+                                  j === i ? { ...x, isActive: e.target.checked } : x,
+                                ),
+                              )
+                            }
+                            style={{ accentColor: "var(--accent)" }}
+                          />
+                          {t("pages.adminMonetization.planActiveLabel")}
+                        </label>
+                        <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
+                          <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                            {t("pages.adminMonetization.periodDaysLabel")}
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={plan.periodDays}
+                            onChange={(e) =>
+                              setPlans((p) =>
+                                p.map((x, j) =>
+                                  j === i ? { ...x, periodDays: Math.max(1, +e.target.value) } : x,
+                                ),
+                              )
+                            }
+                            style={inputStyle}
+                          />
+                        </label>
+                        <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
+                          <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                            {t("pages.adminMonetization.freeListingsLabel")}
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={plan.freeListingsPerMonth}
+                            onChange={(e) =>
+                              setPlans((p) =>
+                                p.map((x, j) =>
+                                  j === i ? { ...x, freeListingsPerMonth: +e.target.value } : x,
+                                ),
+                              )
+                            }
+                            style={inputStyle}
+                          />
+                        </label>
+                        <label style={{ display: "grid", gap: "4px", marginTop: "8px" }}>
+                          <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                            {t("pages.adminMonetization.discountLabel")}
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={plan.listingDiscountPercent}
+                            onChange={(e) =>
+                              setPlans((p) =>
+                                p.map((x, j) =>
+                                  j === i ? { ...x, listingDiscountPercent: +e.target.value } : x,
+                                ),
+                              )
+                            }
+                            style={inputStyle}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={savePlans} style={{ ...primaryBtn, marginTop: "12px" }}>
+                    {t("pages.adminMonetization.savePlans")}
+                  </button>
+                </div>
+              </>
+            ),
+          },
+          {
+            id: "delivery",
+            title: "Надбавка на доставку",
+            hint: "Сколько площадка добавляет к тарифу перевозчика",
+            children: <DeliveryMarkupAdminCard cardStyle={card} />,
+          },
+        ]}
+      />
     </div>
   );
 }
-
 /**
  * Монетизация разделена на четыре вкладки 25.09.
  *
@@ -367,10 +424,29 @@ export function MonetizationPromosSection() {
   return (
     <div>
       <H>{t("pages.adminMonetization.promosTitle")}</H>
-      <PromoPoolsAdminCard cardStyle={card} />
-      <FirstHundredAdminCard cardStyle={card} />
-      <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
-      <ReferralProgramAdminCard cardStyle={card} />
+      <AdminAccordion
+        storageKey="monetization.promos"
+        sections={[
+          {
+            id: "promos",
+            title: "Промокоды",
+            hint: "Коды, пулы и «первая сотня»",
+            children: (
+              <>
+                <PromoPoolsAdminCard cardStyle={card} />
+                <FirstHundredAdminCard cardStyle={card} />
+                <PromoCodesBlock promos={promos} setPromos={setPromos} reload={reloadPromos} />
+              </>
+            ),
+          },
+          {
+            id: "referral",
+            title: "Реферальная программа",
+            hint: "Что получает пригласивший друга",
+            children: <ReferralProgramAdminCard cardStyle={card} />,
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -392,8 +468,23 @@ export function MonetizationLedgerSection() {
   return (
     <div>
       <H>{t("pages.adminMonetization.ledgerTitle")}</H>
-      <LedgerTotalsCard cardStyle={card} />
-      <AdminBillingOpsCard cardStyle={card} />
+      <AdminAccordion
+        storageKey="monetization.ledger"
+        sections={[
+          {
+            id: "totals",
+            title: "Платежи и бухгалтерия",
+            hint: "Принято, выплачено, комиссия — за период",
+            children: <LedgerTotalsCard cardStyle={card} />,
+          },
+          {
+            id: "wallets",
+            title: "Кошельки",
+            hint: "Остатки, залог и операции вручную",
+            children: <AdminBillingOpsCard cardStyle={card} />,
+          },
+        ]}
+      />
     </div>
   );
 }
