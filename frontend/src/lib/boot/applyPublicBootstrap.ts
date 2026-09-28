@@ -30,8 +30,8 @@ export function applyPublicBootstrap(data: PublicBootstrapPayload): void {
     },
     referral: {
       enabled: ref.enabled ?? false,
-      perInvite: ref.per_invite ?? 0,
-      maxBonus: ref.max_bonus ?? 0,
+      pointsPerInvite: ref.points_per_invite ?? 0,
+      maxPaidInvites: ref.max_paid_invites ?? 0,
     },
   });
 }

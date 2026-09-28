@@ -1,7 +1,14 @@
 import type { User } from "./mock";
 
-export const REFERRAL_MAX_BONUS = 10;
-export const REFERRAL_BONUS_PER_INVITE = 1;
+/**
+ * Запасное число баллов, пока настройки не приехали.
+ *
+ * Не правило, а заглушка на один кадр: настоящее значение приходит с
+ * сервера (`points_per_invite`), и правится оно в админке. Держать здесь
+ * второе «настоящее» число значило бы иметь два источника одной величины —
+ * и однажды они разойдутся.
+ */
+export const REFERRAL_POINTS_FALLBACK = 100;
 
 export interface InvitedFriend {
   userId: string;

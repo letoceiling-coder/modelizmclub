@@ -914,12 +914,16 @@ COLUMN|promocodes.user_id|bigint|YES
 COLUMN|promocodes.valid_from|timestamp without time zone|YES
 COLUMN|promocodes.valid_until|timestamp without time zone|YES
 COLUMN|promocodes.value|integer|NO
+COLUMN|referral_phone_awards.awarded_at|timestamp without time zone|NO
+COLUMN|referral_phone_awards.id|bigint|NO
+COLUMN|referral_phone_awards.phone_hash|character varying|NO
 COLUMN|referrals.completed_at|timestamp with time zone|YES
 COLUMN|referrals.created_at|timestamp without time zone|YES
 COLUMN|referrals.id|bigint|NO
 COLUMN|referrals.invitee_id|bigint|NO
 COLUMN|referrals.inviter_id|bigint|NO
 COLUMN|referrals.listing_credits|integer|NO
+COLUMN|referrals.points|integer|NO
 COLUMN|referrals.status|character varying|NO
 COLUMN|referrals.subscription_days|integer|NO
 COLUMN|referrals.updated_at|timestamp without time zone|YES
@@ -1862,6 +1866,8 @@ INDEX|promo_pools|promo_pools_uuid_unique
 INDEX|promocode_usages|promocode_usages_pkey
 INDEX|promocodes|promocodes_code_unique
 INDEX|promocodes|promocodes_pkey
+INDEX|referral_phone_awards|referral_phone_awards_phone_hash_unique
+INDEX|referral_phone_awards|referral_phone_awards_pkey
 INDEX|referrals|referrals_invitee_id_unique
 INDEX|referrals|referrals_inviter_id_status_index
 INDEX|referrals|referrals_pkey
@@ -2057,6 +2063,7 @@ SEQ|posts_id_seq
 SEQ|promo_pools_id_seq
 SEQ|promocode_usages_id_seq
 SEQ|promocodes_id_seq
+SEQ|referral_phone_awards_id_seq
 SEQ|referrals_id_seq
 SEQ|reports_id_seq
 SEQ|rule_page_revisions_id_seq
@@ -2190,6 +2197,7 @@ TABLE|posts
 TABLE|promo_pools
 TABLE|promocode_usages
 TABLE|promocodes
+TABLE|referral_phone_awards
 TABLE|referrals
 TABLE|reports
 TABLE|rule_page_revisions

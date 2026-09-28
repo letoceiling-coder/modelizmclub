@@ -19,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Modules\Auth\Services\EmailVerificationService;
+use Modules\Billing\Services\BonusPointsService;
 use Tests\TestCase;
 
 class PromoPoolAndReferralRewardTest extends TestCase
@@ -44,10 +45,8 @@ class PromoPoolAndReferralRewardTest extends TestCase
             ['key' => 'referral_program'],
             ['value' => [
                 'enabled' => true,
-                'per_invite' => 1,
-                'max_bonus' => 10,
-                'reward_listing_credits' => true,
-                'reward_subscription_days' => 0,
+                'points_per_invite' => 100,
+                'max_paid_invites' => 0,
             ], 'group' => 'marketing'],
         );
     }
@@ -199,6 +198,11 @@ class PromoPoolAndReferralRewardTest extends TestCase
         $this->assertSame('cancelled', UserSubscription::query()->where('user_id', $user->id)->value('status'));
     }
 
+    private function баллы(User $user): int
+    {
+        return app(BonusPointsService::class)->balance($user->fresh());
+    }
+
     public function test_referral_bonus_is_not_granted_until_phone_verified(): void
     {
         $referrer = $this->seedUser('ref');
@@ -217,7 +221,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
 
         $invitee = User::query()->where('email', $email)->firstOrFail();
         $this->assertSame($referrer->id, (int) $invitee->referred_by);
-        $this->assertSame(0, (int) $referrer->fresh()->listing_placement_credits);
+        $this->assertSame(0, $this->баллы($referrer), 'за регистрацию награды нет');
         $this->assertDatabaseHas('referrals', [
             'inviter_id' => $referrer->id,
             'invitee_id' => $invitee->id,
@@ -226,12 +230,12 @@ class PromoPoolAndReferralRewardTest extends TestCase
 
         $this->verifyPhone($invitee);
 
-        $referrer->refresh();
-        $this->assertSame(1, (int) $referrer->listing_placement_credits);
+        // С 28.09 награда — баллы, а не штуки размещений.
+        $this->assertSame(100, $this->баллы($referrer));
         $this->assertDatabaseHas('bonus_transactions', [
             'account_user_id' => $referrer->id,
-            'type' => 'referral',
-            'amount' => 1,
+            'type' => BonusPointsService::TYPE_REFERRAL,
+            'amount' => 100,
         ]);
         $this->assertSame(
             ReferralStatus::Completed,
@@ -242,7 +246,7 @@ class PromoPoolAndReferralRewardTest extends TestCase
     public function test_referral_bonus_respects_max_cap_after_phone_verify(): void
     {
         SystemSetting::query()->where('key', 'referral_program')->update([
-            'value' => ['enabled' => true, 'per_invite' => 1, 'max_bonus' => 2, 'reward_listing_credits' => true],
+            'value' => ['enabled' => true, 'points_per_invite' => 100, 'max_paid_invites' => 2],
         ]);
 
         $referrer = $this->seedUser('cap');
@@ -263,9 +267,15 @@ class PromoPoolAndReferralRewardTest extends TestCase
             $this->verifyPhone($invitee, '7989762565'.$i);
         }
 
-        $referrer->refresh();
-        $this->assertSame(2, (int) $referrer->listing_placement_credits);
-        $this->assertSame(2, BonusTransaction::query()->where('account_user_id', $referrer->id)->where('type', 'referral')->count());
+        // Предел считается в приглашениях: оплачены два из трёх.
+        $this->assertSame(200, $this->баллы($referrer));
+        $this->assertSame(
+            2,
+            BonusTransaction::query()
+                ->where('account_user_id', $referrer->id)
+                ->where('type', BonusPointsService::TYPE_REFERRAL)
+                ->count(),
+        );
     }
 
     public function test_register_reads_referral_cookie_and_click_is_counted(): void

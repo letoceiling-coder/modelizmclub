@@ -21,7 +21,7 @@ export interface BootstrapFeatureFlags {
 
 export interface BootstrapStats {
   first_hundred?: { taken?: number; total?: number; enabled?: boolean };
-  referral?: { enabled?: boolean; per_invite?: number; max_bonus?: number };
+  referral?: { enabled?: boolean; points_per_invite?: number; max_paid_invites?: number };
 }
 
 /** Ключи сторонних сервисов, приходящие во время работы, а не из сборки. */

@@ -11,6 +11,7 @@ use App\Models\UserOAuthAccount;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Modules\Billing\Services\BonusPointsService;
 use Tests\TestCase;
 
 /**
@@ -116,7 +117,11 @@ class MaxPhoneVerificationRewardsTest extends TestCase
         $this->assertNotNull($invitee->phone_verified_at, 'MAX должен был подтвердить телефон');
 
         $referrer->refresh();
-        $this->assertSame(1, (int) $referrer->listing_placement_credits);
+        // С 28.09 награда — баллы, а не штуки размещений.
+        $this->assertSame(
+            100,
+            app(BonusPointsService::class)->balance($referrer),
+        );
         $this->assertSame(
             ReferralStatus::Completed,
             Referral::query()->where('invitee_id', $invitee->id)->firstOrFail()->status,
@@ -176,6 +181,10 @@ class MaxPhoneVerificationRewardsTest extends TestCase
         $this->withHeader('X-Max-Bot-Api-Secret', 'TestSecret-123')
             ->postJson('/api/v1/webhooks/max', $payload)->assertOk();
 
-        $this->assertSame(1, (int) $referrer->fresh()->listing_placement_credits);
+        $this->assertSame(
+            100,
+            app(BonusPointsService::class)->balance($referrer->fresh()),
+            'начисление обязано быть однократным',
+        );
     }
 }

@@ -122,8 +122,10 @@ class PublicBootstrapService
                 ],
                 'referral' => [
                     'enabled' => $referral['enabled'],
-                    'per_invite' => $referral['per_invite'],
-                    'max_bonus' => $referral['max_bonus'],
+                    // Награда — баллы; гостю показывается то же число, что
+                    // стоит в админке, и меняется вместе с ним.
+                    'points_per_invite' => $referral['points_per_invite'],
+                    'max_paid_invites' => $referral['max_paid_invites'],
                 ],
             ],
             'feed_guest_access' => $this->guestAccess->publicPayload(),

@@ -1,16 +1,25 @@
 import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
-import { fetchAdminReferrals, updateAdminSettings, type AdminReferralRow } from "@/lib/api/admin";
+import {
+  fetchAdminReferrals,
+  updateAdminSettings,
+  REFERRAL_SETTINGS_FALLBACK,
+  type AdminReferralRow,
+  type ReferralSettings,
+} from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
 
 type CardStyle = React.CSSProperties;
 
 export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }) {
   const [enabled, setEnabled] = useState(true);
-  const [perInvite, setPerInvite] = useState(1);
-  const [maxBonus, setMaxBonus] = useState(10);
-  const [rewardListing, setRewardListing] = useState(true);
-  const [rewardDays, setRewardDays] = useState(0);
+  /** Баллов за одного приглашённого. */
+  const [pointsPerInvite, setPointsPerInvite] = useState(100);
+  /** Сколько приглашений оплачивается; ноль — без предела. */
+  const [maxPaidInvites, setMaxPaidInvites] = useState(0);
+  const [terms, setTerms] = useState("");
+  /** Что сейчас сохранено — чтобы показать действующие настройки рядом с полями. */
+  const [saved, setSaved] = useState<ReferralSettings>(REFERRAL_SETTINGS_FALLBACK);
   const [rows, setRows] = useState<AdminReferralRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -20,10 +29,10 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
     fetchAdminReferrals()
       .then(({ settings, data }) => {
         setEnabled(settings.enabled);
-        setPerInvite(settings.per_invite);
-        setMaxBonus(settings.max_bonus);
-        setRewardListing(settings.reward_listing_credits !== false);
-        setRewardDays(settings.reward_subscription_days ?? 0);
+        setPointsPerInvite(settings.points_per_invite);
+        setMaxPaidInvites(settings.max_paid_invites);
+        setTerms(settings.terms);
+        setSaved(settings);
         setRows(data);
       })
       .catch(() => toast.error("Не удалось загрузить реферальную программу"))
@@ -41,10 +50,9 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
           group: "marketing",
           value: {
             enabled,
-            per_invite: perInvite,
-            max_bonus: maxBonus,
-            reward_listing_credits: rewardListing,
-            reward_subscription_days: rewardDays,
+            points_per_invite: pointsPerInvite,
+            max_paid_invites: maxPaidInvites,
+            terms,
           },
         },
       ]);
@@ -90,8 +98,21 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
         Реферальная программа
       </h4>
       <p style={{ fontSize: 13, color: "var(--foreground-50)", marginTop: 6 }}>
-        Бонус пригласившему начисляется только после подтверждения телефона другом. Можно выдать
-        бесплатные объявления и/или дни подписки.
+        Баллы начисляются пригласившему после того, как друг подтвердит телефон. Переход по ссылке
+        награды не даёт. Баллы не выводятся деньгами — это отдельный счёт, не кошелёк.
+      </p>
+
+      {/*
+        Что сейчас действует — рядом с полями, а не вместо них.
+        Поля показывают правку, которую ещё не сохранили; эта строка — то,
+        по чему сервер начисляет прямо сейчас.
+      */}
+      <p style={{ fontSize: 12, color: "var(--foreground-50)", marginTop: 8 }}>
+        Сейчас действует: {saved.enabled ? "акция включена" : "акция выключена"} ·{" "}
+        {saved.points_per_invite} балл(ов) за друга ·{" "}
+        {saved.max_paid_invites > 0
+          ? `оплачивается первых ${saved.max_paid_invites} приглашений`
+          : "без предела по числу приглашений"}
       </p>
 
       <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -103,52 +124,51 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
           Программа активна
         </label>
         <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>За друга</span>
+          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Баллов за друга</span>
           <input
             type="number"
-            min={1}
-            value={perInvite}
-            onChange={(e) => setPerInvite(+e.target.value)}
-            style={{ ...inputStyle, width: 100 }}
-          />
-        </label>
-        <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>Максимум бонусов</span>
-          <input
-            type="number"
-            min={1}
-            value={maxBonus}
-            onChange={(e) => setMaxBonus(+e.target.value)}
+            min={0}
+            max={10000}
+            value={pointsPerInvite}
+            onChange={(e) => setPointsPerInvite(Math.max(0, +e.target.value))}
             style={{ ...inputStyle, width: 120 }}
           />
         </label>
-        <label
-          className="flex items-center gap-2 text-[13px]"
-          style={{ color: "var(--foreground-70)" }}
-        >
-          <input
-            type="checkbox"
-            checked={rewardListing}
-            onChange={(e) => setRewardListing(e.target.checked)}
-          />
-          +N бесплатных объявлений
-        </label>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>
-            Дней подписки за друга
+            Оплачиваемых приглашений
           </span>
           <input
             type="number"
             min={0}
-            value={rewardDays}
-            onChange={(e) => setRewardDays(+e.target.value)}
-            style={{ ...inputStyle, width: 120 }}
+            value={maxPaidInvites}
+            onChange={(e) => setMaxPaidInvites(Math.max(0, +e.target.value))}
+            style={{ ...inputStyle, width: 160 }}
           />
+          <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>0 — без предела</span>
         </label>
         <button type="button" onClick={save} disabled={saving} style={primaryBtn}>
           {saving ? "…" : "Сохранить"}
         </button>
       </div>
+
+      {/*
+        Текст условий — он же выводится на странице «Пригласи друга».
+        Один источник: иначе админка и страница разошлись бы при первой правке.
+      */}
+      <label style={{ display: "grid", gap: 4, marginTop: 12 }}>
+        <span style={{ fontSize: 11, color: "var(--foreground-50)" }}>
+          Текст условий — виден людям на странице приглашений
+        </span>
+        <textarea
+          value={terms}
+          onChange={(e) => setTerms(e.target.value)}
+          rows={3}
+          maxLength={1000}
+          style={{ ...inputStyle, height: "auto", padding: "8px 10px", resize: "vertical" }}
+        />
+      </label>
+      <div className="mt-3 flex flex-wrap items-end gap-3"></div>
 
       <div className="mt-4 overflow-x-auto">
         {loading ? (

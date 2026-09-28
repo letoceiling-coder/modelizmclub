@@ -1330,31 +1330,43 @@ export interface AdminReferralRow {
   status?: string;
 }
 
+/**
+ * Настройки акции «Пригласи друга».
+ *
+ * С 28.09 награда одна — бонусные баллы. Прежние ключи (`per_invite`,
+ * `max_bonus`, `reward_kopecks`, `reward_listing_credits`,
+ * `reward_subscription_days`) перенесены миграцией и больше не читаются:
+ * держать их ещё и здесь значило бы иметь два источника одной величины.
+ */
+export interface ReferralSettings {
+  enabled: boolean;
+  /** Сколько баллов за одного приглашённого. */
+  points_per_invite: number;
+  /** Сколько приглашений оплачивается; ноль — без предела. */
+  max_paid_invites: number;
+  /** Текст условий: он же показывается на странице приглашений. */
+  terms: string;
+}
+
+export const REFERRAL_SETTINGS_FALLBACK: ReferralSettings = {
+  enabled: true,
+  points_per_invite: 100,
+  max_paid_invites: 0,
+  terms: "",
+};
+
 export async function fetchAdminReferrals(): Promise<{
   data: AdminReferralRow[];
-  settings: {
-    enabled: boolean;
-    per_invite: number;
-    max_bonus: number;
-    reward_kopecks?: number;
-    reward_listing_credits?: boolean;
-    reward_subscription_days?: number;
-  };
+  settings: ReferralSettings;
 }> {
   const res = await api<{
     data: AdminReferralRow[];
-    settings: {
-      enabled: boolean;
-      per_invite: number;
-      max_bonus: number;
-      reward_kopecks?: number;
-      reward_listing_credits?: boolean;
-      reward_subscription_days?: number;
-    };
+    settings: Partial<ReferralSettings> | null;
   }>("/admin/referrals");
+
   return {
     data: res.data ?? [],
-    settings: res.settings ?? { enabled: true, per_invite: 1, max_bonus: 10 },
+    settings: { ...REFERRAL_SETTINGS_FALLBACK, ...(res.settings ?? {}) },
   };
 }
 

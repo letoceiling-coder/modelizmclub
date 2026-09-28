@@ -43,8 +43,10 @@ export interface FirstHundredStats {
 
 export interface ReferralProgramStats {
   enabled: boolean;
-  perInvite: number;
-  maxBonus: number;
+  /** Баллов за одного приглашённого — из настроек акции. */
+  pointsPerInvite: number;
+  /** Сколько приглашений оплачивается; ноль — без предела. */
+  maxPaidInvites: number;
 }
 
 let statsCache: { firstHundred: FirstHundredStats; referral?: ReferralProgramStats } | null = null;
@@ -92,8 +94,8 @@ export async function fetchStats(): Promise<{
         },
         referral: {
           enabled: ref.enabled ?? false,
-          perInvite: ref.per_invite ?? 0,
-          maxBonus: ref.max_bonus ?? 0,
+          pointsPerInvite: ref.points_per_invite ?? 0,
+          maxPaidInvites: ref.max_paid_invites ?? 0,
         },
       };
       return statsCache;
@@ -104,7 +106,7 @@ export async function fetchStats(): Promise<{
   const res = await api<{
     data: {
       first_hundred?: { taken?: number; total?: number; enabled?: boolean };
-      referral?: { enabled?: boolean; per_invite?: number; max_bonus?: number };
+      referral?: { enabled?: boolean; points_per_invite?: number; max_paid_invites?: number };
     };
   }>("/public/stats", { auth: false });
   const fh = res.data?.first_hundred ?? {};
@@ -117,8 +119,8 @@ export async function fetchStats(): Promise<{
     },
     referral: {
       enabled: ref.enabled ?? false,
-      perInvite: ref.per_invite ?? 0,
-      maxBonus: ref.max_bonus ?? 0,
+      pointsPerInvite: ref.points_per_invite ?? 0,
+      maxPaidInvites: ref.max_paid_invites ?? 0,
     },
   };
   return statsCache;
