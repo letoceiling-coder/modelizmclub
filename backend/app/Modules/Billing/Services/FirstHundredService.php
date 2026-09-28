@@ -46,7 +46,14 @@ class FirstHundredService
                 ? PromoPool::query()->granting()->lockForUpdate()->first()
                 : null;
 
-            if ($pool && $pool->seatsLeft() > 0) {
+            /*
+             * Круг спрашивается здесь, а не в `scopeGranting`: условие
+             * «этому человеку» проверяется по строке пользователя, а не по
+             * акции, и в общий отбор его не положишь. Акция, которая
+             * человеку не подходит, просто не выдаёт ему места — остальным
+             * она при этом продолжает выдавать.
+             */
+            if ($pool && $pool->seatsLeft() > 0 && $pool->coversUser($locked)) {
                 return $this->grantFromPool($locked, $pool);
             }
 

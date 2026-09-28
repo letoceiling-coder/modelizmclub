@@ -15,8 +15,10 @@ import {
   fetchAdminSettings,
   updateAdminSettings,
   type AdminPlanRow,
+  type AdminUserOption,
 } from "@/lib/api/admin";
 import { PromoPoolsAdminCard } from "@/components/admin/PromoPoolsAdminCard";
+import { UserPicker } from "@/components/admin/UserPicker";
 import { FirstHundredAdminCard } from "@/components/admin/FirstHundredAdminCard";
 import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
@@ -578,10 +580,23 @@ function PromoCodesBlock({
     limit: 100,
     type: "percent" as "percent" | "fixed" | "free",
     notifyAll: false,
-    notifyUserIds: "",
     notifyTitle: "",
     notifyBody: "",
   });
+  /*
+   * Два разных круга людей, и путать их нельзя.
+   *
+   * `audience` — кто сможет применить код. Раньше такого выбора в админке
+   * не было вовсе: ограничение существовало как `promocodes.user_id` на
+   * одного человека и из интерфейса не показывалось.
+   *
+   * `notifyPeople` — кому придёт оповещение. Это и есть бывшее поле «ID
+   * пользователей через запятую»: оно ничего не запрещало. Ручной ввод
+   * убран — числа глазами не проверить, а человека по имени видно.
+   */
+  const [audience, setAudience] = useState<"all" | "selected">("all");
+  const [audiencePeople, setAudiencePeople] = useState<AdminUserOption[]>([]);
+  const [notifyPeople, setNotifyPeople] = useState<AdminUserOption[]>([]);
 
   /*
    * Нижняя граница дат — московский день, и только после гидрации.
@@ -619,8 +634,10 @@ function PromoCodesBlock({
     // Строго больше: акция на один день — обычное дело.
     if (form.startsAt && form.startsAt > form.expiresAt)
       return toast.error(t("pages.adminPromocodes.errOrder"));
+    if (audience === "selected" && audiencePeople.length === 0)
+      return toast.error(t("pages.adminPromocodes.errAudienceEmpty"));
     try {
-      const notifyMode = form.notifyUserIds.trim() ? "selected" : form.notifyAll ? "all" : "none";
+      const notifyMode = notifyPeople.length > 0 ? "selected" : form.notifyAll ? "all" : "none";
       const result = await createPromocode({
         code: form.code.toUpperCase(),
         type: form.type,
@@ -632,10 +649,9 @@ function PromoCodesBlock({
         notify_mode: notifyMode,
         notify_title: form.notifyTitle.trim() || undefined,
         notify_body: form.notifyBody.trim() || undefined,
-        notify_user_ids: form.notifyUserIds
-          .split(/[\s,;]+/)
-          .map((x) => +x)
-          .filter((x) => Number.isInteger(x) && x > 0),
+        audience,
+        user_ids: audience === "selected" ? audiencePeople.map((u) => u.id) : [],
+        notify_user_ids: notifyPeople.map((u) => u.id),
       });
       setForm({
         code: "",
@@ -645,10 +661,12 @@ function PromoCodesBlock({
         limit: 100,
         type: "percent",
         notifyAll: false,
-        notifyUserIds: "",
         notifyTitle: "",
         notifyBody: "",
       });
+      setAudience("all");
+      setAudiencePeople([]);
+      setNotifyPeople([]);
       setOpen(false);
       reload?.();
       toast.success(
@@ -791,6 +809,42 @@ function PromoCodesBlock({
                     style={inputStyle}
                   />
                 </label>
+                <div
+                  className="md:col-span-2"
+                  style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+                >
+                  <span
+                    style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}
+                  >
+                    {t("pages.adminPromocodes.audience")}
+                  </span>
+                  <div className="flex flex-wrap gap-3">
+                    {(["all", "selected"] as const).map((к) => (
+                      <label
+                        key={к}
+                        className="flex items-center gap-2 text-[13px]"
+                        style={{ color: "var(--foreground-70)" }}
+                      >
+                        <input
+                          type="radio"
+                          checked={audience === к}
+                          onChange={() => setAudience(к)}
+                        />
+                        {t(
+                          к === "all"
+                            ? "pages.adminPromocodes.audienceAll"
+                            : "pages.adminPromocodes.audienceSelected",
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                  {audience === "selected" && (
+                    <UserPicker value={audiencePeople} onChange={setAudiencePeople} />
+                  )}
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                    {t("pages.adminPromocodes.audienceHint")}
+                  </span>
+                </div>
                 <label
                   className="md:col-span-2 flex items-center gap-[8px] text-[13px]"
                   style={{ color: "var(--foreground-70)" }}
@@ -798,34 +852,33 @@ function PromoCodesBlock({
                   <input
                     type="checkbox"
                     checked={form.notifyAll}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        notifyAll: e.target.checked,
-                        notifyUserIds: e.target.checked ? "" : form.notifyUserIds,
-                      })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, notifyAll: e.target.checked });
+                      if (e.target.checked) setNotifyPeople([]);
+                    }}
                   />
                   {t("pages.adminPromocodes.notifyAll")}
                 </label>
-                <label
+                <div
                   className="md:col-span-2"
                   style={{ display: "flex", flexDirection: "column", gap: "4px" }}
                 >
                   <span
                     style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}
                   >
-                    {t("pages.adminPromocodes.notifyUserIds")}
+                    {t("pages.adminPromocodes.notifyPeople")}
                   </span>
-                  <input
-                    value={form.notifyUserIds}
-                    onChange={(e) =>
-                      setForm({ ...form, notifyUserIds: e.target.value, notifyAll: false })
-                    }
-                    placeholder="12, 45, 78"
-                    style={inputStyle}
+                  <UserPicker
+                    value={notifyPeople}
+                    onChange={(люди) => {
+                      setNotifyPeople(люди);
+                      if (люди.length > 0) setForm({ ...form, notifyAll: false });
+                    }}
                   />
-                </label>
+                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                    {t("pages.adminPromocodes.notifyPeopleHint")}
+                  </span>
+                </div>
                 {form.notifyAll && (
                   <>
                     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>

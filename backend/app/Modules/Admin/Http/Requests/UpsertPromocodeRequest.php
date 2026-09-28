@@ -33,6 +33,19 @@ class UpsertPromocodeRequest extends FormRequest
              */
             'valid_until' => ['nullable', 'date', 'after_or_equal:valid_from'],
             'is_active' => ['nullable', 'boolean'],
+            /*
+             * Кому доступен промокод. Это НЕ то же, что `notify_*` ниже:
+             * те решают, кому придёт оповещение, а эти — кто сможет код
+             * применить. До C5 в админке было только поле уведомлений, и
+             * ограничение доступа существовало лишь как `promocodes.user_id`
+             * на одного человека, невидимая из интерфейса.
+             *
+             * `all` стирает список: круг снимается целиком, а не остаётся
+             * висеть невидимым запретом.
+             */
+            'audience' => ['nullable', 'string', Rule::in(['all', 'selected'])],
+            'user_ids' => ['nullable', 'array', 'max:1000'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
             'notify_mode' => ['nullable', 'string', Rule::in(['none', 'all', 'selected'])],
             'notify_title' => ['nullable', 'string', 'max:160'],
             'notify_body' => ['nullable', 'string', 'max:1000'],

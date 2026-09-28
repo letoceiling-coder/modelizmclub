@@ -198,6 +198,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::get('referrals', [AdminReferralController::class, 'index']);
         Route::get('promo-pools', [AdminPromoPoolController::class, 'index']);
         Route::post('promo-pools', [AdminPromoPoolController::class, 'store']);
+        Route::patch('promo-pools/{uuid}', [AdminPromoPoolController::class, 'update'])
+            ->where('uuid', '[0-9a-f-]{36}');
         Route::post('promo-pools/{uuid}/pause', [AdminPromoPoolController::class, 'pause'])
             ->where('uuid', '[0-9a-f-]{36}');
         Route::post('promo-pools/{uuid}/resume', [AdminPromoPoolController::class, 'resume'])

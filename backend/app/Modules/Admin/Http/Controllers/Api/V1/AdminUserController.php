@@ -31,12 +31,39 @@ class AdminUserController extends Controller
         $users = User::query()
             ->with(['profile', 'subscriptions'])
             ->when(request()->filled('role'), fn ($q) => $q->where('role', request('role')))
-            // Поиск по имени и почте — для назначения сотрудников в «Ролях и доступе».
+            /*
+             * Поиск по имени, почте и телефону.
+             *
+             * Телефон ищется отдельной веткой, потому что в базе он лежит
+             * в том виде, в каком его ввёл человек: «+7 999 123-45-67»,
+             * «8(999)1234567», «79991234567» — всё это один номер. Прямое
+             * сравнение со строкой не находит ни одного из них, если
+             * набрать номер иначе, чем он записан.
+             *
+             * Поэтому из запроса и из колонки убираются все знаки, кроме
+             * цифр, и сравниваются цифры с цифрами. Ведущая восьмёрка
+             * приводится к семёрке — тем же правилом, что в
+             * `ReferralService::phoneHash`.
+             */
             ->when(request()->filled('q'), function ($q): void {
-                $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim((string) request('q'))).'%';
-                $q->where(fn ($w) => $w->where('email', 'ilike', $needle)
-                    ->orWhere('name', 'ilike', $needle)
-                    ->orWhereHas('profile', fn ($p) => $p->where('display_name', 'ilike', $needle)));
+                $запрос = trim((string) request('q'));
+                $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $запрос).'%';
+                $цифры = preg_replace('/\\D+/', '', $запрос) ?? '';
+                if (strlen($цифры) === 11 && str_starts_with($цифры, '8')) {
+                    $цифры = '7'.substr($цифры, 1);
+                }
+
+                $q->where(function ($w) use ($needle, $цифры): void {
+                    $w->where('email', 'ilike', $needle)
+                        ->orWhere('name', 'ilike', $needle)
+                        ->orWhereHas('profile', fn ($p) => $p->where('display_name', 'ilike', $needle));
+
+                    // Три цифры — нижний порог: по одной-двум в ответ
+                    // приедет половина базы, и это не поиск.
+                    if (strlen($цифры) >= 3) {
+                        $w->orWhereRaw("regexp_replace(coalesce(phone, ''), '\\D', '', 'g') like ?", ['%'.$цифры.'%']);
+                    }
+                });
             })
             ->when(request()->filled('status'), fn ($q) => $q->where('status', request('status')))
             ->latest()

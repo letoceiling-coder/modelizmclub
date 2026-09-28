@@ -21,7 +21,7 @@ class AdminPromocodeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = Promocode::query()->withCount('usages')->latest()->paginate(20);
+        $items = Promocode::query()->with('audienceUsers')->withCount('usages')->latest()->paginate(20);
 
         /*
          * Состояние и остатки считает сервер, а не браузер. До C4 статус
@@ -34,6 +34,8 @@ class AdminPromocodeController extends Controller
 
             return array_merge($promo->withoutRelations()->toArray(), [
                 'usages_count' => $использовано,
+                'audience' => $promo->audienceUsers->isEmpty() ? 'all' : 'selected',
+                'audience_users' => self::кругСписком($promo),
                 'state' => PromoCalendar::state($promo, $использовано),
                 'seats_left' => PromoCalendar::seatsLeft($promo, $использовано),
                 'days_left' => PromoCalendar::daysLeft($promo),
@@ -54,9 +56,11 @@ class AdminPromocodeController extends Controller
     {
         $validated = $request->validated();
         $notifyMode = $validated['notify_mode'] ?? 'none';
+        [$круг, $люди] = self::кругИзЗапроса($validated);
         unset($validated['notify_mode'], $validated['notify_title'], $validated['notify_body'], $validated['notify_user_ids']);
 
         $promocode = Promocode::query()->create($validated);
+        self::записатьКруг($promocode, $круг, $люди);
         $audit->log($request->user(), 'admin.promocodes.create', $promocode, null, $promocode->toArray(), $request);
 
         $sent = 0;
@@ -68,7 +72,7 @@ class AdminPromocodeController extends Controller
             ]);
         }
 
-        return response()->json(['data' => $promocode, 'notifications_sent' => $sent], 201);
+        return response()->json(['data' => self::собрать($promocode->fresh()), 'notifications_sent' => $sent], 201);
     }
 
     #[PathParameter('code', example: SwaggerFixtures::PROMO_CODE)]
@@ -80,7 +84,7 @@ class AdminPromocodeController extends Controller
             throw new NotFoundHttpException('Промокод не найден.');
         }
 
-        return response()->json(['data' => $promocode]);
+        return response()->json(['data' => self::собрать($promocode)]);
     }
 
     #[PathParameter('code', example: SwaggerFixtures::PROMO_CODE)]
@@ -94,13 +98,89 @@ class AdminPromocodeController extends Controller
         }
 
         $validated = $request->validated();
+        [$круг, $люди] = self::кругИзЗапроса($validated);
         unset($validated['notify_mode'], $validated['notify_title'], $validated['notify_body'], $validated['notify_user_ids']);
 
-        $old = $promocode->toArray();
+        $old = array_merge($promocode->toArray(), ['audience_user_ids' => $promocode->audienceUsers()->pluck('users.id')->all()]);
         $promocode->update($validated);
-        $audit->log($request->user(), 'admin.promocodes.update', $promocode, $old, $promocode->fresh()->toArray(), $request);
+        self::записатьКруг($promocode, $круг, $люди);
+        $promocode = $promocode->fresh();
+        $audit->log($request->user(), 'admin.promocodes.update', $promocode, $old, array_merge(
+            $promocode->toArray(),
+            ['audience_user_ids' => $promocode->audienceUsers()->pluck('users.id')->all()],
+        ), $request);
 
-        return response()->json(['data' => $promocode->fresh()]);
+        return response()->json(['data' => self::собрать($promocode)]);
+    }
+
+    /**
+     * Круг из запроса: что пришло и кого перечислили.
+     *
+     * Поля необязательные — старый клиент их не шлёт, и молчание должно
+     * означать «не трогать», а не «снять ограничение». Поэтому первый
+     * элемент бывает null, и только он отличает «не присылали» от
+     * «присылали all».
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{0: ?string, 1: list<int>}
+     */
+    private static function кругИзЗапроса(array &$validated): array
+    {
+        $круг = $validated['audience'] ?? null;
+        $люди = array_values(array_unique(array_map('intval', $validated['user_ids'] ?? [])));
+        unset($validated['audience'], $validated['user_ids']);
+
+        return [$круг === null ? null : (string) $круг, $люди];
+    }
+
+    /** @param  list<int>  $люди */
+    private static function записатьКруг(Promocode $promocode, ?string $круг, array $люди): void
+    {
+        if ($круг === null) {
+            return;
+        }
+
+        /*
+         * Старая привязка к одному человеку снимается вместе с кругом.
+         * `promocodes.user_id` — второе, невидимое из админки ограничение:
+         * оставить его при круге «всем» значило бы показать «доступен
+         * всем» над кодом, который по-прежнему применит только один
+         * человек. Миграция перенесла эту привязку в связь, так что
+         * ничего не теряется.
+         */
+        if ($promocode->user_id !== null) {
+            $promocode->forceFill(['user_id' => null])->save();
+        }
+
+        if ($круг === 'all') {
+            $promocode->audienceUsers()->detach();
+
+            return;
+        }
+
+        $promocode->audienceUsers()->sync(array_fill_keys($люди, ['created_at' => now()]));
+    }
+
+    /** @return list<array{id: int, name: string, email: string}> */
+    private static function кругСписком(Promocode $promocode): array
+    {
+        return $promocode->audienceUsers
+            ->map(fn ($u) => [
+                'id' => (int) $u->id,
+                'name' => (string) ($u->name ?: $u->email),
+                'email' => (string) $u->email,
+            ])->values()->all();
+    }
+
+    /** @return array<string, mixed> */
+    private static function собрать(Promocode $promocode): array
+    {
+        $promocode->loadMissing('audienceUsers');
+
+        return array_merge($promocode->withoutRelations()->toArray(), [
+            'audience' => $promocode->audienceUsers->isEmpty() ? 'all' : 'selected',
+            'audience_users' => self::кругСписком($promocode),
+        ]);
     }
 
     #[PathParameter('code', description: 'Код для DELETE-теста (создайте SPRING25)', example: 'SPRING25')]
