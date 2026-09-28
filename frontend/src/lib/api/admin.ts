@@ -14,6 +14,14 @@ export interface AdminDashboard {
   plansActive: number;
   promocodesActive: number;
   bannersActive: number;
+  /**
+   * Регистрации по дням за последние 30 суток, по возрастанию даты.
+   *
+   * До 28.09 ряда не было вовсе, и график на сводке рисовал семь столбиков
+   * по зашитому в код массиву. Пустые дни приходят нулями — иначе столбиков
+   * было бы меньше тридцати, а даты между ними подразумевались бы молча.
+   */
+  registrationsDaily: Array<{ date: string; count: number }>;
 }
 
 interface ApiDashboard {
@@ -25,6 +33,7 @@ interface ApiDashboard {
   plans_active?: number;
   promocodes_active?: number;
   banners_active?: number;
+  registrations_daily?: Array<{ date?: string; count?: number }>;
 }
 
 export async function fetchDashboard(): Promise<AdminDashboard> {
@@ -39,6 +48,9 @@ export async function fetchDashboard(): Promise<AdminDashboard> {
     plansActive: d.plans_active ?? 0,
     promocodesActive: d.promocodes_active ?? 0,
     bannersActive: d.banners_active ?? 0,
+    registrationsDaily: (d.registrations_daily ?? [])
+      .filter((x): x is { date: string; count?: number } => typeof x.date === "string")
+      .map((x) => ({ date: x.date, count: x.count ?? 0 })),
   };
 }
 
