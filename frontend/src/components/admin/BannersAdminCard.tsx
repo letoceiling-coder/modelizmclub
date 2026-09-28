@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Eye, MousePointerClick, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { StatusBadge } from "@/components/StatusBadge";
+import { FieldHint } from "@/components/admin/FieldHint";
 import { PhotoEditorDialog } from "@/components/media/PhotoEditorDialog";
 import {
   BANNER_ASPECT,
@@ -655,7 +656,12 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
               className="flex items-center justify-between gap-[8px]"
               style={{ fontSize: "12px", color: "var(--foreground-70)" }}
             >
-              {t("pages.adminBanners.form.untilLabel")}
+              <span className="inline-flex items-center gap-1">
+                {t("pages.adminBanners.form.untilLabel")}
+                <FieldHint label={t("pages.adminBanners.hints.deadlineLabel")}>
+                  {t("pages.adminBanners.hints.deadline")}
+                </FieldHint>
+              </span>
               <CharCounter value={draft.untilLabel} max={BANNER_LIMITS.untilLabel} />
             </span>
             <input
@@ -933,6 +939,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                   </label>
                   <label style={{ display: "grid", gap: "4px" }}>
                     <span
+                      className="inline-flex items-center gap-1"
                       style={{
                         fontSize: "11px",
                         color: "var(--foreground-50)",
@@ -940,6 +947,9 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                       }}
                     >
                       {t("pages.adminBanners.form.deadline")}
+                      <FieldHint label={t("pages.adminBanners.hints.deadlineLabel")}>
+                        {t("pages.adminBanners.hints.deadline")}
+                      </FieldHint>
                     </span>
                     <input
                       value={b.untilLabel}
@@ -965,6 +975,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                   </label>
                   <label style={{ display: "grid", gap: "4px" }}>
                     <span
+                      className="inline-flex items-center gap-1"
                       style={{
                         fontSize: "11px",
                         color: "var(--foreground-50)",
@@ -972,6 +983,9 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                       }}
                     >
                       {t("pages.adminBanners.form.priority")}
+                      <FieldHint label={t("pages.adminBanners.hints.priorityLabel")}>
+                        {t("pages.adminBanners.hints.priority")}
+                      </FieldHint>
                     </span>
                     <input
                       type="number"
@@ -983,6 +997,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                   </label>
                   <label style={{ display: "grid", gap: "4px" }}>
                     <span
+                      className="inline-flex items-center gap-1"
                       style={{
                         fontSize: "11px",
                         color: "var(--foreground-50)",
@@ -990,6 +1005,9 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                       }}
                     >
                       {t("pages.adminBanners.form.sortOrder")}
+                      <FieldHint label={t("pages.adminBanners.hints.sortOrderLabel")}>
+                        {t("pages.adminBanners.hints.sortOrder")}
+                      </FieldHint>
                     </span>
                     <input
                       type="number"
@@ -1001,6 +1019,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                   </label>
                   <label style={{ display: "grid", gap: "4px" }}>
                     <span
+                      className="inline-flex items-center gap-1"
                       style={{
                         fontSize: "11px",
                         color: "var(--foreground-50)",
@@ -1008,6 +1027,9 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                       }}
                     >
                       {t("pages.adminBanners.form.startsAt")}
+                      <FieldHint label={t("pages.adminBanners.hints.startsAtLabel")}>
+                        {t("pages.adminBanners.hints.startsAt")}
+                      </FieldHint>
                     </span>
                     <input
                       type="date"
@@ -1018,6 +1040,7 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                   </label>
                   <label style={{ display: "grid", gap: "4px" }}>
                     <span
+                      className="inline-flex items-center gap-1"
                       style={{
                         fontSize: "11px",
                         color: "var(--foreground-50)",
@@ -1025,6 +1048,9 @@ export function BannersAdminCard({ cardStyle }: { cardStyle: CSSProperties }) {
                       }}
                     >
                       {t("pages.adminBanners.form.endsAt")}
+                      <FieldHint label={t("pages.adminBanners.hints.endsAtLabel")}>
+                        {t("pages.adminBanners.hints.endsAt")}
+                      </FieldHint>
                     </span>
                     <input
                       type="date"
