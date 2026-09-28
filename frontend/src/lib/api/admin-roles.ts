@@ -47,6 +47,16 @@ export interface RolesOverview {
   sectionLevels: Record<string, StaffRole>;
   /** Что вообще можно выдать галочкой: список приходит с сервера. */
   grantableSections: string[];
+  /**
+   * Действующая карта «что открывает роль»: роль → ключ → открыт ли.
+   *
+   * Это не только разделы меню: править надо и служебные ключи — жалобы,
+   * удаление записей, цены размещения. Правится и присылается обратно
+   * целиком, а сервер хранит только отличия от зашитых умолчаний.
+   */
+  roleAccess: Record<string, Record<string, boolean>>;
+  /** Клетки, которые нельзя выключить: роль → ключи. */
+  roleAccessLocked: Record<string, string[]>;
   maxPerCategory: number;
 }
 
@@ -84,6 +94,8 @@ export async function fetchRolesOverview(): Promise<RolesOverview> {
       roles: Array<{ role: StaffRole; defaults: ApiPrivileges; sections: string[] }>;
       section_levels: Record<string, StaffRole>;
       grantable_sections?: string[];
+      role_access?: Record<string, Record<string, boolean>>;
+      role_access_locked?: Record<string, string[]>;
       max_per_category: number;
     };
   }>("/admin/roles");
@@ -109,8 +121,31 @@ export async function fetchRolesOverview(): Promise<RolesOverview> {
     })),
     sectionLevels: d.section_levels,
     grantableSections: d.grantable_sections ?? [],
+    roleAccess: d.role_access ?? {},
+    roleAccessLocked: d.role_access_locked ?? {},
     maxPerCategory: d.max_per_category,
   };
+}
+
+/**
+ * Сохранить карту «что открывает роль».
+ *
+ * Отдаём то, что стоит на экране, целиком; сервер сворачивает к отличиям от
+ * зашитых умолчаний и возвращает список изменённых клеток — его и показываем
+ * человеку, чтобы «сохранено» не было единственным, что он увидит.
+ */
+export async function saveRoleAccess(access: Record<string, Record<string, boolean>>): Promise<{
+  access: Record<string, Record<string, boolean>>;
+  changed: Array<{ role: string; key: string; from: boolean; to: boolean; section: boolean }>;
+}> {
+  const res = await api<{
+    data: {
+      access: Record<string, Record<string, boolean>>;
+      changed: Array<{ role: string; key: string; from: boolean; to: boolean; section: boolean }>;
+    };
+  }>("/admin/roles/access", { method: "PUT", json: { access } });
+
+  return res.data;
 }
 
 /** Роль и/или льготы. Смена роли без явных льгот выставляет их по умолчанию. */

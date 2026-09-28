@@ -235,6 +235,26 @@ final class AdminAccess
             return false;
         }
 
+        /*
+         * Настройка спрашивается раньше ранга — в этом весь смысл правки
+         * 28.09: состав разделов у роли задаётся из админки, а не только
+         * константами ниже. Разреженно: `decide` отвечает `null`, если про
+         * эту клетку в настройке ничего нет, и тогда решает ранг.
+         *
+         * Место одно нарочно. Через `allows` идут и middleware всех
+         * охраняемых маршрутов, и две точечные проверки полей, поэтому
+         * снятый доступ закрывается на сервере целиком, а не прячется в
+         * меню. Это и проверяется запросом в `AdminRoleAccessTest`.
+         */
+        $решение = RoleAccessOverrides::decide($user->role, $section);
+        if ($решение === true) {
+            return true;
+        }
+        if ($решение === false) {
+            // Закрыто у роли — но выданное лично поверх роли (C3) остаётся.
+            return self::granted($user, $section);
+        }
+
         if ((self::RANK[$user->role->value] ?? 0) >= self::RANK[$need]) {
             return true;
         }
@@ -317,7 +337,8 @@ final class AdminAccess
 
         return array_values(array_filter(
             self::keys(),
-            fn (string $key) => $ранг >= self::rankOf(self::SECTIONS[$key] ?? self::SERVICE[$key] ?? 'owner'),
+            fn (string $key) => RoleAccessOverrides::decide($role, $key)
+                ?? $ранг >= self::rankOf(self::SECTIONS[$key] ?? self::SERVICE[$key] ?? 'owner'),
         ));
     }
 
@@ -325,6 +346,18 @@ final class AdminAccess
     public static function sectionLevels(): array
     {
         return self::SECTIONS;
+    }
+
+    /**
+     * @return array<string, string> служебный ключ → минимальная роль
+     *
+     * Открыто ради `RoleAccessOverrides`: чтобы отличить «в настройке нет
+     * записи» от «такого ключа вообще нет», нужен весь справочник ступеней,
+     * а не только разделы меню.
+     */
+    public static function serviceLevels(): array
+    {
+        return self::SERVICE;
     }
 
     /** @return list<string> все ключи, которыми можно охранять маршрут */
