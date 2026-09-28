@@ -3,6 +3,13 @@ import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { Truck, DollarSign, AlertCircle, BarChart3 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatDate } from "@/lib/format/date";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DeliveryMethodsAdminCard } from "@/components/admin/DeliveryMethodsAdminCard";
@@ -349,115 +356,135 @@ export function DeliverySection() {
         </div>
       </div>
 
-      {selected && (
-        <div
-          style={{
-            ...card,
-            marginTop: "16px",
-            padding: "20px",
-            borderColor: "var(--accent)",
-          }}
+      {/*
+        Детали — окном поверх страницы, а не блоком внизу.
+        Раньше они раскрывались под таблицей: при длинном списке отправлений
+        до них надо было долистать, а закрыв — долистать обратно. Окно этого
+        не требует вовсе.
+
+        Прокрутка списка переживает открытие сама: окно ничего не
+        размонтирует, `selected` — состояние того же компонента, а Radix
+        снимает и возвращает блокировку прокрутки страницы. Поэтому после
+        закрытия администратор остаётся ровно там, где был.
+
+        Открытие следующей строки просто меняет `selected` — окно то же,
+        содержимое другое.
+      */}
+      <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent
+          className="max-h-[85dvh] overflow-y-auto sm:min-w-[440px] sm:max-w-[46vw]"
+          aria-describedby={undefined}
         >
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div>
-              <h3 style={{ fontWeight: 700, fontSize: "16px", color: "var(--foreground)" }}>
-                {selected.listingTitle}
-              </h3>
-              <p style={{ marginTop: "4px", fontSize: "12px", color: "var(--foreground-50)" }}>
+          {selected && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="pr-6 text-left">{selected.listingTitle}</DialogTitle>
+              </DialogHeader>
+
+              <p
+                style={{ fontSize: "12px", color: "var(--foreground-50)", wordBreak: "break-all" }}
+              >
                 UUID: {selected.uuid}
               </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              style={{ ...inputStyle, height: "32px", padding: "0 12px" }}
-            >
-              {t("pages.adminCommon.close")}
-            </button>
-          </div>
 
-          <div
-            className="grid md:grid-cols-2"
-            style={{ gap: "12px", marginTop: "16px", fontSize: "13px" }}
-          >
-            <div>
-              <span style={{ color: "var(--foreground-50)" }}>
-                {t("pages.adminDelivery.detailProvider")}
-              </span>{" "}
-              {providerLabels[selected.provider as keyof typeof providerLabels] ??
-                selected.provider}
-            </div>
-            <div>
-              <span style={{ color: "var(--foreground-50)" }}>
-                {t("pages.adminDelivery.detailStatus")}
-              </span>{" "}
-              {shipmentStatusMeta[selected.status]?.label ?? selected.status}
-            </div>
-            <div>
-              <span style={{ color: "var(--foreground-50)" }}>
-                {t("pages.adminDelivery.detailTrack")}
-              </span>{" "}
-              {selected.trackingNumber ?? "—"}
-            </div>
-            <div>
-              <span style={{ color: "var(--foreground-50)" }}>
-                {t("pages.adminDelivery.detailExternalId")}
-              </span>{" "}
-              {selected.externalId ?? "—"}
-            </div>
-          </div>
+              <div className="grid sm:grid-cols-2" style={{ gap: "12px", fontSize: "13px" }}>
+                <div>
+                  <span style={{ color: "var(--foreground-50)" }}>
+                    {t("pages.adminDelivery.detailProvider")}
+                  </span>{" "}
+                  {providerLabels[selected.provider as keyof typeof providerLabels] ??
+                    selected.provider}
+                </div>
+                <div>
+                  <span style={{ color: "var(--foreground-50)" }}>
+                    {t("pages.adminDelivery.detailStatus")}
+                  </span>{" "}
+                  {shipmentStatusMeta[selected.status]?.label ?? selected.status}
+                </div>
+                <div style={{ wordBreak: "break-all" }}>
+                  <span style={{ color: "var(--foreground-50)" }}>
+                    {t("pages.adminDelivery.detailTrack")}
+                  </span>{" "}
+                  {selected.trackingNumber ?? "—"}
+                </div>
+                <div style={{ wordBreak: "break-all" }}>
+                  <span style={{ color: "var(--foreground-50)" }}>
+                    {t("pages.adminDelivery.detailExternalId")}
+                  </span>{" "}
+                  {selected.externalId ?? "—"}
+                </div>
+              </div>
 
-          {selected.errorMessage && (
-            <div
-              style={{
-                marginTop: "12px",
-                padding: "12px",
-                borderRadius: "var(--r-card-sm)",
-                background: "var(--danger-soft)",
-                color: "var(--danger)",
-                fontSize: "13px",
-              }}
-            >
-              {selected.errorMessage}
-            </div>
+              {selected.errorMessage && (
+                <div
+                  style={{
+                    padding: "12px",
+                    borderRadius: "var(--r-card-sm)",
+                    background: "var(--danger-soft)",
+                    color: "var(--danger)",
+                    fontSize: "13px",
+                  }}
+                >
+                  {selected.errorMessage}
+                </div>
+              )}
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "var(--foreground-50)",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {t("pages.adminDelivery.adminNote")}
+                </label>
+                <textarea
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  rows={3}
+                  className="w-full resize-y"
+                  style={{
+                    ...inputStyle,
+                    height: "auto",
+                    minHeight: "80px",
+                    padding: "10px 14px",
+                  }}
+                  placeholder={t("pages.adminDelivery.adminNotePlaceholder")}
+                />
+              </div>
+
+              {/*
+                Крестик в углу рисует сам DialogContent. Отдельная кнопка
+                «Закрыть» стоит рядом с «Сохранить» нарочно: крестик в углу
+                читается как «свернуть», а у формы с полем ввода нужен явный
+                выход рядом с действием.
+              */}
+              <DialogFooter className="gap-2 sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  style={{ ...inputStyle, height: "36px", padding: "0 14px", cursor: "pointer" }}
+                >
+                  {t("pages.adminCommon.close")}
+                </button>
+                <button
+                  type="button"
+                  disabled={savingNote}
+                  onClick={() => void saveNote()}
+                  style={primaryBtn}
+                >
+                  {savingNote
+                    ? t("pages.adminDelivery.savingNote")
+                    : t("pages.adminDelivery.saveNote")}
+                </button>
+              </DialogFooter>
+            </>
           )}
-
-          <div style={{ marginTop: "16px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: 600,
-                color: "var(--foreground-50)",
-                marginBottom: "6px",
-              }}
-            >
-              {t("pages.adminDelivery.adminNote")}
-            </label>
-            <textarea
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              rows={3}
-              className="w-full  resize-y"
-              style={{
-                ...inputStyle,
-                height: "auto",
-                minHeight: "80px",
-                padding: "10px 14px",
-              }}
-              placeholder={t("pages.adminDelivery.adminNotePlaceholder")}
-            />
-            <button
-              type="button"
-              disabled={savingNote}
-              onClick={() => void saveNote()}
-              style={{ ...primaryBtn, marginTop: "8px" }}
-            >
-              {savingNote ? t("pages.adminDelivery.savingNote") : t("pages.adminDelivery.saveNote")}
-            </button>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
