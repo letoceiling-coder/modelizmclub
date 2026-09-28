@@ -50,8 +50,13 @@ cd /var/www/modelizmclub
   # меняет не только код, но и админка, и команды наполнения. Дерево
   # пересобирается одним запросом, так что сбрасывать его всегда дешевле,
   # чем гадать, надо ли.
-  (cd backend && sudo -u www-data php artisan tinker --execute='\Modules\Catalog\Services\CatalogService::flushCache();' >/dev/null 2>&1) \
-    && echo "catalog cache flushed" || echo "catalog cache flush failed"
+  #
+  # Обычной командой, а не `tinker --execute`: psysh пишет настройку в
+  # $HOME/.config/psysh, у www-data дома нет, и первая же попытка дала
+  # «Writing to directory /var/www/.config/psysh is not allowed» — ошибку,
+  # в которой нет ни слова про каталог.
+  (cd backend && sudo -u www-data php artisan catalog:flush-cache 2>&1 | tail -1) \
+    || echo "catalog cache flush failed"
   systemctl reload php8.3-fpm && systemctl restart modelizmclub-worker modelizmclub-media-worker && echo reloaded
   bash deploy/scripts/deploy-frontend.sh > "/tmp/deploy-fe-$SHA.log" 2>&1; echo "frontend=$?"; tail -1 "/tmp/deploy-fe-$SHA.log"
   bash deploy/scripts/smoke-check.sh 2>&1 | tail -1
