@@ -14,6 +14,7 @@ export type MediaPurpose =
   | "icon"
   | "banner"
   | "logo"
+  | "guide_video"
   | "dispute";
 export type UploadProgress = (pct: number) => void;
 

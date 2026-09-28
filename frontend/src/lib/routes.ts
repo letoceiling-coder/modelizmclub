@@ -27,6 +27,8 @@ export const ROUTES = {
   payment: "/payment",
   refund: "/refund",
   howItWorks: "/how-it-works",
+  /** Обзор площадки с записью экрана. Пункт «Как пользоваться» в меню. */
+  howToUse: "/how-to-use",
   rules: "/rules",
   admin: "/admin",
   channels: "/channels",

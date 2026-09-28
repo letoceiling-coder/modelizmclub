@@ -12,9 +12,11 @@ import {
   adminPublishLegalPage,
   adminRestoreLegalPageRevision,
   adminUpdateLegalPage,
+  type AdminLegalPageVideo,
   type AdminLegalPage,
 } from "@/lib/api/legal";
 import { toast } from "@/lib/toast";
+import { uploadAdminMedia } from "@/lib/api/admin-media";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { formatDate } from "@/lib/format/date";
 
@@ -32,6 +34,12 @@ export function AdminLegalPagesSection() {
   const [editing, setEditing] = useState<AdminLegalPage | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
+  /*
+   * Видео держим отдельно от текста: оно не часть разметки и не входит в
+   * версии. `undefined` — «не трогать», `null` — «снять», объект — «это».
+   */
+  const [video, setVideo] = useState<AdminLegalPageVideo | null | undefined>(undefined);
+  const [videoBusy, setVideoBusy] = useState(false);
   const [mode, setMode] = useState<EditorMode>("html");
   const [sourceMode, setSourceMode] = useState<"html" | "markdown">("html");
   const [previewHtml, setPreviewHtml] = useState("");
@@ -98,10 +106,15 @@ export function AdminLegalPagesSection() {
       title: draft.title,
       meta_description: draft.meta_description || undefined,
     };
+    // Ключа нет, пока видео не трогали: иначе сохранение текста снимало
+    // бы запись, которую никто не просил снимать.
+    const сВидео =
+      video === undefined ? base : { ...base, video_media_uuid: video ? video.uuid : null };
+
     if (sourceMode === "markdown" && draft.content_md.trim()) {
-      return { ...base, content_md: draft.content_md };
+      return { ...сВидео, content_md: draft.content_md };
     }
-    return { ...base, content_html: draft.content_html };
+    return { ...сВидео, content_html: draft.content_html };
   }
 
   function startEdit(p: AdminLegalPage) {
@@ -114,6 +127,7 @@ export function AdminLegalPagesSection() {
       content_html: p.content_html,
       content_md: p.content_md ?? "",
     });
+    setVideo(undefined);
     setMode(p.content_md ? "markdown" : "html");
     setSourceMode(p.content_md ? "markdown" : "html");
     setPreviewHtml(p.content_html);
@@ -124,6 +138,7 @@ export function AdminLegalPagesSection() {
     setEditing(null);
     setCreating(true);
     setDraft(EMPTY_DRAFT);
+    setVideo(undefined);
     setMode("html");
     setSourceMode("html");
     setPreviewHtml("");
@@ -247,6 +262,25 @@ export function AdminLegalPagesSection() {
               onChange={(e) => setDraft((d) => ({ ...d, meta_description: e.target.value }))}
               placeholder="SEO description (до 320 символов)"
             />
+            {editing ? (
+              <VideoField
+                current={video === undefined ? (editing.video ?? null) : video}
+                busy={videoBusy}
+                onPick={async (file) => {
+                  setVideoBusy(true);
+                  try {
+                    const media = await uploadAdminMedia(file, "guide_video");
+                    setVideo({ uuid: media.uuid, url: media.url, mime_type: media.mimeType });
+                    toast.success("Видео загружено. Нажмите «Сохранить», чтобы привязать его.");
+                  } catch (e) {
+                    toast.error(formatApiErrorMessage(e, "Не удалось загрузить видео"));
+                  } finally {
+                    setVideoBusy(false);
+                  }
+                }}
+                onClear={() => setVideo(null)}
+              />
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -391,6 +425,85 @@ export function AdminLegalPagesSection() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Место под запись экрана: загрузить, заменить, снять.
+ *
+ * Здесь и есть то «место под видео», о котором просили: пустое поле
+ * видит тот, кто наполняет страницу, а не посетитель. Посетителю
+ * проигрыватель показывается только когда запись есть.
+ *
+ * Загрузка и привязка разделены нарочно. Файл уезжает на сервер сразу —
+ * иначе большой ролик пришлось бы держать в форме до сохранения, — но
+ * страницей он становится только после «Сохранить», вместе с текстом.
+ * Про это сказано прямо в подсказке: иначе человек закроет форму и
+ * решит, что видео пропало.
+ */
+function VideoField({
+  current,
+  busy,
+  onPick,
+  onClear,
+}: {
+  current: AdminLegalPageVideo | null;
+  busy: boolean;
+  onPick: (file: File) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="grid gap-2 rounded-[10px] border p-3" style={{ borderColor: "var(--border)" }}>
+      <span className="text-[12px] font-medium" style={{ color: "var(--foreground-70)" }}>
+        Видео страницы — запись экрана на 2–3 минуты
+      </span>
+
+      {current?.url ? (
+        <video
+          className="w-full rounded-[8px]"
+          style={{ background: "#000", maxHeight: 220 }}
+          src={current.url}
+          controls
+          preload="metadata"
+        />
+      ) : (
+        <p className="text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          Видео не загружено — на странице его блок не показывается.
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label
+          className="inline-flex h-9 cursor-pointer items-center rounded-[8px] border px-3 text-[13px]"
+          style={{ borderColor: "var(--border)", color: "var(--foreground-70)" }}
+        >
+          {busy ? "Загружаем…" : current?.url ? "Заменить видео" : "Загрузить видео"}
+          <input
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            className="hidden"
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              // Сбрасываем значение поля: иначе повторный выбор того же
+              // файла не вызовет onChange, и человек решит, что не нажалось.
+              e.target.value = "";
+              if (file) onPick(file);
+            }}
+          />
+        </label>
+        {current?.url ? (
+          <Button type="button" size="sm" variant="outline" onClick={onClear} disabled={busy}>
+            Снять видео
+          </Button>
+        ) : null}
+      </div>
+
+      <span className="text-[11px]" style={{ color: "var(--foreground-50)" }}>
+        MP4, WebM или MOV, до 200 МБ. Файл уезжает на сервер сразу, но страницей становится после
+        «Сохранить».
+      </span>
     </div>
   );
 }

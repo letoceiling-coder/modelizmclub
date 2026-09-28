@@ -60,6 +60,21 @@ export function DesktopTopBar() {
           <Logo size={36} />
         </Link>
 
+        {/*
+          «Как пользоваться» — рядом с логотипом и всегда на виду.
+
+          Обычной ссылкой, а не `GuestGuardLink`: страница объясняет, как
+          тут всё устроено, и предлагать за неё войти — ровно наоборот
+          тому, зачем она нужна.
+        */}
+        <Link
+          to={ROUTES.howToUse}
+          className="hit-target shrink-0 whitespace-nowrap rounded-[var(--r-pill)] px-3 py-1.5 text-[14px] font-medium transition-colors hover:bg-[var(--background-surface)]"
+          style={{ color: "var(--foreground-70)" }}
+        >
+          {t("nav.howToUse")}
+        </Link>
+
         <GlobalSearch />
 
         <div className="ml-auto flex shrink-0 items-center gap-1">

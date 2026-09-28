@@ -28,6 +28,11 @@ class MediaUploadService
         'banner' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'cover' => ['max_files' => 1, 'max_size' => 10_485_760, 'mimes' => ['image/jpeg', 'image/png', 'image/webp']],
         'review_video' => ['max_files' => 1, 'max_size' => 209_715_200, 'mimes' => ['video/mp4', 'video/webm', 'video/quicktime']],
+        // Запись экрана к странице «Как пользоваться»: те же пределы, что
+        // у обзора. Отдельным назначением, а не поверх `review_video`:
+        // перепутать витрину обзоров с одним файлом на странице легко,
+        // а строка в таблице стоит дешевле путаницы.
+        'guide_video' => ['max_files' => 1, 'max_size' => 209_715_200, 'mimes' => ['video/mp4', 'video/webm', 'video/quicktime']],
         'chat' => ['max_files' => 10, 'max_size' => self::CHAT_MAX_SIZE, 'mimes' => [
             'image/jpeg', 'image/png', 'image/webp',
             'video/mp4', 'video/webm', 'video/quicktime',

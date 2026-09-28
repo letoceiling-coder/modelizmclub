@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   ShieldCheck,
   Wallet,
+  CircleHelp,
 } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 
@@ -43,6 +44,17 @@ export interface MobileMenuSection {
  */
 export const MOBILE_MENU_SECTIONS: MobileMenuSection[] = [
   // — Контент —
+  /*
+   * «Как пользоваться» — первым и без `authOnly`: это страница для того,
+   * кто ещё не разобрался, и чаще всего он как раз не вошёл.
+   */
+  {
+    key: "how-to-use",
+    to: ROUTES.howToUse,
+    labelKey: "nav.howToUse",
+    icon: CircleHelp,
+    group: "content",
+  },
   { key: "channels", to: ROUTES.channels, labelKey: "nav.channels", icon: Radio, group: "content" },
   {
     key: "reviews",
@@ -156,6 +168,7 @@ export function assertMobileNavCoverage(): void {
     ROUTES.wallet,
     ROUTES.subscription,
     ROUTES.notifications,
+    ROUTES.howToUse,
   ];
   const missing = required.filter((r) => !covered.has(r));
   if (missing.length) {
