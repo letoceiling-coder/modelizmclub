@@ -57,5 +57,22 @@ cd /var/www/modelizmclub
   bash deploy/scripts/smoke-check.sh 2>&1 | tail -1
   bash deploy/scripts/schema-drift.sh 2>&1 | tail -1
   bash deploy/scripts/access-map-drift.sh 2>&1 | head -1
+  # Сам скрипт — тоже выкатываемый файл, и он единственный, который
+  # выкатка не обновляет.
+  #
+  # Запускается копия из /root, а правится та, что в репозитории. 28.09
+  # они разошлись ровно так: правка «сбрасывать кеш каталога» легла в
+  # master, доехала до сервера в составе кода — и не выполнилась ни разу,
+  # потому что выполняется другой файл. В журнале при этом ничего не
+  # говорило, что шаг пропущен: его там просто не было.
+  #
+  # Скопировать себя на месте нельзя — bash дочитывает файл по ходу
+  # выполнения, и подмена на лету рвёт остаток. Поэтому здесь только
+  # предупреждение с готовой командой.
+  if ! diff -q "$0" deploy/scripts/deploy-remote.sh >/dev/null 2>&1; then
+    echo "ВНИМАНИЕ: $0 отличается от deploy/scripts/deploy-remote.sh в репозитории."
+    echo "  Выкатка идёт по старому сценарию. Обновить:"
+    echo "  cp /var/www/modelizmclub/deploy/scripts/deploy-remote.sh $0 && bash -n $0"
+  fi
   echo "DONE $(date -Is) head=$(git rev-parse --short HEAD)"
 } > "$LOG" 2>&1
