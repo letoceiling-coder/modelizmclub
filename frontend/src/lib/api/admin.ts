@@ -1102,6 +1102,26 @@ function mapAdminCategory(c: ApiAdminCategory): AdminCategory {
   };
 }
 
+/** Порядок категорий: по алфавиту А–Я или по расставленным вручную номерам. */
+export type CategorySortMode = "alpha" | "manual";
+
+/**
+ * Режим порядка. Решает сервер и для сайта, и для админки, поэтому
+ * спрашиваем, а не храним у себя: два мнения о порядке — это два порядка.
+ */
+export async function fetchCategorySortMode(): Promise<CategorySortMode> {
+  const res = await api<{ data: { mode: CategorySortMode } }>("/admin/categories/sort-mode");
+  return res.data?.mode === "manual" ? "manual" : "alpha";
+}
+
+export async function setCategorySortMode(mode: CategorySortMode): Promise<CategorySortMode> {
+  const res = await api<{ data: { mode: CategorySortMode } }>("/admin/categories/sort-mode", {
+    method: "PUT",
+    json: { mode },
+  });
+  return res.data?.mode === "manual" ? "manual" : "alpha";
+}
+
 export async function fetchAdminCategories(kind: CategoryKind): Promise<AdminCategory[]> {
   const res = await api<{ data: Paginated<ApiAdminCategory> | ApiAdminCategory[] }>(
     `/admin/categories/${kind}`,

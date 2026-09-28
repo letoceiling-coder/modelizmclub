@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Services;
 
+use App\Support\CategoryOrder;
 use App\Enums\ConversationType;
 use App\Enums\ListingStatus;
 use App\Models\City;
@@ -264,11 +265,8 @@ class CatalogService
         }
 
         /** @var Collection<int, Model> $flat */
-        $flat = $query
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
+        // Порядок — один на сайт и админку, см. CategoryOrder.
+        $flat = CategoryOrder::apply($query->where('is_active', true))->get();
 
         return $this->treeBuilder->build(
             $flat,

@@ -121,9 +121,16 @@ class CategorySingleSourceTest extends TestCase
         // Kotello был только направлением — теперь у него есть полка в каталоге.
         $this->assertNotNull(PostCategory::query()->where('slug', 'kotello')->value('listing_category_id'));
 
-        $this->assertSame(['Авиация', 'Kotello', 'Наборы'], $this->rootNames('/api/v1/categories/listings'));
-        $this->assertSame(['Авиация', 'Каналы', 'Выставки и события', 'Kotello'], $this->rootNames('/api/v1/categories/posts'));
-        $this->assertSame(['Авиация', 'Выставки и события', 'Kotello', 'По масштабу'], $this->rootNames('/api/v1/categories/communities'));
+        /*
+         * Порядок — алфавитный (умолчание с C5), поэтому латиница идёт
+         * после кириллицы: так устроена русская коллация ICU. До C5 ряд
+         * шёл по `sort_order`, и «Kotello» стоял между «Авиацией» и
+         * «Наборами» — не потому, что так правильно, а потому что ему
+         * достался номер поменьше.
+         */
+        $this->assertSame(['Авиация', 'Наборы', 'Kotello'], $this->rootNames('/api/v1/categories/listings'));
+        $this->assertSame(['Авиация', 'Выставки и события', 'Каналы', 'Kotello'], $this->rootNames('/api/v1/categories/posts'));
+        $this->assertSame(['Авиация', 'Выставки и события', 'По масштабу', 'Kotello'], $this->rootNames('/api/v1/categories/communities'));
     }
 
     public function test_apply_is_idempotent(): void

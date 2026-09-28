@@ -6,6 +6,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminAuditLogController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminBannerController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminChannelApplicationsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityApplicationsController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminCategorySortModeController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityCategoryController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminCommunityController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminDashboardController;
@@ -142,6 +143,9 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         // Цены размещения в строке категории — только Владелец
         // (AdminPostCategoryController::guardOwnerOnlyFields).
         Route::prefix('categories')->group(function (): void {
+            // Порядок на весь сайт: по алфавиту или вручную.
+            Route::get('sort-mode', [AdminCategorySortModeController::class, 'show']);
+            Route::put('sort-mode', [AdminCategorySortModeController::class, 'update']);
             // До apiResource: иначе «reorder» попадёт в {post} как идентификатор.
             Route::patch('post/reorder', [AdminPostCategoryController::class, 'reorder']);
             Route::apiResource('post', AdminPostCategoryController::class);

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\CategoryOrder;
 use App\Enums\ContentStatus;
 use App\Enums\ListingStatus;
 use App\Enums\UserRole;
@@ -205,6 +206,13 @@ class AdminCategoryTreeCountsTest extends TestCase
 
     public function test_порядок_ряда_сохраняется_одним_запросом(): void
     {
+        /*
+         * Ручной порядок включается явно: с C5 умолчание — алфавит, и
+         * перестановка при нём отклоняется. Тест проверяет именно ручной
+         * порядок, поэтому режим задаётся, а не подразумевается.
+         */
+        CategoryOrder::set(CategoryOrder::MANUAL);
+
         $первое = $this->direction('Авиация', 'aviation');
         $второе = $this->direction('Бронетехника', 'armor');
         $третье = $this->direction('Флот', 'fleet');
@@ -260,6 +268,13 @@ class AdminCategoryTreeCountsTest extends TestCase
 
     public function test_новый_порядок_доезжает_до_каталога_и_сообществ(): void
     {
+        /*
+         * Ручной порядок включается явно: с C5 умолчание — алфавит, и
+         * перестановка при нём отклоняется. Тест проверяет именно ручной
+         * порядок, поэтому режим задаётся, а не подразумевается.
+         */
+        CategoryOrder::set(CategoryOrder::MANUAL);
+
         $первое = $this->direction('Авиация', 'aviation');
         $второе = $this->direction('Бронетехника', 'armor');
         $третье = $this->direction('Флот', 'fleet');

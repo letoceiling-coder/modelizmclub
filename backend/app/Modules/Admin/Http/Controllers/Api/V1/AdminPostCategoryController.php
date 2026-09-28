@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Support\CategoryOrder;
 use App\Models\CommunityCategory;
 use App\Models\Listing;
 use App\Models\ListingCategory;
@@ -46,7 +47,7 @@ class AdminPostCategoryController extends AdminCategoryController
 
     public function index(): JsonResponse
     {
-        $items = PostCategory::query()
+        $запрос = PostCategory::query()
             ->with('listingCategory:id,listing_price_cents,subscriber_listing_price_cents')
             /*
              * Счётчики в узле — чтобы решение о переносе или удалении
@@ -61,10 +62,11 @@ class AdminPostCategoryController extends AdminCategoryController
              * быть вовсе: у «Мастерской» и «Выставок» её нет и не
              * предполагается. Тогда объявлений ноль, а не «неизвестно».
              */
-            ->withCount('posts')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->paginate((int) request()->integer('per_page', 50));
+            ->withCount('posts');
+
+        CategoryOrder::apply($запрос);
+
+        $items = $запрос->paginate((int) request()->integer('per_page', 50));
 
         // Объявления считаются отдельно: связь идёт через полку каталога,
         // и лот может стоять как в категории, так и в подкатегории.
@@ -131,6 +133,18 @@ class AdminPostCategoryController extends AdminCategoryController
      */
     public function reorder(Request $request, AuditService $audit): JsonResponse
     {
+        /*
+         * Ручная перестановка при алфавите — отказ, а не тихое сохранение.
+         *
+         * Кнопки в админке при алфавите не показываются, но спрятанная
+         * кнопка ничего не запрещает: запрос можно послать и так. А
+         * сохранить `sort_order`, который ни на что не влияет, значило бы
+         * записать человеку в аудит движение, которого никто не увидит.
+         */
+        if (CategoryOrder::isAlpha()) {
+            abort(422, 'Сейчас категории идут по алфавиту. Чтобы двигать их руками, переключите порядок на ручной.');
+        }
+
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:2'],
             'ids.*' => ['integer', 'distinct', 'exists:post_categories,id'],

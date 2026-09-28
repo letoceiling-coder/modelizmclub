@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Support\CategoryOrder;
 use App\Http\Controllers\Controller;
 use App\Models\PostCategory;
 use Dedoc\Scramble\Attributes\BodyParameter;
@@ -28,8 +29,7 @@ abstract class AdminCategoryController extends Controller
         $class = $this->modelClass();
 
         $items = $class::query()
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->tap(fn ($q) => CategoryOrder::apply($q))
             ->paginate((int) request()->integer('per_page', 50));
 
         return response()->json(['data' => $items]);

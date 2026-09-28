@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Support\CategoryOrder;
 use App\Http\Controllers\Controller;
 use App\Models\VideoCategory;
 use Illuminate\Http\JsonResponse;
@@ -14,11 +15,10 @@ class AdminVideoCategoryController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = VideoCategory::query()
-            ->withCount('videos')
-            ->orderBy('sort_order')
-            ->orderBy('title')
-            ->paginate((int) request()->integer('per_page', 50));
+        $запрос = VideoCategory::query()->withCount('videos');
+        CategoryOrder::apply($запрос, 'title');
+
+        $items = $запрос->paginate((int) request()->integer('per_page', 50));
 
         $items->getCollection()->transform(fn (VideoCategory $c) => $this->format($c));
 
@@ -97,6 +97,18 @@ class AdminVideoCategoryController extends Controller
 
     public function reorder(Request $request, AuditService $audit): JsonResponse
     {
+        /*
+         * Ручная перестановка при алфавите — отказ, а не тихое сохранение.
+         *
+         * Кнопки в админке при алфавите не показываются, но спрятанная
+         * кнопка ничего не запрещает: запрос можно послать и так. А
+         * сохранить `sort_order`, который ни на что не влияет, значило бы
+         * записать человеку в аудит движение, которого никто не увидит.
+         */
+        if (CategoryOrder::isAlpha()) {
+            abort(422, 'Сейчас категории идут по алфавиту. Чтобы двигать их руками, переключите порядок на ручной.');
+        }
+
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:video_categories,id'],

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\CategoryOrder;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Models\VideoCategory;
@@ -79,6 +80,13 @@ class AdminVideoCategoryTest extends TestCase
 
         $admin = User::factory()->create(['role' => UserRole::Owner]);
         $token = $admin->createToken('api')->plainTextToken;
+
+        /*
+         * Ручной порядок включается явно: с C5 умолчание — алфавит, и
+         * перестановка при нём отклоняется. Тест проверяет именно ручной
+         * порядок, поэтому режим задаётся, а не подразумевается.
+         */
+        CategoryOrder::set(CategoryOrder::MANUAL);
 
         $this->patchJson('/api/v1/admin/categories/video/reorder', [
             'ids' => [$b->id, $a->id],
