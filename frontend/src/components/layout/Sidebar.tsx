@@ -17,6 +17,7 @@ import {
   Wallet,
   PanelLeftClose,
   PanelLeftOpen,
+  CircleHelp,
 } from "lucide-react";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
@@ -47,7 +48,8 @@ interface Item {
     | "/messenger"
     | "/friends"
     | "/settings"
-    | "/settings/wallet";
+    | "/settings/wallet"
+    | "/how-to-use";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
@@ -60,6 +62,11 @@ interface NavGroup {
 }
 
 const COMMUNITY_ITEMS: Item[] = [
+  /*
+   * Первым пунктом и раньше «Объявлений»: страница для того, кто ещё не
+   * разобрался, и искать её в конце списка он не станет.
+   */
+  { to: ROUTES.howToUse, labelKey: "nav.howToUse", icon: CircleHelp, section: "how-to-use" },
   { to: ROUTES.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
   { to: ROUTES.messenger, labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
   { to: ROUTES.reviews, labelKey: "nav.reviews", icon: Clapperboard, section: "reviews" },

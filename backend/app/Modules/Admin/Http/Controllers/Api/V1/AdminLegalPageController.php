@@ -6,6 +6,7 @@ use App\Enums\LegalPageStatus;
 use App\Http\Controllers\Controller;
 use App\Models\LegalPage;
 use App\Models\LegalPageRevision;
+use App\Models\Media;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Admin\Http\Requests\UpsertLegalPageRequest;
@@ -141,6 +142,20 @@ class AdminLegalPageController extends Controller
     private function payloadFromRequest(UpsertLegalPageRequest $request): array
     {
         $data = $request->validated();
+
+        /*
+         * Видео приходит uuid'ом, хранится идентификатором. Ключа нет —
+         * поле не трогаем: админка отправляет страницу целиком, и иначе
+         * сохранение текста снимало бы запись. Пустая строка и null —
+         * снять осознанно.
+         */
+        if (array_key_exists('video_media_uuid', $data)) {
+            $uuid = $data['video_media_uuid'];
+            $data['video_media_id'] = $uuid
+                ? Media::query()->where('uuid', $uuid)->value('id')
+                : null;
+        }
+        unset($data['video_media_uuid']);
         $markdown = isset($data['content_md']) && is_string($data['content_md']) ? trim($data['content_md']) : '';
         if ($markdown !== '') {
             $data['content_md'] = $markdown;
@@ -172,10 +187,36 @@ class AdminLegalPageController extends Controller
             'meta_description' => $page->meta_description,
             'content_html' => $page->content_html,
             'content_md' => $page->content_md,
+            'video' => self::видео($page),
             'status' => $page->status->value,
             'version' => $page->version,
             'published_at' => $page->published_at?->toIso8601String(),
             'updated_at' => $page->updated_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Видео страницы для админки: чем оно есть, тем и отдаём.
+     *
+     * `null`, а не пустой объект: «видео нет» и «видео есть, но без
+     * адреса» — разные ответы, и различать их админке нужно, чтобы не
+     * показывать пустой проигрыватель вместо кнопки загрузки.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function видео(LegalPage $page): ?array
+    {
+        $media = $page->relationLoaded('video') ? $page->video : $page->video()->first();
+
+        if (! $media) {
+            return null;
+        }
+
+        return [
+            'uuid' => $media->uuid,
+            'url' => $media->url,
+            'mime_type' => $media->mime_type,
+            'filename' => $media->filename ?? null,
         ];
     }
 

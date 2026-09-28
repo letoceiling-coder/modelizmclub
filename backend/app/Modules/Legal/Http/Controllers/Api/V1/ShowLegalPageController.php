@@ -12,6 +12,7 @@ class ShowLegalPageController extends Controller
     public function __invoke(string $slug): JsonResponse
     {
         $page = LegalPage::query()
+            ->with('video')
             ->where('slug', $slug)
             ->where('status', 'published')
             ->first();
@@ -26,6 +27,16 @@ class ShowLegalPageController extends Controller
                 'title' => $page->title,
                 'content_html' => $page->content_html,
                 'meta_description' => $page->meta_description,
+                /*
+                 * Видео отдаётся только когда у файла есть адрес. Иначе
+                 * страница отрисовала бы проигрыватель без источника —
+                 * чёрный прямоугольник, который выглядит поломкой
+                 * страницы, а не отсутствием записи.
+                 */
+                'video' => $page->video?->url ? [
+                    'url' => $page->video->url,
+                    'mime_type' => $page->video->mime_type,
+                ] : null,
                 'version' => $page->version,
                 'published_at' => $page->published_at?->toIso8601String(),
             ],

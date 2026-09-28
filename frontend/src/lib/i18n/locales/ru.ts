@@ -25,6 +25,7 @@ export const ru = {
   nav: {
     sectionCommunity: "Сообщество",
     sectionAds: "Объявления",
+    howToUse: "Как пользоваться",
     feed: "Лента",
     communities: "Сообщества",
     channels: "Каналы",

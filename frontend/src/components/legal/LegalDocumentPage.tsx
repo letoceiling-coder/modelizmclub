@@ -137,6 +137,30 @@ export function LegalDocumentPage({
         >
           {page.title}
         </h1>
+        {/*
+          Видео — над текстом, потому что оно и есть краткий обзор: текст
+          ниже пересказывает его словами.
+
+          Пустого места под видео посетителю не показываем. «Оставить
+          место» просили для того, кто страницу наполняет, — место для
+          него есть в админке, рядом с текстом. Посетителю рамка без
+          записи выглядела бы поломкой страницы, а не незаполненным
+          полем.
+        */}
+        {page.video?.url ? (
+          <video
+            className="mb-8 w-full rounded-[var(--r-card)]"
+            style={{ background: "#000", aspectRatio: "16 / 9" }}
+            src={page.video.url}
+            controls
+            preload="metadata"
+            playsInline
+          >
+            {page.video.mime_type ? (
+              <source src={page.video.url} type={page.video.mime_type} />
+            ) : null}
+          </video>
+        ) : null}
         <article
           className="legal-document prose prose-sm max-w-none dark:prose-invert"
           style={{ color: "var(--foreground-80)", lineHeight: 1.7 }}

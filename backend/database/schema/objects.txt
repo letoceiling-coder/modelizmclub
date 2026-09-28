@@ -551,6 +551,7 @@ COLUMN|legal_pages.status|character varying|NO
 COLUMN|legal_pages.title|character varying|NO
 COLUMN|legal_pages.updated_at|timestamp without time zone|YES
 COLUMN|legal_pages.version|integer|NO
+COLUMN|legal_pages.video_media_id|bigint|YES
 COLUMN|listing_categories.created_at|timestamp without time zone|YES
 COLUMN|listing_categories.depth|smallint|NO
 COLUMN|listing_categories.icon|character varying|YES
@@ -1495,6 +1496,7 @@ FK|icon_assets|icon_assets_uploaded_by_foreign
 FK|landing_cards|landing_cards_post_category_id_foreign
 FK|legal_page_revisions|legal_page_revisions_legal_page_id_foreign
 FK|legal_page_revisions|legal_page_revisions_user_id_foreign
+FK|legal_pages|legal_pages_video_media_id_foreign
 FK|listing_categories|listing_categories_parent_id_foreign
 FK|listing_favorites|listing_favorites_listing_id_foreign
 FK|listing_favorites|listing_favorites_user_id_foreign

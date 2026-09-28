@@ -1,5 +1,11 @@
 import { api } from "./client";
 
+/** Запись экрана к странице. Отдаётся только когда у файла есть адрес. */
+export interface LegalPageVideo {
+  url: string;
+  mime_type?: string | null;
+}
+
 export interface LegalPageData {
   slug: string;
   title: string;
@@ -7,6 +13,7 @@ export interface LegalPageData {
   meta_description?: string | null;
   version: number;
   published_at?: string | null;
+  video?: LegalPageVideo | null;
 }
 
 export interface FooterLinkItem {
@@ -73,11 +80,19 @@ export async function deleteMyAccount(): Promise<void> {
 
 // --- Admin ---
 
-export interface AdminLegalPage extends LegalPageData {
+export interface AdminLegalPageVideo {
+  uuid: string;
+  url: string | null;
+  mime_type?: string | null;
+  filename?: string | null;
+}
+
+export interface AdminLegalPage extends Omit<LegalPageData, "video"> {
   id: number;
   status: "draft" | "published" | "archived";
   content_md?: string | null;
   updated_at?: string | null;
+  video?: AdminLegalPageVideo | null;
 }
 
 export interface AdminLegalPageRevision {
@@ -116,6 +131,8 @@ export async function adminUpdateLegalPage(
     content_html?: string;
     content_md?: string;
     meta_description?: string;
+    /** Пусто — снять запись. Ключа нет — оставить как было. */
+    video_media_uuid?: string | null;
   },
 ): Promise<AdminLegalPage> {
   const res = await api<{ data: AdminLegalPage }>(`/admin/legal-pages/${id}`, {

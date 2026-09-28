@@ -3,7 +3,7 @@ import type { MediaPurpose } from "./media";
 
 export type AdminMediaPurpose = Extract<
   MediaPurpose,
-  "icon" | "banner" | "cover" | "post" | "listing" | "avatar" | "logo"
+  "icon" | "banner" | "cover" | "post" | "listing" | "avatar" | "logo" | "guide_video"
 >;
 
 export interface AdminMediaItem {
@@ -27,6 +27,7 @@ export interface AdminMediaPage {
 }
 
 const PURPOSE_LABELS: Record<AdminMediaPurpose, string> = {
+  guide_video: "Видео страниц",
   icon: "Иконки",
   banner: "Баннеры",
   cover: "Обложки",

@@ -28,6 +28,13 @@ class UpsertLegalPageRequest extends FormRequest
             'meta_description' => ['nullable', 'string', 'max:320'],
             'content_html' => ['required_without:content_md', 'nullable', 'string'],
             'content_md' => ['nullable', 'string'],
+            /*
+             * Видео страницы. Пустая строка и null означают «снять»,
+             * отсутствие ключа — «не трогать»: админка шлёт страницу
+             * целиком, и без этого различия любое сохранение текста
+             * снимало бы запись.
+             */
+            'video_media_uuid' => ['sometimes', 'nullable', 'string', 'uuid', 'exists:media,uuid'],
         ];
     }
 }
