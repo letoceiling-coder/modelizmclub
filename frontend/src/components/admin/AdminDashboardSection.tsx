@@ -11,6 +11,7 @@ import {
   type AdminUserRow,
   type AuditEntry,
 } from "@/lib/api/admin";
+import { RegistrationsChart } from "@/components/admin/RegistrationsChart";
 import { H, card, type AdminRole } from "@/components/admin/adminShared";
 import { reportReadFailure } from "@/lib/errors/handle";
 
@@ -41,6 +42,8 @@ export function Dashboard({ role }: { role: AdminRole }) {
             plansActive: 0,
             promocodesActive: 0,
             bannersActive: 0,
+            // График видит только Владелец; модератору ряд не приходит и не нужен.
+            registrationsDaily: [],
           });
         })
         .catch((e) => reportReadFailure(e, "сводка админки"));
@@ -102,8 +105,6 @@ export function Dashboard({ role }: { role: AdminRole }) {
     },
   ];
   const stats = allStats.filter((s) => role === "owner" || !s.adminOnly);
-  const bars = [40, 65, 55, 80, 70, 90, 60];
-  const dayKeys = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
   return (
     <div>
@@ -191,46 +192,7 @@ export function Dashboard({ role }: { role: AdminRole }) {
             >
               {t("pages.adminDashboard.registrationsChart")}
             </h4>
-            <div
-              style={{
-                height: "200px",
-                display: "flex",
-                alignItems: "flex-end",
-                justifyContent: "center",
-                gap: "16px",
-                marginTop: "16px",
-              }}
-            >
-              {bars.map((h, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "8px",
-                    height: "100%",
-                  }}
-                >
-                  <div style={{ flex: 1, display: "flex", alignItems: "flex-end" }}>
-                    <m.div
-                      initial={{ height: 0 }}
-                      animate={{ height: `${h}%` }}
-                      transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                      style={{
-                        width: "36px",
-                        background: "var(--accent-fill)",
-                        borderRadius: "4px 4px 0 0",
-                        minHeight: "4px",
-                      }}
-                    />
-                  </div>
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                    {t(`pages.adminDashboard.days.${dayKeys[i]}`)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <RegistrationsChart data={data?.registrationsDaily ?? []} loading={data === null} />
           </div>
 
           {/* Recent actions */}
