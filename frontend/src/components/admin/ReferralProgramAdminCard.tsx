@@ -8,6 +8,7 @@ import {
   type ReferralSettings,
 } from "@/lib/api/admin";
 import { formatDate } from "@/lib/format/date";
+import { итогПриглашения } from "@/lib/referral";
 
 type CardStyle = React.CSSProperties;
 
@@ -208,9 +209,13 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
                     {row.invitee.display_name}
                   </td>
                   <td className="py-2 pr-3" style={{ color: "var(--foreground-50)" }}>
-                    {row.status === "completed" || row.phone_verified
-                      ? "Бонус начислен"
-                      : "Ждёт телефон"}
+                    {
+                      итогПриглашения({
+                        status: row.status ?? (row.phone_verified ? "completed" : "pending"),
+                        points: row.points,
+                        listingCredits: row.listing_credits,
+                      }).подпись
+                    }
                   </td>
                   <td className="py-2" style={{ color: "var(--foreground-50)" }}>
                     {row.joined_at ? formatDate(row.joined_at, "date") : "—"}

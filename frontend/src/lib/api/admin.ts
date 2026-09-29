@@ -1398,6 +1398,10 @@ export interface AdminReferralRow {
   joined_at: string | null;
   phone_verified?: boolean;
   status?: string;
+  /** Сколько баллов принесло приглашение. Ноль бывает и у закрытого. */
+  points?: number;
+  /** Старая награда размещением — приглашения до 28.09. */
+  listing_credits?: number;
 }
 
 /**

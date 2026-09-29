@@ -1,4 +1,5 @@
 import { useHasToken } from "@/hooks/use-has-token";
+import { ИтогПриглашения } from "@/components/referral/InviteOutcome";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Copy, Check, Share2, Gift, Users, MousePointerClick, Phone, Sparkles } from "lucide-react";
@@ -251,21 +252,7 @@ function Dashboard({ meId }: { meId: string }) {
                     {inv.joinedAt ? formatDate(inv.joinedAt, "relative") : ""}
                   </div>
                 </div>
-                <span
-                  className="shrink-0 font-semibold"
-                  style={{
-                    fontSize: 12,
-                    padding: "4px 10px",
-                    borderRadius: "var(--r-pill)",
-                    color: inv.status === "completed" ? "var(--success)" : "var(--foreground-70)",
-                    background:
-                      inv.status === "completed"
-                        ? "var(--success-soft)"
-                        : "var(--background-surface)",
-                  }}
-                >
-                  {inv.status === "completed" ? "Бонус начислен" : "Ожидает подтверждения телефона"}
-                </span>
+                <ИтогПриглашения inv={inv} />
               </li>
             ))}
           </ul>

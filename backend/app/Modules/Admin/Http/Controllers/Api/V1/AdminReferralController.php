@@ -51,6 +51,21 @@ class AdminReferralController extends Controller
                     'status' => $row?->status instanceof \App\Enums\ReferralStatus
                         ? $row->status->value
                         : ($u->phone_verified_at ? 'completed' : 'pending'),
+                    /*
+                     * Чем это приглашение оплачено. Без этих двух чисел
+                     * таблица писала «Бонус начислен» всем закрытым
+                     * приглашениям подряд — включая те, по которым не дали
+                     * ничего: исчерпан предел `max_paid_invites` или тот же
+                     * телефон уже приносил награду. То есть предел,
+                     * выставленный в соседнем поле этой же страницы, в
+                     * таблице не проявлялся никак.
+                     *
+                     * `listing_credits` — старая награда размещением, до
+                     * 28.09. Такое приглашение тоже оплачено, просто не
+                     * баллами.
+                     */
+                    'points' => (int) ($row?->points ?? 0),
+                    'listing_credits' => (int) ($row?->listing_credits ?? 0),
                 ];
             })->all(),
             'meta' => [
