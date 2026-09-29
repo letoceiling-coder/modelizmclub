@@ -22,6 +22,12 @@ class Payment extends Model
         'idempotency_key',
         'paid_at',
         'metadata',
+        'failure_code',
+        'failure_message',
+        'failure_stage',
+        'failed_at',
+        'form_opened_at',
+        'decided_by',
     ];
 
     protected function casts(): array
@@ -29,6 +35,8 @@ class Payment extends Model
         return [
             'metadata' => 'array',
             'paid_at' => 'datetime',
+            'failed_at' => 'datetime',
+            'form_opened_at' => 'datetime',
         ];
     }
 

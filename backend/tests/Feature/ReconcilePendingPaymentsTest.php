@@ -341,7 +341,12 @@ class ReconcilePendingPaymentsTest extends TestCase
             ->expectsOutputToContain('не в --only, оставлен')
             ->assertSuccessful();
 
-        $this->assertSame('failed', $stub->fresh()->status);
+        /*
+         * У заглушки исход сменился 30.09 намеренно: «оплату не начинали» —
+         * это брошенная форма, а не отказ. Свалив её в `failed`, воронка
+         * утверждала бы, что банк отклонил платёж, которого он не видел.
+         */
+        $this->assertSame('abandoned', $stub->fresh()->status);
         $this->assertSame('failed', $cancelled->fresh()->status);
         $this->assertSame('pending', $paid->fresh()->status, 'оплаченный должен остаться нетронутым');
     }

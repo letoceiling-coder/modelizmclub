@@ -30,6 +30,7 @@ use Modules\Admin\Http\Controllers\Api\V1\AdminListingController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminMediaController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminNotificationPolicyController;
+use Modules\Admin\Http\Controllers\Api\V1\AdminPaymentFunnelController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPaymentsController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPlanController;
 use Modules\Admin\Http\Controllers\Api\V1\AdminPostCategoryController;
@@ -224,6 +225,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
             ->where('uuid', '[0-9a-f-]{36}');
         Route::post('promo-pools/{uuid}/complete', [AdminPromoPoolController::class, 'complete'])
             ->where('uuid', '[0-9a-f-]{36}');
+        // Воронка оплат: начато → дошло до формы → оплачено → отказано.
+        Route::get('payments/funnel', AdminPaymentFunnelController::class);
         Route::get('payments', [AdminPaymentsController::class, 'index']);
         Route::get('payments/export', [AdminPaymentsController::class, 'export']);
     });

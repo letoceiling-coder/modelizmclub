@@ -109,6 +109,17 @@ class ReconcilePendingPaymentsCommand extends Command
      *
      * @var array<string, string>
      */
+    /**
+     * Что ответил банк по текущему платежу: `{code, message}`.
+     *
+     * Поле, а не возврат метода, потому что вердикт и ответ нужны в разных
+     * местах: первый решает, что делать, второй — что записать. Сбрасывается
+     * перед каждым платежом: иначе код предыдущего уехал бы в следующий.
+     *
+     * @var array{code: int|null, message: string|null}
+     */
+    private array $ответБанка = ['code' => null, 'message' => null];
+
     private const ONLY_KEYS = [
         'paid' => self::PAID,
         'cancelled' => self::CANCELLED,
@@ -201,6 +212,10 @@ class ReconcilePendingPaymentsCommand extends Command
         $asked = 0;
 
         foreach ($pending as $payment) {
+            // Чистый лист на каждый платёж: иначе код банка от предыдущего
+            // уехал бы в следующий и приписал ему чужую причину.
+            $this->ответБанка = ['code' => null, 'message' => null];
+
             if ($payment->provider === 'vtb') {
                 // Пауза только между обращениями к банку: платежи тестового
                 // контура разбираются по базе и темп не расходуют.
@@ -331,6 +346,13 @@ class ReconcilePendingPaymentsCommand extends Command
                     return self::PAID;
                 }
 
+                /*
+                 * Ответ банка запоминаем целиком на время разбора: вердикт
+                 * — это одно слово, а записать надо код и текст, которые
+                 * банк прислал. Раньше они здесь же и терялись.
+                 */
+                $this->ответБанка = VtbAcquiringClient::actionCode($status);
+
                 return match (VtbAcquiringClient::orderStatus($status)) {
                     3, 4, 6 => self::CANCELLED,
                     default => self::ABANDONED,
@@ -438,15 +460,49 @@ class ReconcilePendingPaymentsCommand extends Command
 
     private function applyVerdict(PaymentFulfillmentService $fulfillment, Payment $payment, string $verdict): void
     {
+        $код = \App\Support\PaymentFailure::fromVtbActionCode($this->ответБанка['code']);
+        $текстБанка = $this->ответБанка['message'];
+        $кем = \App\Support\PaymentFailure::BY_RECONCILE;
+
         match ($verdict) {
             // Оплата состоялась, а уведомление потерялось: доводим до конца
             // тем же путём, что и колбэк, — подписка и пополнение выдаются
             // внутри markPaid.
             self::PAID => $fulfillment->markPaid($payment, (string) $payment->provider_payment_id),
-            self::CANCELLED => $fulfillment->markFailed($payment, 'Сверка: банк сообщил об отмене заказа.'),
-            self::UNKNOWN => $fulfillment->markFailed($payment, 'Сверка: заказа нет у банка.'),
-            self::NEVER_SENT => $fulfillment->markFailed($payment, 'Сверка: заказ в банке не создавался.'),
-            self::STUB_ABANDONED => $fulfillment->markFailed($payment, 'Сверка: тестовая оплата не подтверждена.'),
+            /*
+             * Отмена у банка — это две разные вещи, и различает их его же
+             * код. «Истёк срок заказа» значит, что человек ушёл с формы:
+             * это брошенная форма, а не отказ, и в воронке она стоит на
+             * другом шаге.
+             */
+            self::CANCELLED => $код === 'expired'
+                ? $fulfillment->markAbandoned(
+                    $payment,
+                    'Сверка: заказ истёк, оплата не начиналась.',
+                    \App\Support\PaymentFailure::STAGE_FORM,
+                    $кем,
+                )
+                : $fulfillment->markFailed(
+                    $payment,
+                    'Сверка: банк сообщил об отмене заказа.',
+                    $код,
+                    $текстБанка,
+                    \App\Support\PaymentFailure::STAGE_BANK,
+                    $кем,
+                ),
+            self::UNKNOWN => $fulfillment->markFailed(
+                $payment, 'Сверка: заказа нет у банка.', 'unknown', $текстБанка,
+                \App\Support\PaymentFailure::STAGE_UNKNOWN, $кем,
+            ),
+            self::NEVER_SENT => $fulfillment->markFailed(
+                $payment, 'Сверка: заказ в банке не создавался.', 'unknown', null,
+                \App\Support\PaymentFailure::STAGE_CREATED, $кем,
+            ),
+            // Заглушка: платить никто и не начинал — это брошенная форма.
+            self::STUB_ABANDONED => $fulfillment->markAbandoned(
+                $payment, 'Сверка: тестовая оплата не подтверждена.',
+                \App\Support\PaymentFailure::STAGE_FORM, $кем,
+            ),
             /*
              * Не трогаем:
              *   открытый заказ  — человек ещё может вернуться и оплатить;

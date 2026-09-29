@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { goToCheckout } from "@/lib/payments/go-to-checkout";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { useNavigate } from "@tanstack/react-router";
 import { isCdekDelivery, isPickupDelivery } from "@/lib/config/deliveryMethods";
@@ -266,7 +267,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
       // VTB deals finish on the bank's card form; wallet deals are already held.
       if (deal.checkout_url) {
         onOpenChange(false);
-        window.location.href = deal.checkout_url;
+        await goToCheckout(deal);
         return;
       }
 
@@ -286,7 +287,7 @@ export function SafeDealCheckoutWizard({ open, onOpenChange, ad }: Props) {
             window.location.href,
           );
           if (checkout.checkout_url) {
-            window.location.href = checkout.checkout_url;
+            await goToCheckout(checkout);
             return;
           }
         } catch {

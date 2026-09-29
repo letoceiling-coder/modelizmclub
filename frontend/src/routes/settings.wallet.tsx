@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { goToCheckout } from "@/lib/payments/go-to-checkout";
 import { BonusPointsCard } from "@/components/billing/BonusPointsCard";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -586,7 +587,7 @@ function TopupDialog({
        * лишь виду адреса.
        */
       rememberTopup(checkout.payment_uuid);
-      window.location.href = checkout.checkout_url;
+      await goToCheckout(checkout);
     } catch (err) {
       toast.error(formatApiErrorMessage(err, t("pages.settings.walletError")));
     } finally {

@@ -2354,3 +2354,33 @@ export async function fetchAdminUserCard(uuid: string): Promise<AdminUserCard> {
     })),
   };
 }
+
+/** Шаг или исход воронки оплат. */
+export interface FunnelBucket {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface PaymentFunnel {
+  from: string | null;
+  to: string | null;
+  /** Тестовый контур в воронку не входит — он ставит «оплачено» без банка. */
+  excludes_stub: boolean;
+  steps: FunnelBucket[];
+  outcomes: FunnelBucket[];
+  reasons: Array<{ code: string | null; label: string; count: number }>;
+  stages: Array<{ stage: string | null; label: string; count: number }>;
+  /** По времени самого отказа, а не по правке строки. */
+  median_seconds_to_failure: number | null;
+}
+
+export async function fetchPaymentFunnel(period?: {
+  from?: string;
+  to?: string;
+}): Promise<PaymentFunnel> {
+  const res = await api<{ data: PaymentFunnel }>("/admin/payments/funnel", {
+    query: { from: period?.from || undefined, to: period?.to || undefined },
+  });
+  return res.data;
+}

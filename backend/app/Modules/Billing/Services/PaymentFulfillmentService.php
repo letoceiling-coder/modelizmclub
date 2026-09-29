@@ -4,6 +4,7 @@ namespace Modules\Billing\Services;
 
 use App\Models\Listing;
 use App\Models\Payment;
+use App\Support\PaymentFailure;
 use App\Models\Promocode;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
@@ -137,8 +138,28 @@ class PaymentFulfillmentService
         }
     }
 
-    public function markFailed(Payment $payment, ?string $reason = null): void
-    {
+    /**
+     * Отказ: наш код, текст провайдера, шаг обрыва и кто решил.
+     *
+     * `$reason` остаётся первым доводом ради прежних вызовов — это фраза
+     * для человека, она же ложится в `metadata.failure_reason`, как и
+     * раньше. Всё остальное — новое и пишется в колонки: по ним строится
+     * воронка, а группировать по свободному тексту нельзя.
+     *
+     * `failed_at` ставится здесь, а не берётся из `updated_at`. Разница
+     * не теоретическая: на боевых данных у пяти платежей августа
+     * `updated_at` стоял 08.09 — один прогон сверки закрыл их разом три
+     * недели спустя, и «время до отказа» по этой колонке равнялось
+     * двадцати восьми дням.
+     */
+    public function markFailed(
+        Payment $payment,
+        ?string $reason = null,
+        ?string $code = null,
+        ?string $providerMessage = null,
+        string $stage = PaymentFailure::STAGE_UNKNOWN,
+        ?string $decidedBy = null,
+    ): void {
         if ($payment->status === 'paid') {
             return;
         }
@@ -150,6 +171,41 @@ class PaymentFulfillmentService
 
         $payment->update([
             'status' => 'failed',
+            'failure_code' => $code,
+            'failure_message' => $providerMessage !== null ? mb_substr($providerMessage, 0, 500) : null,
+            'failure_stage' => $stage,
+            'failed_at' => now(),
+            'decided_by' => $decidedBy,
+            'metadata' => $metadata,
+        ]);
+    }
+
+    /**
+     * Человек ушёл с формы — это не отказ.
+     *
+     * Отдельный статус, а не `failed`. Свалив брошенную форму в отказы, мы
+     * утверждали бы, что банк отклонил платёж, которого он не видел, и
+     * воронка показывала бы отказ банка там, где никто не платил.
+     */
+    public function markAbandoned(
+        Payment $payment,
+        string $reason,
+        string $stage = PaymentFailure::STAGE_FORM,
+        ?string $decidedBy = null,
+    ): void {
+        if (in_array($payment->status, ['paid', 'failed'], true)) {
+            return;
+        }
+
+        $metadata = $payment->metadata ?? [];
+        $metadata['failure_reason'] = $reason;
+
+        $payment->update([
+            'status' => 'abandoned',
+            'failure_code' => 'abandoned',
+            'failure_stage' => $stage,
+            'failed_at' => now(),
+            'decided_by' => $decidedBy,
             'metadata' => $metadata,
         ]);
     }

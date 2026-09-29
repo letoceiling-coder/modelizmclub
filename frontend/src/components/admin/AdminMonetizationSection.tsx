@@ -22,6 +22,7 @@ import { UserPicker } from "@/components/admin/UserPicker";
 import { FirstHundredAdminCard } from "@/components/admin/FirstHundredAdminCard";
 import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
 import { BonusPointsPricesAdminCard } from "@/components/admin/BonusPointsPricesAdminCard";
+import { PaymentFunnelCard } from "@/components/admin/PaymentFunnelCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { EscrowProviderAdminCard } from "@/components/admin/EscrowProviderAdminCard";
@@ -467,6 +468,9 @@ export function MonetizationPaymentsSection() {
   return (
     <div>
       <H>{t("pages.adminMonetization.paymentsTitle")}</H>
+      {/* Воронка выше списка: список отвечает «какие были платежи»,
+          воронка — «почему их так мало». */}
+      <PaymentFunnelCard cardStyle={card} />
       <AdminPaymentsAdminCard cardStyle={card} />
     </div>
   );

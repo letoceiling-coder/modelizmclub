@@ -184,6 +184,28 @@ class VtbAcquiringClient
         return $orderStatus === null || $orderStatus === '' ? null : (int) $orderStatus;
     }
 
+    /**
+     * Код отказа самого банка и его текст.
+     *
+     * `orderStatus` говорит «оплачен / не оплачен / отменён», и этого мало:
+     * шестёрка покрывает и отказ карты, и истёкший неоплаченный заказ.
+     * Различает их `actionCode`, который приходит здесь же и до 30.09 не
+     * читался нигде — поиск по корню слова по всему `backend/app` давал
+     * ноль вхождений.
+     *
+     * @return array{code: int|null, message: string|null}
+     */
+    public static function actionCode(array $statusResponse): array
+    {
+        $код = $statusResponse['actionCode'] ?? null;
+        $текст = $statusResponse['actionCodeDescription'] ?? ($statusResponse['errorMessage'] ?? null);
+
+        return [
+            'code' => ($код === null || $код === '') ? null : (int) $код,
+            'message' => is_string($текст) && $текст !== '' ? $текст : null,
+        ];
+    }
+
     public static function isPaidStatus(array $statusResponse): bool
     {
         return in_array(self::orderStatus($statusResponse), [1, 2], true);
