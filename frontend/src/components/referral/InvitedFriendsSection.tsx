@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ИтогПриглашения } from "./InviteOutcome";
 import { Users, Gift } from "lucide-react";
 import { useReferral } from "@/lib/api/referral";
 import { formatDate } from "@/lib/format/date";
@@ -102,21 +103,7 @@ export function InvitedFriendsSection() {
                       Присоединился {inv.joinedAt ? formatDate(inv.joinedAt, "relative") : ""}
                     </div>
                   </div>
-                  <span
-                    className="shrink-0 font-semibold"
-                    style={{
-                      fontSize: 12,
-                      color: inv.status === "completed" ? "var(--success)" : "var(--foreground-70)",
-                      background:
-                        inv.status === "completed"
-                          ? "var(--success-soft)"
-                          : "var(--background-surface)",
-                      padding: "4px 10px",
-                      borderRadius: "var(--r-pill)",
-                    }}
-                  >
-                    {inv.status === "completed" ? "Бонус начислен" : "Ждёт телефон"}
-                  </span>
+                  <ИтогПриглашения inv={inv} />
                 </Link>
               </li>
             );
