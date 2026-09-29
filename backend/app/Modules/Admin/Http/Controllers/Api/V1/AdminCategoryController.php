@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Admin\Http\Requests\UpsertCategoryRequest;
 use Modules\Admin\Services\AuditService;
 use Modules\Catalog\Services\CatalogService;
+use Modules\Catalog\Support\CategoryMirrors;
 use Modules\Catalog\Services\CategoryTaxonomyService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -86,11 +87,40 @@ abstract class AdminCategoryController extends Controller
     public function destroy(int $id, AuditService $audit): JsonResponse
     {
         $category = $this->findCategory($id);
+        $прежнее = $category->toArray();
+
+        /*
+         * Зеркала — до удаления узла: после него ссылки на них теряются, и
+         * найти отражения будет уже нечем.
+         *
+         * 29.09 админка ответила «Категория удалена», а две строки в
+         * `listing_categories` и `community_categories` остались сиротами.
+         * Неделей раньше такие же сироты стоили отдельной миграции.
+         */
+        $зеркала = CategoryMirrors::removeFor($category);
+
         $category->delete();
-        $audit->log(request()->user(), $this->auditPrefix().'.delete', $category, $category->toArray(), null, request());
+        $audit->log(
+            request()->user(),
+            $this->auditPrefix().'.delete',
+            $category,
+            $прежнее + ['mirrors' => $зеркала],
+            null,
+            request(),
+        );
         CatalogService::flushCache();
 
-        return response()->json(['data' => ['message' => 'Категория удалена.']]);
+        // Что осталось — говорим вслух. Молчаливое «удалено» при живых
+        // зеркалах и было дефектом.
+        $сообщение = $зеркала['kept'] === []
+            ? 'Категория удалена.'
+            : 'Категория удалена, но отражения остались: '.implode('; ', $зеркала['kept']).'.';
+
+        return response()->json(['data' => [
+            'message' => $сообщение,
+            'mirrors_deleted' => $зеркала['deleted'],
+            'mirrors_kept' => $зеркала['kept'],
+        ]]);
     }
 
     protected function findCategory(int $id): Model
