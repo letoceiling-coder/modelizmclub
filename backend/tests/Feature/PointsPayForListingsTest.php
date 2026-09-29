@@ -276,6 +276,90 @@ class PointsPayForListingsTest extends TestCase
         $this->assertSame(500, $this->баллы($user));
     }
 
+    public function test_повторный_запрос_с_тем_же_ключом_списывает_один_раз(): void
+    {
+        /*
+         * Два нажатия «Оплатить» — это два запроса. Или одно нажатие и
+         * ретрай после таймаута: ответ потерялся, а покупка прошла. Без
+         * ключа попытки баллы ушли бы дважды, а продвижение выдалось бы на
+         * двойной срок.
+         */
+        $this->цены();
+        $user = $this->человек(250);
+
+        $запрос = [
+            'payable_type' => 'listing_placement',
+            'pay_with' => 'points',
+            'idempotency_key' => 'попытка-один',
+        ];
+
+        $первый = $this->actingAs($user, 'sanctum')->postJson('/api/v1/payments', $запрос)->assertCreated();
+        $второй = $this->actingAs($user, 'sanctum')->postJson('/api/v1/payments', $запрос)->assertCreated();
+
+        $this->assertSame(
+            $первый->json('data.payment_uuid'),
+            $второй->json('data.payment_uuid'),
+            'повтор завёл вторую покупку',
+        );
+        $this->assertSame(150, $this->баллы($user), 'списано дважды');
+        $this->assertSame(1, Payment::query()->where('user_id', $user->id)->count());
+    }
+
+    public function test_разные_ключи_это_разные_покупки(): void
+    {
+        // Контроль: иначе «один раз» означало бы, что вторая покупка
+        // не проходит вовсе.
+        $this->цены();
+        $user = $this->человек(250);
+
+        foreach (['первая', 'вторая'] as $ключ) {
+            $this->actingAs($user, 'sanctum')->postJson('/api/v1/payments', [
+                'payable_type' => 'listing_placement',
+                'pay_with' => 'points',
+                'idempotency_key' => $ключ,
+            ])->assertCreated();
+        }
+
+        $this->assertSame(50, $this->баллы($user));
+        $this->assertSame(2, Payment::query()->where('user_id', $user->id)->count());
+    }
+
+    public function test_промокод_при_оплате_баллами_не_сгорает(): void
+    {
+        /*
+         * Цена в баллах фиксированная и от скидки не зависит. Если бы код
+         * уехал в выдачу, он списался бы как использованный — человек
+         * потерял бы одноразовый промокод, не получив от него ничего.
+         */
+        $this->цены();
+        $user = $this->человек(250);
+
+        $promo = \App\Models\Promocode::query()->create([
+            'code' => 'SKIDKA',
+            'type' => 'percent',
+            'value' => 50,
+            'is_active' => true,
+            'applies_to' => 'listing_placement',
+        ]);
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/payments', [
+            'payable_type' => 'listing_placement',
+            'pay_with' => 'points',
+            'promocode' => 'SKIDKA',
+        ])->assertCreated();
+
+        $payment = Payment::query()->where('user_id', $user->id)->firstOrFail();
+        $this->assertNull(
+            $payment->metadata['promocode_id'] ?? null,
+            'промокод уехал в оплату баллами и сгорел бы при выдаче',
+        );
+        $this->assertSame(
+            0,
+            DB::table('promocode_usages')->where('promocode_id', $promo->id)->count(),
+            'промокод списан, хотя скидки не дал',
+        );
+    }
+
     private function объявление(User $user): \App\Models\Listing
     {
         return \App\Models\Listing::query()->create([

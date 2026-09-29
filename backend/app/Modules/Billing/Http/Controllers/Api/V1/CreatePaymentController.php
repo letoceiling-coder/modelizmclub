@@ -91,12 +91,22 @@ class CreatePaymentController extends Controller
              * она нужна, чтобы знать, что именно человек не заплатил.
              */
             if ($payWith === 'points') {
+                /*
+                 * Промокод в оплату баллами не уходит. Цена в баллах
+                 * фиксированная и от скидки не зависит, а выдача
+                 * (`fulfillListingPlacement`) по `promocode_id` списала бы
+                 * код как использованный — человек потерял бы одноразовый
+                 * промокод, не получив от него ничего.
+                 */
+                $метаБезКода = $metadata;
+                $метаБезКода['promocode_id'] = null;
+
                 return $this->payWithPoints(
                     (int) BonusPointsPrices::forPlacement(),
                     $request,
                     'listing_placement_points',
                     "Размещение объявления: {$categoryName}",
-                    $metadata,
+                    $метаБезКода,
                 );
             }
 
