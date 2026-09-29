@@ -33,23 +33,21 @@ return new class extends Migration
         $оставлено = [];
 
         foreach ([
-            ['listing_categories', 'listings', ['category_id', 'subcategory_id']],
-            ['community_categories', 'communities', ['category_id']],
-        ] as [$таблица, $содержимое, $колонки]) {
+            ['listing_categories', \App\Models\ListingCategory::class],
+            ['community_categories', \App\Models\CommunityCategory::class],
+        ] as [$таблица, $класс]) {
             $строки = DB::table($таблица)->where('name', self::ИМЯ)->get(['id', 'name']);
 
             foreach ($строки as $строка) {
-                $детей = DB::table($таблица)->where('parent_id', $строка->id)->count();
-                $записей = DB::table($содержимое)
-                    ->where(function ($q) use ($колонки, $строка): void {
-                        foreach ($колонки as $i => $колонка) {
-                            $i === 0 ? $q->where($колонка, $строка->id) : $q->orWhere($колонка, $строка->id);
-                        }
-                    })
-                    ->count();
+                /*
+                 * Тем же ответом, что и удаление из админки. Свой список
+                 * ссылок здесь разошёлся бы с тем — и разошёлся бы молча:
+                 * ровно так первая версия и пропустила три таблицы.
+                 */
+                $причина = \Modules\Catalog\Support\CategoryMirrors::blockedBy($класс, (int) $строка->id);
 
-                if ($детей > 0 || $записей > 0) {
-                    $оставлено[] = "{$таблица}#{$строка->id} (детей {$детей}, записей {$записей})";
+                if ($причина !== null) {
+                    $оставлено[] = "{$таблица}#{$строка->id} ({$причина})";
 
                     continue;
                 }

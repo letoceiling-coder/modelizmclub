@@ -17,19 +17,70 @@ use Illuminate\Support\Facades\DB;
  * админка ответила «Категория удалена», а обе строки остались в базе
  * неактивными сиротами.
  *
- * ПОЧЕМУ ЭТО НЕ МЕЛОЧЬ. Неделей раньше такие же осиротевшие зеркала
- * стоили отдельной миграции: направления потеряли родителей, и
- * восстанавливать их пришлось по зеркалам же. Строка, о которой никто не
- * помнит, однажды всплывает как «откуда это».
+ * УДАЛЯЕМ ТОЛЬКО СВОБОДНЫЕ — И «СВОБОДНОЕ» СЧИТАЕМ ПО ВСЕМ ССЫЛКАМ.
+ * Первая версия этого класса смотрела только на объявления и сообщества,
+ * и ревью нашло три пропущенные ссылки. Каждая ломалась по-своему:
  *
- * УДАЛЯЕМ ТОЛЬКО ПУСТЫЕ. У зеркала могут быть свои объявления и
- * сообщества; на уровне базы это защищено `RESTRICT`, то есть попытка
- * удалить непустое упала бы исключением посреди запроса. Поэтому сначала
- * спрашиваем, потом удаляем, а про оставшееся говорим вслух — молчаливое
- * «удалено» и было исходным дефектом.
+ *   `community_applications` — RESTRICT: удаление упало бы исключением
+ *       посреди запроса, ровно от чего класс и должен защищать;
+ *   `promocodes.listing_category_id` — SET NULL: промокод, ограниченный
+ *       одной категорией, **молча стал бы действовать на все** — проверка
+ *       ограничения смотрит именно на эту колонку;
+ *   `listing_pricing_rules.category_id` — SET NULL: правило цены под
+ *       категорию превратилось бы в пакет по умолчанию, потому что
+ *       «по умолчанию» опознаётся как `category_id is null`.
+ *
+ * Список ссылок ниже полон на 30.09 — и его полноту стережёт проверка
+ * `CategoryDeleteRemovesMirrorsTest`: она читает внешние ключи из самой
+ * базы и требует, чтобы каждый был либо здесь, либо в списке заведомо
+ * безопасных. Рукописный перечень без такого сторожа устаревает молча —
+ * этот устарел за один заход.
  */
 final class CategoryMirrors
 {
+    /**
+     * Кто ссылается на зеркало. Таблица → колонки.
+     *
+     * Само-ссылка `parent_id` проверяется отдельно: у неё своё сообщение
+     * про вложенные направления.
+     *
+     * @var array<class-string, array<string, list<string>>>
+     */
+    private const ССЫЛКИ = [
+        ListingCategory::class => [
+            'listings' => ['category_id', 'subcategory_id'],
+            'promocodes' => ['listing_category_id'],
+            'listing_pricing_rules' => ['category_id'],
+        ],
+        CommunityCategory::class => [
+            'communities' => ['category_id'],
+            'community_applications' => ['category_id'],
+        ],
+    ];
+
+    /**
+     * Ссылки, которые удалению не мешают, и почему.
+     *
+     * Открыто ради проверки полноты: она сверяет внешние ключи базы с
+     * `ССЫЛКИ` и должна знать, что эти два — не забытые.
+     *
+     * @var array<string, string>
+     */
+    public const БЕЗОПАСНЫЕ = [
+        // Ссылка самого удаляемого узла на своё зеркало.
+        'post_categories.listing_category_id' => 'ссылка удаляемого узла',
+        'post_categories.community_category_id' => 'ссылка удаляемого узла',
+        // Само-ссылка: проверяется отдельно, со своим сообщением.
+        'listing_categories.parent_id' => 'вложенные направления, проверяются отдельно',
+        'community_categories.parent_id' => 'вложенные направления, проверяются отдельно',
+    ];
+
+    /** @return array<class-string, array<string, list<string>>> */
+    public static function references(): array
+    {
+        return self::ССЫЛКИ;
+    }
+
     /**
      * Убрать зеркала удаляемого узла.
      *
@@ -45,9 +96,9 @@ final class CategoryMirrors
         $оставлено = [];
 
         foreach ([
-            [ListingCategory::class, (int) $category->listing_category_id, 'listings', 'объявления'],
-            [CommunityCategory::class, (int) $category->community_category_id, 'communities', 'сообщества'],
-        ] as [$класс, $id, $таблица, $чем]) {
+            [ListingCategory::class, (int) $category->listing_category_id],
+            [CommunityCategory::class, (int) $category->community_category_id],
+        ] as [$класс, $id]) {
             if ($id <= 0) {
                 continue;
             }
@@ -57,7 +108,7 @@ final class CategoryMirrors
                 continue;
             }
 
-            $причина = self::занято($класс, $таблица, $id);
+            $причина = self::blockedBy($класс, $id);
             if ($причина !== null) {
                 $оставлено[] = "{$зеркало->name}: {$причина}";
 
@@ -71,23 +122,38 @@ final class CategoryMirrors
         return ['deleted' => $удалено, 'kept' => $оставлено];
     }
 
-    /** Чем зеркало занято, или null — если ничем. */
-    private static function занято(string $класс, string $таблица, int $id): ?string
+    /**
+     * Что держит зеркало, или null — если ничто.
+     *
+     * Открыто: тем же вопросом задаётся миграция, убирающая сирот от
+     * прежнего поведения. Два ответа на один вопрос разошлись бы — и
+     * разошлись бы молча.
+     *
+     * @param  class-string  $класс
+     */
+    public static function blockedBy(string $класс, int $id): ?string
     {
-        $детей = $класс::query()->where('parent_id', $id)->count();
+        $таблица = (new $класс)->getTable();
+
+        $детей = DB::table($таблица)->where('parent_id', $id)->count();
         if ($детей > 0) {
             return "есть вложенные направления ({$детей})";
         }
 
-        $колонки = $таблица === 'listings' ? ['category_id', 'subcategory_id'] : ['category_id'];
-        $содержимого = DB::table($таблица)
-            ->where(function ($q) use ($колонки, $id): void {
-                foreach ($колонки as $i => $колонка) {
-                    $i === 0 ? $q->where($колонка, $id) : $q->orWhere($колонка, $id);
-                }
-            })
-            ->count();
+        foreach (self::ССЫЛКИ[$класс] ?? [] as $чужая => $колонки) {
+            $сколько = DB::table($чужая)
+                ->where(function ($q) use ($колонки, $id): void {
+                    foreach ($колонки as $i => $колонка) {
+                        $i === 0 ? $q->where($колонка, $id) : $q->orWhere($колонка, $id);
+                    }
+                })
+                ->count();
 
-        return $содержимого > 0 ? "привязано записей: {$содержимого}" : null;
+            if ($сколько > 0) {
+                return "на неё ссылается {$чужая} ({$сколько})";
+            }
+        }
+
+        return null;
     }
 }

@@ -97,9 +97,20 @@ abstract class AdminCategoryController extends Controller
          * `listing_categories` и `community_categories` остались сиротами.
          * Неделей раньше такие же сироты стоили отдельной миграции.
          */
-        $зеркала = CategoryMirrors::removeFor($category);
+        /*
+         * Одной транзакцией — как `store` и `update` рядом.
+         *
+         * Без неё возможно полуудалённое состояние: первое зеркало снято и
+         * закоммичено, на втором запрос упал, узел остался — а ссылка на
+         * снятое зеркало обнулилась внешним ключом. Ревью назвало и путь:
+         * гонка между проверкой занятости и удалением.
+         */
+        $зеркала = DB::transaction(function () use ($category): array {
+            $снято = CategoryMirrors::removeFor($category);
+            $category->delete();
 
-        $category->delete();
+            return $снято;
+        });
         $audit->log(
             request()->user(),
             $this->auditPrefix().'.delete',

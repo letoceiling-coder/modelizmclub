@@ -11,7 +11,9 @@ use App\Models\ListingCategory;
 use App\Models\PostCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Catalog\Support\CategoryMirrors;
 use Tests\TestCase;
 
 /**
@@ -105,7 +107,7 @@ class CategoryDeleteRemovesMirrorsTest extends TestCase
 
         $оставлено = $ответ->json('data.mirrors_kept');
         $this->assertCount(1, $оставлено);
-        $this->assertStringContainsString('привязано записей: 1', $оставлено[0]);
+        $this->assertStringContainsString('listings (1)', $оставлено[0]);
         $this->assertStringContainsString('остались', (string) $ответ->json('data.message'));
     }
 
@@ -124,6 +126,127 @@ class CategoryDeleteRemovesMirrorsTest extends TestCase
 
         $this->assertNotNull(ListingCategory::query()->find($listing->id));
         $this->assertStringContainsString('вложенные направления (1)', $ответ->json('data.mirrors_kept')[0]);
+    }
+
+    public function test_заявка_на_сообщество_держит_отражение(): void
+    {
+        /*
+         * Найдено ревью. `community_applications.category_id` — RESTRICT:
+         * первая версия этой проверки о нём не знала, и удаление упало бы
+         * исключением посреди запроса — ровно от чего класс и защищает.
+         */
+        [$post, , $community] = $this->узелСЗеркалами('С заявкой');
+
+        DB::table('community_applications')->insert([
+            'user_id' => $this->owner()->id,
+            'category_id' => $community->id,
+            'proposed_name' => 'Заявка',
+            'description' => 'Описание',
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $ответ = $this->actingAs($this->owner(), 'sanctum')
+            ->deleteJson("/api/v1/admin/categories/post/{$post->id}")
+            ->assertOk();
+
+        $this->assertNotNull(CommunityCategory::query()->find($community->id), 'удалено отражение с заявкой');
+        $this->assertStringContainsString('community_applications', $ответ->json('data.mirrors_kept')[0]);
+    }
+
+    public function test_промокод_на_категорию_держит_отражение(): void
+    {
+        /*
+         * Тише и опаснее: `promocodes.listing_category_id` — SET NULL.
+         * Удалив отражение, мы не упали бы, а обнулили связь — и промокод,
+         * ограниченный одной категорией, молча стал бы действовать на все.
+         * Ограничение проверяется именно по этой колонке.
+         */
+        [$post, $listing] = $this->узелСЗеркалами('С промокодом');
+
+        DB::table('promocodes')->insert([
+            'code' => 'QA'.Str::upper(Str::random(6)),
+            'type' => 'percent',
+            'value' => 10,
+            'is_active' => true,
+            'listing_category_id' => $listing->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->owner(), 'sanctum')
+            ->deleteJson("/api/v1/admin/categories/post/{$post->id}")
+            ->assertOk();
+
+        $this->assertNotNull(ListingCategory::query()->find($listing->id), 'удалено отражение с промокодом');
+        $this->assertSame(
+            1,
+            DB::table('promocodes')->where('listing_category_id', $listing->id)->count(),
+            'связь промокода с категорией обнулена — он стал действовать на все',
+        );
+    }
+
+    public function test_правило_цены_держит_отражение(): void
+    {
+        // Тот же SET NULL: правило под категорию стало бы пакетом «по
+        // умолчанию», потому что умолчание опознаётся как category_id is null.
+        [$post, $listing] = $this->узелСЗеркалами('С правилом цены');
+
+        DB::table('listing_pricing_rules')->insert([
+            'category_id' => $listing->id,
+            'duration_days' => 7,
+            'base_price_cents' => 30000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->owner(), 'sanctum')
+            ->deleteJson("/api/v1/admin/categories/post/{$post->id}")
+            ->assertOk();
+
+        $this->assertNotNull(ListingCategory::query()->find($listing->id), 'удалено отражение с правилом цены');
+    }
+
+    public function test_список_ссылок_не_отстаёт_от_базы(): void
+    {
+        /*
+         * Сторож полноты. Рукописный перечень ссылок устарел за один
+         * заход: три из шести пропустили. Эта проверка читает внешние
+         * ключи из самой базы и требует, чтобы каждый был либо в списке
+         * проверяемых, либо в списке заведомо безопасных — с объяснением.
+         */
+        $проверяем = [];
+        foreach (CategoryMirrors::references() as $класс => $таблицы) {
+            $зеркало = (new $класс)->getTable();
+            foreach ($таблицы as $чужая => $колонки) {
+                foreach ($колонки as $колонка) {
+                    $проверяем["{$чужая}.{$колонка}"] = $зеркало;
+                }
+            }
+        }
+
+        $ключи = DB::select("
+            select tc.table_name as таблица, kcu.column_name as колонка, ccu.table_name as цель
+            from information_schema.table_constraints tc
+            join information_schema.key_column_usage kcu on kcu.constraint_name = tc.constraint_name
+            join information_schema.constraint_column_usage ccu on ccu.constraint_name = tc.constraint_name
+            where tc.constraint_type = 'FOREIGN KEY'
+              and ccu.table_name in ('listing_categories', 'communit'||'y_categories')
+        ");
+
+        $this->assertNotEmpty($ключи, 'внешние ключи не прочитались — проверка ничего не проверяет');
+
+        $забытые = [];
+        foreach ($ключи as $к) {
+            $имя = "{$к->таблица}.{$к->колонка}";
+            if (isset($проверяем[$имя]) || array_key_exists($имя, CategoryMirrors::БЕЗОПАСНЫЕ)) {
+                continue;
+            }
+            $забытые[] = $имя;
+        }
+
+        $this->assertSame([], $забытые, "на зеркало ссылается таблица, которую снятие не проверяет:\n".implode("\n", $забытые));
     }
 
     public function test_узел_без_отражений_удаляется_как_прежде(): void
