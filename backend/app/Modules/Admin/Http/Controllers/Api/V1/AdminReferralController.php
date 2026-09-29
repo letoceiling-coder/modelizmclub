@@ -60,12 +60,15 @@ class AdminReferralController extends Controller
                      * выставленный в соседнем поле этой же страницы, в
                      * таблице не проявлялся никак.
                      *
-                     * `listing_credits` — старая награда размещением, до
-                     * 28.09. Такое приглашение тоже оплачено, просто не
-                     * баллами.
+                     * `listing_credits` и `subscription_days` — старая
+                     * награда до 28.09: штука размещения и дни подписки.
+                     * Такое приглашение тоже оплачено, просто не баллами, и
+                     * прежний код писал оба поля одним update — значит в
+                     * строке могут стоять оба.
                      */
                     'points' => (int) ($row?->points ?? 0),
                     'listing_credits' => (int) ($row?->listing_credits ?? 0),
+                    'subscription_days' => (int) ($row?->subscription_days ?? 0),
                 ];
             })->all(),
             'meta' => [

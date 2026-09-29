@@ -1402,6 +1402,8 @@ export interface AdminReferralRow {
   points?: number;
   /** Старая награда размещением — приглашения до 28.09. */
   listing_credits?: number;
+  /** И дни подписки — третий канал той же поры. */
+  subscription_days?: number;
 }
 
 /**

@@ -214,6 +214,7 @@ export function ReferralProgramAdminCard({ cardStyle }: { cardStyle: CardStyle }
                         status: row.status ?? (row.phone_verified ? "completed" : "pending"),
                         points: row.points,
                         listingCredits: row.listing_credits,
+                        subscriptionDays: row.subscription_days,
                       }).подпись
                     }
                   </td>

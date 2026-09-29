@@ -21,6 +21,8 @@ export interface ReferralInvite {
   points: number;
   /** Старые приглашения помнят штуки размещений — их не переписываем. */
   listingCredits: number;
+  /** И дни подписки — третий канал награды до 28.09. */
+  subscriptionDays: number;
 }
 
 export interface ReferralData {
@@ -56,6 +58,7 @@ interface ApiReferral {
     status?: string;
     points?: number;
     listing_credits?: number;
+    subscription_days?: number;
   }>;
   invited_count?: number;
   clicks?: number;
@@ -90,6 +93,7 @@ export async function fetchReferral(): Promise<ReferralData> {
       status: i.status === "completed" ? "completed" : "pending",
       points: i.points ?? 0,
       listingCredits: i.listing_credits ?? 0,
+      subscriptionDays: i.subscription_days ?? 0,
     })),
     invitedCount: d.invited_count ?? 0,
     clicks: d.clicks ?? 0,

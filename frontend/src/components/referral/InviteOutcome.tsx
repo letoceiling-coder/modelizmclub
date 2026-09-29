@@ -14,7 +14,12 @@ import { итогПриглашения } from "@/lib/referral";
 export function ИтогПриглашения({
   inv,
 }: {
-  inv: { status: string; points?: number | null; listingCredits?: number | null };
+  inv: {
+    status: string;
+    points?: number | null;
+    listingCredits?: number | null;
+    subscriptionDays?: number | null;
+  };
 }) {
   const { подпись, начислено } = итогПриглашения(inv);
 

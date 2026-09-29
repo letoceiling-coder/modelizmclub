@@ -176,4 +176,45 @@ class ReferralStatusTellsWhatWasCreditedTest extends TestCase
         $this->assertSame(0, $строка['points']);
         $this->assertSame(1, $строка['listing_credits'], 'админ не видит, чем оплачено старое приглашение');
     }
+
+    public function test_старая_награда_днями_подписки_тоже_видна(): void
+    {
+        /*
+         * Третий канал. Прежний код писал `subscription_days` тем же
+         * update, что и `listing_credits` — и в строке могли стоять оба.
+         * Не отдать их наружу значило бы повторить исходный дефект: «Без
+         * начисления» там, где начислено.
+         */
+        $this->настройки();
+        $admin = $this->человек('Владелец', null, UserRole::Owner);
+        $inviter = $this->человек('Пригласивший');
+        $invitee = $this->человек('Друг с подпиской', '+79990000051');
+        $invitee->forceFill([
+            'referred_by' => $inviter->id,
+            'phone_verified_at' => now()->subMonths(2),
+        ])->save();
+
+        Referral::query()->create([
+            'inviter_id' => $inviter->id,
+            'invitee_id' => $invitee->id,
+            'status' => ReferralStatus::Completed,
+            'points' => 0,
+            'listing_credits' => 0,
+            'subscription_days' => 30,
+            'completed_at' => now()->subMonths(2),
+        ]);
+
+        $строка = collect($this->админскийСписок($admin))
+            ->firstWhere('invitee.uuid', $invitee->uuid);
+
+        $this->assertSame(30, $строка['subscription_days'], 'админ не видит награду днями подписки');
+
+        $своя = collect($this->actingAs($inviter, 'sanctum')
+            ->getJson('/api/v1/users/me/referrals')
+            ->assertOk()
+            ->json('data.invited'))
+            ->firstWhere('user.uuid', $invitee->uuid);
+
+        $this->assertSame(30, $своя['subscription_days'], 'страница приглашений не видит ту же награду');
+    }
 }

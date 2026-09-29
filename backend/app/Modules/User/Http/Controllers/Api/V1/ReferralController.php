@@ -56,6 +56,10 @@ class ReferralController extends Controller
                     // штуки размещений — их не переписываем в баллы.
                     'points' => (int) $row->points,
                     'listing_credits' => (int) $row->listing_credits,
+                    // И дни подписки: третий канал старой награды. Прежний
+                    // код писал его тем же update, что и размещения, так что
+                    // в строке могут стоять оба.
+                    'subscription_days' => (int) $row->subscription_days,
                 ])->all(),
                 'invited_count' => $dashboard['registered'],
                 'clicks' => $dashboard['clicks'],
