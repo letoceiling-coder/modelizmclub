@@ -776,6 +776,12 @@ COLUMN|payment_items.updated_at|timestamp without time zone|YES
 COLUMN|payments.amount_cents|integer|NO
 COLUMN|payments.created_at|timestamp without time zone|YES
 COLUMN|payments.currency|character|NO
+COLUMN|payments.decided_by|character varying|YES
+COLUMN|payments.failed_at|timestamp without time zone|YES
+COLUMN|payments.failure_code|character varying|YES
+COLUMN|payments.failure_message|character varying|YES
+COLUMN|payments.failure_stage|character varying|YES
+COLUMN|payments.form_opened_at|timestamp without time zone|YES
 COLUMN|payments.idempotency_key|character varying|YES
 COLUMN|payments.id|bigint|NO
 COLUMN|payments.metadata|json|YES
@@ -1846,7 +1852,9 @@ INDEX|ordinary_deals|ordinary_deals_uuid_unique
 INDEX|password_reset_tokens|password_reset_tokens_pkey
 INDEX|payment_items|payment_items_payable_type_payable_id_index
 INDEX|payment_items|payment_items_pkey
+INDEX|payments|payments_failure_code_idx
 INDEX|payments|payments_pkey
+INDEX|payments|payments_status_created_idx
 INDEX|payments|payments_user_id_idempotency_key_unique
 INDEX|payments|payments_user_id_status_index
 INDEX|payments|payments_uuid_unique

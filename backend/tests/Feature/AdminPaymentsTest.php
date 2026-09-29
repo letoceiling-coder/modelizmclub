@@ -92,9 +92,21 @@ class AdminPaymentsTest extends TestCase
             ->get('/api/v1/admin/payments/export')
             ->streamedContent())));
 
-        $this->assertStringContainsString('Тест (заглушка, не деньги)', $lines->first());
-        $this->assertStringEndsWith(';да', trim((string) $lines->first(fn ($l) => str_contains($l, ';stub;'))));
-        $this->assertStringEndsWith(';', trim((string) $lines->first(fn ($l) => str_contains($l, ';vtb;'))));
+        /*
+         * Столбец ищем по заголовку, а не по концу строки. Прежняя проверка
+         * требовала, чтобы «Тест» был последним, и 30.09 сломалась о пять
+         * новых столбцов про причину отказа — хотя сама пометка на месте.
+         * Проверка, привязанная к порядку столбцов, запрещает их добавлять.
+         */
+        $заголовки = str_getcsv((string) $lines->first(), ';');
+        $i = array_search('Тест (заглушка, не деньги)', $заголовки, true);
+        $this->assertNotFalse($i, 'в выгрузке нет столбца с пометкой теста');
+
+        $строка = fn (string $провайдер) => str_getcsv(
+            trim((string) $lines->first(fn ($l) => str_contains($l, ";{$провайдер};"))), ';'
+        );
+        $this->assertSame('да', $строка('stub')[$i]);
+        $this->assertSame('', $строка('vtb')[$i]);
     }
 
     public function test_moderator_cannot_access_payments(): void

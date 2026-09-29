@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { goToCheckout } from "@/lib/payments/go-to-checkout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
@@ -882,7 +883,7 @@ function NewAdPage() {
         idempotencyKey: attempt.key(`placement:${draft.id}:${source}`),
       });
       if (checkout.checkout_url) {
-        window.location.href = checkout.checkout_url;
+        await goToCheckout(checkout);
         return;
       }
       attempt.reset();

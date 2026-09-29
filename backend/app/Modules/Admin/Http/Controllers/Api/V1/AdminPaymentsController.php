@@ -5,6 +5,7 @@ namespace Modules\Admin\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Support\PaymentAccountingType;
+use App\Support\PaymentFailure;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +29,9 @@ class AdminPaymentsController extends Controller
             ],
             'filters' => [
                 'types' => PaymentAccountingType::labels(),
-                'statuses' => ['pending', 'paid', 'failed', 'cancelled'],
+                // `abandoned` — брошенная форма. Без него бухгалтерия не может
+                // отобрать именно отказы: они смешаны с ушедшими людьми.
+                'statuses' => ['pending', 'paid', 'failed', 'abandoned', 'cancelled'],
             ],
         ]);
     }
@@ -56,6 +59,11 @@ class AdminPaymentsController extends Controller
                 'ID провайдера',
                 'Описание',
                 'Тест (заглушка, не деньги)',
+                'Причина отказа',
+                'Ответ провайдера',
+                'Шаг обрыва',
+                'Отказ зафиксирован',
+                'Секунд до отказа',
             ], ';');
 
             $this->query($request)
@@ -75,6 +83,15 @@ class AdminPaymentsController extends Controller
                             $row['provider_payment_id'] ?? '',
                             $row['description'],
                             $row['is_test'] ? 'да' : '',
+                            $row['failure_label'] ?? '',
+                            $row['failure_message'] ?? '',
+                            $row['failure_stage_label'] ?? '',
+                            $payment->failed_at?->toDateTimeString() ?? '',
+                            // По failed_at, а не по updated_at: последнее —
+                            // время прогона сверки, а не ухода человека.
+                            $payment->failed_at && $payment->created_at
+                                ? (string) $payment->created_at->diffInSeconds($payment->failed_at)
+                                : '',
                         ], ';');
                     }
                 });
@@ -168,6 +185,20 @@ class AdminPaymentsController extends Controller
             'paid_at' => $payment->paid_at?->toIso8601String(),
             'created_at' => $payment->created_at?->toIso8601String(),
             'description' => $this->description($metadata, $type),
+            /*
+             * Причина отказа была в базе и не показывалась нигде: ни в
+             * списке, ни в выгрузке. То есть хранилась «на всякий случай».
+             */
+            'failure_code' => $payment->failure_code,
+            'failure_label' => $payment->failure_code ? PaymentFailure::label($payment->failure_code) : null,
+            'failure_message' => $payment->failure_message,
+            'failure_stage' => $payment->failure_stage,
+            'failure_stage_label' => $payment->failure_stage
+                ? (PaymentFailure::stageLabels()[$payment->failure_stage] ?? $payment->failure_stage)
+                : null,
+            'failed_at' => $payment->failed_at?->toIso8601String(),
+            'form_opened_at' => $payment->form_opened_at?->toIso8601String(),
+            'decided_by' => $payment->decided_by,
         ];
     }
 

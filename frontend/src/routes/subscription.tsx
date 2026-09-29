@@ -1,4 +1,5 @@
 import { openRouteGate } from "@/lib/gate";
+import { goToCheckout } from "@/lib/payments/go-to-checkout";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -100,7 +101,7 @@ async function startSubscriptionCheckout(
   try {
     const checkout = await createSubscriptionPayment(plan.id, source, idempotencyKey);
     if (checkout.checkout_url) {
-      window.location.href = checkout.checkout_url;
+      await goToCheckout(checkout);
       return;
     }
     // Wallet payments come back already "paid".
@@ -125,7 +126,7 @@ async function startPlacementCheckout(source: PayWith, idempotencyKey: string, o
   try {
     const checkout = await createListingPlacementPayment({ payWith: source, idempotencyKey });
     if (checkout.checkout_url) {
-      window.location.href = checkout.checkout_url;
+      await goToCheckout(checkout);
       return;
     }
     onPaid();

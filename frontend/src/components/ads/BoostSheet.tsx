@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { goToCheckout } from "@/lib/payments/go-to-checkout";
 import { useDialogA11y } from "@/hooks/use-dialog-a11y";
 import { createPortal } from "react-dom";
 import { usePaymentAttempt } from "@/lib/payments/idempotency";
@@ -71,7 +72,7 @@ export function BoostSheet({
         attempt.key(`boost:${listingId}:${selected}`),
       );
       if (checkout.checkout_url) {
-        window.location.href = checkout.checkout_url;
+        await goToCheckout(checkout);
         return;
       }
       attempt.reset();

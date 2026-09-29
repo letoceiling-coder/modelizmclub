@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Billing\Http\Controllers\Api\V1\BonusPointsController;
 use Modules\Billing\Http\Controllers\Api\V1\CancelSubscriptionController;
+use Modules\Billing\Http\Controllers\Api\V1\MarkPaymentFormOpenedController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreateSafeDealController;
@@ -58,6 +59,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('safe-deals', IndexSafeDealsController::class);
     Route::get('safe-deals/{uuid}', ShowSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::get('payments/{uuid}', ShowPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
+    // Шаг воронки «дошло до формы». Чтение, но с записью отметки: событие
+    // происходит в браузере, и узнать о нём иначе неоткуда.
+    Route::post('payments/{uuid}/form-opened', MarkPaymentFormOpenedController::class)->where('uuid', '[0-9a-f-]{36}');
 });
 
 /*

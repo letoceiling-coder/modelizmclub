@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { goToCheckout } from "@/lib/payments/go-to-checkout";
 import { BonusPointsCard } from "@/components/billing/BonusPointsCard";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -151,6 +152,13 @@ function paymentStatusMeta(status: string): {
     return { labelKey: "pages.settings.paymentsStatusPending", variant: "moderation" };
   if (status === "cancelled")
     return { labelKey: "pages.settings.paymentsStatusCancelled", variant: "draft" };
+  /*
+   * Брошенная форма — не «не прошёл». Человеку это разные вещи: в первом
+   * случае он сам ушёл, во втором ему отказали, и второе повод звонить в
+   * банк.
+   */
+  if (status === "abandoned")
+    return { labelKey: "pages.settings.paymentsStatusAbandoned", variant: "draft" };
 
   return { labelKey: "pages.settings.paymentsStatusFailed", variant: "error" };
 }
@@ -586,7 +594,7 @@ function TopupDialog({
        * лишь виду адреса.
        */
       rememberTopup(checkout.payment_uuid);
-      window.location.href = checkout.checkout_url;
+      await goToCheckout(checkout);
     } catch (err) {
       toast.error(formatApiErrorMessage(err, t("pages.settings.walletError")));
     } finally {
