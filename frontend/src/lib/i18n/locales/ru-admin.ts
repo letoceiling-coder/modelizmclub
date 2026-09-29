@@ -62,6 +62,8 @@ export const ruAdmin = {
       statPosts: "Публикаций",
       statModeration: "На модерации",
       statReports: "Жалоб",
+      statPlans: "Активных тарифов",
+      statPromocodes: "Активных промокодов",
       registrationsChart: "Регистрации за 30 дней",
       recentActions: "Последние действия",
       days: {

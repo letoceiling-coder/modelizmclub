@@ -30,8 +30,8 @@ export function Dashboard({ role }: { role: AdminRole }) {
    * по `adminOnly`, — но два запроса вместо одного уходили, а обход жил
    * как «так надо».
    *
-   * Замок снят, обход убран. Что именно показать модератору, по-прежнему
-   * решает `adminOnly` у карточек, а не состав ответа.
+   * Замок снят, обход убран. Сводку целиком видит и модератор: денег в
+   * ней нет, а разделы, которые считают счётчики, ему открыты.
    */
   useEffect(() => {
     let active = true;
@@ -50,14 +50,27 @@ export function Dashboard({ role }: { role: AdminRole }) {
     };
   }, [role]);
 
-  const allStats = [
+  /*
+   * Восемь счётчиков — ровно то, что отдаёт сводка, и все видны сотруднику.
+   *
+   * Было шесть карточек и флаг `adminOnly`, прятавший четыре из них от
+   * модератора. Прятать нечего: ни в одном счётчике нет денег, а разделы,
+   * которые они считают, модератору и так открыты — кроме тарифов и
+   * промокодов, но их количество не тайна.
+   *
+   * Тарифы и промокоды вдобавок не показывались НИКОМУ: сервер их считал,
+   * карточек для них не было. Теперь есть.
+   *
+   * Владельческим на этом экране остаётся журнал действий — это отдельный
+   * раздел (`auditLog`), и он по-прежнему за ролью.
+   */
+  const stats = [
     {
       v: (data?.usersTotal ?? 0).toLocaleString("ru"),
       l: t("pages.adminDashboard.statUsers"),
       icon: Users,
       ch: "",
       up: true,
-      adminOnly: true,
     },
     {
       v: (data?.communitiesTotal ?? 0).toLocaleString("ru"),
@@ -65,7 +78,6 @@ export function Dashboard({ role }: { role: AdminRole }) {
       icon: Users,
       ch: "",
       up: true,
-      adminOnly: true,
     },
     {
       v: (data?.bannersActive ?? 0).toLocaleString("ru"),
@@ -73,7 +85,6 @@ export function Dashboard({ role }: { role: AdminRole }) {
       icon: Megaphone,
       ch: "",
       up: true,
-      adminOnly: true,
     },
     {
       v: (data?.postsTotal ?? 0).toLocaleString("ru"),
@@ -81,7 +92,6 @@ export function Dashboard({ role }: { role: AdminRole }) {
       icon: Newspaper,
       ch: "",
       up: true,
-      adminOnly: true,
     },
     {
       v: String(data?.moderationPending ?? 0),
@@ -90,7 +100,6 @@ export function Dashboard({ role }: { role: AdminRole }) {
       ch: "",
       up: true,
       warn: true,
-      adminOnly: false,
     },
     {
       v: String(data?.reportsPending ?? 0),
@@ -98,10 +107,22 @@ export function Dashboard({ role }: { role: AdminRole }) {
       icon: UserPlus,
       ch: "",
       up: true,
-      adminOnly: false,
+    },
+    {
+      v: String(data?.plansActive ?? 0),
+      l: t("pages.adminDashboard.statPlans"),
+      icon: Megaphone,
+      ch: "",
+      up: true,
+    },
+    {
+      v: String(data?.promocodesActive ?? 0),
+      l: t("pages.adminDashboard.statPromocodes"),
+      icon: Megaphone,
+      ch: "",
+      up: true,
     },
   ];
-  const stats = allStats.filter((s) => role === "owner" || !s.adminOnly);
 
   return (
     <div>
@@ -175,79 +196,75 @@ export function Dashboard({ role }: { role: AdminRole }) {
         ))}
       </m.div>
 
+      {/* Chart */}
+      <div style={{ ...card, padding: "20px", marginTop: "20px" }}>
+        <h4
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 600,
+            fontSize: "16px",
+            color: "var(--foreground)",
+          }}
+        >
+          {t("pages.adminDashboard.registrationsChart")}
+        </h4>
+        <RegistrationsChart data={data?.registrationsDaily ?? []} loading={data === null} />
+      </div>
+
       {/*
-        График и журнал — пока только Владельцу. Это решение о составе
-        экрана, а не о правах: ряд регистраций модератору теперь приходит
-        (раздел `users` у него открыт), но показывать ли — вопрос к
-        заказчику, и молча расширять экран я не стал.
+        Журнал действий — владельческий раздел (`auditLog`), и остаётся за
+        ролью. График выше — нет: это регистрации, раздел «Пользователи» у
+        модератора открыт.
       */}
       {role === "owner" && (
-        <>
-          {/* Chart */}
-          <div style={{ ...card, padding: "20px", marginTop: "20px" }}>
-            <h4
-              style={{
-                fontFamily: "var(--font-display)",
-                fontWeight: 600,
-                fontSize: "16px",
-                color: "var(--foreground)",
-              }}
-            >
-              {t("pages.adminDashboard.registrationsChart")}
-            </h4>
-            <RegistrationsChart data={data?.registrationsDaily ?? []} loading={data === null} />
+        <div style={{ ...card, marginTop: "20px" }}>
+          <h4
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              fontSize: "16px",
+              color: "var(--foreground)",
+              padding: "16px 16px 8px",
+            }}
+          >
+            {t("pages.adminDashboard.recentActions")}
+          </h4>
+          <div style={{ overflowX: "auto" }}>
+            <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
+              <tbody>
+                {audit.map((a) => (
+                  <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
+                    <td
+                      style={{
+                        padding: "10px 16px",
+                        color: "var(--foreground)",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {a.user}
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>
+                      {a.action}
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>
+                      {a.target}
+                    </td>
+                    <td
+                      style={{
+                        padding: "10px 16px",
+                        color: "var(--foreground-30)",
+                        fontSize: "12px",
+                        textAlign: "right",
+                      }}
+                    >
+                      {formatDate(a.time, "absolute")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {/* Recent actions */}
-          <div style={{ ...card, marginTop: "20px" }}>
-            <h4
-              style={{
-                fontFamily: "var(--font-display)",
-                fontWeight: 600,
-                fontSize: "16px",
-                color: "var(--foreground)",
-                padding: "16px 16px 8px",
-              }}
-            >
-              {t("pages.adminDashboard.recentActions")}
-            </h4>
-            <div style={{ overflowX: "auto" }}>
-              <table className="w-full" style={{ fontSize: "13px", minWidth: "600px" }}>
-                <tbody>
-                  {audit.map((a) => (
-                    <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
-                      <td
-                        style={{
-                          padding: "10px 16px",
-                          color: "var(--foreground)",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {a.user}
-                      </td>
-                      <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>
-                        {a.action}
-                      </td>
-                      <td style={{ padding: "10px 16px", color: "var(--foreground-70)" }}>
-                        {a.target}
-                      </td>
-                      <td
-                        style={{
-                          padding: "10px 16px",
-                          color: "var(--foreground-30)",
-                          fontSize: "12px",
-                          textAlign: "right",
-                        }}
-                      >
-                        {formatDate(a.time, "absolute")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
