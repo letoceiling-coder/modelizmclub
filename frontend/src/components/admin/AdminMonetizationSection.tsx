@@ -21,6 +21,7 @@ import { PromoPoolsAdminCard } from "@/components/admin/PromoPoolsAdminCard";
 import { UserPicker } from "@/components/admin/UserPicker";
 import { FirstHundredAdminCard } from "@/components/admin/FirstHundredAdminCard";
 import { ReferralProgramAdminCard } from "@/components/admin/ReferralProgramAdminCard";
+import { BonusPointsPricesAdminCard } from "@/components/admin/BonusPointsPricesAdminCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { EscrowProviderAdminCard } from "@/components/admin/EscrowProviderAdminCard";
@@ -445,7 +446,14 @@ export function MonetizationPromosSection() {
             id: "referral",
             title: "Реферальная программа",
             hint: "Что получает пригласивший друга",
-            children: <ReferralProgramAdminCard cardStyle={card} />,
+            children: (
+              <>
+                <ReferralProgramAdminCard cardStyle={card} />
+                {/* Цены в баллах живут рядом с наградой: это две половины
+                    одного — сколько дают и во что это обращается. */}
+                <BonusPointsPricesAdminCard cardStyle={card} />
+              </>
+            ),
           },
         ]}
       />

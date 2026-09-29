@@ -10,6 +10,7 @@ use App\Notifications\InAppNotification;
 use App\Services\InAppNotify;
 use App\Services\Sms\SmsMessenger;
 use App\Services\Sms\SmsTemplate;
+use App\Support\Plural;
 use App\Support\ReferralProgramConfig;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -191,22 +192,6 @@ class ReferralService
         });
     }
 
-    /** «балл», «балла», «баллов» — по числу. */
-    private static function словоБаллы(int $n): string
-    {
-        $сто = $n % 100;
-        $десять = $n % 10;
-        if ($сто >= 11 && $сто <= 14) {
-            return 'баллов';
-        }
-
-        return match ($десять) {
-            1 => 'балл',
-            2, 3, 4 => 'балла',
-            default => 'баллов',
-        };
-    }
-
     /**
      * Отпечаток телефона: только цифры, затем sha256.
      *
@@ -258,7 +243,7 @@ class ReferralService
     private function notifyReferrer(User $referrer, User $invitee, int $points): void
     {
         $name = $invitee->profile?->display_name ?? $invitee->name ?? 'друг';
-        $reward = '+'.$points.' '.self::словоБаллы($points);
+        $reward = '+'.$points.' '.Plural::баллы($points);
 
         InAppNotify::sendQuiet(
             $referrer,

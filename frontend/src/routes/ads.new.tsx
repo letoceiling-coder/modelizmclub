@@ -37,6 +37,7 @@ import {
   priceRubToCents,
 } from "@/lib/api/validationErrors";
 import { isInsufficientFunds } from "@/lib/api/wallet";
+import { insufficientPoints } from "@/lib/api/bonus-points";
 import { notifyBillingChanged } from "@/lib/billing-events";
 import {
   getFeatureFlags,
@@ -893,7 +894,16 @@ function NewAdPage() {
       void navigate({ to: "/my-ads" });
     } catch (err) {
       setSubmitError(true);
-      if (isInsufficientFunds(err)) {
+      const мало = insufficientPoints(err);
+      if (мало) {
+        /*
+         * Баллов не хватает — говорим сколько и никуда не уводим.
+         * Кошелёк тут не поможет: баллы не пополняются деньгами, их
+         * зарабатывают. Человек остаётся на форме и может выбрать другой
+         * способ оплаты.
+         */
+        toast.error(мало.message);
+      } else if (isInsufficientFunds(err)) {
         toast.error(t("pages.subscription.payInsufficientBalance"));
         void navigate({ to: "/settings/wallet" });
       } else {
@@ -1173,12 +1183,15 @@ function NewAdPage() {
         </div>
       </div>
 
+      {/* allowPoints: размещение — та самая вещь, которую баллы замещают.
+          Подписка их не принимает, и там этого свойства нет. */}
       <PaymentSourceDialog
         open={pendingPay !== null}
         onOpenChange={(v) => {
           if (!v) setPendingPay(null);
         }}
         amountRub={pendingPay?.amountRub ?? 0}
+        allowPoints
         onSelect={(source) => void completePaidListing(source)}
         onTopUp={() => {
           setPendingPay(null);

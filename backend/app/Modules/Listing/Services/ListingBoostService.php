@@ -11,7 +11,9 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Support\BonusPointsPrices;
 use Modules\Billing\Contracts\PaymentGateway;
+use Modules\Billing\Services\BonusPointsPaymentService;
 
 class ListingBoostService
 {
@@ -55,7 +57,7 @@ class ListingBoostService
     }
 
     /** @return array<string, mixed> */
-    public function createPromoteCheckout(User $user, Listing $listing, string $packageId, ?string $idempotencyKey): array
+    public function createPromoteCheckout(User $user, Listing $listing, string $packageId, ?string $idempotencyKey, string $payWith = 'gateway'): array
     {
         if ($listing->user_id !== $user->id) {
             throw ValidationException::withMessages([
@@ -78,22 +80,59 @@ class ListingBoostService
         $package = $this->findPackage($packageId);
 
         $frontend = rtrim((string) config('billing.frontend_url'), '/');
+        $описание = "Продвижение «{$listing->title}» — {$package->label()}";
+
+        $metadata = [
+            'payable_type' => 'listing_boost',
+            'listing_id' => $listing->id,
+            'listing_uuid' => $listing->uuid,
+            'package_id' => $packageId,
+            'duration_days' => $package->duration_days,
+            'idempotency_key' => $idempotencyKey,
+            'return_url' => $frontend.'/my-ads?payment=success',
+            'fail_url' => $frontend.'/my-ads?payment=failed',
+        ];
+
+        /*
+         * Баллами — тот же пакет, те же проверки выше, другая касса.
+         *
+         * Проверки («своё объявление», «опубликовано», «уже продвигается»)
+         * намеренно остались общими: развилка стоит после них, иначе
+         * оплата баллами однажды разошлась бы с оплатой деньгами в том,
+         * что вообще разрешено.
+         */
+        if ($payWith === 'points') {
+            $цена = BonusPointsPrices::forBoost($packageId);
+
+            if ($цена <= 0) {
+                throw ValidationException::withMessages([
+                    'pay_with' => ['Этот пакет продвижения баллами не оплачивается.'],
+                ]);
+            }
+
+            $payment = app(BonusPointsPaymentService::class)->pay(
+                $user,
+                $цена,
+                'listing_boost_points',
+                $описание,
+                array_merge($metadata, ['paid_with' => 'points']),
+            );
+
+            return [
+                'payment_uuid' => $payment->uuid,
+                'checkout_url' => null,
+                'status' => 'paid',
+                'provider' => 'points',
+                'points_spent' => $цена,
+            ];
+        }
 
         return $this->gateway->createCheckout(
             $user,
             $package->base_price_cents,
             config('billing.currency', 'RUB'),
-            "Продвижение «{$listing->title}» — {$package->label()}",
-            [
-                'payable_type' => 'listing_boost',
-                'listing_id' => $listing->id,
-                'listing_uuid' => $listing->uuid,
-                'package_id' => $packageId,
-                'duration_days' => $package->duration_days,
-                'idempotency_key' => $idempotencyKey,
-                'return_url' => $frontend.'/my-ads?payment=success',
-                'fail_url' => $frontend.'/my-ads?payment=failed',
-            ],
+            $описание,
+            $metadata,
         );
     }
 

@@ -9,7 +9,11 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\Billing\Contracts\PaymentGateway;
+use App\Support\BonusPointsPrices;
 use Modules\Billing\Exceptions\InsufficientFundsException;
+use Modules\Billing\Exceptions\InsufficientPointsException;
+use Modules\Billing\Services\BonusPointsPaymentService;
+use Modules\Billing\Services\BonusPointsService;
 use Modules\Billing\Services\WalletPaymentService;
 use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Listing\Services\ListingPlacementPricingService;
@@ -26,11 +30,12 @@ class CreatePaymentController extends Controller
             'subcategory_id' => ['nullable', 'integer'],
             'promocode' => ['nullable', 'string', 'max:64'],
             'listing_uuid' => ['nullable', 'uuid'],
-            'pay_with' => ['sometimes', 'nullable', Rule::in(['gateway', 'wallet'])],
+            'pay_with' => ['sometimes', 'nullable', Rule::in(['gateway', 'wallet', 'points'])],
             'idempotency_key' => ['nullable', 'string', 'max:128'],
         ]);
 
-        $payWithWallet = ($data['pay_with'] ?? 'gateway') === 'wallet';
+        $payWith = $data['pay_with'] ?? 'gateway';
+        $payWithWallet = $payWith === 'wallet';
         $payableType = $data['payable_type'] ?? null;
 
         if ($payableType === 'listing_placement') {
@@ -79,6 +84,32 @@ class CreatePaymentController extends Controller
                 'fail_url' => $frontend.'/my-ads?payment=failed',
             ];
 
+            /*
+             * Баллы — до кошелька, потому что это не деньги: они не
+             * уменьшают рублёвый баланс и не попадают в выручку.
+             * Рублёвая цена размещения при этом остаётся в metadata:
+             * она нужна, чтобы знать, что именно человек не заплатил.
+             */
+            if ($payWith === 'points') {
+                /*
+                 * Промокод в оплату баллами не уходит. Цена в баллах
+                 * фиксированная и от скидки не зависит, а выдача
+                 * (`fulfillListingPlacement`) по `promocode_id` списала бы
+                 * код как использованный — человек потерял бы одноразовый
+                 * промокод, не получив от него ничего.
+                 */
+                $метаБезКода = $metadata;
+                $метаБезКода['promocode_id'] = null;
+
+                return $this->payWithPoints(
+                    (int) BonusPointsPrices::forPlacement(),
+                    $request,
+                    'listing_placement_points',
+                    "Размещение объявления: {$categoryName}",
+                    $метаБезКода,
+                );
+            }
+
             if ($payWithWallet) {
                 return $this->payFromWallet(
                     $walletPayment,
@@ -99,6 +130,15 @@ class CreatePaymentController extends Controller
             );
 
             return $this->checkoutResponse($result);
+        }
+
+        if ($payWith === 'points') {
+            // Не «пока нельзя», а решение: подписка месячная, её выгоднее
+            // продавать за деньги. Молча уводить такой запрос в шлюз
+            // нельзя — человек нажал «баллами» и получил бы счёт.
+            throw ValidationException::withMessages([
+                'pay_with' => ['Подписка баллами не оплачивается.'],
+            ]);
         }
 
         $plan = SubscriptionPlan::query()
@@ -150,6 +190,56 @@ class CreatePaymentController extends Controller
     /**
      * @param  array<string, mixed>  $metadata
      */
+    /**
+     * Оплата баллами. Не хватает — отказ с числом, а не «недостаточно».
+     *
+     * @param  array<string, mixed>  $metadata
+     */
+    private function payWithPoints(
+        int $points,
+        Request $request,
+        string $type,
+        string $description,
+        array $metadata,
+    ): JsonResponse {
+        if ($points <= 0) {
+            throw ValidationException::withMessages([
+                'pay_with' => ['Оплата баллами сейчас недоступна.'],
+            ]);
+        }
+
+        try {
+            $payment = app(BonusPointsPaymentService::class)->pay(
+                $request->user(),
+                $points,
+                $type,
+                $description,
+                array_merge($metadata, ['paid_with' => 'points']),
+            );
+        } catch (InsufficientPointsException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'insufficient_points',
+                'points_required' => $points,
+                'points_balance' => $e->balance,
+                'points_short_by' => $e->shortBy,
+                'errors' => ['pay_with' => [$e->getMessage()]],
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'payment_uuid' => $payment->uuid,
+                'checkout_url' => null,
+                'status' => 'paid',
+                'provider' => 'points',
+                'points_spent' => $points,
+                'points_balance' => app(BonusPointsService::class)->balance($request->user()->fresh()),
+            ],
+            'message' => 'Оплачено баллами.',
+        ], 201);
+    }
+
     private function payFromWallet(
         WalletPaymentService $walletPayment,
         Request $request,

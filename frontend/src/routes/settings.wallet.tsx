@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { BonusPointsCard } from "@/components/billing/BonusPointsCard";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDownLeft, ArrowUpRight, Loader2, Plus, Wallet as WalletIcon } from "lucide-react";
@@ -540,6 +541,10 @@ function WalletSection() {
           );
         })}
       </Card>
+
+      {/* Баллы — отдельной карточкой под кошельком: это не рубли, они не
+          выводятся, и смешивать их с балансом нельзя. */}
+      <BonusPointsCard />
 
       <TopupDialog open={topupOpen} onOpenChange={setTopupOpen} />
       <WithdrawDialog open={withdrawOpen} onOpenChange={setWithdrawOpen} onDone={load} />

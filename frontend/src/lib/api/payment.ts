@@ -40,7 +40,12 @@ export interface StubPayResult {
 
 /** Payment source: `gateway` = external acquiring (VTB/stub), `wallet` = debit
  *  the internal balance immediately (backend returns status "paid"). */
-export type PayWith = "gateway" | "wallet";
+/**
+ * Откуда платим. `points` — бонусные баллы: не деньги, не выводятся и
+ * подписку не покрывают (сервер такой запрос отклоняет прямо, а не молча
+ * уводит в шлюз).
+ */
+export type PayWith = "gateway" | "wallet" | "points";
 
 export interface PaymentStatus {
   payment_uuid: string;
