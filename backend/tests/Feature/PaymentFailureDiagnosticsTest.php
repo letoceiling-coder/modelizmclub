@@ -247,6 +247,55 @@ class PaymentFailureDiagnosticsTest extends TestCase
         $this->assertSame(2, $всё, 'без периода должны считаться обе');
     }
 
+    public function test_колбэк_банка_тоже_пишет_причину(): void
+    {
+        /*
+         * Найдено ревью. Диагностику сперва сделали только в сверке, а
+         * колбэк — самый достоверный источник, он сообщает сразу — писал
+         * по-старому: «VTB orderStatus=6» без кода и шага. То есть для
+         * живых платежей причина снова была бы неизвестна.
+         */
+        $user = $this->человек();
+        $p = $this->платёж($user, ['provider_payment_id' => 'order-callback']);
+
+        $this->mock(\Modules\Billing\Clients\VtbAcquiringClient::class, function ($m): void {
+            $m->shouldReceive('getOrderStatusExtended')->andReturn([
+                'errorCode' => '0',
+                'orderStatus' => 6,
+                'actionCode' => 116,
+                'actionCodeDescription' => 'Недостаточно средств',
+            ]);
+        });
+
+        app(\Modules\Billing\Services\VtbPaymentGateway::class)->syncByProviderOrderId('order-callback');
+
+        $p->refresh();
+        $this->assertSame('failed', $p->status);
+        $this->assertSame('insufficient_funds', $p->failure_code, 'колбэк не записал код банка');
+        $this->assertSame('Недостаточно средств', $p->failure_message);
+        $this->assertSame(PaymentFailure::BY_CALLBACK, $p->decided_by);
+    }
+
+    public function test_колбэк_различает_истёкший_заказ(): void
+    {
+        // Тот же orderStatus 6, другой actionCode — и это не отказ.
+        $user = $this->человек();
+        $p = $this->платёж($user, ['provider_payment_id' => 'order-expired']);
+
+        $this->mock(\Modules\Billing\Clients\VtbAcquiringClient::class, function ($m): void {
+            $m->shouldReceive('getOrderStatusExtended')->andReturn([
+                'errorCode' => '0',
+                'orderStatus' => 6,
+                'actionCode' => -2007,
+                'actionCodeDescription' => 'Истекло время сессии',
+            ]);
+        });
+
+        app(\Modules\Billing\Services\VtbPaymentGateway::class)->syncByProviderOrderId('order-expired');
+
+        $this->assertSame('abandoned', $p->fresh()->status, 'истёкший заказ записан как отказ банка');
+    }
+
     public function test_воронка_только_владельцу(): void
     {
         $moderator = User::factory()->create([

@@ -530,12 +530,19 @@ class ReconcilePendingPaymentsCommand extends Command
     {
         $ids = $pending->pluck('id')->all();
         $stillPending = Payment::query()->whereIn('id', $ids)->where('status', 'pending')->count();
-        $closed = Payment::query()->whereIn('id', $ids)->whereIn('status', ['paid', 'failed'])->count();
+        /*
+         * `abandoned` — тоже закрытый платёж, и с 30.09 его закрывает эта же
+         * команда. Не внеся его сюда, самопроверка перестала бы сходиться и
+         * печатала бы «Расхождение» на каждом прогоне, где была брошенная
+         * форма, — то есть тревога об исправных данных.
+         */
+        $closed = Payment::query()->whereIn('id', $ids)->whereIn('status', ['paid', 'failed', 'abandoned'])->count();
         $paid = Payment::query()->whereIn('id', $ids)->where('status', 'paid')->count();
         $failed = Payment::query()->whereIn('id', $ids)->where('status', 'failed')->count();
+        $abandoned = Payment::query()->whereIn('id', $ids)->where('status', 'abandoned')->count();
 
         $this->newLine();
-        $this->line("Закрыто: {$closed} из {$pending->count()} (доведено до оплаты {$paid}, отмечено неудавшимися {$failed}).");
+        $this->line("Закрыто: {$closed} из {$pending->count()} (доведено до оплаты {$paid}, отказов {$failed}, брошенных форм {$abandoned}).");
         $this->line("Осталось в pending: {$stillPending}.");
 
         if ($closed + $stillPending !== $pending->count()) {

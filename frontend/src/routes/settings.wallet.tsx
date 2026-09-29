@@ -152,6 +152,13 @@ function paymentStatusMeta(status: string): {
     return { labelKey: "pages.settings.paymentsStatusPending", variant: "moderation" };
   if (status === "cancelled")
     return { labelKey: "pages.settings.paymentsStatusCancelled", variant: "draft" };
+  /*
+   * Брошенная форма — не «не прошёл». Человеку это разные вещи: в первом
+   * случае он сам ушёл, во втором ему отказали, и второе повод звонить в
+   * банк.
+   */
+  if (status === "abandoned")
+    return { labelKey: "pages.settings.paymentsStatusAbandoned", variant: "draft" };
 
   return { labelKey: "pages.settings.paymentsStatusFailed", variant: "error" };
 }

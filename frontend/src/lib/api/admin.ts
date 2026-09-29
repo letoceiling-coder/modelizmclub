@@ -1519,7 +1519,8 @@ export async function completeAdminPromoPool(uuid: string): Promise<AdminPromoPo
 }
 
 export type AdminPaymentType = "subscription" | "listing" | "listing_boost" | "escrow" | "other";
-export type AdminPaymentStatus = "pending" | "paid" | "failed" | "cancelled";
+/** `abandoned` — форма брошена: банк такого платежа не видел, это не отказ. */
+export type AdminPaymentStatus = "pending" | "paid" | "failed" | "abandoned" | "cancelled";
 
 export interface AdminPaymentRow {
   id: number;

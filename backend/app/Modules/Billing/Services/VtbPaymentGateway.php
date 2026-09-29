@@ -3,6 +3,7 @@
 namespace Modules\Billing\Services;
 
 use App\Models\Payment;
+use App\Support\PaymentFailure;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Modules\Billing\Clients\VtbAcquiringClient;
@@ -129,7 +130,39 @@ class VtbPaymentGateway implements PaymentGateway
         }
 
         if (in_array((int) $orderStatus, [3, 4, 6], true)) {
-            $this->fulfillment->markFailed($payment, 'VTB orderStatus='.$orderStatus);
+            /*
+             * Колбэк — самый достоверный источник: банк сообщает сразу, а
+             * не через четверть часа, как сверка. До 30.09 он писал сюда
+             * только «VTB orderStatus=6» — без кода, без шага, без текста
+             * банка, — и вся диагностика работала лишь в сверке. То есть
+             * для живых платежей причина отказа опять была бы неизвестна.
+             *
+             * `actionCode` лежит в том же ответе, который мы уже прочли.
+             */
+            ['code' => $код, 'message' => $текст] = VtbAcquiringClient::actionCode($status);
+            $наш = PaymentFailure::fromVtbActionCode($код);
+
+            // «Срок заказа истёк» значит, что человек ушёл с формы: банк
+            // отказа не выносил и карту никто не вводил.
+            if ($наш === 'expired') {
+                $this->fulfillment->markAbandoned(
+                    $payment,
+                    'Банк: срок заказа истёк, оплата не начиналась.',
+                    PaymentFailure::STAGE_FORM,
+                    PaymentFailure::BY_CALLBACK,
+                );
+
+                return;
+            }
+
+            $this->fulfillment->markFailed(
+                $payment,
+                'VTB orderStatus='.$orderStatus,
+                $наш,
+                $текст,
+                PaymentFailure::STAGE_BANK,
+                PaymentFailure::BY_CALLBACK,
+            );
         }
     }
 

@@ -29,7 +29,9 @@ class AdminPaymentsController extends Controller
             ],
             'filters' => [
                 'types' => PaymentAccountingType::labels(),
-                'statuses' => ['pending', 'paid', 'failed', 'cancelled'],
+                // `abandoned` — брошенная форма. Без него бухгалтерия не может
+                // отобрать именно отказы: они смешаны с ушедшими людьми.
+                'statuses' => ['pending', 'paid', 'failed', 'abandoned', 'cancelled'],
             ],
         ]);
     }

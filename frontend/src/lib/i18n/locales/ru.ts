@@ -2252,6 +2252,8 @@ export const ru = {
       paymentsStatusPending: "Ожидает оплаты",
       paymentsStatusFailed: "Не прошёл",
       paymentsStatusCancelled: "Отменён",
+
+      paymentsStatusAbandoned: "Оплата не завершена",
       walletHistory: "История пополнений и расходов",
       walletEmpty: "Операций пока нет",
       walletHeld: "Заморожено в сделках",
