@@ -84,6 +84,12 @@ class AdminSettingsController extends Controller
             if ($row['key'] === \App\Support\ReferralProgramConfig::SETTING_KEY) {
                 $value = \App\Support\ReferralProgramConfig::normalize($value);
             }
+            // Цены в баллах: приведение здесь же, чтобы в базу не легло
+            // отрицательное число или строка — настройка распоряжается
+            // тем, что люди заработали.
+            if ($row['key'] === \App\Support\BonusPointsPrices::SETTING_KEY) {
+                $value = \App\Support\BonusPointsPrices::normalize($value);
+            }
             // Настройка распоряжается деньгами покупателя: неизвестное значение
             // отклоняется, а не приводится к умолчанию (см. normalize()).
             if ($row['key'] === SafeDealEscrowConfig::SETTING_KEY) {

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Billing\Http\Controllers\Api\V1\BonusPointsController;
 use Modules\Billing\Http\Controllers\Api\V1\CancelSubscriptionController;
 use Modules\Billing\Http\Controllers\Api\V1\ConfirmStubPaymentController;
 use Modules\Billing\Http\Controllers\Api\V1\CreatePaymentController;
@@ -51,6 +52,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('users/me/subscription', MySubscriptionController::class);
     Route::get('users/me/payments', MyPaymentsController::class);
     Route::get('wallet', WalletBalanceController::class);
+    // Баллы — своя ручка, не внутри кошелька: это не рубли и они не выводятся.
+    Route::get('bonus-points', BonusPointsController::class);
     Route::get('wallet/transactions', WalletTransactionsController::class);
     Route::get('safe-deals', IndexSafeDealsController::class);
     Route::get('safe-deals/{uuid}', ShowSafeDealController::class)->where('uuid', '[0-9a-f-]{36}');
