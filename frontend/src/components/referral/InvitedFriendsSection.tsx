@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ИтогПриглашения } from "./InviteOutcome";
 import { Users, Gift } from "lucide-react";
 import { useReferral } from "@/lib/api/referral";
@@ -80,18 +81,23 @@ export function InvitedFriendsSection() {
                     background: "var(--background)",
                   }}
                 >
-                  <img
-                    src={
-                      u.avatar ??
-                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.displayName)}
-                    width={40}
-                    height={40}
-                    loading="lazy"
-                    decoding="async"`
-                    }
-                    alt=""
-                    className="h-[40px] w-[40px] rounded-full object-cover"
-                  />
+                  {/*
+                    Аватар — общий `UserAvatar`, а не свой тег картинки.
+
+                    Свой здесь был сломан: атрибуты вёрстки (`width`,
+                    `height`, `loading`, `decoding`) оказались ВНУТРИ
+                    шаблонной строки адреса, после `seed=`. То есть у
+                    человека без фотографии адрес картинки содержал
+                    переносы строк и фигурные скобки — браузер показывал
+                    значок битого изображения, — а сам тег оставался без
+                    размеров, то есть без резерва места.
+
+                    Чинить адрес незачем: общий аватар рисует инициалы,
+                    когда фотографии нет или она не загрузилась, и не ходит
+                    за заглушкой к чужому серверу. `profileId` не передаём
+                    намеренно — аватар уже внутри ссылки.
+                  */}
+                  <UserAvatar src={u.avatar} name={u.displayName} size={40} />
                   <div className="min-w-0 flex-1">
                     <div
                       className="truncate font-semibold"
