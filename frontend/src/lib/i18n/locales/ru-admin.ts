@@ -169,7 +169,6 @@ export const ruAdmin = {
         reports: "Жалобы",
         "posts.delete": "Удаление записей",
         "listings.delete": "Удаление объявлений",
-        "dashboard.full": "Сводка с деньгами",
         "users.manage": "Учётки: создание и удаление",
         communities: "Сообщества напрямую",
         diagnostics: "Диагностика",

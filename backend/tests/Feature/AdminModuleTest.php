@@ -103,10 +103,22 @@ class AdminModuleTest extends TestCase
         ]);
     }
 
+    /**
+     * Сводка требует роли сотрудника — и этого достаточно.
+     *
+     * До 29.09 здесь стоял модератор и ожидался 403: маршрут охранялся
+     * владельческим ключом `dashboard.full`, хотя раздел `dashboard`
+     * объявлен модераторским и стоял у модератора в меню. Пункт был,
+     * страница не открывалась.
+     *
+     * Проверка переписана на обычного человека — это и есть то, что имя
+     * теста утверждает. Что сводка открывается модератору, проверяет
+     * `EverySectionOpensForItsRoleTest`.
+     */
     public function test_admin_dashboard_requires_admin_role(): void
     {
-        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
-        $token = $moderator->createToken('api')->plainTextToken;
+        $человек = User::factory()->create(['role' => UserRole::User]);
+        $token = $человек->createToken('api')->plainTextToken;
 
         $this->getJson('/api/v1/admin/dashboard', ['Authorization' => 'Bearer '.$token])
             ->assertForbidden();

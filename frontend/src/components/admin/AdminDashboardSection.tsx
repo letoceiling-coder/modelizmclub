@@ -6,7 +6,6 @@ import { Users, Megaphone, Newspaper, ShieldCheck, UserPlus } from "lucide-react
 import { formatDate } from "@/lib/format/date";
 import {
   fetchDashboard,
-  fetchModeratorDashboardStats,
   fetchAuditLogs,
   type AdminUserRow,
   type AuditEntry,
@@ -20,32 +19,30 @@ export function Dashboard({ role }: { role: AdminRole }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchDashboard>> | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
 
+  /*
+   * Сводку читают одной ручкой — и Владелец, и модератор.
+   *
+   * До 29.09 `/admin/dashboard` была закрыта владельческим ключом, хотя
+   * раздел объявлен модераторским. Фронтенд обходил это двумя лишними
+   * запросами (`/moderation/queue` и `/reports` по одной строке ради
+   * `meta.total`) и собирал объект, где шесть из восьми чисел были нулями.
+   * На экране это не было видно — нулевые карточки и так отфильтрованы
+   * по `adminOnly`, — но два запроса вместо одного уходили, а обход жил
+   * как «так надо».
+   *
+   * Замок снят, обход убран. Что именно показать модератору, по-прежнему
+   * решает `adminOnly` у карточек, а не состав ответа.
+   */
   useEffect(() => {
     let active = true;
+    fetchDashboard()
+      .then((d) => active && setData(d))
+      .catch((e) => reportReadFailure(e, "сводка админки"));
+
+    // Журнал действий — по-прежнему владельческий раздел (`auditLog`).
     if (role === "owner") {
-      fetchDashboard()
-        .then((d) => active && setData(d))
-        .catch((e) => reportReadFailure(e, "сводка админки"));
       fetchAuditLogs()
         .then((a) => active && setAudit(a))
-        .catch((e) => reportReadFailure(e, "сводка админки"));
-    } else {
-      fetchModeratorDashboardStats()
-        .then((stats) => {
-          if (!active) return;
-          setData({
-            usersTotal: 0,
-            postsTotal: 0,
-            communitiesTotal: 0,
-            moderationPending: stats.moderationPending,
-            reportsPending: stats.reportsPending,
-            plansActive: 0,
-            promocodesActive: 0,
-            bannersActive: 0,
-            // График видит только Владелец; модератору ряд не приходит и не нужен.
-            registrationsDaily: [],
-          });
-        })
         .catch((e) => reportReadFailure(e, "сводка админки"));
     }
     return () => {
@@ -178,6 +175,12 @@ export function Dashboard({ role }: { role: AdminRole }) {
         ))}
       </m.div>
 
+      {/*
+        График и журнал — пока только Владельцу. Это решение о составе
+        экрана, а не о правах: ряд регистраций модератору теперь приходит
+        (раздел `users` у него открыт), но показывать ли — вопрос к
+        заказчику, и молча расширять экран я не стал.
+      */}
       {role === "owner" && (
         <>
           {/* Chart */}

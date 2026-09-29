@@ -761,7 +761,6 @@ const КРИТИЧНЫЕ: Record<string, string> = {
   monetizationPayments: "деньги площадки",
   monetizationLedger: "деньги площадки",
   monetizationPromos: "деньги площадки",
-  "dashboard.full": "сводка с деньгами",
   rulesPages: "страница принимает готовый HTML и рисуется как есть",
   legalPages: "страница принимает готовый HTML и рисуется как есть",
 };
@@ -1020,7 +1019,6 @@ function название(ключ: string, t: (k: string) => string): string {
     reports: "Жалобы",
     "posts.delete": "Удаление записей",
     "listings.delete": "Удаление объявлений",
-    "dashboard.full": "Сводка с деньгами",
     "users.manage": "Создание и удаление учёток",
     "users.fields": "Правка роли, почты, пароля",
     "categories.prices": "Цены размещения",

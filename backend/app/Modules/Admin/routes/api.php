@@ -162,7 +162,21 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function (): void {
         Route::apiResource('users', AdminUserController::class)->parameters(['users' => 'uuid'])->only(['store', 'destroy']);
     });
 
-    Route::middleware('admin.section:dashboard.full')->group(function (): void {
+    /*
+     * Сводка — по разделу, а не по владельческому ключу.
+     *
+     * Ключ `dashboard.full` назывался «сводка с деньгами» и был только у
+     * Владельца, а раздел `dashboard` объявлен модераторским и потому
+     * стоял у модератора в меню. Пункт был, страница отвечала 403 —
+     * проверено запросом к проду 29.09 под учёткой 1207.
+     *
+     * Денег в сводке нет вовсе: девять счётчиков (люди, записи,
+     * сообщества, очередь модерации, жалобы, активные тарифы, промокоды,
+     * баннеры) и график регистраций. Прочитано целиком в
+     * `AdminDashboardService::stats`. То есть замок стоял на данных,
+     * которых он не защищает.
+     */
+    Route::middleware('admin.section:dashboard')->group(function (): void {
         Route::get('dashboard', AdminDashboardController::class);
     });
 

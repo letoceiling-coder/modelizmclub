@@ -24,6 +24,14 @@ class AdminAccessTest extends TestCase
 
     /** Маршруты разделов Модератора — по одному-два на раздел. */
     private const SHARED_GETS = [
+        /*
+         * Сводка переехала сюда 29.09 из владельческого списка. Раздел
+         * `dashboard` объявлен модераторским и стоял у модератора в меню,
+         * а маршрут охранялся ключом `dashboard.full` со значением
+         * `owner`: пункт был, страница отвечала 403. Денег в сводке нет —
+         * девять счётчиков и график регистраций.
+         */
+        '/api/v1/admin/dashboard',
         '/api/v1/admin/moderation/queue',
         '/api/v1/admin/reports',
         '/api/v1/admin/feedback',
@@ -41,7 +49,6 @@ class AdminAccessTest extends TestCase
 
     /** Маршруты Владельца: настройки, платежи, роли, лендинг, журнал. */
     private const OWNER_GETS = [
-        '/api/v1/admin/dashboard',
         '/api/v1/admin/settings',
         '/api/v1/admin/payments',
         '/api/v1/admin/plans',
