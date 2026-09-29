@@ -2,9 +2,8 @@
 
 namespace Modules\Billing\Notifications;
 
-use App\Enums\SafeDealFeePayer;
-use App\Enums\SafeDealStatus;
 use App\Models\SafeDeal;
+use App\Support\SafeDealOutcome;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -112,50 +111,34 @@ class SafeDealStatusNotification extends Notification implements ShouldQueue
     /** Комиссию платит покупатель? У сделок до 27.09 — нет. */
     private function комиссияПокупателя(): bool
     {
-        return ($this->deal->fee_payer ?? SafeDealFeePayer::Seller) === SafeDealFeePayer::Buyer;
+        return SafeDealOutcome::feePaidByBuyer($this->deal);
     }
 
     /**
      * Фактические доли при разделении суммы в споре.
      *
-     * `splitPayout` не трогает `seller_payout_kopecks` и `amount_kopecks`
-     * — доли пишутся сюда. Значит это и есть единственное место, где
-     * записано, сколько кому досталось на самом деле.
+     * Считает общий `SafeDealOutcome`: тот же вопрос задают выгрузка
+     * реестра и сводка бухгалтерии, и три ответа на него однажды
+     * разошлись бы молча.
      *
      * @return array{buyer: int, seller: int}|null
      */
     private function доли(): ?array
     {
-        $split = $this->deal->metadata['split'] ?? null;
+        $доли = SafeDealOutcome::split($this->deal);
 
-        if (! is_array($split) || ! array_key_exists('seller_kopecks', $split)) {
-            return null;
-        }
-
-        return [
-            'buyer' => (int) ($split['buyer_kopecks'] ?? 0),
-            'seller' => (int) ($split['seller_kopecks'] ?? 0),
-        ];
+        return $доли === null ? null : ['buyer' => $доли['buyer'], 'seller' => $доли['seller']];
     }
 
     /** Деньги вернулись покупателю целиком: отмена или возврат без разделения. */
     private function этоВозврат(): bool
     {
-        $status = $this->deal->status instanceof SafeDealStatus
-            ? $this->deal->status
-            : SafeDealStatus::tryFrom((string) $this->deal->status);
-
-        return $this->доли() === null
-            && in_array($status, [SafeDealStatus::Cancelled, SafeDealStatus::Refunded], true);
+        return SafeDealOutcome::kind($this->deal) === SafeDealOutcome::REFUND;
     }
 
     private function завершена(): bool
     {
-        $status = $this->deal->status instanceof SafeDealStatus
-            ? $this->deal->status
-            : SafeDealStatus::tryFrom((string) $this->deal->status);
-
-        return $status === SafeDealStatus::Completed;
+        return SafeDealOutcome::kind($this->deal) === SafeDealOutcome::COMPLETED;
     }
 
     /** @return list<string> */

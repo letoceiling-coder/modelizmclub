@@ -3,6 +3,7 @@
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Enums\SafeDealFeePayer;
+use App\Support\SafeDealOutcome;
 use App\Http\Controllers\Controller;
 use App\Models\SafeDeal;
 use Illuminate\Database\Eloquent\Builder;
@@ -69,6 +70,26 @@ class AdminSafeDealController extends Controller
                 'К выплате продавцу (₽)',
                 'Доставка (₽)',
                 'Надбавка площадки (₽)',
+                /*
+                 * План и факт — разными столбцами, и это не дублирование.
+                 *
+                 * Столбцы выше описывают сделку как договорились: товар,
+                 * комиссия, итог покупателя, «к выплате продавцу». При
+                 * разрешении спора делением ни одна из этих колонок не
+                 * меняется — фактические доли пишутся в `metadata.split`, —
+                 * и сделка #28 на проде показывала «к выплате 950 ₽» там,
+                 * где выплачено 400 ₽.
+                 *
+                 * Переписать плановые столбцы фактом нельзя: по ним сходится
+                 * арифметика строки (товар + комиссия = итог покупателя).
+                 * Поэтому факт добавлен рядом и назван фактом — суммировать
+                 * в бухгалтерии надо эти три столбца, и по их названиям это
+                 * видно без пояснений.
+                 */
+                'Исход',
+                'Фактически продавцу (₽)',
+                'Фактически возвращено покупателю (₽)',
+                'Фактически удержано площадкой (₽)',
                 'Способ доставки',
                 'Трек-номер',
                 'Оплачена',
@@ -96,6 +117,10 @@ class AdminSafeDealController extends Controller
                         $this->rub($deal->seller_payout_kopecks),
                         $this->rub($deal->delivery_cost_kopecks),
                         $this->rub((int) ($deal->metadata['delivery_markup_kopecks'] ?? 0)),
+                        SafeDealOutcome::label($deal),
+                        $this->rub(SafeDealOutcome::paidToSeller($deal)),
+                        $this->rub(SafeDealOutcome::returnedToBuyer($deal)),
+                        $this->rub(SafeDealOutcome::retainedByPlatform($deal)),
                         $deal->delivery_method,
                         $deal->tracking_number,
                         $deal->paid_at?->toDateTimeString(),
