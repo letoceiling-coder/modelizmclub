@@ -125,7 +125,18 @@ fi
 git worktree add --detach "${WORKTREE}" HEAD
 cd "${WORKTREE}/frontend"
 bun install --frozen-lockfile
-bun run build
+
+# Предел кучи Node, а не память машины.
+#
+# Сборка обрывается на `rendering chunks` серверной части — уже после
+# успешной клиентской, — и падение выглядит как SIGABRT без объяснения.
+# Разобрано и записано 26.09 в docs/known-issues.md вместе с лекарством,
+# но лекарство тогда осталось в документе: 29.09 выкатка упала здесь же,
+# ровно с теми же словами, и фронт на проде остался от прошлого релиза.
+#
+# Значение можно перебить снаружи — потолок растёт вместе с проектом, и
+# однажды четырёх гигабайт снова не хватит.
+NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}" bun run build
 
 chown -R www-data:www-data "${WORKTREE}/frontend/.output"
 

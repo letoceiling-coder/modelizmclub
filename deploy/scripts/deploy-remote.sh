@@ -15,7 +15,15 @@
 # его продолжаем, чтобы прежние вызовы не падали.
 set -uo pipefail
 SHA="$1"; ROUTES="${2:-auto}"; LOG="/tmp/deploy-$SHA.log"
-cd /var/www/modelizmclub
+# Каталог приложения — переменной, а не намертво.
+#
+# Не ради гибкости: выкатку иначе нельзя прогнать целиком ни в одном
+# месте, кроме прода. 29.09 сборка фронта упала, ссылка осталась на
+# прежнем релизе, а журнал кончился словом DONE — и проверить, что скрипт
+# теперь отвечает иначе, можно только запустив его. Проверка
+# `deploy/scripts/tests/deploy-remote-says-failed.sh` поднимает подменное
+# дерево и запускает этот же файл, а не его пересказ.
+cd "${DEPLOY_APP_DIR:-/var/www/modelizmclub}"
 {
   echo "start $(date -Is) sha=$SHA routes=$ROUTES"
   bash deploy/scripts/backup-db.sh --pre-deploy 2>&1 | tail -1 || { echo "FAIL backup"; exit 1; }
@@ -58,7 +66,24 @@ cd /var/www/modelizmclub
   (cd backend && sudo -u www-data php artisan catalog:flush-cache 2>&1 | tail -1) \
     || echo "catalog cache flush failed"
   systemctl reload php8.3-fpm && systemctl restart modelizmclub-worker modelizmclub-media-worker && echo reloaded
-  bash deploy/scripts/deploy-frontend.sh > "/tmp/deploy-fe-$SHA.log" 2>&1; echo "frontend=$?"; tail -1 "/tmp/deploy-fe-$SHA.log"
+  # Отказ сборки фронта — отказ выкатки, а не строчка в журнале.
+  #
+  # 29.09 сборка упала по нехватке кучи Node, символическая ссылка
+  # осталась на прежнем релизе, и журнал закончился словом DONE. То есть
+  # выкатка отчиталась об успехе, а правка фронтенда на сайт не попала:
+  # проверять это надо было по `frontend=134` в середине журнала — числу,
+  # которое ничего не говорит, если его не искать.
+  #
+  # Код запоминаем, работу доводим до конца (дымовая проба и сверка схемы
+  # относятся к бэкенду, который уже выкачен), а итог называем честно.
+  bash deploy/scripts/deploy-frontend.sh > "/tmp/deploy-fe-$SHA.log" 2>&1
+  FRONTEND_CODE=$?
+  echo "frontend=$FRONTEND_CODE"; tail -1 "/tmp/deploy-fe-$SHA.log"
+  if [ "$FRONTEND_CODE" -ne 0 ]; then
+    echo "ВНИМАНИЕ: фронтенд НЕ собран — сайт отдаёт прежний релиз."
+    echo "  Журнал сборки: /tmp/deploy-fe-$SHA.log"
+    echo "  Пересобрать: cd /var/www/modelizmclub && NODE_OPTIONS=--max-old-space-size=8192 bash deploy/scripts/deploy-frontend.sh"
+  fi
   bash deploy/scripts/smoke-check.sh 2>&1 | tail -1
   bash deploy/scripts/schema-drift.sh 2>&1 | tail -1
   bash deploy/scripts/access-map-drift.sh 2>&1 | head -1
@@ -79,5 +104,9 @@ cd /var/www/modelizmclub
     echo "  Выкатка идёт по старому сценарию. Обновить:"
     echo "  cp /var/www/modelizmclub/deploy/scripts/deploy-remote.sh $0 && bash -n $0"
   fi
-  echo "DONE $(date -Is) head=$(git rev-parse --short HEAD)"
+  if [ "$FRONTEND_CODE" -ne 0 ]; then
+    echo "FAILED $(date -Is) head=$(git rev-parse --short HEAD) — бэкенд выкачен, фронтенд нет"
+  else
+    echo "DONE $(date -Is) head=$(git rev-parse --short HEAD)"
+  fi
 } > "$LOG" 2>&1
