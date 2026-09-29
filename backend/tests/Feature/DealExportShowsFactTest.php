@@ -146,6 +146,49 @@ class DealExportShowsFactTest extends TestCase
         $this->assertSame('0,00', $строки[1][$this->столбец($ш, 'Фактически продавцу (₽)')]);
     }
 
+    public function test_сводка_и_выгрузка_отвечают_одинаково(): void
+    {
+        /*
+         * Один вопрос — «сколько площадка удержала» — задают два места, и
+         * отвечают они по-разному устроенным кодом: сводка считает SQL
+         * (`not jsonb_exists(metadata, 'split')`), выгрузка — классом
+         * `SafeDealOutcome`. Пока их не сверяет ничто, они согласованы «по
+         * коду», то есть до первой правки одного из них.
+         *
+         * Ради этого здесь набор из всех четырёх исходов: если правило
+         * разойдётся хоть на одном, числа перестанут совпадать.
+         */
+        $this->сделка();
+        $this->сделка([
+            'metadata' => ['split' => ['buyer_kopecks' => 65000, 'seller_kopecks' => 40000, 'fee_returned_kopecks' => 5000]],
+        ]);
+        $this->сделка(['status' => SafeDealStatus::Cancelled]);
+        $this->сделка(['status' => SafeDealStatus::Paid]);
+
+        $admin = $this->owner();
+
+        $строки = $this->выгрузка($admin);
+        $ш = $строки[0];
+        $i = $this->столбец($ш, 'Фактически удержано площадкой (₽)');
+        $число = static fn (string $v): float => (float) str_replace(',', '.', $v);
+        $поВыгрузке = array_sum(array_map(fn ($r) => $число($r[$i]), array_slice($строки, 1)));
+
+        $поСводке = (int) $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/ledger/totals')
+            ->assertOk()
+            ->json('data.commission_kopecks');
+
+        // Приведение явное: точное деление int на int в PHP даёт int, и
+        // assertSame сравнивает типы — 50 и 50.0 разошлись бы на ровном месте.
+        $this->assertSame(
+            (float) ($поСводке / 100),
+            $поВыгрузке,
+            'сводка и выгрузка разошлись в том, сколько площадка удержала',
+        );
+        // И контроль, что сравнение не «ноль равен нулю».
+        $this->assertSame(50.0, $поВыгрузке);
+    }
+
     public function test_сумма_столбца_факта_равна_тому_что_ушло(): void
     {
         /*
