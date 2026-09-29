@@ -74,22 +74,6 @@ export async function fetchAdminDiagnostics(): Promise<AdminDiagnostics> {
   return res.data;
 }
 
-/** Moderator-safe dashboard counters (no admin-only /admin/dashboard). */
-export async function fetchModeratorDashboardStats(): Promise<
-  Pick<AdminDashboard, "moderationPending" | "reportsPending">
-> {
-  const [modRes, repRes] = await Promise.all([
-    api<Paginated<unknown>>("/admin/moderation/queue", {
-      query: { status: "pending", per_page: 1 },
-    }),
-    api<Paginated<unknown>>("/admin/reports", { query: { status: "pending", per_page: 1 } }),
-  ]);
-  return {
-    moderationPending: modRes.meta?.total ?? modRes.data?.length ?? 0,
-    reportsPending: repRes.meta?.total ?? repRes.data?.length ?? 0,
-  };
-}
-
 export interface AuditEntry {
   id: string;
   user: string;
