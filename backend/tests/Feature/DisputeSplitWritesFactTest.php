@@ -137,6 +137,40 @@ class DisputeSplitWritesFactTest extends TestCase
         $this->assertSame(0, (int) $deal->platform_fee_kopecks, 'по возвращённой сделке комиссия не удерживается');
     }
 
+    public function test_любой_путь_в_отмену_обнуляет_колонки(): void
+    {
+        /*
+         * Найдено ревью. Путей в отмену четыре, я починил два. Через
+         * `expireCheckout` идёт любая отклонённая банком карта и брошенный
+         * чекаут — по таким сделкам колонки оставались с планом, и строка
+         * получалась самой себе противоречащей: «возврат покупателю,
+         * комиссия 50 ₽».
+         *
+         * Третья заплата ничего бы не гарантировала, поэтому обнуление
+         * принадлежит переходу (`SafeDeal::booted`). Проверка идёт тем
+         * путём, который я пропустил.
+         */
+        $deal = SafeDeal::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'buyer_id' => $this->человек()->id,
+            'seller_id' => $this->человек()->id,
+            'status' => SafeDealStatus::Created,
+            'item_kopecks' => 100000,
+            'platform_fee_kopecks' => 5000,
+            'delivery_cost_kopecks' => 0,
+            'amount_kopecks' => 105000,
+            'seller_payout_kopecks' => 100000,
+            'fee_payer' => SafeDealFeePayer::Buyer,
+        ]);
+
+        app(SafeDealService::class)->expireCheckout($deal);
+
+        $deal->refresh();
+        $this->assertSame(SafeDealStatus::Cancelled, $deal->status);
+        $this->assertSame(0, (int) $deal->seller_payout_kopecks, 'брошенный чекаут оставил план в колонке');
+        $this->assertSame(0, (int) $deal->platform_fee_kopecks, 'по неоплаченной сделке комиссия не удерживается');
+    }
+
     public function test_разрешение_в_пользу_продавца_колонки_не_меняет(): void
     {
         /*

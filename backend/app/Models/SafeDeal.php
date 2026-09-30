@@ -46,6 +46,40 @@ class SafeDeal extends Model
         'metadata',
     ];
 
+    /**
+     * Отменённая сделка не хранит ни выплаты, ни комиссии.
+     *
+     * ПОЧЕМУ ЗДЕСЬ, А НЕ В СЕРВИСЕ. Путей в отмену четыре, и 30.09 я
+     * починил два: `refundBuyer` и разделение спора. Ревью нашло два
+     * оставшихся — `expireCheckout` (через него идёт любая отклонённая
+     * банком карта и брошенный чекаут) и провал предавторизации в
+     * `create`. По ним колонки остались бы с планом, и строка выглядела
+     * бы так: «Исход — возврат покупателю, комиссия 50 ₽» — сама себе
+     * противоречащая.
+     *
+     * Третья заплата ничего бы не гарантировала: пятый путь появился бы
+     * тем же способом. Поэтому обнуление принадлежит **переходу**, а не
+     * месту вызова: строка со статусом «отменена» или «возвращена»
+     * физически не может нести ненулевые деньги.
+     *
+     * Разделения спора это не касается: там статус `completed`, а долю
+     * продавца и ноль комиссии пишет `splitPayout` — величины, которые
+     * знает только он.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $deal): void {
+            $status = $deal->status instanceof SafeDealStatus
+                ? $deal->status
+                : SafeDealStatus::tryFrom((string) $deal->status);
+
+            if (in_array($status, [SafeDealStatus::Cancelled, SafeDealStatus::Refunded], true)) {
+                $deal->seller_payout_kopecks = 0;
+                $deal->platform_fee_kopecks = 0;
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

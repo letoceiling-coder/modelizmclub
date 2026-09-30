@@ -858,11 +858,10 @@ class SafeDealService
                 'status' => $finalStatus,
                 'cancelled_at' => now(),
                 'refund_transaction_id' => $refund?->id,
-                // По возвращённой сделке продавец не получает ничего, и
-                // комиссия не удерживается. Оставлять здесь план значит
-                // повторять ту же ложь, что была у разделения.
-                'seller_payout_kopecks' => 0,
-                'platform_fee_kopecks' => 0,
+                // Выплату и комиссию обнулять здесь не нужно: это делает
+                // переход в отмену — см. `SafeDeal::booted`. Раньше стояло
+                // тут, и ровно поэтому два других пути в отмену остались
+                // с планом.
             ]);
 
             $this->log($deal, $actor, $finalStatus->value, (int) $deal->amount_kopecks, $refund?->id, $note);

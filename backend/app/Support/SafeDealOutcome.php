@@ -129,6 +129,27 @@ final class SafeDealOutcome
         return self::kind($deal) === self::COMPLETED ? (int) $deal->platform_fee_kopecks : 0;
     }
 
+    /**
+     * Сколько комиссии лежало в удержании.
+     *
+     * Считается из величин, которые не меняются: удержание минус товар
+     * минус доставка. Понадобилось после 30.09: отменённая сделка теперь
+     * держит в `platform_fee_kopecks` ноль — это факт, площадка ничего не
+     * получила, — но письмо покупателю обязано сказать, что комиссия
+     * вернулась вместе с суммой. По обнулённой колонке этого не узнать.
+     *
+     * У сделок до 27.09 комиссия в удержание не входила, и здесь выйдет
+     * ноль — правильно: покупателю её не возвращают, он её и не платил.
+     */
+    public static function feeHeld(SafeDeal $deal): int
+    {
+        $разница = (int) $deal->amount_kopecks
+            - (int) $deal->item_kopecks
+            - (int) $deal->delivery_cost_kopecks;
+
+        return max(0, $разница);
+    }
+
     /** Комиссию платит покупатель? У сделок до 27.09 — нет. */
     public static function feePaidByBuyer(SafeDeal $deal): bool
     {
