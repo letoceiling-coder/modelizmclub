@@ -1,18 +1,30 @@
 #!/usr/bin/env bash
 # End-to-end password reset smoke on production API.
 set -euo pipefail
+# Пароли — из защищённого файла, как у остальных дымовых скриптов.
+#
+# Прежде начальный пароль стоял строкой прямо в теле tinker, а новый —
+# умолчанием переменной. Учётка здесь расходная (`reset-smoke@…`), так
+# что вреда живым людям не было, но источник пароля всё равно должен
+# быть один: иначе при смене его правят в десяти местах и забывают в
+# одиннадцатом — так и вышло.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/qa-secrets.sh"
+QA_PASSWORD="$(qa_password)"
+
 API="${API_BASE:-https://api.modelizmclub.ru/api/v1}"
 EMAIL="${1:-reset-smoke@example.com}"
-NEW_PASS="${2:-SmokeReset999!}"
+# Новый пароль отличается от прежнего: смысл проверки в том, что он
+# меняется. Берём тот же источник и приписываем признак.
+NEW_PASS="${2:-${QA_PASSWORD}-reset}"
 APP_DIR="${APP_DIR:-/var/www/modelizmclub}"
 
 echo "=== ensure test user ==="
 cd "$APP_DIR/backend"
-php artisan tinker --execute="
+QA_PASSWORD="${QA_PASSWORD}" php artisan tinker --execute="
 \$email = '$EMAIL';
 \$u = App\\Models\\User::firstOrCreate(['email' => \$email], [
   'name' => 'Reset Smoke',
-  'password' => 'OldSmoke999!',
+  'password' => (string) getenv('QA_PASSWORD'),
   'status' => App\\Enums\\UserStatus::Active,
   'role' => App\\Enums\\UserRole::User,
   'email_verified_at' => now(),
@@ -55,8 +67,10 @@ LOGIN=$(curl -sS -w '\nHTTP:%{http_code}' -X POST "$API/auth/login" \
 echo "$LOGIN" | head -c 400
 
 echo
+# Прежний пароль после сброса обязан перестать работать — это и есть
+# смысл проверки. Берём его из того же источника, что и при создании.
 echo "=== login old password (expect 422) ==="
 OLD=$(curl -sS -w '\nHTTP:%{http_code}' -X POST "$API/auth/login" \
   -H 'Accept: application/json' -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$EMAIL\",\"password\":\"OldSmoke999!\"}")
+  -d "{\"email\":\"$EMAIL\",\"password\":\"${QA_PASSWORD}\"}")
 echo "$OLD" | head -c 200
