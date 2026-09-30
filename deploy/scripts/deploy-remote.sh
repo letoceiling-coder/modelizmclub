@@ -14,7 +14,32 @@
 # 404 при живом коде. Теперь довод не нужен, скрипт смотрит сам; принимать
 # его продолжаем, чтобы прежние вызовы не падали.
 set -uo pipefail
-SHA="$1"; ROUTES="${2:-auto}"; LOG="/tmp/deploy-$SHA.log"
+SHA="$1"; ROUTES="${2:-auto}"
+
+# Журналы выкаток — в постоянный каталог, не в /tmp.
+#
+# ПОЧЕМУ. В tmpfiles.d стоит `D /tmp` — заглавная `D` очищает каталог
+# ПРИ ЗАГРУЗКЕ, а не по возрасту. Перезагрузка 22.09 стёрла всю историю
+# выкаток до неё, и это выяснилось только 30.09, когда понадобилось
+# разобрать неудачную выкатку недельной давности.
+#
+# Ровно это же мешало искать следы 13.09: история root оборвана той же
+# перезагрузкой. Журнал, который может исчезнуть между происшествием и
+# разбором, — не журнал.
+#
+# Каталог заводится здесь, а не установщиком: сценарий выполняется из
+# копии в /root, и полагаться на то, что кто-то заранее создал путь,
+# значит однажды потерять журнал из-за отсутствующей папки.
+LOG_DIR="${DEPLOY_LOG_DIR:-/var/log/modelizmclub}"
+mkdir -p "$LOG_DIR" 2>/dev/null || LOG_DIR=/tmp
+chmod 750 "$LOG_DIR" 2>/dev/null || true
+LOG="$LOG_DIR/deploy-$SHA.log"
+FE_LOG="$LOG_DIR/deploy-fe-$SHA.log"
+
+# Старые журналы убираются здесь же, а не внешней ротацией: ротацию надо
+# устанавливать, а установку — не забыть. Держим последние сорок выкаток
+# (это около двух недель при нынешнем темпе) вместе с журналами сборки.
+ls -1t "$LOG_DIR"/deploy-*.log 2>/dev/null | tail -n +81 | xargs -r rm -f 2>/dev/null || true
 # Каталог приложения — переменной, а не намертво.
 #
 # Не ради гибкости: выкатку иначе нельзя прогнать целиком ни в одном
@@ -76,12 +101,12 @@ cd "${DEPLOY_APP_DIR:-/var/www/modelizmclub}"
   #
   # Код запоминаем, работу доводим до конца (дымовая проба и сверка схемы
   # относятся к бэкенду, который уже выкачен), а итог называем честно.
-  bash deploy/scripts/deploy-frontend.sh > "/tmp/deploy-fe-$SHA.log" 2>&1
+  bash deploy/scripts/deploy-frontend.sh > "$FE_LOG" 2>&1
   FRONTEND_CODE=$?
-  echo "frontend=$FRONTEND_CODE"; tail -1 "/tmp/deploy-fe-$SHA.log"
+  echo "frontend=$FRONTEND_CODE"; tail -1 "$FE_LOG"
   if [ "$FRONTEND_CODE" -ne 0 ]; then
     echo "ВНИМАНИЕ: фронтенд НЕ собран — сайт отдаёт прежний релиз."
-    echo "  Журнал сборки: /tmp/deploy-fe-$SHA.log"
+    echo "  Журнал сборки: $FE_LOG"
     echo "  Пересобрать: cd /var/www/modelizmclub && NODE_OPTIONS=--max-old-space-size=8192 bash deploy/scripts/deploy-frontend.sh"
   fi
   bash deploy/scripts/smoke-check.sh 2>&1 | tail -1
