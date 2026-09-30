@@ -27,6 +27,11 @@ trap 'rm -rf "$STAND"' EXIT
 
 # Подменные команды: настоящие systemctl, sudo и php на стенде не нужны и
 # недоступны. Пусть молча соглашаются.
+# Журналы выкатки — в свой каталог: с 30.09 путь задаётся переменной, и
+# проверка заодно стережёт, что журнал ложится туда, куда сказано.
+LOGS="$STAND/logs"
+mkdir -p "$LOGS"
+
 mkdir -p "$STAND/bin"
 for name in systemctl sudo php curl; do
   printf '#!/bin/sh\nexit 0\n' > "$STAND/bin/$name"
@@ -63,9 +68,8 @@ run_once() {
   git push -q origin HEAD:master
   local sha
   sha="$(git rev-parse HEAD)"
-  DEPLOY_APP_DIR="$TREE" bash deploy/scripts/deploy-remote.sh "$sha" >/dev/null 2>&1
-  tail -1 "/tmp/deploy-$sha.log"
-  rm -f "/tmp/deploy-$sha.log" "/tmp/deploy-fe-$sha.log"
+  DEPLOY_APP_DIR="$TREE" DEPLOY_LOG_DIR="$LOGS" bash deploy/scripts/deploy-remote.sh "$sha" >/dev/null 2>&1
+  tail -1 "$LOGS/deploy-$sha.log"
 }
 
 broken="$(run_once 134)"
@@ -90,6 +94,12 @@ esac
 # требует bun; смотрим, что предел задан.
 if ! grep -q 'max-old-space-size' "$ROOT/deploy/scripts/deploy-frontend.sh"; then
   echo "deploy-frontend.sh собирает фронт без предела кучи Node — вернётся падение 29.09"
+  errors=1
+fi
+
+# Журнал лёг в заданный каталог, а не в /tmp.
+if [ "$(ls -1 "$LOGS"/deploy-*.log 2>/dev/null | wc -l | tr -d ' ')" -lt 2 ]; then
+  echo "журналы выкаток не легли в \$DEPLOY_LOG_DIR — значит путь не переносится"
   errors=1
 fi
 
