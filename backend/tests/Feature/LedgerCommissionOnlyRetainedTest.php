@@ -82,7 +82,18 @@ class LedgerCommissionOnlyRetainedTest extends TestCase
          * возвращённая комиссия, продавцу — его. Площадке не остаётся
          * ничего, и записывать это в доход нельзя.
          */
+        /*
+         * Заготовка представляет законное состояние: с 30.09 разделённая
+         * сделка держит факт и в колонках — комиссия ноль, потому что
+         * площадка ничего не удержала.
+         *
+         * Что колонки заполняет сам код, проверяет
+         * `DisputeSplitWritesFactTest`: оно идёт через настоящее
+         * разрешение спора. Здесь остаётся сторож отбора по статусу.
+         */
         $this->сделка([
+            'platform_fee_kopecks' => 0,
+            'seller_payout_kopecks' => 45000,
             'metadata' => ['split' => ['buyer_kopecks' => 60000, 'seller_kopecks' => 45000]],
         ]);
 
@@ -92,7 +103,18 @@ class LedgerCommissionOnlyRetainedTest extends TestCase
     public function test_a_split_deal_does_not_inflate_the_others(): void
     {
         $this->сделка();
+        /*
+         * Заготовка представляет законное состояние: с 30.09 разделённая
+         * сделка держит факт и в колонках — комиссия ноль, потому что
+         * площадка ничего не удержала.
+         *
+         * Что колонки заполняет сам код, проверяет
+         * `DisputeSplitWritesFactTest`: оно идёт через настоящее
+         * разрешение спора. Здесь остаётся сторож отбора по статусу.
+         */
         $this->сделка([
+            'platform_fee_kopecks' => 0,
+            'seller_payout_kopecks' => 45000,
             'metadata' => ['split' => ['buyer_kopecks' => 60000, 'seller_kopecks' => 45000]],
         ]);
 
