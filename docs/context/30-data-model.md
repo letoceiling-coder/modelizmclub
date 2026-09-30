@@ -3,6 +3,10 @@
 > **Снимок 03.09.2026 (`ecb4d60`). С тех пор 520 коммитов и 835 изменённых
 > файлов — читайте как историю, а не как сегодняшнее состояние.**
 > Что здесь заведомо неверно — [`README.md`](README.md).
+>
+> **Живой источник:** `backend/database/schema/objects.txt` — эталон
+> схемы, пересобирается `deploy/scripts/schema-drift.sh --update-baseline`
+> и стережётся воротами CI.
 
 103 модели в `backend/app/Models`, 84 миграции. Срез `origin/master` @ `ecb4d60`.
 Связи извлечены из объявлений `hasMany`/`belongsTo`/`hasOne`/`belongsToMany`/
