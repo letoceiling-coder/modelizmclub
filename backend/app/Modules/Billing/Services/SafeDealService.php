@@ -858,6 +858,11 @@ class SafeDealService
                 'status' => $finalStatus,
                 'cancelled_at' => now(),
                 'refund_transaction_id' => $refund?->id,
+                // По возвращённой сделке продавец не получает ничего, и
+                // комиссия не удерживается. Оставлять здесь план значит
+                // повторять ту же ложь, что была у разделения.
+                'seller_payout_kopecks' => 0,
+                'platform_fee_kopecks' => 0,
             ]);
 
             $this->log($deal, $actor, $finalStatus->value, (int) $deal->amount_kopecks, $refund?->id, $note);
@@ -962,6 +967,25 @@ class SafeDealService
                 'cancelled_at' => $sellerKopecks === 0 ? now() : null,
                 'payout_transaction_id' => $payout?->id,
                 'refund_transaction_id' => $refund?->id,
+                /*
+                 * Колонки — фактом, а не планом.
+                 *
+                 * До 30.09 они оставались прежними, и по строке нельзя было
+                 * узнать, сколько на самом деле ушло. Каждый читатель узнавал
+                 * это сам, и каждый — отдельной правкой: письмо о сделке,
+                 * сводка бухгалтерии, выгрузка реестра. Четвёртым оказалась
+                 * страница сделки: продавцу показывали «Выплата 950 ₽» там,
+                 * где он получил 400.
+                 *
+                 * Комиссия — ноль: удержание раздано целиком, площадка по
+                 * разделённой сделке не получает ничего. Сколько её
+                 * вернулось покупателю, осталось в `metadata.split`.
+                 *
+                 * Делимое считается ВЫШЕ, до этого обновления, — иначе
+                 * обнулённая комиссия изменила бы саму пропорцию.
+                 */
+                'seller_payout_kopecks' => $sellerKopecks,
+                'platform_fee_kopecks' => 0,
                 'metadata' => array_merge($deal->metadata ?? [], [
                     'split' => [
                         'buyer_kopecks' => $buyerKopecks,
