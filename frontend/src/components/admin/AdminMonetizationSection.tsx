@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, m } from "framer-motion";
-import { Plus, Trash2, Search } from "lucide-react";
+import { Pencil, Plus, Trash2, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import type { PromoCode, PromoState } from "@/lib/mock";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -12,6 +12,7 @@ import {
   fetchAdminPromocodes,
   createPromocode,
   deletePromocode,
+  updateAdminPromocode,
   fetchAdminSettings,
   updateAdminSettings,
   type AdminPlanRow,
@@ -30,7 +31,9 @@ import { AdminAccordion } from "@/components/admin/AdminAccordion";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
 import { DeliveryMarkupAdminCard } from "@/components/admin/DeliveryMarkupAdminCard";
 import { LedgerTotalsCard } from "@/components/admin/LedgerTotalsCard";
-import { reportReadFailure } from "@/lib/errors/handle";
+import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
+import { askConfirm } from "@/lib/ui/ask";
+import { promoFormProblem } from "@/lib/promo-form";
 
 export function MonetizationSection() {
   const { t } = useTranslation();
@@ -609,6 +612,16 @@ function PromoCodesBlock({
   const [audience, setAudience] = useState<"all" | "selected">("all");
   const [audiencePeople, setAudiencePeople] = useState<AdminUserOption[]>([]);
   const [notifyPeople, setNotifyPeople] = useState<AdminUserOption[]>([]);
+  /*
+   * Какую акцию правим; null — заводим новую.
+   *
+   * Правка идёт той же формой, а не второй такой же: поля совпадают
+   * один в один, и расходиться им незачем. Разница ровно в трёх местах —
+   * чем заполнена форма при открытии, куда уходит отправка, и что
+   * оповещения в правке не показываются (сервер их в `update`
+   * отбрасывает, и обещать рассылку, которой не будет, нельзя).
+   */
+  const [editing, setEditing] = useState<PromoCode | null>(null);
 
   /*
    * Нижняя граница дат — московский день, и только после гидрации.
@@ -637,18 +650,92 @@ function PromoCodesBlock({
     return true;
   });
 
-  const create = async () => {
-    if (!form.code.trim()) return toast.error(t("pages.adminPromocodes.errCode"));
-    if (!form.expiresAt) return toast.error(t("pages.adminPromocodes.errExpires"));
-    if (form.type === "percent" && (form.discount < 1 || form.discount > 100))
-      return toast.error(t("pages.adminPromocodes.errDiscount"));
-    if (form.limit < 1) return toast.error(t("pages.adminPromocodes.errLimit"));
-    // Строго больше: акция на один день — обычное дело.
-    if (form.startsAt && form.startsAt > form.expiresAt)
-      return toast.error(t("pages.adminPromocodes.errOrder"));
-    if (audience === "selected" && audiencePeople.length === 0)
-      return toast.error(t("pages.adminPromocodes.errAudienceEmpty"));
+  const пустая = {
+    code: "",
+    discount: 10,
+    startsAt: "",
+    expiresAt: "",
+    limit: 100,
+    type: "percent" as "percent" | "fixed" | "free",
+    notifyAll: false,
+    notifyTitle: "",
+    notifyBody: "",
+  };
+
+  const закрыть = () => {
+    setForm(пустая);
+    setAudience("all");
+    setAudiencePeople([]);
+    setNotifyPeople([]);
+    setEditing(null);
+    setOpen(false);
+  };
+
+  const начатьСоздание = () => {
+    if (open && editing === null) return setOpen(false);
+    setForm(пустая);
+    setAudience("all");
+    setAudiencePeople([]);
+    setNotifyPeople([]);
+    setEditing(null);
+    setOpen(true);
+  };
+
+  const начатьПравку = (p: PromoCode) => {
+    setForm({
+      code: p.code,
+      discount: p.discount,
+      startsAt: p.startsAt,
+      expiresAt: p.expiresAt,
+      limit: p.limit,
+      type: p.type,
+      notifyAll: false,
+      notifyTitle: "",
+      notifyBody: "",
+    });
+    setAudience(p.audience);
+    setAudiencePeople(p.audienceUsers);
+    setNotifyPeople([]);
+    setEditing(p);
+    setOpen(true);
+  };
+
+  const save = async () => {
+    const беда = promoFormProblem({
+      form,
+      audience,
+      audienceCount: audiencePeople.length,
+      usedCount: editing ? editing.usedCount : null,
+    });
+    if (беда) {
+      return toast.error(
+        t(
+          `pages.adminPromocodes.${беда.key}`,
+          беда.count !== undefined ? { count: беда.count } : undefined,
+        ),
+      );
+    }
     try {
+      if (editing) {
+        await updateAdminPromocode(editing.code, {
+          code: form.code.toUpperCase(),
+          type: form.type,
+          value: form.type === "free" ? 100 : form.discount,
+          max_usages: form.limit,
+          valid_from: form.startsAt,
+          valid_until: form.expiresAt,
+          // Из поля, а не выведенное из состояния: два источника правды
+          // на один признак расходятся молча.
+          is_active: editing.isActive,
+          audience,
+          user_ids: audience === "selected" ? audiencePeople.map((u) => u.id) : [],
+        });
+        закрыть();
+        reload?.();
+        toast.success(t("pages.adminPromocodes.saved"));
+
+        return;
+      }
       const notifyMode = notifyPeople.length > 0 ? "selected" : form.notifyAll ? "all" : "none";
       const result = await createPromocode({
         code: form.code.toUpperCase(),
@@ -665,29 +752,19 @@ function PromoCodesBlock({
         user_ids: audience === "selected" ? audiencePeople.map((u) => u.id) : [],
         notify_user_ids: notifyPeople.map((u) => u.id),
       });
-      setForm({
-        code: "",
-        discount: 10,
-        startsAt: "",
-        expiresAt: "",
-        limit: 100,
-        type: "percent",
-        notifyAll: false,
-        notifyTitle: "",
-        notifyBody: "",
-      });
-      setAudience("all");
-      setAudiencePeople([]);
-      setNotifyPeople([]);
-      setOpen(false);
+      закрыть();
       reload?.();
       toast.success(
         result.notifications_sent
           ? t("pages.adminPromocodes.createdWithNotify", { count: result.notifications_sent })
           : t("pages.adminPromocodes.created"),
       );
-    } catch {
-      toast.error(t("pages.adminPromocodes.createFailed"));
+    } catch (e) {
+      // Причина от сервера — например «Такой промокод уже есть».
+      reportActionFailure(
+        e,
+        editing ? t("pages.adminPromocodes.saveFailed") : t("pages.adminPromocodes.createFailed"),
+      );
     }
   };
 
@@ -704,7 +781,7 @@ function PromoCodesBlock({
         >
           {t("pages.adminPromocodes.title")}
         </h4>
-        <button onClick={() => setOpen((v) => !v)} style={primaryBtn}>
+        <button onClick={начатьСоздание} style={primaryBtn}>
           <Plus size={14} style={{ display: "inline", marginRight: "4px" }} />
           {t("pages.adminPromocodes.create")}
         </button>
@@ -857,41 +934,51 @@ function PromoCodesBlock({
                     {t("pages.adminPromocodes.audienceHint")}
                   </span>
                 </div>
-                <label
-                  className="md:col-span-2 flex items-center gap-[8px] text-[13px]"
-                  style={{ color: "var(--foreground-70)" }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.notifyAll}
-                    onChange={(e) => {
-                      setForm({ ...form, notifyAll: e.target.checked });
-                      if (e.target.checked) setNotifyPeople([]);
-                    }}
-                  />
-                  {t("pages.adminPromocodes.notifyAll")}
-                </label>
-                <div
-                  className="md:col-span-2"
-                  style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                >
-                  <span
-                    style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}
+                {/*
+                  Оповещения — только при создании. `update` на сервере
+                  поля `notify_*` отбрасывает и ничего не рассылает, так
+                  что показывать их в правке значило бы обещать рассылку,
+                  которой не будет.
+                */}
+                {!editing && (
+                  <label
+                    className="md:col-span-2 flex items-center gap-[8px] text-[13px]"
+                    style={{ color: "var(--foreground-70)" }}
                   >
-                    {t("pages.adminPromocodes.notifyPeople")}
-                  </span>
-                  <UserPicker
-                    value={notifyPeople}
-                    onChange={(люди) => {
-                      setNotifyPeople(люди);
-                      if (люди.length > 0) setForm({ ...form, notifyAll: false });
-                    }}
-                  />
-                  <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
-                    {t("pages.adminPromocodes.notifyPeopleHint")}
-                  </span>
-                </div>
-                {form.notifyAll && (
+                    <input
+                      type="checkbox"
+                      checked={form.notifyAll}
+                      onChange={(e) => {
+                        setForm({ ...form, notifyAll: e.target.checked });
+                        if (e.target.checked) setNotifyPeople([]);
+                      }}
+                    />
+                    {t("pages.adminPromocodes.notifyAll")}
+                  </label>
+                )}
+                {!editing && (
+                  <div
+                    className="md:col-span-2"
+                    style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                  >
+                    <span
+                      style={{ fontSize: "11px", color: "var(--foreground-50)", fontWeight: 500 }}
+                    >
+                      {t("pages.adminPromocodes.notifyPeople")}
+                    </span>
+                    <UserPicker
+                      value={notifyPeople}
+                      onChange={(люди) => {
+                        setNotifyPeople(люди);
+                        if (люди.length > 0) setForm({ ...form, notifyAll: false });
+                      }}
+                    />
+                    <span style={{ fontSize: "11px", color: "var(--foreground-50)" }}>
+                      {t("pages.adminPromocodes.notifyPeopleHint")}
+                    </span>
+                  </div>
+                )}
+                {!editing && form.notifyAll && (
                   <>
                     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <span
@@ -923,11 +1010,13 @@ function PromoCodesBlock({
                 )}
               </div>
               <div className="flex gap-[8px]" style={{ marginTop: "12px" }}>
-                <button onClick={create} style={primaryBtn}>
-                  {t("pages.adminPromocodes.submit")}
+                <button onClick={save} style={primaryBtn}>
+                  {editing
+                    ? t("pages.adminPromocodes.submitEdit")
+                    : t("pages.adminPromocodes.submit")}
                 </button>
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={закрыть}
                   style={{
                     ...primaryBtn,
                     background: "transparent",
@@ -1043,20 +1132,48 @@ function PromoCodesBlock({
                   <PromoStateChip state={p.state} />
                 </td>
                 <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                  <IconBtn
-                    danger
-                    onClick={async () => {
-                      try {
-                        await deletePromocode(p.code);
-                        setPromos((q) => q.filter((x) => x.id !== p.id));
-                        toast.success(t("pages.adminPromocodes.deleted"));
-                      } catch {
-                        toast.error(t("pages.adminPromocodes.deleteFailed"));
-                      }
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </IconBtn>
+                  <div className="flex items-center justify-end gap-[4px]">
+                    <IconBtn
+                      title={t("pages.adminPromocodes.editAction", { code: p.code })}
+                      onClick={() => начатьПравку(p)}
+                    >
+                      <Pencil size={14} />
+                    </IconBtn>
+                    <IconBtn
+                      danger
+                      title={t("pages.adminPromocodes.deleteAction", { code: p.code })}
+                      onClick={async () => {
+                        /*
+                         * Подтверждение: удаление уносит историю
+                         * применений, а она про деньги — кто и когда
+                         * применил код. Раньше запрос уходил с первого
+                         * нажатия, без вопроса и без возможности
+                         * вернуть.
+                         */
+                        const точно = await askConfirm({
+                          title: t("pages.adminPromocodes.deleteConfirm", { code: p.code }),
+                          description:
+                            p.usedCount > 0
+                              ? t("pages.adminPromocodes.deleteConfirmUsed", {
+                                  count: p.usedCount,
+                                })
+                              : undefined,
+                          confirmLabel: t("pages.adminCommon.actionDelete"),
+                          danger: true,
+                        });
+                        if (!точно) return;
+                        try {
+                          await deletePromocode(p.code);
+                          setPromos((q) => q.filter((x) => x.id !== p.id));
+                          toast.success(t("pages.adminPromocodes.deleted"));
+                        } catch (e) {
+                          reportActionFailure(e, t("pages.adminPromocodes.deleteFailed"));
+                        }
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </IconBtn>
+                  </div>
                 </td>
               </tr>
             ))}
