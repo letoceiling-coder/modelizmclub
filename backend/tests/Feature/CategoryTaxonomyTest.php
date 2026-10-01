@@ -16,6 +16,7 @@ use App\Models\Post;
 use App\Models\PostCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Catalog\Services\CategoryTaxonomyService;
@@ -286,31 +287,43 @@ class CategoryTaxonomyTest extends TestCase
      *
      * 08.09 случайность кончилась. Пять новых тестов модерации добавили
      * категорий объявлений, последовательности сравнялись, и оба утверждения
-     * упали — при том, что по отдельности файл проходил. Дефект был записан в
-     * docs/known-issues.md в тот же день; здесь он закрыт.
+     * упали — при том, что по отдельности файл проходил. Тогда расхождение
+     * стали создавать руками: добивали `listing_categories` строками, пока её
+     * идентификатор не уйдёт выше, но не больше пятидесяти раз.
      *
-     * Расхождение теперь создаётся руками: добиваем `listing_categories`
-     * строками, пока её следующий идентификатор не уйдёт выше наибольшего у
-     * категорий постов.
+     * 01.10 кончилась и эта подушка. Три новых теста правки направлений
+     * сдвинули последовательность `post_categories` настолько, что
+     * пятидесяти вставок не хватило, и файл упал — снова не по своей
+     * причине и снова только в полном прогоне. Запас в 50 строк был той же
+     * случайностью, просто отложенной.
+     *
+     * Теперь расхождение задаётся одним действием: последовательность
+     * `listing_categories` переводится выше наибольшего идентификатора
+     * категорий постов. Последовательности не откатываются вместе с
+     * транзакцией теста и двигаются только вперёд — повторный вызов
+     * безвреден.
      */
     private function ensureListingIdsAheadOfPostIds(): void
     {
         $maxPost = (int) PostCategory::query()->max('id');
 
-        for ($i = 0; $i < 50; $i++) {
-            if ((int) ListingCategory::query()->max('id') > $maxPost) {
-                return;
-            }
+        DB::statement(
+            "select setval(pg_get_serial_sequence('listing_categories', 'id'), ?)",
+            [$maxPost + 1],
+        );
 
-            ListingCategory::query()->create([
-                'name' => 'Заполнитель',
-                'slug' => 'filler-'.uniqid(),
-                'sort_order' => 999,
-                'is_active' => false,
-            ]);
-        }
+        $filler = ListingCategory::query()->create([
+            'name' => 'Заполнитель',
+            'slug' => 'filler-'.uniqid(),
+            'sort_order' => 999,
+            'is_active' => false,
+        ]);
 
-        $this->fail('не удалось развести идентификаторы таблиц');
+        $this->assertGreaterThan(
+            $maxPost,
+            (int) $filler->id,
+            'последовательность объявлений не ушла выше категорий постов',
+        );
     }
 
     public function test_create_listing_accepts_post_taxonomy_id_when_listing_ids_differ(): void

@@ -4,6 +4,7 @@ import { Reorder, useDragControls } from "framer-motion";
 import { GripVertical, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { askConfirm, askText } from "@/lib/ui/ask";
+import { askRequiredField } from "@/lib/ui/prompt-field";
 import {
   createAdminCategory,
   deleteAdminCategory,
@@ -180,20 +181,19 @@ export function ReviewCategoriesAdminSection() {
   };
 
   const edit = async (c: AdminCategory) => {
-    const name = (
-      await askText({
-        title: t("pages.adminReviewCategories.promptEditName"),
-        defaultValue: c.name,
-      })
-    )?.trim();
-    if (!name) return;
-    const slug = (
-      await askText({
-        title: t("pages.adminReviewCategories.promptEditSlug"),
-        defaultValue: c.slug,
-      })
-    )?.trim();
-    if (!slug) return;
+    // Отказ — «это поле не меняю». Разбор общий с направлениями.
+    const name = await askRequiredField({
+      title: t("pages.adminReviewCategories.promptEditName"),
+      current: c.name,
+      emptyMessage: t("pages.adminReviewCategories.nameRequired"),
+    });
+    if (name === null) return;
+    const slug = await askRequiredField({
+      title: t("pages.adminReviewCategories.promptEditSlug"),
+      current: c.slug,
+      emptyMessage: t("pages.adminReviewCategories.slugRequired"),
+    });
+    if (slug === null) return;
     setSaving(true);
     try {
       const updated = await updateAdminCategory("video", c.id, {
