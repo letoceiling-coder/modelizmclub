@@ -22,7 +22,25 @@ class AdminPromocodeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $items = Promocode::query()->with('audienceUsers')->withCount('usages')->latest()->paginate(20);
+        /*
+         * Размер страницы задаёт запрос, а не константа.
+         *
+         * Было жёсткое `paginate(20)`, и клиент брал первую страницу: с
+         * двадцать первой акции правка и удаление перестали бы до неё
+         * доставать — без предупреждения, просто строка не показывалась
+         * бы в списке. Пока правки не было, список был только справкой,
+         * и обрезание не бросалось в глаза.
+         *
+         * Потолок — чтобы `per_page=100000` не стал запросом на всю
+         * таблицу: клиент обходит страницы сам.
+         */
+        $наСтранице = max(1, min(200, (int) request()->integer('per_page', 50)));
+
+        $items = Promocode::query()
+            ->with('audienceUsers')
+            ->withCount('usages')
+            ->latest()
+            ->paginate($наСтранице);
 
         /*
          * Состояние и остатки считает сервер, а не браузер. До C4 статус

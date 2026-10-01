@@ -497,9 +497,40 @@ interface ApiPromocode {
   audience_users?: AdminUserOption[];
 }
 
+/**
+ * Все акции, а не первая страница.
+ *
+ * Сервер отдаёт список страницами, и клиент брал одну: с двадцать первой
+ * акции правка и удаление до неё не доставали — без предупреждения,
+ * строка просто не показывалась. Отбор и поиск в разделе идут по
+ * загруженному списку, поэтому обойти страницы надо здесь, а не
+ * показывать номера страниц над таблицей.
+ *
+ * Поля постраничности лежат прямо в `data` (`current_page`, `last_page`) —
+ * это обычный пагинатор Laravel, а не ресурс с `meta`. Проверено
+ * запросом, а не по виду типа.
+ *
+ * Потолок на число страниц — чтобы сломанный ответ (`last_page`,
+ * растущий от запроса к запросу) не превратился в бесконечный обход. При
+ * пятидесяти на страницу это десять тысяч акций; если их когда-нибудь
+ * станет больше, поиск надо переносить на сервер, а не поднимать потолок.
+ */
+const СТРАНИЦ_МАКСИМУМ = 200;
+
 export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
-  const res = await api<{ data: Paginated<ApiPromocode> }>("/admin/promocodes");
-  const rows = res.data?.data ?? [];
+  const rows: ApiPromocode[] = [];
+  let страница = 1;
+  let всего = 1;
+
+  do {
+    const res = await api<{
+      data: Paginated<ApiPromocode> & { current_page?: number; last_page?: number };
+    }>("/admin/promocodes", { query: { per_page: 50, page: страница } });
+    rows.push(...(res.data?.data ?? []));
+    всего = res.data?.last_page ?? 1;
+    страница += 1;
+  } while (страница <= всего && страница <= СТРАНИЦ_МАКСИМУМ);
+
   const now = Date.now();
   return rows.map((p) => {
     // Сервер отдаёт срок с московским смещением («…T23:59:59+03:00»): первые
