@@ -38,6 +38,7 @@ import { AdminSectionSkeleton } from "@/components/admin/AdminSectionSkeleton";
 import type { AdminRole } from "@/components/admin/adminShared";
 import type { Section } from "@/routes/admin";
 import { fetchAdminAccess, setAdminAccess } from "@/lib/admin-access";
+import { EmptyDirectionsNotice } from "@/components/admin/EmptyDirectionsNotice";
 import { isDemoMode } from "@/lib/demo-mode";
 import { reportReadFailure } from "@/lib/errors/handle";
 
@@ -722,7 +723,12 @@ function AdminPage() {
               «Админ-панель» в меню стал для этой роли основным.
               Найдено ревью 01.10.
             */}
-            {reachable ? <SectionView section={section} adminRole={adminRole} /> : null}
+            {reachable ? (
+              <>
+                <EmptyDirectionsNotice />
+                <SectionView section={section} adminRole={adminRole} />
+              </>
+            ) : null}
           </ReducedMotionSwitch>
         </main>
       </div>
