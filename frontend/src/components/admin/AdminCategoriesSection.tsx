@@ -18,6 +18,7 @@ import {
 } from "@/lib/api/admin";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
 import { askChoice, askConfirm, askText } from "@/lib/ui/ask";
+import { askRequiredField } from "@/lib/ui/prompt-field";
 import { reportActionFailure } from "@/lib/errors/handle";
 import {
   byOrder,
@@ -214,8 +215,8 @@ export function CategoriesSection() {
       setItems((p) => [...p, created]);
       await переставитьЕслиАлфавит();
       toast.success(t("pages.adminCategories.added"));
-    } catch {
-      toast.error(t("pages.adminCategories.addFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.addFailed"));
     }
   };
 
@@ -306,20 +307,25 @@ export function CategoriesSection() {
       setOpen((p) => ({ ...p, [parent.id]: true }));
       await переставитьЕслиАлфавит();
       toast.success(t("pages.adminCategories.subAdded"));
-    } catch {
-      toast.error(t("pages.adminCategories.subAddFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.subAddFailed"));
     }
   };
 
   const edit = async (c: AdminCategory) => {
-    const name = (
-      await askText({ title: t("pages.adminCategories.promptEditName"), defaultValue: c.name })
-    )?.trim();
-    if (!name) return;
-    const slug = (
-      await askText({ title: t("pages.adminCategories.promptEditSlug"), defaultValue: c.slug })
-    )?.trim();
-    if (!slug) return;
+    // Отказ здесь — «не меняю», как у иконки, порядка и родителя ниже.
+    const name = await askRequiredField({
+      title: t("pages.adminCategories.promptEditName"),
+      current: c.name,
+      emptyMessage: t("pages.adminCategories.nameRequired"),
+    });
+    if (name === null) return;
+    const slug = await askRequiredField({
+      title: t("pages.adminCategories.promptEditSlug"),
+      current: c.slug,
+      emptyMessage: t("pages.adminCategories.slugRequired"),
+    });
+    if (slug === null) return;
     const icon =
       (await askText({
         title: t("pages.adminCategories.promptIcon"),
@@ -350,6 +356,26 @@ export function CategoriesSection() {
       // я ввёл в трёх предыдущих окнах»: так же ведёт себя вопрос об иконке.
       if (выбор !== null) parentId = выбор === "" ? null : Number(выбор);
     }
+    /*
+     * Отказ во всех окнах — это «передумал», а не «сохрани как было».
+     *
+     * С тех пор как отказ перестал обрывать цепочку, пройти её насквозь,
+     * ничего не меняя, стало обычным делом. Без этой проверки такой
+     * проход слал PUT с прежними значениями: сервер пересинхронизировал
+     * поддерево, сбрасывал кеш каталога и писал строку в аудит, а человек
+     * читал «Сохранено». В журнале оставались правки, которых не было.
+     */
+    const безИзменений =
+      name === c.name &&
+      slug === c.slug &&
+      (icon || null) === (c.icon || null) &&
+      sortOrder === c.sortOrder &&
+      parentId === c.parentId;
+    if (безИзменений) {
+      toast.info(t("pages.adminCategories.nothingChanged"));
+
+      return;
+    }
     try {
       const updated = await updateAdminCategory(kind, c.id, {
         name,
@@ -368,8 +394,8 @@ export function CategoriesSection() {
       // Переименование меняет место в алфавите — узел переезжает сам.
       if (name !== c.name) await переставитьЕслиАлфавит();
       toast.success(t("pages.adminCommon.saved"));
-    } catch {
-      toast.error(t("pages.adminCategories.updateFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.updateFailed"));
     }
   };
 
@@ -381,8 +407,8 @@ export function CategoriesSection() {
       });
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
       toast.success(t("pages.adminCommon.saved"));
-    } catch {
-      toast.error(t("pages.adminCategories.updateFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.updateFailed"));
     }
   };
 
@@ -391,8 +417,8 @@ export function CategoriesSection() {
       const updated = await updateAdminCategory(kind, c.id, bodyOf(c));
       setItems((p) => p.map((x) => (x.id === c.id ? updated : x)));
       toast.success(t("pages.adminCategories.pricesSaved"));
-    } catch {
-      toast.error(t("pages.adminCategories.pricesSaveFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.pricesSaveFailed"));
     }
   };
 
@@ -413,8 +439,8 @@ export function CategoriesSection() {
         ),
       );
       toast.success(t("pages.adminCommon.saved"));
-    } catch {
-      toast.error(t("pages.adminCategories.updateFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.updateFailed"));
     }
   };
 
@@ -452,8 +478,8 @@ export function CategoriesSection() {
       }
       setItems((p) => p.filter((x) => !drop.has(x.id)));
       toast.success(t("pages.adminCommon.deleted"));
-    } catch {
-      toast.error(t("pages.adminCategories.deleteFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminCategories.deleteFailed"));
     }
   };
 

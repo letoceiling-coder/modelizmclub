@@ -11,6 +11,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Modules\Admin\Http\Requests\UpsertCategoryRequest;
 use Modules\Admin\Services\AuditService;
 use Modules\Catalog\Services\CatalogService;
@@ -46,6 +47,7 @@ abstract class AdminCategoryController extends Controller
     {
         /** @var class-string<Model> $class */
         $class = $this->modelClass();
+        $this->assertSlugFree((string) $request->validated('slug'), null);
         $category = DB::transaction(function () use ($class, $request) {
             $category = $class::query()->create($request->validated());
             $this->afterMutate($category, null, $request->validated());
@@ -70,6 +72,7 @@ abstract class AdminCategoryController extends Controller
     public function update(UpsertCategoryRequest $request, int $id, AuditService $audit): JsonResponse
     {
         $category = $this->findCategory($id);
+        $this->assertSlugFree((string) $request->validated('slug'), $id);
         $old = $category->toArray();
         $category = DB::transaction(function () use ($category, $request, $old) {
             $category->update($request->validated());
@@ -132,6 +135,44 @@ abstract class AdminCategoryController extends Controller
             'mirrors_deleted' => $зеркала['deleted'],
             'mirrors_kept' => $зеркала['kept'],
         ]]);
+    }
+
+    /**
+     * Slug занят — сказать словами, а не упасть пятисоткой.
+     *
+     * С 10.09 slug уникален во всей таблице, а не среди соседей
+     * (`make_category_slugs_globally_unique`). Правило в
+     * `UpsertCategoryRequest` этого не знало: занятый slug доходил до
+     * вставки, Postgres отвечал нарушением ограничения, и наружу уходило
+     * 500 с текстом «Внутренняя ошибка сервера. Попробуйте позже».
+     *
+     * Совет повторить позже здесь вреден вдвойне: повтор не поможет
+     * никогда, а человек видит отказ, не содержащий того единственного,
+     * что нужно сделать, — сменить slug. Замерено 01.10: код 500.
+     *
+     * Проверка живёт в контроллере, а не в запросе, потому что таблица
+     * известна здесь: один и тот же `UpsertCategoryRequest` обслуживает
+     * направления, объявления и сообщества.
+     *
+     * Ограничение в базе остаётся последним словом: между этой проверкой
+     * и вставкой slug может занять другой запрос. Это редкость, а не
+     * ежедневный путь, который и чинится.
+     */
+    protected function assertSlugFree(string $slug, ?int $exceptId): void
+    {
+        /** @var class-string<Model> $class */
+        $class = $this->modelClass();
+
+        $занят = $class::query()
+            ->where('slug', $slug)
+            ->when($exceptId !== null, fn ($q) => $q->whereKeyNot($exceptId))
+            ->exists();
+
+        if ($занят) {
+            throw ValidationException::withMessages([
+                'slug' => ["Slug «{$slug}» уже занят другой категорией — выберите другой."],
+            ]);
+        }
     }
 
     protected function findCategory(int $id): Model

@@ -1259,6 +1259,9 @@ export const ruAdmin = {
       promptSubName: "Подкатегория в «{{name}}»",
       promptEditName: "Название",
       promptEditSlug: "Slug",
+      nameRequired: "Название не может быть пустым",
+      slugRequired: "Slug не может быть пустым",
+      nothingChanged: "Ничего не изменилось — сохранять нечего",
       unifiedHint:
         "Единое дерево категорий: лента, форма подачи и каталог объявлений, сообщества. Флаги в строке решают, где виден раздел; цена размещения — там же. До трёх уровней.",
       unifiedHintNoPrices:
@@ -1288,7 +1291,7 @@ export const ruAdmin = {
       nodeCountsLabelWithAdmin:
         "в самом узле: записей {{posts}}, объявлений {{listings}}; есть администратор",
       added: "Категория добавлена",
-      addFailed: "Не удалось создать категорию (возможно, slug занят)",
+      addFailed: "Не удалось создать категорию",
       subAdded: "Подкатегория добавлена",
       subAddFailed: "Не удалось создать подкатегорию",
       updateFailed: "Не удалось обновить категорию",
@@ -1309,8 +1312,11 @@ export const ruAdmin = {
       promptSlug: "Slug (латиницей, для URL)",
       promptEditName: "Название",
       promptEditSlug: "Slug",
+      nameRequired: "Название не может быть пустым",
+      slugRequired: "Slug не может быть пустым",
+      nothingChanged: "Ничего не изменилось — сохранять нечего",
       added: "Категория добавлена",
-      addFailed: "Не удалось создать категорию (возможно, slug занят)",
+      addFailed: "Не удалось создать категорию",
       saved: "Категория сохранена",
       updateFailed: "Не удалось обновить категорию",
       deleteConfirm: "Удалить «{{name}}»?",
