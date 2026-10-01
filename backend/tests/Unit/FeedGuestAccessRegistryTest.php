@@ -57,7 +57,9 @@ class FeedGuestAccessRegistryTest extends TestCase
 
         $this->assertSame(2, $config['version']);
         $this->assertSame('guest', $config['actions']['route.feed']['min_tier']);
-        $this->assertSame('auth', $config['actions']['route.reviews']['min_tier']);
+        // Обзоры — по подписке с 27.08: решение принято из /admin, 01.10
+        // реестр приведён к нему. Разбор по строкам — docs/access-map-2026-10-01.md
+        $this->assertSame('subscription', $config['actions']['route.reviews']['min_tier']);
         $this->assertSame('subscription', $config['actions']['feed.compose.open']['min_tier']);
         $this->assertSame('auth', $config['actions']['ads.write_seller']['min_tier']);
         $this->assertSame('auth', $config['actions']['ads.seller.profile']['min_tier']);

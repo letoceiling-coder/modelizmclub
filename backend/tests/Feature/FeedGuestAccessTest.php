@@ -26,7 +26,8 @@ class FeedGuestAccessTest extends TestCase
         $this->assertSame('auth', $this->action($data, 'feed.filter.following')['min_tier']);
         $this->assertSame('subscription', $this->action($data, 'feed.compose.open')['min_tier']);
         $this->assertSame('guest', $this->action($data, 'route.feed')['min_tier']);
-        $this->assertSame('auth', $this->action($data, 'route.reviews')['min_tier']);
+        // См. docs/access-map-2026-10-01.md: обзоры по подписке с 27.08.
+        $this->assertSame('subscription', $this->action($data, 'route.reviews')['min_tier']);
         $this->assertSame('auth', $this->action($data, 'ads.write_seller')['min_tier']);
         $this->assertSame('auth', $this->action($data, 'ads.seller.profile')['min_tier']);
         $this->assertSame('auth', $this->action($data, 'feed.post.author')['min_tier']);
