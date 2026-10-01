@@ -3,6 +3,7 @@
 namespace Modules\Auth\Http\Resources;
 
 use App\Models\PendingEmailChange;
+use App\Support\AdminAccess;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -43,6 +44,27 @@ class UserResource extends JsonResource
                     ->where('user_id', $this->id)
                     ->where('expires_at', '>', now())
                     ->value('new_email'),
+            ),
+            /*
+             * Есть ли человеку куда войти в админке — по той же карте,
+             * что охраняет маршруты (App\Support\AdminAccess).
+             *
+             * До 01.10 пункт «Админ-панель» в меню аватара показывался по
+             * `u.role === "owner"`, посчитанному в браузере. Модератор и
+             * администратор направления входа не видели, хотя разделы им
+             * открыты, — и попадали в админку только по прямой ссылке.
+             *
+             * Считается непустотой списка разделов, а не ролью: у кого
+             * разделов ноль, тому ссылка привела бы в 403.
+             *
+             * Только самому себе: ресурс общий с админским списком
+             * пользователей, где строк полсотни, а `sectionsFor` ходит в
+             * таблицу выданных прав. `when` не даёт запросу выполниться
+             * на каждой строке — так же сделано с `pending_email` выше.
+             */
+            'can_open_admin' => $this->when(
+                $request->user()?->id === $this->id,
+                fn () => AdminAccess::sectionsFor($this->resource) !== [],
             ),
             'oauth_providers' => $this->oauthProviderNames(),
             'phone' => $this->phone,
