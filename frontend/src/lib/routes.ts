@@ -64,6 +64,9 @@ export const SIDEBAR_ROUTE_MAP: Record<string, string[]> = {
   messenger: ["/messenger"],
   profile: ["/profile", "/user"],
   friends: ["/friends"],
+  // Без этой строки пункт в колонке не подсвечивался на своей же
+  // странице: getActiveSection отдавал null. Найдено ревью 01.10.
+  "how-to-use": ["/how-to-use"],
   subscription: ["/subscription", "/referral"],
   wallet: ["/settings/wallet"],
   help: ["/help"],

@@ -62,17 +62,23 @@ interface NavGroup {
 }
 
 const COMMUNITY_ITEMS: Item[] = [
-  /*
-   * Первым пунктом и раньше «Объявлений»: страница для того, кто ещё не
-   * разобрался, и искать её в конце списка он не станет.
-   */
-  { to: ROUTES.howToUse, labelKey: "nav.howToUse", icon: CircleHelp, section: "how-to-use" },
   { to: ROUTES.feed, labelKey: "nav.feed", icon: Newspaper, section: "feed" },
   { to: ROUTES.messenger, labelKey: "nav.messenger", icon: MessageSquare, section: "messenger" },
   { to: ROUTES.reviews, labelKey: "nav.reviews", icon: Clapperboard, section: "reviews" },
   { to: ROUTES.communities, labelKey: "nav.communities", icon: Users2, section: "communities" },
   { to: ROUTES.channels, labelKey: "nav.channels", icon: Radio, section: "channels" },
   { to: ROUTES.friends, labelKey: "nav.friends", icon: UserPlus, section: "friends" },
+  /*
+   * «Как пользоваться» — последним пунктом раздела.
+   *
+   * Раньше стоял первым: рассуждение было, что страница нужна тому, кто
+   * ещё не разобрался, и в конце списка он её не найдёт. Но первая
+   * строка боковой колонки — это место, куда возвращаются каждый день, и
+   * занимать его справкой значит отодвигать ленту вниз у всех остальных.
+   * Вход в справку остаётся в верхней шапке, где он виден со всех
+   * страниц, — поэтому здесь она уходит в конец.
+   */
+  { to: ROUTES.howToUse, labelKey: "nav.howToUse", icon: CircleHelp, section: "how-to-use" },
 ];
 
 const ADS_ITEMS: Item[] = [
