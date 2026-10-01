@@ -78,12 +78,26 @@ class AdminPromocodeListTest extends TestCase
             $ответ = $this->actingAs($admin, 'sanctum')
                 ->getJson("/api/v1/admin/promocodes?per_page=10&page={$страница}");
             $ответ->assertOk();
+
+            /*
+             * Размер страницы проверяется здесь же, а не только итог
+             * обхода. Прежняя версия складывала коды и сверяла сумму —
+             * и проходила на старом коде: `paginate(20)` отдавал
+             * 20 + 5 + 0 = те же двадцать пять. То есть утверждала
+             * «обход ничего не теряет», ничего не говоря о том, услышан
+             * ли `per_page`. Найдено ревью 01.10.
+             */
+            $this->assertSame(3, (int) $ответ->json('data.last_page'), 'страниц не три');
+            $ждём = $страница === 3 ? 5 : 10;
+            $this->assertCount($ждём, $ответ->json('data.data'), "страница {$страница}: размер");
+
             foreach ($ответ->json('data.data') as $строка) {
                 $коды[] = $строка['code'];
             }
         }
 
-        $this->assertCount(25, array_unique($коды), 'обход страниц теряет или дублирует акции');
+        $this->assertCount(25, $коды, 'обход страниц дублирует акции');
+        $this->assertCount(25, array_unique($коды), 'обход страниц теряет акции');
     }
 
     public function test_потолок_размера_страницы(): void
@@ -97,5 +111,67 @@ class AdminPromocodeListTest extends TestCase
 
         $ответ->assertOk();
         $this->assertSame(200, (int) $ответ->json('data.per_page'), 'потолок размера страницы снят');
+    }
+
+    public function test_негодный_размер_страницы_не_роняет_список(): void
+    {
+        $admin = $this->owner();
+        $this->завести(3);
+
+        foreach (['0', '-5', 'abc', ''] as $что) {
+            $ответ = $this->actingAs($admin, 'sanctum')
+                ->getJson("/api/v1/admin/promocodes?per_page={$что}");
+
+            $ответ->assertOk();
+            $this->assertGreaterThanOrEqual(
+                1,
+                (int) $ответ->json('data.per_page'),
+                "per_page={$что}: размер страницы вышел недопустимым",
+            );
+        }
+    }
+
+    /**
+     * Сортировка списка полна — то есть не зависит от везения.
+     *
+     * `created_at` в этой схеме без долей секунды: двадцать пять акций,
+     * заведённых циклом, получают одно и то же время — замерено, одно
+     * различное значение из пяти. При равных ключах порядок строк
+     * Postgres не обещает, и он может отличаться между страницами:
+     * тогда обход теряет одну акцию и показывает другую дважды.
+     *
+     * Воспроизвести это по требованию нельзя: на малой таблице строки
+     * читаются в физическом порядке, и три прогона подряд совпали. Это
+     * и есть причина проверять не совпадение двух обходов, а полноту
+     * сортировки: совпадение — наблюдение, полнота — утверждение.
+     * Ср. запись в known-issues про запас в 50 строк: там «работает
+     * сейчас» тоже держалось на случайности.
+     */
+    public function test_сортировка_списка_полна(): void
+    {
+        $admin = $this->owner();
+        $this->завести(25);
+
+        $время = \Illuminate\Support\Facades\DB::table('promocodes')
+            ->distinct()->count('created_at');
+        $this->assertLessThan(25, $время, 'подготовка: время создания различается, совпадений нет');
+
+        $sql = null;
+        \Illuminate\Support\Facades\DB::listen(function ($query) use (&$sql): void {
+            if (str_contains($query->sql, 'from "promocodes"') && str_contains($query->sql, 'order by')) {
+                $sql = $query->sql;
+            }
+        });
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/promocodes?per_page=10')
+            ->assertOk();
+
+        $this->assertNotNull($sql, 'запрос списка не пойман — проверка смотрит не туда');
+        $this->assertMatchesRegularExpression(
+            '/order by .*"created_at".*"id"/i',
+            $sql,
+            'сортировка не полна: при равном времени порядок страниц ничем не закреплён',
+        );
     }
 }

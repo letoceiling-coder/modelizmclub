@@ -69,24 +69,63 @@ describe("загрузка списка акций", () => {
     expect(адреса[0]).toContain("per_page=50");
   });
 
-  it("не уходит в бесконечный обход, если last_page всё растёт", async () => {
-    // Сломанный ответ не должен вешать раздел: обход ограничен потолком.
+  it("не уходит в бесконечный обход и говорит, что список усечён", async () => {
+    /*
+     * Сломанный или просто очень длинный ответ не должен ни вешать
+     * раздел, не показывать усечённый список как полный: ровно это и
+     * чинила правка, только на двадцати строках. Отказ уходит наверх, и
+     * раздел покажет «не загрузилось» с «Повторить».
+     */
     адреса = [];
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
         адреса.push(String(url));
 
-        return new Response(страница(["X"], 10_000), {
+        return new Response(страница(["X" + адреса.length], 10_000), {
           status: 200,
           headers: { "content-type": "application/json" },
         });
       }),
     );
 
-    await fetchAdminPromocodes();
+    await expect(fetchAdminPromocodes()).rejects.toThrow(/страниц/);
+    // Ровно потолок, а не «не больше»: `СТРАНИЦ_МАКСИМУМ = 2` прошёл бы
+    // прежнюю проверку так же. Найдено ревью 01.10.
+    expect(адреса).toHaveLength(200);
+  });
 
-    expect(адреса.length).toBeLessThanOrEqual(200);
-    expect(адреса.length).toBeGreaterThan(1);
+  it("усечения нет — отказа нет", async () => {
+    подменить([страница(["A"], 1)]);
+
+    await expect(fetchAdminPromocodes()).resolves.toHaveLength(1);
+  });
+
+  it("дубль, пришедший из-за сдвига страниц, в список не попадает", async () => {
+    // Строка, вставленная между запросами, сдвигает страницы, и одна
+    // акция приходит дважды. Код уникален в таблице — по нему и отличаем.
+    подменить([страница(["A", "B"], 2), страница(["B", "C"], 2)]);
+
+    const акции = await fetchAdminPromocodes();
+
+    expect(акции.map((p) => p.code)).toEqual(["A", "B", "C"]);
+  });
+
+  it("без last_page в ответе берёт одну страницу и не падает", async () => {
+    адреса = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        адреса.push(String(url));
+
+        return new Response(JSON.stringify({ data: { data: [{ code: "A" }] } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+
+    await expect(fetchAdminPromocodes()).resolves.toHaveLength(1);
+    expect(адреса).toHaveLength(1);
   });
 });
