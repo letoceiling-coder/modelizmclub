@@ -492,6 +492,9 @@ interface ApiPromocode {
   seats_left?: number | null;
   days_left?: number | null;
   days_until_start?: number | null;
+  /* Нужно правке: форма открывается заполненной тем, что есть сейчас. */
+  audience?: "all" | "selected";
+  audience_users?: AdminUserOption[];
 }
 
 export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
@@ -529,7 +532,61 @@ export async function fetchAdminPromocodes(): Promise<PromoCode[]> {
       seatsLeft: p.seats_left ?? null,
       daysLeft: p.days_left ?? null,
       daysUntilStart: p.days_until_start ?? null,
+      /*
+       * Для правки: вид скидки, круг людей и признак включённости.
+       * Без них форма правки открывалась бы с умолчаниями и молча
+       * сбрасывала то, чего человек не трогал.
+       */
+      type: (p.type as PromoCode["type"]) ?? "percent",
+      isActive: p.is_active !== false,
+      audience: p.audience ?? "all",
+      audienceUsers: p.audience_users ?? [],
     };
+  });
+}
+
+/**
+ * Правка промокода: `PUT /admin/promocodes/{code}`.
+ *
+ * Маршрут был на сервере с самого начала и не вызывался ниоткуда, из-за
+ * чего опечатку в сроке или проценте приходилось исправлять удалением и
+ * заводом заново — вместе с историей применений. А она про деньги: кто и
+ * когда применил код, это единственный способ разобрать спор о скидке.
+ *
+ * Полей оповещения здесь нет умышленно: `update` на сервере их
+ * отбрасывает и ничего не рассылает. Правка — не объявление, и обещать
+ * рассылку, которой не будет, нельзя.
+ */
+export async function updateAdminPromocode(
+  code: string,
+  input: {
+    code: string;
+    type: "percent" | "fixed" | "free";
+    scope?: "listing_placement" | "subscription" | "boost" | "all";
+    value: number;
+    max_usages: number;
+    valid_from?: string;
+    valid_until: string;
+    is_active?: boolean;
+    audience?: "all" | "selected";
+    user_ids?: number[];
+  },
+): Promise<void> {
+  await api(`/admin/promocodes/${encodeURIComponent(code)}`, {
+    method: "PUT",
+    json: {
+      code: input.code,
+      type: input.type,
+      scope: input.scope ?? "listing_placement",
+      value: input.value,
+      max_usages: input.max_usages,
+      // Пустую строку не шлём: сервер отличает «с начала» от «не задано».
+      valid_from: input.valid_from || null,
+      valid_until: input.valid_until,
+      is_active: input.is_active ?? true,
+      audience: input.audience ?? "all",
+      user_ids: input.user_ids ?? [],
+    },
   });
 }
 

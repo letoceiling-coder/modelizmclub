@@ -2872,6 +2872,24 @@ export interface PromoCode {
   daysLeft: number | null;
   /** null — уже началась. */
   daysUntilStart: number | null;
+  /*
+   * Поля ниже нужны правке: форма открывается заполненной тем, что есть
+   * у акции сейчас. Без них «правка» молча сбрасывала бы вид скидки и
+   * круг людей к умолчаниям — то есть делала бы вид, что правит одно,
+   * а меняла заодно и другое.
+   */
+  type: "percent" | "fixed" | "free";
+  isActive: boolean;
+  /** Кто может применить код: все или перечисленные. */
+  audience: "all" | "selected";
+  /**
+   * Перечисленные, когда `audience` — `selected`.
+   *
+   * Форма тот же состав (`id`, `name`, `email`) кладёт в `UserPicker`,
+   * поэтому поля совпадают с `AdminUserOption` в `lib/api/admin.ts`
+   * умышленно — второго типа под тех же людей не заводим.
+   */
+  audienceUsers: { id: number; name: string; email: string }[];
 }
 
 export const subscriptionPlans: SubscriptionPlan[] = [
@@ -3221,6 +3239,10 @@ export const promoCodes: PromoCode[] = [
     seatsLeft: 66,
     daysLeft: 97,
     daysUntilStart: null,
+    type: "percent",
+    isActive: true,
+    audience: "all",
+    audienceUsers: [],
   },
   {
     id: "pr2",
@@ -3234,6 +3256,10 @@ export const promoCodes: PromoCode[] = [
     seatsLeft: 372,
     daysLeft: 5,
     daysUntilStart: null,
+    type: "percent",
+    isActive: true,
+    audience: "all",
+    audienceUsers: [],
   },
   {
     id: "pr3",
@@ -3247,6 +3273,10 @@ export const promoCodes: PromoCode[] = [
     seatsLeft: 15,
     daysLeft: 0,
     daysUntilStart: null,
+    type: "percent",
+    isActive: true,
+    audience: "all",
+    audienceUsers: [],
   },
 ];
 
