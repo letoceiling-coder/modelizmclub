@@ -54,13 +54,6 @@ class CanOpenAdminTest extends TestCase
                 "роль «{$роль}»: ответ о доступе в админку",
             );
 
-            // Поле обязано совпадать с картой, которая охраняет маршруты, —
-            // иначе пункт меню и 403 разойдутся снова.
-            $this->assertSame(
-                AdminAccess::sectionsFor($кто) !== [],
-                $ответ->json('data.can_open_admin'),
-                "роль «{$роль}»: меню расходится с картой разделов",
-            );
         }
     }
 
@@ -97,5 +90,37 @@ class CanOpenAdminTest extends TestCase
         );
 
         $this->assertSame([], array_values($чужие), 'чужое право видно в списке пользователей');
+    }
+
+    public function test_вход_отдаёт_право_сразу_а_не_после_перезагрузки(): void
+    {
+        /*
+         * `/auth/login` отдаёт ресурс до аутентификации: `$request->user()`
+         * там null. Пока условием стояло только совпадение с вошедшим,
+         * поле отсекалось, и сразу после входа владелец с модератором
+         * пункта «Админ-панель» не видели — он появлялся лишь после того,
+         * как фоновая загрузка `/auth/me` перезапишет снимок.
+         */
+        $пароль = 'Parol12345!';
+        foreach (['owner' => true, 'moderator' => true, 'user' => false] as $роль => $ждём) {
+            $кто = User::factory()->create([
+                'role' => UserRole::from($роль),
+                'status' => UserStatus::Active,
+                'email_verified_at' => now(),
+                'password' => bcrypt($пароль),
+            ]);
+
+            $ответ = $this->postJson('/api/v1/auth/login', [
+                'email' => $кто->email,
+                'password' => $пароль,
+            ]);
+
+            $ответ->assertOk();
+            $this->assertSame(
+                $ждём,
+                $ответ->json('data.can_open_admin'),
+                "роль «{$роль}»: право на админку в ответе входа",
+            );
+        }
     }
 }

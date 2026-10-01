@@ -58,6 +58,9 @@ export const DEMO_USER: User = {
   friendIds: ["u2", "u3", "u5", "u6", "u7"],
   online: true,
   isAdmin: true,
+  // В демо `mapApiUser` не вызывается, и без этой строки вход в
+  // админку пропал бы вместе с переходом на право с сервера.
+  canOpenAdmin: true,
   firstHundred: true,
 };
 

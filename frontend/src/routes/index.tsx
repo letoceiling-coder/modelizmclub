@@ -196,7 +196,10 @@ function TopNav() {
         <div className="flex items-center gap-2">
           {loggedIn ? (
             <>
-              {me.isAdmin && (
+              {/* По праву с сервера, как и в меню аватара: держать два
+                  разных условия на один вход — это и есть расхождение,
+                  ради которого карта прав сведена в одну. */}
+              {me.canOpenAdmin && (
                 <Link
                   to="/admin"
                   className="hidden rounded-[var(--r-pill)] px-4 py-2 text-sm font-semibold transition-colors sm:inline-flex"
