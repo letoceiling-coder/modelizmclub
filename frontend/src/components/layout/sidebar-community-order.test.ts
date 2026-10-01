@@ -44,3 +44,28 @@ describe("боковая колонка, раздел «Сообщество»",
     expect(порядок[0]).toBe("feed");
   });
 });
+
+/**
+ * У каждого пункта колонки есть свой значок и своя подсветка.
+ *
+ * У «Как пользоваться» не было ни того, ни другого: слот `nav.how-to-use`
+ * в реестре отсутствовал — рисовался запасной значок-коробка, — а
+ * `SIDEBAR_ROUTE_MAP` не знал пути, и на собственной странице пункт не
+ * подсвечивался. Найдено ревью 01.10, пока пункт переезжал в конец.
+ */
+describe("пункты раздела «Сообщество»", () => {
+  it("у каждого есть слот значка", async () => {
+    const { ICON_SLOTS } = await import("@/lib/icon-slots");
+    const ключи = new Set(ICON_SLOTS.map((s) => s.key));
+    const без = communitySections().filter((s) => !ключи.has(`nav.${s}`));
+
+    expect(без).toEqual([]);
+  });
+
+  it("каждый подсвечивается на своей странице", async () => {
+    const { SIDEBAR_ROUTE_MAP } = await import("@/lib/routes");
+    const без = communitySections().filter((s) => !SIDEBAR_ROUTE_MAP[s]);
+
+    expect(без).toEqual([]);
+  });
+});

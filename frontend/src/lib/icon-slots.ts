@@ -148,6 +148,20 @@ export const ICON_SLOTS: IconSlot[] = [
     previewKind: "nav",
   },
   {
+    /*
+     * Слота не было, пока пункт стоял в колонке первым: `navSlotKey`
+     * отдавал `nav.how-to-use`, реестр его не знал, и рядом со справкой
+     * рисовался запасной значок-коробка. Найдено ревью 01.10.
+     */
+    key: "nav.how-to-use",
+    label: "Как пользоваться",
+    group: "nav",
+    page: "navigation",
+    defaultLucide: "CircleHelp",
+    defaultToken: "foreground-70",
+    previewKind: "nav",
+  },
+  {
     key: "nav.profile",
     label: "Профиль (меню пользователя)",
     group: "nav",
