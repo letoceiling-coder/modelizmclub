@@ -4,6 +4,7 @@ namespace Modules\Billing\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Support\PaymentFailure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -55,7 +56,27 @@ class ConfirmStubPaymentController extends Controller
         }
 
         $reason = $outcome === 'insufficient_funds' ? 'insufficient_funds' : 'declined';
-        $fulfillment->markFailed($payment, $reason);
+        /*
+         * Код и шаг — в колонки, а не только в текст.
+         *
+         * Слова `insufficient_funds` и `declined` здесь наши с самого
+         * начала, но уходили они в `metadata.failure_reason`, мимо
+         * воронки: `markFailed` с двумя доводами пишет код `null` и шаг
+         * `unknown`. То есть проверка трёх исходов на тестовом контуре
+         * показывала бы «причина неизвестна» ровно там, где причина
+         * задана руками. Найдено 02.10 обходом всех вызовов `markFailed`.
+         */
+        $код = $outcome === 'insufficient_funds'
+            ? 'insufficient_funds'
+            : 'declined_by_bank';
+        $fulfillment->markFailed(
+            $payment,
+            $reason,
+            $код,
+            null,
+            PaymentFailure::STAGE_BANK,
+            PaymentFailure::BY_USER,
+        );
         $payment->refresh();
 
         return $this->resolved($payment, 'failed', $this->redirectUrl($payment, false, $reason));

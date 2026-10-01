@@ -77,7 +77,20 @@ class VtbPaymentGateway implements PaymentGateway
         $formUrl = $register['formUrl'] ?? null;
 
         if ($orderId === '' || ! $formUrl) {
-            $this->fulfillment->markFailed($payment, 'VTB register.do missing orderId/formUrl');
+            /*
+             * Заказа у банка нет и формы человек не увидит — значит шаг
+             * `created`, а не `unknown`. Писался `unknown`, потому что
+             * вызов шёл двумя доводами, и в воронке этот случай
+             * сливался с отказами, причину которых узнать не удалось.
+             */
+            $this->fulfillment->markFailed(
+                $payment,
+                'VTB register.do missing orderId/formUrl',
+                PaymentFailure::CODE_REGISTER_FAILED,
+                is_string($register['errorMessage'] ?? null) ? $register['errorMessage'] : null,
+                PaymentFailure::STAGE_CREATED,
+                PaymentFailure::BY_GATEWAY,
+            );
             throw new RuntimeException('Не удалось зарегистрировать заказ в ВТБ.');
         }
 

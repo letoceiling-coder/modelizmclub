@@ -35,6 +35,18 @@ final class PaymentFailure
 
     public const BY_USER = 'user';
 
+    /**
+     * Решил наш шлюз, не дойдя до банка.
+     *
+     * Случай один: `register.do` вернул ответ без `orderId` или `formUrl`,
+     * то есть заказа у банка нет и формы человек не увидит. Ни колбэк, ни
+     * сверка тут ни при чём — отвечать некому.
+     */
+    public const BY_GATEWAY = 'gateway';
+
+    /** Заказ не завели: банк не вернул номер или адрес формы. */
+    public const CODE_REGISTER_FAILED = 'register_failed';
+
     /** @return array<string, string> шаг → как называть человеку */
     public static function stageLabels(): array
     {
@@ -80,6 +92,7 @@ final class PaymentFailure
             'declined_by_bank' => 'отказ банка',
             'declined_other' => 'иной отказ',
             'abandoned' => 'форма закрыта',
+            self::CODE_REGISTER_FAILED => 'заказ не завёлся',
             'none' => 'без кода',
             'unknown' => 'неизвестно',
         ];
