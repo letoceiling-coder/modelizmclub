@@ -13,6 +13,14 @@ export const ruAdmin = {
       headerTitle: "Админ-панель",
       toSite: "К сайту",
       checkingAccess: "Проверка доступа…",
+      noDirectionsTitle: "Вам не назначены направления",
+      noDirectionsText:
+        "Поэтому списки в разделах пусты — это не поломка. Назначить направления может только Владелец.",
+      noDirectionsWrite: "Написать владельцу",
+      noDirectionsMine: "Мои обращения",
+      noDirectionsDialogTitle: "Обращение к владельцу",
+      noDirectionsDialogHint:
+        "Напишите, какие направления вам нужны. Ответ придёт в «Мои обращения».",
       forbiddenTitle: "Доступ запрещён",
       forbiddenDesc: "Админ-панель доступна Владельцу и модераторам.",
       forbiddenSignedIn:

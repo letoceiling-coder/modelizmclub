@@ -705,6 +705,10 @@ function AdminPage() {
             </select>
           </div>
 
+          {/* Выше переключателя: внутри плашка перемонтировалась бы и
+              анимировалась на каждой смене раздела, хотя причина пустоты
+              одна и та же. */}
+          <EmptyDirectionsNotice />
           <ReducedMotionSwitch
             switchKey={section}
             initial={{ opacity: 0, y: 8 }}
@@ -723,12 +727,7 @@ function AdminPage() {
               «Админ-панель» в меню стал для этой роли основным.
               Найдено ревью 01.10.
             */}
-            {reachable ? (
-              <>
-                <EmptyDirectionsNotice />
-                <SectionView section={section} adminRole={adminRole} />
-              </>
-            ) : null}
+            {reachable ? <SectionView section={section} adminRole={adminRole} /> : null}
           </ReducedMotionSwitch>
         </main>
       </div>

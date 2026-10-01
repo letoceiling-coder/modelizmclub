@@ -2,8 +2,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { shouldExplainEmptyDirections } from "./EmptyDirectionsNotice";
-import type { AdminAccess } from "@/lib/admin-access";
+// Предикат берётся из `lib`, а не из компонента: чистое условие
+// проверяется без загрузки разметки и всей её цепочки зависимостей.
+import { shouldExplainEmptyDirections, type AdminAccess } from "@/lib/admin-access";
 
 /**
  * Пустые разделы у администратора направления объясняются словами.
@@ -66,5 +67,11 @@ describe("оболочка админки", () => {
       оболочка.indexOf("<SectionView section=", место),
       "плашка должна стоять до отрисовки раздела",
     ).toBeGreaterThan(место);
+
+    // И вне переключателя разделов: внутри она перемонтировалась бы и
+    // анимировалась на каждой смене раздела.
+    expect(место, "плашка внутри ReducedMotionSwitch").toBeLessThan(
+      оболочка.indexOf("<ReducedMotionSwitch"),
+    );
   });
 });
