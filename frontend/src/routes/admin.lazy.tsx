@@ -38,6 +38,7 @@ import { AdminSectionSkeleton } from "@/components/admin/AdminSectionSkeleton";
 import type { AdminRole } from "@/components/admin/adminShared";
 import type { Section } from "@/routes/admin";
 import { fetchAdminAccess, setAdminAccess } from "@/lib/admin-access";
+import { EmptyDirectionsNotice } from "@/components/admin/EmptyDirectionsNotice";
 import { isDemoMode } from "@/lib/demo-mode";
 import { reportReadFailure } from "@/lib/errors/handle";
 
@@ -704,6 +705,10 @@ function AdminPage() {
             </select>
           </div>
 
+          {/* Выше переключателя: внутри плашка перемонтировалась бы и
+              анимировалась на каждой смене раздела, хотя причина пустоты
+              одна и та же. */}
+          <EmptyDirectionsNotice />
           <ReducedMotionSwitch
             switchKey={section}
             initial={{ opacity: 0, y: 8 }}
