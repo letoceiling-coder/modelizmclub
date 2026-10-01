@@ -36,6 +36,7 @@ export interface ApiUser {
   listing_placement_credits?: number;
   /** Льгота «подписка не требуется» (по умолчанию у сотрудников). */
   subscription_exempt?: boolean;
+  can_open_admin?: boolean;
   free_listings_quota?: number;
   free_listings_unlimited?: boolean;
   free_listings_used?: number;
@@ -88,6 +89,7 @@ export function mapApiUser(u: ApiUser): User {
     email: u.email ?? undefined,
     bio: u.profile?.bio ?? undefined,
     isAdmin: u.role === "owner",
+    canOpenAdmin: u.can_open_admin === true,
     subscriptionExempt: u.subscription_exempt === true,
     phone: u.phone ?? undefined,
     profile: u.profile

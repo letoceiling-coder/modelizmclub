@@ -20,7 +20,7 @@ class MeController extends Controller
         ]);
 
         return response()->json([
-            'data' => new UserResource($user),
+            'data' => (new UserResource($user))->asSelf(),
         ]);
     }
 }

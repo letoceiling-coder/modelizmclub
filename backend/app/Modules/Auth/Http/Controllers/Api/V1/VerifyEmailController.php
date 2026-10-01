@@ -25,7 +25,7 @@ class VerifyEmailController extends Controller
         );
 
         return response()->json([
-            'data' => new UserResource($result['user']),
+            'data' => (new UserResource($result['user']))->asSelf(),
             'meta' => [
                 'token' => $result['token'],
                 'token_type' => 'Bearer',

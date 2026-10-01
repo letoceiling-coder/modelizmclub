@@ -119,6 +119,27 @@ export function UserMenu() {
           onMouseEnter={onContentMouseEnter}
           onMouseLeave={onWrapperMouseLeave}
         >
+          {/*
+            Вход в админку — первым пунктом, выше «Профиля»: сотрудник
+            открывает меню ради него чаще, чем ради всего остального.
+
+            Условие — `canOpenAdmin`, ответ сервера. Прежнее `me.isAdmin`
+            считалось в браузере как `role === "owner"`, и модератор с
+            администратором направления входа не видели, хотя разделы им
+            открыты. Поле равно «разделов больше нуля» по той же карте,
+            что охраняет маршруты, — то есть ссылка не ведёт в 403.
+          */}
+          {me.canOpenAdmin && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link to={ROUTES.admin} className="flex items-center gap-2">
+                  <SlotIcon slot="nav.admin" className="h-4 w-4" size={16} inheritColor />{" "}
+                  {t("nav.admin")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem asChild>
             <Link to={ROUTES.profile} className="flex items-center gap-2">
               <SlotIcon slot="nav.profile" className="h-4 w-4" size={16} inheritColor />{" "}
@@ -155,14 +176,6 @@ export function UserMenu() {
               {t("nav.inviteFriend")}
             </Link>
           </DropdownMenuItem>
-          {me.isAdmin && (
-            <DropdownMenuItem asChild>
-              <Link to={ROUTES.admin} className="flex items-center gap-2">
-                <SlotIcon slot="nav.admin" className="h-4 w-4" size={16} inheritColor />{" "}
-                {t("nav.admin")}
-              </Link>
-            </DropdownMenuItem>
-          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={(e) => {

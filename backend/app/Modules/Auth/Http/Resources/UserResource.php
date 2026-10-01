@@ -3,6 +3,7 @@
 namespace Modules\Auth\Http\Resources;
 
 use App\Models\PendingEmailChange;
+use App\Support\AdminAccess;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -43,6 +44,27 @@ class UserResource extends JsonResource
                     ->where('user_id', $this->id)
                     ->where('expires_at', '>', now())
                     ->value('new_email'),
+            ),
+            /*
+             * Есть ли человеку куда войти в админке — по той же карте,
+             * что охраняет маршруты (App\Support\AdminAccess).
+             *
+             * До 01.10 пункт «Админ-панель» в меню аватара показывался по
+             * `u.role === "owner"`, посчитанному в браузере. Модератор и
+             * администратор направления входа не видели, хотя разделы им
+             * открыты, — и попадали в админку только по прямой ссылке.
+             *
+             * Считается непустотой списка разделов, а не ролью: у кого
+             * разделов ноль, тому ссылка привела бы в 403.
+             *
+             * Только самому себе: ресурс общий с админским списком
+             * пользователей, где строк полсотни, а `sectionsFor` ходит в
+             * таблицу выданных прав. `when` не даёт запросу выполниться
+             * на каждой строке — так же сделано с `pending_email` выше.
+             */
+            'can_open_admin' => $this->when(
+                $this->aboutSelf($request),
+                fn () => AdminAccess::sectionsFor($this->resource) !== [],
             ),
             'oauth_providers' => $this->oauthProviderNames(),
             'phone' => $this->phone,
@@ -87,6 +109,37 @@ class UserResource extends JsonResource
             'subscription' => $this->when($this->relationLoaded('subscriptions'), fn () => $this->subscriptionSummary()),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Ответ о самом человеке, а не о третьем лице.
+     *
+     * Пока условием стояло `$request->user()?->id === $this->id`, поле
+     * терялось на входе: `/auth/login` отдаёт ресурс до аутентификации,
+     * `$request->user()` там null, и сразу после входа владелец с
+     * модератором пункта «Админ-панель» не видели. Появлялся он только
+     * после того, как фоновая загрузка `/auth/me` перезапишет снимок, —
+     * то есть «иногда и не сразу». Найдено ревью 01.10.
+     *
+     * Поэтому опознание явное, а не выведенное из наличия токена:
+     * маршруты, которые отдают ресурс о только что вошедшем, помечают
+     * его сами. Обратное — молчаливое «нет пользователя, значит это он» —
+     * открыло бы поле любому будущему маршруту без аутентификации,
+     * который вернёт чужую строку.
+     */
+    private bool $aboutSelf = false;
+
+    /** Пометить ответ как «о самом себе» — см. `aboutSelf`. */
+    public function asSelf(): static
+    {
+        $this->aboutSelf = true;
+
+        return $this;
+    }
+
+    private function aboutSelf(Request $request): bool
+    {
+        return $this->aboutSelf || $request->user()?->id === $this->id;
     }
 
     /** Latest subscription row, flattened for the admin user list. */

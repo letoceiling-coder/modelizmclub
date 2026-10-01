@@ -472,22 +472,23 @@ function AdminPage() {
   // внутри «Обзоров», своего пункта у неё нет.
   const navIdFor = (id: Section): Section => SECTION_HOSTS[id] ?? id;
 
+  const host = SECTION_HOSTS[section];
+  const reachable =
+    visibleNavItems.some((n) => n.id === section) ||
+    (host !== undefined &&
+      allowedSections.includes(section) &&
+      visibleNavItems.some((n) => n.id === host));
+
   // Раздел из адреса роли не виден — уводим на первый доступный и правим
   // адрес подменой записи, чтобы «назад» не возвращал в запрещённый раздел.
   // Раздел-вкладку пропускаем, если он разрешён и виден его пункт меню: до
   // 20.09 прямая ссылка на «Категории обзоров» уводила Владельца на дашборд.
   useEffect(() => {
     if (adminRole === null) return;
-    const host = SECTION_HOSTS[section];
-    const reachable =
-      visibleNavItems.some((n) => n.id === section) ||
-      (host !== undefined &&
-        allowedSections.includes(section) &&
-        visibleNavItems.some((n) => n.id === host));
     if (!reachable) {
       goToSection(visibleNavItems[0]?.id ?? "dashboard", true);
     }
-  }, [adminRole, section, visibleNavItems, allowedSections, goToSection]);
+  }, [adminRole, reachable, visibleNavItems, goToSection]);
 
   if (isNestedAdminRoute) {
     return <Outlet />;
@@ -710,7 +711,18 @@ function AdminPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <SectionView section={section} adminRole={adminRole} />
+            {/*
+              Недостижимый раздел не монтируется вовсе.
+
+              Увод на первый доступный живёт в `useEffect`, то есть
+              случается после отрисовки. Адрес без `?section` даёт
+              `dashboard`, а он закрыт администратору направления — и
+              сводка успевала смонтироваться и отправить `fetchDashboard`,
+              обречённый на 403. Путь был редким, а с появлением пункта
+              «Админ-панель» в меню стал для этой роли основным.
+              Найдено ревью 01.10.
+            */}
+            {reachable ? <SectionView section={section} adminRole={adminRole} /> : null}
           </ReducedMotionSwitch>
         </main>
       </div>
