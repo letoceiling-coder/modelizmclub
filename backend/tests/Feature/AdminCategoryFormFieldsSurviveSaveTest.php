@@ -184,4 +184,44 @@ class AdminCategoryFormFieldsSurviveSaveTest extends TestCase
         $this->assertSame('novyj/vetka/list', $лист->fresh()->path, 'путь листа после переезда');
         $this->assertSame(2, $лист->fresh()->depth, 'глубина листа после переезда');
     }
+
+    public function test_занятый_slug_объясняется_словами_а_не_пятисоткой(): void
+    {
+        $admin = $this->owner();
+        PostCategory::query()->create(['name' => 'Первая', 'slug' => 'zanyato']);
+        $вторая = PostCategory::query()->create(['name' => 'Вторая', 'slug' => 'svobodno']);
+
+        $ответ = $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/v1/admin/categories/post/{$вторая->id}", [
+                'name' => 'Вторая',
+                'slug' => 'zanyato',
+                'parent_id' => null,
+                'icon' => null,
+                'sort_order' => 0,
+                'is_active' => true,
+            ]);
+
+        $ответ->assertStatus(422)->assertJsonValidationErrors('slug');
+        $this->assertStringContainsString('занят', (string) $ответ->json('message'));
+        $this->assertSame('svobodno', $вторая->fresh()->slug, 'чужой slug не присвоен');
+    }
+
+    public function test_свой_slug_при_правке_не_считается_занятым(): void
+    {
+        $admin = $this->owner();
+        $узел = PostCategory::query()->create(['name' => 'Своя', 'slug' => 'svoya']);
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/v1/admin/categories/post/{$узел->id}", [
+                'name' => 'Переименована',
+                'slug' => 'svoya',
+                'parent_id' => null,
+                'icon' => null,
+                'sort_order' => 0,
+                'is_active' => true,
+            ])
+            ->assertOk();
+
+        $this->assertSame('Переименована', $узел->fresh()->name);
+    }
 }

@@ -5,6 +5,7 @@ import { GripVertical, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { askConfirm, askText } from "@/lib/ui/ask";
 import { askRequiredField } from "@/lib/ui/prompt-field";
+import { reportActionFailure } from "@/lib/errors/handle";
 import {
   createAdminCategory,
   deleteAdminCategory,
@@ -173,8 +174,8 @@ export function ReviewCategoriesAdminSection() {
       });
       setItems((prev) => [...prev, created].sort((a, b) => a.sortOrder - b.sortOrder));
       toast.success(t("pages.adminReviewCategories.added"));
-    } catch {
-      toast.error(t("pages.adminReviewCategories.addFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminReviewCategories.addFailed"));
     } finally {
       setSaving(false);
     }
@@ -194,6 +195,13 @@ export function ReviewCategoriesAdminSection() {
       emptyMessage: t("pages.adminReviewCategories.slugRequired"),
     });
     if (slug === null) return;
+    // Отказ во всех окнах — «передумал»: PUT без изменений оставил бы
+    // строку в аудите и сказал «Сохранено». Так же в направлениях.
+    if (name === c.name && slug === c.slug) {
+      toast.info(t("pages.adminReviewCategories.nothingChanged"));
+
+      return;
+    }
     setSaving(true);
     try {
       const updated = await updateAdminCategory("video", c.id, {
@@ -204,8 +212,8 @@ export function ReviewCategoriesAdminSection() {
       });
       setItems((prev) => prev.map((x) => (x.id === c.id ? updated : x)));
       toast.success(t("pages.adminReviewCategories.saved"));
-    } catch {
-      toast.error(t("pages.adminReviewCategories.updateFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminReviewCategories.updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -223,8 +231,8 @@ export function ReviewCategoriesAdminSection() {
       await deleteAdminCategory("video", c.id);
       setItems((prev) => prev.filter((x) => x.id !== c.id));
       toast.success(t("pages.adminReviewCategories.deleted"));
-    } catch {
-      toast.error(t("pages.adminReviewCategories.deleteFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminReviewCategories.deleteFailed"));
     } finally {
       setSaving(false);
     }
@@ -246,9 +254,9 @@ export function ReviewCategoriesAdminSection() {
           ? t("pages.adminReviewCategories.enabled")
           : t("pages.adminReviewCategories.disabled"),
       );
-    } catch {
+    } catch (e) {
       setItems((prev) => prev.map((x) => (x.id === c.id ? { ...x, isActive: !active } : x)));
-      toast.error(t("pages.adminReviewCategories.updateFailed"));
+      reportActionFailure(e, t("pages.adminReviewCategories.updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -261,8 +269,8 @@ export function ReviewCategoriesAdminSection() {
     setSaving(true);
     try {
       await reorderAdminVideoCategories(nextIds);
-    } catch {
-      toast.error(t("pages.adminReviewCategories.reorderFailed"));
+    } catch (e) {
+      reportActionFailure(e, t("pages.adminReviewCategories.reorderFailed"));
       load();
     } finally {
       setSaving(false);

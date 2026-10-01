@@ -300,16 +300,22 @@ class CategoryTaxonomyTest extends TestCase
      * Теперь расхождение задаётся одним действием: последовательность
      * `listing_categories` переводится выше наибольшего идентификатора
      * категорий постов. Последовательности не откатываются вместе с
-     * транзакцией теста и двигаются только вперёд — повторный вызов
-     * безвреден.
+     * транзакцией теста — значение, выставленное здесь, переживёт её.
+     *
+     * `setval` ставит значение как есть и умеет двигать последовательность
+     * назад — а там её ждут постоянные строки и конфликт ключа. Поэтому
+     * новое значение берётся выше наибольшего из обеих таблиц: ниже
+     * собственного максимума `listing_categories` не опустится.
      */
     private function ensureListingIdsAheadOfPostIds(): void
     {
         $maxPost = (int) PostCategory::query()->max('id');
 
+        $maxListing = (int) ListingCategory::query()->max('id');
+
         DB::statement(
             "select setval(pg_get_serial_sequence('listing_categories', 'id'), ?)",
-            [$maxPost + 1],
+            [max($maxPost, $maxListing) + 1],
         );
 
         $filler = ListingCategory::query()->create([

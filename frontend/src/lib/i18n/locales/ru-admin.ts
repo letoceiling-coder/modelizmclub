@@ -1261,6 +1261,7 @@ export const ruAdmin = {
       promptEditSlug: "Slug",
       nameRequired: "Название не может быть пустым",
       slugRequired: "Slug не может быть пустым",
+      nothingChanged: "Ничего не изменилось — сохранять нечего",
       unifiedHint:
         "Единое дерево категорий: лента, форма подачи и каталог объявлений, сообщества. Флаги в строке решают, где виден раздел; цена размещения — там же. До трёх уровней.",
       unifiedHintNoPrices:
@@ -1313,6 +1314,7 @@ export const ruAdmin = {
       promptEditSlug: "Slug",
       nameRequired: "Название не может быть пустым",
       slugRequired: "Slug не может быть пустым",
+      nothingChanged: "Ничего не изменилось — сохранять нечего",
       added: "Категория добавлена",
       addFailed: "Не удалось создать категорию",
       saved: "Категория сохранена",
