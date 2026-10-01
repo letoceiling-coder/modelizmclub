@@ -11,6 +11,7 @@ use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Modules\Admin\Http\Requests\UpsertPromocodeRequest;
 use Modules\Admin\Services\AuditService;
 use Modules\Admin\Services\PromocodeNotificationService;
@@ -102,9 +103,14 @@ class AdminPromocodeController extends Controller
         unset($validated['notify_mode'], $validated['notify_title'], $validated['notify_body'], $validated['notify_user_ids']);
 
         $old = array_merge($promocode->toArray(), ['audience_user_ids' => $promocode->audienceUsers()->pluck('users.id')->all()]);
-        $promocode->update($validated);
-        self::записатьКруг($promocode, $круг, $люди);
-        $promocode = $promocode->fresh();
+        // Поля и круг — одной транзакцией: упавшая запись круга оставляла
+        // акцию с новым процентом и прежним кругом, и расхождение молчало.
+        $promocode = DB::transaction(function () use ($promocode, $validated, $круг, $люди) {
+            $promocode->update($validated);
+            self::записатьКруг($promocode, $круг, $люди);
+
+            return $promocode->fresh();
+        });
         $audit->log($request->user(), 'admin.promocodes.update', $promocode, $old, array_merge(
             $promocode->toArray(),
             ['audience_user_ids' => $promocode->audienceUsers()->pluck('users.id')->all()],
@@ -158,7 +164,26 @@ class AdminPromocodeController extends Controller
             return;
         }
 
-        $promocode->audienceUsers()->sync(array_fill_keys($люди, ['created_at' => now()]));
+        /*
+         * Дата включения в круг ставится только тем, кого включают сейчас.
+         *
+         * `sync` с атрибутами переписывает их и у тех, кто в круге уже
+         * состоял: `attachNew` при непустых атрибутах зовёт
+         * `updateExistingPivot`. То есть открыть акцию, ничего не менять
+         * и сохранить — и у всего круга дата включения становится
+         * сегодняшней. Пока правки в админке не было, этот путь проходили
+         * раз при создании; с правкой он стал частым. Найдено ревью 01.10.
+         */
+        $текущие = $promocode->audienceUsers()->pluck('users.id')->all();
+        $новые = array_values(array_diff($люди, $текущие));
+        $лишние = array_values(array_diff($текущие, $люди));
+
+        if ($лишние !== []) {
+            $promocode->audienceUsers()->detach($лишние);
+        }
+        if ($новые !== []) {
+            $promocode->audienceUsers()->attach(array_fill_keys($новые, ['created_at' => now()]));
+        }
     }
 
     /** @return list<array{id: int, name: string, email: string}> */

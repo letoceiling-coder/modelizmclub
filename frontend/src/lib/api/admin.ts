@@ -562,7 +562,6 @@ export async function updateAdminPromocode(
   input: {
     code: string;
     type: "percent" | "fixed" | "free";
-    scope?: "listing_placement" | "subscription" | "boost" | "all";
     value: number;
     max_usages: number;
     valid_from?: string;
@@ -577,7 +576,14 @@ export async function updateAdminPromocode(
     json: {
       code: input.code,
       type: input.type,
-      scope: input.scope ?? "listing_placement",
+      /*
+       * `scope` не шлётся умышленно: отсутствующее поле `update` не
+       * трогает, и акция сохраняет свой раздел. Раньше здесь стояло
+       * `scope: "listing_placement"` жёстко — то есть «поправил срок»
+       * молча переводило акцию на размещение объявлений и выключало её
+       * там, где она действовала: подписка, поднятие, всё сразу. Форма
+       * раздел не показывает и менять его не просит. Найдено ревью 01.10.
+       */
       value: input.value,
       max_usages: input.max_usages,
       // Пустую строку не шлём: сервер отличает «с начала» от «не задано».

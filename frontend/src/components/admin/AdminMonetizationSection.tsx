@@ -720,12 +720,13 @@ function PromoCodesBlock({
         await updateAdminPromocode(editing.code, {
           code: form.code.toUpperCase(),
           type: form.type,
-          scope: "listing_placement",
           value: form.type === "free" ? 100 : form.discount,
           max_usages: form.limit,
           valid_from: form.startsAt,
           valid_until: form.expiresAt,
-          is_active: editing.state !== "disabled",
+          // Из поля, а не выведенное из состояния: два источника правды
+          // на один признак расходятся молча.
+          is_active: editing.isActive,
           audience,
           user_ids: audience === "selected" ? audiencePeople.map((u) => u.id) : [],
         });

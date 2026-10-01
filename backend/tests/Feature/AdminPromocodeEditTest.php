@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Models\Promocode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -54,7 +55,7 @@ class AdminPromocodeEditTest extends TestCase
         $покупатель = User::factory()->create();
 
         $promo = Promocode::query()->create($this->body(['value' => 10]));
-        $promo->usages()->create(['user_id' => $покупатель->id, 'discount_kopecks' => 5000]);
+        $promo->usages()->create(['user_id' => $покупатель->id, 'used_at' => now()]);
 
         $this->assertSame(1, $promo->usages()->count(), 'подготовка: применение записано');
 
@@ -136,5 +137,130 @@ class AdminPromocodeEditTest extends TestCase
             'action' => 'admin.promocodes.update',
             'auditable_id' => $promo->id,
         ]);
+    }
+
+    public function test_раздел_акции_не_перезаписывается(): void
+    {
+        $admin = $this->owner();
+        $promo = Promocode::query()->create($this->body(['code' => 'SUBS', 'scope' => 'subscription']));
+
+        $тело = $this->body(['code' => 'SUBS', 'value' => 40]);
+        unset($тело['scope']);
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/v1/admin/promocodes/SUBS", $тело)
+            ->assertOk();
+
+        $promo->refresh();
+
+        $this->assertSame(40, (int) $promo->value, 'процент не изменился');
+        $this->assertSame(
+            'subscription',
+            $promo->scope,
+            'правка процента перевела акцию в другой раздел — она перестала бы действовать там, где действовала',
+        );
+    }
+
+    public function test_смена_кода_сохраняет_применения(): void
+    {
+        $admin = $this->owner();
+        $покупатель = User::factory()->create();
+        $promo = Promocode::query()->create($this->body(['code' => 'OPECHATKA']));
+        $promo->usages()->create(['user_id' => $покупатель->id, 'used_at' => now()]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/v1/admin/promocodes/OPECHATKA', $this->body(['code' => 'ISPRAVLENO']))
+            ->assertOk();
+
+        $promo->refresh();
+
+        $this->assertSame('ISPRAVLENO', $promo->code);
+        $this->assertSame(1, $promo->usages()->count(), 'применения отвязались от акции');
+    }
+
+    public function test_круг_людей_при_правке_без_изменений_остаётся_как_был(): void
+    {
+        $admin = $this->owner();
+        $первый = User::factory()->create();
+        $второй = User::factory()->create();
+        $promo = Promocode::query()->create($this->body(['code' => 'KRUG']));
+        $promo->audienceUsers()->attach([$первый->id, $второй->id], ['created_at' => now()->subDays(7)]);
+
+        /*
+         * Дата читается из таблицы связи, а не через `pivot`: в
+         * `audienceUsers()` нет `withPivot('created_at')`, и первая
+         * версия этой проверки сравнивала пустую строку с пустой —
+         * то есть проходила при сломанной записи круга.
+         */
+        $дата = fn (): ?string => DB::table('promocode_users')
+            ->where('promocode_id', $promo->id)
+            ->where('user_id', $первый->id)
+            ->value('created_at');
+        $былаДата = $дата();
+        $this->assertNotNull($былаДата, 'подготовка: дата включения в круг не записана');
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/v1/admin/promocodes/KRUG', $this->body([
+                'code' => 'KRUG',
+                'value' => 33,
+                'audience' => 'selected',
+                'user_ids' => [$первый->id, $второй->id],
+            ]))
+            ->assertOk();
+
+        $promo->refresh();
+        $круг = $promo->audienceUsers()->orderBy('users.id')->get();
+
+        $this->assertSame([$первый->id, $второй->id], $круг->pluck('id')->all(), 'круг изменился');
+        /*
+         * Дата включения в круг — не «когда последний раз сохранили».
+         * `sync` с атрибутами переписывал её всем, кто в круге уже был.
+         */
+        $this->assertSame(
+            $былаДата,
+            $дата(),
+            'дата включения в круг переписана сохранением, которое ничего не меняло',
+        );
+    }
+
+    public function test_переключение_на_всех_снимает_круг_целиком(): void
+    {
+        $admin = $this->owner();
+        $кто = User::factory()->create();
+        $promo = Promocode::query()->create($this->body(['code' => 'SNYAT']));
+        $promo->audienceUsers()->attach([$кто->id], ['created_at' => now()]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/v1/admin/promocodes/SNYAT', $this->body([
+                'code' => 'SNYAT',
+                'audience' => 'all',
+                'user_ids' => [],
+            ]))
+            ->assertOk();
+
+        $this->assertSame(0, $promo->fresh()->audienceUsers()->count(), 'круг остался невидимым запретом');
+        $this->assertNull($promo->fresh()->user_id, 'старая привязка к одному человеку осталась');
+    }
+
+    public function test_непереданные_поля_остаются_прежними(): void
+    {
+        $admin = $this->owner();
+        $promo = Promocode::query()->create($this->body([
+            'code' => 'SOHRANI',
+            'scope' => 'boost',
+            'max_usages_per_user' => 3,
+        ]));
+
+        $тело = $this->body(['code' => 'SOHRANI', 'value' => 11]);
+        unset($тело['scope']);
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/v1/admin/promocodes/SOHRANI', $тело)
+            ->assertOk();
+
+        $promo->refresh();
+
+        $this->assertSame('boost', $promo->scope, 'раздел перезаписан');
+        $this->assertSame(3, (int) $promo->max_usages_per_user, 'предел на человека перезаписан');
     }
 }
