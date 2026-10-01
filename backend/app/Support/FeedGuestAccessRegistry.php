@@ -2,6 +2,25 @@
 
 namespace App\Support;
 
+/**
+ * Какое действие кому доступно: гостю, вошедшему, подписчику.
+ *
+ * **Умолчания здесь — объявленное решение, а не черновик.** 01.10 они
+ * приведены к тому, что действует на проде: до этого каждая выкатка
+ * печатала «10 расхождений с умолчаниями реестра», и ни одно не было
+ * названо словами. А пока расхождения безымянные, сверка не работает:
+ * одиннадцатое настоящее утонет среди десяти привычных.
+ *
+ * Разбор по строкам — кто, когда и зачем менял каждое — лежит в
+ * `docs/access-map-2026-10-01.md`. Проверка, держащая реестр на этом
+ * решении, — `tests/Unit/AccessMapRegistryMatchesDecisionTest.php`.
+ *
+ * Правя уровень здесь, обновите разбор: иначе через месяц расхождение
+ * снова станет безымянным.
+ *
+ * Действующая карта живёт в настройках и правится из `/admin`; значения
+ * отсюда — запасной ответ для ключа, которого в сохранённой карте нет.
+ */
 final class FeedGuestAccessRegistry
 {
     public const SETTING_KEY = 'feed.guest_access';
@@ -27,10 +46,10 @@ final class FeedGuestAccessRegistry
             ['key' => 'feed.compose.open', 'group' => 'feed_content', 'label' => 'Создание публикации', 'hint' => '«Что у вас нового?» и кнопка «+»', 'default_min_tier' => 'subscription'],
             ['key' => 'feed.banner.navigate', 'group' => 'feed_content', 'label' => 'Карусель событий', 'hint' => 'Клик по баннеру / «Подробнее»', 'default_min_tier' => 'guest'],
             ['key' => 'feed.post.open', 'group' => 'feed_content', 'label' => 'Открытие публикации', 'hint' => 'Переход к посту', 'default_min_tier' => 'guest'],
-            ['key' => 'feed.post.like', 'group' => 'feed_content', 'label' => 'Лайк', 'hint' => 'Реакция на публикацию', 'default_min_tier' => 'subscription'],
-            ['key' => 'feed.post.comment', 'group' => 'feed_content', 'label' => 'Комментарии', 'hint' => 'Комментирование', 'default_min_tier' => 'subscription'],
+            ['key' => 'feed.post.like', 'group' => 'feed_content', 'label' => 'Лайк', 'hint' => 'Реакция на публикацию', 'default_min_tier' => 'auth'],
+            ['key' => 'feed.post.comment', 'group' => 'feed_content', 'label' => 'Комментарии', 'hint' => 'Комментирование', 'default_min_tier' => 'auth'],
             ['key' => 'feed.post.save', 'group' => 'feed_content', 'label' => 'Закладка', 'hint' => 'Сохранение публикации', 'default_min_tier' => 'auth'],
-            ['key' => 'feed.post.repost', 'group' => 'feed_content', 'label' => 'Репост', 'hint' => 'Репост публикации', 'default_min_tier' => 'subscription'],
+            ['key' => 'feed.post.repost', 'group' => 'feed_content', 'label' => 'Репост', 'hint' => 'Репост публикации', 'default_min_tier' => 'auth'],
             ['key' => 'feed.post.author', 'group' => 'feed_content', 'label' => 'Профиль автора', 'hint' => 'Переход в профиль из поста', 'default_min_tier' => 'auth'],
             ['key' => 'feed.sponsored.click', 'group' => 'feed_content', 'label' => 'Рекламный пост', 'hint' => 'Клик по спонсорской публикации', 'default_min_tier' => 'guest'],
             ['key' => 'feed.empty.action', 'group' => 'feed_content', 'label' => 'Кнопки пустого состояния', 'hint' => '«Показать все», «Найти авторов»', 'default_min_tier' => 'guest'],
@@ -49,9 +68,9 @@ final class FeedGuestAccessRegistry
             ['key' => 'layout.nav.my_ads', 'group' => 'layout_nav', 'label' => 'Мои объявления', 'hint' => 'Пункт меню → /my-ads', 'default_min_tier' => 'auth'],
             ['key' => 'layout.nav.deals', 'group' => 'layout_nav', 'label' => 'Безопасные сделки', 'hint' => 'Пункт меню → /deals', 'default_min_tier' => 'auth'],
             ['key' => 'layout.nav.favorites', 'group' => 'layout_nav', 'label' => 'Избранное', 'hint' => 'Пункт меню / иконка в шапке', 'default_min_tier' => 'auth'],
-            ['key' => 'layout.nav.communities', 'group' => 'layout_nav', 'label' => 'Сообщества', 'hint' => 'Пункт меню → /communities', 'default_min_tier' => 'guest'],
-            ['key' => 'layout.nav.reviews', 'group' => 'layout_nav', 'label' => 'Обзоры', 'hint' => 'Пункт меню → /reviews', 'default_min_tier' => 'auth'],
-            ['key' => 'layout.nav.channels', 'group' => 'layout_nav', 'label' => 'Каналы', 'hint' => 'Пункт меню → /channels', 'default_min_tier' => 'guest'],
+            ['key' => 'layout.nav.communities', 'group' => 'layout_nav', 'label' => 'Сообщества', 'hint' => 'Пункт меню → /communities; страница открыта гостю, и пункт тоже — иначе открытый маршрут некуда нажать (договорённость 05.09, docs/gate.md)', 'default_min_tier' => 'guest'],
+            ['key' => 'layout.nav.reviews', 'group' => 'layout_nav', 'label' => 'Обзоры', 'hint' => 'Пункт меню → /reviews', 'default_min_tier' => 'subscription'],
+            ['key' => 'layout.nav.channels', 'group' => 'layout_nav', 'label' => 'Каналы', 'hint' => 'Пункт меню → /channels; страница открыта гостю, и пункт тоже — см. layout.nav.communities', 'default_min_tier' => 'guest'],
             ['key' => 'layout.nav.messenger', 'group' => 'layout_nav', 'label' => 'Мессенджер', 'hint' => 'Пункт меню / иконка в шапке', 'default_min_tier' => 'auth'],
             ['key' => 'layout.nav.friends', 'group' => 'layout_nav', 'label' => 'Друзья', 'hint' => 'Пункт меню → /friends', 'default_min_tier' => 'auth'],
             ['key' => 'layout.nav.settings', 'group' => 'layout_nav', 'label' => 'Настройки', 'hint' => 'Пункт меню → /settings', 'default_min_tier' => 'auth'],
@@ -65,7 +84,7 @@ final class FeedGuestAccessRegistry
             ['key' => 'route.my_ads', 'group' => 'route_guard', 'label' => 'Страница /my-ads', 'hint' => 'Мои объявления', 'default_min_tier' => 'auth'],
             ['key' => 'route.deals', 'group' => 'route_guard', 'label' => 'Страница /deals', 'hint' => 'Безопасные сделки', 'default_min_tier' => 'auth'],
             ['key' => 'route.favorites', 'group' => 'route_guard', 'label' => 'Страница /favorites', 'hint' => 'Избранное', 'default_min_tier' => 'auth'],
-            ['key' => 'route.reviews', 'group' => 'route_guard', 'label' => 'Страница /reviews', 'hint' => 'Обзоры', 'default_min_tier' => 'auth'],
+            ['key' => 'route.reviews', 'group' => 'route_guard', 'label' => 'Страница /reviews', 'hint' => 'Обзоры', 'default_min_tier' => 'subscription'],
             ['key' => 'route.channels', 'group' => 'route_guard', 'label' => 'Страница /channels', 'hint' => 'Каналы: список и страница канала читаются гостем, действия закрыты своими ключами', 'default_min_tier' => 'guest'],
             ['key' => 'route.messenger', 'group' => 'route_guard', 'label' => 'Страница /messenger', 'hint' => 'Мессенджер', 'default_min_tier' => 'auth'],
             ['key' => 'route.friends', 'group' => 'route_guard', 'label' => 'Страница /friends', 'hint' => 'Друзья', 'default_min_tier' => 'auth'],
@@ -176,9 +195,9 @@ final class FeedGuestAccessRegistry
             'version' => 2,
             'default_deny_mode' => 'popup',
             'popup' => [
-                'title' => 'Войдите в аккаунт',
-                'description' => 'Чтобы пользоваться этой функцией, войдите или зарегистрируйтесь.',
-                'primary_cta' => 'Войти',
+                'title' => 'Нужна подписка',
+                'description' => 'Войдите и оформите подписку, чтобы пользоваться этой функцией.',
+                'primary_cta' => 'Оформить подписку',
                 'secondary_cta' => 'Позже',
             ],
             'actions' => $actions,
