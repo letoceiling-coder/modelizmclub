@@ -867,6 +867,13 @@ COLUMN|post_reposts.id|bigint|NO
 COLUMN|post_reposts.original_post_id|bigint|NO
 COLUMN|post_reposts.repost_post_id|bigint|YES
 COLUMN|post_reposts.user_id|bigint|NO
+COLUMN|post_views.created_at|timestamp without time zone|YES
+COLUMN|post_views.id|bigint|NO
+COLUMN|post_views.post_id|bigint|NO
+COLUMN|post_views.updated_at|timestamp without time zone|YES
+COLUMN|post_views.user_id|bigint|YES
+COLUMN|post_views.viewed_on|date|NO
+COLUMN|post_views.viewer_key|character varying|NO
 COLUMN|posts.body|text|NO
 COLUMN|posts.category_id|bigint|YES
 COLUMN|posts.comments_count|integer|NO
@@ -1564,6 +1571,8 @@ FK|post_reactions|post_reactions_user_id_foreign
 FK|post_reposts|post_reposts_original_post_id_foreign
 FK|post_reposts|post_reposts_repost_post_id_foreign
 FK|post_reposts|post_reposts_user_id_foreign
+FK|post_views|post_views_post_id_foreign
+FK|post_views|post_views_user_id_foreign
 FK|posts|posts_category_id_foreign
 FK|posts|posts_community_id_foreign
 FK|posts|posts_moderated_by_foreign
@@ -1878,6 +1887,9 @@ INDEX|post_media|post_media_post_id_sort_order_index
 INDEX|post_reactions|post_reactions_pkey
 INDEX|post_reactions|post_reactions_post_id_user_id_unique
 INDEX|post_reposts|post_reposts_pkey
+INDEX|post_views|post_views_pkey
+INDEX|post_views|post_views_unique_per_day
+INDEX|post_views|post_views_user_id_viewed_on_index
 INDEX|posts|posts_category_id_index
 INDEX|posts|posts_community_id_status_index
 INDEX|posts|posts_pkey
@@ -2087,6 +2099,7 @@ SEQ|post_categories_id_seq
 SEQ|post_media_id_seq
 SEQ|post_reactions_id_seq
 SEQ|post_reposts_id_seq
+SEQ|post_views_id_seq
 SEQ|posts_id_seq
 SEQ|promo_pool_users_id_seq
 SEQ|promo_pools_id_seq
@@ -2223,6 +2236,7 @@ TABLE|post_hashtags
 TABLE|post_media
 TABLE|post_reactions
 TABLE|post_reposts
+TABLE|post_views
 TABLE|posts
 TABLE|promo_pool_users
 TABLE|promo_pools
