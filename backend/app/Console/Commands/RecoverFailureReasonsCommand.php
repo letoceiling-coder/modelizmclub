@@ -7,6 +7,7 @@ use App\Support\PaymentFailure;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Modules\Billing\Clients\VtbAcquiringClient;
+use Modules\Billing\Clients\YooKassaClient;
 
 /**
  * Спросить у банка, почему не прошли старые платежи ВТБ.
@@ -37,16 +38,17 @@ use Modules\Billing\Clients\VtbAcquiringClient;
  * БЕЗ `--apply` НИЧЕГО НЕ ПИШЕТСЯ И НИЧЕГО НЕ СПРАШИВАЕТСЯ У БАНКА.
  * Сухой прогон печатает тело запроса и список платежей — и только.
  */
-class RecoverVtbFailureReasonsCommand extends Command
+class RecoverFailureReasonsCommand extends Command
 {
-    protected $signature = 'payments:recover-vtb-reasons
+    protected $signature = 'payments:recover-reasons
         {--apply : спросить банк и записать причины; без флага — только показать, что будет}
         {--limit=0 : ограничить число платежей}
+        {--provider= : только этот провайдер (vtb или yookassa)}
         {--delay-ms= : пауза между запросами к банку, мс (по умолчанию из billing.vtb.reconcile)}';
 
     protected $description = 'Восстановить причину отказа по старым платежам ВТБ: спросить банк и заполнить код, текст и шаг';
 
-    public function handle(VtbAcquiringClient $client): int
+    public function handle(VtbAcquiringClient $client, YooKassaClient $yooKassa): int
     {
         $платежи = $this->выборка();
 
@@ -62,12 +64,96 @@ class RecoverVtbFailureReasonsCommand extends Command
         if (! $this->option('apply')) {
             $this->newLine();
             $this->warn('Сухой прогон: к банку не обращались, в базу не писали.');
-            $this->line('Запустить по-настоящему: php artisan payments:recover-vtb-reasons --apply');
+            $this->line('Запустить по-настоящему: php artisan payments:recover-reasons --apply');
 
             return self::SUCCESS;
         }
 
-        return $this->выполнить($client, $платежи);
+        return $this->выполнить($client, $yooKassa, $платежи);
+    }
+
+    /**
+     * Что ЮKassa говорит про этот платёж — и почему он не прошёл.
+     *
+     * Причина лежит в `cancellation_details.reason`, и до 02.10 её не
+     * читал никто: сверка смотрела только `status`, то есть знала
+     * «отменён», но не знала почему. При этом ключи магазина живые —
+     * проверено 10.09, `GET /me` отвечает 200, — и 27 отказов июля и
+     * августа считались невосстановимыми зря. Эту ошибку я и сделал,
+     * объявив их таковыми: отрицательное утверждение без полного чтения.
+     *
+     * @param array<string, int> $итог
+     * @param list<string>       $истёкшие
+     */
+    private function юkassa(
+        YooKassaClient $client,
+        Payment $платёж,
+        array &$итог,
+        int &$беззвёздочки,
+        int &$ошибки,
+        array &$истёкшие,
+    ): void {
+        $короткий = mb_substr((string) $платёж->uuid, 0, 8);
+
+        try {
+            $данные = $client->getPayment((string) $платёж->provider_payment_id);
+        } catch (\Throwable $e) {
+            $ошибки++;
+            $this->warn($короткий.': ЮKassa не ответила — '.$e->getMessage());
+
+            return;
+        }
+
+        $статус = $данные['status'] ?? null;
+
+        if ($статус === 'succeeded') {
+            // То же расхождение по деньгам, что и у банка: разбирают руками.
+            $this->error($короткий.': ЮKassa отвечает «succeeded», а у нас «'.$платёж->status.'» — строка пропущена.');
+
+            return;
+        }
+
+        $причина = $данные['cancellation_details']['reason'] ?? null;
+        $кто = $данные['cancellation_details']['party'] ?? null;
+        $наш = PaymentFailure::fromYooKassaReason(is_string($причина) ? $причина : null);
+
+        if ($наш === null) {
+            $беззвёздочки++;
+            $this->line(sprintf(
+                '  %s  status=%s cancellation_details — нет, причина не названа, строка не тронута',
+                $короткий,
+                is_string($статус) ? $статус : '—',
+            ));
+
+            return;
+        }
+
+        $шаг = $наш === 'expired' ? PaymentFailure::STAGE_FORM : PaymentFailure::STAGE_BANK;
+
+        // Имя причины и кто отменил — дословно: наш код это пересказ, а
+        // пересказ может оказаться неверным, и тогда понадобится исходник.
+        $сообщение = 'reason '.$причина.($кто !== null ? ', party '.$кто : '');
+
+        $платёж->forceFill([
+            'failure_code' => $наш,
+            'failure_message' => mb_substr($сообщение, 0, 500),
+            'failure_stage' => $шаг,
+        ])->save();
+
+        $this->line(sprintf(
+            '  %s  status=%-10s reason=%-24s → %s (%s)',
+            $короткий,
+            is_string($статус) ? $статус : '—',
+            (string) $причина,
+            $наш,
+            PaymentFailure::stageLabels()[$шаг] ?? $шаг,
+        ));
+
+        if ($наш === 'expired') {
+            $истёкшие[] = $короткий;
+        }
+
+        $итог[$наш] = ($итог[$наш] ?? 0) + 1;
     }
 
     /**
@@ -78,11 +164,14 @@ class RecoverVtbFailureReasonsCommand extends Command
      */
     private function выборка(): \Illuminate\Support\Collection
     {
+        $провайдер = (string) ($this->option('provider') ?? '');
+
         $q = Payment::query()
-            ->where('provider', 'vtb')
+            ->whereIn('provider', ['vtb', 'yookassa'])
             ->whereIn('status', ['failed', 'abandoned'])
             ->whereNull('failure_code')
             ->whereNotNull('provider_payment_id')
+            ->when($провайдер !== '', fn ($q) => $q->where('provider', $провайдер))
             ->orderBy('created_at');
 
         $предел = (int) $this->option('limit');
@@ -134,7 +223,7 @@ class RecoverVtbFailureReasonsCommand extends Command
     }
 
     /** @param \Illuminate\Support\Collection<int, Payment> $платежи */
-    private function выполнить(VtbAcquiringClient $client, \Illuminate\Support\Collection $платежи): int
+    private function выполнить(VtbAcquiringClient $client, YooKassaClient $yooKassa, \Illuminate\Support\Collection $платежи): int
     {
         /*
          * Пауза — из той же настройки, что у сверки. 08.09 залп из 47
@@ -151,6 +240,13 @@ class RecoverVtbFailureReasonsCommand extends Command
         $истёкшие = [];
 
         foreach ($платежи as $платёж) {
+            if ($платёж->provider === 'yookassa') {
+                $this->юkassa($yooKassa, $платёж, $итог, $беззвёздочки, $ошибки, $истёкшие);
+                usleep($пауза);
+
+                continue;
+            }
+
             try {
                 $ответ = $client->getOrderStatusExtended((string) $платёж->provider_payment_id);
             } catch (\Throwable $e) {
@@ -278,9 +374,10 @@ class RecoverVtbFailureReasonsCommand extends Command
          * а не результат.
          */
         $осталось = DB::table('payments')
-            ->where('provider', 'vtb')
+            ->whereIn('provider', ['vtb', 'yookassa'])
             ->whereIn('status', ['failed', 'abandoned'])
             ->whereNull('failure_code')
+            ->whereNotNull('provider_payment_id')
             ->count();
         $this->line('Осталось без причины в базе: '.$осталось);
 

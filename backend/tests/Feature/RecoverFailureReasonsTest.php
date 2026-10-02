@@ -8,6 +8,7 @@ use App\Support\PaymentFailure;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Modules\Billing\Clients\VtbAcquiringClient;
+use Modules\Billing\Clients\YooKassaClient;
 use Tests\TestCase;
 
 /**
@@ -21,7 +22,7 @@ use Tests\TestCase;
  * Команда спрашивает банк и заполняет код, текст и шаг. Деньги она не
  * трогает: статус остаётся прежним, и это проверяется отдельно.
  */
-class RecoverVtbFailureReasonsTest extends TestCase
+class RecoverFailureReasonsTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -68,7 +69,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
         // Любое обращение к банку уронит подменённого клиента: ответов нет.
         $this->банкОтвечает([]);
 
-        $this->artisan('payments:recover-vtb-reasons')
+        $this->artisan('payments:recover-reasons')
             ->expectsOutputToContain('Сухой прогон')
             ->assertSuccessful();
 
@@ -88,7 +89,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
             ],
         ]);
 
-        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')->assertSuccessful();
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')->assertSuccessful();
 
         $платёж->refresh();
         $this->assertSame('insufficient_funds', $платёж->failure_code);
@@ -117,7 +118,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
             ],
         ]);
 
-        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')->assertSuccessful();
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')->assertSuccessful();
 
         $платёж->refresh();
         $this->assertSame('expired', $платёж->failure_code);
@@ -135,7 +136,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
             $платёж->provider_payment_id => ['orderStatus' => 2, 'actionCode' => 0],
         ]);
 
-        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')
             ->expectsOutputToContain('разберите отдельно')
             ->assertSuccessful();
 
@@ -156,7 +157,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
             ],
         ]);
 
-        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')
             ->expectsOutputToContain('банк не ответил')
             ->assertSuccessful();
 
@@ -168,12 +169,15 @@ class RecoverVtbFailureReasonsTest extends TestCase
     {
         $уже = $this->платёж(['failure_code' => 'declined_by_bank', 'failure_message' => 'было']);
         $оплачен = $this->платёж(['status' => 'paid']);
-        $чужой = $this->платёж(['provider' => 'yookassa']);
+        // Заглушка и кошелёк — не провайдеры, спрашивать о них некого.
+        // ЮKassa с 02.10 в разборе своя: её причина лежит в
+        // `cancellation_details`, и ключи магазина живые.
+        $чужой = $this->платёж(['provider' => 'stub']);
         $безЗаказа = $this->платёж(['provider_payment_id' => null]);
 
         $this->банкОтвечает([]);
 
-        $this->artisan('payments:recover-vtb-reasons')
+        $this->artisan('payments:recover-reasons')
             ->expectsOutputToContain('Платежей без восстановимой причины нет')
             ->assertSuccessful();
 
@@ -192,7 +196,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
             $платёж->provider_payment_id => ['orderStatus' => 6, 'actionCode' => -2007],
         ]);
 
-        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')->assertSuccessful();
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')->assertSuccessful();
 
         $this->assertSame('expired', $платёж->fresh()->failure_code);
         $this->assertSame('abandoned', $платёж->fresh()->status);
@@ -208,7 +212,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
             }
             $this->банкОтвечает([$платёж->provider_payment_id => $ответ]);
 
-            $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')
+            $this->artisan('payments:recover-reasons --apply --delay-ms=0')
                 ->expectsOutputToContain('банк причины не назвал')
                 ->assertSuccessful();
 
@@ -237,7 +241,7 @@ class RecoverVtbFailureReasonsTest extends TestCase
             ],
         ]);
 
-        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')->assertSuccessful();
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')->assertSuccessful();
 
         $платёж->refresh();
         $this->assertSame('insufficient_funds', $платёж->failure_code, 'код во вложенном ответе не найден');
@@ -251,10 +255,101 @@ class RecoverVtbFailureReasonsTest extends TestCase
             $платёж->provider_payment_id => ['orderStatus' => 6, 'actionCode' => -2007],
         ]);
 
-        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')
             // Статус остаётся `failed`, и в воронке строка попадёт в
             // «Отказано» — об этом надо сказать, а не умолчать.
             ->expectsOutputToContain('перенесите в «брошено»')
             ->assertSuccessful();
+    }
+
+    /** @param array<string, array<string, mixed>> $ответы */
+    private function юkassaОтвечает(array $ответы): void
+    {
+        $this->app->instance(YooKassaClient::class, new class($ответы) extends YooKassaClient
+        {
+            public function __construct(private array $ответы) {}
+
+            public function getPayment(string $paymentId): array
+            {
+                if (! array_key_exists($paymentId, $this->ответы)) {
+                    throw new \RuntimeException("ЮKassa не знает платёж {$paymentId}");
+                }
+
+                return $this->ответы[$paymentId];
+            }
+        });
+    }
+
+    public function test_юkassa_причина_берётся_из_cancellation_details(): void
+    {
+        $платёж = $this->платёж(['provider' => 'yookassa']);
+        $this->банкОтвечает([]);
+        $this->юkassaОтвечает([
+            $платёж->provider_payment_id => [
+                'status' => 'canceled',
+                'cancellation_details' => ['party' => 'payment_network', 'reason' => 'insufficient_funds'],
+            ],
+        ]);
+
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')->assertSuccessful();
+
+        $платёж->refresh();
+        $this->assertSame('insufficient_funds', $платёж->failure_code);
+        $this->assertStringContainsString('reason insufficient_funds', (string) $платёж->failure_message);
+        // Имя стороны сохраняется: наш код — пересказ, а пересказ может
+        // оказаться неверным.
+        $this->assertStringContainsString('party payment_network', (string) $платёж->failure_message);
+        $this->assertSame(PaymentFailure::STAGE_BANK, $платёж->failure_stage);
+        $this->assertSame('failed', $платёж->status);
+    }
+
+    public function test_юkassa_истёкший_срок_это_уход_с_формы(): void
+    {
+        $платёж = $this->платёж(['provider' => 'yookassa']);
+        $this->банкОтвечает([]);
+        $this->юkassaОтвечает([
+            $платёж->provider_payment_id => [
+                'status' => 'canceled',
+                'cancellation_details' => ['party' => 'yoo_money', 'reason' => 'expired_on_confirmation'],
+            ],
+        ]);
+
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')->assertSuccessful();
+
+        $this->assertSame('expired', $платёж->fresh()->failure_code);
+        $this->assertSame(PaymentFailure::STAGE_FORM, $платёж->fresh()->failure_stage);
+    }
+
+    public function test_юkassa_без_причины_строка_не_трогается(): void
+    {
+        $платёж = $this->платёж(['provider' => 'yookassa']);
+        $this->банкОтвечает([]);
+        $this->юkassaОтвечает([
+            $платёж->provider_payment_id => ['status' => 'canceled'],
+        ]);
+
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')
+            ->expectsOutputToContain('причина не названа')
+            ->assertSuccessful();
+
+        $this->assertNull($платёж->fresh()->failure_code);
+    }
+
+    public function test_юkassa_неизвестное_имя_не_выдаётся_за_знакомое(): void
+    {
+        $платёж = $this->платёж(['provider' => 'yookassa']);
+        $this->банкОтвечает([]);
+        $this->юkassaОтвечает([
+            $платёж->provider_payment_id => [
+                'status' => 'canceled',
+                'cancellation_details' => ['party' => 'merchant', 'reason' => 'something_new'],
+            ],
+        ]);
+
+        $this->artisan('payments:recover-reasons --apply --delay-ms=0')->assertSuccessful();
+
+        $платёж->refresh();
+        $this->assertSame('declined_other', $платёж->failure_code, 'незнакомая причина подогнана под знакомую');
+        $this->assertStringContainsString('something_new', (string) $платёж->failure_message, 'имя причины потеряно');
     }
 }
