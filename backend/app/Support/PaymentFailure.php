@@ -35,6 +35,18 @@ final class PaymentFailure
 
     public const BY_USER = 'user';
 
+    /**
+     * Решил наш шлюз, не дойдя до банка.
+     *
+     * Случай один: `register.do` вернул ответ без `orderId` или `formUrl`,
+     * то есть заказа у банка нет и формы человек не увидит. Ни колбэк, ни
+     * сверка тут ни при чём — отвечать некому.
+     */
+    public const BY_GATEWAY = 'gateway';
+
+    /** Заказ не завели: банк не вернул номер или адрес формы. */
+    public const CODE_REGISTER_FAILED = 'register_failed';
+
     /** @return array<string, string> шаг → как называть человеку */
     public static function stageLabels(): array
     {
@@ -70,6 +82,38 @@ final class PaymentFailure
         };
     }
 
+    /**
+     * Наш код по ответу ЮKassa.
+     *
+     * Причина лежит в `cancellation_details.reason` — строкой, не числом,
+     * и до 02.10 её не читал никто: поиск по `cancellation_details` по
+     * `app`, `tests` и `docs` давал ноль вхождений. Сверка смотрела
+     * только `status`, то есть знала «отменён», но не знала почему.
+     *
+     * Список значений — из документации ЮKassa. Неизвестное имя не
+     * выдумываем в знакомое: оно идёт в `declined_other`, а само имя
+     * остаётся в тексте рядом. Отсутствие причины — не причина: `null`,
+     * и строку не трогаем.
+     */
+    public static function fromYooKassaReason(?string $reason): ?string
+    {
+        if ($reason === null || $reason === '') {
+            return null;
+        }
+
+        return match ($reason) {
+            'insufficient_funds' => 'insufficient_funds',
+            // Человек не подтвердил платёж до истечения срока — он ушёл
+            // с формы, банк отказа не выносил.
+            'expired_on_confirmation' => 'expired',
+            'expired_on_capture' => 'expired',
+            '3d_secure_failed', 'card_expired', 'invalid_card_number', 'invalid_csc' => 'card_problem',
+            'call_issuer', 'issuer_unavailable', 'general_decline',
+            'payment_method_restricted', 'country_forbidden' => 'declined_by_bank',
+            default => 'declined_other',
+        };
+    }
+
     /** @return array<string, string> наш код → как называть человеку */
     public static function codeLabels(): array
     {
@@ -80,6 +124,7 @@ final class PaymentFailure
             'declined_by_bank' => 'отказ банка',
             'declined_other' => 'иной отказ',
             'abandoned' => 'форма закрыта',
+            self::CODE_REGISTER_FAILED => 'заказ не завёлся',
             'none' => 'без кода',
             'unknown' => 'неизвестно',
         ];
