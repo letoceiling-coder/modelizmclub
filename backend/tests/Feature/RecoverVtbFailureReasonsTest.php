@@ -92,9 +92,16 @@ class RecoverVtbFailureReasonsTest extends TestCase
 
         $платёж->refresh();
         $this->assertSame('insufficient_funds', $платёж->failure_code);
-        $this->assertSame('Недостаточно средств на карте', $платёж->failure_message);
+        // Число банка хранится рядом со словом: таблица соответствий не
+        // проверена против живого мерчанта, а прогон одноразовый.
+        $this->assertSame('Недостаточно средств на карте [actionCode 116]', $платёж->failure_message);
         $this->assertSame(PaymentFailure::STAGE_BANK, $платёж->failure_stage);
-        $this->assertSame(PaymentFailure::BY_RECONCILE, $платёж->decided_by);
+        /*
+         * `decided_by` не трогается: решение вынесли раньше, команда
+         * восстанавливает только его причину. Переписывать «кто решил»
+         * значило бы задним числом приписать решение этому прогону.
+         */
+        $this->assertNull($платёж->decided_by, 'переписано «кто вынес решение»');
         // Решение не пересматривается — меняется только его причина.
         $this->assertSame('failed', $платёж->status);
     }
@@ -189,5 +196,65 @@ class RecoverVtbFailureReasonsTest extends TestCase
 
         $this->assertSame('expired', $платёж->fresh()->failure_code);
         $this->assertSame('abandoned', $платёж->fresh()->status);
+    }
+
+    public function test_банк_не_назвал_причину_строка_не_трогается(): void
+    {
+        foreach ([null, 0, 'DECLINED'] as $что) {
+            $платёж = $this->платёж();
+            $ответ = ['orderStatus' => 6];
+            if ($что !== null) {
+                $ответ['actionCode'] = $что;
+            }
+            $this->банкОтвечает([$платёж->provider_payment_id => $ответ]);
+
+            $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')
+                ->expectsOutputToContain('банк причины не назвал')
+                ->assertSuccessful();
+
+            $платёж->refresh();
+            /*
+             * Не-ответ, записанный причиной, запер бы строку навсегда:
+             * выборка берёт только пустой `failure_code`. Переспросить
+             * её было бы нечем.
+             */
+            $this->assertNull($платёж->failure_code, 'записана причина, которой банк не называл: '.var_export($что, true));
+            $this->assertSame(PaymentFailure::STAGE_UNKNOWN, $платёж->failure_stage);
+        }
+    }
+
+    public function test_вложенный_ответ_банка_разбирается(): void
+    {
+        $платёж = $this->платёж();
+        // Такая форма зафиксирована в tests/Unit/VtbAcquiringClientTest.
+        $this->банкОтвечает([
+            $платёж->provider_payment_id => [
+                'orderStatus' => [
+                    'orderStatus' => 6,
+                    'actionCode' => 116,
+                    'actionCodeDescription' => 'Недостаточно средств',
+                ],
+            ],
+        ]);
+
+        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')->assertSuccessful();
+
+        $платёж->refresh();
+        $this->assertSame('insufficient_funds', $платёж->failure_code, 'код во вложенном ответе не найден');
+        $this->assertStringContainsString('Недостаточно средств', (string) $платёж->failure_message);
+    }
+
+    public function test_истёкшие_называются_поимённо(): void
+    {
+        $платёж = $this->платёж();
+        $this->банкОтвечает([
+            $платёж->provider_payment_id => ['orderStatus' => 6, 'actionCode' => -2007],
+        ]);
+
+        $this->artisan('payments:recover-vtb-reasons --apply --delay-ms=0')
+            // Статус остаётся `failed`, и в воронке строка попадёт в
+            // «Отказано» — об этом надо сказать, а не умолчать.
+            ->expectsOutputToContain('перенесите в «брошено»')
+            ->assertSuccessful();
     }
 }

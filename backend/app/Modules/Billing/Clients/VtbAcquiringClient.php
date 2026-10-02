@@ -197,11 +197,30 @@ class VtbAcquiringClient
      */
     public static function actionCode(array $statusResponse): array
     {
-        $код = $statusResponse['actionCode'] ?? null;
-        $текст = $statusResponse['actionCodeDescription'] ?? ($statusResponse['errorMessage'] ?? null);
+        /*
+         * Ответ бывает вложенным — `orderStatus` внутри `orderStatus`.
+         * `self::orderStatus()` это разворачивает с самого начала, и в
+         * проверках такая форма зафиксирована; здесь не разворачивалось,
+         * и код банка терялся ровно там, где он есть. Найдено ревью
+         * 02.10.
+         */
+        $вложенный = $statusResponse['orderStatus'] ?? null;
+        $источник = is_array($вложенный) ? $вложенный + $statusResponse : $statusResponse;
+
+        $код = $источник['actionCode'] ?? null;
+        $текст = $источник['actionCodeDescription'] ?? ($источник['errorMessage'] ?? null);
+
+        /*
+         * Приведение к числу только для числа. `(int)` массива даёт 1, а
+         * строка «DECLINED» даёт 0 — и то и другое выглядело бы кодом
+         * банка, которого банк не присылал.
+         */
+        $числовой = is_int($код) || (is_string($код) && $код !== '' && preg_match('/^-?\d+$/', $код) === 1)
+            ? (int) $код
+            : null;
 
         return [
-            'code' => ($код === null || $код === '') ? null : (int) $код,
+            'code' => $числовой,
             'message' => is_string($текст) && $текст !== '' ? $текст : null,
         ];
     }

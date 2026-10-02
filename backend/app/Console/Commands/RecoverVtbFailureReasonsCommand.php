@@ -42,7 +42,7 @@ class RecoverVtbFailureReasonsCommand extends Command
     protected $signature = 'payments:recover-vtb-reasons
         {--apply : спросить банк и записать причины; без флага — только показать, что будет}
         {--limit=0 : ограничить число платежей}
-        {--delay-ms=300 : пауза между запросами к банку, мс}';
+        {--delay-ms= : пауза между запросами к банку, мс (по умолчанию из billing.vtb.reconcile)}';
 
     protected $description = 'Восстановить причину отказа по старым платежам ВТБ: спросить банк и заполнить код, текст и шаг';
 
@@ -110,7 +110,8 @@ class RecoverVtbFailureReasonsCommand extends Command
         }
         $this->line('    orderId=<provider_payment_id платежа>');
         $this->newLine();
-        $this->line('  Запросов будет: '.$сколько.', пауза между ними '.(int) $this->option('delay-ms').' мс.');
+        $пауза = (int) ($this->option('delay-ms') ?? config('billing.vtb.reconcile.delay_ms', 1000));
+        $this->line('  Запросов будет: '.$сколько.', пауза между ними '.$пауза.' мс.');
         $this->line('  Чтение статуса. Деньги не двигаются: ни списания, ни возврата, ни отмены.');
         $this->newLine();
     }
@@ -135,10 +136,19 @@ class RecoverVtbFailureReasonsCommand extends Command
     /** @param \Illuminate\Support\Collection<int, Payment> $платежи */
     private function выполнить(VtbAcquiringClient $client, \Illuminate\Support\Collection $платежи): int
     {
-        $пауза = max(0, (int) $this->option('delay-ms')) * 1000;
+        /*
+         * Пауза — из той же настройки, что у сверки. 08.09 залп из 47
+         * заказов получил 429 по двадцати семи и дал ложную раскладку;
+         * тысяча миллисекунд — вывод из того дня. Своя цифра здесь
+         * означала бы повторить его втрое чаще, да ещё и деля лимит с
+         * автоопросом, который ходит в тот же банк каждые пять минут.
+         */
+        $пауза = max(0, (int) ($this->option('delay-ms') ?? config('billing.vtb.reconcile.delay_ms', 1000))) * 1000;
         $итог = [];
         $расхождения = 0;
         $ошибки = 0;
+        $беззвёздочки = 0;
+        $истёкшие = [];
 
         foreach ($платежи as $платёж) {
             try {
@@ -168,15 +178,66 @@ class RecoverVtbFailureReasonsCommand extends Command
             }
 
             ['code' => $код, 'message' => $текст] = VtbAcquiringClient::actionCode($ответ);
+            $состояние = VtbAcquiringClient::orderStatus($ответ);
+
+            /*
+             * Банк кода не назвал — не называем и мы.
+             *
+             * `fromVtbActionCode` отдаёт `unknown` при `null` и `none`
+             * при нуле, а шаг в прежней версии ставился `bank` всему,
+             * кроме истёкшего срока. То есть не-ответ записывался как
+             * «банк отказал» — ровно та выдумка, против которой эта
+             * команда и заведена. Хуже, что после записи `failure_code`
+             * перестаёт быть пустым, и выборка строку больше не берёт:
+             * ошибка становится окончательной. Найдено ревью 02.10.
+             *
+             * Поэтому такие строки печатаются человеку и остаются как
+             * были — переспросить их можно будет завтра.
+             */
+            if ($код === null || $код === 0) {
+                $беззвёздочки++;
+                $this->line(sprintf(
+                    '  %s  orderStatus=%s actionCode=%s — банк причины не назвал, строка не тронута',
+                    mb_substr((string) $платёж->uuid, 0, 8),
+                    $состояние ?? '—',
+                    $код === null ? '(нет)' : '0',
+                ));
+                usleep($пауза);
+
+                continue;
+            }
+
             $наш = PaymentFailure::fromVtbActionCode($код);
             $шаг = $наш === 'expired' ? PaymentFailure::STAGE_FORM : PaymentFailure::STAGE_BANK;
 
+            /*
+             * Число банка хранится рядом со словом. Таблица соответствий
+             * против живого мерчанта не проверена, а прогон одноразовый:
+             * ошибись она — переспросить будет нечем. С числом в строке
+             * разбор можно пересобрать, не трогая банк.
+             */
+            $сообщение = $текст !== null
+                ? mb_substr($текст, 0, 460).' [actionCode '.$код.']'
+                : 'actionCode '.$код;
+
             $платёж->forceFill([
                 'failure_code' => $наш,
-                'failure_message' => $текст !== null ? mb_substr($текст, 0, 500) : null,
+                'failure_message' => $сообщение,
                 'failure_stage' => $шаг,
-                'decided_by' => PaymentFailure::BY_RECONCILE,
             ])->save();
+
+            $this->line(sprintf(
+                '  %s  orderStatus=%s actionCode=%-6s → %s (%s)',
+                mb_substr((string) $платёж->uuid, 0, 8),
+                $состояние ?? '—',
+                $код,
+                $наш,
+                PaymentFailure::stageLabels()[$шаг] ?? $шаг,
+            ));
+
+            if ($наш === 'expired') {
+                $истёкшие[] = mb_substr((string) $платёж->uuid, 0, 8);
+            }
 
             $итог[$наш] = ($итог[$наш] ?? 0) + 1;
             usleep($пауза);
@@ -192,6 +253,23 @@ class RecoverVtbFailureReasonsCommand extends Command
         }
         if ($ошибки > 0) {
             $this->warn('Банк не ответил по '.$ошибки.' заказам — повторите позже.');
+        }
+        if ($беззвёздочки > 0) {
+            $this->warn('Банк не назвал причину по '.$беззвёздочки.' заказам — строки не тронуты.');
+        }
+        if ($истёкшие !== []) {
+            /*
+             * «Срок истёк» значит, что человек ушёл с формы, а статус
+             * остался `failed`: решение команда не пересматривает. В
+             * воронке такая строка попадёт в «Отказано», а в разбивке по
+             * шагам — в «открыл форму, не заплатил», и два графика
+             * разойдутся. Поэтому список печатается: перенос в
+             * `abandoned` — решение про деньги, его принимают руками.
+             */
+            $this->warn(
+                'Срок заказа истёк, но статус остался «отказ» у '.count($истёкшие).' платежей: '
+                .implode(', ', $истёкшие).'. В воронке они попадут в «Отказано» — перенесите в «брошено», если нужно.'
+            );
         }
 
         /*
