@@ -7,6 +7,7 @@ use App\Models\ChannelPost;
 use App\Models\Community;
 use App\Models\ModerationQueue;
 use App\Models\Post;
+use App\Models\PostView;
 use App\Models\PostCategory;
 use App\Models\SystemSetting;
 use App\Models\Tag;
@@ -501,9 +502,32 @@ class PostService
             return false;
         }
 
-        $day = now()->toDateString();
-        $key = 'pv:'.$post->id.':'.ViewerKey::for($viewer, $request).':'.$day;
-        if (! Cache::add($key, 1, now()->endOfDay())) {
+        /*
+         * Строка в книге, а не ключ в кэше.
+         *
+         * До 03.10 уникальность просмотра держалась на `Cache::add` с
+         * ключом на сутки. Две беды: кто смотрел — не записывалось
+         * нигде, и сброс кэша разрешал тем же людям досчитать счётчик
+         * заново. То есть число было не фактом, а следствием того, как
+         * давно чистили Redis.
+         *
+         * Теперь строка в `post_views`: уникальность стережёт база, а
+         * не память, и список смотревших существует.
+         *
+         * `insertOrIgnore` вместо проверки-и-вставки: два одновременных
+         * открытия одной записи иначе прошли бы оба — проверка у обоих
+         * сказала бы «строки нет», а вставка случилась бы дважды.
+         */
+        $вставлено = PostView::query()->insertOrIgnore([
+            'post_id' => $post->id,
+            'user_id' => $viewer?->id,
+            'viewer_key' => ViewerKey::for($viewer, $request),
+            'viewed_on' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if ($вставлено === 0) {
             return false;
         }
 
