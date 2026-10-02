@@ -200,10 +200,26 @@ export function CategoriesSection() {
       await askText({ title: t("pages.adminCategories.promptSlug"), defaultValue: slugify(name) })
     )?.trim();
     if (!slug) return;
+    /*
+     * Иконку спрашиваем и при создании.
+     *
+     * До 03.10 её спрашивали только в правке — то есть заведённое
+     * направление появлялось без значка, и взяться ему было неоткуда,
+     * пока человек не откроет правку и не пройдёт два вопроса до
+     * третьего. Снаружи это выглядит как «иконки не редактируются»:
+     * создал десять направлений, ни у одного значка нет.
+     *
+     * Замерено на проде 03.10: иконка стоит у 3 направлений из 100.
+     *
+     * Отказ здесь означает «без иконки» — поле необязательное, и
+     * заставлять выбирать значок ради заведения раздела незачем.
+     */
+    const icon = (await askText({ title: t("pages.adminCategories.promptIcon") }))?.trim() || null;
     try {
       const created = await createAdminCategory(kind, {
         name,
         slug,
+        icon,
         /*
          * Номер проставляется и при алфавите, хотя на порядок он тогда
          * не влияет. Без него новая категория получила бы ноль и при
@@ -296,10 +312,13 @@ export function CategoriesSection() {
       await askText({ title: t("pages.adminCategories.promptSlug"), defaultValue: slugify(name) })
     )?.trim();
     if (!slug) return;
+    // Иконку спрашиваем и у подкатегории — см. `addRoot`.
+    const icon = (await askText({ title: t("pages.adminCategories.promptIcon") }))?.trim() || null;
     try {
       const created = await createAdminCategory(kind, {
         name,
         slug,
+        icon,
         parentId: parent.id,
         sortOrder: sortOrderAt(childrenOf(parent.id).length),
       });
