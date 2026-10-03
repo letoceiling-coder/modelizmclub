@@ -98,8 +98,17 @@ jobs:
 
       # Must run before tsc: the build generates src/routeTree.gen.ts, and without it
       # every route import resolves to nothing and the type-error count is fiction.
+      #
+      # Предел кучи — тот же, что у боевой выкатки (deploy-frontend.sh). Без него
+      # здесь действовало умолчание V8, на ubuntu-latest это 2077 МБ, а сборке
+      # нужно больше двух гигабайт: замер 03.10 дал отказ на 2048 и успех на 3072.
+      # Выкатка это знала и ставила 4096 с самого начала; ворота — нет, и потому
+      # падали там, где прод собирался. Красный шаг назывался «tsc + eslint», до
+      # которых дело не доходило вовсе.
       - name: Build
         run: bun run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
       # tsc — ворота. Ноль ошибок, без послаблений.
       #
