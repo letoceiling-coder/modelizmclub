@@ -109,6 +109,17 @@
 | Зависимости бэкенда | `composer audit` | — | **1** | 4 записи, все `laravel/framework 11.54.0` |
 | Зависимости фронтенда | `bun audit` | — | — | 37 записей, все в сборочной цепочке |
 
+### CI по pull request
+
+Прогон по коммиту `543c8c77` — последнему, который менял код:
+**шесть проверок из шести — `success`** (`hygiene`,
+`frontend · tsc + eslint`, `frontend · bun audit`, `backend · phpunit`,
+`backend · composer audit`, `backend · установка без dev-зависимостей`).
+`mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
+
+Pull request: https://github.com/Neeklo1606/modelizmclub/pull/9 — открыт,
+**не слит**, слияние за владельцем.
+
 Отдельно о том, что не получилось с первого раза: `php artisan test`
 локально падает на `memory_limit` 128 МБ (набору нужно 177,5 МБ), и
 флаг `-d` не помогает, потому что artisan поднимает phpunit отдельным
