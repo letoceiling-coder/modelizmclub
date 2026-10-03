@@ -36,7 +36,10 @@ fi
 
 export NODE_ENV=production
 export NITRO_PRESET=node-server
-export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
+# 4096, а не 2048: на 2048 сборка падает с «JavaScript heap out of memory»
+# (замер 03.10 — отказ на 2048, успех на 3072). Боевая выкатка стоит на
+# 4096 с самого начала, этот контур от неё отстал.
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}"
 
 BACKEND_ENV="${APP_DIR}/backend/.env"
 if [[ -f "${BACKEND_ENV}" ]]; then
