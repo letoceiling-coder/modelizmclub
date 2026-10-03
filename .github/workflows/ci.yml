@@ -352,6 +352,54 @@ jobs:
           php artisan key:generate --force
           php artisan route:list --json > /dev/null
 
+  # Зависимости фронтенда не смотрел никто. Разбор безопасности GitHub 03.10:
+  # `composer audit` в CI был, `bun audit` — нигде, при 36 уязвимостях на тот
+  # день. Находить их ходили руками, то есть не находили.
+  #
+  # Тоже предупреждением, как и composer: `bun audit` выходит кодом 1 при любой
+  # находке, а блокировать PR из-за уязвимости в инструменте сборки нельзя — из
+  # 36 на 03.10 достижимых извне было ноль (проверено поиском каждого пакета в
+  # боевой сборке Nitro: ни одного в `.output/server`). Поэтому `|| true` и
+  # сводка: ворота должны останавливать то, что мы сломали, а не то, что
+  # сломали в чужом пакете.
+  #
+  # `--audit-level=high` в сводке отдельной строкой: полный список длинный и
+  # его перестают читать, а высокие стоит видеть сразу.
+  audit-frontend:
+    name: frontend · bun audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: bun audit → summary
+        run: |
+          {
+            echo "## bun audit"
+            echo
+            echo "### Высокие и выше"
+            echo
+            echo '```'
+            bun audit --audit-level=high 2>&1 || true
+            echo '```'
+            echo
+            echo "<details><summary>Полный список</summary>"
+            echo
+            echo '```'
+            bun audit 2>&1 || true
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   audit:
     name: backend · composer audit
     runs-on: ubuntu-latest
