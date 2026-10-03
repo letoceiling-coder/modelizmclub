@@ -23,7 +23,7 @@
 # репозитории. Без него всё работает, пока лимит не исчерпан.
 set -uo pipefail
 
-REPO="${CI_REPO:-letoceiling-coder/modelizmclub}"
+REPO="${CI_REPO:-Neeklo1606/modelizmclub}"
 SHA="${1:-$(git rev-parse HEAD 2>/dev/null)}"
 
 if [[ -z "${SHA}" ]]; then

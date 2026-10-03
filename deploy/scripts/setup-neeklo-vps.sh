@@ -5,8 +5,8 @@ set -euo pipefail
 
 PROD_DIR="/var/www/modelizmclub"
 APP_DIR="/var/www/modelizmclub-neeklo"
-REPO_SSH="git@github.com:letoceiling-coder/modelizmclub.git"
-REPO_HTTPS="https://github.com/letoceiling-coder/modelizmclub.git"
+REPO_SSH="git@github.com:Neeklo1606/modelizmclub.git"
+REPO_HTTPS="https://github.com/Neeklo1606/modelizmclub.git"
 GIT_BRANCH="${NEEKLO_GIT_BRANCH:-neeklo}"
 CERT_EMAIL="${CERT_EMAIL:-admin@modelizmclub.ru}"
 
