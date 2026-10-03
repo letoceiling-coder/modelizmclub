@@ -9,6 +9,7 @@ use App\Models\PostCategory;
 use App\Models\User;
 use App\Enums\UserStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Catalog\Services\CatalogService;
 use Modules\Channel\Services\ChannelPostService;
 use Tests\TestCase;
 
@@ -113,6 +114,7 @@ class ChannelsNodeIsWholeTest extends TestCase
             'in_communities' => false,
             'depth' => 0,
             'path' => 'channels',
+            'listing_category_id' => null,
         ]);
 
         $раздел = $this->завестиРаздел();
@@ -120,5 +122,78 @@ class ChannelsNodeIsWholeTest extends TestCase
         $this->assertSame($свой->id, $раздел->id);
         $this->assertTrue($раздел->in_listings, 'настройку администратора переписали');
         $this->assertSame(1, (int) $раздел->sort_order);
+
+        /*
+         * Главное утверждение этой проверки — здесь, и до ревью его не было.
+         *
+         * Три предыдущих остаются зелёными, даже если убрать защиту
+         * `wasRecentlyCreated` и звать разведение всегда: `applyHierarchy`
+         * пересчитает узлу те же `depth` и `path`, а `mirror()` переписывает
+         * поля зеркала, но флаги и порядок самого `PostCategory` не трогает.
+         * То есть проверка называлась «существующий узел не переписывается»
+         * и ничего об этом не проверяла.
+         *
+         * Отличает два поведения связь с зеркалом: при `in_listings = true`
+         * разведение заведёт `ListingCategory` и проставит
+         * `listing_category_id`. Этого при существующем узле быть не должно
+         * — его зеркала заводит администратор, а не запись в канал.
+         */
+        $this->assertNull(
+            $раздел->listing_category_id,
+            'существующему узлу завели зеркало — значит разведение позвали, когда не должны были',
+        );
+        $this->assertFalse(
+            ListingCategory::query()->where('slug', 'channels')->exists(),
+            'зеркало в каталоге объявлений завелось для существующего узла',
+        );
     }
+    /**
+     * Новый раздел доезжает до дерева справочников.
+     *
+     * Кеш греется до записи, читается после — так же это увидит человек.
+     *
+     * Названо по тому, что проверяется. Сброса кеша **после коммита** эта
+     * проверка не доказывает: под `RefreshDatabase` транзакция не
+     * коммитится, `afterCommit` не срабатывает, а внутренний сброс уже
+     * случился и дерево пересобирается свежим в обоих случаях. Проверено
+     * откатом — без `DB::afterCommit` проверка остаётся зелёной. Гонку двух
+     * запросов здесь воспроизвести нечем, и делать вид, что покрыта, нельзя.
+     */
+    public function test_новый_раздел_доезжает_до_дерева(): void
+    {
+        $дерево = app(CatalogService::class);
+
+        // Греем кеш до того, как раздел появится.
+        $было = $дерево->postCategoryTree();
+        $this->assertFalse(
+            $this->естьВДереве($было, 'channels'),
+            'раздел уже в дереве — греть было нечего',
+        );
+
+        $this->завестиРаздел();
+
+        $стало = app(CatalogService::class)->postCategoryTree();
+        $this->assertTrue(
+            $this->естьВДереве($стало, 'channels'),
+            'дерево осталось прежним: новый узел до справочника не доехал',
+        );
+    }
+
+    /** @param array<int, mixed> $узлы */
+    private function естьВДереве(array $узлы, string $slug): bool
+    {
+        foreach ($узлы as $узел) {
+            $свой = is_array($узел) ? ($узел['slug'] ?? null) : ($узел->slug ?? null);
+            if ($свой === $slug) {
+                return true;
+            }
+            $дети = is_array($узел) ? ($узел['children'] ?? []) : ($узел->children ?? []);
+            if (is_iterable($дети) && $this->естьВДереве(is_array($дети) ? $дети : iterator_to_array($дети), $slug)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

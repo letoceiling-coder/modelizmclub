@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Catalog\Services\CatalogService;
 use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Channel\Support\ChannelPostMediaSync;
 use Modules\Feed\Services\PostService;
@@ -229,6 +230,26 @@ class ChannelPostService
         // Только у только что заведённого: у существующего флаги и место в
         // дереве — решение администратора, и переписывать его нельзя.
         if ($category->wasRecentlyCreated) {
+            /*
+             * Разведение внутри транзакции сбрасывает кеш справочников до
+             * коммита (`CategoryTaxonomyService` зовёт `flushCache`). Окно
+             * короткое, а цена — сутки: TTL деревьев 86400 с, и запрос,
+             * попавший между сбросом и коммитом, пересоберёт дерево без
+             * нового узла и запомнит это на день.
+             *
+             * Поэтому сброс повторяется после коммита. Место в дереве
+             * считается сразу — оно нужно этой же транзакции.
+             *
+             * ЭТА СТРОКА НЕ ПОКРЫТА ПРОВЕРКОЙ, и это надо знать. Под
+             * `RefreshDatabase` всё живёт в одной транзакции, которая не
+             * коммитится, — `afterCommit` в тестах не срабатывает вовсе. А
+             * снаружи разницы не видно: внутренний сброс уже случился, и
+             * дерево пересобирается свежим в обоих случаях. Проверено
+             * откатом: `test_новый_раздел_доезжает_до_дерева` зелёный и без
+             * этой строки. Воспроизвести можно только гонкой двух запросов,
+             * и такой проверки здесь нет.
+             */
+            DB::afterCommit(fn () => CatalogService::flushCache());
             $this->taxonomy->syncFromPostCategory($category);
             $category->refresh();
         }
