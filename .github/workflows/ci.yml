@@ -66,6 +66,11 @@ jobs:
       # из 60 — то есть отправляла ждать то, что не наступит: без токена
       # GitHub отвечает 404 на сам репозиторий.
       - run: deploy/scripts/tests/ci-status-tells-the-cause.sh
+      # Правило «документация и код в одном коммите» слиянием не выполнить:
+      # в сливаемом наборе лежит всё, что принесла другая ветка. До 03.10 оно
+      # упиралось на каждом слиянии с конфликтом и требовало --no-verify,
+      # который снимает заодно и остальные проверки.
+      - run: deploy/scripts/tests/hook-lets-merges-through.sh
       - run: deploy/scripts/tests/deploy-remote-says-failed.sh
 
   frontend:
