@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Channel\Support\ChannelPostMediaSync;
 use Modules\Feed\Services\PostService;
 
@@ -20,6 +21,7 @@ class ChannelPostService
     public function __construct(
         private readonly ChannelPostMediaSync $channelMediaSync,
         private readonly PostService $postService,
+        private readonly CategoryTaxonomyService $taxonomy,
     ) {}
 
     /**
@@ -173,10 +175,7 @@ class ChannelPostService
      */
     private function createFeedDraft(Channel $channel, User $author, ChannelPost $channelPost, array $mediaIds): Post
     {
-        $category = PostCategory::query()->firstOrCreate(
-            ['slug' => 'channels'],
-            ['name' => 'Каналы', 'is_active' => true, 'sort_order' => 999],
-        );
+        $category = $this->feedDirection();
 
         $title = Str::limit(trim($channelPost->text), 80, '…');
 
@@ -186,5 +185,48 @@ class ChannelPostService
             'category_id' => $category->id,
             'media_ids' => $mediaIds,
         ]);
+    }
+
+    /**
+     * Направление «Каналы» — целиком или никак.
+     *
+     * ЧТО БЫЛО. Здесь стоял `firstOrCreate(['slug' => 'channels'], [...])` без
+     * `path` и `depth`. Колонка `path` объявлена nullable и без значения по
+     * умолчанию, то есть узел заводился с пустым путём — корневое направление,
+     * которое по `parent_id` корневое, а по `path` не существует. Аудит 03.10
+     * нашёл такую строку на демо-базе (`#30 channels: path ПУСТО`); на боевой
+     * её нет — там узел однажды завели правильно, с обоими отражениями
+     * (`listing_categories` 189, `community_categories` 133).
+     *
+     * ЧЕМ ПЛОХО. По `path` идёт отбор потомков (`path like 'a/b/%'`).
+     * `CategoryTaxonomyService::mirrorIdsForPostCategory` пустой путь терпит и
+     * переходит на обход по `parent_id`, а `AddDirectionSubcategoriesCommand` и
+     * построение дерева в админке — нет. Сверка `categories:normalize --check`
+     * на такой строке падает, и до 03.10 её не запускал никто: в воротах CI
+     * она не стояла.
+     *
+     * КАК ТЕПЕРЬ. Создание идёт через `syncFromPostCategory` — ту же дорогу,
+     * которой пользуются `categories:single-source` и
+     * `categories:add-subcategories`: она ставит `depth` и `path`, заводит
+     * отражения в каталоге и сообществах и сбрасывает кеш каталога. Второй
+     * реализации этих правил быть не должно, иначе они разойдутся.
+     *
+     * Дорога срабатывает один раз за всё время — при самой первой записи
+     * канала. Сброс кеша каталога в этом запросе осознан: лучше один раз на
+     * заведении узла, чем дерево, которое не сходится само с собой.
+     */
+    private function feedDirection(): PostCategory
+    {
+        $category = PostCategory::query()->firstOrCreate(
+            ['slug' => 'channels'],
+            ['name' => 'Каналы', 'is_active' => true, 'sort_order' => 999],
+        );
+
+        if ($category->wasRecentlyCreated) {
+            $this->taxonomy->syncFromPostCategory($category);
+            $category = $category->fresh();
+        }
+
+        return $category;
     }
 }
