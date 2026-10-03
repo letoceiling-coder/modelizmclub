@@ -61,6 +61,11 @@ jobs:
       # «каталог не похож на приложение». Ответов должно быть три: 0 сошлось,
       # 1 разошлось, 2 выяснить не удалось.
       - run: deploy/scripts/tests/checks-cannot-pass-blindly.sh
+      # Совет должен соответствовать причине. На закрытом репозитории проверка
+      # CI отвечала «задайте GH_TOKEN или подождите» при 55 свободных запросах
+      # из 60 — то есть отправляла ждать то, что не наступит: без токена
+      # GitHub отвечает 404 на сам репозиторий.
+      - run: deploy/scripts/tests/ci-status-tells-the-cause.sh
       - run: deploy/scripts/tests/deploy-remote-says-failed.sh
 
   frontend:
