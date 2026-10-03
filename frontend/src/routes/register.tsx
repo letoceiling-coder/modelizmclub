@@ -239,14 +239,25 @@ function RegisterPage() {
           error={fieldError}
         />
         <label
-          className="flex items-start gap-[10px]"
+          /*
+            min-h-[44px] и py-[6px] — зона нажатия, а не отступ.
+
+            Замер 04.10 на 360 px: сам чекбокс 13×13, подпись вокруг него
+            312×18 у однострочной и 312×36 у двухстрочной. По высоте все три
+            строки согласий не дотягивали до 44 px, а это первый экран пути
+            регистрации. Ширина была в порядке — не хватало именно высоты.
+          */
+          className="flex min-h-[44px] items-start gap-[10px] py-[6px]"
           style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)", marginTop: 8 }}
         >
           <input
             type="checkbox"
             checked={acceptTerms}
             onChange={(e) => setAcceptTerms(e.target.checked)}
-            style={{ marginTop: 3, accentColor: "var(--accent)" }}
+            /* shrink-0: без него двухстрочная подпись сжимает сам
+               чекбокс по ширине — замер дал 13×18 вместо 18×18. */
+            className="shrink-0"
+            style={{ marginTop: 3, width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span>
             Принимаю{" "}
@@ -256,14 +267,25 @@ function RegisterPage() {
           </span>
         </label>
         <label
-          className="flex items-start gap-[10px]"
+          /*
+            min-h-[44px] и py-[6px] — зона нажатия, а не отступ.
+
+            Замер 04.10 на 360 px: сам чекбокс 13×13, подпись вокруг него
+            312×18 у однострочной и 312×36 у двухстрочной. По высоте все три
+            строки согласий не дотягивали до 44 px, а это первый экран пути
+            регистрации. Ширина была в порядке — не хватало именно высоты.
+          */
+          className="flex min-h-[44px] items-start gap-[10px] py-[6px]"
           style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)" }}
         >
           <input
             type="checkbox"
             checked={acceptPrivacy}
             onChange={(e) => setAcceptPrivacy(e.target.checked)}
-            style={{ marginTop: 3, accentColor: "var(--accent)" }}
+            /* shrink-0: без него двухстрочная подпись сжимает сам
+               чекбокс по ширине — замер дал 13×18 вместо 18×18. */
+            className="shrink-0"
+            style={{ marginTop: 3, width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span>
             Согласен(на) на обработку персональных данных (
@@ -274,14 +296,25 @@ function RegisterPage() {
           </span>
         </label>
         <label
-          className="flex items-start gap-[10px]"
+          /*
+            min-h-[44px] и py-[6px] — зона нажатия, а не отступ.
+
+            Замер 04.10 на 360 px: сам чекбокс 13×13, подпись вокруг него
+            312×18 у однострочной и 312×36 у двухстрочной. По высоте все три
+            строки согласий не дотягивали до 44 px, а это первый экран пути
+            регистрации. Ширина была в порядке — не хватало именно высоты.
+          */
+          className="flex min-h-[44px] items-start gap-[10px] py-[6px]"
           style={{ fontSize: "var(--fs-xs)", color: "var(--foreground-70)" }}
         >
           <input
             type="checkbox"
             checked={acceptAds}
             onChange={(e) => setAcceptAds(e.target.checked)}
-            style={{ marginTop: 3, accentColor: "var(--accent)" }}
+            /* shrink-0: без него двухстрочная подпись сжимает сам
+               чекбокс по ширине — замер дал 13×18 вместо 18×18. */
+            className="shrink-0"
+            style={{ marginTop: 3, width: 18, height: 18, accentColor: "var(--accent)" }}
           />
           <span>
             Согласен(на) на получение рекламных материалов (
