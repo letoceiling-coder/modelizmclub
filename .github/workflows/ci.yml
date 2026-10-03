@@ -71,6 +71,11 @@ jobs:
       # упиралось на каждом слиянии с конфликтом и требовало --no-verify,
       # который снимает заодно и остальные проверки.
       - run: deploy/scripts/tests/hook-lets-merges-through.sh
+      # Кеш конфигурации выкатка не пересобирала вовсе: на проде он лежал от
+      # 11 сентября, и три недели любая правка в config/ до прода не доезжала.
+      # Молчаливее кеша маршрутов — отсутствующий маршрут даёт 404, а старое
+      # умолчание отвечает двести, просто не тем значением.
+      - run: deploy/scripts/tests/deploy-rebuilds-config-cache.sh
       - run: deploy/scripts/tests/deploy-remote-says-failed.sh
 
   frontend:

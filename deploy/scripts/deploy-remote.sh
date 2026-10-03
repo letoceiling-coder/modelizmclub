@@ -70,6 +70,29 @@ cd "${DEPLOY_APP_DIR:-/var/www/modelizmclub}"
     chmod 640 backend/bootstrap/cache/routes-v7.php 2>/dev/null || true
     echo "route cache rebuilt"
   fi
+  # Кеш конфигурации — по тому же правилу, что маршруты: по факту правок.
+  #
+  # До 03.10 выкатка его не трогала вовсе, и на проде он лежал от 11 сентября.
+  # Значит три недели любая правка в `config/` на прод не доезжала, а выглядело
+  # это как «починили, а не работает»: код новый, `.env` без переменной, а
+  # приложение отвечает по старому умолчанию. Нашлось при закрытии CORS —
+  # `localhost:3000` оставался разрешённым к боевому API с учётными данными уже
+  # после выкатки правки, которая его убрала.
+  #
+  # Опаснее маршрутов тем, что молчит: отсутствующий маршрут даёт 404, а старое
+  # умолчание отвечает двести — просто не тем значением.
+  #
+  # `.env` читается от www-data (права 640 root:www-data, сторожит
+  # `check-config-access.sh`), поэтому пересборка безопасна: учение 03.10 дало
+  # 60 ответов 200 из 60 при опросе раз в 250 мс. `chmod` сразу после —
+  # `config:cache` создаёт файл с 644, а внутри пароль базы; за этим следит
+  # `check-config-cache-chmod.sh` в воротах CI.
+  if git diff --name-only HEAD@{1} HEAD -- backend/config backend/.env.example | grep -q .; then
+    (cd backend && sudo -u www-data php artisan config:cache 2>&1 | tail -1)
+    chmod 640 backend/bootstrap/cache/config.php 2>/dev/null || true
+    chown root:www-data backend/bootstrap/cache/config.php 2>/dev/null || true
+    echo "config cache rebuilt"
+  fi
   # Кеш каталога — сбрасывается на каждой выкатке бэкенда.
   #
   # TTL у деревьев категорий и городов сутки, и до 28.09 выкатка его не
