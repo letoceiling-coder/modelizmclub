@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\GuardsDataWrites;
 use App\Models\Payment;
 use App\Support\PaymentFailure;
 use Illuminate\Console\Command;
@@ -32,12 +33,25 @@ use Illuminate\Support\Facades\DB;
  * имя исхода. Строки с `paid` команда не берёт ни при каких условиях.
  *
  * БЕЗ `--apply` НИЧЕГО НЕ ПИШЕТСЯ.
+ *
+ * И БЕЗ ПОДТВЕРЖДЕНИЯ ТОЖЕ. Сухой прогон здесь был с самого начала — это
+ * половина предохранителя из `GuardsDataWrites`, и половина правильная. Второй
+ * не было: `--apply` в истории оболочки лежит рядом с сухим прогоном, через
+ * стрелку вверх, и отличаются они одним словом. Поэтому перед записью команда
+ * спрашивает; в скрипте — `--force`.
+ *
+ * Отказа на боевом окружении у неё нет намеренно, в отличие от
+ * `app:stress-test`: переносить статусы надо как раз на проде, там эти 27
+ * строк и лежат. Это тот же случай, что `communities:sync-owners`.
  */
 class ExpiredAreAbandonedCommand extends Command
 {
+    use GuardsDataWrites;
+
     protected $signature = 'payments:expired-are-abandoned
         {--apply : перенести; без флага — только показать}
-        {--provider= : только этот провайдер}';
+        {--provider= : только этот провайдер}
+        {--force : не спрашивать подтверждения (для скриптов)}';
 
     protected $description = 'Перенести отказы с причиной «истёк срок» в статус «брошено»';
 
@@ -86,6 +100,14 @@ class ExpiredAreAbandonedCommand extends Command
             $this->line('Перенести: php artisan payments:expired-are-abandoned --apply');
 
             return self::SUCCESS;
+        }
+
+        $база = (string) config('database.connections.'.config('database.default').'.database');
+
+        if (! $this->confirmWrite(
+            'Будет изменён статус у '.$платежи->count().' платеж(а/ей): «отказано» → «брошено». База: '.$база.'.'
+        )) {
+            return self::FAILURE;
         }
 
         $перенесено = DB::transaction(fn () => $this->выборка()->update([

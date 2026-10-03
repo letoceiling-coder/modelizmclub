@@ -19,6 +19,14 @@ use Tests\TestCase;
  */
 class ExpiredAreAbandonedTest extends TestCase
 {
+    /*
+     * `--force` в прогонах с `--apply` появился 03.10 вместе с
+     * `GuardsDataWrites`: команда теперь спрашивает перед записью, и без
+     * этого довода `confirmToProceed()` ждёт ответа, которого в тесте нет.
+     * Довод оставлен видимым нарочно — он и есть тот интерфейс, которым
+     * команду зовут из скрипта.
+     */
+
     use RefreshDatabase;
 
     private function платёж(array $patch = []): Payment
@@ -54,7 +62,7 @@ class ExpiredAreAbandonedTest extends TestCase
         $отказ = $this->платёж(['failure_code' => 'insufficient_funds', 'failure_stage' => PaymentFailure::STAGE_BANK]);
         $оплачен = $this->платёж(['status' => 'paid', 'failure_code' => null, 'failure_stage' => null]);
 
-        $this->artisan('payments:expired-are-abandoned --apply')->assertSuccessful();
+        $this->artisan('payments:expired-are-abandoned --apply --force')->assertSuccessful();
 
         $this->assertSame('abandoned', $истёк->fresh()->status);
         $this->assertSame(PaymentFailure::STAGE_FORM, $истёк->fresh()->failure_stage);
@@ -68,7 +76,7 @@ class ExpiredAreAbandonedTest extends TestCase
         $p = $this->платёж();
         $было = [$p->amount_cents, $p->paid_at, $p->provider_payment_id];
 
-        $this->artisan('payments:expired-are-abandoned --apply')->assertSuccessful();
+        $this->artisan('payments:expired-are-abandoned --apply --force')->assertSuccessful();
         $p->refresh();
 
         $this->assertSame($было, [$p->amount_cents, $p->paid_at, $p->provider_payment_id]);
@@ -77,7 +85,7 @@ class ExpiredAreAbandonedTest extends TestCase
     public function test_повторный_прогон_ничего_не_находит(): void
     {
         $this->платёж();
-        $this->artisan('payments:expired-are-abandoned --apply')->assertSuccessful();
+        $this->artisan('payments:expired-are-abandoned --apply --force')->assertSuccessful();
 
         $this->artisan('payments:expired-are-abandoned')
             ->expectsOutputToContain('Переносить нечего')
@@ -89,7 +97,7 @@ class ExpiredAreAbandonedTest extends TestCase
         $ю = $this->платёж(['provider' => 'yookassa']);
         $втб = $this->платёж(['provider' => 'vtb']);
 
-        $this->artisan('payments:expired-are-abandoned --apply --provider=yookassa')->assertSuccessful();
+        $this->artisan('payments:expired-are-abandoned --apply --force --provider=yookassa')->assertSuccessful();
 
         $this->assertSame('abandoned', $ю->fresh()->status);
         $this->assertSame('failed', $втб->fresh()->status, 'тронут чужой провайдер');
