@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Heart, MapPin, Star } from "lucide-react";
-import { toast } from "@/lib/toast";
-import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import type { Ad } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
 import { categoryPlaceholder } from "@/lib/placeholder-image";
-import { addFavoriteListing, removeFavoriteListing } from "@/lib/api/listings";
-import { isDemoMode } from "@/lib/demo-mode";
-import { getToken } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
-import { useStore, actions, selectors } from "@/lib/store";
-import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider";
+import { useFavoriteAd } from "@/lib/listings/use-favorite-ad";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia } from "@/lib/media/variants";
@@ -105,11 +99,13 @@ export function CatalogCard({
    */
   priority?: "high" | "eager";
 }) {
-  const fav = useStore(selectors.isAdFavorite(ad.id));
+  const { favorite: fav, toggle: toggleFavorite } = useFavoriteAd(ad.id, {
+    addedLabel: "В избранное",
+    removedLabel: "Убрано из избранного",
+  });
   const media = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
   const placeholder = categoryPlaceholder(ad.id, ad.category);
   const [broken, setBroken] = useState(false);
-  const guest = useGuestAccessOptional();
 
   return (
     <Card
@@ -162,37 +158,7 @@ export function CatalogCard({
           aria-label={fav ? "Убрать из избранного" : "В избранное"}
           onClick={(e) => {
             e.preventDefault();
-            const кнопка = e.currentTarget;
-            const run = async () => {
-              if (!getToken() && !isDemoMode()) return;
-              const next = !fav;
-              actions.toggleFavoriteAd(ad.id);
-              /*
-               * Сразу по нажатию, а не после ответа сервера. Прямоугольник
-               * кнопки снимается в момент показа: на медленной сети человек
-               * успевает пролистать список, и подпись всплывала бы у чужой
-               * карточки — той, что оказалась в этих координатах. Состояние
-               * и так оптимистичное, а отказ ниже откатывает его тостом.
-               */
-              inlineFeedback(кнопка, next ? "В избранное" : "Убрано из избранного");
-              if (!isDemoMode()) {
-                try {
-                  if (next) await addFavoriteListing(ad.id);
-                  else await removeFavoriteListing(ad.id);
-                } catch {
-                  actions.toggleFavoriteAd(ad.id);
-                  toast.error("Не удалось обновить избранное", { id: "favorite-toggle" });
-                  return;
-                }
-              }
-            };
-            if (guest) {
-              guest.requireAccount(() => {
-                void run();
-              });
-              return;
-            }
-            void run();
+            toggleFavorite(e.currentTarget);
           }}
           className="absolute right-[8px] top-[8px] grid h-[32px] w-[32px] place-items-center rounded-full before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
           style={{

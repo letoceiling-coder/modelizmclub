@@ -6,15 +6,12 @@ import type { Ad } from "@/lib/mock";
 import {
   fetchListing,
   fetchListings,
-  addFavoriteListing,
-  removeFavoriteListing,
   archiveListing,
   deleteListing,
   revealSellerPhone,
   setListingPhoneVisibility,
 } from "@/lib/api/listings";
 import { reportActionFailure } from "@/lib/errors/handle";
-import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { catalogSearchForListing } from "@/lib/catalog-filter";
 import { AdGallery } from "@/components/ads/AdGallery";
@@ -42,6 +39,7 @@ import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
 import { SafeDealCheckoutWizard } from "@/components/deals/SafeDealCheckoutWizard";
+import { useFavoriteAd } from "@/lib/listings/use-favorite-ad";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { ShareSheet } from "@/components/communities/ShareSheet";
 
@@ -158,6 +156,23 @@ function AdDetailPage() {
   const [similar, setSimilar] = useState<Ad[]>([]);
   const [state, setState] = useState<LoadState>(adFromServer ? "ok" : "loading");
   const saved = useStore(selectors.isAdFavorite(id));
+
+  /*
+   * Хук — здесь, до ранних возвратов. Ниже стоят три `return` по состоянию
+   * загрузки, и вызов после них менял бы порядок хуков между отрисовками:
+   * eslint это и поймал (`react-hooks/rules-of-hooks`).
+   *
+   * Намерение «доделать после входа» передаётся только при добавлении: снятие
+   * у гостя не бывает — снимать ему нечего.
+   */
+  const { toggle: toggleSave } = useFavoriteAd(id, {
+    addedLabel: t("pages.adDetail.addedToFavorites"),
+    removedLabel: t("pages.adDetail.removedFromFavorites"),
+    failedLabel: t("pages.adDetail.favoriteFailed"),
+    onCount: (count) => setAd((prev) => (prev ? { ...prev, likes: count } : prev)),
+    resumeIntent: saved ? undefined : { key: "listing.favorite", params: { uuid: id } },
+  });
+
   const revealedPhone = useStore((s) => s.revealedPhones[id]) ?? null;
   const [phoneLoading, setPhoneLoading] = useState(false);
   const [showPhoneBusy, setShowPhoneBusy] = useState(false);
@@ -406,44 +421,6 @@ function AdDetailPage() {
   const call = ad.phoneAvailable
     ? { phone: revealedPhone, loading: phoneLoading, onReveal: revealPhone }
     : undefined;
-
-  const toggleSave = (кнопка: Element | null = null) => {
-    requireAccount(
-      () => {
-        void (async () => {
-          actions.toggleFavoriteAd(id);
-          /*
-           * Сразу по нажатию, а не после ответа сервера: прямоугольник
-           * кнопки снимается в момент показа, и на медленной сети подпись
-           * всплывала бы там, где кнопки уже нет. Если показать не вышло —
-           * говорим тостом: молчание на экране неотличимо от «ничего не
-           * произошло».
-           */
-          const текст = saved
-            ? t("pages.adDetail.removedFromFavorites")
-            : t("pages.adDetail.addedToFavorites");
-          if (!inlineFeedback(кнопка, текст)) toast.success(текст, { id: "favorite-toggle" });
-          if (!isDemoMode()) {
-            try {
-              let favoritesCount = ad.likes ?? 0;
-              if (saved) {
-                favoritesCount = await removeFavoriteListing(id);
-              } else {
-                favoritesCount = await addFavoriteListing(id);
-              }
-              setAd((prev) => (prev ? { ...prev, likes: favoritesCount } : prev));
-            } catch {
-              actions.toggleFavoriteAd(id);
-              toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
-              return;
-            }
-          }
-        })();
-      },
-      undefined,
-      saved ? undefined : { key: "listing.favorite", params: { uuid: id } },
-    );
-  };
 
   const hasDelivery = ad.delivery.length > 0;
 

@@ -19,15 +19,11 @@ import { LegalRequisites } from "@/components/legal/LegalRequisites";
 import { isDemoMode } from "@/lib/demo-mode";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
-import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
+import { GUEST_USER } from "@/lib/store";
 import { useCurrentUser, useSessionResolved } from "@/lib/session";
-import {
-  fetchPopularListings,
-  addFavoriteListing,
-  removeFavoriteListing,
-} from "@/lib/api/listings";
+import { fetchPopularListings } from "@/lib/api/listings";
 import { toast } from "@/lib/toast";
-import { inlineFeedback } from "@/lib/ui/inline-feedback";
+import { useFavoriteAd } from "@/lib/listings/use-favorite-ad";
 import { fetchLandingStats, formatLandingStat, getCachedLandingStats } from "@/lib/api/landing";
 import {
   fetchLandingBlocks,
@@ -977,7 +973,11 @@ function ListingCtaPlaceholder({ label }: { label: string }) {
 function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }) {
   const { t } = useTranslation();
   const { requireAccount } = useGuestAccess();
-  const fav = useStore(selectors.isAdFavorite(ad.id));
+  const { favorite: fav, toggle: toggleFavorite } = useFavoriteAd(ad.id, {
+    addedLabel: t("pages.adDetail.addedToFavorites"),
+    removedLabel: t("pages.adDetail.removedFromFavorites"),
+    failedLabel: t("pages.adDetail.favoriteFailed"),
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovIdx, setHovIdx] = useState(0);
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
@@ -1070,33 +1070,10 @@ function LandingListingCard({ ad, priceLocale }: { ad: Ad; priceLocale: string }
       <button
         aria-label={fav ? t("landing.card.favRemove") : t("landing.card.favAdd")}
         onClick={(e) => {
-          const кнопка = e.currentTarget;
-          requireAccount(() => {
-            void (async () => {
-              const next = !fav;
-              actions.toggleFavoriteAd(ad.id);
-              // Сразу по нажатию: см. `CatalogCard`. Подписи — подтверждения
-              // («Убрано из избранного»), а не надписи кнопки («Убрать»):
-              // повелительное наклонение у самой кнопки читается как
-              // «нажатие не сработало».
-              inlineFeedback(
-                кнопка,
-                next
-                  ? t("pages.adDetail.addedToFavorites")
-                  : t("pages.adDetail.removedFromFavorites"),
-              );
-              if (!isDemoMode()) {
-                try {
-                  if (next) await addFavoriteListing(ad.id);
-                  else await removeFavoriteListing(ad.id);
-                } catch {
-                  actions.toggleFavoriteAd(ad.id);
-                  toast.error(t("pages.adDetail.favoriteFailed"), { id: "favorite-toggle" });
-                  return;
-                }
-              }
-            })();
-          });
+          // Подписи — подтверждения («Убрано из избранного»), а не надписи
+          // кнопки («Убрать»): повелительное наклонение у самой кнопки
+          // читается как «нажатие не сработало». Остальное — в хуке.
+          toggleFavorite(e.currentTarget);
         }}
         className="hit-target absolute right-3 top-3 grid place-items-center transition-transform hover:scale-110"
         style={{

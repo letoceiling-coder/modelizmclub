@@ -6,24 +6,13 @@ import type { Ad } from "@/lib/mock";
 import { ReservedOverlay } from "@/components/ads/ReservedOverlay";
 import { ResponsiveImage } from "@/components/media/ResponsiveImage";
 import { toDisplayMedia } from "@/lib/media/variants";
-import { formatDate } from "@/lib/format/date";
+import { TimeAgo } from "@/components/TimeAgo";
+import { useFavoriteAd } from "@/lib/listings/use-favorite-ad";
 
 const STATUS_STYLE: Record<Ad["status"], { bg: string; fg: string; border: string }> = {
   Продаю: { bg: "var(--success-soft)", fg: "var(--success)", border: "var(--success)" },
   Куплю: { bg: "var(--info-soft)", fg: "var(--info)", border: "var(--info)" },
 };
-
-function relativeTime(input?: string): string {
-  if (!input) return "недавно";
-  const d = new Date(input);
-  if (isNaN(d.getTime())) return input;
-  const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 3600) return "только что";
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ч назад`;
-  if (diff < 172800) return "Вчера";
-  if (diff < 604800) return `${Math.floor(diff / 86400)} дн назад`;
-  return formatDate(d, "date");
-}
 
 const DELIVERY_ICON: Record<string, { Icon: typeof Package; label: string }> = {
   Почта: { Icon: Package, label: "Почта России" },
@@ -46,17 +35,24 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
       : ad.moderation && ad.moderation !== "published"
         ? ad.moderation
         : "default";
-  const [liked, setLiked] = useState<boolean>(false);
+  const { favorite: liked, toggle: toggleFavorite } = useFavoriteAd(ad.id, {
+    addedLabel: "В избранное",
+    removedLabel: "Убрано из избранного",
+  });
   const [likeBump, setLikeBump] = useState(0);
   const hero = ad.galleryMedia?.[0] ?? toDisplayMedia(ad.gallery?.[0] ?? ad.image);
   const status = STATUS_STYLE[ad.status];
   const moderated = moderationState === "moderation";
   const rejected = moderationState === "rejected";
 
+  /*
+   * Карточка лежит внутри `<Link>` — без обоих вызовов нажатие на сердечко
+   * уводит на страницу объявления.
+   */
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setLiked((v) => !v);
+    toggleFavorite(e.currentTarget);
     setLikeBump((n) => n + 1);
   };
 
@@ -217,7 +213,17 @@ export function AdCard({ ad, state = "default", compact = false }: Props) {
               style={{ color: "var(--foreground-30)" }}
             >
               <Clock size={14} />
-              {relativeTime(ad.createdAt)}
+              {/*
+               * `<TimeAgo>`, а не своя подпись. Здесь стояла местная
+               * `relativeTime()` с `Date.now()` прямо в отрисовке: сервер
+               * считал «2 ч назад» в момент запроса, браузер пересчитывал в
+               * момент гидрации, и на любом пороге строки расходились — React
+               * бросал #418 и перерисовывал страницу целиком. Профиль и
+               * комната подкатегории отдаются сервером, так что это случалось
+               * на живых страницах. `<TimeAgo>` для этого и написан:
+               * `useHydrated()` и `suppressHydrationWarning`.
+               */}
+              {ad.createdAt ? <TimeAgo iso={ad.createdAt} /> : "недавно"}
             </span>
           </div>
 
