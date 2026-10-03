@@ -200,6 +200,12 @@ class BillingModuleTest extends TestCase
         config([
             'billing.provider' => 'vtb',
             'billing.vtb.enabled' => true,
+            // Адрес называется явно. Раньше его подставляло умолчание — и
+            // умолчанием была песочница ВТБ, то есть «боевой контур» в этой
+            // проверке был испытательным. Умолчания больше нет: без адреса
+            // `isConfigured()` отвечает false, приём денег уходит на
+            // заглушку, и проверка перестала бы проверять то, что названа.
+            'billing.vtb.api_url' => 'https://platezh.vtb24.ru/payment/rest/',
             'billing.vtb.username' => 'test-user',
             'billing.vtb.password' => 'test-pass',
         ]);
@@ -279,6 +285,13 @@ class BillingModuleTest extends TestCase
         config([
             'billing.provider' => 'vtb',
             'billing.vtb.enabled' => true,
+            // Адрес называется явно: умолчания у него больше нет, а без
+            // адреса `isConfigured()` отвечает false и приём денег уходит на
+            // заглушку — тогда тестовый платёж снова начинает считаться
+            // оплатой, и проверка «под боевым ВТБ подписки не видно»
+            // проверяла бы обратное тому, как названа. Раньше адрес
+            // подставляло умолчание, и умолчанием была песочница ВТБ.
+            'billing.vtb.api_url' => 'https://platezh.vtb24.ru/payment/rest/',
             'billing.vtb.username' => 'test-user',
             'billing.vtb.password' => 'test-pass',
         ]);

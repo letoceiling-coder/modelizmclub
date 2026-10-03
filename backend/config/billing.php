@@ -1,5 +1,18 @@
 <?php
 
+/**
+ * Денежный адрес без умолчания.
+ *
+ * Пустая строка и незаданная переменная — одно и то же: «не настроено».
+ * Подставлять сюда что-либо нельзя (почему — в разделе про эквайринг ниже),
+ * поэтому возвращается null, и настроенность контура решается по нему.
+ */
+$денежныйАдрес = static function (string $переменная): ?string {
+    $значение = trim((string) env($переменная, ''));
+
+    return $значение === '' ? null : rtrim($значение, '/');
+};
+
 return [
 
     /*
@@ -33,10 +46,24 @@ return [
     |
     | Client: ИП Михайлов Дмитрий Михайлович — расчётный счёт в ВТБ.
     |
+    | У адреса нет умолчания, и это главное здесь.
+    |
+    | Раньше умолчанием была песочница (`https://vtb.rbsuat.com/...`). Выглядело
+    | это безобидно — «не настроил, значит не боевое», — а работало наоборот:
+    | эквайринг с ключами и `enabled=true` считал себя настроенным и слал
+    | заказы в испытательный контур. На проде так прошло больше месяца, и
+    | ничто об этом не говорило: платежи создавались, возвращали ссылку,
+    | человек видел форму банка. Денег за ними не было.
+    |
+    | Теперь адрес обязателен: без него `isConfigured()` отвечает false и
+    | приём денег уходит на заглушку, а не в чужой контур. Песочницу надо
+    | назвать вслух, и `deploy/scripts/check-live-money.sh` на каждой выкатке
+    | скажет, что она названа.
+    |
     */
     'vtb' => [
         'enabled' => env('VTB_ACQUIRING_ENABLED', false),
-        'api_url' => rtrim(env('VTB_ACQUIRING_API_URL', 'https://vtb.rbsuat.com/payment/rest'), '/').'/',
+        'api_url' => ($втб = $денежныйАдрес('VTB_ACQUIRING_API_URL')) !== null ? $втб.'/' : null,
         'username' => env('VTB_ACQUIRING_USERNAME'),
         'password' => env('VTB_ACQUIRING_PASSWORD'),
         'token' => env('VTB_ACQUIRING_TOKEN'),
@@ -135,8 +162,10 @@ return [
     */
     'vtb_payout' => [
         'enabled' => env('VTB_PAYOUT_ENABLED', false),
-        'oauth_url' => rtrim(env('VTB_PAYOUT_OAUTH_URL', 'https://epa-ift-sbp.vtb.ru/passport/oauth2/token'), '/'),
-        'api_url' => rtrim(env('VTB_PAYOUT_API_URL', 'https://test3.api.vtb.ru:8443/openapi/smb/efcp'), '/'),
+        // Умолчаний нет по той же причине, что у эквайринга выше: подставленный
+        // испытательный адрес выглядит как настроенный контур.
+        'oauth_url' => $денежныйАдрес('VTB_PAYOUT_OAUTH_URL'),
+        'api_url' => $денежныйАдрес('VTB_PAYOUT_API_URL'),
         'client_id' => env('VTB_PAYOUT_CLIENT_ID'),
         'client_secret' => env('VTB_PAYOUT_CLIENT_SECRET'),
         'merchant_authorization' => env('VTB_PAYOUT_MERCHANT_AUTHORIZATION'),
