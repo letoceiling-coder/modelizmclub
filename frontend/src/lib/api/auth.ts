@@ -36,6 +36,8 @@ export interface ApiUser {
   listing_placement_credits?: number;
   /** Льгота «подписка не требуется» (по умолчанию у сотрудников). */
   subscription_exempt?: boolean;
+  /** Действующая подписка по вердикту воротов — не по наличию строки. */
+  is_subscriber?: boolean;
   can_open_admin?: boolean;
   free_listings_quota?: number;
   free_listings_unlimited?: boolean;
@@ -91,6 +93,7 @@ export function mapApiUser(u: ApiUser): User {
     isAdmin: u.role === "owner",
     canOpenAdmin: u.can_open_admin === true,
     subscriptionExempt: u.subscription_exempt === true,
+    isSubscriber: u.is_subscriber === true,
     phone: u.phone ?? undefined,
     profile: u.profile
       ? {

@@ -55,6 +55,12 @@ class PublicProfileResource extends JsonResource
                 ),
             ],
             'member_since' => $this->user?->created_at?->toIso8601String(),
+            /*
+             * Отметка «Pro» на чужом профиле — тот же вердикт, что у воротов.
+             * Публично отдаётся только признак; срок и автопродление —
+             * дело самого человека и админки, здесь их нет.
+             */
+            'is_subscriber' => (bool) $this->user?->hasActiveSubscription(),
             'is_following' => $this->when(
                 $this->getAttribute('is_following') !== null,
                 (bool) $this->getAttribute('is_following'),
