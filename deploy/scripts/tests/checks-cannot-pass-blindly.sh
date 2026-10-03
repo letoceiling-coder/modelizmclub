@@ -70,6 +70,7 @@ BY_ROOT=(
   check-moderation-gates.sh
   check-config-access.sh
   check-avif-encoder.sh
+  check-stale-payments.sh
 )
 
 for name in "${BY_ROOT[@]}"; do
