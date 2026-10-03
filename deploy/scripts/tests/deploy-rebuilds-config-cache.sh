@@ -138,6 +138,25 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 
+# 4. после установки зависимостей оба кеша пересобраны безусловно
+#
+# `composer install` зовёт `package:discover` из `post-autoload-dump`, а тот —
+# `optimize:clear`. 03.10 проверено на проде: после установки
+# `bootstrap/cache/config.php` исчез, и ничто его не вернуло — пересборка
+# стояла по факту правок, а правок в `config/` в той выкатке не было.
+#
+# Правка `composer.lock` правок в `config/` и `routes/` не содержит, поэтому
+# этот же прогон и проверяет безусловность.
+log="$(deploy_touching backend/composer.lock)"
+for marker in "config cache rebuilt" "route cache rebuilt"; do
+  if printf '%s' "${log}" | grep -q "${marker}"; then
+    echo "  ok    после composer: ${marker}"
+  else
+    echo "  НЕ ПЕРЕСОБРАН    после composer нет «${marker}» — кеш стёрт и не возвращён" >&2
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
 if [[ "${ERRORS}" != "0" ]]; then
   echo "deploy-rebuilds-config-cache: находок — ${ERRORS}" >&2
   exit 1
