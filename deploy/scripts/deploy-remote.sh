@@ -58,6 +58,34 @@ cd "${DEPLOY_APP_DIR:-/var/www/modelizmclub}"
   if git diff --name-only HEAD@{1} HEAD -- backend/database/migrations | grep -q .; then
     (cd backend && sudo -u www-data php artisan migrate --force 2>&1 | tail -5) || { echo "FAIL migrate"; exit 1; }
   fi
+  # Зависимости бэкенда — по факту правок, и без набора разработки.
+  #
+  # До 03.10 выкатка `composer` не вызывала вовсе. Следствий два, и оба
+  # измерены.
+  #
+  # Первое: ветка, добавляющая пакет, выкатывала код, которому этого пакета на
+  # сервере нет. Пятисотка на первом же запросе, и причина не видна из кода —
+  # он-то правильный.
+  #
+  # Второе: на проде лежал полный набор зависимостей разработки — phpunit,
+  # faker, mockery, pint, collision, sail и `spatie/laravel-ignition`, —
+  # поставленный 10 сентября. Ignition регистрирует `/_ignition/*`, и
+  # `POST /_ignition/execute-solution` на боевом домене отвечал 500, а не 404:
+  # маршрут существовал и запрос до него доходил. Убрать их было некому.
+  #
+  # `--no-dev` здесь не осторожность, а единственный верный режим: задача
+  # `prod-install` в воротах CI как раз и доказывает, что приложение
+  # поднимается без них.
+  #
+  # Условие шире правок в `composer.*`: пока набор разработки лежит в
+  # `vendor/`, установка идёт и без них — иначе прод остался бы с ним до
+  # первой правки зависимостей, то есть неизвестно насколько.
+  if git diff --name-only HEAD@{1} HEAD -- backend/composer.json backend/composer.lock | grep -q . \
+     || [ -d backend/vendor/phpunit/phpunit ] || [ -d backend/vendor/spatie/laravel-ignition ]; then
+    (cd backend && sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction --no-progress 2>&1 | tail -3) \
+      || { echo "FAIL composer"; exit 1; }
+    echo "backend deps installed (--no-dev)"
+  fi
   # Кеш маршрутов — по факту правок, а не по слову в вызове.
   #
   # Новый путь при живом кеше отвечает 404, и это не похоже на

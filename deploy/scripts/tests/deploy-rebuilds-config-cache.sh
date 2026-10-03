@@ -45,6 +45,12 @@ SUDOSTUB
 for name in systemctl curl chown; do
   printf '#!/bin/sh\nexit 0\n' > "${STAND}/bin/${name}"
 done
+# `composer` печатает свои доводы — так видно, с какими его позвали.
+cat > "${STAND}/bin/composer" <<'COMPOSERSTUB'
+#!/bin/sh
+echo "composer вызван: $*"
+exit 0
+COMPOSERSTUB
 chmod +x "${STAND}"/bin/*
 export PATH="${STAND}/bin:${PATH}"
 
@@ -108,6 +114,28 @@ if printf '%s' "${log}" | grep -q "config cache rebuilt"; then
   ERRORS=$((ERRORS + 1))
 else
   echo "  ok    правка вне config/ — кеш не тронут"
+fi
+
+# 3. правка composer.lock — зависимости ставятся, и без набора разработки
+log="$(deploy_touching backend/composer.lock)"
+if printf '%s' "${log}" | grep -q "backend deps installed"; then
+  echo "  ok    правка composer.lock — зависимости поставлены"
+else
+  echo "  НЕ ПОСТАВЛЕНЫ     правка composer.lock прошла, а composer не вызван" >&2
+  ERRORS=$((ERRORS + 1))
+fi
+# Проверяется строка самой заглушки composer, а не сообщение об успехе.
+#
+# Сначала здесь стоял `grep -- "--no-dev"` по всему журналу, и он совпадал с
+# `echo "backend deps installed (--no-dev)"` — то есть с собственным
+# сообщением выкатки. Откат, снявший флаг у настоящего вызова, проверку не
+# валил: она ловила echo.
+if printf '%s' "${log}" | grep -qE 'composer вызван:.*--no-dev'; then
+  echo "  ok    без набора разработки"
+else
+  echo "  БЕЗ --no-dev      на прод уехал бы phpunit с ignition" >&2
+  printf '%s\n' "${log}" | grep -E 'composer вызван:' | sed 's/^/      /' >&2
+  ERRORS=$((ERRORS + 1))
 fi
 
 if [[ "${ERRORS}" != "0" ]]; then

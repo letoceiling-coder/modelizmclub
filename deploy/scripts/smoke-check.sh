@@ -169,6 +169,18 @@ if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_MODERATION_GATES:-0}" != "1" ]]; then
   fi
 fi
 
+# Зависимости разработки на боевом сервере. 03.10 в `vendor/` прода лежали
+# phpunit, faker, mockery, pint, collision, sail и ignition — последний
+# регистрирует `/_ignition/*`, и на боевом домене этот адрес отвечал 500, а не
+# 404. Выкатка `composer` не вызывала вовсе, убрать их было некому.
+if [[ "${DO_BACK}" == "1" && "${SMOKE_SKIP_DEV_DEPS:-0}" != "1" ]]; then
+  DEV_DEPS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-no-dev-deps.sh"
+  if [[ -x "${DEV_DEPS}" ]]; then
+    echo ""
+    "${DEV_DEPS}" || true
+  fi
+fi
+
 # Платежи, которые сверка больше никогда не тронет: `--newer-than=1440` в
 # расписании отсекает всё старше суток, и доживший до суток `pending` выпадает
 # из внимания навсегда. 03.10 таких нашлось четыре, с 11–12 августа, и за

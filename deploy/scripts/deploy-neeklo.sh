@@ -16,7 +16,7 @@ else
 fi
 
 cd backend
-composer install --optimize-autoloader --no-interaction
+composer install --no-dev --optimize-autoloader --no-interaction
 php artisan migrate --force
 php artisan config:cache
 
