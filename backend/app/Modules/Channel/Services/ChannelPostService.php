@@ -12,14 +12,19 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Channel\Support\ChannelPostMediaSync;
 use Modules\Feed\Services\PostService;
 
 class ChannelPostService
 {
+    /** Служебный раздел ленты, под которым публикуются записи каналов. */
+    private const РАЗДЕЛ_КАНАЛОВ = 'channels';
+
     public function __construct(
         private readonly ChannelPostMediaSync $channelMediaSync,
         private readonly PostService $postService,
+        private readonly CategoryTaxonomyService $taxonomy,
     ) {}
 
     /**
@@ -173,10 +178,7 @@ class ChannelPostService
      */
     private function createFeedDraft(Channel $channel, User $author, ChannelPost $channelPost, array $mediaIds): Post
     {
-        $category = PostCategory::query()->firstOrCreate(
-            ['slug' => 'channels'],
-            ['name' => 'Каналы', 'is_active' => true, 'sort_order' => 999],
-        );
+        $category = $this->разделКаналов();
 
         $title = Str::limit(trim($channelPost->text), 80, '…');
 
@@ -187,4 +189,51 @@ class ChannelPostService
             'media_ids' => $mediaIds,
         ]);
     }
+    /**
+     * Служебный раздел «Каналы» — заводится целиком или не заводится.
+     *
+     * Раньше здесь стоял `firstOrCreate` с именем, флагом активности и
+     * порядком — и всё. Узел получался наполовину: `depth` оставался нулём
+     * по умолчанию колонки, `path` — NULL, а три флага показа брали своё
+     * умолчание `true`.
+     *
+     * Чем это кончилось, видно на проде 03.10. Узел 223 выправили позже
+     * (`path` стал `channels`), но флаги остались, и по ним завелись
+     * зеркала: «Каналы» — корневой раздел во всех трёх публичных деревьях,
+     * включая каталог объявлений и сообщества. То есть служебный раздел
+     * ленты предлагается человеку как категория объявления и как категория
+     * сообщества.
+     *
+     * `path` — не украшение: по нему идёт отбор потомков
+     * (`path like 'a/b/%'`), и NULL там означает «потомков нет никогда».
+     * Считает его `CategoryTaxonomyService`, он же разводит зеркала по
+     * флагам; второй реализации быть не должно, иначе они разойдутся
+     * (`deploy/scripts/category-tree-drift.sh` как раз про это).
+     *
+     * Флаги названы явно: раздел живёт только в ленте.
+     */
+    private function разделКаналов(): PostCategory
+    {
+        $category = PostCategory::query()->firstOrCreate(
+            ['slug' => self::РАЗДЕЛ_КАНАЛОВ],
+            [
+                'name' => 'Каналы',
+                'is_active' => true,
+                'sort_order' => 999,
+                'in_feed' => true,
+                'in_listings' => false,
+                'in_communities' => false,
+            ],
+        );
+
+        // Только у только что заведённого: у существующего флаги и место в
+        // дереве — решение администратора, и переписывать его нельзя.
+        if ($category->wasRecentlyCreated) {
+            $this->taxonomy->syncFromPostCategory($category);
+            $category->refresh();
+        }
+
+        return $category;
+    }
+
 }
