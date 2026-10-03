@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\Media;
 use App\Models\ModerationQueue;
 use App\Models\User;
+use App\Enums\ReactionType;
 use App\Models\Video;
 use App\Models\VideoCategory;
 use App\Models\VideoReaction;
@@ -356,8 +357,20 @@ class VideoService
 
     public function react(Video $video, User $user, string $type = 'like'): void
     {
-        if (! in_array($type, ['like', 'dislike'], true)) {
-            $type = 'like';
+        /*
+         * Неизвестный тип — отказ, а не тихая подмена.
+         *
+         * До 03.10 здесь стояло `$type = 'like'`: «lke» ставило одобрение и
+         * отвечало 200, то есть человек получал ответ, которого не просил.
+         * Это тот же приём, что и пустой `catch` (см. CLAUDE.md): отказ
+         * стирался вместо того, чтобы быть названным. Список значений —
+         * в `ReactionType`, и его же проверяет правило в контроллере; здесь
+         * сторож на случай нового вызывающего.
+         */
+        if (! in_array($type, ReactionType::forVideo(), true)) {
+            throw ValidationException::withMessages([
+                'type' => ['Неизвестный тип реакции.'],
+            ]);
         }
 
         $existing = VideoReaction::query()
