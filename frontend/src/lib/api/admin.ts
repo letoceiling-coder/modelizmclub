@@ -159,11 +159,31 @@ export async function fetchAuditLogPage(
 export type AdminUserRole = "user" | "category_admin" | "moderator" | "owner";
 export type AdminUserStatus = "active" | "blocked" | "pending_verification";
 
-export type AdminSubscriptionStatus = "active" | "expired" | "cancelled" | "none";
+export type AdminSubscriptionStatus =
+  | "active"
+  | "expired"
+  | "cancelled"
+  /**
+   * Строка подписки есть и выглядит живой, а основания доступа нет.
+   *
+   * Разбор 03.10: у пользователя 1201 строка `active` до 24.02.2027, оплата
+   * прошла через тестовый эквайринг, и продукт ему отказывает. Прежде карточка
+   * показывала «активна до 24.02.2027» — обещание доступа, которого нет.
+   */
+  | "no_basis"
+  | "none";
+
+/** Основание доступа — то же, по которому решает сервер. */
+export type AdminSubscriptionBasis =
+  "no_subscription" | "exempt" | "paid" | "granted" | "first_hundred" | "no_basis";
 
 export interface AdminUserSubscription {
   status: AdminSubscriptionStatus;
+  /** Доступ открыт. Не «в строке написано active» — именно доступ. */
   isActive: boolean;
+  basis: AdminSubscriptionBasis | null;
+  /** Подпись основания с сервера: «оплачено», «выдана из админки», … */
+  basisLabel: string | null;
   endsAt: string | null;
   autoRenew: boolean;
 }
@@ -184,6 +204,8 @@ export interface AdminUserRow {
 interface ApiAdminSubscription {
   status?: string;
   is_active?: boolean;
+  access_basis?: string | null;
+  access_basis_label?: string | null;
   ends_at?: string | null;
   auto_renew?: boolean;
 }
@@ -201,13 +223,49 @@ interface ApiAdminUser {
 }
 
 function mapAdminSubscription(s?: ApiAdminSubscription | null): AdminUserSubscription {
-  if (!s) return { status: "none", isActive: false, endsAt: null, autoRenew: false };
+  if (!s) {
+    return {
+      status: "none",
+      isActive: false,
+      basis: "no_subscription",
+      basisLabel: null,
+      endsAt: null,
+      autoRenew: false,
+    };
+  }
   return {
     status: (s.status as AdminSubscriptionStatus) ?? "none",
     isActive: s.is_active === true,
+    basis: (s.access_basis as AdminSubscriptionBasis | undefined) ?? null,
+    basisLabel: s.access_basis_label ?? null,
     endsAt: s.ends_at ?? null,
     autoRenew: s.auto_renew === true,
   };
+}
+
+/**
+ * Одна строка о подписке для глаз сотрудника.
+ *
+ * Правило простое: пока доступ открыт — называем основание, потому что
+ * «активна» без основания и была той самой неправдой. Когда закрыт, а строка
+ * есть — говорим это прямо, вместе со сроком из строки: именно по этому
+ * сотрудник и поймёт, что строку надо снять.
+ */
+export function описаниеПодписки(s: AdminUserSubscription, дата: (iso: string) => string): string {
+  const до = s.endsAt ? ` до ${дата(s.endsAt)}` : "";
+
+  if (s.isActive) {
+    return s.basisLabel ? `активна${до} — ${s.basisLabel}` : `активна${до}`;
+  }
+
+  if (s.status === "no_basis") {
+    return `строка${до}, основания нет — доступа у человека не будет`;
+  }
+
+  if (s.status === "expired") return "истекла";
+  if (s.status === "cancelled") return `отменена${до}`;
+
+  return "нет";
 }
 
 function mapAdminUser(u: ApiAdminUser): AdminUserRow {

@@ -5,7 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { fetchAdminUserCard, type AdminUserCard as Карточка } from "@/lib/api/admin";
+import {
+  fetchAdminUserCard,
+  описаниеПодписки,
+  type AdminUserCard as Карточка,
+} from "@/lib/api/admin";
 import { reportReadFailure } from "@/lib/errors/handle";
 import { formatAbsoluteInZone } from "@/lib/format/date";
 
@@ -177,11 +181,7 @@ function Шапка({ card }: { card: Карточка }) {
 }
 
 function Поля({ card }: { card: Карточка }) {
-  const подписка = card.subscription.isActive
-    ? `активна${card.subscription.endsAt ? ` до ${дата(card.subscription.endsAt)}` : ""}`
-    : card.subscription.status === "expired"
-      ? "истекла"
-      : "нет";
+  const подписка = описаниеПодписки(card.subscription, дата);
 
   return (
     <Раздел название="Учётная запись">

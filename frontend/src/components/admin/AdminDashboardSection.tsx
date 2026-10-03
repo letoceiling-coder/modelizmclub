@@ -278,6 +278,13 @@ const SUBSCRIPTION_LABEL: Record<
   active: { label: "Активна", color: "var(--success)" },
   expired: { label: "Истекла", color: "var(--warning)" },
   cancelled: { label: "Неактивна", color: "var(--foreground-50)" },
+  /*
+   * Строка есть и не истекла, а доступа у человека нет: ни оплаты, ни
+   * выдачи, ни промо. Своё имя и свой цвет — опасный, а не нейтральный:
+   * это не «нет подписки», это расхождение, которое надо разобрать
+   * (разбор 03.10, пользователь 1201).
+   */
+  no_basis: { label: "Без основания", color: "var(--destructive)" },
   none: { label: "Нет", color: "var(--foreground-50)" },
 };
 
