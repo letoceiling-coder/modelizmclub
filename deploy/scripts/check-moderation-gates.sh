@@ -22,7 +22,13 @@ BACKEND="${ROOT}/backend"
 FPM_USER="${FPM_USER:-www-data}"
 STATUS=0
 
-[[ -f "${BACKEND}/artisan" ]] || { echo "moderation-gates: ${BACKEND} не похож на приложение"; exit 0; }
+# Ответов три, и «нечего проверять» — не «всё хорошо». Нулевой код здесь
+# означал, что проверка, запущенная не в том каталоге, молча одобряла любое
+# состояние модерации. Код 2 — «выяснить не удалось».
+[[ -f "${BACKEND}/artisan" ]] || {
+  echo "moderation-gates: ${BACKEND} не похож на приложение — выяснить не удалось" >&2
+  exit 2
+}
 
 read_gates() {
   sudo -u "${FPM_USER}" env XDG_CONFIG_HOME=/tmp HOME=/tmp \
