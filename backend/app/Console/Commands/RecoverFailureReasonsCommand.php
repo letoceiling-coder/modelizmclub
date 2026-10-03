@@ -58,7 +58,7 @@ class RecoverFailureReasonsCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->показатьЗапрос($платежи->count());
+        $this->показатьЗапрос($платежи);
         $this->показатьВыборку($платежи);
 
         if (! $this->option('apply')) {
@@ -182,12 +182,41 @@ class RecoverFailureReasonsCommand extends Command
         return $q->get();
     }
 
-    private function показатьЗапрос(int $сколько): void
+    /**
+     * Что уйдёт наружу — по каждому провайдеру отдельно.
+     *
+     * Прежняя версия печатала один запрос, ВТБ-овский, и писала «запросов
+     * будет 54» — хотя половина уходит в ЮKassa, другим адресом и другим
+     * телом. Сухой прогон затем и нужен, чтобы человек увидел, что именно
+     * отправится; обещать не то — хуже, чем не печатать вовсе.
+     *
+     * @param \Illuminate\Support\Collection<int, Payment> $платежи
+     */
+    private function показатьЗапрос(\Illuminate\Support\Collection $платежи): void
+    {
+        $поПровайдеру = $платежи->countBy('provider');
+        $пауза = (int) ($this->option('delay-ms') ?? config('billing.vtb.reconcile.delay_ms', 1000));
+
+        $this->line('Запросы, которые уйдут наружу:');
+        $this->newLine();
+
+        if (($ювтб = (int) ($поПровайдеру['vtb'] ?? 0)) > 0) {
+            $this->показатьВтб($ювтб);
+        }
+        if (($юю = (int) ($поПровайдеру['yookassa'] ?? 0)) > 0) {
+            $this->показатьЮkassa($юю);
+        }
+
+        $this->line('  Всего запросов: '.$платежи->count().', пауза между ними '.$пауза.' мс.');
+        $this->line('  Чтение статуса. Деньги не двигаются: ни списания, ни возврата, ни отмены.');
+        $this->newLine();
+    }
+
+    private function показатьВтб(int $сколько): void
     {
         $черезТокен = (bool) config('billing.vtb.token');
 
-        $this->line('Запрос, который уйдёт в банк по каждому заказу:');
-        $this->newLine();
+        $this->line("  ВТБ — {$сколько} шт.:");
         $this->line('  POST '.config('billing.vtb.api_url').'getOrderStatusExtended.do');
         $this->line('  Content-Type: application/x-www-form-urlencoded');
         $this->line('  Тело:');
@@ -198,10 +227,25 @@ class RecoverFailureReasonsCommand extends Command
             $this->line('    password=<из billing.vtb.password, в вывод не печатается>');
         }
         $this->line('    orderId=<provider_payment_id платежа>');
+
+        /*
+         * Боевой это контур или испытательный — видно по адресу, и
+         * сказать об этом надо здесь, а не в чужом отчёте: коды
+         * песочницы, записанные в боевые строки, хуже пустоты.
+         */
+        if (str_contains((string) config('billing.vtb.api_url'), 'rbsuat')) {
+            $this->warn('  ВНИМАНИЕ: адрес указывает на испытательный контур ВТБ (rbsuat).');
+            $this->warn('  Ответы оттуда не объясняют отказы живых карт — применять нельзя.');
+        }
         $this->newLine();
-        $пауза = (int) ($this->option('delay-ms') ?? config('billing.vtb.reconcile.delay_ms', 1000));
-        $this->line('  Запросов будет: '.$сколько.', пауза между ними '.$пауза.' мс.');
-        $this->line('  Чтение статуса. Деньги не двигаются: ни списания, ни возврата, ни отмены.');
+    }
+
+    private function показатьЮkassa(int $сколько): void
+    {
+        $this->line("  ЮKassa — {$сколько} шт.:");
+        $this->line('  GET https://api.yookassa.ru/v3/payments/<provider_payment_id>');
+        $this->line('  Authorization: Basic <shop_id:secret_key, в вывод не печатается>');
+        $this->line('  Причина берётся из cancellation_details: reason и party.');
         $this->newLine();
     }
 
