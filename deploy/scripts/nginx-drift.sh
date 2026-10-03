@@ -46,11 +46,18 @@ if [[ ! -d "${REPO}" ]]; then
   echo "  не выяснено     нет каталога ${REPO} — сравнивать нечего" >&2
   exit 2
 fi
-if [[ ! -d "${AVAILABLE}" && ! -d "${CONFD}" && ! -d "${ENABLED}" ]]; then
-  echo "  не выяснено     nginx на этой машине не найден (${AVAILABLE}) — сравнивать нечего" >&2
+# Требуется именно `sites-available`: это каталог, с которым идёт сравнение.
+# Условие «нет всех трёх» было слишком мягким — на хосте, где остался только
+# `conf.d` или только `sites-enabled`, цикл сопоставления напечатал бы «нет на
+# сервере» для каждого файла, STATUS остался бы нулём, и внизу вышло бы «ok —
+# боевой nginx совпадает с репозиторием». Та же форма дефекта, из-за которой
+# проверка и затевалась.
+if [[ ! -d "${AVAILABLE}" ]]; then
+  echo "  не выяснено     нет каталога ${AVAILABLE} — сравнивать не с чем" >&2
   exit 2
 fi
 
+COMPARED=0
 shopt -s nullglob
 for f in "${REPO}"/*.conf; do
   base="$(basename "${f}" .conf)"
@@ -69,6 +76,7 @@ for f in "${REPO}"/*.conf; do
     continue
   fi
 
+  COMPARED=$((COMPARED + 1))
   if ! diff -q "${f}" "${live}" >/dev/null 2>&1; then
     printf '  РАСХОДИТСЯ      %s (%s строк)\n' "${base}" "$(diff "${f}" "${live}" | grep -c '^[<>]')"
     STATUS=1
@@ -119,8 +127,14 @@ else
   printf '  ok    чужое имя хоста закрыто (своё отвечает %s)\n' "${KNOWN}"
 fi
 
+# Ни одного сопоставления — значит сказать «совпадает» не о чем.
+if [[ "${COMPARED}" == "0" ]]; then
+  echo "  не выяснено     ни один конфиг репозитория не нашёлся на сервере" >&2
+  exit 2
+fi
+
 if [[ "${STATUS}" == "0" ]]; then
-  echo "  ok    боевой nginx совпадает с репозиторием, в sites-enabled только симлинки"
+  echo "  ok    боевой nginx совпадает с репозиторием (сверено файлов: ${COMPARED}), в sites-enabled только симлинки"
 fi
 
 exit "${STATUS}"

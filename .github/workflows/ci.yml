@@ -287,12 +287,20 @@ jobs:
       # База собирается заново с наполнением: после `php artisan test` она
       # остаётся в том состоянии, в каком её бросил последний тест, и
       # проверять такое бессмысленно.
-      - name: Дерево категорий и карта доступа
+      - name: База с наполнением для сверок
         run: |
           cp .env.testing .env
           php artisan migrate:fresh --seed --force
-          ../deploy/scripts/category-tree-drift.sh
-          ../deploy/scripts/access-map-drift.sh --strict
+
+      # Два шага, а не один: GitHub даёт `bash -eo pipefail`, и отказ первой
+      # сверки скрыл бы вторую — за сборку было бы видно одно расхождение из
+      # двух.
+      - name: Дерево категорий согласовано
+        run: ../deploy/scripts/category-tree-drift.sh
+
+      - name: Карта доступа совпадает с реестром
+        if: always()
+        run: ../deploy/scripts/access-map-drift.sh --strict
 
   prod-install:
     name: backend · установка без dev-зависимостей
