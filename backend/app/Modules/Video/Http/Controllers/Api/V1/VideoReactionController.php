@@ -2,10 +2,12 @@
 
 namespace Modules\Video\Http\Controllers\Api\V1;
 
+use App\Enums\ReactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Video;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Modules\Feed\Http\Resources\CommentResource;
 use Modules\Video\Services\VideoService;
 
@@ -13,9 +15,12 @@ class VideoReactionController extends Controller
 {
     public function store(string $uuid, Request $request, VideoService $videos): JsonResponse
     {
+        $data = $request->validate([
+            'type' => ['sometimes', 'string', Rule::in(ReactionType::forVideo())],
+        ]);
+
         $video = Video::query()->where('uuid', $uuid)->firstOrFail();
-        $type = $request->input('type', 'like');
-        $videos->react($video, $request->user(), is_string($type) ? $type : 'like');
+        $videos->react($video, $request->user(), $data['type'] ?? ReactionType::Like->value);
 
         return response()->json(['message' => 'ok']);
     }
