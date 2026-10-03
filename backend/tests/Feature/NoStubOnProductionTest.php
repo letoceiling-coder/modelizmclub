@@ -106,6 +106,10 @@ class NoStubOnProductionTest extends TestCase
 
         $ответ->assertStatus(503);
         $ответ->assertJsonPath('code', 'payment_contour_unavailable');
+        // Текст тоже закреплён: `bootstrap/app.php` переписывает `message`
+        // каждого ответа ≥400 через `ApiErrorMessage::translate`, и появись в
+        // `lang/ru.json` ключ с этой строкой — она сменилась бы молча.
+        $ответ->assertJsonPath('message', 'Оплата временно недоступна: платёжный шлюз не настроен.');
     }
 
     public function test_вне_прода_подмена_остаётся(): void
@@ -195,6 +199,110 @@ class NoStubOnProductionTest extends TestCase
         $this->actingAs($user, 'sanctum')
             ->postJson("/api/v1/payments/{$платёж->uuid}/confirm-stub", ['outcome' => 'paid'])
             ->assertOk();
+    }
+
+    /**
+     * Запрет стоит в горловине, а не только в менеджере.
+     *
+     * `PaymentGatewayManager::resolve()` и `gatewayForProvider()` публичные:
+     * первый уже зовут снаружи (`CardBindingService`), второй отдаёт подменный
+     * шлюз для всего, что не `vtb`, и вызывающих у него пока ноль — то есть это
+     * готовая калитка мимо запрета в `createCheckout` менеджера.
+     */
+    public function test_подменный_шлюз_отказывает_и_напрямую(): void
+    {
+        $this->боевоеОкружение();
+        $this->ненастроенныйВтб('auto');
+
+        $this->expectException(PaymentContourUnavailableException::class);
+
+        app(\Modules\Billing\Services\StubPaymentGateway::class)->createCheckout(
+            $this->человек(), 9900, 'RUB', 'Подписка «Месяц»', ['payable_type' => 'subscription'],
+        );
+    }
+
+    public function test_подменный_шлюз_отказывает_и_через_gatewayForProvider(): void
+    {
+        $this->боевоеОкружение();
+        $this->ненастроенныйВтб('auto');
+
+        $this->expectException(PaymentContourUnavailableException::class);
+
+        app(PaymentGatewayManager::class)
+            ->gatewayForProvider('stub')
+            ->createCheckout($this->человек(), 9900, 'RUB', 'Подписка «Месяц»', ['payable_type' => 'subscription']);
+    }
+
+    /**
+     * Подменный вебхук на проде не доводит платёж до оплаты.
+     *
+     * Подписи он не проверяет и банк не спрашивает — в отличие от
+     * `VtbPaymentGateway`. Сегодня до него не дотянуться: маршрут вебхука
+     * внедряет `VtbPaymentGateway` по классу. Но три из четырёх точек создания
+     * платежа внедряют интерфейс, и одна правка внедрения отделяла это от живой
+     * дыры.
+     */
+    public function test_подменный_вебхук_на_проде_ничего_не_оплачивает(): void
+    {
+        $this->боевоеОкружение();
+        $this->ненастроенныйВтб('auto');
+        $платёж = $this->подменныйПлатёж();
+
+        try {
+            app(\Modules\Billing\Services\StubPaymentGateway::class)
+                ->handleWebhook(['payment_uuid' => $платёж->uuid]);
+            $this->fail('подменный вебхук на проде сработал');
+        } catch (PaymentContourUnavailableException) {
+            // то, что и ожидается
+        }
+
+        $this->assertSame('pending', $платёж->fresh()->status);
+    }
+
+    /** Подменный вебхук не трогает платежи других провайдеров. */
+    public function test_подменный_вебхук_не_оплачивает_чужой_платёж(): void
+    {
+        $this->ненастроенныйВтб('auto');
+        $втб = $this->подменныйПлатёж('vtb');
+
+        app(\Modules\Billing\Services\StubPaymentGateway::class)
+            ->handleWebhook(['payment_uuid' => $втб->uuid]);
+
+        $this->assertSame(
+            'pending',
+            $втб->fresh()->status,
+            'подменный обработчик довёл до оплаты платёж ВТБ',
+        );
+    }
+
+    /** Остальные точки создания платежа отказывают тем же ответом. */
+    public function test_пополнение_кошелька_на_проде_отказывает(): void
+    {
+        $this->боевоеОкружение();
+        $this->ненастроенныйВтб('auto');
+
+        $ответ = $this->actingAs($this->человек(), 'sanctum')
+            ->postJson('/api/v1/wallet/topup', ['amount' => 500]);
+
+        $this->assertContains($ответ->status(), [503], 'пополнение не отказало: '.$ответ->status());
+        $this->assertContains(
+            $ответ->json('code'),
+            ['payment_contour_unavailable', 'vtb_required'],
+            'код отказа не из платёжного словаря',
+        );
+    }
+
+    private function подменныйПлатёж(string $провайдер = 'stub'): Payment
+    {
+        return Payment::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $this->человек()->id,
+            'provider' => $провайдер,
+            'status' => 'pending',
+            'amount_cents' => 9900,
+            'currency' => 'RUB',
+            'metadata' => ['payable_type' => 'subscription', 'plan_slug' => 'month'],
+        ]);
     }
 
 }

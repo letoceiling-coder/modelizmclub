@@ -5,6 +5,7 @@ namespace Modules\Billing\Services;
 use App\Models\Payment;
 use App\Models\User;
 use Modules\Billing\Contracts\PaymentGateway;
+use Modules\Billing\Exceptions\PaymentContourUnavailableException;
 
 /**
  * Test acquiring: creates a pending payment and sends the user to an in-app
@@ -29,6 +30,8 @@ class StubPaymentGateway implements PaymentGateway
 
     public function createCheckout(User $user, int $amountCents, string $currency, string $description, array $metadata = []): array
     {
+        $this->откажиНаПроде();
+
         $payment = $this->recorder->createPending(
             $user,
             $amountCents,
@@ -63,16 +66,54 @@ class StubPaymentGateway implements PaymentGateway
 
     public function handleWebhook(array $payload): void
     {
+        $this->откажиНаПроде();
+
         $uuid = (string) ($payload['payment_uuid'] ?? '');
 
         if ($uuid === '') {
             return;
         }
 
-        $payment = Payment::query()->where('uuid', $uuid)->first();
+        /*
+         * Только свои платежи.
+         *
+         * Отбор был по одному `uuid`, без провайдера: подменный обработчик мог
+         * довести до оплаты платёж ВТБ. Подписи он не проверяет и банк не
+         * спрашивает — в отличие от `VtbPaymentGateway`, — поэтому единственное,
+         * что его сдерживает, это свой провайдер.
+         *
+         * Сегодня до него не дотянуться: маршрут вебхука ведёт в
+         * `VtbWebhookController`, а тот внедряет `VtbPaymentGateway` по классу, а
+         * не по интерфейсу. Но три из четырёх точек создания платежа внедряют
+         * именно интерфейс, и одна правка внедрения отделяла это от живой дыры.
+         */
+        $payment = Payment::query()
+            ->where('uuid', $uuid)
+            ->where('provider', $this->provider())
+            ->first();
 
         if ($payment) {
             app(PaymentFulfillmentService::class)->markPaid($payment);
+        }
+    }
+
+    /**
+     * Подменный шлюз на боевом окружении не работает.
+     *
+     * Запрет стоит здесь, а не только в `PaymentGatewayManager`: там он
+     * обходится — `resolve()` и `gatewayForProvider()` публичные, первый уже
+     * зовут снаружи (`CardBindingService`), а второй отдаёт подменный шлюз для
+     * всего, что не `vtb`. Горловина, через которую проходят все пути, — вот
+     * эти два метода.
+     *
+     * Условие одно и то же: подменный шлюз разрешён только по явному
+     * `BILLING_PROVIDER=stub` либо вне прода. Решение в `.env` видно, а подмена
+     * ненастроенного шлюза — молчаливое следствие сбоя.
+     */
+    private function откажиНаПроде(): void
+    {
+        if (! app(PaymentGatewayManager::class)->stubAllowed()) {
+            throw new PaymentContourUnavailableException();
         }
     }
 
