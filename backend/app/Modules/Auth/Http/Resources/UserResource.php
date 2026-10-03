@@ -75,6 +75,25 @@ class UserResource extends JsonResource
             // Льготы на человека (RolePrivileges): ресурс отдаётся только
             // самому человеку и в админке.
             'subscription_exempt' => (bool) $this->subscription_exempt,
+            /*
+             * Есть ли у человека действующая подписка — тем же вердиктом,
+             * каким её проверяют ворота (`hasActiveSubscription`), а не по
+             * наличию строки в `user_subscriptions`.
+             *
+             * Значок «Pro» в шапке профиля был написан под поле
+             * `user.subscription`, которого ни один маппер не заполнял:
+             * `mapApiUser` его не ставил, `/auth/me` не отдавал. Условие
+             * было ложным всегда, и подписчик не получал отметки нигде.
+             * Найдено разбором 03.10.
+             *
+             * Льгота «подписка не требуется» сюда не входит: она открывает
+             * закрытое подпиской, но подпиской не является, и отмечать
+             * сотрудника как подписчика было бы неправдой.
+             */
+            'is_subscriber' => $this->when(
+                $this->aboutSelf($request),
+                fn () => $this->hasActiveSubscription(),
+            ),
             'free_listings_quota' => (int) ($this->free_listings_quota ?? 0),
             'free_listings_unlimited' => (bool) $this->free_listings_unlimited,
             'free_listings_used' => (int) ($this->free_listings_used ?? 0),
@@ -142,7 +161,22 @@ class UserResource extends JsonResource
         return $this->aboutSelf || $request->user()?->id === $this->id;
     }
 
-    /** Latest subscription row, flattened for the admin user list. */
+    /**
+     * Последняя строка подписки для списка админки.
+     *
+     * `is_active` здесь — вердикт воротов (`hasActiveSubscription`), а не
+     * состояние строки. Раньше считалась только строка, и админка
+     * расходилась с сайтом: 03.10 на проде у 1201 строка жила до
+     * 24.02.2027, карточка показывала «активна до 24.02.2027» и кнопку
+     * «Продлить подписку», а человек на каждом закрытом действии получал
+     * окно оплаты. Причина — оплата была сделана тестовым эквайрингом
+     * (`provider=stub`), а прод с тех пор переключён на боевой, и
+     * `hasPaidSubscriptionPayment()` такие платежи не считает.
+     *
+     * Поэтому у живой строки, которой ворота отказывают, своё состояние —
+     * `not_entitled`: «строка есть, доступа нет». Молчаливое «нет»
+     * спрятало бы от админа саму строку, а «активна» лгало бы о доступе.
+     */
     private function subscriptionSummary(): ?array
     {
         $sub = $this->subscriptions->sortByDesc('ends_at')->sortByDesc('id')->first();
@@ -150,12 +184,18 @@ class UserResource extends JsonResource
             return null;
         }
 
-        $active = $sub->status === 'active' && ($sub->ends_at === null || $sub->ends_at->isFuture());
+        $live = User::subscriptionRowIsLive($sub);
         $expired = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
+        $entitled = $live && $this->hasActiveSubscription();
 
         return [
-            'status' => $expired ? 'expired' : ($active ? 'active' : $sub->status),
-            'is_active' => $active,
+            'status' => match (true) {
+                $expired => 'expired',
+                $live && ! $entitled => 'not_entitled',
+                $live => 'active',
+                default => $sub->status,
+            },
+            'is_active' => $entitled,
             'ends_at' => $sub->ends_at?->toIso8601String(),
             'auto_renew' => (bool) $sub->auto_renew,
         ];

@@ -181,7 +181,11 @@ function Поля({ card }: { card: Карточка }) {
     ? `активна${card.subscription.endsAt ? ` до ${дата(card.subscription.endsAt)}` : ""}`
     : card.subscription.status === "expired"
       ? "истекла"
-      : "нет";
+      : card.subscription.status === "not_entitled"
+        ? `оплата не подтверждена${
+            card.subscription.endsAt ? ` (строка до ${дата(card.subscription.endsAt)})` : ""
+          }`
+        : "нет";
 
   return (
     <Раздел название="Учётная запись">

@@ -51,6 +51,7 @@ export const DEMO_USER: User = {
     "&backgroundColor=627fff,3f4fbf,1976d2",
   email: "alexey.krylov@modelizmclub.ru",
   subscription: "Год",
+  isSubscriber: true,
   bio: "Пилот RC-авиации и багги 1:8. Строю, летаю, гоняю. Собираю сообщество моделистов Краснодара.",
   status: "Основатель · МоДелизМ Pro",
   coverImage: "https://picsum.photos/seed/modelizm101/1200/400",
@@ -669,7 +670,9 @@ export function demoPublicProfile(slug: string): DemoPublicProfile {
   const u = mockUsers.find((x) => x.slug === slug || x.id === slug) ?? mockUsers[1];
   const friendIds = new Set(DEMO_USER.friendIds ?? []);
   return {
-    user: { ...u, bio: u.bio ?? "" },
+    // В демо подписку изображает `subscription` из мок-данных: сервера нет,
+    // и `is_subscriber` взяться неоткуда.
+    user: { ...u, bio: u.bio ?? "", isSubscriber: u.subscription != null },
     bio: u.bio ?? "",
     city: u.city,
     stats: {

@@ -277,6 +277,7 @@ const SUBSCRIPTION_LABEL: Record<
 > = {
   active: { label: "Активна", color: "var(--success)" },
   expired: { label: "Истекла", color: "var(--warning)" },
+  not_entitled: { label: "Оплата не подтверждена", color: "var(--warning)" },
   cancelled: { label: "Неактивна", color: "var(--foreground-50)" },
   none: { label: "Нет", color: "var(--foreground-50)" },
 };

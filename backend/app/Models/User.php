@@ -289,6 +289,13 @@ class User extends Authenticatable
      */
     public function hasAdminGrantedSubscription(): bool
     {
+        if ($this->relationLoaded('subscriptions')) {
+            return $this->subscriptions->contains(
+                fn (UserSubscription $s): bool => $s->granted_by_admin_id !== null
+                    && self::subscriptionRowIsLive($s),
+            );
+        }
+
         return UserSubscription::query()
             ->where('user_id', $this->id)
             ->where('status', 'active')
@@ -301,6 +308,12 @@ class User extends Authenticatable
 
     public function hasUnexpiredSubscriptionRow(): bool
     {
+        if ($this->relationLoaded('subscriptions')) {
+            return $this->subscriptions->contains(
+                fn (UserSubscription $s): bool => self::subscriptionRowIsLive($s),
+            );
+        }
+
         return UserSubscription::query()
             ->where('user_id', $this->id)
             ->where('status', 'active')
@@ -308,6 +321,20 @@ class User extends Authenticatable
                 $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
             })
             ->exists();
+    }
+
+    /**
+     * Живая строка подписки: выдана, не отменена, срок не вышел.
+     *
+     * Одно определение на оба пути — запрос и уже загруженную связь. Два
+     * определения расходятся: список админки грузит `subscriptions`
+     * заранее, и если «живая» там считается иначе, админка и ворота
+     * отвечают разное об одном человеке.
+     */
+    public static function subscriptionRowIsLive(UserSubscription $row): bool
+    {
+        return $row->status === 'active'
+            && ($row->ends_at === null || $row->ends_at->isFuture());
     }
 
     /** Paid gateway/wallet checkout for a subscription plan. */

@@ -159,7 +159,13 @@ export async function fetchAuditLogPage(
 export type AdminUserRole = "user" | "category_admin" | "moderator" | "owner";
 export type AdminUserStatus = "active" | "blocked" | "pending_verification";
 
-export type AdminSubscriptionStatus = "active" | "expired" | "cancelled" | "none";
+/**
+ * `not_entitled` — строка подписки жива, а ворота доступ не дают: так
+ * выглядит оплата тестовым эквайрингом после переключения прода на боевой.
+ * Без отдельного состояния карточка показывала «активна до …» человеку,
+ * которому сайт на каждом шаге предлагал оплатить.
+ */
+export type AdminSubscriptionStatus = "active" | "expired" | "cancelled" | "not_entitled" | "none";
 
 export interface AdminUserSubscription {
   status: AdminSubscriptionStatus;
@@ -200,7 +206,7 @@ interface ApiAdminUser {
   listing_placement_credits?: number;
 }
 
-function mapAdminSubscription(s?: ApiAdminSubscription | null): AdminUserSubscription {
+export function mapAdminSubscription(s?: ApiAdminSubscription | null): AdminUserSubscription {
   if (!s) return { status: "none", isActive: false, endsAt: null, autoRenew: false };
   return {
     status: (s.status as AdminSubscriptionStatus) ?? "none",
