@@ -39,9 +39,12 @@ CACHE_DIR="${BACKEND}/bootstrap/cache"
 FPM_USER="${FPM_USER:-www-data}"
 STATUS=0
 
+# «Проверять нечего» — не «всё хорошо». Нулевой код здесь означал, что
+# проверка, запущенная не в том каталоге, молча одобряла любые права на
+# `.env` и на кеш конфигурации. Код 2 — «выяснить не удалось».
 if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "config-access: ${ENV_FILE} не найден — проверять нечего"
-  exit 0
+  echo "config-access: ${ENV_FILE} не найден — выяснить не удалось" >&2
+  exit 2
 fi
 
 echo "config-access: ${ENV_FILE}"
