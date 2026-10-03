@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\Billing\Clients\YooKassaClient;
+use Modules\Billing\Exceptions\PaymentContourUnavailableException;
 use Modules\Billing\Contracts\PaymentGateway;
 use Modules\Billing\Services\PaymentGatewayManager;
 
@@ -17,16 +18,50 @@ class CardBindingService
         private readonly YooKassaClient $yookassa,
     ) {}
 
-    /** @return array{binding_url: string} */
+    /**
+     * Привязка карты — у ЮKassa, а не у того, кто принимает платежи.
+     *
+     * ЧТО БЫЛО. Провайдер выбирался по платёжному шлюзу
+     * (`$this->gateways->resolve()->provider()`), а тот отвечает `stub` или
+     * `vtb` — ветки `'yookassa'` он не возвращает никогда. Значит на проде
+     * срабатывал `default => startStub`, и «привязка карты» сохраняла
+     * поддельную visa ****4242. Замерено на проде 03.10: такие строки есть у
+     * двух живых людей, вторая от 2 сентября — то есть уже после перехода на
+     * боевой шлюз. Человек видит в кабинете карту, которой нет.
+     *
+     * Заодно `startYooKassa` оказывался недостижимым кодом, хотя ключи ЮKassa
+     * на проде боевые (`live_`), а в `config/billing.php` она прямо названа
+     * подсистемой привязки карт.
+     *
+     * КАК ТЕПЕРЬ. Провайдер выбирается по тому, настроена ли ЮKassa, —
+     * то есть по делу, а не по соседней подсистеме. Подменная привязка
+     * остаётся там, где она и нужна: вне прода и при явном
+     * `BILLING_PROVIDER=stub`. На проде без ЮKassa — отказ, а не поддельная
+     * карта: `stubAllowed()` то же самое правило, что у приёма денег, и
+     * второго определения быть не должно.
+     *
+     * @return array{binding_url: string}
+     */
     public function start(User $user): array
     {
-        $provider = $this->gateways->resolve()->provider();
+        if ($this->yookassaНастроена()) {
+            return $this->startYooKassa($user);
+        }
 
-        return match ($provider) {
-            'stub' => $this->startStub($user),
-            'yookassa' => $this->startYooKassa($user),
-            default => $this->startStub($user),
-        };
+        if ($this->gateways->stubAllowed()) {
+            return $this->startStub($user);
+        }
+
+        throw new PaymentContourUnavailableException(
+            'Привязка карты временно недоступна: платёжный шлюз не настроен.',
+        );
+    }
+
+    private function yookassaНастроена(): bool
+    {
+        return (bool) config('billing.yookassa.enabled')
+            && filled(config('billing.yookassa.shop_id'))
+            && filled(config('billing.yookassa.secret_key'));
     }
 
     /** @return array{binding_url: string} */
