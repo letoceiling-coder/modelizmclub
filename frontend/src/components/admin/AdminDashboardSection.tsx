@@ -9,6 +9,7 @@ import {
   fetchAuditLogs,
   type AdminUserRow,
   type AuditEntry,
+  живаяПодписка,
 } from "@/lib/api/admin";
 import { RegistrationsChart } from "@/components/admin/RegistrationsChart";
 import { H, card, type AdminRole } from "@/components/admin/adminShared";
@@ -277,6 +278,7 @@ const SUBSCRIPTION_LABEL: Record<
 > = {
   active: { label: "Активна", color: "var(--success)" },
   expired: { label: "Истекла", color: "var(--warning)" },
+  not_entitled: { label: "Оплата не подтверждена", color: "var(--warning)" },
   cancelled: { label: "Неактивна", color: "var(--foreground-50)" },
   none: { label: "Нет", color: "var(--foreground-50)" },
 };
@@ -294,7 +296,10 @@ export function SubscriptionCell({
   readOnly?: boolean;
 }) {
   const [days, setDays] = useState(365);
-  const meta = SUBSCRIPTION_LABEL[user.subscription.status];
+  // Запас на случай состояния, которого эта сборка не знает: без него
+  // неизвестная строка от сервера уронила бы раздел целиком на `meta.color`.
+  const meta = SUBSCRIPTION_LABEL[user.subscription.status] ?? SUBSCRIPTION_LABEL.none;
+  const есть_живая_строка = живаяПодписка(user.subscription);
   const endsAt = user.subscription.endsAt ? formatDate(user.subscription.endsAt, "date") : null;
 
   const actionStyle: CSSProperties = {
@@ -341,7 +346,13 @@ export function SubscriptionCell({
           >
             Продлить
           </button>
-          {user.subscription.isActive && (
+          {/*
+            Снять можно всё, что живо, — не только то, что открывает доступ.
+            По `isActive` кнопка исчезала у подписки, оплату которой сервер
+            не подтвердил: строка в базе жива, автопродление взведено, снять
+            её как раз и надо, а из админки оставалось только «Продлить».
+          */}
+          {есть_живая_строка && (
             <button
               type="button"
               disabled={busy}

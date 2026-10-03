@@ -75,6 +75,25 @@ class UserResource extends JsonResource
             // Льготы на человека (RolePrivileges): ресурс отдаётся только
             // самому человеку и в админке.
             'subscription_exempt' => (bool) $this->subscription_exempt,
+            /*
+             * Есть ли у человека действующая подписка — тем же вердиктом,
+             * каким её проверяют ворота (`hasActiveSubscription`), а не по
+             * наличию строки в `user_subscriptions`.
+             *
+             * Значок «Pro» в шапке профиля был написан под поле
+             * `user.subscription`, которого ни один маппер не заполнял:
+             * `mapApiUser` его не ставил, `/auth/me` не отдавал. Условие
+             * было ложным всегда, и подписчик не получал отметки нигде.
+             * Найдено разбором 03.10.
+             *
+             * Льгота «подписка не требуется» сюда не входит: она открывает
+             * закрытое подпиской, но подпиской не является, и отмечать
+             * сотрудника как подписчика было бы неправдой.
+             */
+            'is_subscriber' => $this->when(
+                $this->aboutSelf($request),
+                fn () => $this->hasActiveSubscription(),
+            ),
             'free_listings_quota' => (int) ($this->free_listings_quota ?? 0),
             'free_listings_unlimited' => (bool) $this->free_listings_unlimited,
             'free_listings_used' => (int) ($this->free_listings_used ?? 0),
@@ -142,22 +161,10 @@ class UserResource extends JsonResource
         return $this->aboutSelf || $request->user()?->id === $this->id;
     }
 
-    /** Latest subscription row, flattened for the admin user list. */
+    /** Состояние подписки — одним расчётом на всю админку, см. User::subscriptionStanding(). */
     private function subscriptionSummary(): ?array
     {
-        $sub = $this->subscriptions->sortByDesc('ends_at')->sortByDesc('id')->first();
-        if (! $sub) {
-            return null;
-        }
-
-        $active = $sub->status === 'active' && ($sub->ends_at === null || $sub->ends_at->isFuture());
-        $expired = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
-
-        return [
-            'status' => $expired ? 'expired' : ($active ? 'active' : $sub->status),
-            'is_active' => $active,
-            'ends_at' => $sub->ends_at?->toIso8601String(),
-            'auto_renew' => (bool) $sub->auto_renew,
-        ];
+        return $this->resource->subscriptionStanding();
     }
+
 }

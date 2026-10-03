@@ -29,6 +29,7 @@ class PaymentGatewayNoSilentStubTest extends TestCase
     {
         config([
             'billing.vtb.enabled' => false,
+            'billing.vtb.api_url' => null,
             'billing.vtb.username' => null,
             'billing.vtb.password' => null,
             'billing.vtb.token' => null,
@@ -39,6 +40,10 @@ class PaymentGatewayNoSilentStubTest extends TestCase
     {
         config([
             'billing.vtb.enabled' => true,
+            // Адрес называется явно: умолчания у него нет, и без адреса шлюз
+            // не считается настроенным. Раньше адрес подставляло умолчание, и
+            // «настроенный ВТБ» в этой проверке означал «ключи есть».
+            'billing.vtb.api_url' => 'https://platezh.vtb24.ru/payment/rest/',
             'billing.vtb.username' => 'u',
             'billing.vtb.password' => 'p',
             'billing.vtb.token' => null,
@@ -130,16 +135,48 @@ class PaymentGatewayNoSilentStubTest extends TestCase
 
         $this->assertSame('stub', $менеджер->provider());
         $this->assertInstanceOf(StubPaymentGateway::class, $менеджер->resolve());
-        $this->assertTrue($менеджер->substitutionForbidden());
+        $this->assertFalse($менеджер->stubAllowed());
     }
 
-    public function test_the_production_contour_is_the_default(): void
+    /**
+     * У денежного адреса нет умолчания — ни испытательного, ни боевого.
+     *
+     * Эта проверка раньше требовала боевого умолчания
+     * (`platezh.vtb24.ru`). Выбрано другое: не подставлять ничего. Разница в
+     * том, как они ломаются. Без адреса приём денег отказывает ответом 503
+     * «платёжный шлюз не настроен» — причина названа. С боевым умолчанием и
+     * испытательными ключами банк отвечает отказом авторизации, и искать
+     * будут неполадку у банка, а не незаданную переменную.
+     *
+     * Проверяется текст конфигурации, а не значение: значение зависит от
+     * окружения прогона, а запрет — нет.
+     */
+    public function test_the_money_address_has_no_default(): void
     {
-        // Умолчание важнее, чем кажется: по разбору стенда 13.07 переменной
-        // может не оказаться вовсе, и тогда работает именно оно.
-        $умолчание = (string) config('billing.vtb.api_url');
+        $текст = (string) file_get_contents(config_path('billing.php'));
 
-        $this->assertStringContainsString('platezh.vtb24.ru', $умолчание);
-        $this->assertStringNotContainsString('rbsuat', $умолчание);
+        foreach (['VTB_ACQUIRING_API_URL', 'VTB_PAYOUT_OAUTH_URL', 'VTB_PAYOUT_API_URL'] as $ключ) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/env\(\s*[\'"]'.preg_quote($ключ, '/').'[\'"]\s*,/',
+                $текст,
+                'у денежного адреса '.$ключ.' появилось умолчание',
+            );
+        }
+
+        foreach (['rbsuat', 'epa-ift-sbp', 'test3.api.vtb'] as $узел) {
+            foreach (explode("\n", $текст) as $номер => $строка) {
+                $обрезанная = ltrim($строка);
+                if ($обрезанная === '' || str_starts_with($обрезанная, '|')
+                    || str_starts_with($обрезанная, '*') || str_starts_with($обрезанная, '/*')
+                    || str_starts_with($обрезанная, '//')) {
+                    continue;
+                }
+                $this->assertStringNotContainsString(
+                    $узел,
+                    $обрезанная,
+                    'испытательный узел в значении, config/billing.php строка '.($номер + 1),
+                );
+            }
+        }
     }
 }

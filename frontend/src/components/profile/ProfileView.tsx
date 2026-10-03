@@ -358,7 +358,7 @@ export function ProfileView({
               >
                 {user.name}
               </h1>
-              {user.subscription && (
+              {user.isSubscriber && (
                 <Badge
                   variant="top-outline"
                   withIcon={false}

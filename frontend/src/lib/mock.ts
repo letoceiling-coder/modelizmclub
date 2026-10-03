@@ -15,6 +15,13 @@ export interface User {
   avatar: string;
   email?: string;
   subscription?: "Тестовый" | "Месяц" | "Полгода" | "Год" | null;
+  /**
+   * Есть ли действующая подписка — вердикт сервера (`is_subscriber`), а не
+   * вывод по `subscription`. Поле `subscription` заполняют только мок и
+   * демо-данные: `mapApiUser` его не ставил никогда, и значок «Pro» в
+   * шапке профиля не рисовался ни одному подписчику. Найдено 03.10.
+   */
+  isSubscriber?: boolean;
   bio?: string;
   status?: string;
   coverImage?: string;

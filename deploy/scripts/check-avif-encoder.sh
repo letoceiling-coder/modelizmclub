@@ -22,7 +22,11 @@ ROOT="${1:-/var/www/modelizmclub}"
 BACKEND="${ROOT}/backend"
 FPM_USER="${FPM_USER:-www-data}"
 
-[[ -f "${BACKEND}/artisan" ]] || { echo "avif-encoder: ${BACKEND} не похож на приложение"; exit 0; }
+# «Нечего проверять» — не «всё хорошо»: код 2 означает «выяснить не удалось».
+[[ -f "${BACKEND}/artisan" ]] || {
+  echo "avif-encoder: ${BACKEND} не похож на приложение — выяснить не удалось" >&2
+  exit 2
+}
 
 STATE="$(cd "${BACKEND}" && sudo -u "${FPM_USER}" env XDG_CONFIG_HOME=/tmp HOME=/tmp \
   php artisan tinker --execute='

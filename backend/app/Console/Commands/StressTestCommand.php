@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\GuardsDataWrites;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\City;
@@ -40,9 +41,15 @@ use Modules\User\Services\UserService;
  *
  * Accounts use the @stress.modelizmclub.ru domain so --fresh wipes them (and
  * their uploaded media on object storage) cleanly.
+ *
+ * НЕ ДЛЯ ПРОДА. Команда заливает настоящие файлы в объектное хранилище, а
+ * `--fresh` их оттуда удаляет; на боевом окружении запуск отклоняется
+ * (`GuardsDataWrites::refuseOnProduction`).
  */
 class StressTestCommand extends Command
 {
+    use GuardsDataWrites;
+
     protected $signature = 'app:stress-test
         {--users=150 : Total users to create}
         {--sellers=40 : How many users publish listings}
@@ -54,7 +61,8 @@ class StressTestCommand extends Command
         {--encrypt : Store all message bodies encrypted at rest for this run}
         {--fresh : Wipe previous stress accounts, content and uploaded media first}
         {--keep-media : On --fresh, do not delete uploaded objects from storage}
-        {--password=password : Password for every account}';
+        {--password=password : Password for every account}
+        {--force : Не спрашивать подтверждения (для скриптов)}';
 
     protected $description = 'Large-scale load/stability test: dialogs + listings with real photos, latency metrics and encryption proof';
 
@@ -73,6 +81,10 @@ class StressTestCommand extends Command
         MediaUploadService $media,
         Http $http,
     ): int {
+        if (! $this->refuseOnProduction()) {
+            return self::FAILURE;
+        }
+
         $userCount = max(1, (int) $this->option('users'));
         $sellers = max(0, (int) $this->option('sellers'));
         $perSeller = max(0, (int) $this->option('listings-per-seller'));
@@ -84,6 +96,20 @@ class StressTestCommand extends Command
         if (! extension_loaded('gd')) {
             $this->error('Расширение GD недоступно — генерация фото невозможна.');
 
+            return self::FAILURE;
+        }
+
+        $база = (string) config('database.connections.'.config('database.default').'.database');
+        $всего = $sellers * $perSeller;
+        $что = "Будут созданы {$userCount} учётных записей и {$всего} объявлений "
+            ."с {$photos} настоящими фото каждое — файлы уйдут в объектное хранилище. База: {$база}."
+            .($this->option('fresh')
+                ? ($this->option('keep-media')
+                    ? ' Прежние учётки @'.self::EMAIL_DOMAIN.' будут удалены, файлы в хранилище останутся.'
+                    : ' Прежние учётки @'.self::EMAIL_DOMAIN.' и их файлы в хранилище будут удалены.')
+                : '');
+
+        if (! $this->confirmWrite($что)) {
             return self::FAILURE;
         }
 

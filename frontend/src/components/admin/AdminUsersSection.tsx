@@ -13,6 +13,7 @@ import {
   setAdminUserSubscription,
   changeAdminUserListingCredits,
   type AdminUserRow,
+  живаяПодписка,
 } from "@/lib/api/admin";
 import { H, card, inputStyle, IconBtn } from "@/components/admin/adminShared";
 import { SubscriptionCell } from "@/components/admin/AdminDashboardSection";
@@ -500,12 +501,12 @@ export function UsersSection() {
                   onClick={() =>
                     void changeSubscription(
                       строка.uuid,
-                      строка.subscription.isActive ? "extend" : "activate",
+                      живаяПодписка(строка.subscription) ? "extend" : "activate",
                       30,
                     )
                   }
                 >
-                  {строка.subscription.isActive ? "Продлить подписку" : "Выдать подписку"}
+                  {живаяПодписка(строка.subscription) ? "Продлить подписку" : "Выдать подписку"}
                 </Button>
               )}
               {isOwner && (

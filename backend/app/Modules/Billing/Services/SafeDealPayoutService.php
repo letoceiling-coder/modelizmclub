@@ -29,7 +29,11 @@ class SafeDealPayoutService
 
     public function enabled(): bool
     {
+        // Адреса — наравне с ключами: без них выплата ушла бы по умолчанию,
+        // а умолчанием был испытательный контур ВТБ.
         return (bool) config('billing.vtb_payout.enabled')
+            && config('billing.vtb_payout.oauth_url')
+            && config('billing.vtb_payout.api_url')
             && config('billing.vtb_payout.client_id')
             && config('billing.vtb_payout.client_secret');
     }

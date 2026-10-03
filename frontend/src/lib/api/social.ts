@@ -46,6 +46,8 @@ interface ApiPublicProfile {
     is_trusted_seller?: boolean;
   };
   member_since?: string | null;
+  /** Действующая подписка — признак для отметки «Pro», без срока. */
+  is_subscriber?: boolean;
   is_following?: boolean;
   is_friend?: boolean;
   friend_request_status?: "outgoing" | "incoming" | null;
@@ -344,6 +346,7 @@ export async function fetchPublicProfile(slug: string): Promise<PublicProfile> {
       city: cityName,
       cityId: p.city?.id ?? user.cityId,
       bio,
+      isSubscriber: p.is_subscriber === true,
     },
     bio,
     city: cityName,

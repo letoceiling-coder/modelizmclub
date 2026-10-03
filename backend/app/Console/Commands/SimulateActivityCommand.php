@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Concerns\GuardsDataWrites;
 use App\Enums\RegistrationTrack;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
@@ -36,7 +37,13 @@ use Modules\User\Services\UserService;
 use Illuminate\Support\Facades\File;
 
 /**
- * End-to-end activity simulation for production smoke testing.
+ * End-to-end activity simulation for a throwaway contour.
+ *
+ * ВАЖНО: не для прода. До 03.10 эта строка читалась «for production smoke
+ * testing», и ровно так команда и выглядела — при том что она создаёт
+ * учётные записи и содержимое через настоящие сервисы, то есть шлёт
+ * настоящие письма и SMS. Запуск на боевом окружении теперь отклоняется
+ * (`GuardsDataWrites::refuseOnProduction`).
  *
  * Creates N realistic users and drives the full social cycle through the
  * real service layer (the same code the API controllers call): profiles,
@@ -50,12 +57,15 @@ use Illuminate\Support\Facades\File;
  */
 class SimulateActivityCommand extends Command
 {
+    use GuardsDataWrites;
+
     protected $signature = 'app:simulate-activity
         {--users=12 : Number of users to simulate (10–15 recommended)}
         {--listings=0 : Total listings to publish (0 = random 16–28)}
         {--fresh : Delete previously simulated accounts and their content before running}
         {--password=password123 : Password assigned to every simulated user}
-        {--report= : Save a markdown report to this path (default: storage/app/simulation-reports)}';
+        {--report= : Save a markdown report to this path (default: storage/app/simulation-reports)}
+        {--force : Не спрашивать подтверждения (для скриптов)}';
 
     protected $description = 'Simulate realistic multi-user activity (register, listings with photos, chat, comments) and print a report';
 
@@ -195,12 +205,25 @@ class SimulateActivityCommand extends Command
         CommunityService $communities,
         MediaUploadService $mediaUploads,
     ): int {
+        if (! $this->refuseOnProduction()) {
+            return self::FAILURE;
+        }
+
         $count = max(10, min(15, (int) $this->option('users')));
         $password = (string) $this->option('password');
         $listingOpt = (int) $this->option('listings');
         $this->listingTarget = $listingOpt > 0 ? max(16, min(28, $listingOpt)) : random_int(16, 28);
         $this->gdAvailable = extension_loaded('gd');
         $startedAt = now();
+
+        $база = (string) config('database.connections.'.config('database.default').'.database');
+        $что = "Будут созданы учётные записи и содержимое: {$count} пользователей, "
+            ."{$this->listingTarget} объявлений. База: {$база}."
+            .($this->option('fresh') ? ' Прежние учётки @'.self::EMAIL_DOMAIN.' и их содержимое будут удалены.' : '');
+
+        if (! $this->confirmWrite($что)) {
+            return self::FAILURE;
+        }
 
         if ($this->option('fresh')) {
             $this->cleanup();

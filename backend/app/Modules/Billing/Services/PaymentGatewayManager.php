@@ -5,7 +5,7 @@ namespace Modules\Billing\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Modules\Billing\Contracts\PaymentGateway;
-use RuntimeException;
+use Modules\Billing\Exceptions\PaymentContourUnavailableException;
 
 /**
  * Resolves payment provider: VTB (primary) → stub (dev).
@@ -62,12 +62,75 @@ class PaymentGatewayManager implements PaymentGateway
     public function createCheckout(User $user, int $amountCents, string $currency, string $description, array $metadata = []): array
     {
         $шлюз = $this->resolve();
-
-        if ($шлюз === $this->stub && $this->substitutionForbidden()) {
-            throw $this->refuse();
-        }
+        $this->откажиПодмене($шлюз);
 
         return $шлюз->createCheckout($user, $amountCents, $currency, $description, $metadata);
+    }
+
+    /**
+     * Можно ли сейчас принимать деньги подменным шлюзом.
+     *
+     * Подменный шлюз — это страница `/pay/stub/{uuid}` с выбором исхода
+     * «оплачено / нет денег / отказ карты». На проде он означает, что человек
+     * проходит ненастоящую оплату, а подтверждение выдаёт настоящую подписку.
+     *
+     * Разрешён в двух случаях, и оба — осознанное решение, видное в `.env`:
+     * явный `BILLING_PROVIDER=stub`, либо `auto` вне боевого окружения. Явный
+     * `vtb` запрещает подмену и на стенде: раз провайдер назван, молча
+     * подставлять другой нельзя — иначе разработчик правит боевой контур и
+     * проверяет подменный.
+     *
+     * Запрещён, стало быть, там, где подмена была бы следствием сбоя, а не
+     * решением. Сбой уже случался: 07.09 `config:clear` при нечитаемом `.env`
+     * обнулил все `env()`, и `BILLING_PROVIDER` стал `auto`. Замерено 03.10:
+     * в этом состоянии `POST /payments` отвечает 201 подменной ссылкой, а
+     * `confirm-stub` — 200 и выдаёт подписку. Шесть минут простоя в тот день
+     * были дешевле шести минут бесплатных подписок.
+     */
+    public function stubAllowed(): bool
+    {
+        $режим = (string) config('billing.provider', 'auto');
+
+        if ($режим === 'stub') {
+            return true;
+        }
+
+        return ! ($режим === 'vtb' || app()->environment('production'));
+    }
+
+    /**
+     * Отказ вместо подмены — и запись, чего именно не хватило.
+     *
+     * Запрет стоит на создании платежа, а не в `resolve()`: `provider()`
+     * обязан отвечать правду, на ней держится диагностика
+     * (`deploy/scripts/check-live-money.sh` считает `stub` находкой, и если
+     * резолв начнёт врать, проверка перестанет видеть проблему).
+     *
+     * В журнал уходит не сам отказ, а его причина по полям: какой режим, какое
+     * окружение, что заполнено. Без этого на проде пришлось бы идти по ssh и
+     * перебирать переменные руками — а отказ случается в худшую минуту, когда
+     * человек стоит на экране оплаты.
+     */
+    private function откажиПодмене(PaymentGateway $шлюз): void
+    {
+        if ($шлюз->provider() !== 'stub' || $this->stubAllowed()) {
+            return;
+        }
+
+        Log::error('Платёжный шлюз не настроен, подмена подменным запрещена', [
+            'billing_provider' => (string) config('billing.provider', 'auto'),
+            'окружение' => app()->environment(),
+            'заполнено' => [
+                'VTB_ACQUIRING_ENABLED' => (bool) config('billing.vtb.enabled'),
+                'VTB_ACQUIRING_API_URL' => filled(config('billing.vtb.api_url')),
+                'VTB_ACQUIRING_USERNAME' => filled(config('billing.vtb.username')),
+                'VTB_ACQUIRING_PASSWORD' => filled(config('billing.vtb.password')),
+                'VTB_ACQUIRING_TOKEN' => filled(config('billing.vtb.token')),
+            ],
+            'подсказка' => 'Подменный шлюз включается только BILLING_PROVIDER=stub либо вне прода при auto.',
+        ]);
+
+        throw new PaymentContourUnavailableException();
     }
 
     public function handleWebhook(array $payload): void
@@ -86,54 +149,11 @@ class PaymentGatewayManager implements PaymentGateway
         };
     }
 
-    /**
-     * Можно ли сейчас брать деньги подменным шлюзом.
-     *
-     * `stub` в настройках — можно: это написали руками. Всё остальное на
-     * проде и любой `vtb` — нельзя.
-     */
-    public function substitutionForbidden(): bool
-    {
-        $mode = (string) config('billing.provider', 'auto');
-
-        if ($mode === 'stub') {
-            return false;
-        }
-
-        return $mode === 'vtb' || app()->environment('production');
-    }
-
     public function gatewayForProvider(string $provider): PaymentGateway
     {
         return match ($provider) {
             'vtb' => $this->vtb,
             default => $this->stub,
         };
-    }
-
-    /**
-     * Отказ вместо подмены.
-     *
-     * В журнал — какой переменной не хватает: иначе разбор «оплата не
-     * работает» начинается с чтения кода, а не с чтения лога.
-     */
-    private function refuse(): RuntimeException
-    {
-        Log::error('Платёжный шлюз не настроен, подмена тестовым запрещена', [
-            'billing_provider' => (string) config('billing.provider', 'auto'),
-            'окружение' => app()->environment(),
-            'заполнено' => [
-                'VTB_ACQUIRING_ENABLED' => (bool) config('billing.vtb.enabled'),
-                'VTB_ACQUIRING_USERNAME' => filled(config('billing.vtb.username')),
-                'VTB_ACQUIRING_PASSWORD' => filled(config('billing.vtb.password')),
-                'VTB_ACQUIRING_TOKEN' => filled(config('billing.vtb.token')),
-            ],
-            'api_url' => (string) config('billing.vtb.api_url'),
-            'подсказка' => 'Подменный шлюз на проде включается только BILLING_PROVIDER=stub.',
-        ]);
-
-        return new RuntimeException(
-            'Платёжный шлюз не настроен. Подмена тестовым эквайрингом запрещена.',
-        );
     }
 }

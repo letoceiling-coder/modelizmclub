@@ -159,13 +159,40 @@ export async function fetchAuditLogPage(
 export type AdminUserRole = "user" | "category_admin" | "moderator" | "owner";
 export type AdminUserStatus = "active" | "blocked" | "pending_verification";
 
-export type AdminSubscriptionStatus = "active" | "expired" | "cancelled" | "none";
+/**
+ * `not_entitled` — строка подписки жива, а ворота доступ не дают: так
+ * выглядит оплата тестовым эквайрингом после переключения прода на боевой.
+ * Без отдельного состояния карточка показывала «активна до …» человеку,
+ * которому сайт на каждом шаге предлагал оплатить.
+ */
+export type AdminSubscriptionStatus = "active" | "expired" | "cancelled" | "not_entitled" | "none";
 
 export interface AdminUserSubscription {
   status: AdminSubscriptionStatus;
   isActive: boolean;
   endsAt: string | null;
   autoRenew: boolean;
+}
+
+/**
+ * Жива ли строка подписки — не то же, что «открывает ли она доступ».
+ *
+ * Живая строка — выдана и срок не вышел. Доступ (`isActive`) сверх этого
+ * требует подтверждённой оплаты, выдачи админом или промо: оплата тестовым
+ * эквайрингом после переключения прода на боевой даёт живую строку без
+ * доступа (`status: "not_entitled"`).
+ *
+ * Разница не косметическая. По `isActive` кнопка в списке называлась
+ * «Выдать подписку» и посылала `activate`, а он считал срок от сегодня: у
+ * 1201 один клик отнял бы шестнадцать месяцев живого срока. На панели по
+ * тому же признаку пропадала кнопка «Снять» у подписки, которую как раз и
+ * надо снять.
+ */
+export function живаяПодписка(s: AdminUserSubscription): boolean {
+  if (s.status === "none" || s.status === "cancelled" || s.status === "expired") return false;
+  if (s.isActive) return true;
+
+  return s.endsAt !== null && new Date(s.endsAt).getTime() > Date.now();
 }
 
 export interface AdminUserRow {
@@ -200,7 +227,7 @@ interface ApiAdminUser {
   listing_placement_credits?: number;
 }
 
-function mapAdminSubscription(s?: ApiAdminSubscription | null): AdminUserSubscription {
+export function mapAdminSubscription(s?: ApiAdminSubscription | null): AdminUserSubscription {
   if (!s) return { status: "none", isActive: false, endsAt: null, autoRenew: false };
   return {
     status: (s.status as AdminSubscriptionStatus) ?? "none",
