@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -6,7 +5,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { toast } from "@/lib/toast";
 
 interface Props {
   open: boolean;
@@ -14,35 +12,38 @@ interface Props {
   communityName: string;
 }
 
+/**
+ * Предложка сообщества: пока её нет, она так и говорит.
+ *
+ * Здесь была форма с заголовком и текстом, кнопкой «Отправить на
+ * рассмотрение» и — после `setTimeout` на 600 мс — сообщением «Пост
+ * отправлен на рассмотрение». Запроса не было ни одного: серверного
+ * маршрута предложки не существует, и поиск по `backend/app`,
+ * `backend/routes` и схеме базы тремя разными способами не нашёл ни
+ * маршрута, ни колонки.
+ *
+ * То есть человек писал текст, нажимал кнопку, получал подтверждение и
+ * ждал решения администратора — которому ничего не приходило.
+ * `docs/BIBLE.md` 4.3 знает об этом: «Предложка — не работает, форма
+ * показывает „отправлено“, ничего не отправляя».
+ *
+ * Насколько это было опасно на самом деле. Точка входа закрыта условием
+ * `community.allowSubmitPost`, а этого поля бэкенд не отдаёт: его нет ни
+ * в ресурсе сообщества, ни в схеме, ни в ответе прода — только в
+ * `lib/mock.ts`. Значит на боевых данных пункт меню не показывался
+ * вовсе, и до ложного подтверждения живой человек дойти не мог. Форма
+ * врала только в демо-режиме, который на localhost включается сам.
+ *
+ * Поэтому правка не спешная, но и откладывать её незачем: стоит добавить
+ * поле на сервере — и ложь начнёт работать на живых людях. Дешевле убрать
+ * её сейчас, пока это удаление, а не разбор.
+ *
+ * Что здесь нарочно НЕ сделано: серверная часть предложки. Это отдельная
+ * работа (очередь модерации, права администратора сообщества,
+ * уведомления), и `docs/BIBLE.md` VII.5 относит её к тому, что можно
+ * делать при живых людях.
+ */
 export function SubmitPostSheet({ open, onOpenChange, communityName }: Props) {
-  const [title, setTitle] = useState("");
-  const [text, setText] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const submit = () => {
-    if (!title.trim() || !text.trim()) return;
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      onOpenChange(false);
-      setTitle("");
-      setText("");
-      toast.success("Пост отправлен на рассмотрение", {
-        description: `Администратор сообщества «${communityName}» рассмотрит его в ближайшее время`,
-      });
-    }, 600);
-  };
-
-  const input: React.CSSProperties = {
-    width: "100%",
-    background: "var(--background-surface)",
-    border: "1.5px solid transparent",
-    borderRadius: 10,
-    padding: "12px 14px",
-    fontSize: 14,
-    color: "var(--foreground)",
-  };
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -52,59 +53,19 @@ export function SubmitPostSheet({ open, onOpenChange, communityName }: Props) {
         <SheetHeader className="px-5 pt-5">
           <SheetTitle>Предложить пост</SheetTitle>
           <SheetDescription>
-            Пост не публикуется автоматически. Администратор сообщества рассмотрит и решит,
-            публиковать ли его.
+            Предложка в сообществе «{communityName}» ещё не работает — отправить пост через неё
+            нельзя.
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-3 p-5">
-          <div>
-            <label
-              className="mb-1 block text-[12px] font-semibold"
-              style={{ color: "var(--foreground-70)" }}
-            >
-              Заголовок
-            </label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Кратко о чём пост"
-              style={input}
-            />
-          </div>
-          <div>
-            <label
-              className="mb-1 block text-[12px] font-semibold"
-              style={{ color: "var(--foreground-70)" }}
-            >
-              Текст
-            </label>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Расскажите подробнее..."
-              rows={6}
-              style={{ ...input, resize: "vertical", minHeight: 120 }}
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <p className="text-[14px] leading-[1.5]" style={{ color: "var(--foreground-70)" }}>
+            Пока предложка не готова, напишите администратору сообщества в мессенджере — так
+            предложение точно дойдёт.
+          </p>
+          <div className="flex justify-end pt-2">
             <button
               onClick={() => onOpenChange(false)}
-              className="font-medium"
-              style={{
-                height: 40,
-                padding: "0 16px",
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                color: "var(--foreground-70)",
-                fontSize: 14,
-              }}
-            >
-              Отмена
-            </button>
-            <button
-              onClick={submit}
-              disabled={!title.trim() || !text.trim() || submitting}
-              className="font-semibold disabled:opacity-50"
+              className="font-semibold"
               style={{
                 height: 40,
                 padding: "0 20px",
@@ -114,7 +75,7 @@ export function SubmitPostSheet({ open, onOpenChange, communityName }: Props) {
                 fontSize: 14,
               }}
             >
-              {submitting ? "Отправка..." : "Отправить на рассмотрение"}
+              Понятно
             </button>
           </div>
         </div>
