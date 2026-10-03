@@ -2,6 +2,7 @@
 
 export {};
 
+import { hasContentHash } from "@/lib/sw/content-hash";
 import { swRoute } from "@/lib/sw/route";
 
 /**
@@ -32,6 +33,17 @@ const SHELL_CACHE = `modelizm-shell-${VERSION}`;
 const ASSET_CACHE = `modelizm-assets-${VERSION}`;
 const API_CACHE = `modelizm-api-${VERSION}`;
 const KNOWN_CACHES = [SHELL_CACHE, ASSET_CACHE, API_CACHE];
+
+/*
+ * Предел для кеша файлов.
+ *
+ * `VERSION` зашит строкой и между выпусками не меняется, а `activate` стирает
+ * только каталоги с другим именем. Значит при кеше-сначала записи от прошлых
+ * сборок остаются навсегда: каждый выпуск добавляет новый набор хешей, старый
+ * никто не убирает. Предел вытесняет самые давние; вытесненный файл просто
+ * скачается один раз заново.
+ */
+const MAX_ASSET_ENTRIES = 400;
 
 const OFFLINE_URL = "/offline.html";
 /**
@@ -97,6 +109,26 @@ function timeout(ms: number): Promise<never> {
   return new Promise((_, reject) => {
     setTimeout(() => reject(new Error("network-timeout")), ms);
   });
+}
+
+/**
+ * Кеш отвечает, сеть не трогаем.
+ *
+ * Для файла с хешем в имени это не «возможно устаревший ответ», а
+ * единственно верный: другого содержимого по этому адресу не бывает.
+ */
+async function cacheFirstImmutable(request: Request): Promise<Response> {
+  const cache = await caches.open(ASSET_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  const fresh = await fetch(request).catch(() => undefined);
+  if (!fresh) return Response.error();
+  if (fresh.ok) {
+    void cache.put(request, fresh.clone()).then(() => trimCache(ASSET_CACHE, MAX_ASSET_ENTRIES));
+  }
+
+  return fresh;
 }
 
 /** Отдаём кеш сразу, обновление тянем в фоне. */
@@ -236,5 +268,11 @@ self.addEventListener("fetch", (event) => {
 
   if (route === "page") event.respondWith(networkFirstPage(request));
   else if (route === "api") event.respondWith(networkFirstApi(request));
-  else if (route === "asset") event.respondWith(staleWhileRevalidate(request));
+  else if (route === "asset") {
+    event.respondWith(
+      hasContentHash(new URL(request.url).pathname)
+        ? cacheFirstImmutable(request)
+        : staleWhileRevalidate(request),
+    );
+  }
 });
