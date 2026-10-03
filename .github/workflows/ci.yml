@@ -14,6 +14,18 @@ concurrency:
 permissions:
   contents: read
 
+# Действия закреплены по SHA, а не по тегу.
+#
+# Тег — изменяемая ссылка: владелец действия может переставить `v4` на другой
+# коммит, и в ворота поедет чужой код без единой правки у нас. Это не
+# умозрительно: у `shivammathur/setup-php` на 03.10 тег `v2` указывает на тот
+# же коммит, что и `master`, — то есть «версия 2» и есть текущая вершина
+# разработки.
+#
+# Комментарий рядом с SHA — для человека: SHA не читается глазами. Обновляет
+# их Dependabot (экосистема `github-actions` в .github/dependabot.yml), он же
+# переписывает и комментарий.
+
 jobs:
   # Посторонние файлы в исходниках. 04.09 в frontend/src/components нашлись
   # десять файлов вне git — доредакторные PostCard.tsx, CommentSection.tsx и
@@ -28,7 +40,7 @@ jobs:
     name: hygiene · нет посторонних файлов
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - run: deploy/scripts/check-workspace.sh
       # Кеш конфигурации — запечённый .env с паролем базы. `config:cache`
       # создаёт его с правами 644, и каждый вызывающий скрипт обязан вернуть
@@ -85,9 +97,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
@@ -217,16 +229,16 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: "8.3"
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, pgsql, bcmath, gd, intl
           coverage: none
 
       - name: Composer cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.composer/cache
           key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
@@ -333,16 +345,16 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: "8.3"
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, pgsql, bcmath, gd, intl
           coverage: none
 
       - name: Composer cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.composer/cache
           key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
@@ -392,9 +404,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
       - name: Install (frozen lockfile)
         run: bun install --frozen-lockfile
@@ -427,9 +439,9 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: "8.3"
           coverage: none
