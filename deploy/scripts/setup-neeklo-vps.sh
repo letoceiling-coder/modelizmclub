@@ -100,7 +100,7 @@ sed -i "s|^SESSION_DOMAIN=.*|SESSION_DOMAIN=.modelizmclub.ru|" .env
 sed -i "s|^VKONTAKTE_REDIRECT_URI=.*|VKONTAKTE_REDIRECT_URI=https://${API_DOMAIN}/api/v1/auth/oauth/vk/callback|" .env
 sed -i "s|^YANDEX_REDIRECT_URI=.*|YANDEX_REDIRECT_URI=https://${API_DOMAIN}/api/v1/auth/oauth/yandex/callback|" .env
 
-composer install --optimize-autoloader --no-interaction
+composer install --no-dev --optimize-autoloader --no-interaction
 php artisan key:generate --force
 php artisan migrate --force
 php artisan config:cache

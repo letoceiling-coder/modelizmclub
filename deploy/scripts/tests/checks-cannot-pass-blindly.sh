@@ -71,6 +71,7 @@ BY_ROOT=(
   check-config-access.sh
   check-avif-encoder.sh
   check-stale-payments.sh
+  check-no-dev-deps.sh
 )
 
 for name in "${BY_ROOT[@]}"; do
