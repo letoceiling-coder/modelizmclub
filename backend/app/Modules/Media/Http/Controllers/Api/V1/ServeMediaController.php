@@ -232,11 +232,38 @@ class ServeMediaController extends Controller
     ): StreamedResponse {
         $filename = addslashes($filename);
 
+        /*
+         * SVG не отдаётся как документ.
+         *
+         * SVG — это не картинка, а документ со скриптом, и `inline` при
+         * `Content-Type: image/svg+xml` означает исполнение в источнике
+         * `api.modelizmclub.ru`. `X-Content-Type-Options: nosniff` здесь не
+         * помогает: тип заявлен честно, браузер и должен открыть его как SVG.
+         * CSP на этом хосте нет.
+         *
+         * Санитайзер в проекте есть (`SvgIconSanitizer`), но он чистит поле
+         * `IconAsset.svg`, а не объект в хранилище: по ссылке прокси отдавал
+         * ровно то, что загрузили. Ссылку на такой файл можно было поставить
+         * себе аватаром — привязка аватара назначение не проверяет.
+         *
+         * Закрыто в выдаче, а не только в загрузке: так вектор исчезает
+         * независимо от того, каким путём файл попал в бакет и кем. Рисованию
+         * иконок это не мешает — они приезжают в браузер очищенной разметкой
+         * или ссылкой на PNG (`/api/v1/icon-overrides`, `Icon.tsx`), а SVG
+         * через прокси не запрашивает никто.
+         */
+        if (str_contains(strtolower($mime), 'svg')) {
+            $mime = 'application/octet-stream';
+            $расположение = 'attachment';
+        } else {
+            $расположение = 'inline';
+        }
+
         $headers = [
             'Content-Type' => $mime,
             'Accept-Ranges' => 'bytes',
             'Cache-Control' => $cacheControl,
-            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            'Content-Disposition' => $расположение.'; filename="'.$filename.'"',
         ];
 
         $start = 0;
