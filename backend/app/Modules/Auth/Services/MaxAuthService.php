@@ -371,8 +371,12 @@ class MaxAuthService
             return $base;
         }
 
+        /*
+         * Разовый код, не токен: ссылка уходит сообщением в MAX и оттуда в
+         * историю браузера и журналы. Разбор — в `OAuthHandoffService`.
+         */
         return $base.'?'.http_build_query([
-            'oauth_token' => $token,
+            'oauth_code' => app(OAuthHandoffService::class)->issue($token),
             'oauth_provider' => 'max',
         ]);
     }

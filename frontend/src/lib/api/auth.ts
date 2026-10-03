@@ -129,8 +129,28 @@ export async function login(email: string, password: string, remember = true): P
   return mapApiUser(res.data);
 }
 
-/** Завершение OAuth: токен приходит в query после редиректа с бэкенда. */
-export async function completeOAuthLogin(token: string, remember = true): Promise<User> {
+/**
+ * Завершение OAuth: в адресе приезжает разовый код, токен берём обменом.
+ *
+ * До 03.10 в query приходил сам токен, и этого было достаточно, чтобы он
+ * попал в журнал nginx (основной location логируется целой строкой запроса)
+ * и, возможно, в Яндекс.Метрику — та получает `location.href` целиком.
+ * Токены Sanctum при этом не истекали вовсе. Разбор и устройство обмена — в
+ * бэкенде, `Modules\Auth\Services\OAuthHandoffService`.
+ *
+ * Код одноразовый и живёт две минуты, так что в логах он остаётся
+ * бесполезным. Токен ходит только в теле этого ответа.
+ */
+export async function completeOAuthLogin(code: string, remember = true): Promise<User> {
+  const res = await api<{ data: { token: string } }>("/auth/oauth/exchange", {
+    method: "POST",
+    auth: false,
+    json: { code },
+  });
+
+  const token = res.data?.token;
+  if (!token) throw new ApiError(401, "Не удалось обменять код входа");
+
   setToken(token, remember);
   const user = await fetchMe();
   if (!user) throw new ApiError(401, "Не удалось получить профиль после OAuth");
