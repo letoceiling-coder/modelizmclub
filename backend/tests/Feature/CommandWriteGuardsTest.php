@@ -43,12 +43,28 @@ class CommandWriteGuardsTest extends TestCase
         'app:simulate-activity',
         'app:stress-test',
         'communities:sync-owners',
+        // Приехала 03.10 вместе с `fix/expired-are-abandoned`: переносит
+        // статусы платежей «отказано» → «брошено». Сухой прогон у неё был
+        // с рождения, подтверждения — нет; добавлено здесь же.
+        'payments:expired-are-abandoned',
     ];
 
-    /** Из этих запуск на боевом окружении отклоняется без оговорок. */
+    /**
+     * Из этих запуск на боевом окружении отклоняется без оговорок.
+     *
+     * `communities:sync-owners` и `payments:expired-are-abandoned` сюда не
+     * входят намеренно: они чинят боевые данные, там их и запускают. Им
+     * сухой прогон по умолчанию и подтверждение.
+     */
     private const НЕ_НА_ПРОДЕ = [
         'app:simulate-activity',
         'app:stress-test',
+    ];
+
+    /** Кому запись только по `--apply`. */
+    private const СУХОЙ_ПРОГОН_ПО_УМОЛЧАНИЮ = [
+        'communities:sync-owners',
+        'payments:expired-are-abandoned',
     ];
 
     public function test_перечисленные_команды_носят_предохранитель(): void
@@ -64,6 +80,16 @@ class CommandWriteGuardsTest extends TestCase
                 GuardsDataWrites::class,
                 $traits,
                 "{$имя} меняет данные руками, но не использует GuardsDataWrites."
+            );
+        }
+    }
+
+    public function test_у_команд_с_сухим_прогоном_есть_apply(): void
+    {
+        foreach (self::СУХОЙ_ПРОГОН_ПО_УМОЛЧАНИЮ as $имя) {
+            $this->assertTrue(
+                Artisan::all()[$имя]->getDefinition()->hasOption('apply'),
+                "{$имя}: нет --apply, значит запись идёт по умолчанию."
             );
         }
     }
