@@ -21,6 +21,7 @@ use Modules\Admin\Http\Requests\UpdateAdminUserRequest;
 use Modules\Admin\Services\AuditService;
 use Modules\Admin\Services\UserFullDeletionService;
 use Modules\Auth\Http\Resources\UserResource;
+use Modules\Billing\Services\SubscriptionAccessResolver;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Admin — Users', weight: 30)]
@@ -68,6 +69,18 @@ class AdminUserController extends Controller
             ->when(request()->filled('status'), fn ($q) => $q->where('status', request('status')))
             ->latest()
             ->paginate((int) request()->integer('per_page', 20));
+
+        /*
+         * Прогрев основания доступа на всю страницу — три запроса, сколько бы
+         * строк в ней ни было.
+         *
+         * Без него `UserResource` спрашивал бы резолвер по одному, а тот
+         * делает до трёх запросов на человека: при `per_page=20` это шестьдесят
+         * лишних, при сотне — триста. Починить ложь в админке и завести взамен
+         * N+1 значило бы обменять одну находку аудита 03.10 на другую из того
+         * же списка.
+         */
+        app(SubscriptionAccessResolver::class)->forUsers($users->getCollection());
 
         return UserResource::collection($users);
     }

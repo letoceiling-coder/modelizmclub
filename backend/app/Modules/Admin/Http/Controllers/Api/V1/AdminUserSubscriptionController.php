@@ -13,6 +13,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Admin\Services\AuditService;
+use Modules\Billing\Services\SubscriptionAccessResolver;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Group('Admin — Users', weight: 30)]
@@ -104,13 +105,22 @@ class AdminUserSubscriptionController extends Controller
             $request,
         );
 
-        return response()->json(['data' => [
-            'status' => $subscription->status === 'active' && $subscription->ends_at?->isFuture()
-                ? 'active'
-                : ($subscription->status === 'active' ? 'expired' : $subscription->status),
-            'is_active' => $subscription->status === 'active' && ($subscription->ends_at === null || $subscription->ends_at->isFuture()),
-            'ends_at' => $subscription->ends_at?->toIso8601String(),
-            'auto_renew' => (bool) $subscription->auto_renew,
-        ]]);
+        /*
+         * Ответ — через резолвер, а не из только что записанной строки.
+         *
+         * Третья копия той же сводки считала `is_active` из `status` и
+         * `ends_at`, и после `activate` отвечала «активна» всегда — даже
+         * когда основания не появлялось. Теперь отвечает то же, что потом
+         * покажет список и что решит `hasActiveSubscription()`.
+         *
+         * `forget()` обязателен: память резолвера заполнена состоянием до
+         * записи, и без сброса ответ показал бы прежнее.
+         */
+        $resolver = app(SubscriptionAccessResolver::class);
+        $resolver->forget((int) $user->id);
+
+        return response()->json([
+            'data' => $resolver->forUser($user->refresh())->toArray(),
+        ]);
     }
 }

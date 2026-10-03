@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Billing\Services\BonusPointsService;
+use Modules\Billing\Services\SubscriptionAccessResolver;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -99,23 +100,18 @@ class AdminUserCardController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    /** @return array<string, mixed>|null */
+    /**
+     * Подписка в карточке — с основанием доступа, а не с содержимым строки.
+     *
+     * Вторая из четырёх копий этой сводки; все четыре считали `is_active`
+     * из `status` и `ends_at`. Разбор 03.10: у 1201 строка `active` до
+     * 24.02.2027 и ноль оснований — карточка обещала доступ, которого нет.
+     *
+     * @return array<string, mixed>|null
+     */
     private function подписка(User $user): ?array
     {
-        $sub = $user->subscriptions->sortByDesc('ends_at')->sortByDesc('id')->first();
-        if (! $sub) {
-            return null;
-        }
-
-        $активна = $sub->status === 'active' && ($sub->ends_at === null || $sub->ends_at->isFuture());
-        $истекла = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
-
-        return [
-            'status' => $истекла ? 'expired' : ($активна ? 'active' : $sub->status),
-            'is_active' => $активна,
-            'ends_at' => $sub->ends_at?->toIso8601String(),
-            'auto_renew' => (bool) $sub->auto_renew,
-        ];
+        return app(SubscriptionAccessResolver::class)->forUser($user)->toArray();
     }
 
     /**

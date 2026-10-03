@@ -80,6 +80,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        /*
+         * Один резолвер на запрос. `scoped`, а не `singleton`: процесс
+         * php-fpm живёт сутками, и память об одном посетителе не должна
+         * попасть в ответ следующему.
+         */
+        $this->app->scoped(\Modules\Billing\Services\SubscriptionAccessResolver::class);
+
         // Номер для «Позвонить продавцу». Переход на АТС — замена этой строки
         // (docs/seller-phone-reveal.md).
         $this->app->bind(

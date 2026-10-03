@@ -6,6 +6,7 @@ use App\Models\PendingEmailChange;
 use App\Support\AdminAccess;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Modules\Billing\Services\SubscriptionAccessResolver;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\User\Http\Resources\PostCategoryResource;
 
@@ -106,6 +107,13 @@ class UserResource extends JsonResource
                 ];
             }),
             'interests' => PostCategoryResource::collection($this->whenLoaded('interests')),
+            /*
+             * Поле только для админских ответов, и условие — не недосмотр.
+             * Загруженная реляция здесь служит признаком «это админский
+             * список»: `/auth/me` подписку не отдаёт и не должен — фронт
+             * берёт её отдельным запросом `/users/me/subscription`, а три
+             * лишних запроса на каждую загрузку сессии ни к чему.
+             */
             'subscription' => $this->when($this->relationLoaded('subscriptions'), fn () => $this->subscriptionSummary()),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
@@ -142,22 +150,24 @@ class UserResource extends JsonResource
         return $this->aboutSelf || $request->user()?->id === $this->id;
     }
 
-    /** Latest subscription row, flattened for the admin user list. */
+    /**
+     * Подписка для админского списка — с реальным основанием доступа.
+     *
+     * Было: `is_active` считался из `status` и `ends_at` строки. Для
+     * пользователя 1201 это давало «активна до 24.02.2027» при том, что
+     * продукт ему отказывал: оплата прошла через тестовый эквайринг, а такие
+     * `hasActiveSubscription()` не признаёт. Админка обещала доступ, которого
+     * нет, и по ней отвечали человеку.
+     *
+     * Стало: считает `SubscriptionAccessResolver`, тот же порядок оснований,
+     * что в `hasActiveSubscription()`. Запрос на человека резолвер не делает —
+     * список прогревает `AdminUserController::index()` одним пакетным
+     * вызовом.
+     */
     private function subscriptionSummary(): ?array
     {
-        $sub = $this->subscriptions->sortByDesc('ends_at')->sortByDesc('id')->first();
-        if (! $sub) {
-            return null;
-        }
-
-        $active = $sub->status === 'active' && ($sub->ends_at === null || $sub->ends_at->isFuture());
-        $expired = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
-
-        return [
-            'status' => $expired ? 'expired' : ($active ? 'active' : $sub->status),
-            'is_active' => $active,
-            'ends_at' => $sub->ends_at?->toIso8601String(),
-            'auto_renew' => (bool) $sub->auto_renew,
-        ];
+        return app(SubscriptionAccessResolver::class)
+            ->forUser($this->resource)
+            ->toArray();
     }
 }
