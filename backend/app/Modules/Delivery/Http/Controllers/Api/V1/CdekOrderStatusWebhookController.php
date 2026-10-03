@@ -51,7 +51,7 @@ class CdekOrderStatusWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            return response()->json(['message' => 'ignored'], 200);
+            return $this->принято();
         }
 
         $this->отметить($request, $uuid, $cdekNumber, $status);
@@ -78,7 +78,7 @@ class CdekOrderStatusWebhookController extends Controller
                 'status' => $status,
             ]);
 
-            return response()->json(['message' => 'ignored'], 200);
+            return $this->принято();
         }
 
         /*
@@ -98,7 +98,17 @@ class CdekOrderStatusWebhookController extends Controller
          */
         $shipments->syncStatus($shipment);
 
-        return response()->json(['message' => 'ok', 'synced' => true], 200);
+        /*
+         * Ответ один и тот же, нашлось отправление или нет.
+         *
+         * До 03.10 найденное давало `{"message":"ok","synced":true}`, а
+         * ненайденное — `{"message":"ignored"}`. Адрес открыт и без подписи,
+         * ключи отбора не тайна (трек напечатан на этикетке), значит разница
+         * ответов — перечислимость: перебором треков и `external_id` выяснялось,
+         * какие отправления у нас есть. СДЭК от содержимого ответа не зависит,
+         * ему нужен только 200.
+         */
+        return $this->принято();
     }
 
     /**
@@ -132,5 +142,11 @@ class CdekOrderStatusWebhookController extends Controller
         }
 
         Log::info('СДЭК: уведомление о статусе отправления', $запись);
+    }
+
+    /** Единый ответ: перевозчику нужен только 200, а нам — не выдавать своё. */
+    private function принято(): JsonResponse
+    {
+        return response()->json(['message' => 'accepted'], 200);
     }
 }

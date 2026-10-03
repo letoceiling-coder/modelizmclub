@@ -63,7 +63,13 @@ class SafeDealDeliveryWebhookController extends Controller
         $status = (string) $request->input('status', '');
 
         if ($tracking === '') {
-            Log::warning('Safe deal delivery webhook without tracking number', $request->all());
+            // Ключи, не тело. Подпись сюда не попадает (она в заголовке, а
+            // `all()` заголовков не возвращает), но тело от перевозчика может
+            // содержать что угодно, и в лог оно не нужно.
+            Log::warning('Safe deal delivery webhook without tracking number', [
+                'ключи' => array_keys($request->all()),
+                'ip' => $request->ip(),
+            ]);
 
             return response()->json(['status' => 'ignored'], 202);
         }

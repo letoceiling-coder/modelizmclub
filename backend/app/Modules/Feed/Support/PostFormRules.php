@@ -25,6 +25,39 @@ final class PostFormRules
         };
     }
 
+    /**
+     * Направление должно быть из дерева ленты.
+     *
+     * Флаги `in_feed / in_listings / in_communities` и есть здешний способ
+     * сказать «эта категория не для записей»: узлы, импортированные из
+     * торгового дерева и из дерева сообществ, получают `in_feed => false`
+     * (`CategoriesSingleSourceCommand`). На пути записи этого флага не
+     * проверял никто — ни этот набор правил, ни `assertCategoryExists`,
+     * который смотрит только `is_active`.
+     *
+     * Следствие не утечка, а порча таксономии: id торгового узла отдаётся в
+     * `GET /api/v1/categories/*`, и запись с ним садилась в направление,
+     * которого в дереве ленты нет. В фильтре по направлениям она
+     * недостижима, а в общей ленте видна.
+     */
+    public static function inFeedCategory(): \Closure
+    {
+        return static function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null) {
+                return;
+            }
+
+            $годится = PostCategory::query()
+                ->whereKey($value)
+                ->where('in_feed', true)
+                ->exists();
+
+            if (! $годится) {
+                $fail('Это направление не для записей ленты.');
+            }
+        };
+    }
+
     public static function messages(): array
     {
         return [

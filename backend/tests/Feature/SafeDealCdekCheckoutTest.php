@@ -462,9 +462,19 @@ class SafeDealCdekCheckoutTest extends TestCase
 
         Http::fake();
 
+        /*
+         * Ответ `accepted`, а не `ignored`: с 03.10 он один и тот же, нашлось
+         * отправление или нет. Разница ответов была перечислимостью — адрес
+         * открыт, без подписи, а ключи отбора не тайна (трек напечатан на
+         * этикетке), так что перебором выяснялось, какие отправления есть.
+         *
+         * Суть проверки от этого не меняется: она не про слово в ответе, а
+         * про то, что ничего не произошло, — `Http::assertNothingSent()` ниже
+         * и сверка статуса в конце.
+         */
         $this->postJson('/api/v1/webhooks/cdek/order-status', [])
             ->assertOk()
-            ->assertJsonPath('message', 'ignored');
+            ->assertJsonPath('message', 'accepted');
 
         // Ни обращения к СДЭК, ни изменения статуса.
         Http::assertNothingSent();
