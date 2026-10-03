@@ -29,6 +29,85 @@ final class FeedGuestAccessRegistry
     public const TIERS = ['guest', 'auth', 'subscription'];
 
     /**
+     * Пункт меню и страница, на которую он ведёт.
+     *
+     * ЗАЧЕМ ЭТО ОБЪЯВЛЕНО. Договорённость 05.09 (`docs/gate.md`): если
+     * страница открыта гостю, то и пункт меню к ней открыт — иначе открытый
+     * маршрут некуда нажать. В подсказках к `layout.nav.communities` и
+     * `layout.nav.channels` она записана словами, но словами карту не
+     * проверить: значения правятся из `/admin` и живут в настройках.
+     *
+     * Разбор 03.10 показал, что договорённость нарушена именно там, где
+     * про неё написано: в сохранённой карте оба этих пункта стояли
+     * `subscription` при `guest` у страниц. Гость видел пункты, нажимал,
+     * получал окно подписки — и не доходил до страниц, которые ему открыты.
+     * Из двенадцати пар разошлись ровно эти две.
+     *
+     * Здесь — пары, по которым это проверяется. `layout.header.search` в
+     * список не входит: это строка поиска, а не ссылка на страницу.
+     *
+     * @var array<string, string>
+     */
+    public const НАВИГАЦИЯ_К_СТРАНИЦЕ = [
+        'layout.nav.feed' => 'route.feed',
+        'layout.nav.ads' => 'route.ads',
+        'layout.nav.ad_create' => 'route.ads_new',
+        'layout.nav.my_ads' => 'route.my_ads',
+        'layout.nav.deals' => 'route.deals',
+        'layout.nav.favorites' => 'route.favorites',
+        'layout.nav.communities' => 'route.communities',
+        'layout.nav.reviews' => 'route.reviews',
+        'layout.nav.channels' => 'route.channels',
+        'layout.nav.messenger' => 'route.messenger',
+        'layout.nav.friends' => 'route.friends',
+        'layout.nav.settings' => 'route.settings',
+        'layout.header.notifications' => 'route.notifications',
+    ];
+
+    /** Строгость уровня числом — для сравнения пар. */
+    public static function строгость(string $tier): int
+    {
+        $index = array_search($tier, self::TIERS, true);
+
+        return $index === false ? count(self::TIERS) : (int) $index;
+    }
+
+    /**
+     * Пары, где пункт меню строже страницы за ним.
+     *
+     * Обратное — пункт мягче страницы — нарушением не считается: страница
+     * сама покажет гейт, а скрывать ссылку на то, что человеку всё равно
+     * откроется, незачем. Нарушение только в одну сторону.
+     *
+     * @param  array<string, array<string, mixed>>  $actions
+     * @return list<array{nav: string, nav_tier: string, route: string, route_tier: string}>
+     */
+    public static function расхожденияНавигации(array $actions): array
+    {
+        $найдено = [];
+
+        foreach (self::НАВИГАЦИЯ_К_СТРАНИЦЕ as $nav => $route) {
+            $навТир = $actions[$nav]['min_tier'] ?? null;
+            $стрТир = $actions[$route]['min_tier'] ?? null;
+
+            if (! is_string($навТир) || ! is_string($стрТир)) {
+                continue;
+            }
+
+            if (self::строгость($навТир) > self::строгость($стрТир)) {
+                $найдено[] = [
+                    'nav' => $nav,
+                    'nav_tier' => $навТир,
+                    'route' => $route,
+                    'route_tier' => $стрТир,
+                ];
+            }
+        }
+
+        return $найдено;
+    }
+
+    /**
      * @return list<array{key: string, group: string, label: string, hint: string, default_allowed: bool, default_min_tier: string}>
      */
     public static function actions(): array

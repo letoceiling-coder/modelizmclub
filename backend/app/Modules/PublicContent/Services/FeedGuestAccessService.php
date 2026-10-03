@@ -5,6 +5,7 @@ namespace Modules\PublicContent\Services;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Support\FeedGuestAccessRegistry;
+use Illuminate\Validation\ValidationException;
 
 class FeedGuestAccessService
 {
@@ -39,6 +40,39 @@ class FeedGuestAccessService
             $actions[$key] = FeedGuestAccessRegistry::normalizeAction(
                 $patch,
                 (string) $row['default_min_tier'],
+            );
+        }
+
+        /*
+         * Пункт меню не может быть строже страницы за ним.
+         *
+         * Договорённость 05.09 (`docs/gate.md`): открытую гостю страницу
+         * должно быть куда нажать. Разбор 03.10 нашёл карту, где
+         * `layout.nav.communities` и `layout.nav.channels` стояли
+         * `subscription` при `guest` у страниц: гость видел пункты, нажимал и
+         * получал окно подписки вместо открытой ему страницы.
+         *
+         * Проверка стоит здесь, а не в контроллере, по двум причинам. Первая:
+         * здесь уже собрана **итоговая** карта, а контроллер держит только
+         * заплатки — по ним пару не сверить. Вторая: через сервис пишут не
+         * только из админки, и правило должно держаться для любого, кто
+         * позовёт `update()`.
+         */
+        $расхождения = FeedGuestAccessRegistry::расхожденияНавигации($actions);
+
+        if ($расхождения !== []) {
+            throw ValidationException::withMessages(
+                collect($расхождения)->mapWithKeys(fn (array $пара) => [
+                    "actions.{$пара['nav']}.min_tier" => sprintf(
+                        'Пункт меню требует «%s», а страница %s открыта на «%s». '
+                        .'Открытую страницу должно быть куда нажать — опустите пункт до «%s» '
+                        .'либо поднимите страницу.',
+                        $пара['nav_tier'],
+                        $пара['route'],
+                        $пара['route_tier'],
+                        $пара['route_tier'],
+                    ),
+                ])->all()
             );
         }
 
