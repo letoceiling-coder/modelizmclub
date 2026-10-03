@@ -47,6 +47,8 @@ class AdminRoleAccessController extends Controller
     #[BodyParameter('access', description: 'Карта: { "moderator": { "events": true } }')]
     public function __invoke(Request $request, AuditService $audit): JsonResponse
     {
+        $this->guardOwner($request);
+
         $data = $request->validate([
             'access' => ['required', 'array'],
             'access.*' => ['array'],
@@ -98,6 +100,30 @@ class AdminRoleAccessController extends Controller
             'access' => $после,
             'changed' => $изменения,
         ]]);
+    }
+
+    /**
+     * Не `admin.section:roles`, а именно роль.
+     *
+     * Докблок класса обещал «Только Владелец», а проверки не было ни в каком
+     * виде: единственным стражем стоял `admin.section:roles`. А ключ `roles`
+     * переопределяется той же картой, которую эта ручка пишет, и настройка
+     * спрашивается раньше ранга (`AdminAccess::allows`). `LOCKED` при этом
+     * запрещает только **отобрать** `roles` у Владельца, но не **выдать** его
+     * модератору или администратору направления.
+     *
+     * То есть одна галочка в матрице ролей открывала роли право править саму
+     * матрицу, а дальше — `monetization`, `users.manage`, `settings`, то есть
+     * деньги и права. Шаг требовал ошибки Владельца, но цена несимметрична:
+     * по разбору 24.09 вернуть себе владельца может только владелец.
+     *
+     * Та же защита у соседа: `AdminUserPermissionsController::guardOwner`.
+     */
+    private function guardOwner(Request $request): void
+    {
+        if (! AdminAccess::isOwner($request->user())) {
+            abort(403, 'Карту прав ролей правит только Владелец.');
+        }
     }
 
     /**
