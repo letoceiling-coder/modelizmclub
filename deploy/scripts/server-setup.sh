@@ -4,8 +4,8 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 APP_DIR="/var/www/modelizmclub"
-REPO_SSH="git@github.com:letoceiling-coder/modelizmclub.git"
-REPO_HTTPS="https://github.com/letoceiling-coder/modelizmclub.git"
+REPO_SSH="git@github.com:Neeklo1606/modelizmclub.git"
+REPO_HTTPS="https://github.com/Neeklo1606/modelizmclub.git"
 DOMAIN="dev.modelizmclub.ru"
 DB_NAME="modelizmclub"
 DB_USER="modelizmclub"
