@@ -33,6 +33,7 @@ import {
 } from "@/lib/api/payment";
 
 import i18n from "@/lib/i18n";
+import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 import { Appear } from "@/components/ui/Appear";
 import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
@@ -117,8 +118,15 @@ async function startSubscriptionCheckout(
           : i18n.t("pages.subscription.testConfirmed"),
       );
     }
-  } catch {
-    toast.error(i18n.t("pages.subscription.payCreateFailed"));
+  } catch (err) {
+    /*
+     * Ошибка не проглатывается: сервер отвечает 503 с кодом
+     * `payment_contour_unavailable`, когда платёжный шлюз не настроен, и
+     * текст у него внятный. `catch {}` заменял его на «Не удалось создать
+     * платёж. Попробуйте позже.» — то есть советовал повторить то, что не
+     * изменится, пока контур не настроят.
+     */
+    toast.error(formatApiErrorMessage(err, i18n.t("pages.subscription.payCreateFailed")));
   }
 }
 
@@ -136,8 +144,15 @@ async function startPlacementCheckout(source: PayWith, idempotencyKey: string, o
         ? i18n.t("pages.subscription.payWalletPaid")
         : i18n.t("pages.subscription.oneTimePaid"),
     );
-  } catch {
-    toast.error(i18n.t("pages.subscription.payCreateFailed"));
+  } catch (err) {
+    /*
+     * Ошибка не проглатывается: сервер отвечает 503 с кодом
+     * `payment_contour_unavailable`, когда платёжный шлюз не настроен, и
+     * текст у него внятный. `catch {}` заменял его на «Не удалось создать
+     * платёж. Попробуйте позже.» — то есть советовал повторить то, что не
+     * изменится, пока контур не настроят.
+     */
+    toast.error(formatApiErrorMessage(err, i18n.t("pages.subscription.payCreateFailed")));
   }
 }
 

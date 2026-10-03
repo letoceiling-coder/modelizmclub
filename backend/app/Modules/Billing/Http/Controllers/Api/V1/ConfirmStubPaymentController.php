@@ -21,8 +21,20 @@ class ConfirmStubPaymentController extends Controller
     public function __invoke(Request $request, string $uuid, PaymentFulfillmentService $fulfillment): JsonResponse
     {
         $mode = (string) config('billing.provider', 'auto');
-        $resolved = app(PaymentGatewayManager::class)->provider();
-        if ($mode === 'vtb' || $resolved !== 'stub') {
+        $шлюзы = app(PaymentGatewayManager::class);
+        $resolved = $шлюзы->provider();
+
+        /*
+         * Третье условие — про боевое окружение, и оно важнее первых двух.
+         *
+         * Режимов, при которых резолв даёт подменный шлюз, два: явный `stub` и
+         * `auto` с ненастроенным ВТБ. Второй наступает сам, от сбоя: 07.09
+         * `config:clear` при нечитаемом `.env` обнулил все `env()`, и
+         * `BILLING_PROVIDER` стал `auto`. Замерено 03.10 — в этом состоянии
+         * здесь отвечалось 200 и выдавалась настоящая подписка за оплату,
+         * которой не было.
+         */
+        if ($mode === 'vtb' || $resolved !== 'stub' || ! $шлюзы->stubAllowed()) {
             return response()->json([
                 'message' => 'Оплата подтверждается только через платёжный шлюз.',
                 'code' => 'vtb_required',
