@@ -99,23 +99,18 @@ class AdminUserCardController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    /** @return array<string, mixed>|null */
+    /**
+     * Состояние подписки — тем же расчётом, что в списке пользователей.
+     *
+     * Здесь лежала вторая копия расчёта, и 03.10 правка одной из двух
+     * развела ответы: список говорил «оплата не подтверждена», карточка на
+     * том же человеке — «активна до 24.02.2027».
+     *
+     * @return array<string, mixed>|null
+     */
     private function подписка(User $user): ?array
     {
-        $sub = $user->subscriptions->sortByDesc('ends_at')->sortByDesc('id')->first();
-        if (! $sub) {
-            return null;
-        }
-
-        $активна = $sub->status === 'active' && ($sub->ends_at === null || $sub->ends_at->isFuture());
-        $истекла = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
-
-        return [
-            'status' => $истекла ? 'expired' : ($активна ? 'active' : $sub->status),
-            'is_active' => $активна,
-            'ends_at' => $sub->ends_at?->toIso8601String(),
-            'auto_renew' => (bool) $sub->auto_renew,
-        ];
+        return $user->subscriptionStanding();
     }
 
     /**

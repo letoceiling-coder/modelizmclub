@@ -174,6 +174,27 @@ export interface AdminUserSubscription {
   autoRenew: boolean;
 }
 
+/**
+ * Жива ли строка подписки — не то же, что «открывает ли она доступ».
+ *
+ * Живая строка — выдана и срок не вышел. Доступ (`isActive`) сверх этого
+ * требует подтверждённой оплаты, выдачи админом или промо: оплата тестовым
+ * эквайрингом после переключения прода на боевой даёт живую строку без
+ * доступа (`status: "not_entitled"`).
+ *
+ * Разница не косметическая. По `isActive` кнопка в списке называлась
+ * «Выдать подписку» и посылала `activate`, а он считал срок от сегодня: у
+ * 1201 один клик отнял бы шестнадцать месяцев живого срока. На панели по
+ * тому же признаку пропадала кнопка «Снять» у подписки, которую как раз и
+ * надо снять.
+ */
+export function живаяПодписка(s: AdminUserSubscription): boolean {
+  if (s.status === "none" || s.status === "cancelled" || s.status === "expired") return false;
+  if (s.isActive) return true;
+
+  return s.endsAt !== null && new Date(s.endsAt).getTime() > Date.now();
+}
+
 export interface AdminUserRow {
   uuid: string;
   name: string;

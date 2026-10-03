@@ -161,43 +161,10 @@ class UserResource extends JsonResource
         return $this->aboutSelf || $request->user()?->id === $this->id;
     }
 
-    /**
-     * Последняя строка подписки для списка админки.
-     *
-     * `is_active` здесь — вердикт воротов (`hasActiveSubscription`), а не
-     * состояние строки. Раньше считалась только строка, и админка
-     * расходилась с сайтом: 03.10 на проде у 1201 строка жила до
-     * 24.02.2027, карточка показывала «активна до 24.02.2027» и кнопку
-     * «Продлить подписку», а человек на каждом закрытом действии получал
-     * окно оплаты. Причина — оплата была сделана тестовым эквайрингом
-     * (`provider=stub`), а прод с тех пор переключён на боевой, и
-     * `hasPaidSubscriptionPayment()` такие платежи не считает.
-     *
-     * Поэтому у живой строки, которой ворота отказывают, своё состояние —
-     * `not_entitled`: «строка есть, доступа нет». Молчаливое «нет»
-     * спрятало бы от админа саму строку, а «активна» лгало бы о доступе.
-     */
+    /** Состояние подписки — одним расчётом на всю админку, см. User::subscriptionStanding(). */
     private function subscriptionSummary(): ?array
     {
-        $sub = $this->subscriptions->sortByDesc('ends_at')->sortByDesc('id')->first();
-        if (! $sub) {
-            return null;
-        }
-
-        $live = User::subscriptionRowIsLive($sub);
-        $expired = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
-        $entitled = $live && $this->hasActiveSubscription();
-
-        return [
-            'status' => match (true) {
-                $expired => 'expired',
-                $live && ! $entitled => 'not_entitled',
-                $live => 'active',
-                default => $sub->status,
-            },
-            'is_active' => $entitled,
-            'ends_at' => $sub->ends_at?->toIso8601String(),
-            'auto_renew' => (bool) $sub->auto_renew,
-        ];
+        return $this->resource->subscriptionStanding();
     }
+
 }

@@ -241,6 +241,54 @@ class User extends Authenticatable
         return (bool) $this->subscription_exempt || $this->hasActiveSubscription();
     }
 
+    /**
+     * Что сказать про подписку человека: одно место на всю админку.
+     *
+     * Раньше расчёт стоял двумя копиями — в `UserResource` (список) и в
+     * `AdminUserCardController` (окно карточки), — и 03.10 правка одной из
+     * них развела ответы: список сказал «оплата не подтверждена», карточка
+     * на том же человеке — «активна до 24.02.2027». Копия лечится не
+     * внимательностью, а отсутствием второй копии.
+     *
+     * `is_active` — вердикт воротов (`hasActiveSubscription`), а не
+     * состояние строки. Описывается при этом живая строка, если она есть:
+     * иначе у человека с доступом и несколькими строками админка могла
+     * показать «неактивна» по последней из них.
+     *
+     * У живой строки, которой ворота отказывают, своё состояние —
+     * `not_entitled`: «строка есть, оплата не подтверждена». Так выглядит
+     * оплата тестовым эквайрингом после переключения прода на боевой.
+     * Молчаливое «нет» спрятало бы строку, «активна» лгало бы о доступе.
+     *
+     * @return array{status: string, is_active: bool, ends_at: ?string, auto_renew: bool}|null
+     */
+    public function subscriptionStanding(): ?array
+    {
+        $строки = $this->subscriptions->sortByDesc('ends_at')->sortByDesc('id');
+        $sub = $строки->first(fn (UserSubscription $s): bool => self::subscriptionRowIsLive($s))
+            ?? $строки->first();
+
+        if (! $sub) {
+            return null;
+        }
+
+        $живая = self::subscriptionRowIsLive($sub);
+        $истекла = $sub->status === 'active' && $sub->ends_at !== null && $sub->ends_at->isPast();
+        $открыт = $this->hasActiveSubscription();
+
+        return [
+            'status' => match (true) {
+                $истекла => 'expired',
+                $живая && ! $открыт => 'not_entitled',
+                $живая => 'active',
+                default => $sub->status,
+            },
+            'is_active' => $открыт,
+            'ends_at' => $sub->ends_at?->toIso8601String(),
+            'auto_renew' => (bool) $sub->auto_renew,
+        ];
+    }
+
     /** Остаток персональных бесплатных размещений; null — без ограничения. */
     public function personalFreeListingsRemaining(): ?int
     {
@@ -251,8 +299,25 @@ class User extends Authenticatable
         return max(0, (int) $this->free_listings_quota - (int) $this->free_listings_used);
     }
 
+    /**
+     * Вердикт о подписке считается один раз на экземпляр.
+     *
+     * До 03.10 его спрашивали из одного места за запрос, и цена не была
+     * видна. Теперь спрашивают трое: `is_subscriber` в своём ресурсе,
+     * сводка для админки и публичный профиль, — а внутри до трёх запросов,
+     * один из которых выбирает список id из `users`. Без памяти ответ
+     * `/auth/me` считал бы одно и то же дважды, а список админки — по разу
+     * на каждую строку поверх того, что и так считает.
+     */
+    private ?bool $вердиктПодписки = null;
+
     /** True when the user currently holds an active, non-expired subscription. */
     public function hasActiveSubscription(): bool
+    {
+        return $this->вердиктПодписки ??= $this->считаетсяПодписчиком();
+    }
+
+    private function считаетсяПодписчиком(): bool
     {
         if (! $this->hasUnexpiredSubscriptionRow()) {
             return false;

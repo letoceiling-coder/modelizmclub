@@ -37,7 +37,10 @@ class SubscriptionTellsOneTruthTest extends TestCase
 
         SubscriptionPlan::query()->updateOrCreate(
             ['slug' => 'half'],
-            ['name' => 'Полгода', 'price_cents' => 44900, 'currency' => 'RUB', 'duration_days' => 182, 'sort_order' => 2],
+            // Колонки — как в миграции: `period_days`, и никакого `currency`.
+            // Лишние имена Eloquent отбрасывает молча, и план «Полгода»
+            // получал бы period_days = 30 при написанных 182.
+            ['name' => 'Полгода', 'price_cents' => 44900, 'period_days' => 182, 'sort_order' => 2],
         );
     }
 
@@ -97,6 +100,17 @@ class SubscriptionTellsOneTruthTest extends TestCase
         );
     }
 
+    /** Окно «Карточка пользователя» — отдельная ручка со своим ответом. */
+    private function карточкаЧеловека(User $кого): array
+    {
+        $админ = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
+
+        return $this->actingAs($админ, 'sanctum')
+            ->getJson("/api/v1/admin/users/{$кого->uuid}/card")
+            ->assertOk()
+            ->json('data.subscription');
+    }
+
     private function карточкаАдминки(User $кого): array
     {
         $админ = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
@@ -136,6 +150,80 @@ class SubscriptionTellsOneTruthTest extends TestCase
         $this->assertSame('not_entitled', $карточка['subscription']['status']);
         // Строку админ всё равно должен видеть: срок остаётся в ответе.
         $this->assertNotNull($карточка['subscription']['ends_at']);
+
+        /*
+         * И окно карточки — отдельная ручка. Здесь лежала вторая копия
+         * расчёта, и правка одной из двух развела ответы: список говорил
+         * «оплата не подтверждена», карточка на том же человеке — «активна
+         * до 24.02.2027». Это тот самый экран, с которого начался разбор.
+         */
+        $окно = $this->карточкаЧеловека($user);
+        $this->assertFalse($окно['is_active'], 'окно карточки обещает доступ, которого нет');
+        $this->assertSame('not_entitled', $окно['status']);
+        $this->assertSame(
+            $карточка['subscription'],
+            $окно,
+            'список и карточка обязаны говорить о подписке одно и то же',
+        );
+    }
+
+    /**
+     * Выдача подписки не отнимает живой срок.
+     *
+     * `activate` считал базу от `now()`, а кнопку выбирает экран по тому,
+     * открыт ли доступ. У 1201 доступ закрыт при живой строке до
+     * 24.02.2027 — кнопка назвалась «Выдать подписку», и один клик
+     * Владельца укоротил бы подписку до 02.11.2026. Вернуть срок можно было
+     * бы только из `audit_logs.old_values`.
+     */
+    public function test_выдача_не_укорачивает_живой_срок(): void
+    {
+        $админ = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
+        $user = $this->человек('no-shorten');
+        $строка = $this->строкаПодписки($user);
+        $былоДо = $строка->ends_at->copy();
+
+        $this->actingAs($админ, 'sanctum')
+            ->postJson("/api/v1/admin/users/{$user->uuid}/subscription", ['action' => 'activate', 'days' => 30])
+            ->assertOk();
+
+        $стало = $строка->fresh()->ends_at;
+        $this->assertTrue(
+            $стало->greaterThanOrEqualTo($былоДо),
+            'выдача укоротила срок: было '.$былоДо->toDateString().', стало '.$стало->toDateString(),
+        );
+        $this->assertSame($былоДо->copy()->addDays(30)->toDateString(), $стало->toDateString());
+    }
+
+    /**
+     * Вердикт считается один раз.
+     *
+     * Внутри до трёх запросов, один из которых выбирает список id из
+     * `users`. Спрашивают его теперь трое: `is_subscriber` в своём ресурсе,
+     * сводка для админки и публичный профиль, — и без памяти список админки
+     * платил бы за каждую строку по разу поверх того, что и так считает.
+     */
+    public function test_вердикт_о_подписке_не_пересчитывается(): void
+    {
+        $админ = User::factory()->create(['role' => UserRole::Owner, 'status' => UserStatus::Active]);
+        $user = $this->человек('memo');
+        $this->строкаПодписки($user, $админ->id);
+        $свежий = $user->fresh();
+
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $свежий->hasActiveSubscription();
+        $первый = count(\Illuminate\Support\Facades\DB::getQueryLog());
+
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        for ($i = 0; $i < 5; $i++) {
+            $свежий->hasActiveSubscription();
+        }
+        $повторные = count(\Illuminate\Support\Facades\DB::getQueryLog());
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+
+        $this->assertGreaterThan(0, $первый, 'первый вызов обязан что-то спросить — иначе мерить нечего');
+        $this->assertSame(0, $повторные, 'повторные вызовы снова ходят в базу: памяти нет');
     }
 
     public function test_та_же_строка_под_тестовым_эквайрингом_активна(): void

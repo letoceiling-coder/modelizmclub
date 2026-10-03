@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { mapApiUser } from "@/lib/api/auth";
 
 /*
@@ -34,7 +35,12 @@ describe("признак подписчика доезжает от сервер
 });
 
 describe("шапка профиля смотрит на признак, а не на мёртвое поле", () => {
-  const разметка = readFileSync("src/components/profile/ProfileView.tsx", "utf8");
+  // Путь от каталога теста, а не от cwd: иначе проверка зависит от того,
+  // откуда запущен vitest.
+  const разметка = readFileSync(
+    join(import.meta.dirname, "../../components/profile/ProfileView.tsx"),
+    "utf8",
+  );
 
   it("условие значка — user.isSubscriber", () => {
     expect(разметка).toContain("{user.isSubscriber && (");
