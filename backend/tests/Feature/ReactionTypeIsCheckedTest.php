@@ -22,8 +22,9 @@ use Tests\TestCase;
  *
  *   1. Произвольный тип оказывался в данных и отрисовывался всем, кто
  *      открывал запись.
- *   2. Строка длиннее колонки (`post_reactions.type varchar(32)`,
- *      `comment_reactions.type varchar(16)`) доходила до `INSERT`, Postgres
+ *   2. Строка длиннее колонки (`post_reactions.type` и
+ *      `comment_reactions.type` — `varchar(32)`, `video_reactions.type` —
+ *      `varchar(16)`) доходила до `INSERT`, Postgres
  *      отвечал `value too long`, а человек получал 500 вместо 422.
  *
  * Длина здесь важнее, чем кажется: правило `Rule::in` закрывает оба случая
@@ -143,4 +144,39 @@ class ReactionTypeIsCheckedTest extends TestCase
 
         return $человек;
     }
+    /**
+     * Ширины колонок — те, что названы в пояснениях.
+     *
+     * В докблоке `ReactionType` стояло «у комментариев колонка varchar(16)»,
+     * а она 32: шестнадцать у обзоров. Число в пояснении — такое же
+     * утверждение о базе, как и всё остальное, и расходится оно молча:
+     * пояснение читают, а сверяют с базой только когда уже ошиблись.
+     *
+     * Проверка не про поведение, а про то, чтобы написанное оставалось
+     * правдой. Сменится ширина — упадёт здесь, а не в чужом разборе.
+     */
+    public function test_ширины_колонок_такие_как_в_пояснениях(): void
+    {
+        $ожидание = [
+            'post_reactions' => 32,
+            'comment_reactions' => 32,
+            'video_reactions' => 16,
+        ];
+
+        foreach ($ожидание as $таблица => $длина) {
+            $фактическая = \Illuminate\Support\Facades\DB::selectOne(
+                'select character_maximum_length as len from information_schema.columns
+                 where table_name = ? and column_name = ?',
+                [$таблица, 'type'],
+            );
+
+            $this->assertNotNull($фактическая, "в {$таблица} нет колонки type — мерить нечего");
+            $this->assertSame(
+                $длина,
+                (int) $фактическая->len,
+                "ширина {$таблица}.type разошлась с тем, что написано в пояснениях",
+            );
+        }
+    }
+
 }
