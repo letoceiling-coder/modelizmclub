@@ -1,0 +1,72 @@
+# Обновления зависимостей по расписанию.
+#
+# ЗАЧЕМ. Разбор безопасности GitHub 03.10: за зависимостями не следил никто
+# автоматически. `composer audit` в CI есть, но стоит с `|| true` — печатает
+# сводку и не роняет сборку; `bun audit` не запускался вовсе. На тот день это
+# были 4 уязвимости composer и 36 bun, и нашлись они только потому, что их
+# пошли искать руками.
+#
+# Dependabot закрывает другую половину задачи, чем `audit` в CI. Проверка в CI
+# отвечает на вопрос «что у нас сейчас», и только когда кто-то открыл PR.
+# Dependabot смотрит сам, по расписанию, и приносит готовую правку — то есть
+# замечает уязвимость, появившуюся в уже написанном коде, а не в новом.
+#
+# ПОЧЕМУ ПО ПОНЕДЕЛЬНИКАМ И ПО ПЯТЬ. Ежедневные обновления в проекте с одним
+# сторожем превращаются в шум, который перестают читать, — а непрочитанный
+# сигнал хуже отсутствующего. Раз в неделю и не больше пяти PR на экосистему:
+# столько можно разобрать за один заход.
+#
+# Группировка — по смыслу, а не по пакетам: мелкие обновления одной пачкой,
+# мажорные порознь. Мажор в этом проекте требует решения (ветка Laravel 11 не
+# получает заплаток, и переход на 12 — отдельная работа), поэтому он не должен
+# приезжать вперемешку с патчами.
+version: 2
+
+updates:
+  - package-ecosystem: composer
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(composer)"
+    groups:
+      backend-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    # Bun читает тот же package.json и bun.lock; экосистема npm — та, которую
+    # Dependabot для них понимает.
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(npm)"
+    groups:
+      frontend-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # Сами действия в workflow тоже зависимости, и у них своя беда: они
+  # закреплены изменяемыми тегами (`@v4`, `@v2`). Тег можно переставить на
+  # другой коммит, и в CI поедет чужой код. Dependabot здесь не лечит это
+  # полностью — лечит закрепление по SHA, — но хотя бы показывает, когда
+  # действие сменило версию.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(actions)"
