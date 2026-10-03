@@ -180,7 +180,27 @@ class MediaUploadService
         [$width, $height] = $this->imageDimensions($file, $mime);
 
         $disk = config('filesystems.default', 's3');
-        $extension = $this->extensionForMime($mime) ?? ($file->getClientOriginalExtension() ?: 'bin');
+        /*
+         * Расширение выводится из проверенного по содержимому типа и никогда
+         * из клиентского имени.
+         *
+         * До 03.10 в `?:`-ветке стояло `$file->getClientOriginalExtension()`,
+         * а это `pathinfo(..., PATHINFO_EXTENSION)` без всякого фильтра. Из
+         * всех типов в LIMITS сопоставления не было ровно у одного —
+         * `video/webm`, разрешённого в пяти назначениях, — и валидный WebM с
+         * именем `shell.php` сохранялся как `…/{uuid}.php`. Штатный замок
+         * Laravel (`shouldBlockPhpUpload`) не срабатывал: он живёт внутри
+         * правил `mimes:`/`mimetypes:`, которых на боевых точках нет — тип
+         * проверяется выше, в этом же методе, через `getMimeType()`.
+         *
+         * Исполнения это не давало, потому что объект уезжает в S3, а ссылки
+         * `public/storage` нет. Но ценой одной строки в `deploy/` — диск
+         * `public`, `storage:link`, отдача бакета вебсервером с обработкой PHP
+         * — превратилось бы в выполнение кода. Пресайн-путь уже так и устроен
+         * (`createSession` жёстко подставляет `bin`), теперь оба пути ведут
+         * себя одинаково.
+         */
+        $extension = $this->extensionForMime($mime) ?? 'bin';
         $path = sprintf(
             'media/%s/%s/%s.%s',
             $purpose,
@@ -359,6 +379,10 @@ class MediaUploadService
             'image/png' => 'png',
             'image/webp' => 'webp',
             'video/mp4' => 'mp4',
+            // Голосовые записи браузера libmagic тоже называет `video/webm`
+            // (см. комментарий к `voice` в LIMITS), поэтому расширение одно
+            // на оба назначения.
+            'video/webm' => 'webm',
             'video/quicktime' => 'mov',
             'audio/webm' => 'weba',
             'audio/ogg' => 'ogg',
