@@ -85,13 +85,26 @@ cd "${DEPLOY_APP_DIR:-/var/www/modelizmclub}"
     (cd backend && sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction --no-progress 2>&1 | tail -3) \
       || { echo "FAIL composer"; exit 1; }
     echo "backend deps installed (--no-dev)"
+    # `composer install` стирает оба кеша.
+    #
+    # Он запускает `package:discover` из `post-autoload-dump`, а тот зовёт
+    # `optimize:clear`. 03.10 проверено на проде: после установки
+    # `bootstrap/cache/config.php` исчез. Сайт не упал только потому, что
+    # `.env` читается от www-data (права 640 root:www-data, починены 08.09) —
+    # Laravel пошёл читать его напрямую. До той починки это была авария на
+    # шесть минут.
+    #
+    # Поэтому пересборка обоих кешей тут безусловная, а не по факту правок:
+    # правок в `config/` и `routes/` могло не быть вовсе, а кеши уже стёрты.
+    DEPS_WIPED_CACHES=1
   fi
   # Кеш маршрутов — по факту правок, а не по слову в вызове.
   #
   # Новый путь при живом кеше отвечает 404, и это не похоже на
   # «забыли пересобрать»: выглядит как «маршрута нет», то есть как
   # ошибка в коде. Шесть дней так и было.
-  if [ "$ROUTES" = "routes" ] || git diff --name-only HEAD@{1} HEAD -- backend/routes backend/app/Modules/*/routes | grep -q .; then
+  if [ "$ROUTES" = "routes" ] || [ "${DEPS_WIPED_CACHES:-0}" = "1" ] \
+     || git diff --name-only HEAD@{1} HEAD -- backend/routes backend/app/Modules/*/routes | grep -q .; then
     (cd backend && sudo -u www-data php artisan route:cache 2>&1 | tail -1)
     # Кеш пишется с 664 и содержит карту всех путей. Права — как у
     # config.php, по тем же причинам (см. CLAUDE.md про .env).
@@ -115,7 +128,8 @@ cd "${DEPLOY_APP_DIR:-/var/www/modelizmclub}"
   # 60 ответов 200 из 60 при опросе раз в 250 мс. `chmod` сразу после —
   # `config:cache` создаёт файл с 644, а внутри пароль базы; за этим следит
   # `check-config-cache-chmod.sh` в воротах CI.
-  if git diff --name-only HEAD@{1} HEAD -- backend/config backend/.env.example | grep -q .; then
+  if [ "${DEPS_WIPED_CACHES:-0}" = "1" ] \
+     || git diff --name-only HEAD@{1} HEAD -- backend/config backend/.env.example | grep -q .; then
     (cd backend && sudo -u www-data php artisan config:cache 2>&1 | tail -1)
     chmod 640 backend/bootstrap/cache/config.php 2>/dev/null || true
     chown root:www-data backend/bootstrap/cache/config.php 2>/dev/null || true
