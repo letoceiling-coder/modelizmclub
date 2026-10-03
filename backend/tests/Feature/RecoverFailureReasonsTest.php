@@ -352,4 +352,36 @@ class RecoverFailureReasonsTest extends TestCase
         $this->assertSame('declined_other', $платёж->failure_code, 'незнакомая причина подогнана под знакомую');
         $this->assertStringContainsString('something_new', (string) $платёж->failure_message, 'имя причины потеряно');
     }
+
+    public function test_сухой_прогон_называет_оба_провайдера(): void
+    {
+        $this->платёж(['provider' => 'vtb']);
+        $this->платёж(['provider' => 'yookassa']);
+        $this->банкОтвечает([]);
+
+        /*
+         * Прежняя версия печатала один запрос — ВТБ-овский — и писала
+         * «запросов будет N» на всех. Половина уходила бы в ЮKassa,
+         * другим адресом и другим телом. Сухой прогон затем и нужен,
+         * чтобы человек увидел, что отправится на самом деле.
+         */
+        $this->artisan('payments:recover-reasons')
+            ->expectsOutputToContain('ВТБ — 1 шт.')
+            ->expectsOutputToContain('ЮKassa — 1 шт.')
+            ->expectsOutputToContain('api.yookassa.ru')
+            ->expectsOutputToContain('Всего запросов: 2')
+            ->assertSuccessful();
+    }
+
+    public function test_песочница_названа_вслух(): void
+    {
+        config()->set('billing.vtb.api_url', 'https://vtb.rbsuat.com/payment/rest/');
+        $this->платёж(['provider' => 'vtb']);
+        $this->банкОтвечает([]);
+
+        // Коды песочницы, записанные в боевые строки, хуже пустоты.
+        $this->artisan('payments:recover-reasons')
+            ->expectsOutputToContain('испытательный контур')
+            ->assertSuccessful();
+    }
 }
