@@ -36,7 +36,23 @@ return [
     */
     'vtb' => [
         'enabled' => env('VTB_ACQUIRING_ENABLED', false),
-        'api_url' => rtrim(env('VTB_ACQUIRING_API_URL', 'https://vtb.rbsuat.com/payment/rest'), '/').'/',
+        /*
+         * Умолчание — боевой контур.
+         *
+         * До 03.10 здесь стояла песочница `vtb.rbsuat.com`, и это была
+         * ловушка того же рода, что `localhost` в CORS и пустой секрет
+         * вебхука MAX: забытая переменная не ломала ничего заметно, а тихо
+         * уводила оплату в тестовый контур. Проверка готовности шлюза
+         * (`VtbPaymentGateway::isConfigured`) адрес не смотрит вовсе — то
+         * есть «настроено» показывалось бы и в этом случае.
+         *
+         * Прод ходит в `platezh.vtb24.ru` (подтверждено владельцем 03.10).
+         * Теперь забытая переменная оставляет оплату на боевом шлюзе, а
+         * песочница требует явного указания — то есть ошибка настройки ведёт
+         * к отказу авторизации на живом контуре, а не к незаметно
+         * ненастоящим платежам.
+         */
+        'api_url' => rtrim(env('VTB_ACQUIRING_API_URL', 'https://platezh.vtb24.ru/payment/rest'), '/').'/',
         'username' => env('VTB_ACQUIRING_USERNAME'),
         'password' => env('VTB_ACQUIRING_PASSWORD'),
         'token' => env('VTB_ACQUIRING_TOKEN'),

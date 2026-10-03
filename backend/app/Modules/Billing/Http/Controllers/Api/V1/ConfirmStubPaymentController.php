@@ -20,9 +20,20 @@ class ConfirmStubPaymentController extends Controller
 {
     public function __invoke(Request $request, string $uuid, PaymentFulfillmentService $fulfillment): JsonResponse
     {
-        $mode = (string) config('billing.provider', 'auto');
-        $resolved = app(PaymentGatewayManager::class)->provider();
-        if ($mode === 'vtb' || $resolved !== 'stub') {
+        /*
+         * Одно условие с созданием платежа.
+         *
+         * До 03.10 проверка смотрела только на `BILLING_PROVIDER=vtb` и на
+         * то, какой шлюз выбран сейчас. В режиме `auto` на проде с
+         * ненастроенным ВТБ оба условия проходили, и подменный платёж
+         * подтверждался — то есть подписка выдавалась без денег. Создание
+         * такого платежа теперь запрещено (`substitutionForbidden`), но
+         * строки, созданные раньше, остаются, и закрывать их на проде нельзя
+         * тем же порядком.
+         */
+        $менеджер = app(PaymentGatewayManager::class);
+
+        if ($менеджер->substitutionForbidden() || $менеджер->provider() !== 'stub') {
             return response()->json([
                 'message' => 'Оплата подтверждается только через платёжный шлюз.',
                 'code' => 'vtb_required',
