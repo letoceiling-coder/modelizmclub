@@ -57,10 +57,40 @@ class MediaUploadService
         ]],
     ];
 
+    /**
+     * Назначения, которые обычному пользователю заводить нечего.
+     *
+     * Это оформление площадки, а не его содержимое, и оба допускают
+     * `image/svg+xml`. До 03.10 проверка стояла только на прямой загрузке
+     * (`DirectUploadController` перехватывал `icon` и требовал `isOwner`), а
+     * `UploadSessionController` её не повторял: `purpose` там валидировался
+     * одним `Rule::in(purposes())`, то есть включая `icon`, `logo` и
+     * `dispute`. Любой подтверждённый пользователь открывал сессию с
+     * `purpose=icon`, клал в бакет свой SVG и получал его по ссылке прокси.
+     *
+     * Правило живёт здесь, а не в контроллерах, именно поэтому: два пути
+     * загрузки один раз уже разошлись.
+     *
+     * Штатная админская загрузка (`AdminMediaController`) сюда не смотрит — у
+     * неё свой страж `admin.section:media`, и это осознанно: раздел медиа
+     * открыт модерации.
+     */
+    public const STAFF_ONLY_PURPOSES = ['icon', 'logo'];
+
     /** @return list<string> */
     public static function purposes(): array
     {
         return array_keys(self::LIMITS);
+    }
+
+    /** Можно ли этому человеку загружать с таким назначением. */
+    public static function purposeAllowedFor(?User $user, string $purpose): bool
+    {
+        if (! in_array($purpose, self::STAFF_ONLY_PURPOSES, true)) {
+            return true;
+        }
+
+        return $user !== null && $user->isOwner();
     }
 
     public static function maxSizeKb(string $purpose): int
@@ -180,7 +210,27 @@ class MediaUploadService
         [$width, $height] = $this->imageDimensions($file, $mime);
 
         $disk = config('filesystems.default', 's3');
-        $extension = $this->extensionForMime($mime) ?? ($file->getClientOriginalExtension() ?: 'bin');
+        /*
+         * Расширение выводится из проверенного по содержимому типа и никогда
+         * из клиентского имени.
+         *
+         * До 03.10 в `?:`-ветке стояло `$file->getClientOriginalExtension()`,
+         * а это `pathinfo(..., PATHINFO_EXTENSION)` без всякого фильтра. Из
+         * всех типов в LIMITS сопоставления не было ровно у одного —
+         * `video/webm`, разрешённого в пяти назначениях, — и валидный WebM с
+         * именем `shell.php` сохранялся как `…/{uuid}.php`. Штатный замок
+         * Laravel (`shouldBlockPhpUpload`) не срабатывал: он живёт внутри
+         * правил `mimes:`/`mimetypes:`, которых на боевых точках нет — тип
+         * проверяется выше, в этом же методе, через `getMimeType()`.
+         *
+         * Исполнения это не давало, потому что объект уезжает в S3, а ссылки
+         * `public/storage` нет. Но ценой одной строки в `deploy/` — диск
+         * `public`, `storage:link`, отдача бакета вебсервером с обработкой PHP
+         * — превратилось бы в выполнение кода. Пресайн-путь уже так и устроен
+         * (`createSession` жёстко подставляет `bin`), теперь оба пути ведут
+         * себя одинаково.
+         */
+        $extension = $this->extensionForMime($mime) ?? 'bin';
         $path = sprintf(
             'media/%s/%s/%s.%s',
             $purpose,
@@ -273,6 +323,8 @@ class MediaUploadService
                 ]);
             }
 
+            $this->сверитьЗагруженное($media, (string) $session->purpose, $uuid);
+
             $permanentPath = str_replace('tmp/', 'media/', $media->path);
 
             if ($permanentPath !== $media->path) {
@@ -288,6 +340,75 @@ class MediaUploadService
         }
 
         return $confirmed;
+    }
+
+    /**
+     * Сверить то, что действительно лежит в бакете, с тем, что заявил клиент.
+     *
+     * До 03.10 пресайн-путь не проверял содержимое ни разу. Тип и размер
+     * брались из JSON-тела `createSession`, байты клиент кладёт прямо в бакет
+     * по presigned PUT, минуя приложение, а `confirm` смотрел только на
+     * владение, сессию, статус и факт существования объекта. Следствий было
+     * два: под заявленным `image/png` лежало что угодно, а предел размера был
+     * рекомендацией — заявить `size: 1` и положить 50 ГБ, за которые платит
+     * владелец бакета.
+     *
+     * Размер берётся у хранилища. Тип определяется по началу файла: finfo
+     * опознаёт формат по сигнатуре, и первых килобайт для этого достаточно —
+     * тянуть к себе двухсотмегабайтное видео, чтобы узнать, что оно видео,
+     * незачем.
+     *
+     * Промах закрывает загрузку: статус `Failed`, объект убран, отказ
+     * валидации. Оставить заявленный тип значило бы отдавать потом файл с
+     * `Content-Type`, которому он не соответствует.
+     */
+    private function сверитьЗагруженное(Media $media, string $purpose, string $uuid): void
+    {
+        $limits = self::LIMITS[$purpose] ?? null;
+
+        if ($limits === null) {
+            return;
+        }
+
+        $disk = Storage::disk($media->disk);
+        $размер = (int) $disk->size($media->path);
+
+        $отказ = null;
+
+        if ($размер > $limits['max_size']) {
+            $отказ = "Файл {$uuid} больше заявленного и превышает допустимый размер.";
+        } else {
+            $начало = '';
+            $поток = $disk->readStream($media->path);
+            if (is_resource($поток)) {
+                $начало = (string) fread($поток, 8192);
+                fclose($поток);
+            }
+
+            $тип = $начало === '' ? null : (new \finfo(FILEINFO_MIME_TYPE))->buffer($начало);
+
+            if (is_string($тип) && ! in_array($тип, $limits['mimes'], true)) {
+                $отказ = "Содержимое файла {$uuid} не совпадает с заявленным типом.";
+            } elseif (is_string($тип)) {
+                // Заявленный тип мог быть любым из списка; записываем тот,
+                // который действительно в файле, иначе прокси отдаст чужой
+                // `Content-Type`.
+                $media->mime_type = $тип;
+            }
+        }
+
+        if ($отказ !== null) {
+            $media->status = MediaStatus::Failed;
+            $media->save();
+            // Объект ещё во временном каталоге и производных копий не имеет
+            // (`dispatchVariants` зовётся ниже, уже после сверки), поэтому
+            // здесь достаточно одного пути и `MediaDeletionService` не нужен.
+            $disk->delete($media->path);
+
+            throw ValidationException::withMessages(['media_uuids' => [$отказ]]);
+        }
+
+        $media->size_bytes = $размер;
     }
 
     /** @param  list<string>  $mediaUuids */
@@ -359,6 +480,10 @@ class MediaUploadService
             'image/png' => 'png',
             'image/webp' => 'webp',
             'video/mp4' => 'mp4',
+            // Голосовые записи браузера libmagic тоже называет `video/webm`
+            // (см. комментарий к `voice` в LIMITS), поэтому расширение одно
+            // на оба назначения.
+            'video/webm' => 'webm',
             'video/quicktime' => 'mov',
             'audio/webm' => 'weba',
             'audio/ogg' => 'ogg',

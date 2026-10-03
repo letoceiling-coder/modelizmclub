@@ -36,6 +36,18 @@ class AdminDiagnosticsController extends Controller
             'billing_provider' => (string) config('billing.provider', 'auto'),
             'vtb_enabled' => (bool) ($vtb['enabled'] ?? false),
             'vtb_configured' => filled($vtb['username'] ?? null) || filled($vtb['token'] ?? null),
+            /*
+             * Адрес контура — в сводку. «Настроено» про него ничего не
+             * говорит: проверка готовности смотрит только на признак и
+             * доступы. А разница между боевым контуром и песочницей видна
+             * только здесь — до 03.10 умолчание указывало на песочницу, и
+             * забытая переменная уводила оплату в тестовый контур, оставаясь
+             * при этом «настроенной».
+             */
+            'vtb_api_url' => (string) ($vtb['api_url'] ?? ''),
+            'vtb_contour' => str_contains((string) ($vtb['api_url'] ?? ''), 'platezh.vtb24.ru')
+                ? 'боевой'
+                : 'небоевой',
             'cdek_enabled' => (bool) config('cdek.enabled'),
             'cdek_configured' => $cdekAccount !== '' && $cdekSecure !== '',
             'sms_driver' => $smsDriver,

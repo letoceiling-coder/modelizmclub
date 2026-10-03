@@ -19,7 +19,7 @@ class YandexDeliveryStatusWebhookController extends Controller
         $updatedTs = $request->query('updated_ts');
 
         if (! is_string($claimId) || $claimId === '') {
-            return response()->json(['message' => 'ignored'], 200);
+            return $this->принято();
         }
 
         if (str_starts_with($claimId, 'MZ-')) {
@@ -35,7 +35,7 @@ class YandexDeliveryStatusWebhookController extends Controller
             ->first();
 
         if ($shipment === null) {
-            return response()->json(['message' => 'ignored'], 200);
+            return $this->принято();
         }
 
         $shipmentId = $shipment->id;
@@ -55,6 +55,20 @@ class YandexDeliveryStatusWebhookController extends Controller
             }
         });
 
-        return response()->json(['message' => 'ok'], 200);
+        return $this->принято();
+    }
+
+    /**
+     * Ответ один и тот же, нашлось отправление или нет.
+     *
+     * До 03.10 найденное давало `{"message":"ok"}`, а ненайденное —
+     * `{"message":"ignored"}`. Адрес открыт и без подписи, а ключом отбора
+     * принимается и `external_id`, и внутренний `uuid` отправления — то есть
+     * разница ответов позволяла перебором выяснять, какие отправления у нас
+     * есть. Яндексу от ответа нужен только 200.
+     */
+    private function принято(): JsonResponse
+    {
+        return response()->json(['message' => 'accepted'], 200);
     }
 }

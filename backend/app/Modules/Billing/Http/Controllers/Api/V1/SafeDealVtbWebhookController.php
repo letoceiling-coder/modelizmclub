@@ -22,7 +22,16 @@ class SafeDealVtbWebhookController extends Controller
         $orderId = (string) ($request->input('mdOrder') ?? $request->input('orderId') ?? '');
 
         if ($orderId === '') {
-            Log::warning('SafeDeal VTB webhook without order id', $request->all());
+            /*
+             * В лог идут ключи, не тело. Адрес открыт и исключён из общего
+             * лимитера, то есть набить лог может кто угодно одним `curl`; а в
+             * колбэках RBS приходит платёжный контур — маскированный PAN,
+             * `cardholderName`, суммы. Образец взят у вебхука СДЭК.
+             */
+            Log::warning('SafeDeal VTB webhook without order id', [
+                'ключи' => array_keys($request->all()),
+                'ip' => $request->ip(),
+            ]);
 
             return response()->json(['status' => 'ignored']);
         }

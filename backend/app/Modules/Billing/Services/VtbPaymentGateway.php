@@ -120,7 +120,8 @@ class VtbPaymentGateway implements PaymentGateway
         $orderId = (string) ($payload['mdOrder'] ?? $payload['orderId'] ?? '');
 
         if ($orderId === '') {
-            Log::warning('VTB webhook without order id', $payload);
+            // Ключи, не тело: в колбэке RBS лежит платёжный контур.
+            Log::warning('VTB webhook without order id', ['ключи' => array_keys($payload)]);
 
             return;
         }

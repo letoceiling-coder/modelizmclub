@@ -362,39 +362,20 @@ class ShipmentService
         return $query->paginate(min((int) ($filters['per_page'] ?? 20), 50));
     }
 
-    public function applyWebhookUpdate(Shipment $shipment, ?string $providerStatus, ?string $trackingNumber, array $payload): Shipment
-    {
-        $adapter = $this->carriers->get($shipment->provider);
-        $mapped = $providerStatus !== null ? $adapter->mapProviderStatus($providerStatus) : null;
-
-        $updates = ['raw_payload' => $payload];
-        if ($providerStatus !== null) {
-            $updates['external_status'] = $providerStatus;
-        }
-        if ($trackingNumber !== null) {
-            $updates['tracking_number'] = $trackingNumber;
-        }
-        if ($mapped !== null) {
-            $updates['status'] = $mapped;
-            if ($mapped === ShipmentStatus::Delivered) {
-                $updates['delivered_at'] = now();
-            }
-        }
-
-        $shipment->update($updates);
-
-        if ($mapped !== null) {
-            $this->recordEvent($shipment, $mapped, $providerStatus, 'Webhook: обновление статуса', $payload);
-        }
-
-        $fresh = $shipment->fresh() ?? $shipment;
-        $deal = $fresh->safeDeal ?? SafeDeal::query()->where('shipment_id', $fresh->id)->first();
-        if ($deal !== null) {
-            app(SafeDealService::class)->syncFromShipment($fresh);
-        }
-
-        return $fresh;
-    }
+    /*
+     * Здесь жил `applyWebhookUpdate` — прежний путь, который брал статус
+     * доставки прямо из тела вебхука и доводил его до `markDelivered`, то есть
+     * до авто-выплаты продавцу. Подписи у колбэков СДЭК нет, так что статус
+     * «доставлено» подделывался чужим запросом; закрыто 26.09 переходом на
+     * `syncStatus`, который перечитывает статус у перевозчика.
+     *
+     * Метод после этого не вызывался ниоткуда (проверено поиском по `app/` и
+     * `tests/`: оставались только упоминания в комментариях) и удалён 03.10.
+     * Мёртвый код такого рода опасен тем, что выглядит рабочим: достаточно
+     * одного вызова, чтобы «доверяющий телу» путь вернулся.
+     *
+     * Что было вместо него — `syncStatus` выше в этом файле.
+     */
 
     public function assertParticipant(Shipment $shipment, User $user): void
     {

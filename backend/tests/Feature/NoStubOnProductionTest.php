@@ -124,6 +124,49 @@ class NoStubOnProductionTest extends TestCase
         $this->assertNotEmpty($результат);
     }
 
+    /**
+     * Явный `vtb` запрещает подмену и вне прода.
+     *
+     * Раз провайдер назван, молча подставлять другой нельзя: иначе
+     * разработчик правит боевой контур, а проверяет подменный. Условие взято
+     * из ветки аудита 03.10 — оно строже, чем «только на проде», и это верно.
+     */
+    public function test_явный_vtb_запрещает_подмену_и_на_стенде(): void
+    {
+        // Окружение не боевое — запрет держится всё равно.
+        $this->ненастроенныйВтб('vtb');
+
+        $this->assertFalse(app(PaymentGatewayManager::class)->stubAllowed());
+        $this->expectException(PaymentContourUnavailableException::class);
+        app(PaymentGatewayManager::class)->createCheckout(
+            $this->человек(), 9900, 'RUB', 'Подписка «Месяц»', ['payable_type' => 'subscription'],
+        );
+    }
+
+    /** Причина отказа уходит в журнал по полям, а не одной строкой. */
+    public function test_отказ_пишет_в_журнал_чего_не_хватило(): void
+    {
+        $this->боевоеОкружение();
+        $this->ненастроенныйВтб('auto');
+
+        \Illuminate\Support\Facades\Log::shouldReceive('error')
+            ->once()
+            ->withArgs(function (string $сообщение, array $поля): bool {
+                return str_contains($сообщение, 'не настроен')
+                    && ($поля['billing_provider'] ?? null) === 'auto'
+                    && array_key_exists('VTB_ACQUIRING_API_URL', $поля['заполнено'] ?? []);
+            });
+
+        try {
+            app(PaymentGatewayManager::class)->createCheckout(
+                $this->человек(), 9900, 'RUB', 'Подписка «Месяц»', ['payable_type' => 'subscription'],
+            );
+            $this->fail('отказа не было');
+        } catch (PaymentContourUnavailableException) {
+            // то, что и ожидается
+        }
+    }
+
     public function test_явный_stub_работает_и_на_проде(): void
     {
         // Решение явное и видно в `.env` — его запрещать незачем.

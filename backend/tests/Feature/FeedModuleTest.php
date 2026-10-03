@@ -10,6 +10,7 @@ use App\Models\PostCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\FakeMediaBytes;
 use Tests\TestCase;
 
 class FeedModuleTest extends TestCase
@@ -514,7 +515,7 @@ class FeedModuleTest extends TestCase
         $mediaUuid = $session['uploads'][0]['media_uuid'];
         $path = $session['uploads'][0]['path'];
 
-        Storage::disk('s3')->put($path, 'fake-image');
+        Storage::disk('s3')->put($path, FakeMediaBytes::jpeg());
 
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/v1/media/confirm', [
@@ -601,7 +602,7 @@ class FeedModuleTest extends TestCase
             ])
             ->assertStatus(422);
 
-        Storage::disk('s3')->put($path, 'fake-video');
+        Storage::disk('s3')->put($path, FakeMediaBytes::mp4());
 
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/v1/media/confirm', [

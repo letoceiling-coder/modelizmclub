@@ -26,6 +26,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Chat\Events\MessageDeleted;
 use Modules\Chat\Events\MessageSent;
 use Modules\Chat\Http\Resources\MessageResource;
+use Modules\Media\Services\MediaDeletionService;
 use Modules\Media\Services\MediaUploadService;
 use Modules\User\Services\UserService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -35,6 +36,7 @@ class ChatService
     public function __construct(
         private UserService $users,
         private MediaUploadService $mediaUploads,
+        private MediaDeletionService $mediaDeletions,
     ) {}
 
     public function listConversations(User $user, int $perPage = 30, string $space = 'chats'): LengthAwarePaginator
@@ -576,13 +578,58 @@ class ChatService
 
         $conversationUuid = $conversation->uuid;
 
-        DB::transaction(function () use ($conversation, $message): void {
+        /*
+         * «Удалить у всех» удаляет и вложение.
+         *
+         * До 03.10 здесь был только `$message->delete()`, а `Message` — это
+         * `SoftDeletes`, то есть отметка `deleted_at`. Строки
+         * `message_attachments` и `media` оставались, объект в бакете тоже, а
+         * `ServeMediaController` проверяет ровно два условия — строка есть и
+         * `status = ready`. Назначение `chat` стоит в `PUBLIC_PURPOSES`, так
+         * что ссылка продолжала отдавать файл кому угодно и после удаления:
+         * человек прислал паспорт, удалил сообщение, в интерфейсе вложение
+         * исчезло у обоих — а по прямому адресу осталось навсегда.
+         *
+         * Удаляем только то, на что больше никто не ссылается. Пересылка
+         * копий вложений не делает (`forwarded_from_message_id` смотрит на
+         * исходное сообщение), но одно и то же `media_uuid` можно отправить
+         * двумя сообщениями — тогда второе остаётся живым и файл нужен ему.
+         * Сравнение идёт по непомеченным удалёнными сообщениям: само это
+         * сообщение к моменту проверки ещё живо, поэтому исключаем его явно.
+         */
+        $осиротевшие = Media::query()
+            ->whereIn('id', $message->attachments()->pluck('media_id'))
+            ->whereNotExists(function ($запрос) use ($message): void {
+                $запрос->selectRaw('1')
+                    ->from('message_attachments')
+                    ->join('messages', 'messages.id', '=', 'message_attachments.message_id')
+                    ->whereColumn('message_attachments.media_id', 'media.id')
+                    ->where('message_attachments.message_id', '!=', $message->id)
+                    ->whereNull('messages.deleted_at');
+            })
+            ->get();
+
+        DB::transaction(function () use ($conversation, $message, $осиротевшие): void {
             if ((int) $conversation->pinned_message_id === (int) $message->id) {
                 $conversation->update(['pinned_message_id' => null]);
             }
 
+            $message->attachments()->delete();
             $message->delete();
+
+            foreach ($осиротевшие as $media) {
+                $media->delete();
+            }
         });
+
+        /*
+         * Файлы — после фиксации: откатить удаление из бакета нечем, и лучше
+         * оставить объект без строки (он уже недостижим: прокси не находит
+         * медиа и отвечает 404), чем строку без объекта.
+         */
+        foreach ($осиротевшие as $media) {
+            $this->mediaDeletions->eraseObjects($media);
+        }
 
         try {
             broadcast(new MessageDeleted($message, $conversationUuid));

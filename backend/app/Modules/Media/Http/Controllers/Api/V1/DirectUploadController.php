@@ -23,6 +23,16 @@ class DirectUploadController extends Controller
 
         $purpose = $request->string('purpose')->toString();
 
+        /*
+         * `icon` перехвачен выше и уходит в `storeIcon` со своей проверкой на
+         * Владельца. Здесь остаётся `logo`: он тоже допускает `image/svg+xml`
+         * и тоже не содержимое площадки, а её оформление, — а роли не
+         * спрашивал никто.
+         */
+        if (! MediaUploadService::purposeAllowedFor($request->user(), $purpose)) {
+            abort(403, 'Это назначение загрузки доступно только администратору.');
+        }
+
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:'.MediaUploadService::maxSizeKb($purpose)],
             'duration' => ['nullable', 'integer', 'min:1', 'max:600'],

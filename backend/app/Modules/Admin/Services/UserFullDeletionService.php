@@ -11,12 +11,17 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
+use Modules\Media\Services\MediaDeletionService;
 
 /**
  * Permanently removes a user and all owned / linked records from the database.
  */
 class UserFullDeletionService
 {
+    public function __construct(
+        private MediaDeletionService $mediaDeletions,
+    ) {}
+
     public function purge(User $user): void
     {
         DB::transaction(function () use ($user): void {
@@ -46,6 +51,28 @@ class UserFullDeletionService
                         ->where('moderatable_id', $community->id)
                         ->delete();
                     $community->forceDelete();
+                });
+
+            /*
+             * Объекты в хранилище — вместе со строками.
+             *
+             * До 03.10 здесь был только `delete()` по строкам, и файлы
+             * оставались в бакете навсегда: без строки `media` их уже нельзя
+             * было ни отдать, ни найти, то есть уборщика для них не
+             * существовало ни одного. Для запроса на удаление по 152-ФЗ это
+             * ровно то, чего делать нельзя: данные остаются, а учёта им
+             * больше нет.
+             *
+             * Перечисляем поимённо, потому что у каждой строки свой набор
+             * производных копий в `variants` (см. `MediaDeletionService`).
+             * Пачкой это сделать нечем.
+             */
+            Media::query()
+                ->where('uploaded_by', $userId)
+                ->chunkById(200, function ($пачка): void {
+                    foreach ($пачка as $media) {
+                        $this->mediaDeletions->eraseObjects($media);
+                    }
                 });
 
             Media::query()->where('uploaded_by', $userId)->delete();

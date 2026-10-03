@@ -17,7 +17,11 @@ import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
 
 type LoginSearch = {
   redirect?: string;
-  oauth_token?: string;
+  /**
+   * Разовый код входа. Токена в адресе больше нет: он уезжал в журналы nginx
+   * и, возможно, в Метрику — разбор в backend OAuthHandoffService.
+   */
+  oauth_code?: string;
   oauth_error?: string;
   oauth_provider?: string;
   /** Учётка заведена этим самым входом — признак от сервера, для воронки. */
@@ -30,7 +34,7 @@ export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: i18n.t("pages.login.metaTitle") }] }),
   validateSearch: (s: Record<string, unknown>): LoginSearch => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
-    oauth_token: typeof s.oauth_token === "string" ? s.oauth_token : undefined,
+    oauth_code: typeof s.oauth_code === "string" ? s.oauth_code : undefined,
     oauth_error: typeof s.oauth_error === "string" ? s.oauth_error : undefined,
     oauth_provider: typeof s.oauth_provider === "string" ? s.oauth_provider : undefined,
     oauth_new: typeof s.oauth_new === "string" ? s.oauth_new : undefined,
@@ -63,13 +67,13 @@ function afterLoginTarget(redirectTo: string | undefined): string {
 function LoginPage() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  const { redirect: redirectTo, oauth_token, oauth_error, oauth_new } = Route.useSearch();
+  const { redirect: redirectTo, oauth_code, oauth_error, oauth_new } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    if (oauth_token || oauth_error || isDemoMode()) {
+    if (oauth_code || oauth_error || isDemoMode()) {
       setCheckingSession(false);
       return;
     }
@@ -89,7 +93,7 @@ function LoginPage() {
     return () => {
       alive = false;
     };
-  }, [nav, redirectTo, oauth_token, oauth_error]);
+  }, [nav, redirectTo, oauth_code, oauth_error]);
 
   useEffect(() => {
     if (oauth_error) {
@@ -99,10 +103,10 @@ function LoginPage() {
       nav({ to: "/login", search: { redirect: redirectTo }, replace: true });
       return;
     }
-    if (!oauth_token) return;
+    if (!oauth_code) return;
     let alive = true;
     setLoading(true);
-    void completeOAuthLogin(oauth_token)
+    void completeOAuthLogin(oauth_code)
       .then((user) => {
         if (!alive) return;
         resetSessionCache();
@@ -131,7 +135,7 @@ function LoginPage() {
     return () => {
       alive = false;
     };
-  }, [oauth_token, oauth_error, oauth_new, nav, redirectTo, t]);
+  }, [oauth_code, oauth_error, oauth_new, nav, redirectTo, t]);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

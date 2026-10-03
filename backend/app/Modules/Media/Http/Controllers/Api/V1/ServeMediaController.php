@@ -44,10 +44,38 @@ class ServeMediaController extends Controller
         }
 
         $purpose = $media->purpose;
+        $публичное = in_array($purpose, self::PUBLIC_PURPOSES, true);
 
-        if (! in_array($purpose, self::PUBLIC_PURPOSES, true) && ! $this->mayViewPrivate($media, $purpose)) {
+        if (! $публичное && ! $this->mayViewPrivate($media, $purpose)) {
             abort(403);
         }
+
+        /*
+         * Приватное назначение не помечается публично кешируемым.
+         *
+         * До 03.10 `Cache-Control: public, max-age=31536000, immutable` уходил
+         * со всеми ответами одинаково, включая доказательства по спору, доступ
+         * к которым решает `mayViewPrivate` по зрителю. На проде перед php-fpm
+         * стоит `fastcgi_cache` с ключом `$scheme$request_method$host$request_uri`
+         * (deploy/nginx/api.modelizmclub.ru.conf) — без `Authorization` и
+         * `Cookie`. То есть первый просмотр авторизованным складывал файл в
+         * общий кеш на 30 дней, и дальше тот же адрес отдавал его без токена:
+         * до PHP запрос уже не доходил, и проверка прав становилась пустой
+         * формальностью.
+         *
+         * `private, no-store` закрывает это сразу в трёх местах: nginx такой
+         * ответ не сохраняет (`fastcgi_ignore_headers` не задан, значит
+         * `Cache-Control` он уважает), и так же поступают браузер и любой
+         * промежуточный кеш. В nginx рядом добавлена вторая преграда — запрос
+         * с заголовком `Authorization` не читает и не пишет общий кеш.
+         *
+         * Обоснование кеша в конфиге nginx ссылалось на то, что непубличные
+         * назначения всегда отвечают 403. Это было верно до 08.09, когда
+         * появился `mayViewPrivate` (см. его докблок ниже); конфиг за правкой
+         * кода тогда не пошёл.
+         */
+        $долгийКеш = $публичное ? 'public, max-age=31536000, immutable' : 'private, no-store';
+        $короткийКеш = $публичное ? 'public, max-age=60' : 'private, no-store';
 
         $disk = Storage::disk($media->disk);
         $parsed = $this->parseVariant($variant);
@@ -65,7 +93,7 @@ class ServeMediaController extends Controller
                     $parsed['mime'],
                     $bytes,
                     $uuid.'.'.$parsed['ext'],
-                    'public, max-age=31536000, immutable',
+                    $долгийКеш,
                 );
             }
 
@@ -80,7 +108,7 @@ class ServeMediaController extends Controller
                 $media->mime_type ?: 'application/octet-stream',
                 (int) ($media->size_bytes ?? 0),
                 $media->filename ?: $uuid,
-                'public, max-age=60',
+                $короткийКеш,
             );
         }
 
@@ -95,7 +123,7 @@ class ServeMediaController extends Controller
             $media->mime_type ?: 'application/octet-stream',
             (int) ($media->size_bytes ?? 0),
             $media->filename ?: $uuid,
-            'public, max-age=31536000, immutable',
+            $долгийКеш,
         );
     }
 
@@ -204,11 +232,38 @@ class ServeMediaController extends Controller
     ): StreamedResponse {
         $filename = addslashes($filename);
 
+        /*
+         * SVG не отдаётся как документ.
+         *
+         * SVG — это не картинка, а документ со скриптом, и `inline` при
+         * `Content-Type: image/svg+xml` означает исполнение в источнике
+         * `api.modelizmclub.ru`. `X-Content-Type-Options: nosniff` здесь не
+         * помогает: тип заявлен честно, браузер и должен открыть его как SVG.
+         * CSP на этом хосте нет.
+         *
+         * Санитайзер в проекте есть (`SvgIconSanitizer`), но он чистит поле
+         * `IconAsset.svg`, а не объект в хранилище: по ссылке прокси отдавал
+         * ровно то, что загрузили. Ссылку на такой файл можно было поставить
+         * себе аватаром — привязка аватара назначение не проверяет.
+         *
+         * Закрыто в выдаче, а не только в загрузке: так вектор исчезает
+         * независимо от того, каким путём файл попал в бакет и кем. Рисованию
+         * иконок это не мешает — они приезжают в браузер очищенной разметкой
+         * или ссылкой на PNG (`/api/v1/icon-overrides`, `Icon.tsx`), а SVG
+         * через прокси не запрашивает никто.
+         */
+        if (str_contains(strtolower($mime), 'svg')) {
+            $mime = 'application/octet-stream';
+            $расположение = 'attachment';
+        } else {
+            $расположение = 'inline';
+        }
+
         $headers = [
             'Content-Type' => $mime,
             'Accept-Ranges' => 'bytes',
             'Cache-Control' => $cacheControl,
-            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            'Content-Disposition' => $расположение.'; filename="'.$filename.'"',
         ];
 
         $start = 0;

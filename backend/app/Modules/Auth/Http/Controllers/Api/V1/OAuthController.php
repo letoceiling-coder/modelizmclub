@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use Modules\Auth\Services\MaxAuthService;
+use Modules\Auth\Services\OAuthHandoffService;
 use Modules\Auth\Services\OAuthService;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -81,8 +82,16 @@ class OAuthController extends Controller
          * признака цель «регистрация» считала бы только путь «почта + код»,
          * и доля OAuth молча выпадала бы из отчётов.
          */
+        /*
+         * В адресе едет разовый код, не токен.
+         *
+         * До 03.10 здесь стоял `'oauth_token' => $result['token']`, то есть
+         * непросроченный bearer-токен в строке запроса — а значит в журнале
+         * nginx (основной `location /` логируется целиком) и, возможно, в
+         * Яндекс.Метрике. Разбор — в `OAuthHandoffService`.
+         */
         return $this->redirectToFrontend(array_filter([
-            'oauth_token' => $result['token'],
+            'oauth_code' => app(OAuthHandoffService::class)->issue($result['token']),
             'oauth_provider' => $provider,
             'oauth_new' => ! empty($result['created']) ? '1' : null,
         ], static fn ($v): bool => $v !== null));
