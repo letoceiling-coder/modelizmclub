@@ -7,7 +7,7 @@
 
 
 > Версия: 1.0 · 15.06.2026  
-> Репозиторий: `git@github.com:letoceiling-coder/modelizmclub.git`  
+> Репозиторий: `git@github.com:Neeklo1606/modelizmclub.git`  
 > Dev-сервер: `dev.modelizmclub.ru` → `31.207.75.124` (Beget VPS, Ubuntu 24.04)  
 > Файлы: Selectel S3 · БД: PostgreSQL 16
 

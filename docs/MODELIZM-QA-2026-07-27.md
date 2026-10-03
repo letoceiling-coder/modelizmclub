@@ -2,7 +2,7 @@
 
 > **Дата выполнения:** 27.07.2026  
 > **Источник:** `MODELIZM.docx` (Telegram Desktop)  
-> **Репозиторий:** `git@github.com:letoceiling-coder/modelizmclub.git`  
+> **Репозиторий:** `git@github.com:Neeklo1606/modelizmclub.git`  
 > **Production:** https://modelizmclub.ru  
 > **Сервер:** `31.207.75.124`  
 > **Коммиты:** `f96a3c1` → `d12fa60` → `a488371`

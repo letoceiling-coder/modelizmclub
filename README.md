@@ -16,7 +16,7 @@ deploy/      Конфиги деплоя на VPS
 **Локально проект не разворачивается.** Рабочий цикл:
 
 1. Разработка кода в репозитории (IDE + git)
-2. Push в `git@github.com:letoceiling-coder/modelizmclub.git`
+2. Push в `git@github.com:Neeklo1606/modelizmclub.git`
 3. Деплой на **dev.modelizmclub.ru** (VPS Beget, `31.207.75.124`)
 4. Миграции и проверка API на dev-сервере
 
@@ -42,6 +42,6 @@ deploy/      Конфиги деплоя на VPS
 ## Git
 
 ```bash
-git remote add origin git@github.com:letoceiling-coder/modelizmclub.git
+git remote add origin git@github.com:Neeklo1606/modelizmclub.git
 git push -u origin master
 ```
