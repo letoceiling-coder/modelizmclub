@@ -1,0 +1,65 @@
+{
+  "/": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "totalRequests": 34,
+    "apiCount": 8,
+    "apiUrls": [
+      "GET /api/v1/media/2150bd98-4d08-4a1c-8f4a-e1b10a47b6b4/thumb.webp → 200",
+      "GET /api/v1/plans → 200",
+      "GET /api/v1/media/b3958976-ef1f-41b1-b115-43f1d8a76428/thumb.webp → 200",
+      "GET /api/v1/media/4fefc3e1-3473-4fb3-b864-34b5e0288851/thumb.webp → 200",
+      "GET /api/v1/media/775f3741-70c3-4821-97c8-e49068980ae2/thumb.webp → 200",
+      "GET /api/v1/media/d35f3f9b-ace9-4762-897c-f1127cc7fb4f/thumb.webp → 200",
+      "GET /api/v1/media/a5ffc090-75ef-42fb-91af-78413f133cce/thumb.webp → 200",
+      "GET /api/v1/media/290c4417-00ce-4f9b-87b1-e9f8b1fc88f7/thumb.webp → 200"
+    ],
+    "videoRequests": [],
+    "failedRequests": [],
+    "title": "МоДелизМ — маркетплейс и сообщество моделистов"
+  },
+  "/feed": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "totalRequests": 68,
+    "apiCount": 8,
+    "apiUrls": [
+      "GET /api/v1/media/ef6d4467-c11f-406c-8794-5b22731e361a/medium.webp → 200",
+      "GET /api/v1/media/652489bd-8c23-4197-aaed-f02ef6d73323/thumb.webp → 200",
+      "GET /api/v1/media/286138d8-cd1c-4fea-acb8-5552696e1d04/thumb.webp → 200",
+      "GET /api/v1/media/cbbfaa5e-5c90-4461-8a9a-ef8da8f2ec62/card.avif → 200",
+      "GET /api/v1/public/banners?placement=feed → 200",
+      "GET /api/v1/media/c2846447-a92b-458e-a336-150fbe5eba5a/card.avif → 200",
+      "GET /api/v1/media/d68f156a-61e9-4b83-9b5b-0d8c7d94e88d/card.avif → 200",
+      "POST /api/v1/public/banners/41/events → 200"
+    ],
+    "videoRequests": [],
+    "failedRequests": [],
+    "title": "Лента — МоДелизМ"
+  },
+  "/ads": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "totalRequests": 54,
+    "apiCount": 14,
+    "apiUrls": [
+      "GET /api/v1/media/e490dff5-6374-4484-9983-d05dfa069735/thumb.avif → 200",
+      "GET /api/v1/media/a5ffc090-75ef-42fb-91af-78413f133cce/thumb.avif → 200",
+      "GET /api/v1/media/2150bd98-4d08-4a1c-8f4a-e1b10a47b6b4/thumb.avif → 200",
+      "GET /api/v1/media/4fefc3e1-3473-4fb3-b864-34b5e0288851/thumb.avif → 200",
+      "GET /api/v1/media/d35f3f9b-ace9-4762-897c-f1127cc7fb4f/thumb.avif → 200",
+      "GET /api/v1/media/775f3741-70c3-4821-97c8-e49068980ae2/thumb.avif → 200",
+      "GET /api/v1/media/290c4417-00ce-4f9b-87b1-e9f8b1fc88f7/thumb.avif → 200",
+      "GET /api/v1/media/531659d9-c224-4040-860e-3879aa53961b/thumb.avif → 200",
+      "GET /api/v1/media/c188b0f2-5c03-411d-abef-80d432a1af78/thumb.avif → 200",
+      "GET /api/v1/media/6cdeff12-72b4-49b0-9a3f-dd709a66e9f5/thumb.avif → 200",
+      "GET /api/v1/media/692da5b7-7e7f-4f9f-a6d6-08a64cd6cf92/thumb.avif → 200",
+      "GET /api/v1/media/7f7b52b2-ac93-49f6-94ba-0b94330aaa36/thumb.avif → 200",
+      "GET /api/v1/media/3ec17fe2-d2ef-4e72-9c0b-c8ac8197568f/thumb.avif → 200",
+      "GET /api/v1/media/12d9748f-390f-4544-86e9-d74d9d6009c7/thumb.avif → 200"
+    ],
+    "videoRequests": [],
+    "failedRequests": [],
+    "title": "Объявления — МоДелизМ"
+  }
+}

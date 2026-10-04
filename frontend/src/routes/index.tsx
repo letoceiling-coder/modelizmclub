@@ -158,7 +158,19 @@ function TopNav() {
         borderBottom: "1px solid var(--border)",
       }}
     >
-      <div className="mx-auto flex h-[64px] max-w-[1240px] items-center justify-between gap-4 px-4 md:px-8">
+      {/*
+        Отступы и зазор сжимаются на узких экранах.
+
+        На 360 px строка шапки гостя не помещалась: логотип 150 + «Создать
+        аккаунт» 152 + кнопка меню 40 плюс отступы давали 382 px. Горизонтальной
+        прокрутки при этом не возникало — лишнее просто срезалось правым краем,
+        и срезало ровно кнопку меню: из сорока пикселей на экране оставалось
+        восемнадцать. На 320 px она уходила за край целиком.
+
+        Замерено 04.10 на проде: кнопка «Меню» занимала x 342..382 при ширине
+        окна 360.
+      */}
+      <div className="mx-auto flex h-[64px] max-w-[1240px] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4 md:px-8">
         <Link to="/" className="shrink-0">
           <Logo variant="header" />
         </Link>
@@ -192,8 +204,15 @@ function TopNav() {
           )}
         </nav>
 
-        {/* right controls */}
-        <div className="flex items-center gap-2">
+        {/*
+          right controls
+
+          `min-w-0` обязателен: без него группа не может стать уже своего
+          содержимого, и `shrink` на кнопке призыва ничего не даёт — первая
+          редакция этой правки уменьшила срез с 22 px до 10 px и на том
+          остановилась именно поэтому.
+        */}
+        <div className="flex min-w-0 items-center gap-2">
           {loggedIn ? (
             <>
               {/* По праву с сервера, как и в меню аватара: держать два
@@ -236,10 +255,31 @@ function TopNav() {
               </Link>
               <Link
                 to={enter.register}
-                className="hit-target landing-nav-cta-primary inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] px-[14px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:px-[18px] sm:text-sm"
+                /*
+                  `min-w-0 shrink` вместо `shrink-0`: если места всё же не
+                  хватает, сжимается подпись призыва, а не кнопка меню. Подпись
+                  при этом читается, а кнопка меню остаётся целой — из двух
+                  потерь эта дешевле. `truncate` добавляет многоточие, чтобы
+                  обрезку было видно, а не принимали за другое слово.
+                */
+                className="hit-target landing-nav-cta-primary inline-flex h-[34px] min-w-0 shrink items-center justify-center gap-1.5 overflow-hidden rounded-[var(--r-pill)] px-[12px] text-[13px] font-semibold text-[var(--accent-foreground)] transition-opacity hover:opacity-90 sm:h-[40px] sm:min-w-[12.5rem] sm:shrink-0 sm:px-[18px] sm:text-sm"
                 style={{ background: "var(--accent-fill)", boxShadow: "var(--shadow-button)" }}
               >
-                {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
+                {/*
+                  Подпись отдельным узлом с `truncate`, а не классом на самой
+                  ссылке.
+
+                  Ссылка — `inline-flex`, и `truncate` на ней не работает:
+                  многоточие применяется к строчному содержимому, а у flex-
+                  контейнера дети не строчные. Хуже того, `white-space: nowrap`
+                  из `truncate` поднимал минимальную ширину до полной длины
+                  надписи, и кнопка переставала сжиматься вовсе — вторая
+                  редакция правки на этом и застряла: срез остался 10 px.
+                  Внутри span всё обычно, и сжимается именно подпись.
+                */}
+                <span className="truncate">
+                  {enter.demo ? t("landing.nav.demo") : t("landing.nav.register")}
+                </span>
                 <ArrowRight size={15} className="hidden shrink-0 sm:block" />
               </Link>
             </>
@@ -249,7 +289,9 @@ function TopNav() {
             type="button"
             aria-label={t("landing.nav.menu")}
             onClick={() => setMenuOpen((v) => !v)}
-            className="hit-target grid h-[40px] w-[40px] place-items-center rounded-full lg:hidden"
+            /* `shrink-0`: кнопка меню не отдаёт ширину никому — это
+               единственный вход в навигацию на узком экране. */
+            className="hit-target grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full lg:hidden"
             style={{ border: "1px solid var(--border)", background: "var(--background-surface)" }}
           >
             <span className="flex flex-col gap-[3px]">

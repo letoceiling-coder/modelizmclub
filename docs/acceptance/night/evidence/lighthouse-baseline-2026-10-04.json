@@ -1,0 +1,124 @@
+{
+  "инструмент": "Lighthouse 13.4.1, Chrome headless",
+  "условия": "--form-factor=mobile --screenEmulation.mobile --throttling-method=simulate --only-categories=performance",
+  "цель": "https://modelizmclub.ru",
+  "снято": "2026-10-04 02:37–02:40 WITA",
+  "прогоны": {
+    "/": [
+      {
+        "прогон": 1,
+        "performance": 83,
+        "fcp_мс": 1495,
+        "lcp_мс": 1645,
+        "cls": 0,
+        "tbt_мс": 602,
+        "speed_index_мс": 3318
+      },
+      {
+        "прогон": 2,
+        "performance": 69,
+        "fcp_мс": 1592,
+        "lcp_мс": 1665,
+        "cls": 0,
+        "tbt_мс": 2323,
+        "speed_index_мс": 3955
+      },
+      {
+        "прогон": 3,
+        "performance": 83,
+        "fcp_мс": 1672,
+        "lcp_мс": 1672,
+        "cls": 0,
+        "tbt_мс": 585,
+        "speed_index_мс": 3386
+      }
+    ],
+    "/feed": [
+      {
+        "прогон": 1,
+        "performance": 61,
+        "fcp_мс": 2973,
+        "lcp_мс": 4707,
+        "cls": 0.0002,
+        "tbt_мс": 561,
+        "speed_index_мс": 4798
+      },
+      {
+        "прогон": 2,
+        "performance": 61,
+        "fcp_мс": 2979,
+        "lcp_мс": 6507,
+        "cls": 0.0002,
+        "tbt_мс": 357,
+        "speed_index_мс": 4789
+      },
+      {
+        "прогон": 3,
+        "performance": 63,
+        "fcp_мс": 2667,
+        "lcp_мс": 6163,
+        "cls": 0.0002,
+        "tbt_мс": 363,
+        "speed_index_мс": 4498
+      }
+    ],
+    "/ads": [
+      {
+        "прогон": 1,
+        "performance": 75,
+        "fcp_мс": 1163,
+        "lcp_мс": 3952,
+        "cls": 0,
+        "tbt_мс": 469,
+        "speed_index_мс": 3582
+      },
+      {
+        "прогон": 2,
+        "performance": 84,
+        "fcp_мс": 1150,
+        "lcp_мс": 2098,
+        "cls": 0,
+        "tbt_мс": 550,
+        "speed_index_мс": 3376
+      },
+      {
+        "прогон": 3,
+        "performance": 81,
+        "fcp_мс": 1268,
+        "lcp_мс": 3818,
+        "cls": 0,
+        "tbt_мс": 306,
+        "speed_index_мс": 3414
+      }
+    ],
+    "/ads/lego-mindstorms-ev3-31313": [
+      {
+        "прогон": 1,
+        "performance": 62,
+        "fcp_мс": 2894,
+        "lcp_мс": 6068,
+        "cls": 0,
+        "tbt_мс": 329,
+        "speed_index_мс": 4860
+      },
+      {
+        "прогон": 2,
+        "performance": 60,
+        "fcp_мс": 2897,
+        "lcp_мс": 5952,
+        "cls": 0,
+        "tbt_мс": 407,
+        "speed_index_мс": 4807
+      },
+      {
+        "прогон": 3,
+        "performance": 63,
+        "fcp_мс": 2624,
+        "lcp_мс": 5723,
+        "cls": 0,
+        "tbt_мс": 386,
+        "speed_index_мс": 4593
+      }
+    ]
+  }
+}
