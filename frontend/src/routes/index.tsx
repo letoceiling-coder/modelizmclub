@@ -103,16 +103,26 @@ function LandingPage() {
       }}
     >
       <TopNav />
-      <Hero />
-      <CommunityInvite />
-      <FirstHundredBanner />
-      <QuickSections />
-      <PopularListings />
-      <CategoriesSection />
-      <StepsTimeline />
-      <PricingSection />
-      <WhyChoose />
-      <FaqSection />
+      {/*
+       * Содержимое лендинга — в <main>, меню и подвал снаружи.
+       *
+       * Аудит 04.10: главного ориентира не было на девяти страницах, включая
+       * главную. Чтение с экрана опирается на него, чтобы перепрыгнуть меню
+       * одной командой; без него человек каждый раз проходит шапку заново.
+       * На вид не меняется ничего — <main> не несёт своего оформления.
+       */}
+      <main>
+        <Hero />
+        <CommunityInvite />
+        <FirstHundredBanner />
+        <QuickSections />
+        <PopularListings />
+        <CategoriesSection />
+        <StepsTimeline />
+        <PricingSection />
+        <WhyChoose />
+        <FaqSection />
+      </main>
       <Footer />
     </div>
   );

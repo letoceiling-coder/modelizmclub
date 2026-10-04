@@ -3,6 +3,8 @@ import { APP_SCROLL_ID } from "@/lib/scroll-policy";
 import { useMatch } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { hasDirectionsRail } from "@/lib/layout/rails";
+import { pageTitleKey } from "@/lib/layout/page-titles";
+import { useTranslation } from "react-i18next";
 import { loadNavExpanded, loadPersistedFavorites, selectNavExpanded, useStore } from "@/lib/store";
 import { Sidebar } from "./Sidebar";
 import { DirectionsRightRail } from "./DirectionsRightRail";
@@ -57,6 +59,8 @@ export function AppLayout({
   */
   const pathname = useMatch({ strict: false, select: (m) => m.pathname });
   const withRail = rail ?? hasDirectionsRail(pathname);
+  const { t } = useTranslation();
+  const titleKey = pageTitleKey(pathname);
 
   /*
     Свёрнутое меню (каталог, объявление): значки 64 на всех ширинах, пока
@@ -152,6 +156,19 @@ export function AppLayout({
           data-scroll-restoration-id={APP_SCROLL_ID}
           className="min-w-0 flex-1 lg:overflow-y-auto xl:flex-none"
         >
+          {/*
+            Заголовок первого уровня для страниц, у которых его нет на экране.
+
+            Берётся по адресу — как и правая колонка выше, и по той же
+            причине: ответ один на адрес, и оболочка берёт его сама, иначе
+            скелетон и экран ошибки остались бы без заголовка. Таблица и
+            доводы — в `lib/layout/page-titles.ts`.
+
+            На вид не меняется ничего: `sr-only` убирает узел с экрана, но
+            оставляет его чтению. Страницы со своим видимым заголовком в
+            таблицу не входят, иначе заголовок бы удвоился.
+          */}
+          {titleKey ? <h1 className="sr-only">{t(titleKey)}</h1> : null}
           {/*
             Подвал не заходит в первый экран, пока грузится содержимое.
 

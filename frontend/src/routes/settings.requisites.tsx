@@ -17,6 +17,7 @@ import { fetchMe } from "@/lib/api/auth";
 import { fetchPayoutRequisites, savePayoutRequisites } from "@/lib/api/payout-requisites";
 import { fetchDocumentRequisites, saveDocumentRequisites } from "@/lib/api/account";
 import { reportReadFailure } from "@/lib/errors/handle";
+import { canLoadPrivateData } from "@/lib/auth/can-load-private";
 
 export const Route = createFileRoute("/settings/requisites")({
   component: RequisitesSection,
@@ -59,6 +60,13 @@ function RequisitesSection() {
       setLoading(false);
       return;
     }
+    /*
+     * Гостю загружать нечего: эти данные личные, и без токена ответ будет
+     * 401. Страница при этом остаётся на экране под окном входа — так
+     * задумано, — но шесть заведомо отказных запросов на открытие ей не
+     * нужны (аудит 04.10). Довод целиком — в lib/auth/can-load-private.ts.
+     */
+    if (!canLoadPrivateData()) return;
     let alive = true;
     Promise.all([fetchDocumentRequisites(), fetchMe()])
       .then(([r, me]) => {
@@ -194,6 +202,13 @@ function PayoutCard() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    /*
+     * Гостю загружать нечего: эти данные личные, и без токена ответ будет
+     * 401. Страница при этом остаётся на экране под окном входа — так
+     * задумано, — но шесть заведомо отказных запросов на открытие ей не
+     * нужны (аудит 04.10). Довод целиком — в lib/auth/can-load-private.ts.
+     */
+    if (!canLoadPrivateData()) return;
     let alive = true;
     fetchPayoutRequisites()
       .then((r) => {

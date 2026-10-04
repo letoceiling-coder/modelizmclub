@@ -127,7 +127,17 @@ export function AuthShell({ title, subtitle, children, footer, leftContent }: Pr
         <div className="hidden justify-end p-[24px] lg:flex">
           <ThemeToggle />
         </div>
-        <div className="flex flex-1 flex-col justify-center px-[24px] pb-[40px] sm:px-[48px]">
+        {/*
+         * Форма со своим заголовком — это и есть главное содержимое страницы.
+         *
+         * Аудит 04.10: <main> не было ни на одной из семи страниц входа и
+         * восстановления — /login, /register, /recover, /reset-password,
+         * /verify-email, /auth, /diag. Левая колонка с картинкой и
+         * переключатель темы остаются снаружи: это оформление, а не то, ради
+         * чего человек сюда пришёл. Оформление не меняется — <main> своего
+         * вида не имеет, классы раскладки остались на том же узле.
+         */}
+        <main className="flex flex-1 flex-col justify-center px-[24px] pb-[40px] sm:px-[48px]">
           <div className="mx-auto w-full" style={{ maxWidth: 400 }}>
             <h1
               style={{
@@ -155,7 +165,7 @@ export function AuthShell({ title, subtitle, children, footer, leftContent }: Pr
               </div>
             )}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

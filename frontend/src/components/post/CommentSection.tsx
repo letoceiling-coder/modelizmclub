@@ -1000,7 +1000,18 @@ export function CommentSection({
         <button
           type="button"
           onClick={() => setPage((p) => p + 1)}
-          className="mt-[10px] text-[13px] font-semibold transition-opacity hover:opacity-80"
+          /*
+           * Зона нажатия не ниже 24 px — нижняя граница WCAG 2.5.8.
+           *
+           * Замер на проде 04.10, 390 px: кнопка была 81×18. Это не ссылка
+           * внутри строки, для которых у правила есть исключение, а отдельное
+           * управление — и самое частое в ленте комментариев. Высота
+           * набирается отступами; кегль, цвет и место на экране прежние:
+           * внешний отступ уменьшен ровно на столько, на сколько вырос
+           * внутренний, а `-mx` возвращает горизонтальную рамку, чтобы текст
+           * не сдвинулся относительно соседних строк.
+           */
+          className="-mx-[6px] mt-[7px] min-h-[24px] px-[6px] py-[3px] text-[13px] font-semibold transition-opacity hover:opacity-80"
           style={{ color: "var(--accent)" }}
         >
           {t("components.commentSection.loadMore")}
