@@ -64,7 +64,15 @@ function DiagPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[720px] px-4 py-12">
+    /*
+     * <main> — главное содержимое страницы.
+     *
+     * Замер на стенде 05.10: у /diag не было ни одного ориентира, хотя
+     * заголовок есть. Чтение с экрана перепрыгивает к <main> одной
+     * командой; без него путь к содержимому один — пройти всю шапку.
+     * На вид не меняется ничего, классы раскладки остались на том же узле.
+     */
+    <main className="mx-auto max-w-[720px] px-4 py-12">
       <h1 className="font-display text-[28px] font-bold">Диагностика</h1>
       <p className="mt-1 text-sm" style={{ color: "var(--foreground-50)" }}>
         Состояние сервисов. Секреты не показываются.
@@ -140,6 +148,6 @@ function DiagPage() {
           </section>
         </div>
       ) : null}
-    </div>
+    </main>
   );
 }
