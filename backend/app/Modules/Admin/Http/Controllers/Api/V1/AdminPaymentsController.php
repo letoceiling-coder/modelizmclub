@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Support\CsvCell;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Support\PaymentAccountingType;
@@ -47,7 +48,7 @@ class AdminPaymentsController extends Controller
             }
 
             fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, [
+            fputcsv($handle, CsvCell::row([
                 'UUID',
                 'Дата',
                 'Email',
@@ -64,14 +65,14 @@ class AdminPaymentsController extends Controller
                 'Шаг обрыва',
                 'Отказ зафиксирован',
                 'Секунд до отказа',
-            ], ';');
+            ]), ';');
 
             $this->query($request)
                 ->orderByDesc('id')
                 ->chunk(200, function ($payments) use ($handle): void {
                     foreach ($payments as $payment) {
                         $row = $this->serialize($payment);
-                        fputcsv($handle, [
+                        fputcsv($handle, CsvCell::row([
                             $row['uuid'],
                             $row['paid_at'] ?? $row['created_at'],
                             $row['user_email'] ?? '',
@@ -92,7 +93,7 @@ class AdminPaymentsController extends Controller
                             $payment->failed_at && $payment->created_at
                                 ? (string) $payment->created_at->diffInSeconds($payment->failed_at)
                                 : '',
-                        ], ';');
+                        ]), ';');
                     }
                 });
 

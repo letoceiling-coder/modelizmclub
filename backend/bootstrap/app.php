@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureCommunitiesEnabled;
 use App\Http\Middleware\EnsureFullyVerified;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\JsonEtag;
+use App\Http\Middleware\RejectBlockedAccounts;
 use App\Http\Middleware\RequiresSubscription;
 use App\Http\Middleware\ResolveOptionalUser;
 use App\Support\ApiErrorMessage;
@@ -40,6 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Apply the named "api" rate limiter to every API route.
         $middleware->throttleApi('api');
+
+        // Заблокированный и удалённый не действуют по уже выданному токену.
+        // Раньше статус проверялся только при входе, и открытая вкладка
+        // переживала блокировку. Подробности — в докблоке класса.
+        $middleware->appendToGroup('api', RejectBlockedAccounts::class);
 
         // ETag на JSON-ответы 200 и 304 на повторный запрос. Подробности —
         // в докблоке класса: почему вся группа, а не список публичных маршрутов.

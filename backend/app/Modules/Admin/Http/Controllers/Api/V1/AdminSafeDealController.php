@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
+use App\Support\CsvCell;
 use App\Enums\SafeDealFeePayer;
 use App\Support\SafeDealOutcome;
 use App\Http\Controllers\Controller;
@@ -43,7 +44,7 @@ class AdminSafeDealController extends Controller
             }
 
             fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, [
+            fputcsv($handle, CsvCell::row([
                 'UUID',
                 'Создана',
                 'Статус',
@@ -91,11 +92,11 @@ class AdminSafeDealController extends Controller
                 'Доставлена',
                 'Завершена',
                 'Отменена',
-            ], ';');
+            ]), ';');
 
             $this->query($request)->chunk(200, function ($deals) use ($handle): void {
                 foreach ($deals as $deal) {
-                    fputcsv($handle, [
+                    fputcsv($handle, CsvCell::row([
                         $deal->uuid,
                         $deal->created_at?->toDateTimeString(),
                         $deal->status->value,
@@ -119,7 +120,7 @@ class AdminSafeDealController extends Controller
                         $deal->delivered_at?->toDateTimeString(),
                         $deal->completed_at?->toDateTimeString(),
                         $deal->cancelled_at?->toDateTimeString(),
-                    ], ';');
+                    ]), ';');
                 }
             });
 
