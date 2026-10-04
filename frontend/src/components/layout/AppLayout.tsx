@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { APP_SCROLL_ID } from "@/lib/scroll-policy";
-import { useMatch } from "@tanstack/react-router";
+import { useMatch, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { hasDirectionsRail } from "@/lib/layout/rails";
 import { pageTitleKey } from "@/lib/layout/page-titles";
@@ -60,7 +60,21 @@ export function AppLayout({
   const pathname = useMatch({ strict: false, select: (m) => m.pathname });
   const withRail = rail ?? hasDirectionsRail(pathname);
   const { t } = useTranslation();
-  const titleKey = pageTitleKey(pathname);
+  /*
+   * Для заголовка — настоящий адрес, а не совпадение маршрута.
+   *
+   * Раскладка берёт `pathname` у своего совпадения, и у этого есть причина
+   * выше: адрес роутера меняется в момент клика, а старая страница ещё на
+   * экране, и центр успевал съехать. Но у совпадения другой изъян: у
+   * дочерней страницы оно равно родительскому. Замер на стенде 04.10 дал на
+   * /reviews/upload два `<h1>` — скрытые «Обзоры» от правила `^/reviews/?$`
+   * и свой заголовок страницы; то же самое было в настройках.
+   *
+   * Скрытому заголовку довод про CLS не относится: он ничего не занимает на
+   * экране, и сдвигать ему нечего. Поэтому здесь — адрес как есть.
+   */
+  const настоящийАдрес = useRouterState({ select: (s) => s.location.pathname });
+  const titleKey = pageTitleKey(настоящийАдрес);
 
   /*
     Свёрнутое меню (каталог, объявление): значки 64 на всех ширинах, пока
