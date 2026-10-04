@@ -137,7 +137,7 @@ class ReferenceDataSeeder extends Seeder
                 ['slug' => 'aviation-helicopters', 'name' => 'Вертолёты'],
                 ['slug' => 'aviation-civil', 'name' => 'Гражданская авиация'],
             ]],
-            ['slug' => 'armor', 'name' => 'Бронетехника', 'icon' => 'tank', 'children' => [
+            ['slug' => 'armor', 'name' => 'Бронетехника', 'icon' => 'shield', 'children' => [
                 ['slug' => 'armor-tanks', 'name' => 'Танки'],
                 ['slug' => 'armor-apc', 'name' => 'БТР и БМП'],
                 ['slug' => 'armor-artillery', 'name' => 'Артиллерия'],
