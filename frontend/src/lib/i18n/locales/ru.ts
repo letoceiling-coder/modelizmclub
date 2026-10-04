@@ -157,6 +157,7 @@ export const ru = {
   },
   landing: {
     nav: {
+      howToUse: "Как пользоваться",
       ads: "Объявления",
       communities: "Сообщества",
       channels: "Каналы",
