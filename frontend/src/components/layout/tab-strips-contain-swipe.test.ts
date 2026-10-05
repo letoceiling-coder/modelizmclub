@@ -27,7 +27,6 @@ import { describe, expect, it } from "vitest";
 const СТРИПЫ: Array<[string, string]> = [
   ["общий примитив вкладок", join(import.meta.dirname, "..", "ui", "tabs.tsx")],
   ["вкладки сущностей", join(import.meta.dirname, "..", "entity", "EntityTabs.tsx")],
-  ["вкладки профиля", join(import.meta.dirname, "..", "profile", "ProfileView.tsx")],
   ["вкладки мессенджера", join(import.meta.dirname, "..", "ui", "HorizontalScrollNav.tsx")],
   ["фильтры ленты", join(import.meta.dirname, "..", "feed", "FeedFilterTabs.tsx")],
 ];
@@ -40,4 +39,64 @@ describe("ленты вкладок удерживают горизонталь�
       expect(источник).toMatch(/overscroll-x-contain|overscrollBehaviorX/);
     });
   }
+});
+
+/**
+ * Профиль берёт ряд вкладок у общего компонента, а не собирает свой.
+ *
+ * Своего ряда у него было два недостатка сразу: ни `role="tablist"`, ни
+ * `role="tab"` — диктор читал семь вкладок как семь кнопок, — и удержание
+ * жеста приходилось ставить отдельной строкой. Проверка на `overscroll` у
+ * профиля поэтому снята: свойство теперь живёт в `EntityTabs`, и следить
+ * надо за тем, что профиль им пользуется.
+ */
+describe("вкладки профиля", () => {
+  const PROFILE = join(import.meta.dirname, "..", "profile", "ProfileView.tsx");
+
+  it("ряд берётся из общего EntityTabs", () => {
+    const источник = readFileSync(PROFILE, "utf8");
+
+    expect(источник).toContain("<EntityTabs");
+    expect(источник).toContain('from "@/components/entity/EntityTabs"');
+  });
+
+  it("своего ряда кнопок не осталось", () => {
+    const источник = readFileSync(PROFILE, "utf8");
+
+    // Подчёркивание выбранной вкладки своей тенью — признак самодельного ряда.
+    expect(источник).not.toContain("inset 0 -3px 0 var(--accent)");
+  });
+});
+
+/**
+ * Общий ряд вкладок ведёт себя как tablist.
+ *
+ * Роли там стояли и раньше, а поведения при них не было: стрелки не
+ * переключали, и `tabIndex` оставлял в обходе Tab все вкладки подряд. То
+ * есть разметка обещала диктору навигацию, которой не существовало.
+ */
+describe("семантика общего ряда вкладок", () => {
+  const ENTITY = join(import.meta.dirname, "..", "entity", "EntityTabs.tsx");
+
+  it("роли на месте", () => {
+    const источник = readFileSync(ENTITY, "utf8");
+
+    expect(источник).toContain('role="tablist"');
+    expect(источник).toContain('role="tab"');
+    expect(источник).toContain("aria-selected");
+  });
+
+  it("стрелки переключают вкладку", () => {
+    const источник = readFileSync(ENTITY, "utf8");
+
+    expect(источник).toContain("ArrowRight");
+    expect(источник).toContain("ArrowLeft");
+    expect(источник).toContain("onKeyDown");
+  });
+
+  it("в обходе Tab только выбранная вкладка", () => {
+    const источник = readFileSync(ENTITY, "utf8");
+
+    expect(источник).toContain("tabIndex={isActive ? 0 : -1}");
+  });
 });

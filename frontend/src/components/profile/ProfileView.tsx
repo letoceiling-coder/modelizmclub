@@ -59,6 +59,7 @@ import { openConversation } from "@/lib/api/chat";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog";
+import { EntityTabs } from "@/components/entity/EntityTabs";
 import { uploadMedia } from "@/lib/api/media";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -1026,26 +1027,21 @@ function Tabs({
   const visibleTabs = TABS_BASE.filter(
     (item) => (isOwn || !item.ownOnly) && !(hideAbout && item.key === "about"),
   );
-  const rowRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef<HTMLButtonElement>(null);
-
-  // Выбранная вкладка — в видимой части ряда, как в EntityTabs. Только по
-  // горизонтали и только внутри ряда: scrollIntoView увёл бы страницу.
-  useEffect(() => {
-    const row = rowRef.current;
-    const btn = activeRef.current;
-    if (!row || !btn) return;
-    if (
-      btn.offsetLeft >= row.scrollLeft &&
-      btn.offsetLeft + btn.offsetWidth <= row.scrollLeft + row.clientWidth
-    )
-      return;
-    row.scrollTo({
-      left: Math.max(0, btn.offsetLeft - row.clientWidth / 2 + btn.offsetWidth / 2),
-      behavior: "smooth",
-    });
-  }, [tab]);
-
+  /*
+   * Ряд вкладок — общий `EntityTabs`, тот же, что у сообщества и канала.
+   *
+   * Профиль собирал свой ряд из кнопок в прокручиваемом `div`, и из-за этого
+   * оставался без семантики: замер 05.10 на 360 показал, что на странице нет
+   * ни `role="tablist"`, ни `role="tab"` — весь перечень ролей сводился к
+   * одному `status`. Экранный диктор читал семь вкладок как семь кнопок
+   * подряд, стрелки не переключали, а подчёркивание выбранной было 3 px
+   * вместо тонкого, которого просит ТЗ 3.4.
+   *
+   * Значок у вкладки добавлен в сам `EntityTabs` (поле `icon`), а не оставлен
+   * здесь: иначе ряд пришлось бы держать свой, и всё повторилось бы.
+   * Автоцентровка выбранной вкладки, прокрутка без видимой полосы и
+   * удержание горизонтального жеста у общего компонента уже есть.
+   */
   return (
     <div
       className="sticky top-0 z-10 px-[16px] py-2 md:px-[32px]"
@@ -1055,44 +1051,16 @@ function Tabs({
         borderBottom: "1px solid var(--border)",
       }}
     >
-      {/*
-        Один ряд на всех ширинах, прокрутка вбок — как у вкладок сообщества
-        и канала (EntityTabs) и как здесь же на телефоне.
-
-        От 768 ряд переносился: восемь вкладок своего профиля — это 971 px
-        при месте 478–614, и они вставали в две строки на 768, 1440 и 1920 и
-        в три на 1024; шесть вкладок чужого — в две строки от 768. Полоса
-        вкладок занимала 105 и 151 px вместо 61, а подчёркивание выбранной
-        оказывалось посреди блока (замер на проде 17.09).
-      */}
-      <div
-        ref={rowRef}
-        className="-mx-[16px] overflow-x-auto overscroll-x-contain px-[16px] md:-mx-[32px] md:px-[32px]"
-      >
-        <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-1">
-          {visibleTabs.map(({ key, Icon }) => {
-            const active = tab === key;
-            const label = t(TAB_LABEL_KEYS[key]);
-            return (
-              <button
-                key={key}
-                ref={active ? activeRef : undefined}
-                type="button"
-                onClick={() => setTab(key)}
-                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[8px] px-2 py-3 font-display transition-colors duration-200 md:px-3"
-                style={{
-                  fontSize: 12,
-                  fontWeight: active ? 600 : 500,
-                  color: active ? "var(--accent)" : "var(--foreground-50)",
-                  boxShadow: active ? "inset 0 -3px 0 var(--accent)" : "inset 0 -3px 0 transparent",
-                }}
-              >
-                <Icon size={16} aria-hidden /> {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <EntityTabs
+        tabs={visibleTabs.map(({ key, Icon }) => ({
+          key,
+          label: t(TAB_LABEL_KEYS[key]),
+          icon: Icon,
+        }))}
+        active={tab}
+        onChange={setTab}
+        layoutId="profile-tabs-underline"
+      />
     </div>
   );
 }
