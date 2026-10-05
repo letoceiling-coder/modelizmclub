@@ -28,6 +28,7 @@ import {
   Search,
   CalendarDays,
   KeyRound,
+  ChevronDown,
 } from "lucide-react";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
@@ -293,6 +294,78 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
   { id: "auditLog", labelKey: "pages.adminShell.nav.auditLog", icon: Search },
 ];
 
+/*
+ * Группы меню. Разделы не прячутся — они получают адрес.
+ *
+ * Было тридцать пунктов одним столбцом. Владелец 05.10 сказал, что «много
+ * панелей пропало»; проверка показала, что из кода не пропало ничего —
+ * пропало из поля зрения: найти «Баннеры ленты» в списке из тридцати строк
+ * без заголовков можно только перечитав его целиком.
+ *
+ * Группа с текущим разделом раскрыта, остальные свёрнуты. Поэтому на экране
+ * видно шесть заголовков и содержимое одной группы вместо тридцати строк, а
+ * любой раздел — в одно нажатие по заголовку.
+ *
+ * Каждый пункт входит ровно в одну группу: за этим следит
+ * `admin-nav-groups.test.ts`. Новый раздел, не попавший ни в одну, иначе
+ * исчез бы из меню молча — ровно то, в чём меня и заподозрили.
+ */
+export const NAV_GROUPS: { id: string; labelKey: string; items: Section[] }[] = [
+  {
+    id: "overview",
+    labelKey: "pages.adminShell.navGroups.overview",
+    items: ["dashboard"],
+  },
+  {
+    id: "people",
+    labelKey: "pages.adminShell.navGroups.people",
+    items: ["users", "roles", "applications", "feedGuestAccess", "notificationPolicy"],
+  },
+  {
+    id: "content",
+    labelKey: "pages.adminShell.navGroups.content",
+    items: [
+      "content",
+      "ads",
+      "categories",
+      "reviews",
+      "moderation",
+      "events",
+      "media",
+      "notifications",
+    ],
+  },
+  {
+    id: "site",
+    labelKey: "pages.adminShell.navGroups.site",
+    items: [
+      "landingBlocks",
+      "feedBanners",
+      "design",
+      "icons",
+      "footerLinks",
+      "legalPages",
+      "rulesPages",
+      "settings",
+    ],
+  },
+  {
+    id: "money",
+    labelKey: "pages.adminShell.navGroups.money",
+    items: [
+      "monetizationPricing",
+      "monetizationPayments",
+      "monetizationLedger",
+      "monetizationPromos",
+    ],
+  },
+  {
+    id: "service",
+    labelKey: "pages.adminShell.navGroups.service",
+    items: ["delivery", "analytics", "feedback", "auditLog"],
+  },
+];
+
 function SectionView({ section, adminRole }: { section: Section; adminRole: AdminRole | null }) {
   return (
     <Suspense fallback={<AdminSectionSkeleton />}>
@@ -360,6 +433,14 @@ function AdminPage() {
   const [localeReady, setLocaleReady] = useState(false);
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [allowedSections, setAllowedSections] = useState<string[]>([]);
+  /*
+   * Какие группы меню раскрыты. Пусто — значит «по умолчанию»: раскрыта та,
+   * в которой текущий раздел. Выбор человека переживает переходы между
+   * разделами и не переживает перезагрузку: хранить его в localStorage
+   * значило бы читать хранилище в разметке первого кадра, а это расхождение
+   * гидрации (CLAUDE.md, §«Первый кадр»).
+   */
+  const [открытыеГруппы, setОткрытыеГруппы] = useState<Record<string, boolean>>({});
 
   // Раздел живёт в адресе, а не в состоянии рядом с ним. Пока это был
   // `useState`, ссылку на раздел нельзя было дать, перезагрузка возвращала в
@@ -646,34 +727,80 @@ function AdminPage() {
           }}
         >
           <nav style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            {visibleNavItems.map((n) => {
-              const active = navIdFor(section) === n.id;
+            {NAV_GROUPS.map((группа) => {
+              const пункты = visibleNavItems.filter((n) => группа.items.includes(n.id));
+
+              // Группа без единого доступного раздела не рисуется вовсе:
+              // заголовок без содержимого обещал бы то, чего роль не даёт.
+              if (пункты.length === 0) return null;
+
+              const здесьТекущий = пункты.some((n) => n.id === navIdFor(section));
+              const раскрыта = открытыеГруппы[группа.id] ?? здесьТекущий;
+
               return (
-                <button
-                  key={n.id}
-                  onClick={() => goToSection(n.id)}
-                  className="flex w-full items-center"
-                  style={{
-                    gap: "10px",
-                    padding: "8px 12px",
-                    borderRadius: "var(--r-card-sm)",
-                    fontSize: "13px",
-                    fontWeight: active ? 600 : 500,
-                    color: active ? "var(--accent)" : "var(--foreground-70)",
-                    background: active ? "var(--accent-soft)" : "transparent",
-                    transition: "background 150ms ease",
-                    minHeight: "36px",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = "var(--background-surface)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  <n.icon size={16} />
-                  {t(n.labelKey)}
-                </button>
+                <div key={группа.id} style={{ marginBottom: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setОткрытыеГруппы((п) => ({ ...п, [группа.id]: !раскрыта }))}
+                    aria-expanded={раскрыта}
+                    className="flex w-full items-center justify-between"
+                    style={{
+                      gap: "8px",
+                      padding: "7px 12px",
+                      borderRadius: "var(--r-card-sm)",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "var(--foreground-50)",
+                      background: "transparent",
+                      minHeight: "32px",
+                    }}
+                  >
+                    <span>{t(группа.labelKey)}</span>
+                    <ChevronDown
+                      size={14}
+                      style={{
+                        transform: раскрыта ? "rotate(0deg)" : "rotate(-90deg)",
+                        transition: "transform 150ms ease",
+                      }}
+                    />
+                  </button>
+
+                  {раскрыта
+                    ? пункты.map((n) => {
+                        const active = navIdFor(section) === n.id;
+                        return (
+                          <button
+                            key={n.id}
+                            onClick={() => goToSection(n.id)}
+                            className="flex w-full items-center"
+                            style={{
+                              gap: "10px",
+                              padding: "8px 12px 8px 20px",
+                              borderRadius: "var(--r-card-sm)",
+                              fontSize: "13px",
+                              fontWeight: active ? 600 : 500,
+                              color: active ? "var(--accent)" : "var(--foreground-70)",
+                              background: active ? "var(--accent-soft)" : "transparent",
+                              transition: "background 150ms ease",
+                              minHeight: "36px",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!active)
+                                e.currentTarget.style.background = "var(--background-surface)";
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!active) e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            <n.icon size={16} />
+                            {t(n.labelKey)}
+                          </button>
+                        );
+                      })
+                    : null}
+                </div>
               );
             })}
           </nav>
@@ -697,11 +824,25 @@ function AdminPage() {
                 color: "var(--foreground)",
               }}
             >
-              {visibleNavItems.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {t(n.labelKey)}
-                </option>
-              ))}
+              {/*
+                Те же группы, что в боковом меню: на телефоне список из
+                тридцати строк листается вслепую. `optgroup` рисует родной
+                разделитель операционной системы — свой список здесь был бы
+                хуже системного.
+              */}
+              {NAV_GROUPS.map((группа) => {
+                const пункты = visibleNavItems.filter((n) => группа.items.includes(n.id));
+                if (пункты.length === 0) return null;
+                return (
+                  <optgroup key={группа.id} label={t(группа.labelKey)}>
+                    {пункты.map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {t(n.labelKey)}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
             </select>
           </div>
 
