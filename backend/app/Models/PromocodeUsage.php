@@ -13,13 +13,22 @@ class PromocodeUsage extends Model
         'promocode_id',
         'user_id',
         'payment_id',
+        'status',
+        'reserved_at',
         'used_at',
     ];
+
+    /** Место занято, оплаты ещё нет. */
+    public const ЗАНЯТО = 'reserved';
+
+    /** Оплата прошла, место израсходовано. */
+    public const ИЗРАСХОДОВАНО = 'used';
 
     protected function casts(): array
     {
         return [
             'used_at' => 'datetime',
+            'reserved_at' => 'datetime',
         ];
     }
 

@@ -918,7 +918,9 @@ COLUMN|promo_pools.uuid|uuid|NO
 COLUMN|promocode_usages.id|bigint|NO
 COLUMN|promocode_usages.payment_id|bigint|YES
 COLUMN|promocode_usages.promocode_id|bigint|NO
-COLUMN|promocode_usages.used_at|timestamp without time zone|NO
+COLUMN|promocode_usages.reserved_at|timestamp without time zone|YES
+COLUMN|promocode_usages.status|character varying|NO
+COLUMN|promocode_usages.used_at|timestamp without time zone|YES
 COLUMN|promocode_usages.user_id|bigint|NO
 COLUMN|promocode_users.created_at|timestamp without time zone|YES
 COLUMN|promocode_users.id|bigint|NO
@@ -1991,6 +1993,8 @@ INDEX|promo_pools|promo_pools_uuid_unique
 INDEX|promocode_usages|promocode_usages_payment_id_index
 INDEX|promocode_usages|promocode_usages_pkey
 INDEX|promocode_usages|promocode_usages_promocode_id_index
+INDEX|promocode_usages|promocode_usages_promocode_id_status_index
+INDEX|promocode_usages|promocode_usages_status_reserved_at_index
 INDEX|promocode_usages|promocode_usages_user_id_index
 INDEX|promocode_users|promocode_users_pkey
 INDEX|promocode_users|promocode_users_promocode_id_user_id_unique

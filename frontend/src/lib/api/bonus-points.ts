@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "./client";
 import { reportReadFailure } from "@/lib/errors/handle";
+import { canLoadPrivateData } from "@/lib/auth/can-load-private";
 
 /** Одна проводка по счёту баллов. Минус — списание. */
 export interface BonusPointsEntry {
@@ -62,6 +63,15 @@ export function useBonusPoints(enabled = true) {
 
   useEffect(() => {
     if (!enabled) return;
+    /*
+     * Гостю баллы не начисляются, и ответ будет 401.
+     *
+     * Карточка баллов стоит в кошельке, а кошелёк гость видит под окном
+     * входа — так задумано. Но хук ходил в API всё равно: замер на стенде
+     * 05.10 показал 401 на `/bonus-points` при каждом открытии
+     * `/settings/wallet` гостем. Довод целиком — в lib/auth/can-load-private.ts.
+     */
+    if (!canLoadPrivateData()) return;
     let active = true;
     setLoading(true);
     fetchBonusPoints()

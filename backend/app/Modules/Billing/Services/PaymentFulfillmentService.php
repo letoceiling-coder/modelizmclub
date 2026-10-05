@@ -2,14 +2,18 @@
 
 namespace Modules\Billing\Services;
 
+use App\Enums\WalletTransactionType;
 use App\Models\Listing;
 use App\Models\Payment;
-use App\Support\PaymentFailure;
 use App\Models\Promocode;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
+use App\Support\PaymentFailure;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Modules\Listing\Services\ListingBoostService;
+use Modules\Listing\Services\ListingService;
 
 class PaymentFulfillmentService
 {
@@ -71,7 +75,7 @@ class PaymentFulfillmentService
         app(WalletService::class)->credit(
             $payment->user,
             (int) $payment->amount_cents,
-            \App\Enums\WalletTransactionType::Topup,
+            WalletTransactionType::Topup,
             'Пополнение баланса',
             'payment',
             $payment->id,
@@ -100,12 +104,12 @@ class PaymentFulfillmentService
                     $promocode = Promocode::query()->find($promocodeId);
                     if ($promocode) {
                         $listing->update(['placement_promocode_id' => $promocode->id]);
-                        app(\Modules\Billing\Services\PromocodeService::class)
+                        app(PromocodeService::class)
                             ->recordUsage($promocode, $payment->user, $payment->id);
                     }
                 }
 
-                app(\Modules\Listing\Services\ListingService::class)->finalizeAfterPlacement($listing);
+                app(ListingService::class)->finalizeAfterPlacement($listing);
 
                 return;
             }
@@ -131,10 +135,10 @@ class PaymentFulfillmentService
             return;
         }
 
-        $listing = \App\Models\Listing::query()->find($listingId);
+        $listing = Listing::query()->find($listingId);
 
         if ($listing) {
-            app(\Modules\Listing\Services\ListingBoostService::class)->activate($listing, $days);
+            app(ListingBoostService::class)->activate($listing, $days);
         }
     }
 
@@ -178,6 +182,8 @@ class PaymentFulfillmentService
             'decided_by' => $decidedBy,
             'metadata' => $metadata,
         ]);
+
+        $this->освободитьМестоПромокода($payment);
     }
 
     /**
@@ -208,6 +214,8 @@ class PaymentFulfillmentService
             'decided_by' => $decidedBy,
             'metadata' => $metadata,
         ]);
+
+        $this->освободитьМестоПромокода($payment);
     }
 
     /**
@@ -258,7 +266,7 @@ class PaymentFulfillmentService
             : $startsAt->copy();
 
         $endsAt = $endsAt
-            ? \Illuminate\Support\Carbon::parse($endsAt)
+            ? Carbon::parse($endsAt)
             : $carryFrom->addDays($plan->period_days);
 
         UserSubscription::query()
@@ -282,5 +290,30 @@ class PaymentFulfillmentService
             'ends_at' => $endsAt,
             'auto_renew' => true,
         ]);
+    }
+
+    /**
+     * Платёж не состоялся — место промокода возвращается в оборот.
+     *
+     * Место занимается в момент выдачи скидки (решение владельца 04.10).
+     * Без этого шага отказ банка держал бы его до прихода сторожа, то есть
+     * до получаса, и на последнем месте это значило бы «код кончился» для
+     * всех остальных.
+     *
+     * Молча ничего не делает, если промокода у платежа не было.
+     */
+    private function освободитьМестоПромокода(Payment $payment): void
+    {
+        $id = $payment->metadata['promocode_id'] ?? null;
+
+        if (! $id || ! $payment->user) {
+            return;
+        }
+
+        $код = Promocode::query()->find($id);
+
+        if ($код) {
+            app(PromocodeService::class)->releaseSeat($код, $payment->user, $payment->id);
+        }
     }
 }

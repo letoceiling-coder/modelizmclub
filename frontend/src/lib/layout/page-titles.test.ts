@@ -25,7 +25,6 @@ const МАРШРУТЫ = join(import.meta.dirname ?? __dirname, "..", "..", "rou
 const ФАЙЛЫ: Record<string, string> = {
   "/feed": "feed.tsx",
   "/messenger": "messenger.tsx",
-  "/profile": "profile.tsx",
   "/reviews": "reviews.index.tsx",
   "/channels/new": "channels.new.tsx",
 };
@@ -38,6 +37,8 @@ const ФАЙЛЫ: Record<string, string> = {
  * строка станет неверной молча.
  */
 const СО_СВОИМ_ЗАГОЛОВКОМ: Record<string, string> = {
+  // Заголовок рисует ProfileView, а не сам файл маршрута.
+  "/profile": "../components/profile/ProfileView.tsx",
   // Заголовок стоит в самой странице: таблица по адресу его сюда поставить
   // не может — у дочерних страниц настроек совпадение маршрута равно
   // родительскому `/settings`, и у /settings/wallet выходило два заголовка.
@@ -59,7 +60,7 @@ function значениеПоКлючу(ключ: string): unknown {
 
 describe("скрытый заголовок страницы", () => {
   it("таблица не пуста и адреса в ней разобраны", () => {
-    expect(PAGE_TITLES.length).toBeGreaterThanOrEqual(5);
+    expect(PAGE_TITLES.length).toBeGreaterThanOrEqual(4);
     for (const [адрес] of Object.entries(ФАЙЛЫ)) {
       expect(pageTitleKey(адрес)).not.toBeNull();
     }
