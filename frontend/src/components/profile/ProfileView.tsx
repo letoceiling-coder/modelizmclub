@@ -86,7 +86,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { firstFieldError } from "@/lib/api/validationErrors";
 import { formatDate } from "@/lib/format/date";
-import { useActionGate } from "@/lib/gate";
+import { useActionGate, useGate } from "@/lib/gate";
 import { reportReadFailure } from "@/lib/errors/handle";
 import { addInterest, splitInterests } from "@/lib/profile/edit";
 
@@ -209,6 +209,15 @@ export function ProfileView({
   const { t } = useTranslation();
   const { requireAccount, requirePremium: requireSubscription } = useGuestAccess();
   const { requireAction } = useActionGate();
+  /*
+   * Переписку открывает дружба либо подписка — решение владельца от 05.10,
+   * и правило одно на сервер и на интерфейс (`ConversationPolicy`).
+   *
+   * Лестницу доступа спрашиваем у гейта, а не считаем свою: `can` уже
+   * учитывает и подписку, и льготу «подписка не требуется», как и серверный
+   * `hasSubscriptionAccess()`.
+   */
+  const { can: достигаетУровня } = useGate();
   /*
    * Вкладка может быть задана хешем: `/profile#reviews` открывает отзывы.
    * Тот же приём, что в настройках (`#sms-verify`, `#max-account`), и он тут
@@ -518,7 +527,13 @@ export function ProfileView({
                   aria-label={t("pages.profile.writeMessageAria")}
                   onClick={() => {
                     void requireAction("messenger.send", () => {
-                      if (!isFriend) {
+                      /*
+                       * Условие то же, что в `ConversationPolicy::create`:
+                       * дружба ЛИБО подписка. До 05.10 здесь стояло одно
+                       * `!isFriend`, и подписчику не давали написать
+                       * не-другу, хотя сервер это разрешал.
+                       */
+                      if (!isFriend && !достигаетУровня("subscriber")) {
                         setFriendPromptOpen(true);
                         return;
                       }
@@ -552,12 +567,24 @@ export function ProfileView({
                            * по подсказке «добавьте в друзья, чтобы написать»,
                            * жал «Написать» и не получал ничего.
                            */
-                          if (
-                            err instanceof ApiError &&
-                            (err.payload as { code?: string } | undefined)?.code ===
-                              "subscription_required"
-                          ) {
+                          const код = (
+                            err instanceof ApiError
+                              ? (err.payload as { code?: string } | undefined)
+                              : undefined
+                          )?.code;
+                          if (код === "subscription_required") {
                             requireSubscription(() => {});
+                            return;
+                          }
+                          /*
+                           * `friendship_required` — отказ по новому правилу.
+                           * Окно то же, что показывает проверка выше: сервер
+                           * остаётся источником правды, если признак дружбы
+                           * на клиенте устарел (заявку только что отозвали,
+                           * друга удалили со второго устройства).
+                           */
+                          if (код === "friendship_required") {
+                            setFriendPromptOpen(true);
                             return;
                           }
                           const message = formatApiErrorMessage(

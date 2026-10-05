@@ -455,6 +455,8 @@ interface ApiPlan {
 export interface AdminPlanRow {
   slug: string;
   name: string;
+  /** Описание тарифа: единственное поле, которое правится из админки. */
+  description: string;
   priceCents: number;
   periodDays: number;
   freeListingsPerMonth: number;
@@ -468,6 +470,7 @@ export async function fetchAdminPlansDetailed(): Promise<AdminPlanRow[]> {
   return rows.map((p) => ({
     slug: p.slug,
     name: p.name,
+    description: p.description ?? "",
     priceCents: p.price_cents ?? 0,
     periodDays: p.period_days ?? 30,
     freeListingsPerMonth: p.free_listings_per_month ?? 0,
@@ -487,10 +490,19 @@ export async function fetchAdminPlans(): Promise<Tariff[]> {
   }));
 }
 
+/**
+ * Правка тарифа.
+ *
+ * `description` добавлено 05.10 по решению владельца: текст тарифа правится
+ * из админки, а цены, сроки и состав — нет. Сервер поле принимал и раньше
+ * (`UpdatePlanRequest`), в типе его просто не было, и поменять описание было
+ * нельзя ниоткуда, кроме базы.
+ */
 export async function updateAdminPlan(
   slug: string,
   patch: {
     name?: string;
+    description?: string;
     price_cents?: number;
     period_days?: number;
     free_listings_per_month?: number;

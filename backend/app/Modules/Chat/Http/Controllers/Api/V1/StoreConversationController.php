@@ -21,28 +21,33 @@ class StoreConversationController extends Controller
             'listing_id' => ['nullable'],
         ]);
 
+        $to = User::query()->findOrFail($data['user_id']);
+
         /*
          * Отказ должен быть внятным, а не пустым.
          *
-         * ConversationPolicy::create требует подписку. Голый authorize() отдавал
-         * 403 «This action is unauthorized» без кода, и клиент — который для
-         * известных кодов открывает окно, а неизвестные показывает тостом —
-         * не показывал ничего вовсе. Замер 07.09: пользователь с
-         * подтверждённым номером добавляет собеседника в друзья по подсказке
-         * «добавьте в друзья, чтобы написать», жмёт «Написать» и не получает
-         * ни диалога, ни объяснения.
+         * Голый authorize() отдавал 403 «This action is unauthorized» без
+         * кода, и клиент — который для известных кодов открывает окно, а
+         * неизвестные показывает тостом — не показывал ничего вовсе. Замер
+         * 07.09: пользователь с подтверждённым номером добавляет собеседника
+         * в друзья по подсказке «добавьте в друзья, чтобы написать», жмёт
+         * «Написать» и не получает ни диалога, ни объяснения.
          *
-         * Правило доступа здесь не меняется — меняется только то, что о нём
-         * сообщают.
+         * Получателя передаём в политику: с 05.10 переписку открывает дружба
+         * либо подписка, и без собеседника решить нельзя. Код отказа
+         * различает случаи — `friendship_required` открывает окно «Добавьте
+         * в друзья», `subscription_required` окно подписки.
          */
-        if ($request->user()?->cannot('create', Conversation::class)) {
+        $verdict = \Illuminate\Support\Facades\Gate::forUser($request->user())
+            ->inspect('create', [Conversation::class, $to]);
+
+        if (! $verdict->allowed()) {
             return response()->json([
-                'message' => 'Оформите подписку, чтобы начинать переписку.',
-                'code' => 'subscription_required',
+                'message' => $verdict->message() ?: 'Нельзя начать переписку.',
+                'code' => $verdict->code() ?: 'forbidden',
             ], 403);
         }
 
-        $to = User::query()->findOrFail($data['user_id']);
         $listing = $this->resolveListing($data);
 
         $conversation = $chat->findOrCreateDirect($request->user(), $to, $listing);

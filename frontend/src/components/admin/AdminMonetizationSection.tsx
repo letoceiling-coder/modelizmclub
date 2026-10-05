@@ -27,6 +27,7 @@ import { PaymentFunnelCard } from "@/components/admin/PaymentFunnelCard";
 import { AdminPaymentsAdminCard } from "@/components/admin/AdminPaymentsAdminCard";
 import { AdminBillingOpsCard } from "@/components/admin/AdminBillingOpsCard";
 import { EscrowProviderAdminCard } from "@/components/admin/EscrowProviderAdminCard";
+import { PlanDescriptionsAdminCard } from "@/components/admin/PlanDescriptionsAdminCard";
 import { AdminAccordion } from "@/components/admin/AdminAccordion";
 import { H, card, inputStyle, primaryBtn, IconBtn } from "@/components/admin/adminShared";
 import { DeliveryMarkupAdminCard } from "@/components/admin/DeliveryMarkupAdminCard";
@@ -146,6 +147,12 @@ export function MonetizationSection() {
             title: "Безопасные сделки",
             hint: "Кто держит деньги покупателя до подтверждения",
             children: <EscrowProviderAdminCard cardStyle={card} />,
+          },
+          {
+            id: "plan-descriptions",
+            title: "Описания тарифов",
+            hint: "Текст, который видно на странице подписки",
+            children: <PlanDescriptionsAdminCard cardStyle={card} />,
           },
           {
             id: "placement",

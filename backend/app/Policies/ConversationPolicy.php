@@ -6,31 +6,65 @@ use App\Enums\ConversationType;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
+use Modules\User\Services\FriendService;
 
 /**
- * Viewing needs participation; writing needs participation *and* the
- * subscriber rung — the access matrix puts direct messages, category
- * rooms and community chats behind the subscription. Moderators bypass the
- * subscription, not the participation.
+ * Viewing needs participation; writing needs participation *and* either
+ * confirmed mutual friendship with the other person or the subscriber rung.
+ *
+ * Личную переписку открывает дружба либо подписка — решение владельца от
+ * 05.10. До него сервер требовал подписку всегда, а интерфейс спрашивал
+ * дружбу: на профиле «Написать» проверяет `is_friend` и предлагает окно
+ * «Добавьте пользователя в друзья». Друг без подписки проходил проверку
+ * клиента и получал 403 от сервера, после чего ему показывали окно
+ * подписки — то есть просили заплатить за то, что по правилу открыто.
+ *
+ * Дружба считается подтверждённой, когда обе строки `user_friendships` на
+ * месте: их ставит `FriendService::attachFriendship` при принятии заявки и
+ * снимает `detachFriendship` при удалении из друзей. Поэтому удаление из
+ * друзей закрывает переписку само, без отдельной проверки.
+ *
+ * Прочие условия не менялись: участие в диалоге, блокировки (их держит
+ * `UserService::assertCanInteract`), подтверждение телефона, чаты сделок и
+ * чаты направлений. Модератор обходит подписку, но не участие.
  */
 class ConversationPolicy
 {
     public const SUBSCRIPTION_REQUIRED_MESSAGE = 'Оформите подписку, чтобы писать в чатах.';
+
+    public const FRIENDSHIP_REQUIRED_MESSAGE = 'Добавьте пользователя в друзья, чтобы написать ему.';
+
+    public function __construct(private readonly FriendService $friends) {}
 
     public function view(User $user, Conversation $conversation): bool
     {
         return $this->isParticipant($user, $conversation);
     }
 
-    /** Start a direct conversation with another user. */
-    public function create(User $user): bool
+    /**
+     * Start a direct conversation with another user.
+     *
+     * `$other` приходит из контроллера вторым аргументом `can()`. Без него
+     * решает только подписка: так вызывают места, где получателя ещё нет.
+     */
+    public function create(User $user, ?User $other = null): Response
     {
-        return $this->isSubscriber($user);
+        if ($this->isSubscriber($user)) {
+            return Response::allow();
+        }
+
+        if ($other && $this->areFriends($user, $other)) {
+            return Response::allow();
+        }
+
+        return $other
+            ? Response::deny(self::FRIENDSHIP_REQUIRED_MESSAGE, 'friendship_required')
+            : Response::deny('Оформите подписку, чтобы начинать переписку.', 'subscription_required');
     }
 
     /**
-     * Отказ из-за подписки несёт код `subscription_required`: клиент по нему
-     * открывает окно подписки. Без кода человек видел «Это действие не
+     * Отказ несёт код: клиент по нему открывает нужное окно — подписки или
+     * «добавьте в друзья». Без кода человек видел «Это действие не
      * авторизовано» — так было у подписчика, чья оплата не засчиталась (15.09).
      */
     public function send(User $user, Conversation $conversation): Response
@@ -45,9 +79,26 @@ class ConversationPolicy
             return Response::allow();
         }
 
-        return $this->isSubscriber($user)
-            ? Response::allow()
-            : Response::deny(self::SUBSCRIPTION_REQUIRED_MESSAGE, 'subscription_required');
+        if ($this->isSubscriber($user)) {
+            return Response::allow();
+        }
+
+        /*
+         * Дружба открывает только личную переписку. Чаты направлений,
+         * сообществ и групп остаются за подпиской: там собеседник не один и
+         * «взаимная дружба» к ним не применима.
+         */
+        if ($conversation->type === ConversationType::Direct) {
+            $other = $this->otherDirectParticipant($user, $conversation);
+
+            if ($other && $this->areFriends($user, $other)) {
+                return Response::allow();
+            }
+
+            return Response::deny(self::FRIENDSHIP_REQUIRED_MESSAGE, 'friendship_required');
+        }
+
+        return Response::deny(self::SUBSCRIPTION_REQUIRED_MESSAGE, 'subscription_required');
     }
 
     public function delete(User $user, Conversation $conversation): bool
@@ -63,6 +114,29 @@ class ConversationPolicy
     private function isSubscriber(User $user): bool
     {
         return $user->hasSubscriptionAccess();
+    }
+
+    /**
+     * Подтверждённая взаимная дружба.
+     *
+     * Своего запроса не завожу: `FriendService::areFriends` уже спрашивает
+     * ту же таблицу, которую пишет при принятии заявки, и остаётся верным,
+     * если хранение дружбы когда-нибудь поменяется.
+     */
+    private function areFriends(User $a, User $b): bool
+    {
+        return $this->friends->areFriends($a, $b);
+    }
+
+    /** Собеседник в личной переписке — тот участник, который не ты. */
+    private function otherDirectParticipant(User $user, Conversation $conversation): ?User
+    {
+        $participant = $conversation->participants()
+            ->where('user_id', '!=', $user->id)
+            ->whereNull('left_at')
+            ->first();
+
+        return $participant?->user;
     }
 
     private function isParticipant(User $user, Conversation $conversation): bool
