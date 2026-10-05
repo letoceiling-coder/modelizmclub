@@ -15,6 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useCurrentUser } from "@/lib/session";
 import { signOut } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
+import { useIncomingFriendRequestCount } from "@/lib/friend-requests";
 import { ROUTES } from "@/lib/routes";
 import { useTheme } from "@/components/ThemeProvider";
 import { useHoverDropdown } from "@/lib/hooks/useHoverDropdown";
@@ -42,6 +43,10 @@ export function UserMenu() {
   } = useHoverDropdown();
   const hasToken = useHasToken();
   const navigate = useNavigate();
+  // Входящие заявки в друзья. Счётчик приехал сюда вместе с пунктом «Друзья»
+  // из нижней панели (решение D4): на телефоне панель — единственная
+  // навигация, и без счётчика здесь человек перестал бы видеть заявки вовсе.
+  const friendRequests = useIncomingFriendRequestCount();
   // Нажатие мышью ведёт в профиль, а не переключает меню — разбор в
   // lib/layout/avatar-press.ts. Флаг живёт от pointerdown до click.
   const pressOpensProfile = useRef(false);
@@ -144,6 +149,32 @@ export function UserMenu() {
             <Link to={ROUTES.profile} className="flex items-center gap-2">
               <SlotIcon slot="nav.profile" className="h-4 w-4" size={16} inheritColor />{" "}
               {t("nav.profile")}
+            </Link>
+          </DropdownMenuItem>
+          {/*
+            «Друзья» — сразу за «Профилем»: решение D4 отправляет их «в профиль
+            и меню», и это второе место. Раньше пункт жил в нижней панели
+            шестым; панель на телефоне единственная навигация, поэтому пункт
+            и счётчик заявок перенесены сюда, а не просто убраны.
+          */}
+          <DropdownMenuItem asChild>
+            <Link to={ROUTES.friends} className="flex items-center gap-2">
+              <SlotIcon slot="nav.friends" className="h-4 w-4" size={16} inheritColor />{" "}
+              {t("nav.friends")}
+              {friendRequests > 0 && (
+                <span
+                  className="ml-auto grid min-w-[18px] place-items-center rounded-full px-1.5 tabular-nums"
+                  style={{
+                    height: 18,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--accent-foreground)",
+                    background: "var(--accent-fill)",
+                  }}
+                >
+                  {friendRequests > 9 ? "9+" : friendRequests}
+                </span>
+              )}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>

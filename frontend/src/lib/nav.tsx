@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Wallet,
   CircleHelp,
+  UserPlus,
 } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 
@@ -89,6 +90,23 @@ export const MOBILE_MENU_SECTIONS: MobileMenuSection[] = [
     authOnly: true,
   },
   { key: "ad-create", to: ROUTES.adCreate, labelKey: "nav.adCreate", icon: Plus, group: "content" },
+  /*
+   * «Друзья» — здесь, а не шестой вкладкой панели: так велит решение D4
+   * («Друзья — в профиле и меню»).
+   *
+   * Это единственное меню, которое человек видит на телефоне. Меню аватара
+   * (`UserMenu`) живёт в `DesktopTopBar` под `hidden lg:block`, то есть от
+   * 1024px; боковая колонка — от 768px. Поэтому строка здесь и есть та
+   * половина переноса, без которой раздел на телефоне стал бы недоступен.
+   */
+  {
+    key: "friends",
+    to: ROUTES.friends,
+    labelKey: "nav.friends",
+    icon: UserPlus,
+    group: "content",
+    authOnly: true,
+  },
   // — Аккаунт —
   {
     key: "settings",
@@ -123,13 +141,21 @@ export const MOBILE_MENU_SECTIONS: MobileMenuSection[] = [
   },
 ];
 
-/** Routes surfaced as bottom tabs (communities only when feature.communities_enabled is on). */
+/**
+ * Routes surfaced as bottom tabs (communities only when
+ * feature.communities_enabled is on).
+ *
+ * Пять по решению D4 — состав совпадает с `ALL_ITEMS` в `BottomNav`.
+ * `ROUTES.friends` стоял здесь шестым и после переноса в меню остался бы
+ * неправдой: `assertMobileNavCoverage` ниже считает раздел покрытым именно
+ * по этому списку, то есть при устаревшей строке молчала бы проверка,
+ * которая ровно для такой потери и заведена.
+ */
 export const PRIMARY_TAB_ROUTES: string[] = [
   ROUTES.feed,
   ROUTES.messenger,
   ROUTES.ads,
   ROUTES.profile,
-  ROUTES.friends,
   ROUTES.communities,
 ];
 
