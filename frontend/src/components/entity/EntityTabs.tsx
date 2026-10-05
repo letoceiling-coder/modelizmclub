@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { m } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 
 export interface EntityTab<K extends string> {
   key: K;
@@ -9,6 +10,12 @@ export interface EntityTab<K extends string> {
    * у вкладки его нет), кружка нет. Ноль показывается только при `showZero`.
    */
   count?: number;
+  /**
+   * Значок перед названием. Есть у вкладок профиля, нет у сообщества и
+   * канала. Вариант добавлен в сам компонент, а не заведён рядом вторым
+   * ряд­ом вкладок: профиль собирал свой и из-за этого остался без ролей.
+   */
+  icon?: LucideIcon;
 }
 
 interface Props<K extends string> {
@@ -50,6 +57,43 @@ export function EntityTabs<K extends string>({
   const rowRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
+  /*
+   * Клавиатура: стрелки переключают вкладку, Home и End уводят к краям.
+   *
+   * Роли `tablist` и `tab` здесь стояли, а поведения при них не было: по
+   * Tab фокус проходил все вкладки по одной, а стрелки не делали ничего —
+   * то есть разметка обещала диктору навигацию, которой не существовало.
+   * `tabIndex` ниже оставляет в обходе Tab только выбранную вкладку, как и
+   * предписывает образец tablist.
+   */
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const шаг =
+      e.key === "ArrowRight"
+        ? 1
+        : e.key === "ArrowLeft"
+          ? -1
+          : e.key === "Home"
+            ? 0
+            : e.key === "End"
+              ? 0
+              : null;
+    if (шаг === null) return;
+    const i = tabs.findIndex((t) => t.key === active);
+    if (i < 0) return;
+    const next =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? tabs.length - 1
+          : (i + шаг + tabs.length) % tabs.length;
+    if (tabs[next] && tabs[next].key !== active) {
+      e.preventDefault();
+      onChange(tabs[next].key);
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+    }
+  };
+
   useEffect(() => {
     const row = rowRef.current;
     const btn = activeRef.current;
@@ -81,6 +125,7 @@ export function EntityTabs<K extends string>({
     <div
       ref={rowRef}
       role="tablist"
+      onKeyDown={onKeyDown}
       className="no-scrollbar flex items-center gap-6 overflow-x-auto overscroll-x-contain"
       style={{ borderBottom: "1px solid var(--border)" }}
     >
@@ -88,16 +133,19 @@ export function EntityTabs<K extends string>({
         const isActive = tab.key === active;
         const count = tab.count;
         const showCount = count !== undefined && (count > 0 || showZero);
+        const Icon = tab.icon;
         return (
           <button
             key={tab.key}
             ref={isActive ? activeRef : undefined}
             role="tab"
             aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(tab.key)}
             className="relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 text-[15px] font-semibold transition-colors"
             style={{ color: isActive ? "var(--foreground)" : "var(--foreground-50)" }}
           >
+            {Icon && <Icon size={16} aria-hidden />}
             {tab.label}
             {showCount && (
               /* Счётчик кружком рядом с названием, а не отдельным блоком:
