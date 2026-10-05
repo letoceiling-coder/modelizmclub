@@ -1725,6 +1725,29 @@ function MessengerPage() {
 
   const insertEmoji = useInsertAtCaret(composerRef, text, setText);
 
+  /*
+   * Поле ввода растёт по тексту до предела, затем прокручивается внутри.
+   *
+   * У textarea стоял `rows={1}` и `maxHeight: 120`, но высоту никто не
+   * считал: `maxHeight` был мёртвым намерением — поле оставалось в одну
+   * строку и с первой же лишней прокручивалось внутри себя. Замер 05.10 на
+   * 360 и 1280: двенадцать строк текста, высота 24 px до и после. ТЗ 3.7 и
+   * проверка M07 требуют роста до ограниченной высоты.
+   *
+   * Высота снимается с `scrollHeight` при сброшенной `height`: иначе
+   * `scrollHeight` вернёт прежнюю высоту и поле больше не уменьшится, когда
+   * текст стёрли.
+   */
+  const ПРЕДЕЛ_ПОЛЯ = 120;
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const нужно = Math.min(el.scrollHeight, ПРЕДЕЛ_ПОЛЯ);
+    el.style.height = `${нужно}px`;
+    el.style.overflowY = el.scrollHeight > ПРЕДЕЛ_ПОЛЯ ? "auto" : "hidden";
+  }, [text]);
+
   const handleCopy = useCallback(
     (m: Message) => {
       const copyText =
@@ -2408,7 +2431,25 @@ function MessengerPage() {
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
+                        /*
+                         * Enter посреди набора иероглифов подтверждает выбор
+                         * в редакторе ввода, а не отправляет сообщение.
+                         *
+                         * Проверки на это не было: `e.key === "Enter"`
+                         * истинно и во время композиции, то есть у человека,
+                         * набирающего китайский или японский, первое же
+                         * подтверждение иероглифа отправляло недописанную
+                         * строку. ТЗ 3.7 требует учитывать композицию.
+                         */
+                        if (
+                          e.key === "Enter" &&
+                          !e.shiftKey &&
+                          !e.nativeEvent.isComposing &&
+                          // keyCode 229 — Enter, съеденный редактором ввода:
+                          // так о композиции сообщают браузеры, где
+                          // isComposing уже сброшен.
+                          e.nativeEvent.keyCode !== 229
+                        ) {
                           e.preventDefault();
                           send();
                         }
