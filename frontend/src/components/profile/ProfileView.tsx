@@ -1038,7 +1038,10 @@ function Tabs({
         вкладок занимала 105 и 151 px вместо 61, а подчёркивание выбранной
         оказывалось посреди блока (замер на проде 17.09).
       */}
-      <div ref={rowRef} className="-mx-[16px] overflow-x-auto px-[16px] md:-mx-[32px] md:px-[32px]">
+      <div
+        ref={rowRef}
+        className="-mx-[16px] overflow-x-auto overscroll-x-contain px-[16px] md:-mx-[32px] md:px-[32px]"
+      >
         <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-1">
           {visibleTabs.map(({ key, Icon }) => {
             const active = tab === key;

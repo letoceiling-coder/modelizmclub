@@ -81,7 +81,7 @@ export function EntityTabs<K extends string>({
     <div
       ref={rowRef}
       role="tablist"
-      className="no-scrollbar flex items-center gap-6 overflow-x-auto"
+      className="no-scrollbar flex items-center gap-6 overflow-x-auto overscroll-x-contain"
       style={{ borderBottom: "1px solid var(--border)" }}
     >
       {tabs.map((tab) => {
