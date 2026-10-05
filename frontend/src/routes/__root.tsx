@@ -41,10 +41,19 @@ import { API_ORIGIN } from "@/lib/api/client";
 // runtime logic so there's no flash-of-wrong-theme on first paint.
 const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('theme-preference');var t;if(p==='dark'||p==='light'){t=p;}else{var legacy=localStorage.getItem('theme');if((legacy==='dark'||legacy==='light')&&p!=='system'){t=legacy;}else{t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}}document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}try{if(localStorage.getItem('mc_sub_active')==='1')document.documentElement.setAttribute('data-sub','1');}catch(e){}})();`;
 
+/*
+ * Служебные страницы рисуются вне `AppLayout`, который даёт `<main>`
+ * остальным. До 05.10 ориентира у них не было: замер на 320, 360, 390 и 1280
+ * давал `main=0` на странице 404. Заголовок и текст при этом на месте, то
+ * есть читать страницу можно, а перейти к её содержимому ориентиром — нет.
+ *
+ * Поэтому внешний узел у обеих — `<main>`. Ровно один: эти компоненты
+ * заменяют содержимое маршрута целиком и с `AppLayout` не встречаются.
+ */
 function NotFoundComponent() {
   const { t } = useTranslation();
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 font-display text-xl font-semibold">{t("errors.notFound")}</h2>
@@ -67,7 +76,7 @@ function NotFoundComponent() {
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -80,7 +89,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-xl font-semibold">{t("errors.boundaryTitle")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t("errors.boundaryDesc")}</p>
@@ -91,7 +100,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
           {t("errors.retry")}
         </button>
       </div>
-    </div>
+    </main>
   );
 }
 
