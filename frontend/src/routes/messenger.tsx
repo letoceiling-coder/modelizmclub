@@ -1883,10 +1883,33 @@ function MessengerPage() {
               колонки четыре вкладки со счётчиками тоже не входят.
             */}
             <div className="relative" style={{ borderBottom: "1px solid var(--border)" }}>
+              {/*
+                Лента вкладок липнет к их краям и не отдаёт жест наружу.
+                
+                Замер на телефоне 360 px: лента 301 px при содержимом 464 —
+                переполнение 163. Без привязки палец оставлял вкладку
+                обрезанной посередине на каждой остановке: на 60 пикселях
+                «Личные» и «Ещё», на 120 — «Сделки». Это и выглядит как
+                «скачут»: подпись всегда наполовину за краем.
+                
+                `proximity`, а не `mandatory`: ниже стоит эффект, который сам
+                подкручивает ленту к выбранной вкладке. При `mandatory`
+                браузер доводил бы её ещё раз после него — один жест, два
+                движения, то есть новое дрожание вместо старого.
+                
+                `overscroll-behavior-x: contain` — чтобы жест не уходил
+                странице и системе. Без него прокрутка ленты у края включает
+                на iOS возврат назад: экран уезжает целиком, хотя человек
+                листал вкладки.
+              */}
               <div
                 ref={tabsRowRef}
                 className="flex gap-[4px] overflow-x-auto pl-[8px] pr-[16px]"
-                style={{ scrollbarWidth: "none" }}
+                style={{
+                  scrollbarWidth: "none",
+                  scrollSnapType: "x proximity",
+                  overscrollBehaviorX: "contain",
+                }}
                 role="tablist"
               >
                 {PRIMARY_TABS.map((key) => (
@@ -1897,7 +1920,7 @@ function MessengerPage() {
                     aria-selected={tab === key}
                     onClick={() => setTab(key)}
                     className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
-                    style={tabButtonStyle(tab === key)}
+                    style={{ ...tabButtonStyle(tab === key), scrollSnapAlign: "start" }}
                   >
                     <TabLabel text={t(TAB_LABEL_KEY[key])} />
                     <TabCount count={unreadByTab[key]} />
@@ -1932,7 +1955,7 @@ function MessengerPage() {
                         setMoreOpen((v) => !v);
                       }}
                       className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
-                      style={tabButtonStyle(secondaryActive)}
+                      style={{ ...tabButtonStyle(secondaryActive), scrollSnapAlign: "start" }}
                     >
                       <TabLabel
                         text={
