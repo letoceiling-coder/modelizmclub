@@ -8,8 +8,10 @@ import {
   Boxes,
   Camera,
   Car,
+  CircleHelp,
   Clapperboard,
   ClipboardList,
+  Coins,
   Compass,
   Cpu,
   Crown,
@@ -36,6 +38,7 @@ import {
   Search,
   Send,
   Settings,
+  Shield,
   ShieldCheck,
   Ship,
   ShoppingBag,
@@ -63,7 +66,31 @@ import {
  * слотов: `lib/api/categories.ts` и `icon-slots.ts` подставляют `Boxes`
  * категории без своей иконки. Такое имя есть в lucide, но его не было здесь,
  * и каждая загрузка /feed добирала ради него всю библиотеку — 115 КБ по
- * проводу. Замер 07.09. Importing them by name keeps Rollup's
+ * проводу. Замер 07.09.
+ *
+ * 04.10 это повторилось с `CircleHelp` — значком слота «Как пользоваться».
+ * В таблице слотов он стоит дефолтом, а здесь его не было, хотя строка выше
+ * обещает «every `defaultLucide` from `lib/icon-slots`». Обещание и список
+ * разошлись молча.
+ *
+ * Замер на проде 04.10: кусок `lucide-react-*` — 117 КБ по проводу — грузился
+ * на `/feed` и `/ads` и не грузился на `/`, `/login`, `/how-to-use`. Разница
+ * ровно в том, рисуется ли на странице навигация приложения: она и запрашивает
+ * слот с этим дефолтом.
+ *
+ * `Coins` добавлен тем же заходом, но 117 КБ были не из-за него. Сначала я
+ * решил, что причина в нём — категория 180 «Нумизматика», единственное имя из
+ * базы вне списка, — добавил, пересобрал, и хвост продолжил грузиться; а
+ * «Нумизматики» на странице не оказалось вовсе. Промах `coins` настоящий, но
+ * скрытый: выстрелит там, где эта категория покажется.
+ *
+ * Отсюда не очередная строка в списке, а проверка: список не поддерживается
+ * руками, и регрессия не видна на экране — значок нарисован, просто за него
+ * привезли библиотеку. `lucide-icon-covers-seed-icons.test.ts` сверяет и
+ * дефолты таблицы слотов, и имена из семян. Имена, заведённые прямо в базе
+ * через админку, он проверить не может.
+ *
+ * Importing them by name keeps Rollup's
  * tree-shaking intact — a namespace import (`import * as Icons`) pulled all
  * ~1600 Lucide icons into the first-load bundle instead.
  *
@@ -79,8 +106,10 @@ const REGISTRY: Record<string, LucideIcon> = {
   Boxes,
   Camera,
   Car,
+  CircleHelp,
   Clapperboard,
   ClipboardList,
+  Coins,
   Compass,
   Cpu,
   Crown,
@@ -107,6 +136,7 @@ const REGISTRY: Record<string, LucideIcon> = {
   Search,
   Send,
   Settings,
+  Shield,
   ShieldCheck,
   Ship,
   ShoppingBag,

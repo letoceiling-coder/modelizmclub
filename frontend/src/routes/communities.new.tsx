@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Users } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { GuestSectionStub } from "@/components/access/GuestSectionStub";
 import { useGate } from "@/lib/gate";
 import { useCurrentUser } from "@/lib/session";
 import { isFullyVerified, isStaffUser } from "@/lib/auth/verification";
@@ -74,7 +75,31 @@ function CommunityNewPage() {
     });
   }, [needsPhone, requireLevel]);
 
-  if (isGuest || subLoading) {
+  /*
+   * Гостю — предложение войти, а не вечная «Загрузка…».
+   *
+   * Эти два состояния стояли в одном условии, и гость видел слово
+   * «Загрузка…», которое не кончалось: грузить было нечего, ему просто надо
+   * войти. Замер гостем 04.10 нашёл это по другому следу — на странице не
+   * было ни одного заголовка, потому что заглушка загрузки его не рисует.
+   *
+   * `GuestSectionStub` говорит правду и приносит заголовок страницы: это
+   * тот же заслон, что на /friends и /deals, и открывает он общее окно
+   * входа, а не уводит на /login.
+   */
+  if (isGuest) {
+    return (
+      <AppLayout footer>
+        <GuestSectionStub
+          icon={Users}
+          title={t("guestAuth.communitiesTitle")}
+          description={t("guestAuth.communitiesDesc")}
+        />
+      </AppLayout>
+    );
+  }
+
+  if (subLoading) {
     return (
       <AppLayout footer>
         <div className="py-10 text-center text-[14px]" style={{ color: "var(--foreground-50)" }}>

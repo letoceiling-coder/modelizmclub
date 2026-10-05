@@ -45,6 +45,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { notifyBillingChanged } from "@/lib/billing-events";
 import { formatDate } from "@/lib/format/date";
 import { reportReadFailure } from "@/lib/errors/handle";
+import { canLoadPrivateData } from "@/lib/auth/can-load-private";
 
 type WalletSearch = { payment?: "success" | "failed"; uuid?: string; reason?: string };
 
@@ -193,6 +194,13 @@ function WalletSection() {
   const [historyTab, setHistoryTab] = useState<"wallet" | "payments">("wallet");
 
   const load = () => {
+    /*
+     * Гостю загружать нечего: эти данные личные, и без токена ответ будет
+     * 401. Страница при этом остаётся на экране под окном входа — так
+     * задумано, — но шесть заведомо отказных запросов на открытие ей не
+     * нужны (аудит 04.10). Довод целиком — в lib/auth/can-load-private.ts.
+     */
+    if (!canLoadPrivateData()) return;
     setBalanceFailed(false);
     Promise.all([fetchWalletBalance(), fetchWalletTransactions()])
       .then(([b, ops]) => {

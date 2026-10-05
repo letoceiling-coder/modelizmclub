@@ -157,6 +157,7 @@ export const ru = {
   },
   landing: {
     nav: {
+      howToUse: "Как пользоваться",
       ads: "Объявления",
       communities: "Сообщества",
       channels: "Каналы",
@@ -2690,6 +2691,8 @@ export const ru = {
       nothingFound: "Ничего не найдено",
       nothingFoundDesc: "Попробуйте изменить запрос или категорию.",
       uploadMetaTitle: "Загрузить обзор — МоДелизМ",
+      /* Без хвоста «— МоДелизМ»: это заголовок страницы, а не вкладки. */
+      uploadTitle: "Загрузить обзор",
       checkingAccess: "Проверка доступа…",
       accessDenied: "Доступ ограничен",
       accessDeniedDesc: "Загружать обзоры может только администратор площадки.",

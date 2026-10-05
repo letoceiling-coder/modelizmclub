@@ -9,6 +9,7 @@ import { LoadFailed } from "@/components/ui/load-failed";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 import { isDemoMode } from "@/lib/demo-mode";
+import { canLoadPrivateData } from "@/lib/auth/can-load-private";
 import {
   fetchPaymentMethods,
   addPaymentMethodBinding,
@@ -44,6 +45,13 @@ function PaymentMethodsSection() {
   const [loadFailed, setLoadFailed] = useState(false);
 
   const load = () => {
+    /*
+     * Гостю загружать нечего: эти данные личные, и без токена ответ будет
+     * 401. Страница при этом остаётся на экране под окном входа — так
+     * задумано, — но шесть заведомо отказных запросов на открытие ей не
+     * нужны (аудит 04.10). Довод целиком — в lib/auth/can-load-private.ts.
+     */
+    if (!canLoadPrivateData()) return;
     setLoading(true);
     fetchPaymentMethods()
       .then((rows) => {

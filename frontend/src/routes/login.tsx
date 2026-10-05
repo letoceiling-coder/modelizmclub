@@ -14,6 +14,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { readIntent } from "@/lib/gate/intent";
 import { ApiError } from "@/lib/api/client";
 import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
+import { useHasToken } from "@/hooks/use-has-token";
 
 type LoginSearch = {
   redirect?: string;
@@ -71,6 +72,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [fieldError, setFieldError] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const hasToken = useHasToken();
 
   useEffect(() => {
     if (oauth_code || oauth_error || isDemoMode()) {
@@ -207,7 +209,27 @@ function LoginPage() {
     </>
   );
 
-  if (checkingSession) return null;
+  // Пустой экран — только тому, у кого есть токен и кого сейчас перебросит.
+  //
+  // Было `if (checkingSession) return null`, а `checkingSession` заводится как
+  // `true`. Значит сервер рисовал на /login пустоту, и браузер держал её до
+  // конца `ensureSession()` — то есть до разбора бандла плюс запрос к API.
+  //
+  // Замер 04.10 на проде (1,6 Мбит/с, 4× процессор, 390 px, медиана трёх
+  // прогонов): сервер отдаёт первый байт за 14 мс, а первая отрисовка — на
+  // 3276 мс. В разметке /login было ноль `<input>`, ноль `<form>` и ни слова
+  // «Войти». Для сравнения /how-to-use с тем же бандлом рисуется на 1560 мс —
+  // ждали не бандл, а эту проверку.
+  //
+  // Гостю проверять нечего, поэтому форма достаётся ему сразу и с сервера.
+  // `useHasToken` до конца гидрации отвечает так же, как сервер: иначе первый
+  // кадр разошёлся бы с разметкой и дал #418 (hooks/use-has-token.ts).
+  //
+  // Плата: вошедший, открывший /login, увидит форму мельком, прежде чем его
+  // перебросит. Узнать про токен раньше гидрации нельзя — ровно это и ломает
+  // первый кадр. Мелькнувшая форма у того, кого всё равно перебрасывает,
+  // дешевле пустого экрана на три секунды у каждого, кто входит.
+  if (hasToken && checkingSession) return null;
 
   return (
     <AuthShell
