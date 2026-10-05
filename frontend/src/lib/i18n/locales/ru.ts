@@ -524,13 +524,6 @@ export const ru = {
       expand: "Показать полностью",
       collapse: "Свернуть",
     },
-    reviewPlayer: {
-      settings: "Настройки плеера",
-      quality: "Качество",
-      qualityAuto: "Авто",
-      speed: "Скорость",
-      speedNormal: "Обычная",
-    },
     tagInput: {
       placeholder: "Введите тег и нажмите Enter",
       hint: "{{count}} из {{max}} тегов",
