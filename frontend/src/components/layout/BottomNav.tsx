@@ -1,31 +1,42 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Newspaper, Users2, MessageSquare, Megaphone, User, UserPlus } from "lucide-react";
+import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Icon as SlotIcon } from "@/components/ui/Icon";
 import { navSlotKey } from "@/lib/icon-slots";
-import { getActiveSection, ROUTES } from "@/lib/routes";
+import { getActiveSection } from "@/lib/routes";
 import { scrollSectionToTop } from "@/lib/scroll-top";
 import { useUnreadMessagesTotal } from "@/lib/messenger";
-import { useIncomingFriendRequestCount } from "@/lib/friend-requests";
-import { useStore, selectors } from "@/lib/store";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { GuestGuardLink } from "@/components/access/GuestGuardLink";
 import { NAV_ROUTE_TO_ACTION } from "@/lib/feed-guest-access/routes";
 
 type Item = {
-  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile" | "/friends";
+  to: "/feed" | "/communities" | "/messenger" | "/ads" | "/profile";
   labelKey: string;
   icon: typeof Newspaper;
   section: string;
 };
 
+/*
+ * Пять пунктов, и состав закреплён решением D4: Лента, Сообщества,
+ * Сообщения, Объявления, Профиль.
+ *
+ * «Друзей» здесь был шестой пункт. Он ушёл в меню аватара (UserMenu) вместе
+ * со счётчиком входящих заявок: панель — для разделов, куда человек ходит
+ * постоянно, а заявки в друзья приходят редко и ждать не заставляют.
+ *
+ * Убирать пункт отсюда можно было только вместе с добавлением в меню:
+ * боковая колонка, где «Друзья» тоже есть, показывается от 768px и шире
+ * (Sidebar: `md:flex`), а панель — наоборот, `md:hidden`. На телефоне она
+ * единственная навигация, и одно удаление отняло бы доступ к разделу
+ * и к счётчику заявок, а не перенесло бы их.
+ */
 const ALL_ITEMS: Item[] = [
   { to: "/feed", labelKey: "nav.feed", icon: Newspaper, section: "feed" },
   { to: "/communities", labelKey: "nav.communities", icon: Users2, section: "communities" },
   { to: "/messenger", labelKey: "nav.messagesTab", icon: MessageSquare, section: "messenger" },
   { to: "/ads", labelKey: "nav.ads", icon: Megaphone, section: "ads" },
   { to: "/profile", labelKey: "nav.profile", icon: User, section: "profile" },
-  { to: "/friends", labelKey: "nav.friends", icon: UserPlus, section: "friends" },
 ];
 export function BottomNav() {
   const { t } = useTranslation();
@@ -36,8 +47,6 @@ export function BottomNav() {
   // Aggregate unread messages — live via the realtime store. Stays 0 until
   // conversations are loaded, so the badge only shows when data exists.
   const unreadMessages = useUnreadMessagesTotal();
-  // Входящие заявки в друзья — тот же счётчик, что в боковом меню.
-  const friendRequests = useIncomingFriendRequestCount();
 
   return (
     <nav
@@ -64,13 +73,7 @@ export function BottomNav() {
             item={it}
             label={t(it.labelKey)}
             active={activeSection === it.section}
-            badge={
-              it.section === "messenger"
-                ? unreadMessages
-                : it.section === "friends"
-                  ? friendRequests
-                  : 0
-            }
+            badge={it.section === "messenger" ? unreadMessages : 0}
           />
         ))}
       </ul>
@@ -125,8 +128,8 @@ function NavTab({
           </span>
         )}
       </span>
-      {/* Шесть вкладок на 375px: длинные названия («Сообщества», «Объявления»)
-          не влезают в колонку в 62px.
+      {/* Длинные названия («Сообщества», «Объявления») не влезают в узкую
+          колонку.
 
           Подпись занимала всю колонку целиком, и соседние подписи смыкались
           вплотную: замер 07.09 при 375 — пять зазоров ровно по нулю,
@@ -134,11 +137,16 @@ function NavTab({
           Внутренние отступы тут не помогают: коробка остаётся во всю колонку,
           нужен внешний отступ.
 
-          Значения подобраны замером на живой странице, не на глаз:
+          Значения подобраны замером на живой странице, не на глаз, и мерились
+          при шести пунктах:
             375: зазор 7,7 px, кегль 8,8, обрезки нет
             320: зазор 5,9 px, кегль 7,5, обрезки нет
           Кегль пришлось опустить — при прежних 9,8 «Сообщества» упиралось в
-          многоточие. truncate остаётся страховкой. */}
+          многоточие. truncate остаётся страховкой.
+
+          После D4 пунктов пять, то есть колонка только шире, и значения выше
+          остаются с запасом: замер 05.10 при пяти пунктах дал колонку 64 px
+          на 320 и 72 px на 360, обрезки нет ни на одной ширине. */}
       <span
         className="truncate text-center font-medium"
         style={{
