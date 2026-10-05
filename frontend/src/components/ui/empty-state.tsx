@@ -26,6 +26,17 @@ interface EmptyStateProps {
    * это делает обычная сплошная рамка, как у любой карточки.
    */
   variant?: "default" | "compact" | "bare" | "section";
+  /**
+   * Уровень заголовка. По умолчанию `h3` — заглушка обычно стоит внутри
+   * страницы, у которой уже есть свой заголовок, и перебивать его нельзя.
+   *
+   * `h1` нужен там, где заглушка и есть вся страница: заслон входа у гостя
+   * на /friends, /deals и соседних. Замер гостем 04.10 показал там верхним
+   * заголовком `h3` — то есть страница начиналась с третьего уровня, а
+   * первого не было вовсе, и чтение с экрана не могло сказать, куда человек
+   * попал.
+   */
+  headingLevel?: "h1" | "h2" | "h3";
   className?: string;
   /** Custom action nodes (Links, icon buttons, etc.) placed in the actions row */
   children?: ReactNode;
@@ -38,9 +49,11 @@ export function EmptyState({
   action,
   secondaryAction,
   variant = "default",
+  headingLevel = "h3",
   className,
   children,
 }: EmptyStateProps) {
+  const Заголовок = headingLevel;
   const isCompact = variant === "compact";
   const isSection = variant === "section";
   // Оба без рамки и подложки; отличаются размером значка и заголовка.
@@ -103,12 +116,12 @@ export function EmptyState({
       )}
 
       <div>
-        <h3
+        <Заголовок
           className={cn("font-semibold", isCompact || isSection ? "text-[15px]" : "text-[18px]")}
           style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}
         >
           {title}
-        </h3>
+        </Заголовок>
         {description && (
           <p
             className={cn(

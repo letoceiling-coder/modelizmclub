@@ -137,7 +137,7 @@ class ReferenceDataSeeder extends Seeder
                 ['slug' => 'aviation-helicopters', 'name' => 'Вертолёты'],
                 ['slug' => 'aviation-civil', 'name' => 'Гражданская авиация'],
             ]],
-            ['slug' => 'armor', 'name' => 'Бронетехника', 'icon' => 'tank', 'children' => [
+            ['slug' => 'armor', 'name' => 'Бронетехника', 'icon' => 'shield', 'children' => [
                 ['slug' => 'armor-tanks', 'name' => 'Танки'],
                 ['slug' => 'armor-apc', 'name' => 'БТР и БМП'],
                 ['slug' => 'armor-artillery', 'name' => 'Артиллерия'],
@@ -288,6 +288,21 @@ class ReferenceDataSeeder extends Seeder
             ],
         );
 
+        /*
+         * Pro заводится скрытым. Решение владельца от 04.10.
+         *
+         * Это образец для Swagger, а не тариф продукта: так он и назван в
+         * своём же описании. Но `is_active => true` выставлял его в общий
+         * список наравне с настоящими, и на боевой площадке он висел как
+         * предложение за 499 рублей. Ни один тест и ни одна страница
+         * документации к нему не обращаются — `PLAN_PRO_SLUG` встречается
+         * только здесь.
+         *
+         * Строку не убираем: подписки и платежи ссылаются на тарифы по
+         * идентификатору, и удаление оборвало бы историю. Скрытый тариф
+         * одновременно исчезает из списка и перестаёт покупаться прямым
+         * запросом — оба места отбирают по `is_active`.
+         */
         SubscriptionPlan::query()->firstOrCreate(
             ['slug' => SwaggerFixtures::PLAN_PRO_SLUG],
             [
@@ -298,7 +313,7 @@ class ReferenceDataSeeder extends Seeder
                 'features' => ['posts' => 'unlimited', 'priority_boost' => true],
                 'priority_boost' => true,
                 'badge_label' => 'PRO',
-                'is_active' => true,
+                'is_active' => false,
                 'sort_order' => 20,
             ],
         );

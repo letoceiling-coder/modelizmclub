@@ -2,18 +2,22 @@
 
 namespace Modules\Billing\Http\Controllers\Api\V1;
 
+use App\Enums\WalletTransactionType;
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
+use App\Models\Promocode;
 use App\Models\SubscriptionPlan;
+use App\Support\BonusPointsPrices;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\Billing\Contracts\PaymentGateway;
-use App\Support\BonusPointsPrices;
 use Modules\Billing\Exceptions\InsufficientFundsException;
 use Modules\Billing\Exceptions\InsufficientPointsException;
 use Modules\Billing\Services\BonusPointsPaymentService;
 use Modules\Billing\Services\BonusPointsService;
+use Modules\Billing\Services\PromocodeService;
 use Modules\Billing\Services\WalletPaymentService;
 use Modules\Catalog\Services\CategoryTaxonomyService;
 use Modules\Listing\Services\ListingPlacementPricingService;
@@ -115,7 +119,7 @@ class CreatePaymentController extends Controller
                     $walletPayment,
                     $request,
                     (int) $quote['final_cents'],
-                    \App\Enums\WalletTransactionType::ListingPlacement,
+                    WalletTransactionType::ListingPlacement,
                     "Размещение объявления: {$categoryName}",
                     $metadata,
                 );
@@ -128,6 +132,39 @@ class CreatePaymentController extends Controller
                 "Размещение объявления: {$categoryName}",
                 $metadata,
             );
+
+            /*
+             * Скидка выдана — место промокода занято. Решение владельца 04.10.
+             *
+             * Это и есть тот момент, в который человеку называют цену со
+             * скидкой и ведут на оплату. До правки счётчик не рос до самой
+             * оплаты, и на последнее место одновременно проходило сколько
+             * угодно человек.
+             *
+             * Бронь привязывается к платежу: по его отмене или неуспеху она
+             * снимается (`PaymentFulfillmentService`), по оплате —
+             * превращается в использование, а брошенная уходит через
+             * тридцать минут командой `promocodes:release-seats`.
+             */
+            $этоСкидка = $metadata['promocode_id'] ?? null;
+            if ($этоСкидка) {
+                /*
+                 * Платёж ищется по `payment_uuid`: числового идентификатора
+                 * шлюз не отдаёт. Первая редакция этой правки читала
+                 * `$result['payment_id']`, которого в ответе нет, — ветка не
+                 * сработала бы ни разу, и починка существовала бы только на
+                 * бумаге.
+                 */
+                $платёж = Payment::query()
+                    ->where('uuid', $result['payment_uuid'] ?? '')
+                    ->first();
+                $код = Promocode::query()->find($этоСкидка);
+
+                if ($код && $платёж) {
+                    app(PromocodeService::class)
+                        ->reserveSeat($код, $request->user(), $платёж->id);
+                }
+            }
 
             return $this->checkoutResponse($result);
         }
@@ -170,7 +207,7 @@ class CreatePaymentController extends Controller
                 $walletPayment,
                 $request,
                 (int) $plan->price_cents,
-                \App\Enums\WalletTransactionType::Subscription,
+                WalletTransactionType::Subscription,
                 "Подписка «{$plan->name}»",
                 $metadata,
             );
@@ -244,7 +281,7 @@ class CreatePaymentController extends Controller
         WalletPaymentService $walletPayment,
         Request $request,
         int $amountKopecks,
-        \App\Enums\WalletTransactionType $type,
+        WalletTransactionType $type,
         string $description,
         array $metadata,
     ): JsonResponse {

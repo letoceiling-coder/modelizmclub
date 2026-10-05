@@ -103,15 +103,26 @@ function LandingPage() {
       }}
     >
       <TopNav />
-      <Hero />
-      <FirstHundredBanner />
-      <QuickSections />
-      <PopularListings />
-      <CategoriesSection />
-      <StepsTimeline />
-      <PricingSection />
-      <WhyChoose />
-      <FaqSection />
+      {/*
+       * Содержимое лендинга — в <main>, меню и подвал снаружи.
+       *
+       * Аудит 04.10: главного ориентира не было на девяти страницах, включая
+       * главную. Чтение с экрана опирается на него, чтобы перепрыгнуть меню
+       * одной командой; без него человек каждый раз проходит шапку заново.
+       * На вид не меняется ничего — <main> не несёт своего оформления.
+       */}
+      <main>
+        <Hero />
+        <CommunityInvite />
+        <FirstHundredBanner />
+        <QuickSections />
+        <PopularListings />
+        <CategoriesSection />
+        <StepsTimeline />
+        <PricingSection />
+        <WhyChoose />
+        <FaqSection />
+      </main>
       <Footer />
     </div>
   );
@@ -132,6 +143,20 @@ function TopNav() {
     () =>
       (
         [
+          /*
+            «Как пользоваться» — первым пунктом, перед «Объявлениями».
+            Так просил заказчик, и причина та же, по которой пункт стоит
+            рядом с логотипом во внутренней шапке: новый человек должен
+            находить инструкцию, не разбираясь сначала в остальном меню.
+
+            Из этого же списка собирается мобильная шторка меню — значит
+            на телефоне пункт появляется сам, отдельного кода не нужно.
+          */
+          {
+            kind: "route" as const,
+            to: "/how-to-use" as const,
+            label: t("landing.nav.howToUse"),
+          },
           { kind: "route" as const, to: "/ads" as const, label: t("landing.nav.ads") },
           {
             kind: "route" as const,
@@ -1326,6 +1351,93 @@ function CategoriesSection() {
           })}
         </div>
       )}
+    </Section>
+  );
+}
+
+/* ===================== приглашение в сообщество ===================== */
+
+/**
+ * Приглашение и пять возможностей — текст заказчика с раздаточной карточки.
+ *
+ * Зачем отдельный блок, если ниже уже есть «Что есть в МоДелизМ».
+ * У них разная работа. Тот блок — витрина: карточки со счётчиками,
+ * содержимое правится в админке, он объясняет **что внутри**. Этот —
+ * приглашение: пять строк и одна кнопка, он отвечает на вопрос **зачем
+ * вступать**. Поэтому здесь список, а не сетка карточек: сетка рядом с
+ * сеткой читается как повтор.
+ *
+ * Текст — дословно с карточки, которую заказчик раздаёт на выставках.
+ * Это не место для перефразирования: человек, пришедший с карточки,
+ * должен увидеть то же, что держал в руках.
+ *
+ * Вёрстка от узкого экрана: на телефоне одна колонка, с 640 px — две.
+ * Карточку чаще всего открывают именно с телефона, по ссылке или QR.
+ */
+function CommunityInvite() {
+  const возможности = [
+    { to: "/messenger", название: "Мессенджер", что: "онлайн-общение с единомышленниками" },
+    { to: "/ads", название: "Объявления", что: "поиск нужного и размещение своих" },
+    { to: "/reviews", название: "Обзоры", что: "видеоролики с полезной информацией" },
+    { to: "/feed", название: "Лента", что: "соревнования, мероприятия и публикации" },
+    { to: "/channels", название: "Каналы", что: "свой канал с публикациями в общей ленте" },
+  ] as const;
+
+  return (
+    <Section bg="var(--background-surface)" id="join">
+      <div className="mx-auto max-w-[var(--container-max)] px-[var(--container-pad)]">
+        <p
+          className="text-[13px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: "var(--accent)" }}
+        >
+          МоДелизМ Клуб
+        </p>
+        <h2
+          className="mt-3 text-[26px] font-bold leading-[1.2] sm:text-[32px]"
+          style={{ color: "var(--foreground)" }}
+        >
+          Сообщество, объединяющее единомышленников для реализации идей и проектов
+        </h2>
+        <p className="mt-3 text-[16px] leading-[1.6]" style={{ color: "var(--foreground-70)" }}>
+          Присоединяйся к сообществу МоДелизМ и получи доступ к его возможностям.
+        </p>
+
+        <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+          {возможности.map((в) => (
+            <li key={в.название}>
+              <Link
+                to={в.to}
+                className="hit-target flex min-h-[44px] flex-col justify-center rounded-[var(--r-card)] px-4 py-3 transition-colors hover:bg-[var(--background)]"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <span className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+                  {в.название}
+                </span>
+                <span className="text-[14px]" style={{ color: "var(--foreground-70)" }}>
+                  {в.что}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            to="/register"
+            className="hit-target inline-flex min-h-[48px] items-center rounded-[var(--r-pill)] px-6 text-[15px] font-semibold"
+            style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
+          >
+            Присоединиться
+          </Link>
+          <Link
+            to="/how-to-use"
+            className="hit-target inline-flex min-h-[48px] items-center rounded-[var(--r-pill)] px-6 text-[15px] font-semibold"
+            style={{ border: "1px solid var(--border)", color: "var(--foreground-70)" }}
+          >
+            Как пользоваться
+          </Link>
+        </div>
+      </div>
     </Section>
   );
 }

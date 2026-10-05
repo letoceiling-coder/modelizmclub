@@ -1,8 +1,10 @@
 import { useEffect, type ReactNode } from "react";
 import { APP_SCROLL_ID } from "@/lib/scroll-policy";
-import { useMatch } from "@tanstack/react-router";
+import { useMatch, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { hasDirectionsRail } from "@/lib/layout/rails";
+import { pageTitleKey } from "@/lib/layout/page-titles";
+import { useTranslation } from "react-i18next";
 import { loadNavExpanded, loadPersistedFavorites, selectNavExpanded, useStore } from "@/lib/store";
 import { Sidebar } from "./Sidebar";
 import { DirectionsRightRail } from "./DirectionsRightRail";
@@ -57,6 +59,22 @@ export function AppLayout({
   */
   const pathname = useMatch({ strict: false, select: (m) => m.pathname });
   const withRail = rail ?? hasDirectionsRail(pathname);
+  const { t } = useTranslation();
+  /*
+   * Для заголовка — настоящий адрес, а не совпадение маршрута.
+   *
+   * Раскладка берёт `pathname` у своего совпадения, и у этого есть причина
+   * выше: адрес роутера меняется в момент клика, а старая страница ещё на
+   * экране, и центр успевал съехать. Но у совпадения другой изъян: у
+   * дочерней страницы оно равно родительскому. Замер на стенде 04.10 дал на
+   * /reviews/upload два `<h1>` — скрытые «Обзоры» от правила `^/reviews/?$`
+   * и свой заголовок страницы; то же самое было в настройках.
+   *
+   * Скрытому заголовку довод про CLS не относится: он ничего не занимает на
+   * экране, и сдвигать ему нечего. Поэтому здесь — адрес как есть.
+   */
+  const настоящийАдрес = useRouterState({ select: (s) => s.location.pathname });
+  const titleKey = pageTitleKey(настоящийАдрес);
 
   /*
     Свёрнутое меню (каталог, объявление): значки 64 на всех ширинах, пока
@@ -152,6 +170,19 @@ export function AppLayout({
           data-scroll-restoration-id={APP_SCROLL_ID}
           className="min-w-0 flex-1 lg:overflow-y-auto xl:flex-none"
         >
+          {/*
+            Заголовок первого уровня для страниц, у которых его нет на экране.
+
+            Берётся по адресу — как и правая колонка выше, и по той же
+            причине: ответ один на адрес, и оболочка берёт его сама, иначе
+            скелетон и экран ошибки остались бы без заголовка. Таблица и
+            доводы — в `lib/layout/page-titles.ts`.
+
+            На вид не меняется ничего: `sr-only` убирает узел с экрана, но
+            оставляет его чтению. Страницы со своим видимым заголовком в
+            таблицу не входят, иначе заголовок бы удвоился.
+          */}
+          {titleKey ? <h1 className="sr-only">{t(titleKey)}</h1> : null}
           {/*
             Подвал не заходит в первый экран, пока грузится содержимое.
 
