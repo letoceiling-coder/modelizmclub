@@ -38,7 +38,6 @@ import {
   recallDialogScroll,
   findFirstUnreadMessageId,
   TAP_TARGET_44,
-  TAP_TARGET_ROW_44,
 } from "@/lib/messenger";
 import { useCurrentUser } from "@/lib/session";
 import {
@@ -201,9 +200,33 @@ function isSecondaryTab(tab: MessengerTab): boolean {
   return (SECONDARY_TABS as readonly MessengerTab[]).includes(tab);
 }
 
+/*
+ * Высота — у самой кнопки, и не жёсткая, а нижним пределом.
+ *
+ * Стояло `height: 32`, а зону нажатия 44 px добавлял псевдоэлемент
+ * `TAP_TARGET_ROW_44` — `position:absolute`, `h-11`, по центру кнопки. Он
+ * вылезал за кнопку на 6 px вниз, а лента вкладок объявлена
+ * `overflow-x: auto`: когда одна ось `auto`, вторая из `visible` тоже
+ * становится `auto`. То есть у ленты появлялась **вертикальная** прокрутка
+ * — 32 px при содержимом 37. Палец, ведущий чуть под углом, двигал ряд не
+ * только вбок, но и вверх-вниз; подписи уезжали за край, и ряд
+ * «разъезжался». `overscroll-behavior-x: contain` рядом закрывал только
+ * горизонталь, по вертикали жест уходил странице.
+ *
+ * Замер на стенде 05.10, вкладка «Личные», ширины 320/360/390/430 —
+ * переполнение по вертикали 5 px на всех четырёх при обычном шрифте и 9 и
+ * 16 px при минимальном размере шрифта 19 и 24 px. При 24 px подпись
+ * занимала 36 px в кнопке высотой 32 и вылезала из неё вместе с
+ * подчёркиванием.
+ *
+ * Поэтому `minHeight: 44`: обещанные 44 px теперь настоящая высота кнопки,
+ * вылезать нечему, и при увеличенном системном шрифте ряд растёт, а не
+ * заводит вторую прокрутку. Так же сделано в `EntityTabs` (`h-11`) —
+ * у сообщества, канала и профиля этой беды нет именно поэтому.
+ */
 function tabButtonStyle(active: boolean) {
   return {
-    height: 32,
+    minHeight: 44,
     fontWeight: active ? 600 : 500,
     color: active ? "var(--accent)" : "var(--foreground-50)",
     borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
@@ -237,16 +260,40 @@ function TabLabel({ text }: { text: string }) {
   );
 }
 
+/*
+ * Место под счётчик резервирует невидимое «99+», а не число в пикселях.
+ *
+ * Стояло `min-w-[28px]` с обещанием «место под „99+“ целиком». Замер 05.10
+ * показал, что обещание не выполняется: при шрифте 12 px «99+» занимает
+ * 30,1 px, и вкладка «Личные» росла с 99,6 до 101,7 px — то есть двигала
+ * соседей ровно тогда, когда счётчик доходил до трёх знаков. При
+ * минимальном размере шрифта 19 px кружок требовал 46,5 px вместо 28, и
+ * вкладка прыгала с 126,2 на 144,7 — 18,5 px на каждое изменение числа.
+ * Любое число в пикселях — догадка об одном размере шрифта, и человек с
+ * увеличенным шрифтом системы её опрокидывает.
+ *
+ * Поэтому ширину держит невидимая копия «99+» в той же клетке сетки: клетка
+ * всегда шириной самого длинного возможного счётчика при текущем шрифте,
+ * каким бы тот ни был. Приём тот же, которым `TabLabel` выше держит ширину
+ * полужирной подписи.
+ *
+ * `min-h` вместо `h`: при шрифте 19 и 24 px цифры требуют 22 и 28 px, а
+ * кружок был зафиксирован на 18 и обрезал их.
+ *
+ * Ноль остаётся невидимым, но место занимает: `visibility` раскладку не
+ * меняет, поэтому приход счётчика ничего не двигает.
+ */
 function TabCount({ count }: { count: number }) {
   return (
     <span
       aria-hidden={count > 0 ? undefined : true}
-      // min-w-[28px] — место под «99+» целиком: «9» → «12» → «99+» не
-      // расширяют вкладку. Свои поля 6 px — цифры не касаются края кружка.
-      className={`grid h-[18px] min-w-[28px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
+      className={`inline-grid min-h-[18px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
       style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
     >
-      {count > 99 ? "99+" : count}
+      <span className="[grid-area:1/1]">{count > 99 ? "99+" : count}</span>
+      <span aria-hidden="true" className="invisible [grid-area:1/1]">
+        99+
+      </span>
     </span>
   );
 }
@@ -1924,6 +1971,14 @@ function MessengerPage() {
                 странице и системе. Без него прокрутка ленты у края включает
                 на iOS возврат назад: экран уезжает целиком, хотя человек
                 листал вкладки.
+
+                `overflow-y: hidden` — чтобы у ленты была ровно одна ось.
+                `overflow-x: auto` сам по себе делает вторую ось `auto`
+                вместо `visible`, и любой ребёнок, вылезающий по вертикали,
+                заводит вторую прокрутку: так ряд и разъезжался от зоны
+                нажатия в 44 px внутри кнопки высотой 32 (разбор у
+                `tabButtonStyle`). Высоты теперь хватает всем, обрезать
+                нечего, а вернуться беда не может.
               */}
               <div
                 ref={tabsRowRef}
@@ -1932,6 +1987,7 @@ function MessengerPage() {
                   scrollbarWidth: "none",
                   scrollSnapType: "x proximity",
                   overscrollBehaviorX: "contain",
+                  overflowY: "hidden",
                 }}
                 role="tablist"
               >
@@ -1942,7 +1998,7 @@ function MessengerPage() {
                     role="tab"
                     aria-selected={tab === key}
                     onClick={() => setTab(key)}
-                    className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                    className="flex shrink-0 items-center gap-[6px] px-[10px] text-[12px] transition-colors sm:text-[13px]"
                     style={{ ...tabButtonStyle(tab === key), scrollSnapAlign: "start" }}
                   >
                     <TabLabel text={t(TAB_LABEL_KEY[key])} />
@@ -1977,7 +2033,7 @@ function MessengerPage() {
                         if (Date.now() - moreClosedAt.current < 300) return;
                         setMoreOpen((v) => !v);
                       }}
-                      className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                      className="flex shrink-0 items-center gap-[6px] px-[10px] text-[12px] transition-colors sm:text-[13px]"
                       style={{ ...tabButtonStyle(secondaryActive), scrollSnapAlign: "start" }}
                     >
                       <TabLabel
