@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
  */
 const BOTTOM_NAV = join(import.meta.dirname, "BottomNav.tsx");
 const USER_MENU = join(import.meta.dirname, "UserMenu.tsx");
+const MOBILE_HEADER = join(import.meta.dirname, "MobileHeader.tsx");
 
 function разделыПанели(): string[] {
   const источник = readFileSync(BOTTOM_NAV, "utf8");
@@ -97,5 +98,41 @@ describe("«Друзья» после переноса из панели", () =>
     const источник = readFileSync(USER_MENU, "utf8");
 
     expect(источник).toContain("useIncomingFriendRequestCount");
+  });
+});
+
+/**
+ * Счётчик заявок на телефоне — виден, не открывая меню.
+ *
+ * Замер 05.10 на 360px после переноса «Друзей»: о заявке нельзя было узнать
+ * вообще. Значка не было ни на экране, ни на кнопке меню; строки в шторке
+ * счётчика не несли; боковая колонка со счётчиком начинается с 768px, меню
+ * аватара — с 1024px. То есть перенос пункта унёс и уведомление.
+ *
+ * Поэтому число стоит на самой кнопке меню и у строки «Друзья» внутри.
+ * Подтверждено в браузере: при одной ожидающей заявке на кнопке «1», в
+ * шторке строка «Друзья 1»; у гостя ни значка, ни строки.
+ */
+describe("счётчик входящих заявок на телефоне", () => {
+  it("мобильная шапка берёт число из общего источника", () => {
+    const источник = readFileSync(MOBILE_HEADER, "utf8");
+
+    expect(источник).toContain("useIncomingFriendRequestCount");
+  });
+
+  it("число стоит на кнопке меню, а не только внутри", () => {
+    const источник = readFileSync(MOBILE_HEADER, "utf8");
+    const начало = источник.indexOf('aria-label={t("common.more")}');
+    expect(начало, "кнопка меню не найдена — проверка смотрит не туда").toBeGreaterThan(-1);
+    const конец = источник.indexOf("</button>", начало);
+    const кнопка = источник.slice(начало, конец);
+
+    expect(кнопка).toContain("friendRequests");
+  });
+
+  it("число стоит и у строки «Друзья» в шторке", () => {
+    const источник = readFileSync(MOBILE_HEADER, "utf8");
+
+    expect(источник).toMatch(/s\.key === "friends" && friendRequests > 0/);
   });
 });
