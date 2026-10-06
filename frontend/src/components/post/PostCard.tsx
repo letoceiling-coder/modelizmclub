@@ -197,7 +197,6 @@ export function PostCard({
 
   const [likes, setLikes] = useState(post.likes);
 
-  const [saves, setSaves] = useState(post.saves ?? 0);
   const [reposts, setReposts] = useState(post.reposts ?? 0);
 
   /*
@@ -454,12 +453,26 @@ export function PostCard({
     if (!canInteract) return;
     const next = !saved;
     setSavedInner(next);
-    setSaves((n) => Math.max(0, n + (next ? 1 : -1)));
     onOptimistic?.(post.id, "save", next);
-    bookmarkPost(post.id, next).catch(() => {
+    /*
+     * Отказ сохранения называется вслух, как у реакции и репоста рядом.
+     *
+     * Здесь откат был, а сообщения не было: человек нажимал «Сохранить»,
+     * закладка на миг загоралась и гасла — без единого слова о том, что
+     * запрос не прошёл. Со стороны это читается не как отказ, а как
+     * «кнопка не работает».
+     *
+     * Ворота `check-empty-catch.sh` такое не ловят: обработчик не пустой,
+     * он делает откат. Правило из `CLAUDE.md` смотрит не на пустоту, а на
+     * то, что человек нажал и ждёт ответа, — такой отказ объявляется.
+     *
+     * Замер 06.10 на странице записи, запрос оборван: было — закладка
+     * возвращается, сообщений ноль; стало — возвращается и объявляется.
+     */
+    bookmarkPost(post.id, next).catch((err: unknown) => {
       setSavedInner(!next);
-      setSaves((n) => Math.max(0, n + (next ? -1 : 1)));
       onOptimistic?.(post.id, "save", !next);
+      toast.error(formatApiErrorMessage(err, t("components.postCard.bookmarkFailed")));
     });
   };
   // Gated form of doSave for children that take a plain callback (embedded card).
@@ -626,7 +639,6 @@ export function PostCard({
           liked={liked}
           likes={likes}
           saved={saved}
-          saves={saves}
           reposted={reposted}
           reposts={reposts}
           commentsCount={commentsCount}
@@ -1040,7 +1052,6 @@ export function PostCard({
             liked={liked}
             likes={likes}
             saved={saved}
-            saves={saves}
             reposted={reposted}
             reposts={reposts}
             commentsCount={commentsCount}

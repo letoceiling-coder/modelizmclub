@@ -558,6 +558,7 @@ export const ru = {
       posterFailed: "Кадр не получился",
     },
     postCard: {
+      bookmarkFailed: "Не удалось изменить сохранённое",
       likeFailed: "Не удалось поставить реакцию",
       reposted: "поделился записью",
       sharedPost: "поделился записью",
