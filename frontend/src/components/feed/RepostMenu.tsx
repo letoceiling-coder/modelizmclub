@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "react-i18next";
-import { m, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Repeat2, Share2, MessageSquare, Link2, Check, ArrowLeft, Forward } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -12,6 +11,47 @@ import { useGuestAccessOptional } from "@/components/access/GuestAccessProvider"
 import { SHARE_TARGETS, type ShareTarget } from "@/lib/share-targets";
 import { runShareTarget } from "@/lib/share-action";
 import { useDialogs } from "@/lib/messenger";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+/**
+ * Меню «Поделиться» у записи — одна реализация на карточку и на окно
+ * просмотра.
+ *
+ * РАНЬШЕ МЕНЮ БЫЛО `position: absolute` внутри своей кнопки. В ленте это
+ * работало; в окне просмотра записи — нет. Панель окна объявлена
+ * `lg:overflow-hidden`, и меню, открываясь вверх, обрезалось её верхним
+ * краем. Замер 06.10, /feed → нажатие по фотографии → панель справа, 1280:
+ *
+ *   панель            [860,54,380,792]  overflow hidden
+ *   кнопка «Репост»   [931,111,44,44]
+ *   «Репост в ленту»  [824,-17,258,40]  за верхним краем ОКНА ЭКРАНА
+ *   «Отправить…»      [824, 22,258,40]  выше края панели (54) — обрезан
+ *   «Поделиться»      [824, 63,258,40]  единственный целиком видимый
+ *
+ * Это и есть находка владельца: «виден только пункт „Поделиться“, пункты
+ * выше нажимаются, но не видны». В карточке ленты она не воспроизводилась,
+ * потому что у карточки нет обрезающего родителя, — и первая проверка
+ * (05.10) смотрела именно карточку.
+ *
+ * Поднимать слой было бы бесполезно: обрезает не наложение, а `overflow`
+ * родителя, и внутри него никакой `z-index` не помогает. Поэтому меню
+ * вынесено из потока в portal существующим средством проекта — `DropdownMenu`
+ * (Radix) из `@/components/ui/dropdown-menu`. Оно же даёт и остальное,
+ * что требовал владелец: переворот вниз, когда вверх не помещается
+ * (`avoidCollisions` включён по умолчанию), отступ от краёв
+ * (`collisionPadding`), слой `--z-popover` из шкалы — 55, то есть над
+ * лайтбоксом (`--z-modal`, 50), ограничение высоты по доступному месту,
+ * Escape, нажатие мимо и стрелки клавиатуры.
+ *
+ * `modal={false}` намеренно: окно просмотра — свой portal, а не Radix
+ * Dialog. В модальном режиме Radix погасил бы указатель на всём остальном
+ * документе, то есть на самом окне просмотра под меню.
+ */
 
 interface Props {
   postId: string;
@@ -39,31 +79,8 @@ export function RepostMenu({
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("main");
   const [copied, setCopied] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const { dialogs } = useDialogs();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setView("main");
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (view !== "main") setView("main");
-        else setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open, view]);
 
   const url = () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -100,7 +117,16 @@ export function RepostMenu({
 
   const openChats = () => {
     if (guest) {
-      guest.guardAction("messenger.send", () => setView("chats"));
+      /*
+       * Гостя перехватывает окно гейта. Меню при этом закрывается: оно
+       * живёт в portal на слое 55, окно гейта — на 70, и оставлять под ним
+       * раскрытое меню значит держать на экране два наложения сразу.
+       */
+      close();
+      guest.guardAction("messenger.send", () => {
+        setOpen(true);
+        setView("chats");
+      });
       return;
     }
     setView("chats");
@@ -121,173 +147,164 @@ export function RepostMenu({
     navigate({ to: "/messenger", search: { chat: dialogId } });
   };
 
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => !disabled && setOpen((v) => !v)}
-        disabled={disabled}
-        // Тот же класс, что у соседей по строке действий. Здесь лежала его
-        // копия — без подсветки наведения: репост был единственной кнопкой
-        // ряда, которая на курсор не отзывалась.
-        className={className}
-        style={{
-          color: reposted ? "var(--accent)" : "var(--foreground-70)",
-          background: open ? "var(--background-surface)" : "transparent",
-        }}
-        aria-label={t("components.repostMenu.ariaLabel")}
-        aria-expanded={open}
-        aria-disabled={disabled}
-      >
-        {/* Простая стрелка «Поделиться», как у VK, — и в ленте, и в
-            просмотрщике. Две петли Repeat2 остаются за пунктом «Репост» в
-            меню: это одно из действий за кнопкой, а не сама кнопка. */}
-        <Forward className="h-[20px] w-[20px]" />
-        {count > 0 && <span className="tabular-nums">{count}</span>}
-      </button>
+  /* Escape во вложенном виде возвращает в корень меню, а не закрывает его. */
+  const onEscape = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && view !== "main") {
+      e.preventDefault();
+      setView("main");
+    }
+  };
 
-      <AnimatePresence>
-        {open && (
-          <m.div
-            /*
-             * `x: "-50%"` — это центрирование, а не анимация: оно одинаково
-             * во всех трёх состояниях. Классом `-translate-x-1/2` его
-             * задать нельзя — framer-motion пишет `transform` инлайном, и
-             * тот перебивает класс целиком; меню осталось бы со сдвигом
-             * `left-1/2` и без возврата на половину своей ширины, то есть
-             * уехало бы вправо ещё сильнее прежнего.
-             */
-            initial={{ opacity: 0, x: "-50%", y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: "-50%", y: 8, scale: 0.96 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            /*
-             * Меню держится середины своей кнопки, а не её левого края.
-             *
-             * Было `left-0 w-[260px]`: отсчёт от левого края кнопки шириной
-             * 44 px. Кнопка «Репост» стоит третьей в строке действий, её
-             * левый край на 115 px, и меню занимало 115…375 при любой
-             * ширине экрана. Замер на стенде 05.10, лента, настоящее
-             * касание:
-             *
-             *   320 → за правым краем 55 px, все три пункта обрезаны
-             *   360 → за правым краем 15 px, все три пункта обрезаны
-             *   390 и шире → помещается
-             *
-             * Это и есть «блок „Поделиться“ сместился»: подписи пунктов
-             * уходили за экран. Горизонтальной прокрутки у страницы при
-             * этом не появлялось — то есть снаружи дефект выглядел не
-             * поломкой вёрстки, а просто обрезанным меню.
-             *
-             * `left-1/2` вместе со сдвигом `x: "-50%"` выше ставит меню по
-             * середине кнопки,
-             * а `min(…, 100vw-24px)` не даёт ему быть шире экрана. На узком
-             * телефоне запас до краёв получается 7 px, на широком меню
-             * стоит там же, где стояло.
-             */
-            className="absolute bottom-full left-1/2 z-[var(--z-popover)] mb-[8px] w-[min(260px,calc(100vw-24px))] overflow-hidden rounded-[12px] border"
-            style={{
-              background: "var(--background-elevated)",
-              borderColor: "var(--border)",
-              boxShadow: "var(--shadow-float)",
-            }}
-          >
-            {view === "main" && (
-              <>
-                <Item
-                  onClick={repostToFeed}
-                  icon={Repeat2}
-                  label={
-                    reposted
-                      ? t("components.repostMenu.undoRepost")
-                      : t("components.repostMenu.repostToFeed")
-                  }
-                  accent
-                />
-                <Item
-                  onClick={openChats}
-                  icon={MessageSquare}
-                  label={t("components.repostMenu.sendToMessages")}
-                />
-                <div className="border-t" style={{ borderColor: "var(--border)" }} />
-                <Item
-                  onClick={() => setView("share")}
-                  icon={Share2}
-                  label={t("components.repostMenu.share")}
-                />
-              </>
-            )}
-            {view === "share" && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setView("main")}
-                  className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
-                  style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
-                >
-                  <ArrowLeft className="h-[14px] w-[14px]" /> {t("components.repostMenu.share")}
-                </button>
-                {SHARE_TARGETS.map((target) => (
-                  <Item
-                    key={target.id}
-                    onClick={() => shareTo(target)}
-                    icon={Share2}
-                    label={target.label}
-                  />
-                ))}
-                <Item
-                  onClick={copyLink}
-                  icon={copied ? Check : Link2}
-                  label={
-                    copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")
-                  }
-                  accent={copied}
-                />
-              </div>
-            )}
-            {view === "chats" && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setView("main")}
-                  className="flex w-full items-center gap-[8px] border-b px-[14px] py-[10px] text-[13px] font-semibold"
-                  style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
-                >
-                  <ArrowLeft className="h-[14px] w-[14px]" />{" "}
-                  {t("components.repostMenu.whereToSend")}
-                </button>
-                <div className="max-h-[280px] overflow-y-auto">
-                  {dialogs.length === 0 ? (
-                    <div
-                      className="px-[14px] py-[16px] text-center text-[12px]"
-                      style={{ color: "var(--foreground-50)" }}
-                    >
-                      {t("components.repostMenu.noDialogs")}
-                    </div>
-                  ) : (
-                    dialogs.map((d) => {
-                      const u = userById(d.userId);
-                      return (
-                        <button
-                          key={d.id}
-                          type="button"
-                          onClick={() => sendToChat(d.id, u.name)}
-                          className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-left transition-colors hover:bg-[var(--background-surface)]"
-                        >
-                          <UserAvatar src={u.avatar} name={u.name} size={36} />
-                          <span className="text-[13px]" style={{ color: "var(--foreground)" }}>
-                            {u.name}
-                          </span>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </m.div>
+  return (
+    <DropdownMenu
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setView("main");
+      }}
+      modal={false}
+    >
+      <DropdownMenuTrigger asChild>
+        <button
+          disabled={disabled}
+          // Тот же класс, что у соседей по строке действий. Здесь лежала его
+          // копия — без подсветки наведения: репост был единственной кнопкой
+          // ряда, которая на курсор не отзывалась.
+          className={className}
+          style={{
+            color: reposted ? "var(--accent)" : "var(--foreground-70)",
+            background: open ? "var(--background-surface)" : "transparent",
+          }}
+          aria-label={t("components.repostMenu.ariaLabel")}
+          aria-disabled={disabled}
+        >
+          {/* Простая стрелка «Поделиться», как у VK, — и в ленте, и в
+              просмотрщике. Две петли Repeat2 остаются за пунктом «Репост» в
+              меню: это одно из действий за кнопкой, а не сама кнопка. */}
+          <Forward className="h-[20px] w-[20px]" />
+          {count > 0 && <span className="tabular-nums">{count}</span>}
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        /*
+         * Вверх, по середине кнопки — как было. Разница в том, что теперь
+         * это просьба, а не жёсткая раскладка: не поместилось вверх —
+         * Radix сам открывает вниз, не поместилось по ширине — сдвигает
+         * внутрь края. `collisionPadding` 12 оставляет зазор от краёв
+         * экрана; `w-[min(260px,…)]` не даёт меню быть шире окна на 320.
+         */
+        side="top"
+        align="center"
+        sideOffset={8}
+        collisionPadding={12}
+        onKeyDown={onEscape}
+        className="w-[min(260px,calc(100vw-24px))] rounded-[12px] border p-0"
+        style={{
+          background: "var(--background-elevated)",
+          borderColor: "var(--border)",
+          boxShadow: "var(--shadow-float)",
+        }}
+      >
+        {view === "main" && (
+          <>
+            <Item
+              onClick={repostToFeed}
+              icon={Repeat2}
+              label={
+                reposted
+                  ? t("components.repostMenu.undoRepost")
+                  : t("components.repostMenu.repostToFeed")
+              }
+              accent
+            />
+            {/* Вложенный вид — меню остаётся раскрытым. */}
+            <Item
+              onClick={openChats}
+              icon={MessageSquare}
+              label={t("components.repostMenu.sendToMessages")}
+              keepOpen
+            />
+            <div className="border-t" style={{ borderColor: "var(--border)" }} />
+            <Item
+              onClick={() => setView("share")}
+              icon={Share2}
+              label={t("components.repostMenu.share")}
+              keepOpen
+            />
+          </>
         )}
-      </AnimatePresence>
-    </div>
+        {view === "share" && (
+          <div>
+            <Back label={t("components.repostMenu.share")} onClick={() => setView("main")} />
+            {SHARE_TARGETS.map((target) => (
+              <Item
+                key={target.id}
+                onClick={() => shareTo(target)}
+                icon={Share2}
+                label={target.label}
+              />
+            ))}
+            <Item
+              onClick={copyLink}
+              icon={copied ? Check : Link2}
+              label={
+                copied ? t("components.repostMenu.copied") : t("components.repostMenu.copyLink")
+              }
+              accent={copied}
+            />
+          </div>
+        )}
+        {view === "chats" && (
+          <div>
+            <Back label={t("components.repostMenu.whereToSend")} onClick={() => setView("main")} />
+            <div className="max-h-[280px] overflow-y-auto">
+              {dialogs.length === 0 ? (
+                <div
+                  className="px-[14px] py-[16px] text-center text-[12px]"
+                  style={{ color: "var(--foreground-50)" }}
+                >
+                  {t("components.repostMenu.noDialogs")}
+                </div>
+              ) : (
+                dialogs.map((d) => {
+                  const u = userById(d.userId);
+                  return (
+                    <DropdownMenuItem
+                      key={d.id}
+                      onSelect={() => void sendToChat(d.id, u.name)}
+                      className="flex w-full items-center gap-[10px] rounded-none px-[14px] py-[8px] text-left focus:bg-[var(--background-surface)]"
+                    >
+                      <UserAvatar src={u.avatar} name={u.name} size={36} />
+                      <span className="text-[13px]" style={{ color: "var(--foreground)" }}>
+                        {u.name}
+                      </span>
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Возврат в корень меню. Пункт меню, а не обычная кнопка: иначе стрелками
+ *  клавиатуры на него не попасть. */
+function Back({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <DropdownMenuItem
+      onSelect={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
+      className="flex w-full items-center gap-[8px] rounded-none border-b px-[14px] py-[10px] text-[13px] font-semibold focus:bg-[var(--background-surface)]"
+      style={{ color: "var(--foreground)", borderColor: "var(--border)" }}
+    >
+      <ArrowLeft className="h-[14px] w-[14px]" /> {label}
+    </DropdownMenuItem>
   );
 }
 
@@ -296,17 +313,22 @@ function Item({
   label,
   onClick,
   accent,
+  keepOpen,
 }: {
   icon: typeof Repeat2;
   label: string;
   onClick: () => void;
   accent?: boolean;
+  /** Пункт открывает вложенный вид — меню не закрывается. */
+  keepOpen?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-[10px] px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[var(--background-surface)]"
+    <DropdownMenuItem
+      onSelect={(e) => {
+        if (keepOpen) e.preventDefault();
+        onClick();
+      }}
+      className="flex w-full items-center gap-[10px] rounded-none px-[14px] py-[10px] text-left text-[13px] focus:bg-[var(--background-surface)]"
       style={{ color: "var(--foreground)" }}
     >
       <Icon
@@ -314,6 +336,6 @@ function Item({
         style={{ color: accent ? "var(--accent)" : "var(--foreground-70)" }}
       />
       {label}
-    </button>
+    </DropdownMenuItem>
   );
 }
