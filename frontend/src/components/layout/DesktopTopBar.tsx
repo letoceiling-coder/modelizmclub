@@ -61,20 +61,18 @@ export function DesktopTopBar() {
         </Link>
 
         {/*
-          «Как пользоваться» — рядом с логотипом и всегда на виду.
+          «Как пользоваться» ЗДЕСЬ БОЛЬШЕ НЕТ — решение Е1 от 06.10.
 
-          Обычной ссылкой, а не `GuestGuardLink`: страница объясняет, как
-          тут всё устроено, и предлагать за неё войти — ровно наоборот
-          тому, зачем она нужна.
+          Шапка включается с 1024, боковая колонка — с 768. То есть везде,
+          где была видна шапка, ссылка уже стояла и в колонке, и человек
+          видел её дважды. Замер на /feed: 1024 — две видимые ссылки
+          (шапка [152,13,144,33] и колонка [36,356,40,40]), 1280 — тоже две.
+          Это и есть находка владельца П1.
+
+          Один вход на экран: до 768 — меню (`MOBILE_MENU_SECTIONS`), от 768
+          — боковая колонка, на лендинге — его собственное меню. Сторож —
+          `how-to-use-single-link.test.ts`.
         */}
-        <Link
-          to={ROUTES.howToUse}
-          className="hit-target shrink-0 whitespace-nowrap rounded-[var(--r-pill)] px-3 py-1.5 text-[14px] font-medium transition-colors hover:bg-[var(--background-surface)]"
-          style={{ color: "var(--foreground-70)" }}
-        >
-          {t("nav.howToUse")}
-        </Link>
-
         <GlobalSearch />
 
         <div className="ml-auto flex shrink-0 items-center gap-1">
