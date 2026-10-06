@@ -1150,6 +1150,10 @@ export const ru = {
       chatDeleted: "Чат удалён",
       selectDialogTitle: "Выберите диалог",
       selectDialogDesc: "или начните новый разговор",
+      searchEmptyTitle: "Ничего не найдено",
+      searchEmptyDesc:
+        "По запросу «{{query}}» диалогов нет. Проверьте написание или очистите поиск.",
+      searchClear: "Очистить поиск",
       noDialogsTitle: "Нет диалогов",
       noDialogsDesc: "Начните общение в категориях или найдите друзей",
       findFriends: "Найти друзей",

@@ -22,6 +22,7 @@ import {
   BadgeCheck,
   ImageOff,
   AlertCircle,
+  SearchX,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Appear } from "@/components/ui/Appear";
@@ -2120,6 +2121,20 @@ function MessengerPage() {
                 variant="bare"
                 action={{ label: t("pages.shared.retry"), onClick: () => void refetchDialogs() }}
               />
+            ) : filtered.length === 0 && query.trim() ? (
+              /*
+                Пустой поиск и пустой мессенджер — разные ответы.
+
+                Раньше ответ был один: при запросе, который ничему не
+                совпал, человеку показывали «Нет диалогов. Начните общение
+                в категориях или найдите друзей» и кнопку «Найти друзей».
+                Замер 05.10 на 1280, учётка А с двумя переписками: запрос
+                «щщщщ» давал ноль строк и ровно этот текст. То есть
+                сервис сообщал, что переписок нет, когда они есть и просто
+                не совпали, и предлагал действие не из той задачи:
+                заводить друзей вместо того, чтобы поправить запрос.
+              */
+              <EmptySearch query={query} onClear={() => setQuery("")} />
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
             ) : (
@@ -2709,6 +2724,26 @@ function EmptyChat() {
       description={t("pages.messenger.selectDialogDesc")}
       variant="bare"
       className="flex-1"
+    />
+  );
+}
+
+/**
+ * Поиск ничего не нашёл.
+ *
+ * Отдельно от `EmptyDialogs`: там нечего искать, здесь не совпал запрос.
+ * Запрос показан в пояснении, чтобы было видно, по чему искали, а
+ * действие — очистить его, а не идти заводить друзей.
+ */
+function EmptySearch({ query, onClear }: { query: string; onClear: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <EmptyState
+      icon={SearchX}
+      title={t("pages.messenger.searchEmptyTitle")}
+      description={t("pages.messenger.searchEmptyDesc", { query: query.trim() })}
+      variant="bare"
+      action={{ label: t("pages.messenger.searchClear"), onClick: onClear }}
     />
   );
 }
