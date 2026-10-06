@@ -66,6 +66,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useMySubscription } from "@/lib/subscription";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -232,6 +233,15 @@ export function ProfileView({
   const { requireAccount, requirePremium: requireSubscription } = useGuestAccess();
   const { requireAction } = useActionGate();
   /*
+   * Название своего тарифа для значка у имени. На чужом профиле не
+   * спрашиваем вовсе: `useMySubscription` вернул бы НАШУ подписку, и значок
+   * у чужого имени показывал бы наш тариф — хуже прежнего «Pro».
+   */
+  const { sub: свояПодписка } = useMySubscription();
+  const подписьТарифа = isOwn
+    ? (свояПодписка?.plan?.badge_label ?? свояПодписка?.plan?.name ?? null)
+    : null;
+  /*
    * Переписку открывает дружба либо подписка — решение владельца от 05.10,
    * и правило одно на сервер и на интерфейс (`ConversationPolicy`).
    *
@@ -390,12 +400,37 @@ export function ProfileView({
                 {user.name}
               </h1>
               {user.isSubscriber && (
+                /*
+                 * Подпись значка — действующий тариф, а не слово «Pro».
+                 *
+                 * Жалоба владельца 06.10: у имени стоит «Pro», а тариф — «Год».
+                 * Это не придирка к слову: «Pro» — НАЗВАНИЕ ДРУГОГО ТАРИФА
+                 * (`subscription_plans`: Базовый, Pro, Месяц, Полгода, Год),
+                 * то есть значок называл чужой тариф. Замер 06.10, учётка
+                 * подписчика: на `/profile` — «Pro», на `/subscription` —
+                 * «Подписка „Год“ активна, действует до 05.10.2027».
+                 *
+                 * Своё название тарифа известно только на своём профиле:
+                 * чужой профиль отдаёт лишь признак `is_subscriber`, а
+                 * раскрывать посторонним, сколько человек заплатил, никто не
+                 * просил. Поэтому на чужом профиле — нейтральное «Подписка»:
+                 * оно верно при любом тарифе и ни одному не противоречит.
+                 *
+                 * `badge_label` тарифа главнее названия: это предусмотренное
+                 * поле подписи, и админка сможет поставить там что угодно, не
+                 * переименовывая тариф.
+                 */
                 <Badge
                   variant="top-outline"
                   withIcon={false}
                   className="h-5 gap-1 rounded-full px-2 py-0 text-[10px]"
+                  title={
+                    подписьТарифа
+                      ? t("pages.profile.planBadgeTitle", { plan: подписьТарифа })
+                      : undefined
+                  }
                 >
-                  <BadgeCheck size={10} /> Pro
+                  <BadgeCheck size={10} /> {подписьТарифа ?? t("pages.profile.planBadgeFallback")}
                 </Badge>
               )}
               {user.firstHundred && (

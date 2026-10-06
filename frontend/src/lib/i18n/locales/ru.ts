@@ -1609,6 +1609,10 @@ export const ru = {
       emptyAds: "Объявлений пока нет",
       emptyCommunities: "Сообществ пока нет",
       earlyMemberBadge: "Один из первых 100 участников клуба",
+      /* Значок у имени: свой тариф на своём профиле, нейтральное слово на
+         чужом. «Pro» здесь стояло жёстко и называло ДРУГОЙ тариф. */
+      planBadgeTitle: "Подписка «{{plan}}»",
+      planBadgeFallback: "Подписка",
       requestFailed: "Не удалось отправить заявку",
       writeMessage: "Написать сообщение",
       writeMessageAria: "Написать сообщение",

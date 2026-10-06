@@ -153,6 +153,14 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       type="button"
       onClick={() => actions.setNavExpanded(next)}
       aria-label={t(next ? "nav.expandMenu" : "nav.collapseMenu")}
+      /*
+       * Подсказка при наведении — как у значков колонки. Обход 06.10 на 768,
+       * 1024 и 1280 показал: у всех четырнадцати значков `title` есть, и
+       * только у этой кнопки его не было — единственная в ряду, которая под
+       * курсором молчала. `aria-label` диктору её называл, но подсказки не
+       * даёт.
+       */
+      title={t(next ? "nav.expandMenu" : "nav.collapseMenu")}
       aria-expanded={!next}
       className="grid h-9 w-9 place-items-center rounded-[10px] border transition-colors hover:bg-[var(--background-surface)]"
       style={{
