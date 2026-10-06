@@ -43,6 +43,8 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { recordView } from "@/lib/view-history";
 import { SafeDealCheckoutWizard } from "@/components/deals/SafeDealCheckoutWizard";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
+import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog";
+import { sendFriendRequest } from "@/lib/api/social";
 import { ShareSheet } from "@/components/communities/ShareSheet";
 
 import i18n from "@/lib/i18n";
@@ -151,6 +153,23 @@ function AdDetailPage() {
   const navigate = useNavigate();
   const me = useCurrentUser();
   const { requireAccount } = useGuestAccess();
+  /*
+   * Отказ «нужна дружба» показывается тем же окном, что на профиле.
+   *
+   * Было: страница не разбирала код отказа вовсе — `formatApiErrorMessage`
+   * показывал текст сервера всплывающим сообщением. Замер 06.10, учётка
+   * без подписки и не друг продавца: сервер отвечал 403 с кодом
+   * `friendship_required`, человек видел строку «Добавьте пользователя в
+   * друзья, чтобы написать ему» — и **кнопки «Добавить» при ней не было**.
+   * То есть ему называли условие и не давали его выполнить.
+   *
+   * Правило владельца из сессии 4 требует именно окна с кнопкой. На
+   * профиле и на странице друзей оно уже стоит — `FriendRequiredDialog`,
+   * общий компонент; здесь был третий обработчик того же отказа, который
+   * про него не знал.
+   */
+  const [friendPromptOpen, setFriendPromptOpen] = useState(false);
+  const [friendPromptBusy, setFriendPromptBusy] = useState(false);
   const { requireAction } = useActionGate();
   // Объявление с сервера — первый кадр уже с фотографией.
   const { ad: adFromServer } = Route.useLoaderData();
@@ -257,6 +276,13 @@ function AdDetailPage() {
       }
       navigate({ to: "/messenger", search: { chat: dialog.id } });
     } catch (err) {
+      const код = (
+        err instanceof ApiError ? (err.payload as { code?: string } | undefined) : undefined
+      )?.code;
+      if (код === "friendship_required") {
+        setFriendPromptOpen(true);
+        return;
+      }
       const message = formatApiErrorMessage(err, t("pages.adDetail.dialogOpenFailed"));
       if (message) toast.error(message);
     }
@@ -793,6 +819,27 @@ function AdDetailPage() {
         />
       )}
       {ad && <SafeDealCheckoutWizard open={checkoutOpen} onOpenChange={setCheckoutOpen} ad={ad} />}
+      <FriendRequiredDialog
+        open={friendPromptOpen}
+        onOpenChange={setFriendPromptOpen}
+        adding={friendPromptBusy}
+        onAdd={() => {
+          const id = ad?.seller?.numericId;
+          if (!id) return;
+          setFriendPromptBusy(true);
+          void (async () => {
+            try {
+              await sendFriendRequest(id);
+              toast.success(t("pages.profile.requestSent"));
+              setFriendPromptOpen(false);
+            } catch (err) {
+              toast.error(formatApiErrorMessage(err, t("pages.profile.requestFailed")));
+            } finally {
+              setFriendPromptBusy(false);
+            }
+          })();
+        }}
+      />
     </AppLayout>
   );
 }
