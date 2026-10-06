@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import i18n from "@/lib/i18n";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import { catalogNamesFromIds, findSubcategoryByName, parseCatalogId } from "@/lib/catalog-filter";
+import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
 import { AdsPageSkeleton } from "@/components/boot/PageSkeletons";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
@@ -181,7 +182,42 @@ function CatalogPage() {
    */
   const { categoryId, subcategoryId } = useMemo(() => {
     const cat = listingCategories.find((c) => c.name === filters.category);
-    if (!cat) return { categoryId: undefined, subcategoryId: undefined };
+    if (!cat) {
+      /*
+       * Дерево не знает этого раздела — берём идентификатор прямо из адреса.
+       *
+       * Отбор проходит путь «идентификатор из адреса → имя раздела →
+       * обратно в идентификатор». Средним звеном служит дерево каталога из
+       * `/public/bootstrap`, и оно строится не из `listing_categories`
+       * напрямую, а из «видимых зеркал» направлений
+       * (`CategoryTaxonomyService::visibleMirrorIds`). Если зеркал нет,
+       * дерево пустое — и имя не находится ни для какого идентификатора.
+       *
+       * Дальше отбор просто **терялся молча**: `/ads?category_id=1`
+       * открывался, в адресе отбор стоял, в панели значилось «Все», а в
+       * запрос к API `category_id` не уходил вовсе. Человек видел не то,
+       * что в адресе, и ничто об этом не сообщало. Под это же попадали
+       * крошки на странице объявления — они ведут ровно на такой адрес.
+       *
+       * Замер 06.10 на стенде: 30 направлений, у всех `in_listings`, ни у
+       * одного нет `listing_category_id`; `listing_categories` в ответе
+       * `bootstrap` — ноль элементов. API при этом параметр понимает:
+       * `category_id=1` даёт одно объявление, `category_id=999` — ноль.
+       *
+       * Поэтому источником правды остаётся адрес: имена нужны панели для
+       * показа, а запросу достаточно идентификатора. Подстановка работает
+       * только пока человек не выбрал раздел сам — иначе из адреса пришло
+       * бы устаревшее значение.
+       */
+      const разделИзАдреса =
+        filters.category === DEFAULT_FILTERS.category ? search.category_id : undefined;
+      if (разделИзАдреса === undefined) return { categoryId: undefined, subcategoryId: undefined };
+      return {
+        categoryId: разделИзАдреса,
+        subcategoryId:
+          filters.subcategory === DEFAULT_FILTERS.subcategory ? search.subcategory_id : undefined,
+      };
+    }
     // По всему поддереву: дерево трёхуровневое, и подраздел может лежать
     // под своим разделом, а не рядом с ним.
     const sub = findSubcategoryByName(cat, filters.subcategory);
@@ -190,7 +226,13 @@ function CatalogPage() {
       return Number.isFinite(n) && n > 0 ? n : undefined;
     };
     return { categoryId: num(cat.id), subcategoryId: num(sub?.id) };
-  }, [listingCategories, filters.category, filters.subcategory]);
+  }, [
+    listingCategories,
+    filters.category,
+    filters.subcategory,
+    search.category_id,
+    search.subcategory_id,
+  ]);
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
@@ -212,13 +254,44 @@ function CatalogPage() {
       setHasMore(result.length === PAGE_SIZE);
       setLoadState("ok");
       hasLoadedOnce.current = true;
-    } catch {
-      if (!refreshing) setLoadState("error");
+    } catch (err) {
+      if (!refreshing) {
+        // Первая загрузка: показываем состояние с «Повторить» вместо списка.
+        setLoadState("error");
+        reportReadFailure(err, "каталог объявлений");
+        return;
+      }
+      /*
+       * Обновление не удалось — и об этом надо сказать.
+       *
+       * Стояло `if (!refreshing) setLoadState("error")`, то есть после
+       * первой успешной загрузки **любой** отказ проглатывался целиком:
+       * ни состояния, ни сообщения. Человек менял отбор или сортировку,
+       * запрос падал, а на экране оставалась прежняя выдача — и читалась
+       * она как ответ на новый отбор.
+       *
+       * Замер 06.10: каталог открыт, запрос к `/listings` оборван, выбрана
+       * сортировка «Сначала дешевле» — на экране по-прежнему «Найдено: 1
+       * объявление», сообщений ноль, кнопки «Повторить» нет.
+       *
+       * Прежнюю выдачу не стираем: она хотя бы настоящая, просто не та, о
+       * которой просили. Но молчать нельзя — человек нажал и ждёт.
+       */
+      reportActionFailure(err, t("pages.ads.errorTitle"));
     } finally {
       setIsRefreshing(false);
       setIsPendingRefresh(false);
     }
-  }, [q, filters, sort, taxonomyId]);
+    /*
+     * `categoryId` и `subcategoryId` обязаны быть в зависимостях.
+     *
+     * Они участвуют в запросе, но раньше в списке не значились: `load`
+     * пересобирался только при смене `q`, `filters`, `sort` и
+     * `taxonomyId`. Раздел приходит ещё и из адреса, и при смене одного
+     * лишь адреса (переход по крошке с одного раздела на другой) запрос
+     * ушёл бы со старым идентификатором из замкнутого окружения.
+     */
+  }, [q, filters, sort, taxonomyId, categoryId, subcategoryId, t]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -230,8 +303,11 @@ function CatalogPage() {
       setAds((prev) => [...prev, ...result]);
       setPage(nextPage);
       setHasMore(result.length === PAGE_SIZE);
-    } catch {
+    } catch (err) {
+      // Догрузка следующей страницы: список на экране цел, человек ничего
+      // не нажимал осознанно — записываем отказ и прекращаем догрузку.
       setHasMore(false);
+      reportReadFailure(err, "каталог объявлений, следующая страница");
     } finally {
       setLoadingMore(false);
     }
