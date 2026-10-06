@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { m } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
+import { ScrollRowArrows } from "@/components/ui/ScrollRowArrows";
+import { useRowEdges, useScrollRow } from "@/lib/ui/scroll-row";
 
 export interface EntityTab<K extends string> {
   key: K;
@@ -33,7 +35,7 @@ interface Props<K extends string> {
 }
 
 /**
- * Ряд вкладок сообщества и канала.
+ * Ряд вкладок сообщества, канала, профиля и направления.
  *
  * Был набран дважды, слово в слово — одинаковые классы, одинаковый
  * `overflow-x-auto no-scrollbar`, одинаковый счётчик. Разъезжались только
@@ -43,9 +45,36 @@ interface Props<K extends string> {
  * всю ширину они читаются как сегментированный переключатель, а не как
  * навигация по разделу.
  *
- * На узком экране ряд прокручивается горизонтально без видимой полосы, и
- * выбранная вкладка сама уезжает в видимую область — иначе на 375 «Участники»
- * оказываются за краем, и о них узнаёшь, только если догадаешься смахнуть.
+ * ## Мышью до дальних вкладок было не добраться
+ *
+ * Жалоба владельца 06.10, свой профиль, 1280: ряд обрезан справа, мышью до
+ * остальных вкладок не дойти. Замер на стенде показал, что дело не в 1280 —
+ * ряд переполнен на всех четырёх ширинах, и способа прокрутить его мышью не
+ * было ни одного:
+ *
+ * | Ширина | scrollWidth / clientWidth | Вкладок за краем | Колесо | Перетаскивание |
+ * | --- | --- | --- | --- | --- |
+ * | 360 | 1048 / 302 | 6 | 0 → 0 | 0 → 0 |
+ * | 768 | 1048 / 590 | 4 | 0 → 0 | 0 → 0 |
+ * | 1024 | 1048 / 478 | 4 | 0 → 0 | 0 → 0 |
+ * | 1280 | 1048 / 547 | 4 | 0 → 0 | 0 → 0 |
+ *
+ * Полоса прокрутки скрыта (`no-scrollbar`, видимая высота 1 px), колеса ряд
+ * не слушал, перетаскивания тоже. Пальцем ряд листался родной прокруткой —
+ * поэтому на телефоне дефекта не видно, а мышью вкладки «Сообщества»,
+ * «Приглашённые», «Заблокированные» и «О себе» были недостижимы вовсе.
+ *
+ * Добавлено: стрелки по краям (только для точного указателя — пальцу они не
+ * нужны), затухание края как подсказка, что ряд продолжается, и колесо.
+ *
+ * **Колесо отдаёт прокрутку странице на краях ряда.** Это главное отличие
+ * от `HorizontalScrollNav`, где `preventDefault` стоит на любом вертикальном
+ * колесе: там ряд, упёршийся в край, молча съедает прокрутку страницы, и
+ * колесо над ним перестаёт работать вообще.
+ *
+ * Клавиатура, роли `tablist`/`tab` и автоцентровка выбранной вкладки были
+ * здесь и раньше — и остаются единственным способом для тех, кто мышью не
+ * пользуется.
  */
 export function EntityTabs<K extends string>({
   tabs,
@@ -56,6 +85,13 @@ export function EntityTabs<K extends string>({
 }: Props<K>) {
   const rowRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
+  /* Колесо и перетаскивание — `useScrollRow` (он здесь был нужен и раньше:
+     ряд слушал только родную прокрутку), края, стрелки и затухание —
+     `useRowEdges`. Обе половины лежат в `lib/ui/scroll-row`: ту же нехватку
+     нашли ещё в фильтрах ленты, обзоров, моих объявлений и разделов
+     сообщений, и держать её решение в одном месте дешевле. */
+  useScrollRow(rowRef, [tabs.length]);
+  const { края, листать, маска } = useRowEdges(rowRef, [tabs.length]);
 
   /*
    * Клавиатура: стрелки переключают вкладку, Home и End уводят к краям.
@@ -122,54 +158,88 @@ export function EntityTabs<K extends string>({
   }, [active]);
 
   return (
-    <div
-      ref={rowRef}
-      role="tablist"
-      onKeyDown={onKeyDown}
-      className="no-scrollbar flex items-center gap-6 overflow-x-auto overscroll-x-contain"
-      style={{ borderBottom: "1px solid var(--border)" }}
-    >
-      {tabs.map((tab) => {
-        const isActive = tab.key === active;
-        const count = tab.count;
-        const showCount = count !== undefined && (count > 0 || showZero);
-        const Icon = tab.icon;
-        return (
-          <button
-            key={tab.key}
-            ref={isActive ? activeRef : undefined}
-            role="tab"
-            aria-selected={isActive}
-            tabIndex={isActive ? 0 : -1}
-            onClick={() => onChange(tab.key)}
-            className="relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 text-[15px] font-semibold transition-colors"
-            style={{ color: isActive ? "var(--foreground)" : "var(--foreground-50)" }}
-          >
-            {Icon && <Icon size={16} aria-hidden />}
-            {tab.label}
-            {showCount && (
-              /* Счётчик кружком рядом с названием, а не отдельным блоком:
-                 в пилюле с полями он весил как ещё одна вкладка. */
-              <span
-                className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold leading-none"
-                style={{
-                  background: isActive ? "var(--accent-soft)" : "var(--background-surface)",
-                  color: isActive ? "var(--accent)" : "var(--foreground-50)",
-                }}
-              >
-                {count}
-              </span>
-            )}
-            {isActive && (
-              <m.span
-                layoutId={layoutId}
-                className="absolute bottom-[-1px] left-0 right-0"
-                style={{ height: 2, background: "var(--accent-fill)" }}
-              />
-            )}
-          </button>
-        );
-      })}
+    /* Черта под рядом — на обёртке, а не на самом ряду: ряд теперь обрезает
+       по вертикали (см. ниже), и своя граница у него съела бы подчёркивание
+       выбранной вкладки. */
+    <div className="relative" style={{ borderBottom: "1px solid var(--border)" }}>
+      <div
+        ref={rowRef}
+        role="tablist"
+        onKeyDown={onKeyDown}
+        /*
+         * `overflow-y-hidden` — не украшение, а починка.
+         *
+         * При `overflow-x: auto` и `overflow-y: visible` CSS вычисляет
+         * `overflow-y: auto`, то есть ряд становится ещё и вертикальным
+         * прокручиваемым узлом. Прокручивать в нём нечего, но Chromium
+         * привязывает к нему ПЕРВОЕ колесо и съедает его: замер 06.10,
+         * 1280, ряд на правом краю, три колеса подряд по 300 —
+         *
+         *   как было          #1: 0 → 0;   #2: 0 → 300; #3: 300 → 600
+         *   overflow-y hidden #1: 0 → 300; #2: 300 → 600; #3: 600 → 900
+         *   сам main          #1: 0 → 300; #2: 300 → 600; #3: 600 → 900
+         *
+         * То есть на краю страница начинала прокручиваться только со
+         * второго движения колеса. С `hidden` ряд перестаёт быть
+         * вертикальным контейнером и ведёт себя как обычное содержимое.
+         *
+         * Ловушка замера: первый опыт в прогоне всегда показывал 0, и по
+         * одному прогону легко было решить, что виноваты стили. Порядок
+         * опытов в проверке перевёрнут, и тогда «как было» дало 300 —
+         * различие было в номере колеса, а не в правке.
+         */
+        className="no-scrollbar flex items-center gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain"
+        style={{
+          maskImage: маска,
+          WebkitMaskImage: маска,
+        }}
+      >
+        {tabs.map((tab) => {
+          const isActive = tab.key === active;
+          const count = tab.count;
+          const showCount = count !== undefined && (count > 0 || showZero);
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              ref={isActive ? activeRef : undefined}
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => onChange(tab.key)}
+              className="relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 text-[15px] font-semibold transition-colors"
+              style={{ color: isActive ? "var(--foreground)" : "var(--foreground-50)" }}
+            >
+              {Icon && <Icon size={16} aria-hidden />}
+              {tab.label}
+              {showCount && (
+                /* Счётчик кружком рядом с названием, а не отдельным блоком:
+                   в пилюле с полями он весил как ещё одна вкладка. */
+                <span
+                  className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold leading-none"
+                  style={{
+                    background: isActive ? "var(--accent-soft)" : "var(--background-surface)",
+                    color: isActive ? "var(--accent)" : "var(--foreground-50)",
+                  }}
+                >
+                  {count}
+                </span>
+              )}
+              {isActive && (
+                <m.span
+                  layoutId={layoutId}
+                  /* `bottom-0`, а не `-1px`: ряд обрезает по вертикали, и
+                     выехавший за край пиксель подчёркивания исчезал бы. */
+                  className="absolute bottom-0 left-0 right-0"
+                  style={{ height: 2, background: "var(--accent-fill)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <ScrollRowArrows края={края} листать={листать} />
     </div>
   );
 }

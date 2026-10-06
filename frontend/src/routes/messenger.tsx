@@ -67,7 +67,8 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useScrollRow } from "@/lib/ui/scroll-row";
+import { useRowEdges, useScrollRow } from "@/lib/ui/scroll-row";
+import { ScrollRowArrows } from "@/components/ui/ScrollRowArrows";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1386,27 +1387,15 @@ function MessengerPage() {
    * Подсказка «есть ещё» — градиент у того края, за которым остались вкладки.
    * Считаем по фактической прокрутке: ширина ряда зависит от колонки (320 на
    * 768, 360 с 1280, весь экран на телефоне) и от чисел в счётчиках.
+   *
+   * ЗДЕСЬ БЫЛ СВОЙ СЧЁТ КРАЁВ, слово в слово повторявший общий: подписка на
+   * `scroll`, `ResizeObserver` на ряд и на каждого ребёнка, сравнение с
+   * прежним значением. 06.10 он переехал в `useRowEdges` рядом с
+   * `useScrollRow` — та же нехватка стрелок нашлась ещё у вкладок профиля,
+   * фильтров ленты и обзоров, моих объявлений.
    */
-  const [tabsOverflow, setTabsOverflow] = useState({ start: false, end: false });
-  useEffect(() => {
-    const row = tabsRowRef.current;
-    if (!row) return;
-    const update = () => {
-      const max = row.scrollWidth - row.clientWidth;
-      const next = { start: row.scrollLeft > 1, end: row.scrollLeft < max - 1 };
-      setTabsOverflow((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
-    };
-    update();
-    row.addEventListener("scroll", update, { passive: true });
-    const observer = new ResizeObserver(update);
-    observer.observe(row);
-    for (const child of Array.from(row.children)) observer.observe(child);
-    return () => {
-      row.removeEventListener("scroll", update);
-      observer.disconnect();
-    };
-  }, [mobileView]);
   useScrollRow(tabsRowRef, [mobileView]);
+  const { края: краяВкладок, листать: листатьВкладки } = useRowEdges(tabsRowRef, [mobileView]);
 
   const filtered = useMemo(() => {
     if (tab === "calls") return [];
@@ -2144,7 +2133,7 @@ function MessengerPage() {
                 data-scroll-hint="start"
                 className="pointer-events-none absolute inset-y-0 left-0 w-[24px] transition-opacity duration-150"
                 style={{
-                  opacity: tabsOverflow.start ? 1 : 0,
+                  opacity: краяВкладок.слева ? 1 : 0,
                   background: "linear-gradient(to right, var(--background-elevated), transparent)",
                 }}
               />
@@ -2153,10 +2142,17 @@ function MessengerPage() {
                 data-scroll-hint="end"
                 className="pointer-events-none absolute inset-y-0 right-0 w-[32px] transition-opacity duration-150"
                 style={{
-                  opacity: tabsOverflow.end ? 1 : 0,
+                  opacity: краяВкладок.справа ? 1 : 0,
                   background: "linear-gradient(to left, var(--background-elevated), transparent)",
                 }}
               />
+              {/*
+                Стрелки — после подсказок: иначе градиенты рисуются поверх
+                значков. Замер 06.10: на 360 ряд переполнен на 172 px, на
+                1280 — на 161, и мышью дальние разделы было не достать,
+                колесо над рядом об этом никак не сообщало.
+              */}
+              <ScrollRowArrows края={краяВкладок} листать={листатьВкладки} высота={44} />
             </div>
           </div>
 

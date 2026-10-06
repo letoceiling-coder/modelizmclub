@@ -10,7 +10,8 @@ use Modules\User\Services\FriendService;
 
 /**
  * Viewing needs participation; writing needs participation *and* either
- * confirmed mutual friendship with the other person or the subscriber rung.
+ * confirmed mutual friendship with the other person, the subscriber rung, or
+ * — с 06.10, решение Е6 — то, что переписку начал не ты.
  *
  * Личную переписку открывает дружба либо подписка — решение владельца от
  * 05.10. До него сервер требовал подписку всегда, а интерфейс спрашивал
@@ -95,6 +96,25 @@ class ConversationPolicy
                 return Response::allow();
             }
 
+            /*
+             * Отвечать можно в переписке, которую начал не ты.
+             *
+             * Решение владельца Е6 от 06.10. До него человеку могли
+             * написать — подписчик вправе написать кому угодно, — а ответить
+             * он не мог: ни подписки, ни дружбы. Переписка выходила
+             * односторонней, и это выглядело поломкой, а не правилом. Случай
+             * был назван ещё в сессии 4 и оставлен владельцу вопросом;
+             * поведение тогда не меняли.
+             *
+             * Начать новую переписку это по-прежнему не позволяет: `create`
+             * выше не тронут, и с третьим лицом без подписки и дружбы
+             * заговорить нельзя. Блокировки тоже на месте — их держит
+             * `UserService::assertCanInteract` на входе в отправку.
+             */
+            if ($this->startedBySomeoneElse($user, $conversation)) {
+                return Response::allow();
+            }
+
             return Response::deny(self::FRIENDSHIP_REQUIRED_MESSAGE, 'friendship_required');
         }
 
@@ -126,6 +146,30 @@ class ConversationPolicy
     private function areFriends(User $a, User $b): bool
     {
         return $this->friends->areFriends($a, $b);
+    }
+
+    /**
+     * Переписку начал кто-то другой: первое сообщение в ней не твоё.
+     *
+     * «Начал» считается по первому сообщению, а не по строке участника:
+     * `findOrCreateDirect` ставит обоим `role => member` и один и тот же
+     * `joined_at`, то есть по участникам инициатора не отличить.
+     *
+     * Удалённые сообщения учитываются (`withTrashed`): иначе собеседник,
+     * убрав у себя своё первое сообщение, закрыл бы человеку возможность
+     * ответить на остальные.
+     *
+     * Пустая переписка — без сообщений вовсе — права не даёт: начать её
+     * мог только подписчик или друг, и до первого слова отвечать не на что.
+     */
+    private function startedBySomeoneElse(User $user, Conversation $conversation): bool
+    {
+        $firstSenderId = $conversation->messages()
+            ->withTrashed()
+            ->orderBy('id')
+            ->value('user_id');
+
+        return $firstSenderId !== null && (int) $firstSenderId !== (int) $user->id;
     }
 
     /** Собеседник в личной переписке — тот участник, который не ты. */

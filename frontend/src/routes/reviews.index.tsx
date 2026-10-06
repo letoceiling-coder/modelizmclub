@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
 import { reportReadFailure } from "@/lib/errors/handle";
+import { ScrollRowArrows } from "@/components/ui/ScrollRowArrows";
+import { useRowEdges, useScrollRow } from "@/lib/ui/scroll-row";
 
 export const Route = createFileRoute("/reviews/")({
   head: () => ({ meta: [{ title: i18n.t("pages.reviews.metaTitle") }] }),
@@ -110,6 +112,14 @@ function ReviewsPage() {
   const [categories, setCategories] = useState<VideoCategory[]>([]);
   const [watchLaterItems, setWatchLaterItems] = useState<WatchLaterItem[]>(() => getWatchLater());
   const [activeCat, setActiveCat] = useState<string>(categoryFromUrl ?? ALL);
+  /* Листание ряда категорий — общая оснастка; разбор рядом с разметкой. */
+  const рядКатегорий = useRef<HTMLDivElement>(null);
+  useScrollRow(рядКатегорий);
+  const {
+    края: краяКатегорий,
+    листать: листатьКатегории,
+    маска: маскаКатегорий,
+  } = useRowEdges(рядКатегорий);
   const [query, setQuery] = useState(qFromUrl ?? "");
   const [initialLoading, setInitialLoading] = useState(true);
   /* Подборки грузятся отдельным запросом от сетки. Свой флаг нужен затем,
@@ -248,27 +258,45 @@ function ReviewsPage() {
           aria-label={t("pages.reviews.searchAria")}
         />
 
-        <div className="-mx-[16px] flex gap-[8px] overflow-x-auto px-[16px] pb-[4px] sm:mx-0 sm:px-0 no-scrollbar">
-          {tabs.map((c) => {
-            const active = activeCat === c.slug;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setActiveCat(c.slug)}
-                className="shrink-0 whitespace-nowrap px-[14px] text-[13px] font-medium transition-colors"
-                style={{
-                  height: 36,
-                  borderRadius: "var(--r-tag)",
-                  background: active ? "var(--accent-soft)" : "var(--background-elevated)",
-                  color: active ? "var(--accent)" : "var(--foreground-70)",
-                  border: `1px solid ${active ? "var(--border-accent)" : "var(--border)"}`,
-                }}
-              >
-                {c.name}
-              </button>
-            );
-          })}
+        {/*
+          Ряд категорий листается мышью: колесо, перетаскивание и стрелки по
+          краям — общая оснастка `lib/ui/scroll-row`. Замер 06.10, 360:
+          переполнение 75 px, полоса скрыта, колесо ряд не двигало, стрелок
+          не было — «Смотреть позже» и дальние категории мышью было не
+          достать. Обёртка `relative` — опора для стрелок.
+        */}
+        <div className="relative">
+          <div
+            ref={рядКатегорий}
+            /* `overflow-y-hidden`: иначе вторая ось вычисляется как `auto`,
+               ряд становится вертикальным контейнером и Chromium съедает
+               первое колесо на его краю. Разбор — в `lib/ui/scroll-row`. */
+            className="no-scrollbar -mx-[16px] flex gap-[8px] overflow-x-auto overflow-y-hidden overscroll-x-contain px-[16px] pb-[4px] sm:mx-0 sm:px-0"
+            style={{ maskImage: маскаКатегорий, WebkitMaskImage: маскаКатегорий }}
+          >
+            {tabs.map((c) => {
+              const active = activeCat === c.slug;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setActiveCat(c.slug)}
+                  className="shrink-0 whitespace-nowrap px-[14px] text-[13px] font-medium transition-colors"
+                  style={{
+                    height: 36,
+                    borderRadius: "var(--r-tag)",
+                    background: active ? "var(--accent-soft)" : "var(--background-elevated)",
+                    color: active ? "var(--accent)" : "var(--foreground-70)",
+                    border: `1px solid ${active ? "var(--border-accent)" : "var(--border)"}`,
+                  }}
+                >
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
+          {/* Высота ряда — чип 36 плюс 4 нижнего поля. */}
+          <ScrollRowArrows края={краяКатегорий} листать={листатьКатегории} высота={40} />
         </div>
 
         {/*
