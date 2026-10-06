@@ -1049,6 +1049,12 @@ function MessengerPage() {
   // Первое непрочитанное сообщение открытого диалога — под ним рисуется
   // разделитель, и именно к нему уезжает скролл при открытии.
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  /*
+   * Для какой переписки уже решено, где её открыть. Не ref, а состояние:
+   * от него зависит отметка о прочтении, и она должна уйти следующим
+   * проходом, а не остаться ждать чужого рендера.
+   */
+  const [anchorResolvedFor, setAnchorResolvedFor] = useState<string | null>(null);
   const openAnchorResolvedRef = useRef<string | null>(null);
   const pendingScrollRestoreRef = useRef<number | null>(null);
   const scrollMemoryArmedRef = useRef(false);
@@ -1085,7 +1091,11 @@ function MessengerPage() {
       // Открытый по ссылке диалог переключает вкладку на ту, в которой он
       // лежит: иначе он открыт, а в списке слева его нет.
       setTab(dialogTab(dlg, dialogMetaMap[dialogId]?.archived ?? false));
-      if (dlg.unread) messengerCache.markRead(dialogId);
+      // Отметку о прочтении шлёт эффект ниже, после разбора границы «Новые
+      // сообщения». Здесь она уходила в тот же миг, когда диалог нашёлся в
+      // списке, — то есть раньше, чем загрузились сообщения, по которым
+      // граница и считается. На прямой ссылке `?chat=` метки из-за этого не
+      // было вовсе.
     };
 
     const byConversation = dlgs.find((d) => d.id === chat);
@@ -1200,11 +1210,6 @@ function MessengerPage() {
     setWatchingDialog(chatOnScreen ? activeId : null);
     return () => setWatchingDialog(null);
   }, [activeId, chatOnScreen]);
-
-  useEffect(() => {
-    if (!activeId) return;
-    messengerCache.markRead(activeId);
-  }, [activeId]);
 
   // The list polls itself (conversationsQuery.refetchInterval); a socket
   // reconnect just asks for a fresh page right away.
@@ -1470,6 +1475,7 @@ function MessengerPage() {
     const dialog = dlgs.find((d) => d.id === activeId);
     if (!dialog) return;
     openAnchorResolvedRef.current = activeId;
+    setAnchorResolvedFor(activeId);
 
     const visible = messages.filter((m) => !m.deletedForMe);
     const firstUnread = findFirstUnreadMessageId(visible, dialog.lastReadMessageId, meId);
@@ -1502,6 +1508,58 @@ function MessengerPage() {
     divider?.scrollIntoView({ block: "start" });
   }, [firstUnreadId]);
 
+  /*
+   * Отметка о прочтении ждёт, пока разобрана граница «Новые сообщения».
+   *
+   * Стояло `useEffect(() => { markRead(activeId) }, [activeId])` — отметка
+   * уходила сразу, как только определился диалог. Отметка двигает курсор
+   * прочитанного на последнее сообщение, а именно по нему эффект ниже
+   * вычисляет, где начинается непрочитанное. То есть отметка стирала то,
+   * что метке предстояло показать.
+   *
+   * При переходе внутри приложения это сходило с рук: список диалогов уже
+   * загружен, и эффект границы успевал прочитать прежний курсор в том же
+   * проходе. По прямой ссылке `?chat=` списка ещё нет — отметка успевала
+   * первой, а когда список приезжал, курсор в нём уже стоял на последнем
+   * сообщении.
+   *
+   * Замер 06.10, учётка А, три непрочитанных от Б, 1280:
+   *
+   * | Как вошли | Меток |
+   * | --- | --- |
+   * | прямая ссылка `?chat=` | **0** |
+   * | переход внутри приложения | 1, ниже неё ровно 3 |
+   *
+   * Ровно тот случай, про который `CLAUDE.md` говорит «прямая загрузка и
+   * переход внутри идут по разным веткам»: расхождение жило между ними.
+   *
+   * Теперь порядок задан явно: сперва граница, потом отметка. Запасной
+   * выход — если диалога в списке нет вовсе (удалён, чужой), якорю взяться
+   * неоткуда, и отмечаем как раньше, не дожидаясь.
+   */
+  useEffect(() => {
+    if (!activeId || chatLoading) return;
+    if (anchorResolvedFor === activeId) {
+      messengerCache.markRead(activeId);
+      return;
+    }
+    /*
+     * Запасной выход: диалога нет в списке, а список уже загружен —
+     * значит якорю взяться неоткуда (переписка удалена или чужая), и
+     * отмечаем как раньше.
+     *
+     * Условие «список загружен» здесь обязательно. Без него (`loading` не
+     * проверялся) запасной выход срабатывал ровно в том окне, которое
+     * правка и защищает: при заходе по прямой ссылке список ещё пуст,
+     * диалог «не найден», отметка уходит первой — и граница пропадает
+     * точно так же, как до правки. Проверено замером: с этой ошибкой
+     * метка по прямой ссылке по-прежнему была нулевой.
+     */
+    if (!loading && !dlgs.some((d) => d.id === activeId)) {
+      messengerCache.markRead(activeId);
+    }
+  }, [activeId, chatLoading, dlgs, anchorResolvedFor, loading]);
+
   // Клавиатура открылась — последнее сообщение должно остаться на виду.
   useEffect(() => {
     if (!keyboardInset || !stickToBottomRef.current) return;
@@ -1525,7 +1583,8 @@ function MessengerPage() {
     setActiveId(id);
     setMobileView("chat");
     setReplyTo(null);
-    messengerCache.markRead(id);
+    // Отметку шлёт эффект выше, после разбора границы «Новые сообщения».
+    // Здесь она уходила первой и стирала границу при прямом заходе.
     if (chat !== id) void navigate({ to: "/messenger", search: { chat: id }, replace: true });
   };
 
