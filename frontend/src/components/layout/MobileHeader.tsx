@@ -4,6 +4,7 @@ import { Bell, Search, Menu, Heart, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/Logo";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
+import { useIncomingFriendRequestCount } from "@/lib/friend-requests";
 import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useCurrentUser } from "@/lib/session";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
@@ -129,6 +130,19 @@ function MoreMenu() {
   const communitiesEnabled = useFeatureFlag("communitiesEnabled");
   const marketEnabled = useFeatureFlag("marketEnabled");
   const isGuest = useCurrentUser().id === "guest";
+  /*
+   * Входящие заявки в друзья — на самой кнопке меню.
+   *
+   * «Друзья» переехали из нижней панели в это меню (решение D4), и вместе с
+   * пунктом уехал счётчик: замер 05.10 на 360px показал, что о заявке на
+   * телефоне не узнать вообще — ни на экране, ни на кнопке, пока меню не
+   * открыто. Боковая колонка, где счётчик есть, начинается с 768px, меню
+   * аватара — с 1024px.
+   *
+   * Поэтому число живёт на кнопке: заявку видно, не открывая меню. Внутри
+   * оно же стоит у строки «Друзья», чтобы было понятно, к чему относится.
+   */
+  const friendRequests = useIncomingFriendRequestCount();
 
   // Dev-time guarantee that every section is reachable on mobile (no-op in prod).
   useEffect(() => {
@@ -154,6 +168,20 @@ function MoreMenu() {
           <SlotIcon slot={navSlotKey(s.key)} inheritColor size={20} />
         </span>
         <span className="flex-1 text-[15px] font-medium">{t(s.labelKey)}</span>
+        {s.key === "friends" && friendRequests > 0 && (
+          <span
+            className="grid min-w-[18px] place-items-center rounded-full px-1.5 tabular-nums"
+            style={{
+              height: 18,
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--accent-foreground)",
+              background: "var(--accent-fill)",
+            }}
+          >
+            {friendRequests > 9 ? "9+" : friendRequests}
+          </span>
+        )}
         {s.href && <ExternalLink size={15} style={{ color: "var(--foreground-50)" }} />}
       </>
     );
@@ -211,7 +239,25 @@ function MoreMenu() {
           )}
           style={{ color: "var(--foreground-70)" }}
         >
-          <Menu size={20} />
+          {/* Значок — тот же, что у колокольчика выше: своего не заводим. */}
+          <span className="relative inline-flex">
+            <Menu size={20} />
+            {friendRequests > 0 && (
+              <span
+                className="absolute -right-[6px] -top-[5px] grid min-w-[15px] place-items-center rounded-full px-[3px] tabular-nums"
+                style={{
+                  height: 15,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: "var(--accent-fill)",
+                  boxShadow: "0 0 0 2px var(--background)",
+                }}
+              >
+                {friendRequests > 9 ? "9+" : friendRequests}
+              </span>
+            )}
+          </span>
         </button>
       </DrawerTrigger>
 

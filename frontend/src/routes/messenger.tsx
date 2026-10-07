@@ -22,6 +22,7 @@ import {
   BadgeCheck,
   ImageOff,
   AlertCircle,
+  SearchX,
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Appear } from "@/components/ui/Appear";
@@ -38,7 +39,6 @@ import {
   recallDialogScroll,
   findFirstUnreadMessageId,
   TAP_TARGET_44,
-  TAP_TARGET_ROW_44,
 } from "@/lib/messenger";
 import { useCurrentUser } from "@/lib/session";
 import {
@@ -67,7 +67,8 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { blockUser, unblockUser } from "@/lib/api/social";
 import { setWatchingDialog } from "@/lib/realtime/user";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useScrollRow } from "@/lib/ui/scroll-row";
+import { useRowEdges, useScrollRow } from "@/lib/ui/scroll-row";
+import { ScrollRowArrows } from "@/components/ui/ScrollRowArrows";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -201,9 +202,33 @@ function isSecondaryTab(tab: MessengerTab): boolean {
   return (SECONDARY_TABS as readonly MessengerTab[]).includes(tab);
 }
 
+/*
+ * Высота — у самой кнопки, и не жёсткая, а нижним пределом.
+ *
+ * Стояло `height: 32`, а зону нажатия 44 px добавлял псевдоэлемент
+ * `TAP_TARGET_ROW_44` — `position:absolute`, `h-11`, по центру кнопки. Он
+ * вылезал за кнопку на 6 px вниз, а лента вкладок объявлена
+ * `overflow-x: auto`: когда одна ось `auto`, вторая из `visible` тоже
+ * становится `auto`. То есть у ленты появлялась **вертикальная** прокрутка
+ * — 32 px при содержимом 37. Палец, ведущий чуть под углом, двигал ряд не
+ * только вбок, но и вверх-вниз; подписи уезжали за край, и ряд
+ * «разъезжался». `overscroll-behavior-x: contain` рядом закрывал только
+ * горизонталь, по вертикали жест уходил странице.
+ *
+ * Замер на стенде 05.10, вкладка «Личные», ширины 320/360/390/430 —
+ * переполнение по вертикали 5 px на всех четырёх при обычном шрифте и 9 и
+ * 16 px при минимальном размере шрифта 19 и 24 px. При 24 px подпись
+ * занимала 36 px в кнопке высотой 32 и вылезала из неё вместе с
+ * подчёркиванием.
+ *
+ * Поэтому `minHeight: 44`: обещанные 44 px теперь настоящая высота кнопки,
+ * вылезать нечему, и при увеличенном системном шрифте ряд растёт, а не
+ * заводит вторую прокрутку. Так же сделано в `EntityTabs` (`h-11`) —
+ * у сообщества, канала и профиля этой беды нет именно поэтому.
+ */
 function tabButtonStyle(active: boolean) {
   return {
-    height: 32,
+    minHeight: 44,
     fontWeight: active ? 600 : 500,
     color: active ? "var(--accent)" : "var(--foreground-50)",
     borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
@@ -237,16 +262,40 @@ function TabLabel({ text }: { text: string }) {
   );
 }
 
+/*
+ * Место под счётчик резервирует невидимое «99+», а не число в пикселях.
+ *
+ * Стояло `min-w-[28px]` с обещанием «место под „99+“ целиком». Замер 05.10
+ * показал, что обещание не выполняется: при шрифте 12 px «99+» занимает
+ * 30,1 px, и вкладка «Личные» росла с 99,6 до 101,7 px — то есть двигала
+ * соседей ровно тогда, когда счётчик доходил до трёх знаков. При
+ * минимальном размере шрифта 19 px кружок требовал 46,5 px вместо 28, и
+ * вкладка прыгала с 126,2 на 144,7 — 18,5 px на каждое изменение числа.
+ * Любое число в пикселях — догадка об одном размере шрифта, и человек с
+ * увеличенным шрифтом системы её опрокидывает.
+ *
+ * Поэтому ширину держит невидимая копия «99+» в той же клетке сетки: клетка
+ * всегда шириной самого длинного возможного счётчика при текущем шрифте,
+ * каким бы тот ни был. Приём тот же, которым `TabLabel` выше держит ширину
+ * полужирной подписи.
+ *
+ * `min-h` вместо `h`: при шрифте 19 и 24 px цифры требуют 22 и 28 px, а
+ * кружок был зафиксирован на 18 и обрезал их.
+ *
+ * Ноль остаётся невидимым, но место занимает: `visibility` раскладку не
+ * меняет, поэтому приход счётчика ничего не двигает.
+ */
 function TabCount({ count }: { count: number }) {
   return (
     <span
       aria-hidden={count > 0 ? undefined : true}
-      // min-w-[28px] — место под «99+» целиком: «9» → «12» → «99+» не
-      // расширяют вкладку. Свои поля 6 px — цифры не касаются края кружка.
-      className={`grid h-[18px] min-w-[28px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
+      className={`inline-grid min-h-[18px] shrink-0 place-items-center rounded-full px-[6px] text-[10px] font-semibold leading-none tabular-nums ${count > 0 ? "" : "invisible"}`}
       style={{ background: "var(--accent-fill)", color: "var(--accent-foreground)" }}
     >
-      {count > 99 ? "99+" : count}
+      <span className="[grid-area:1/1]">{count > 99 ? "99+" : count}</span>
+      <span aria-hidden="true" className="invisible [grid-area:1/1]">
+        99+
+      </span>
     </span>
   );
 }
@@ -1001,6 +1050,12 @@ function MessengerPage() {
   // Первое непрочитанное сообщение открытого диалога — под ним рисуется
   // разделитель, и именно к нему уезжает скролл при открытии.
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  /*
+   * Для какой переписки уже решено, где её открыть. Не ref, а состояние:
+   * от него зависит отметка о прочтении, и она должна уйти следующим
+   * проходом, а не остаться ждать чужого рендера.
+   */
+  const [anchorResolvedFor, setAnchorResolvedFor] = useState<string | null>(null);
   const openAnchorResolvedRef = useRef<string | null>(null);
   const pendingScrollRestoreRef = useRef<number | null>(null);
   const scrollMemoryArmedRef = useRef(false);
@@ -1037,7 +1092,11 @@ function MessengerPage() {
       // Открытый по ссылке диалог переключает вкладку на ту, в которой он
       // лежит: иначе он открыт, а в списке слева его нет.
       setTab(dialogTab(dlg, dialogMetaMap[dialogId]?.archived ?? false));
-      if (dlg.unread) messengerCache.markRead(dialogId);
+      // Отметку о прочтении шлёт эффект ниже, после разбора границы «Новые
+      // сообщения». Здесь она уходила в тот же миг, когда диалог нашёлся в
+      // списке, — то есть раньше, чем загрузились сообщения, по которым
+      // граница и считается. На прямой ссылке `?chat=` метки из-за этого не
+      // было вовсе.
     };
 
     const byConversation = dlgs.find((d) => d.id === chat);
@@ -1152,11 +1211,6 @@ function MessengerPage() {
     setWatchingDialog(chatOnScreen ? activeId : null);
     return () => setWatchingDialog(null);
   }, [activeId, chatOnScreen]);
-
-  useEffect(() => {
-    if (!activeId) return;
-    messengerCache.markRead(activeId);
-  }, [activeId]);
 
   // The list polls itself (conversationsQuery.refetchInterval); a socket
   // reconnect just asks for a fresh page right away.
@@ -1333,27 +1387,15 @@ function MessengerPage() {
    * Подсказка «есть ещё» — градиент у того края, за которым остались вкладки.
    * Считаем по фактической прокрутке: ширина ряда зависит от колонки (320 на
    * 768, 360 с 1280, весь экран на телефоне) и от чисел в счётчиках.
+   *
+   * ЗДЕСЬ БЫЛ СВОЙ СЧЁТ КРАЁВ, слово в слово повторявший общий: подписка на
+   * `scroll`, `ResizeObserver` на ряд и на каждого ребёнка, сравнение с
+   * прежним значением. 06.10 он переехал в `useRowEdges` рядом с
+   * `useScrollRow` — та же нехватка стрелок нашлась ещё у вкладок профиля,
+   * фильтров ленты и обзоров, моих объявлений.
    */
-  const [tabsOverflow, setTabsOverflow] = useState({ start: false, end: false });
-  useEffect(() => {
-    const row = tabsRowRef.current;
-    if (!row) return;
-    const update = () => {
-      const max = row.scrollWidth - row.clientWidth;
-      const next = { start: row.scrollLeft > 1, end: row.scrollLeft < max - 1 };
-      setTabsOverflow((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
-    };
-    update();
-    row.addEventListener("scroll", update, { passive: true });
-    const observer = new ResizeObserver(update);
-    observer.observe(row);
-    for (const child of Array.from(row.children)) observer.observe(child);
-    return () => {
-      row.removeEventListener("scroll", update);
-      observer.disconnect();
-    };
-  }, [mobileView]);
   useScrollRow(tabsRowRef, [mobileView]);
+  const { края: краяВкладок, листать: листатьВкладки } = useRowEdges(tabsRowRef, [mobileView]);
 
   const filtered = useMemo(() => {
     if (tab === "calls") return [];
@@ -1422,6 +1464,7 @@ function MessengerPage() {
     const dialog = dlgs.find((d) => d.id === activeId);
     if (!dialog) return;
     openAnchorResolvedRef.current = activeId;
+    setAnchorResolvedFor(activeId);
 
     const visible = messages.filter((m) => !m.deletedForMe);
     const firstUnread = findFirstUnreadMessageId(visible, dialog.lastReadMessageId, meId);
@@ -1454,6 +1497,58 @@ function MessengerPage() {
     divider?.scrollIntoView({ block: "start" });
   }, [firstUnreadId]);
 
+  /*
+   * Отметка о прочтении ждёт, пока разобрана граница «Новые сообщения».
+   *
+   * Стояло `useEffect(() => { markRead(activeId) }, [activeId])` — отметка
+   * уходила сразу, как только определился диалог. Отметка двигает курсор
+   * прочитанного на последнее сообщение, а именно по нему эффект ниже
+   * вычисляет, где начинается непрочитанное. То есть отметка стирала то,
+   * что метке предстояло показать.
+   *
+   * При переходе внутри приложения это сходило с рук: список диалогов уже
+   * загружен, и эффект границы успевал прочитать прежний курсор в том же
+   * проходе. По прямой ссылке `?chat=` списка ещё нет — отметка успевала
+   * первой, а когда список приезжал, курсор в нём уже стоял на последнем
+   * сообщении.
+   *
+   * Замер 06.10, учётка А, три непрочитанных от Б, 1280:
+   *
+   * | Как вошли | Меток |
+   * | --- | --- |
+   * | прямая ссылка `?chat=` | **0** |
+   * | переход внутри приложения | 1, ниже неё ровно 3 |
+   *
+   * Ровно тот случай, про который `CLAUDE.md` говорит «прямая загрузка и
+   * переход внутри идут по разным веткам»: расхождение жило между ними.
+   *
+   * Теперь порядок задан явно: сперва граница, потом отметка. Запасной
+   * выход — если диалога в списке нет вовсе (удалён, чужой), якорю взяться
+   * неоткуда, и отмечаем как раньше, не дожидаясь.
+   */
+  useEffect(() => {
+    if (!activeId || chatLoading) return;
+    if (anchorResolvedFor === activeId) {
+      messengerCache.markRead(activeId);
+      return;
+    }
+    /*
+     * Запасной выход: диалога нет в списке, а список уже загружен —
+     * значит якорю взяться неоткуда (переписка удалена или чужая), и
+     * отмечаем как раньше.
+     *
+     * Условие «список загружен» здесь обязательно. Без него (`loading` не
+     * проверялся) запасной выход срабатывал ровно в том окне, которое
+     * правка и защищает: при заходе по прямой ссылке список ещё пуст,
+     * диалог «не найден», отметка уходит первой — и граница пропадает
+     * точно так же, как до правки. Проверено замером: с этой ошибкой
+     * метка по прямой ссылке по-прежнему была нулевой.
+     */
+    if (!loading && !dlgs.some((d) => d.id === activeId)) {
+      messengerCache.markRead(activeId);
+    }
+  }, [activeId, chatLoading, dlgs, anchorResolvedFor, loading]);
+
   // Клавиатура открылась — последнее сообщение должно остаться на виду.
   useEffect(() => {
     if (!keyboardInset || !stickToBottomRef.current) return;
@@ -1477,7 +1572,8 @@ function MessengerPage() {
     setActiveId(id);
     setMobileView("chat");
     setReplyTo(null);
-    messengerCache.markRead(id);
+    // Отметку шлёт эффект выше, после разбора границы «Новые сообщения».
+    // Здесь она уходила первой и стирала границу при прямом заходе.
     if (chat !== id) void navigate({ to: "/messenger", search: { chat: id }, replace: true });
   };
 
@@ -1725,6 +1821,29 @@ function MessengerPage() {
 
   const insertEmoji = useInsertAtCaret(composerRef, text, setText);
 
+  /*
+   * Поле ввода растёт по тексту до предела, затем прокручивается внутри.
+   *
+   * У textarea стоял `rows={1}` и `maxHeight: 120`, но высоту никто не
+   * считал: `maxHeight` был мёртвым намерением — поле оставалось в одну
+   * строку и с первой же лишней прокручивалось внутри себя. Замер 05.10 на
+   * 360 и 1280: двенадцать строк текста, высота 24 px до и после. ТЗ 3.7 и
+   * проверка M07 требуют роста до ограниченной высоты.
+   *
+   * Высота снимается с `scrollHeight` при сброшенной `height`: иначе
+   * `scrollHeight` вернёт прежнюю высоту и поле больше не уменьшится, когда
+   * текст стёрли.
+   */
+  const ПРЕДЕЛ_ПОЛЯ = 120;
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const нужно = Math.min(el.scrollHeight, ПРЕДЕЛ_ПОЛЯ);
+    el.style.height = `${нужно}px`;
+    el.style.overflowY = el.scrollHeight > ПРЕДЕЛ_ПОЛЯ ? "auto" : "hidden";
+  }, [text]);
+
   const handleCopy = useCallback(
     (m: Message) => {
       const copyText =
@@ -1901,6 +2020,14 @@ function MessengerPage() {
                 странице и системе. Без него прокрутка ленты у края включает
                 на iOS возврат назад: экран уезжает целиком, хотя человек
                 листал вкладки.
+
+                `overflow-y: hidden` — чтобы у ленты была ровно одна ось.
+                `overflow-x: auto` сам по себе делает вторую ось `auto`
+                вместо `visible`, и любой ребёнок, вылезающий по вертикали,
+                заводит вторую прокрутку: так ряд и разъезжался от зоны
+                нажатия в 44 px внутри кнопки высотой 32 (разбор у
+                `tabButtonStyle`). Высоты теперь хватает всем, обрезать
+                нечего, а вернуться беда не может.
               */}
               <div
                 ref={tabsRowRef}
@@ -1909,6 +2036,7 @@ function MessengerPage() {
                   scrollbarWidth: "none",
                   scrollSnapType: "x proximity",
                   overscrollBehaviorX: "contain",
+                  overflowY: "hidden",
                 }}
                 role="tablist"
               >
@@ -1919,7 +2047,7 @@ function MessengerPage() {
                     role="tab"
                     aria-selected={tab === key}
                     onClick={() => setTab(key)}
-                    className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                    className="flex shrink-0 items-center gap-[6px] px-[10px] text-[12px] transition-colors sm:text-[13px]"
                     style={{ ...tabButtonStyle(tab === key), scrollSnapAlign: "start" }}
                   >
                     <TabLabel text={t(TAB_LABEL_KEY[key])} />
@@ -1954,7 +2082,7 @@ function MessengerPage() {
                         if (Date.now() - moreClosedAt.current < 300) return;
                         setMoreOpen((v) => !v);
                       }}
-                      className={`flex shrink-0 items-center gap-[6px] px-[10px] text-center text-[12px] transition-colors sm:text-[13px] ${TAP_TARGET_ROW_44}`}
+                      className="flex shrink-0 items-center gap-[6px] px-[10px] text-[12px] transition-colors sm:text-[13px]"
                       style={{ ...tabButtonStyle(secondaryActive), scrollSnapAlign: "start" }}
                     >
                       <TabLabel
@@ -2005,7 +2133,7 @@ function MessengerPage() {
                 data-scroll-hint="start"
                 className="pointer-events-none absolute inset-y-0 left-0 w-[24px] transition-opacity duration-150"
                 style={{
-                  opacity: tabsOverflow.start ? 1 : 0,
+                  opacity: краяВкладок.слева ? 1 : 0,
                   background: "linear-gradient(to right, var(--background-elevated), transparent)",
                 }}
               />
@@ -2014,10 +2142,17 @@ function MessengerPage() {
                 data-scroll-hint="end"
                 className="pointer-events-none absolute inset-y-0 right-0 w-[32px] transition-opacity duration-150"
                 style={{
-                  opacity: tabsOverflow.end ? 1 : 0,
+                  opacity: краяВкладок.справа ? 1 : 0,
                   background: "linear-gradient(to left, var(--background-elevated), transparent)",
                 }}
               />
+              {/*
+                Стрелки — после подсказок: иначе градиенты рисуются поверх
+                значков. Замер 06.10: на 360 ряд переполнен на 172 px, на
+                1280 — на 161, и мышью дальние разделы было не достать,
+                колесо над рядом об этом никак не сообщало.
+              */}
+              <ScrollRowArrows края={краяВкладок} листать={листатьВкладки} высота={44} />
             </div>
           </div>
 
@@ -2041,6 +2176,20 @@ function MessengerPage() {
                 variant="bare"
                 action={{ label: t("pages.shared.retry"), onClick: () => void refetchDialogs() }}
               />
+            ) : filtered.length === 0 && query.trim() ? (
+              /*
+                Пустой поиск и пустой мессенджер — разные ответы.
+
+                Раньше ответ был один: при запросе, который ничему не
+                совпал, человеку показывали «Нет диалогов. Начните общение
+                в категориях или найдите друзей» и кнопку «Найти друзей».
+                Замер 05.10 на 1280, учётка А с двумя переписками: запрос
+                «щщщщ» давал ноль строк и ровно этот текст. То есть
+                сервис сообщал, что переписок нет, когда они есть и просто
+                не совпали, и предлагал действие не из той задачи:
+                заводить друзей вместо того, чтобы поправить запрос.
+              */
+              <EmptySearch query={query} onClear={() => setQuery("")} />
             ) : filtered.length === 0 ? (
               <EmptyDialogs />
             ) : (
@@ -2408,7 +2557,25 @@ function MessengerPage() {
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
+                        /*
+                         * Enter посреди набора иероглифов подтверждает выбор
+                         * в редакторе ввода, а не отправляет сообщение.
+                         *
+                         * Проверки на это не было: `e.key === "Enter"`
+                         * истинно и во время композиции, то есть у человека,
+                         * набирающего китайский или японский, первое же
+                         * подтверждение иероглифа отправляло недописанную
+                         * строку. ТЗ 3.7 требует учитывать композицию.
+                         */
+                        if (
+                          e.key === "Enter" &&
+                          !e.shiftKey &&
+                          !e.nativeEvent.isComposing &&
+                          // keyCode 229 — Enter, съеденный редактором ввода:
+                          // так о композиции сообщают браузеры, где
+                          // isComposing уже сброшен.
+                          e.nativeEvent.keyCode !== 229
+                        ) {
                           e.preventDefault();
                           send();
                         }
@@ -2612,6 +2779,26 @@ function EmptyChat() {
       description={t("pages.messenger.selectDialogDesc")}
       variant="bare"
       className="flex-1"
+    />
+  );
+}
+
+/**
+ * Поиск ничего не нашёл.
+ *
+ * Отдельно от `EmptyDialogs`: там нечего искать, здесь не совпал запрос.
+ * Запрос показан в пояснении, чтобы было видно, по чему искали, а
+ * действие — очистить его, а не идти заводить друзей.
+ */
+function EmptySearch({ query, onClear }: { query: string; onClear: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <EmptyState
+      icon={SearchX}
+      title={t("pages.messenger.searchEmptyTitle")}
+      description={t("pages.messenger.searchEmptyDesc", { query: query.trim() })}
+      variant="bare"
+      action={{ label: t("pages.messenger.searchClear"), onClick: onClear }}
     />
   );
 }

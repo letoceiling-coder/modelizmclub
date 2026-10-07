@@ -75,8 +75,12 @@ const COMMUNITY_ITEMS: Item[] = [
    * ещё не разобрался, и в конце списка он её не найдёт. Но первая
    * строка боковой колонки — это место, куда возвращаются каждый день, и
    * занимать его справкой значит отодвигать ленту вниз у всех остальных.
-   * Вход в справку остаётся в верхней шапке, где он виден со всех
-   * страниц, — поэтому здесь она уходит в конец.
+   *
+   * С 06.10 (решение Е1) это ЕДИНСТВЕННЫЙ вход в справку от 768 px: из
+   * верхней шапки ссылка убрана, потому что шапка и колонка видны
+   * одновременно и ссылка показывалась дважды. Поэтому убирать её отсюда
+   * нельзя — ниже конца списка её ставить некуда, но и выкидывать нечем
+   * заменить. Сторож — `how-to-use-single-link.test.ts`.
    */
   { to: ROUTES.howToUse, labelKey: "nav.howToUse", icon: CircleHelp, section: "how-to-use" },
 ];
@@ -149,6 +153,14 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       type="button"
       onClick={() => actions.setNavExpanded(next)}
       aria-label={t(next ? "nav.expandMenu" : "nav.collapseMenu")}
+      /*
+       * Подсказка при наведении — как у значков колонки. Обход 06.10 на 768,
+       * 1024 и 1280 показал: у всех четырнадцати значков `title` есть, и
+       * только у этой кнопки его не было — единственная в ряду, которая под
+       * курсором молчала. `aria-label` диктору её называл, но подсказки не
+       * даёт.
+       */
+      title={t(next ? "nav.expandMenu" : "nav.collapseMenu")}
       aria-expanded={!next}
       className="grid h-9 w-9 place-items-center rounded-[10px] border transition-colors hover:bg-[var(--background-surface)]"
       style={{

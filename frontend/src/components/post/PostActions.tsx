@@ -23,7 +23,6 @@ interface Props {
   liked: boolean;
   likes: number;
   saved: boolean;
-  saves: number;
   reposted: boolean;
   reposts: number;
   commentsCount: number;
@@ -58,7 +57,6 @@ export function PostActions({
   liked,
   likes,
   saved,
-  saves,
   reposted,
   reposts,
   commentsCount,
@@ -96,11 +94,33 @@ export function PostActions({
             aria-label={t("components.postCard.likeAria")}
             aria-disabled={!canInteract}
           >
+            {/*
+              Три кадра — значит не пружина.
+
+              Стояло `animate={{ scale: [1, 1.35, 1] }}` с
+              `transition={{ type: "spring" }}`. framer-motion так не умеет и
+              бросает исключение: «Only two keyframes currently supported with
+              spring and inertia animations. Trying to animate 1,1.35,1».
+
+              Ломалось при этом не сердце, а **счётчик рядом**. Исключение
+              рвало работу framer-motion, и `AnimatePresence` внутри
+              `ReducedMotionSwitch` не доводил смену числа: уходящий узел
+              оставался с `opacity: 0`, приходящий не монтировался. Замер
+              06.10 на странице записи: в базе реакция и счётчик 1, сердце
+              закрашено, а в кнопке
+              `<span class="tabular-nums" style="opacity: 0">0</span>` — то
+              есть числа на экране нет ни старого, ни нового.
+
+              Это ровно та беда, которую `ReducedMotionSwitch` и заводился
+              лечить (см. его докблок): он её лечит, пока ему не мешают.
+
+              `tween` с `times` даёт тот же отскок и допускает три кадра.
+            */}
             <m.span
               key={liked ? "on" : "off"}
               whileTap={{ scale: 1.5 }}
               animate={liked ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-              transition={{ type: "spring", stiffness: 480, damping: 14 }}
+              transition={{ duration: 0.26, times: [0, 0.45, 1], ease: "easeOut" }}
             >
               <Heart className="h-[20px] w-[20px]" fill={liked ? "currentColor" : "none"} />
             </m.span>
@@ -174,7 +194,29 @@ export function PostActions({
           >
             <Bookmark className="h-[20px] w-[20px]" fill={saved ? "currentColor" : "none"} />
           </m.span>
-          {saves > 0 && <span className="tabular-nums">{saves}</span>}
+          {/*
+            Числа у закладки нет — и не было никогда.
+
+            Сервер его не отдаёт: в `stats` записи лежат просмотры, реакции,
+            комментарии и репосты, закладок там нет, а клиентский
+            преобразователь подставляет `saves: 0` в пяти местах. Значит
+            условие `saves > 0` выполнялось ровно в одном случае — сразу
+            после своего же нажатия, когда оптимистичное обновление
+            прибавляло единицу. Замер 06.10: после нажатия «1», после
+            перезагрузки пусто, и так на странице записи, в ленте и в
+            профиле.
+
+            То есть человеку показывали «1» рядом с закладкой, что читается
+            как «один человек сохранил», а это было его собственное нажатие,
+            исчезающее при обновлении страницы.
+
+            Рядом, у просмотров, этот вывод уже сделан: ноль под каждой
+            карточкой — сообщение о неработающем счётчике, а не факт о
+            записи. Здесь то же самое, только числа нет и на сервере.
+
+            Закрашенная закладка остаётся: `viewer.bookmarked` — настоящее
+            состояние, и оно совпадает во всех списках.
+          */}
         </button>
       </Gated>
 

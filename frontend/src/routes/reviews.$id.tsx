@@ -28,7 +28,6 @@ import {
   createVideoComment,
 } from "@/lib/api/reviews";
 import { VideoCard } from "@/components/reviews/VideoCard";
-import { ReviewPlayerSettings } from "@/components/reviews/ReviewPlayerSettings";
 import { CommentSection } from "@/components/post/CommentSection";
 import { CollapsibleText } from "@/components/ui/CollapsibleText";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -538,7 +537,29 @@ function WatchPageInner() {
                 onError={() => setPlayError(t("pages.reviews.playbackFailed"))}
                 className="h-full w-full object-contain"
               />
-              <ReviewPlayerSettings videoRef={videoRef} visible={playing} />
+              {/*
+                Своих настроек здесь нет намеренно.
+
+                Жалоба владельца 05.10: «при нажатии на видео дублируются
+                элементы управления качеством и скоростью». Так и было:
+                у `<video>` стоит `controls`, то есть движок рисует своё
+                меню, а в нём уже есть скорость воспроизведения; поверх
+                него висела своя шестерёнка с той же скоростью. Замер на
+                стенде 360 и 1280: своя кнопка «Настройки плеера» 36×36 и
+                родные `-internal-media-controls-playback-speed-button` и
+                `-internal-media-controls-overflow-button` одновременно —
+                два набора настроек на одном проигрывателе.
+
+                «Качество» в своей накладке выбора не предлагало вовсе:
+                подпись и слово «Авто» текстом, без единого varianta. То
+                есть дублировалась скорость, а качество обещалось и не
+                давалось.
+
+                Родные элементы управления оставлены, своя накладка убрана:
+                они работают с клавиатуры, читаются диктором и одинаковы на
+                телефоне и на компьютере. Строить своё поверх них значит
+                повторять за движком перемотку, звук и полноэкранный режим.
+              */}
               {playError && (
                 <div
                   className="absolute inset-x-[12px] bottom-[12px] rounded-[10px] px-[12px] py-[10px] text-[12px] text-white"

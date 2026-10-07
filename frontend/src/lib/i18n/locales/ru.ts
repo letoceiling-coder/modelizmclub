@@ -2,6 +2,10 @@ export const ru = {
   common: {
     appName: "МоДелизМ",
     listEnd: "Это все",
+    /* Подписи стрелок у переполненной строки вкладок. Видны подсказкой при
+       наведении; диктору они не читаются — у него есть стрелки клавиатуры. */
+    scrollLeft: "Листать влево",
+    scrollRight: "Листать вправо",
     appSuffix: "Форум",
     loading: "Загрузка…",
     save: "Сохранить",
@@ -427,6 +431,13 @@ export const ru = {
     },
   },
   components: {
+    autoLoadMore: {
+      /* Отказ догрузки: список на экране цел, человек ничего не нажимал —
+         поэтому строка о следующей странице, а не об ошибке вообще. */
+      failed: "Не удалось загрузить дальше",
+      /* Диктору: сколько прибавилось и сколько стало. */
+      added: "Добавлено объявлений: {{added}}. Всего показано: {{total}}",
+    },
     rightCategories: {
       title: "Найди своих",
       subtitle: "Зайди в чат своего направления",
@@ -524,13 +535,6 @@ export const ru = {
       expand: "Показать полностью",
       collapse: "Свернуть",
     },
-    reviewPlayer: {
-      settings: "Настройки плеера",
-      quality: "Качество",
-      qualityAuto: "Авто",
-      speed: "Скорость",
-      speedNormal: "Обычная",
-    },
     tagInput: {
       placeholder: "Введите тег и нажмите Enter",
       hint: "{{count}} из {{max}} тегов",
@@ -565,6 +569,7 @@ export const ru = {
       posterFailed: "Кадр не получился",
     },
     postCard: {
+      bookmarkFailed: "Не удалось изменить сохранённое",
       likeFailed: "Не удалось поставить реакцию",
       reposted: "поделился записью",
       sharedPost: "поделился записью",
@@ -1157,6 +1162,10 @@ export const ru = {
       chatDeleted: "Чат удалён",
       selectDialogTitle: "Выберите диалог",
       selectDialogDesc: "или начните новый разговор",
+      searchEmptyTitle: "Ничего не найдено",
+      searchEmptyDesc:
+        "По запросу «{{query}}» диалогов нет. Проверьте написание или очистите поиск.",
+      searchClear: "Очистить поиск",
       noDialogsTitle: "Нет диалогов",
       noDialogsDesc: "Начните общение в категориях или найдите друзей",
       findFriends: "Найти друзей",
@@ -1607,6 +1616,10 @@ export const ru = {
       emptyAds: "Объявлений пока нет",
       emptyCommunities: "Сообществ пока нет",
       earlyMemberBadge: "Один из первых 100 участников клуба",
+      /* Значок у имени: свой тариф на своём профиле, нейтральное слово на
+         чужом. «Pro» здесь стояло жёстко и называло ДРУГОЙ тариф. */
+      planBadgeTitle: "Подписка «{{plan}}»",
+      planBadgeFallback: "Подписка",
       requestFailed: "Не удалось отправить заявку",
       writeMessage: "Написать сообщение",
       writeMessageAria: "Написать сообщение",

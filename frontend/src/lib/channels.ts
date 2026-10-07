@@ -269,7 +269,19 @@ export async function fetchChannels(taxonomyId?: number): Promise<Channel[]> {
     query: { taxonomy_id: taxonomyId || undefined },
   });
   const list = (res.data ?? []).map(mapChannel);
-  channelsCache = { taxonomyId, list };
+  /*
+   * Кэш — браузерный, и на сервере его быть не должно.
+   *
+   * `channelsCache` — модульная переменная, а загрузчик маршрута зовёт
+   * `fetchChannels` и на сервере. Процесс Node живёт сутками: после
+   * первого же запроса кэш оставался тёплым, и ответ одному посетителю
+   * зависел от предыдущего — ровно то, что `CLAUDE.md` запрещает отдельным
+   * правилом («так 14.09 падала страница канала после страницы
+   * сообщества — только на прогретом сервере»).
+   *
+   * Чем это кончалось, видно ниже, в `useChannels`.
+   */
+  if (typeof window !== "undefined") channelsCache = { taxonomyId, list };
   return list;
 }
 
@@ -470,12 +482,33 @@ export function useChannels(
   taxonomyId?: number,
   initial?: Channel[],
 ): { channels: Channel[]; loading: boolean; reload: () => void } {
-  if (initial && initial.length > 0 && !getCachedChannels(taxonomyId)) {
-    seedChannelsCache(initial, taxonomyId);
-  }
-  const cached = getCachedChannels(taxonomyId);
-  const [channels, setChannels] = useState<Channel[]>(() => cached ?? []);
-  const [loading, setLoading] = useState(() => !cached);
+  /*
+   * Первый кадр строится только из данных загрузчика — они одинаковы на
+   * сервере и в браузере.
+   *
+   * Стояло `useState(() => !getCachedChannels(taxonomyId))`, то есть
+   * признак загрузки читался из модульного кэша. На сервере кэш к тому
+   * времени был уже тёплым (его грел `fetchChannels` из загрузчика) и
+   * возвращал пустой массив — а пустой массив истинный, значит
+   * `loading` там выходило `false`. В браузере кэш пуст, `loading`
+   * выходило `true`.
+   *
+   * Расхождение видно глазами: сервер рисовал пустое состояние, браузер
+   * на первом кадре — скелеты. React бросал «Hydration failed because the
+   * server rendered HTML didn't match the client» и перерисовывал ветку
+   * целиком. Замер 06.10 на `/channels`: одно исключение на загрузку, у
+   * гостя и у вошедшего одинаково; серверная разметка три запроса подряд
+   * содержала пустое состояние, то есть сервер отвечал одинаково, а
+   * браузер — иначе.
+   *
+   * Обращение к кэшу перенесено в эффект: он выполняется после гидрации,
+   * когда расходиться уже нечему. Заодно ушёл побочный эффект из тела
+   * рендера — `seedChannelsCache` писал в модульную переменную прямо при
+   * отрисовке, в том числе серверной.
+   */
+  const первыйКадр = initial ?? [];
+  const [channels, setChannels] = useState<Channel[]>(первыйКадр);
+  const [loading, setLoading] = useState(первыйКадр.length === 0);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -486,6 +519,9 @@ export function useChannels(
   }, [taxonomyId]);
 
   useEffect(() => {
+    if (initial && initial.length > 0 && !getCachedChannels(taxonomyId)) {
+      seedChannelsCache(initial, taxonomyId);
+    }
     const hit = getCachedChannels(taxonomyId);
     if (hit) {
       setChannels(hit);
@@ -493,6 +529,10 @@ export function useChannels(
       return;
     }
     reload();
+    // `initial` намеренно не в зависимостях: это снимок загрузчика, он
+    // меняет ссылку на каждый рендер маршрута, а посев нужен один раз на
+    // раздел.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reload, taxonomyId]);
   return { channels, loading, reload };
 }

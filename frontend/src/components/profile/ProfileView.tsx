@@ -59,12 +59,14 @@ import { openConversation } from "@/lib/api/chat";
 import { formatApiErrorMessage } from "@/lib/api/validationErrors";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FriendRequiredDialog } from "@/components/friends/FriendRequiredDialog";
+import { EntityTabs } from "@/components/entity/EntityTabs";
 import { uploadMedia } from "@/lib/api/media";
 import { CitySelect } from "@/components/ads/CitySelect";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useMySubscription } from "@/lib/subscription";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,7 +88,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { firstFieldError } from "@/lib/api/validationErrors";
 import { formatDate } from "@/lib/format/date";
-import { useActionGate } from "@/lib/gate";
+import { useActionGate, useGate } from "@/lib/gate";
 import { reportReadFailure } from "@/lib/errors/handle";
 import { addInterest, splitInterests } from "@/lib/profile/edit";
 
@@ -151,7 +153,28 @@ const ICON_MAP: Record<string, typeof Car> = {
 export const PROFILE_NAME_MAX = 40;
 export const PROFILE_BIO_MAX = 2000;
 export const PROFILE_INTERESTS_MAX = 10;
-export const PROFILE_NAME_REGEX = /^[\p{L}\s-]+$/u;
+/*
+ * Набор знаков имени — тот же, что у сервера, и не уже.
+ *
+ * Было `/^[\p{L}\s-]+$/u`: только буквы, пробелы и дефис. Сервер при
+ * регистрации держит правило `PersonName` и допускает заметно больше —
+ * апострофы (`'` и `’`), точку, среднюю точку и маркер:
+ * `/^[\p{L}\p{M} \x{00A0}'\x{2019}.\x{00B7}\x{2022}-]+$/u`.
+ *
+ * Разница не умозрительная. Зарегистрироваться как «Анна О'Нил» можно —
+ * проверено запросом к `/auth/register` 06.10, регистрация принята. А
+ * форма профиля такое имя отвергала, и человек не мог сохранить **ничего**:
+ * ни описание, ни город, ни аватар. Замер: учётке поставлено имя
+ * «Анна О'Нил», в форме правилось только описание, при сохранении —
+ * «ФИО: только буквы, пробелы и дефис», в базе ничего не изменилось.
+ *
+ * То есть собственное имя запирало профиль, пока человек его не исказит.
+ *
+ * Правило сервера здесь главнее: клиент может подсказать раньше, но не
+ * может запрещать то, что сервер разрешил. Пробел оставлен как `\s`:
+ * сервер всё равно схлопывает пробельные знаки перед проверкой.
+ */
+export const PROFILE_NAME_REGEX = /^[\p{L}\p{M}\s\u00A0\u0027\u2019.\u00B7\u2022-]+$/u;
 
 export type AdStatus = "active" | "moderation" | "rejected" | "archived";
 const AD_STATUS_FILTER_KEYS: { key: AdStatus | "all"; labelKey: string }[] = [
@@ -209,6 +232,24 @@ export function ProfileView({
   const { t } = useTranslation();
   const { requireAccount, requirePremium: requireSubscription } = useGuestAccess();
   const { requireAction } = useActionGate();
+  /*
+   * Название своего тарифа для значка у имени. На чужом профиле не
+   * спрашиваем вовсе: `useMySubscription` вернул бы НАШУ подписку, и значок
+   * у чужого имени показывал бы наш тариф — хуже прежнего «Pro».
+   */
+  const { sub: свояПодписка } = useMySubscription();
+  const подписьТарифа = isOwn
+    ? (свояПодписка?.plan?.badge_label ?? свояПодписка?.plan?.name ?? null)
+    : null;
+  /*
+   * Переписку открывает дружба либо подписка — решение владельца от 05.10,
+   * и правило одно на сервер и на интерфейс (`ConversationPolicy`).
+   *
+   * Лестницу доступа спрашиваем у гейта, а не считаем свою: `can` уже
+   * учитывает и подписку, и льготу «подписка не требуется», как и серверный
+   * `hasSubscriptionAccess()`.
+   */
+  const { can: достигаетУровня } = useGate();
   /*
    * Вкладка может быть задана хешем: `/profile#reviews` открывает отзывы.
    * Тот же приём, что в настройках (`#sms-verify`, `#max-account`), и он тут
@@ -359,12 +400,37 @@ export function ProfileView({
                 {user.name}
               </h1>
               {user.isSubscriber && (
+                /*
+                 * Подпись значка — действующий тариф, а не слово «Pro».
+                 *
+                 * Жалоба владельца 06.10: у имени стоит «Pro», а тариф — «Год».
+                 * Это не придирка к слову: «Pro» — НАЗВАНИЕ ДРУГОГО ТАРИФА
+                 * (`subscription_plans`: Базовый, Pro, Месяц, Полгода, Год),
+                 * то есть значок называл чужой тариф. Замер 06.10, учётка
+                 * подписчика: на `/profile` — «Pro», на `/subscription` —
+                 * «Подписка „Год“ активна, действует до 05.10.2027».
+                 *
+                 * Своё название тарифа известно только на своём профиле:
+                 * чужой профиль отдаёт лишь признак `is_subscriber`, а
+                 * раскрывать посторонним, сколько человек заплатил, никто не
+                 * просил. Поэтому на чужом профиле — нейтральное «Подписка»:
+                 * оно верно при любом тарифе и ни одному не противоречит.
+                 *
+                 * `badge_label` тарифа главнее названия: это предусмотренное
+                 * поле подписи, и админка сможет поставить там что угодно, не
+                 * переименовывая тариф.
+                 */
                 <Badge
                   variant="top-outline"
                   withIcon={false}
                   className="h-5 gap-1 rounded-full px-2 py-0 text-[10px]"
+                  title={
+                    подписьТарифа
+                      ? t("pages.profile.planBadgeTitle", { plan: подписьТарифа })
+                      : undefined
+                  }
                 >
-                  <BadgeCheck size={10} /> Pro
+                  <BadgeCheck size={10} /> {подписьТарифа ?? t("pages.profile.planBadgeFallback")}
                 </Badge>
               )}
               {user.firstHundred && (
@@ -518,7 +584,13 @@ export function ProfileView({
                   aria-label={t("pages.profile.writeMessageAria")}
                   onClick={() => {
                     void requireAction("messenger.send", () => {
-                      if (!isFriend) {
+                      /*
+                       * Условие то же, что в `ConversationPolicy::create`:
+                       * дружба ЛИБО подписка. До 05.10 здесь стояло одно
+                       * `!isFriend`, и подписчику не давали написать
+                       * не-другу, хотя сервер это разрешал.
+                       */
+                      if (!isFriend && !достигаетУровня("subscriber")) {
                         setFriendPromptOpen(true);
                         return;
                       }
@@ -552,12 +624,24 @@ export function ProfileView({
                            * по подсказке «добавьте в друзья, чтобы написать»,
                            * жал «Написать» и не получал ничего.
                            */
-                          if (
-                            err instanceof ApiError &&
-                            (err.payload as { code?: string } | undefined)?.code ===
-                              "subscription_required"
-                          ) {
+                          const код = (
+                            err instanceof ApiError
+                              ? (err.payload as { code?: string } | undefined)
+                              : undefined
+                          )?.code;
+                          if (код === "subscription_required") {
                             requireSubscription(() => {});
+                            return;
+                          }
+                          /*
+                           * `friendship_required` — отказ по новому правилу.
+                           * Окно то же, что показывает проверка выше: сервер
+                           * остаётся источником правды, если признак дружбы
+                           * на клиенте устарел (заявку только что отозвали,
+                           * друга удалили со второго устройства).
+                           */
+                          if (код === "friendship_required") {
+                            setFriendPromptOpen(true);
                             return;
                           }
                           const message = formatApiErrorMessage(
@@ -884,9 +968,24 @@ export function ProfileView({
                 setEditOpen(false);
                 toast.success(t("pages.profile.profileUpdated"));
               } catch (err) {
-                const msg =
-                  err instanceof Error ? err.message : t("pages.profile.profileSaveFailed");
-                toast.error(msg || t("pages.profile.profileSaveFailed"));
+                /*
+                 * Отказ называется словами, а не техническим текстом.
+                 *
+                 * Стояло `err instanceof Error ? err.message : …` — то есть
+                 * сообщение браузера предпочиталось собственному. При
+                 * отказе сети `err.message` равно «Failed to fetch», и
+                 * человеку показывали именно это: английскую строку, из
+                 * которой не следует ни что случилось, ни что делать.
+                 * Замер 06.10, запрос оборван: в тосте «Failed to fetch»,
+                 * тогда как у соседних действий («Не удалось обновить
+                 * избранное», «Не удалось принять заявку») текст
+                 * человеческий.
+                 *
+                 * `formatApiErrorMessage` — то, чем пользуется остальной
+                 * код: берёт пояснение сервера, когда оно есть и уместно, и
+                 * откатывается к своему тексту, когда его нет.
+                 */
+                toast.error(formatApiErrorMessage(err, t("pages.profile.profileSaveFailed")));
               }
             }}
           />
@@ -999,26 +1098,21 @@ function Tabs({
   const visibleTabs = TABS_BASE.filter(
     (item) => (isOwn || !item.ownOnly) && !(hideAbout && item.key === "about"),
   );
-  const rowRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef<HTMLButtonElement>(null);
-
-  // Выбранная вкладка — в видимой части ряда, как в EntityTabs. Только по
-  // горизонтали и только внутри ряда: scrollIntoView увёл бы страницу.
-  useEffect(() => {
-    const row = rowRef.current;
-    const btn = activeRef.current;
-    if (!row || !btn) return;
-    if (
-      btn.offsetLeft >= row.scrollLeft &&
-      btn.offsetLeft + btn.offsetWidth <= row.scrollLeft + row.clientWidth
-    )
-      return;
-    row.scrollTo({
-      left: Math.max(0, btn.offsetLeft - row.clientWidth / 2 + btn.offsetWidth / 2),
-      behavior: "smooth",
-    });
-  }, [tab]);
-
+  /*
+   * Ряд вкладок — общий `EntityTabs`, тот же, что у сообщества и канала.
+   *
+   * Профиль собирал свой ряд из кнопок в прокручиваемом `div`, и из-за этого
+   * оставался без семантики: замер 05.10 на 360 показал, что на странице нет
+   * ни `role="tablist"`, ни `role="tab"` — весь перечень ролей сводился к
+   * одному `status`. Экранный диктор читал семь вкладок как семь кнопок
+   * подряд, стрелки не переключали, а подчёркивание выбранной было 3 px
+   * вместо тонкого, которого просит ТЗ 3.4.
+   *
+   * Значок у вкладки добавлен в сам `EntityTabs` (поле `icon`), а не оставлен
+   * здесь: иначе ряд пришлось бы держать свой, и всё повторилось бы.
+   * Автоцентровка выбранной вкладки, прокрутка без видимой полосы и
+   * удержание горизонтального жеста у общего компонента уже есть.
+   */
   return (
     <div
       className="sticky top-0 z-10 px-[16px] py-2 md:px-[32px]"
@@ -1028,41 +1122,16 @@ function Tabs({
         borderBottom: "1px solid var(--border)",
       }}
     >
-      {/*
-        Один ряд на всех ширинах, прокрутка вбок — как у вкладок сообщества
-        и канала (EntityTabs) и как здесь же на телефоне.
-
-        От 768 ряд переносился: восемь вкладок своего профиля — это 971 px
-        при месте 478–614, и они вставали в две строки на 768, 1440 и 1920 и
-        в три на 1024; шесть вкладок чужого — в две строки от 768. Полоса
-        вкладок занимала 105 и 151 px вместо 61, а подчёркивание выбранной
-        оказывалось посреди блока (замер на проде 17.09).
-      */}
-      <div ref={rowRef} className="-mx-[16px] overflow-x-auto px-[16px] md:-mx-[32px] md:px-[32px]">
-        <div className="flex min-h-[44px] w-max min-w-full flex-nowrap items-stretch gap-1">
-          {visibleTabs.map(({ key, Icon }) => {
-            const active = tab === key;
-            const label = t(TAB_LABEL_KEYS[key]);
-            return (
-              <button
-                key={key}
-                ref={active ? activeRef : undefined}
-                type="button"
-                onClick={() => setTab(key)}
-                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[8px] px-2 py-3 font-display transition-colors duration-200 md:px-3"
-                style={{
-                  fontSize: 12,
-                  fontWeight: active ? 600 : 500,
-                  color: active ? "var(--accent)" : "var(--foreground-50)",
-                  boxShadow: active ? "inset 0 -3px 0 var(--accent)" : "inset 0 -3px 0 transparent",
-                }}
-              >
-                <Icon size={16} aria-hidden /> {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <EntityTabs
+        tabs={visibleTabs.map(({ key, Icon }) => ({
+          key,
+          label: t(TAB_LABEL_KEYS[key]),
+          icon: Icon,
+        }))}
+        active={tab}
+        onChange={setTab}
+        layoutId="profile-tabs-underline"
+      />
     </div>
   );
 }

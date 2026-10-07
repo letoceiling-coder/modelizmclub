@@ -63,17 +63,30 @@ class ConversationPolicyTest extends TestCase
             ->assertForbidden();
     }
 
+    /**
+     * Участник личной переписки без подписки и без дружбы.
+     *
+     * До 05.10 код отказа был `subscription_required`: подписка была
+     * единственным условием, и клиент открывал окно оплаты. С решением
+     * владельца переписку открывает дружба ЛИБО подписка, поэтому у этого
+     * отказа другая причина — собеседники не друзья, — и код
+     * `friendship_required` ведёт к окну «Добавьте пользователя в друзья».
+     * Просить денег там, где достаточно принять заявку, было бы неверно.
+     *
+     * Сам отказ не изменился: писать по-прежнему нельзя. Изменилось только
+     * то, что о нём сообщают. Подписка как условие осталась для чатов
+     * направлений и сообществ — см.
+     * `DirectMessagesOpenToFriendsTest::test_подписка_остаётся_условием_для_чатов_направлений`.
+     */
     public function test_participant_without_subscription_gets_403_on_send(): void
     {
         $a = $this->seedUser('a');
         $conversation = $this->seedConversation($a, $this->seedUser('b'));
 
-        // Код нужен клиенту, чтобы открыть окно подписки, а не показать
-        // «Это действие не авторизовано».
         $this->actingAs($a, 'sanctum')
             ->postJson("/api/v1/conversations/{$conversation->uuid}/messages", ['body' => 'hi'])
             ->assertForbidden()
-            ->assertJsonPath('code', 'subscription_required');
+            ->assertJsonPath('code', 'friendship_required');
     }
 
     public function test_participant_without_subscription_gets_coded_403_on_attachment(): void
@@ -86,7 +99,7 @@ class ConversationPolicyTest extends TestCase
                 'file' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf'),
             ], ['Accept' => 'application/json'])
             ->assertForbidden()
-            ->assertJsonPath('code', 'subscription_required');
+            ->assertJsonPath('code', 'friendship_required');
     }
 
     public function test_stranger_send_refusal_carries_no_subscription_code(): void

@@ -275,11 +275,20 @@ class ReferenceDataSeeder extends Seeder
 
     private function seedSwaggerFixtures(): void
     {
+        /*
+         * Описание тарифа нейтральное, а не про инструмент разработки.
+         *
+         * Стояло «Бесплатный тариф для Swagger-тестов», и этот текст
+         * отдавался публичным `GET /api/v1/plans` — то есть название
+         * внутреннего инструмента читал любой посетитель. Решение владельца
+         * от 05.10: в семенах заменить, данные на проде не трогать. Там текст
+         * правится в админке, в разделе тарифов.
+         */
         SubscriptionPlan::query()->firstOrCreate(
             ['slug' => SwaggerFixtures::PLAN_BASIC_SLUG],
             [
                 'name' => 'Базовый',
-                'description' => 'Бесплатный тариф для Swagger-тестов.',
+                'description' => 'Бесплатный доступ к публичным разделам.',
                 'price_cents' => 0,
                 'period_days' => 30,
                 'features' => ['posts' => 10],
@@ -307,7 +316,7 @@ class ReferenceDataSeeder extends Seeder
             ['slug' => SwaggerFixtures::PLAN_PRO_SLUG],
             [
                 'name' => 'Pro',
-                'description' => 'Платный тариф для Swagger-тестов.',
+                'description' => 'Расширенный доступ.',
                 'price_cents' => 49900,
                 'period_days' => 30,
                 'features' => ['posts' => 'unlimited', 'priority_boost' => true],
