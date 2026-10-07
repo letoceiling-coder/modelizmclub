@@ -1831,6 +1831,8 @@ export const ru = {
       priceError: "Укажите цену",
       conditionLabel: "Состояние",
       conditionHint: "Подробности состояния укажите в описании объявления.",
+      categoriesEmpty:
+        "Направления для объявлений пока не настроены — выбрать нечего, и объявление не отправится. Напишите в поддержку, мы ответим.",
       categoryLabel: "Категория",
       subcategoryLabel: "Подкатегория",
       nestedCategoryLabel: "Модель / тип",
