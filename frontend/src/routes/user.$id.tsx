@@ -24,9 +24,90 @@ import { toast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 import { useActionGate } from "@/lib/gate";
 import { reportReadFailure } from "@/lib/errors/handle";
+import {
+  absoluteImage,
+  absoluteUrl,
+  jsonLdScript,
+  metaDescription,
+  pageHead,
+} from "@/lib/seo/head";
+
+/**
+ * Загрузчик нужен метаданным, а не отрисовке.
+ *
+ * Было: у любого профиля заголовок «Профиль — МоДелизМ» и общее описание
+ * площадки (замер 07.10 запросом без браузера). Имя человека в заголовке
+ * страницы о человеке — то, что промпт 2 и просит.
+ *
+ * Срок и `catch` — как у соседних загрузчиков `/ads/{id}` и `/post/{uuid}`.
+ * Содержимое страницы НЕ засевается: компонент грузит профиль сам, и первый
+ * кадр браузера совпадает с серверным.
+ *
+ * Описание профиля (`bio`) — свободный текст, который человек о себе
+ * написал. Если он пуст, тега description не будет: подставлять вместо него
+ * рассказ про площадку значит обещать поисковику не то, что на странице.
+ */
+async function loadProfileForHead({ params }: { params: { id: string } }) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), 1500);
+  });
+  try {
+    const profile = await Promise.race([fetchPublicProfile(params.id), deadline]);
+    return { profile: (profile as PublicProfile | null) ?? null };
+  } catch {
+    return { profile: null as PublicProfile | null };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export const Route = createFileRoute("/user/$id")({
-  head: () => ({ meta: [{ title: i18n.t("pages.user.metaTitle") }] }),
+  loader: loadProfileForHead,
+  head: ({
+    loaderData,
+    params,
+  }: {
+    loaderData?: { profile: PublicProfile | null };
+    params: { id: string };
+  }) => {
+    const profile = loaderData?.profile ?? null;
+    const path = `/user/${params.id}`;
+    const { meta, links } = pageHead({
+      title: profile?.user?.name ?? null,
+      description: profile?.bio ?? null,
+      path,
+      image: profile?.user?.avatar ?? null,
+      type: "profile",
+      fallbackTitle: i18n.t("pages.user.metaTitle"),
+    });
+
+    return {
+      meta,
+      links,
+      scripts: profile?.user?.name
+        ? jsonLdScript([
+            {
+              "@type": "ProfilePage",
+              url: absoluteUrl(path),
+              mainEntity: {
+                "@type": "Person",
+                name: profile.user.name,
+                ...(metaDescription(profile.bio, 300)
+                  ? { description: metaDescription(profile.bio, 300) }
+                  : {}),
+                ...(absoluteImage(profile.user.avatar)
+                  ? { image: absoluteImage(profile.user.avatar) }
+                  : {}),
+                ...(profile.city
+                  ? { address: { "@type": "PostalAddress", addressLocality: profile.city } }
+                  : {}),
+              },
+            },
+          ])
+        : [],
+    };
+  },
   component: UserPage,
 });
 
@@ -36,16 +117,35 @@ function UserPage() {
   const me = useCurrentUser();
   const { requireAction } = useActionGate();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  /*
+   * Профиль с сервера, а не только после гидрации.
+   *
+   * Замер 07.10 запросом без браузера: в разметке `/user/{uuid}` имени
+   * человека не было вовсе — 532 знака, из них «Загрузка…» и боковые
+   * колонки. Публичный профиль открывается гостю (API отвечает 200 без
+   * токена), и промпт 2 требует, чтобы публичная страница без скриптов
+   * отдавала основное содержимое.
+   *
+   * Загрузчик здесь уже есть — он появился ради заголовка и превью. Этот
+   * же ответ засевает состояние: лишнего запроса нет, а первый кадр
+   * браузера совпадает с серверным, потому что данные у них одни.
+   */
+  const { profile: profileFromServer } = Route.useLoaderData();
+  const [profile, setProfile] = useState<PublicProfile | null>(profileFromServer);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [userAds, setUserAds] = useState<{ ad: Ad; status: "active" }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!profileFromServer);
   const [contentLoading, setContentLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    /*
+     * «Загрузка…» показывается только если показывать больше нечего.
+     * С засеянным профилем мигать ею незачем: запрос уходит, чтобы
+     * дополнить ответ дружбой и содержимым, а имя и шапка уже на экране.
+     */
+    setLoading((prev) => prev && !profileFromServer);
     setContentLoading(true);
     setNotFound(false);
     fetchPublicProfile(id)
@@ -90,7 +190,13 @@ function UserPage() {
       })
       .catch(() => {
         if (active) {
-          setNotFound(true);
+          /*
+           * Отказ повторного запроса не стирает то, что пришло с сервера:
+           * «нет такого человека» показывается, только если профиля нет и
+           * у нас. Иначе страница, открытая и отрисованная, превращалась бы
+           * в 404 из-за одного неудачного запроса.
+           */
+          if (!profileFromServer) setNotFound(true);
           setLoading(false);
           setContentLoading(false);
         }
@@ -98,6 +204,7 @@ function UserPage() {
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (loading) {

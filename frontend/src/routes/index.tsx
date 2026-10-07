@@ -49,6 +49,7 @@ import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
 import { usePostCategoriesState } from "@/lib/hooks/useCategories";
 
 import i18n from "@/lib/i18n";
+import { absoluteUrl, jsonLdScript, organizationNode, websiteNode } from "@/lib/seo/head";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 import { derivedSrcSet, variantUrl } from "@/lib/media/variants";
 
@@ -61,6 +62,16 @@ export const Route = createFileRoute("/")({
       { title: i18n.t("landing.hero.metaTitle") },
       { name: "description", content: i18n.t("landing.hero.metaDescription") },
     ],
+    /*
+     * Канонический адрес и сведения об организации. ТЗ 2, промпт 2 шаг 2.
+     *
+     * Замер 07.10 запросом без браузера: canonical был только у `/rules/*`
+     * и `/post/{uuid}`, структурированные данные — только у правовых
+     * страниц. Реквизиты берутся из одного места с правовыми документами,
+     * второго источника им заводить нельзя.
+     */
+    links: [{ rel: "canonical", href: absoluteUrl("/") }],
+    scripts: jsonLdScript([organizationNode(), websiteNode()]),
   }),
   loader: async () => {
     await ensurePublicBootstrap();

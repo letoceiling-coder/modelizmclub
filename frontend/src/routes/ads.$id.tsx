@@ -17,6 +17,14 @@ import { reportActionFailure } from "@/lib/errors/handle";
 import { inlineFeedback } from "@/lib/ui/inline-feedback";
 import { useObjectReload } from "@/lib/hooks/useObjectUpdate";
 import { catalogSearchForListing } from "@/lib/catalog-filter";
+import {
+  absoluteImage,
+  absoluteUrl,
+  breadcrumbNode,
+  jsonLdScript,
+  metaDescription,
+  pageHead,
+} from "@/lib/seo/head";
 import { AdGallery } from "@/components/ads/AdGallery";
 import { SellerCard } from "@/components/ads/SellerCard";
 import { SimilarAds, SIMILAR_ADS_SLOTS } from "@/components/ads/SimilarAds";
@@ -52,6 +60,60 @@ import { useActionGate } from "@/lib/gate";
 import { askConfirm } from "@/lib/ui/ask";
 import { TAP_TARGET_ROW_44 } from "@/lib/tap-target";
 import { cn } from "@/lib/utils";
+
+/**
+ * Товар и цена в структурированных данных. ТЗ 2, промпт 2 шаг 2.
+ *
+ * Предложение (`offers`) ставится только там, где оно есть на самом деле:
+ * у объявления «Продаю» с ценой. У «Куплю» товар на продажу не выставлен, и
+ * цена там — сколько человек готов заплатить; выдавать это за предложение
+ * магазина нельзя. У такого объявления остаётся `Product` без `offers`.
+ *
+ * Состояние переводится в словарь schema.org: других двух значений у
+ * `AdCondition` нет, и запасной ветки на «что-то третье» не нужно.
+ */
+function listingGraph(ad: Ad, path: string) {
+  const image = absoluteImage(ad.image);
+  const продаю = ad.status === "Продаю" && ad.price > 0;
+
+  const товар: Record<string, unknown> = {
+    "@type": "Product",
+    name: ad.title,
+    url: absoluteUrl(path),
+    ...(metaDescription(ad.description, 300)
+      ? { description: metaDescription(ad.description, 300) }
+      : {}),
+    ...(image ? { image } : {}),
+    ...(ad.condition
+      ? {
+          itemCondition:
+            ad.condition === "Новое"
+              ? "https://schema.org/NewCondition"
+              : "https://schema.org/UsedCondition",
+        }
+      : {}),
+    ...(ad.category ? { category: [ad.category, ad.subcategory].filter(Boolean).join(" / ") } : {}),
+  };
+
+  if (продаю) {
+    товар.offers = {
+      "@type": "Offer",
+      price: ad.price,
+      priceCurrency: "RUB",
+      availability: "https://schema.org/InStock",
+      url: absoluteUrl(path),
+      ...(ad.city ? { areaServed: ad.city } : {}),
+    };
+  }
+
+  return [
+    товар,
+    breadcrumbNode([
+      { name: i18n.t("nav.ads"), path: "/ads" },
+      { name: ad.title, path },
+    ]),
+  ];
+}
 
 export const Route = createFileRoute("/ads/$id")({
   /*
@@ -90,7 +152,35 @@ export const Route = createFileRoute("/ads/$id")({
       clearTimeout(timer);
     }
   },
-  head: () => ({ meta: [{ title: i18n.t("pages.adDetail.metaTitle") }] }),
+  head: ({ loaderData, params }: { loaderData?: { ad: Ad | null }; params: { id: string } }) => {
+    /*
+     * Заголовок, описание и превью — объявления, а не площадки.
+     *
+     * Было: `title` всегда «Объявление — МоДелизМ», `description` — текст про
+     * сайт целиком, `og:title` — имя площадки. То есть ссылка на любое
+     * объявление в мессенджере выглядела одинаково. Замер 07.10 запросом без
+     * браузера.
+     *
+     * Данные берутся из загрузчика, который и так уже грузит объявление на
+     * сервере ради первой фотографии. Своего запроса здесь нет.
+     *
+     * `ad` бывает null: у загрузчика срок 1500 мс, и объявление может быть
+     * доступно только с токеном, которого на сервере нет. Тогда остаётся
+     * прежний общий заголовок — это честнее, чем выдумывать.
+     */
+    const ad = loaderData?.ad ?? null;
+    const path = `/ads/${params.id}`;
+    const { meta, links } = pageHead({
+      title: ad?.title ?? null,
+      description: ad?.description ?? null,
+      path,
+      image: ad?.image ?? null,
+      type: "product",
+      fallbackTitle: i18n.t("pages.adDetail.metaTitle"),
+    });
+
+    return { meta, links, scripts: ad ? jsonLdScript(listingGraph(ad, path)) : [] };
+  },
   component: AdDetailPage,
 });
 

@@ -28,6 +28,10 @@ export interface BootstrapStats {
 export interface IntegrationKeys {
   yandex_maps_key: string;
   metrika_id: string;
+  /** Код подтверждения прав в Вебмастере Яндекса. */
+  yandex_verification?: string;
+  /** Код подтверждения прав в Search Console Google. */
+  google_verification?: string;
 }
 
 export interface PublicBootstrapPayload {

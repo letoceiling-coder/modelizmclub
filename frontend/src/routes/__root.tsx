@@ -1,5 +1,14 @@
 import i18n from "@/lib/i18n";
-import { Outlet, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import { isClosedPath } from "@/lib/seo/closed-paths";
+import { SITE_ORIGIN } from "@/lib/seo/head";
+import ogCover from "@/assets/cover-modelizm-1440.webp";
+import {
+  Outlet,
+  createRootRouteWithContext,
+  HeadContent,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
 import { Analytics } from "@/components/analytics/Analytics";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -27,7 +36,7 @@ import { restoreSession } from "@/lib/auth/session";
 import { captureReferralFromLocation } from "@/lib/referral-cookie";
 import { requireGuestRouteAccess } from "@/lib/auth/requireGuestRouteAccess";
 import { applyPublicBootstrap, ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
-import { rememberPublicBootstrap } from "@/lib/api/bootstrap";
+import { rememberPublicBootstrap, type IntegrationKeys } from "@/lib/api/bootstrap";
 import { markBooted } from "@/lib/boot/bootState";
 import { bindCallAudioUnlock } from "@/lib/callAudio";
 import { installKeepFocusInView } from "@/lib/a11y/keep-focus-in-view";
@@ -54,6 +63,14 @@ function NotFoundComponent() {
   const { t } = useTranslation();
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      {/*
+        Несуществующий адрес не должен попадать в выдачу. Код 404 сервер
+        отдаёт верно (замер 07.10), но на такие адреса бывают ссылки со
+        стороны, и без метки поисковик показывает страницу с одним
+        заголовком. `noindex, follow`: не показывать, но по ссылкам
+        «Лента» и «Объявления» с неё пройти можно.
+      */}
+      <meta name="robots" content="noindex, follow" />
       <div className="max-w-md text-center">
         <h1 className="font-display text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 font-display text-xl font-semibold">{t("errors.notFound")}</h2>
@@ -139,16 +156,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: i18n.t("site.rootMetaTitle") },
       { property: "og:description", content: i18n.t("site.rootMetaDescription") },
       { name: "twitter:description", content: i18n.t("site.rootMetaDescription") },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/38877450-047f-4923-bb43-fd1fbd2c7a45/id-preview-7456b556--80bd810b-8913-49e2-87d8-ec618ddf722a.lovable.app-1780082915517.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/38877450-047f-4923-bb43-fd1fbd2c7a45/id-preview-7456b556--80bd810b-8913-49e2-87d8-ec618ddf722a.lovable.app-1780082915517.png",
-      },
+      /*
+       * Превью по умолчанию — своя обложка площадки.
+       *
+       * Стоял снимок экрана прототипа на `lovable.app`, выложенный в чужом
+       * ведре R2: `…id-preview-7456b556—….lovable.app-1780082915517.png`.
+       * Он уезжал в каждую ссылку на сайт в мессенджерах и соцсетях, жил на
+       * происхождении, которым площадка не управляет, и мог исчезнуть в
+       * любой день. Найдено 07.10 при разборе метаданных.
+       *
+       * Обложка первого экрана — то же изображение, которое человек видит,
+       * открыв сайт. Отдельное превью 1200×630 с подписью было бы лучше, но
+       * это рисунок, а не код: записано для владельца.
+       */
+      { property: "og:image", content: `${SITE_ORIGIN}${ogCover}` },
+      { name: "twitter:image", content: `${SITE_ORIGIN}${ogCover}` },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       { name: "theme-color", content: "#1a1a1e" },
@@ -244,6 +266,51 @@ function useBottomToastOffset(): number {
   return offset;
 }
 
+/**
+ * Метка «не показывать в выдаче» для закрытых разделов. Промпт 2 шаг 2.
+ *
+ * Тег рисуется компонентом, а не через `head` маршрута: закрытых разделов
+ * больше тридцати, у них разные файлы и разной формы `head`, и список,
+ * размазанный по тридцати файлам, расходится с robots.txt в первый же
+ * месяц. React 19 поднимает `<meta>` из любого места дерева в `<head>`.
+ *
+ * `follow` оставлен: ссылки с такой страницы читать можно, показывать
+ * нельзя. Путь одинаков на сервере и в браузере, поэтому первый кадр
+ * совпадает с серверной разметкой.
+ */
+/**
+ * Подтверждение прав на сайт в Вебмастере Яндекса и Search Console Google.
+ *
+ * Промпт 2 шаг 2: значения задаются настройкой, в код не вшиваются. Код
+ * приходит с `/public/bootstrap` из `system_settings` — тем же путём, что
+ * номер счётчика Метрики и ключ Карт, и так же действует со следующей
+ * загрузки страницы без пересборки.
+ *
+ * Пока в настройке пусто, тега нет вовсе: пустой `content` Вебмастер
+ * считает неверным кодом и подтверждение не проходит, причём сообщение об
+ * этом выглядит как «тег не найден».
+ *
+ * Тег виден и без скриптов: он уезжает в серверную разметку — обход
+ * поисковика JS не исполняет, и подтверждение иначе бы не сработало.
+ */
+function SiteVerification({ keys }: { keys?: IntegrationKeys }) {
+  const яндекс = keys?.yandex_verification?.trim();
+  const google = keys?.google_verification?.trim();
+  if (!яндекс && !google) return null;
+  return (
+    <>
+      {яндекс ? <meta name="yandex-verification" content={яндекс} /> : null}
+      {google ? <meta name="google-site-verification" content={google} /> : null}
+    </>
+  );
+}
+
+function NoindexMark() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (!isClosedPath(pathname)) return null;
+  return <meta name="robots" content="noindex, follow" />;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { bootstrap } = Route.useLoaderData();
@@ -276,23 +343,26 @@ function RootComponent() {
   }, []);
 
   return (
-    <MotionProvider>
-      <QueryClientProvider client={queryClient}>
-        <I18nProvider>
-          <ThemeProvider>
-            <GuestAccessProvider>
-              <RouteAccessEnforcer />
-              <AskHost />
-              <Outlet />
-              <GateHost />
-            </GuestAccessProvider>
-            <CallScreen />
-            <GroupCallScreen />
-            <GroupCallInviteDialog />
-            <CookieBanner />
-            <Analytics />
-            <PwaUpdatePrompt />
-            {/*
+    <>
+      <NoindexMark />
+      <SiteVerification keys={bootstrap?.integration_keys} />
+      <MotionProvider>
+        <QueryClientProvider client={queryClient}>
+          <I18nProvider>
+            <ThemeProvider>
+              <GuestAccessProvider>
+                <RouteAccessEnforcer />
+                <AskHost />
+                <Outlet />
+                <GateHost />
+              </GuestAccessProvider>
+              <CallScreen />
+              <GroupCallScreen />
+              <GroupCallInviteDialog />
+              <CookieBanner />
+              <Analytics />
+              <PwaUpdatePrompt />
+              {/*
               Тосты: справа снизу на широком экране, снизу во всю ширину минус
               отступы на телефоне — над нижней навигацией (`bottomToastOffset`).
               Автоскрытие 4 секунды, в стопке не больше трёх.
@@ -308,36 +378,37 @@ function RootComponent() {
               порядок — это смена привязки на верхнюю, а с ней тосты уедут
               из-под пальца и перестанут стоять над навигацией.
             */}
-            {/*
+              {/*
               Отклик на действие — у кнопки, тост — для остального. Хост
               один на приложение и рядом с тостами намеренно: оба живут в
               портале и делят слой `--z-toast`.
             */}
-            <InlineFeedbackHost />
-            <Toaster
-              position="bottom-right"
-              closeButton
-              duration={4000}
-              visibleToasts={3}
-              /*
-               * `expand` обязателен. Без него стопка свёрнута: видно только
-               * верхний тост, а два других — пустые карточки, выглядывающие
-               * из-под него, и разворачиваются они по наведению, которого на
-               * телефоне нет. То есть «накладываются друг на друга» —
-               * жалоба, с которой всё началось, — оставалось бы в силе.
-               */
-              expand
-              /*
-               * Один и тот же отступ в обоих полях: библиотека применяет
-               * `mobileOffset` только до 600 px, а навигация видна до 767.
-               * Разные значения и давали полосу, где тост садился на неё.
-               */
-              offset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
-              mobileOffset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
-            />
-          </ThemeProvider>
-        </I18nProvider>
-      </QueryClientProvider>
-    </MotionProvider>
+              <InlineFeedbackHost />
+              <Toaster
+                position="bottom-right"
+                closeButton
+                duration={4000}
+                visibleToasts={3}
+                /*
+                 * `expand` обязателен. Без него стопка свёрнута: видно только
+                 * верхний тост, а два других — пустые карточки, выглядывающие
+                 * из-под него, и разворачиваются они по наведению, которого на
+                 * телефоне нет. То есть «накладываются друг на друга» —
+                 * жалоба, с которой всё началось, — оставалось бы в силе.
+                 */
+                expand
+                /*
+                 * Один и тот же отступ в обоих полях: библиотека применяет
+                 * `mobileOffset` только до 600 px, а навигация видна до 767.
+                 * Разные значения и давали полосу, где тост садился на неё.
+                 */
+                offset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
+                mobileOffset={{ bottom: bottomToastOffset, right: 16, left: 16 }}
+              />
+            </ThemeProvider>
+          </I18nProvider>
+        </QueryClientProvider>
+      </MotionProvider>
+    </>
   );
 }

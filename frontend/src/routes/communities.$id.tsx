@@ -93,6 +93,7 @@ import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
+import { breadcrumbNode, jsonLdScript, pageHead } from "@/lib/seo/head";
 
 /**
  * Загрузчик вынесен из объекта маршрута с явным типом ответа.
@@ -122,15 +123,33 @@ async function loadCommunity({ params }: { params: { id: string } }): Promise<Co
 
 export const Route = createFileRoute("/communities/$id")({
   errorComponent: RouteErrorState,
-  head: ({ loaderData }: { loaderData?: CommunityLoaderData }) => {
+  head: ({ loaderData, params }: { loaderData?: CommunityLoaderData; params: { id: string } }) => {
     // Обложка — самая большая картинка первого экрана. Без preload браузер
     // узнаёт о ней только разобрав разметку и вычислив вёрстку; с preload
     // тянет одновременно с документом. Тот же приём, что для баннера ленты.
-    const cover = loaderData?.community?.coverImage;
+    const community = loaderData?.community ?? null;
+    const cover = community?.coverImage;
+    const path = `/communities/${params.id}`;
+
+    /*
+     * Заголовок и превью — сообщества, а не площадки. Было: «Сообщество —
+     * МоДелизМ» и общее описание сайта у любого сообщества (замер 07.10).
+     * Данные из того же загрузчика, своего запроса нет; при пустом ответе
+     * остаётся прежний общий заголовок.
+     */
+    const { meta, links } = pageHead({
+      title: community?.name ?? null,
+      description: community?.fullDescription ?? community?.description ?? null,
+      path,
+      image: cover ?? community?.avatarImage ?? null,
+      fallbackTitle: i18n.t("pages.communityDetail.metaTitle"),
+    });
+
     return {
-      meta: [{ title: i18n.t("pages.communityDetail.metaTitle") }],
+      meta,
       links: cover
         ? [
+            ...links,
             {
               rel: "preload",
               as: "image",
@@ -138,6 +157,14 @@ export const Route = createFileRoute("/communities/$id")({
               fetchPriority: "high",
             },
           ]
+        : links,
+      scripts: community
+        ? jsonLdScript([
+            breadcrumbNode([
+              { name: i18n.t("nav.communities"), path: "/communities" },
+              { name: community.name, path },
+            ]),
+          ])
         : [],
     };
   },

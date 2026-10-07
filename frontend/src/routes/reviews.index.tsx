@@ -16,12 +16,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
+import { absoluteUrl } from "@/lib/seo/head";
 import { reportReadFailure } from "@/lib/errors/handle";
 import { ScrollRowArrows } from "@/components/ui/ScrollRowArrows";
 import { useRowEdges, useScrollRow } from "@/lib/ui/scroll-row";
 
 export const Route = createFileRoute("/reviews/")({
-  head: () => ({ meta: [{ title: i18n.t("pages.reviews.metaTitle") }] }),
+  head: () => ({
+    meta: [{ title: i18n.t("pages.reviews.metaTitle") }],
+    // Канонический адрес — без параметров поиска и отбора: тот же
+    // список в другом порядке новой страницей не является.
+    links: [{ rel: "canonical", href: absoluteUrl("/reviews") }],
+  }),
   /*
    * Тип возврата объявлен явно, с необязательными ключами.
    *

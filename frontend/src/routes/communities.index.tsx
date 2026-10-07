@@ -48,12 +48,18 @@ import { SearchInput } from "@/components/ui/search-input";
 import { DeleteCommunityDialog } from "@/components/communities/DeleteCommunityDialog";
 
 import i18n from "@/lib/i18n";
+import { absoluteUrl } from "@/lib/seo/head";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
 export const Route = createFileRoute("/communities/")({
   errorComponent: RouteErrorState,
-  head: () => ({ meta: [{ title: i18n.t("pages.communities.metaTitle") }] }),
+  head: () => ({
+    meta: [{ title: i18n.t("pages.communities.metaTitle") }],
+    // Канонический адрес — без параметров поиска и отбора: тот же
+    // список в другом порядке новой страницей не является.
+    links: [{ rel: "canonical", href: absoluteUrl("/communities") }],
+  }),
   validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),
   }),

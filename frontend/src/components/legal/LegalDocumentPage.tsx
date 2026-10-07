@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { fetchLegalPage, type LegalPageData } from "@/lib/api/legal";
 import { ApiError } from "@/lib/api/client";
 import i18n from "@/lib/i18n";
+import { absoluteUrl } from "@/lib/seo/head";
 
 const SITE_ORIGIN = "https://modelizmclub.ru";
 
@@ -27,11 +28,24 @@ export function excerptFromHtml(html: string, max = 160): string {
   return `${text.slice(0, max - 1)}…`;
 }
 
+/**
+ * Метаданные правовой и справочной страницы.
+ *
+ * `path` добавляет канонический адрес. Замер 07.10: его не было ни у одной
+ * правовой страницы, хотя одна и та же страница открывается и по `/legal/
+ * refund`, и по `/refund` — ровно тот случай, для которого canonical и
+ * нужен. Параметр необязателен, чтобы не ломать вызовы, у которых адрес
+ * страницы не постоянный.
+ */
 export function legalDocumentHead(
   loaderData: LegalPageData | undefined,
   fallbackKey: string,
   fallbackDescription?: string,
-): { meta: { title?: string; name?: string; content?: string }[] } {
+  path?: string,
+): {
+  meta: { title?: string; name?: string; content?: string }[];
+  links?: { rel: string; href: string }[];
+} {
   const title = loaderData
     ? `${loaderData.title} — ${i18n.t("common.appName")}`
     : i18n.t(fallbackKey);
@@ -44,7 +58,7 @@ export function legalDocumentHead(
   if (description) {
     meta.push({ name: "description", content: description });
   }
-  return { meta };
+  return path ? { meta, links: [{ rel: "canonical", href: absoluteUrl(path) }] } : { meta };
 }
 
 export function LegalDocumentPage({
