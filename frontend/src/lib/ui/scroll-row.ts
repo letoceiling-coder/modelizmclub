@@ -32,9 +32,39 @@ export function wheelScrollTarget(
   return next;
 }
 
-export function useScrollRow(ref: RefObject<HTMLElement | null>, deps: readonly unknown[] = []) {
+/**
+ * Узел ряда — и он может появиться ПОЗЖЕ первого кадра.
+ *
+ * Имя латиницей, хотя остальное здесь по-русски: правило линта
+ * `react-hooks/rules-of-hooks` узнаёт свой хук по `use` плюс заглавная
+ * буква ASCII, и на `useУзелРяда` оно ругалось ошибкой — то есть считало
+ * хук обычной функцией и перестало бы проверять порядок вызовов внутри.
+ *
+ * У маршрутов с ранним возвратом ряда в первом кадре нет вовсе: `/friends`
+ * до разбора сессии рисует гостевую заглушку, и `ref.current` в эффекте
+ * монтирования равен null. Эффект, привязанный только к монтированию,
+ * после этого не прицеплялся никогда — ни колеса, ни стрелок, хотя ряд на
+ * экране уже был и страница работала.
+ *
+ * Поймано инструментом, а не чтением: запись внутри пересчёта краёв не
+ * появилась ни разу, тогда как сам хук вызывался 18 раз. То есть выполнялось
+ * тело, но не эффект.
+ *
+ * Эффект без списка зависимостей выполняется после каждой отрисовки и стоит
+ * одно сравнение; состояние меняется только при смене узла.
+ */
+function useRowNode(ref: RefObject<HTMLElement | null>): HTMLElement | null {
+  const [узел, setУзел] = useState<HTMLElement | null>(null);
   useEffect(() => {
-    const row = ref.current;
+    if (ref.current !== узел) setУзел(ref.current);
+  });
+  return узел;
+}
+
+export function useScrollRow(ref: RefObject<HTMLElement | null>, deps: readonly unknown[] = []) {
+  const узелРяда = useRowNode(ref);
+  useEffect(() => {
+    const row = узелРяда;
     if (!row) return;
 
     const onWheel = (e: WheelEvent) => {
@@ -117,7 +147,7 @@ export function useScrollRow(ref: RefObject<HTMLElement | null>, deps: readonly 
       row.removeEventListener("dragstart", onDragStart);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ref, ...deps]);
+  }, [узелРяда, ...deps]);
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -175,19 +205,20 @@ export function useRowEdges(
   ref: RefObject<HTMLElement | null>,
   deps: readonly unknown[] = [],
 ): КраяРяда {
+  const узелРяда = useRowNode(ref);
   const [края, setКрая] = useState({ слева: false, справа: false });
 
   const пересчитать = useCallback(() => {
-    const row = ref.current;
+    const row = узелРяда;
     if (!row) return;
     const предел = row.scrollWidth - row.clientWidth;
     const слева = row.scrollLeft > 1;
     const справа = предел > 1 && row.scrollLeft < предел - 1;
     setКрая((п) => (п.слева === слева && п.справа === справа ? п : { слева, справа }));
-  }, [ref]);
+  }, [узелРяда]);
 
   useEffect(() => {
-    const row = ref.current;
+    const row = узелРяда;
     if (!row) return;
     пересчитать();
     row.addEventListener("scroll", пересчитать, { passive: true });
@@ -233,7 +264,7 @@ export function useRowEdges(
       состав?.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ref, пересчитать, ...deps]);
+  }, [узелРяда, пересчитать, ...deps]);
 
   /*
    * Стрелка листает ДО СЛЕДУЮЩЕГО элемента, а не на долю ширины ряда.
@@ -255,9 +286,16 @@ export function useRowEdges(
    */
   const листать = useCallback(
     (куда: -1 | 1) => {
-      const row = ref.current;
+      const row = узелРяда;
       if (!row) return;
-      const элементы = Array.from(row.children) as HTMLElement[];
+      /*
+       * Накладки не считаются элементами ряда. У вкладок друзей
+       * подчёркивание — отдельный ребёнок с `position: absolute`, и шаг «до
+       * следующего» уводил бы к нему, а не к следующей вкладке.
+       */
+      const элементы = (Array.from(row.children) as HTMLElement[]).filter(
+        (el) => getComputedStyle(el).position !== "absolute",
+      );
       const левый = row.scrollLeft;
       const правый = левый + row.clientWidth;
       if (куда === 1) {
@@ -272,7 +310,7 @@ export function useRowEdges(
       const цель = предыдущий ? предыдущий.offsetLeft - ЗАПАС_PX : 0;
       row.scrollTo({ left: Math.max(0, цель), behavior: "smooth" });
     },
-    [ref],
+    [узелРяда],
   );
 
   /*

@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { m } from "framer-motion";
+import { ScrollRowArrows } from "@/components/ui/ScrollRowArrows";
+import { useRowEdges, useScrollRow } from "@/lib/ui/scroll-row";
 import { MapPin, UserPlus, MessageSquare, Check, X, Clock, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -274,6 +276,14 @@ function FriendsPage() {
   }, []);
 
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  /* Листание ряда вкладок мышью — общая оснастка; разбор рядом с разметкой. */
+  const рядВкладок = useRef<HTMLDivElement>(null);
+  useScrollRow(рядВкладок);
+  const {
+    края: краяВкладок,
+    листать: листатьВкладки,
+    маска: маскаВкладок,
+  } = useRowEdges(рядВкладок);
   const [indicator, setIndicator] = useState({ x: 0, w: 0 });
 
   useEffect(() => {
@@ -519,9 +529,24 @@ function FriendsPage() {
           </div>
         </header>
 
-        {/* Tabs */}
-        <div className="overflow-x-auto" style={{ borderBottom: "1px solid var(--border)" }}>
-          <div className="relative flex">
+        {/*
+          Ряд вкладок. Обёртка — опора для стрелок; прокручиваемый узел и
+          есть сам ряд, чтобы вкладки были его прямыми детьми: шаг стрелки
+          считается по ним.
+
+          Замер 06.10, 360: ряд переполнен на 11 px, полоса скрыта, колесо
+          его не двигало, стрелок не было — та же нехватка, что у вкладок
+          профиля и фильтров ленты, только меньше по величине.
+        */}
+        <div className="relative" style={{ borderBottom: "1px solid var(--border)" }}>
+          <div
+            ref={рядВкладок}
+            /* `overflow-y-hidden`: иначе вторая ось вычисляется как `auto`,
+               ряд становится вертикальным контейнером и Chromium съедает
+               первое колесо на его краю. Разбор — в `lib/ui/scroll-row`. */
+            className="no-scrollbar relative flex overflow-x-auto overflow-y-hidden overscroll-x-contain"
+            style={{ maskImage: маскаВкладок, WebkitMaskImage: маскаВкладок }}
+          >
             {tabs.map((t) => {
               const active = tab === t.key;
               return (
@@ -565,6 +590,8 @@ function FriendsPage() {
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
+          {/* Высота ряда — 48, как у вкладок. */}
+          <ScrollRowArrows края={краяВкладок} листать={листатьВкладки} высота={48} />
         </div>
 
         {tab !== "requests" && (
