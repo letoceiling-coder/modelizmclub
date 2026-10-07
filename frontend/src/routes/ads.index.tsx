@@ -17,6 +17,7 @@ import { CatalogBreadcrumb } from "@/components/ads/CatalogBreadcrumb";
 import { CatalogCard } from "@/components/ads/CatalogCard";
 import { CatalogCardSkeleton } from "@/components/ads/CatalogCardSkeleton";
 import { CATALOG_GRID } from "@/components/ads/catalogGrid";
+import { AutoLoadMore } from "@/components/ui/AutoLoadMore";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
@@ -36,6 +37,28 @@ import { RouteErrorState } from "@/components/layout/RouteErrorState";
 // Fetched in batches via per_page/page instead of all at once — keeps the
 // initial catalog payload light (perf, especially on weak mobile networks).
 const PAGE_SIZE = 24;
+
+/**
+ * Что было догружено — чтобы «Назад» с карточки объявления возвращал список,
+ * а не его первую страницу. Решение Е5 требует именно этого.
+ *
+ * Пишется и читается ТОЛЬКО В БРАУЗЕРЕ. Процесс Node живёт сутками, и
+ * модульное состояние на сервере копилось бы между запросами: один посетитель
+ * получил бы догруженное другим. Это та самая грабля, на которой 14.09 падала
+ * страница канала после страницы сообщества.
+ *
+ * Ключ — те же `buildParams`, что уходят в запрос: другой отбор это другой
+ * список, и подменять его чужим нельзя.
+ */
+const догруженное = new Map<string, { ads: Ad[]; page: number; hasMore: boolean }>();
+
+function запомнить(ключ: string, значение: { ads: Ad[]; page: number; hasMore: boolean }): void {
+  if (typeof window === "undefined") return;
+  /* Один отбор за раз: держать историю всех отборов незачем, а памяти она
+     стоит столько же, сколько сами карточки. */
+  догруженное.clear();
+  догруженное.set(ключ, значение);
+}
 
 export const Route = createFileRoute("/ads/")({
   errorComponent: RouteErrorState,
@@ -129,6 +152,19 @@ function CatalogPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(() => loaded.ads.length === PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
+  /* Догрузка не удалась: вместо сторожа показываем «Повторить». Без этого
+     состояния отказ гасил догрузку навсегда (`setHasMore(false)`), и
+     человеку оставался подвал без всякого объяснения. */
+  const [moreFailed, setMoreFailed] = useState(false);
+  /* Сколько прибавилось последней страницей — только для диктора. */
+  const [addedLast, setAddedLast] = useState(0);
+  /*
+   * Какая страница уже заказана. Сторож может сообщить о себе дважды за
+   * кадр (наблюдатель пересоздаётся, пока страница едет), и одного
+   * `loadingMore` мало: он поднимается уже внутри `loadMore`, а два вызова
+   * в одном кадре увидят прежнее `false` оба.
+   */
+  const заказано = useRef(1);
   const [q, setQ] = useState(search.q ?? "");
   const [resultsMinHeight, setResultsMinHeight] = useState<number | undefined>(undefined);
   const resultsWrapRef = useRef<HTMLDivElement>(null);
@@ -251,6 +287,9 @@ function CatalogPage() {
       setAds(result);
       setResultGen((g) => g + 1);
       setPage(1);
+      заказано.current = 1;
+      setMoreFailed(false);
+      setAddedLast(0);
       setHasMore(result.length === PAGE_SIZE);
       setLoadState("ok");
       hasLoadedOnce.current = true;
@@ -294,24 +333,66 @@ function CatalogPage() {
   }, [q, filters, sort, taxonomyId, categoryId, subcategoryId, t]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || moreFailed) return;
+    const nextPage = page + 1;
+    /*
+     * Одну страницу — один раз. `loadingMore` поднимается уже внутри, и два
+     * вызова в одном кадре прошли бы оба; `заказано` сравнивается до любого
+     * await, то есть синхронно.
+     */
+    if (заказано.current >= nextPage) return;
+    заказано.current = nextPage;
     setLoadingMore(true);
     try {
-      const nextPage = page + 1;
       const params = buildParams(q, filters, sort, taxonomyId, categoryId, subcategoryId);
       const result = await fetchListings({ ...params, perPage: PAGE_SIZE, page: nextPage });
-      setAds((prev) => [...prev, ...result]);
+      /*
+       * Дописываем только то, чего на экране ещё нет.
+       *
+       * Сервер отдаёт страницу по смещению, а каталог живой: за время
+       * листания объявление могло появиться или уехать, и тогда страницы
+       * сдвигаются — одна и та же карточка приходит дважды. React на
+       * повторяющийся `key` ругается в консоль, а человек видит дубль.
+       */
+      const ещё = result.length === PAGE_SIZE;
+      setAds((prev) => {
+        const было = new Set(prev.map((a) => a.id));
+        const новые = result.filter((a) => !было.has(a.id));
+        setAddedLast(новые.length);
+        const итог = новые.length ? [...prev, ...новые] : prev;
+        запомнить(ключЗапросаRef.current, { ads: итог, page: nextPage, hasMore: ещё });
+        return итог;
+      });
       setPage(nextPage);
-      setHasMore(result.length === PAGE_SIZE);
+      setHasMore(ещё);
     } catch (err) {
-      // Догрузка следующей страницы: список на экране цел, человек ничего
-      // не нажимал осознанно — записываем отказ и прекращаем догрузку.
-      setHasMore(false);
+      /*
+       * Догрузка не удалась. Список на экране цел, человек ничего не
+       * нажимал — поэтому не окно с ошибкой, а строка и «Повторить» на
+       * месте сторожа.
+       *
+       * РАНЬШЕ ЗДЕСЬ СТОЯЛО `setHasMore(false)`: догрузка выключалась
+       * навсегда, и дальше каталога для человека просто не существовало —
+       * ни объяснения, ни способа повторить.
+       */
+      заказано.current = page;
+      setMoreFailed(true);
       reportReadFailure(err, "каталог объявлений, следующая страница");
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, page, q, filters, sort, taxonomyId]);
+  }, [
+    loadingMore,
+    hasMore,
+    moreFailed,
+    page,
+    q,
+    filters,
+    sort,
+    taxonomyId,
+    categoryId,
+    subcategoryId,
+  ]);
 
   // Debounced: `load` changes identity on every keystroke into text filters
   // (search query, city — CitySelect's own dropdown-suggestion debounce fires
@@ -340,17 +421,76 @@ function CatalogPage() {
     setIsPendingRefresh(true);
   }, [q, filters, sort, taxonomyId]);
 
+  /*
+   * Запрос повторяется только при смене ПАРАМЕТРОВ, а не личности `load`.
+   *
+   * Эффект висел на `[load]`, а `load` пересобирается от `t`, `filters`,
+   * `categoryId` и `subcategoryId` — и что-то из них меняется уже после
+   * монтирования. Страж первого прогона (`isFirstLoad`) снимался на первом
+   * же проходе, и следующая пересборка `load` уводила в сеть запрос с теми
+   * же параметрами, какие загрузчик маршрута уже выполнил на сервере.
+   *
+   * С кнопкой «Показать ещё» это было только лишним запросом: человек ещё
+   * ничего не нажал, терять было нечего. С автоподгрузкой — видимый дефект.
+   * Замер 06.10, /ads, 360, три прогона подряд:
+   *
+   *   +1,6 с  page=2            сторож догрузил
+   *   +1,9 с  page=3            сторож догрузил
+   *   +1,95 с (без page)        ЛИШНИЙ повтор первой страницы
+   *   +2,2 с  page=2            заново, потому что список сбросили
+   *   +2,5 с  page=3            заново
+   *
+   * То есть список на глазах сжимался до 24 карточек и отрастал обратно, а
+   * страницы 2 и 3 ехали по сети дважды.
+   *
+   * Ключ собирается из тех же `buildParams`, что уходят в запрос: сравнивать
+   * что-то другое значило бы сравнивать не то, от чего зависит ответ.
+   */
+  const ключЗапроса = useMemo(
+    () => JSON.stringify(buildParams(q, filters, sort, taxonomyId, categoryId, subcategoryId)),
+    [q, filters, sort, taxonomyId, categoryId, subcategoryId],
+  );
+  const прошлыйКлюч = useRef(ключЗапроса);
+  /* Ключ нужен внутри `loadMore`, но в его зависимости не идёт: иначе
+     обработчик пересобирался бы на каждую смену отбора и сторож успевал бы
+     вызвать устаревший. */
+  const ключЗапросаRef = useRef(ключЗапроса);
+  ключЗапросаRef.current = ключЗапроса;
+
+  /*
+   * Возврат «Назад» с карточки объявления: восстанавливаем догруженное.
+   *
+   * `useLayoutEffect`, а не `useEffect`: высота списка должна вернуться до
+   * отрисовки, иначе восстановление прокрутки роутером промахнётся — ему не
+   * во что скроллить. На сервере этот эффект не выполняется вовсе, поэтому
+   * первый кадр браузера совпадает с серверным: 24 карточки, как отдал
+   * загрузчик, и только потом разворот.
+   */
+  useLayoutEffect(() => {
+    const сохранённое = догруженное.get(ключЗапроса);
+    if (!сохранённое || сохранённое.ads.length <= ads.length) return;
+    setAds(сохранённое.ads);
+    setPage(сохранённое.page);
+    setHasMore(сохранённое.hasMore);
+    заказано.current = сохранённое.page;
+    // Один раз на монтирование: дальше список ведёт себя обычно.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (isFirstLoad.current) {
       isFirstLoad.current = false;
       filterSnapshot.current = { q, filters, sort, taxonomyId };
+      прошлыйКлюч.current = ключЗапроса;
       return;
     }
+    if (прошлыйКлюч.current === ключЗапроса) return;
+    прошлыйКлюч.current = ключЗапроса;
     const timer = setTimeout(() => {
       void load();
     }, 350);
     return () => clearTimeout(timer);
-  }, [load]);
+  }, [ключЗапроса, load]);
 
   useLayoutEffect(() => {
     if (!isFilterBusy) {
@@ -592,16 +732,40 @@ function CatalogPage() {
                       />
                     ))}
                   </div>
-                  {hasMore && loadState === "ok" && !isFilterBusy && (
-                    <div className="mt-[16px] flex justify-center">
-                      <Button
-                        variant="outline"
-                        onClick={() => void loadMore()}
-                        loading={loadingMore}
-                      >
-                        {loadingMore ? t("pages.ads.loading") : t("pages.ads.showMore")}
-                      </Button>
-                    </div>
+                  {/*
+                    Догрузка сама — решение Е5. Кнопка осталась только
+                    запасным ходом при отказе: она внутри `AutoLoadMore`.
+
+                    Условие то же, что было у кнопки: пока идёт смена
+                    отбора, сторож не рисуется — иначе он сообщил бы о себе
+                    поверх уже заказанной первой страницы.
+                  */}
+                  {loadState === "ok" && !isFilterBusy && (
+                    <AutoLoadMore
+                      hasMore={hasMore}
+                      loading={loadingMore}
+                      failed={moreFailed}
+                      onLoad={() => void loadMore()}
+                      onRetry={() => {
+                        setMoreFailed(false);
+                        void loadMore();
+                      }}
+                      skeletons={
+                        <div className={cn(CATALOG_GRID, "mt-[16px]")}>
+                          {Array.from({ length: 4 }).map((_, i) => (
+                            <CatalogCardSkeleton key={i} />
+                          ))}
+                        </div>
+                      }
+                      announcement={
+                        addedLast > 0
+                          ? t("components.autoLoadMore.added", {
+                              added: addedLast,
+                              total: ads.length,
+                            })
+                          : ""
+                      }
+                    />
                   )}
                 </>
               )}
