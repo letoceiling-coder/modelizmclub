@@ -2,16 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { m, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import {
-  ArrowRight,
-  ChevronDown,
-  Plus,
-  Heart,
-  MoreVertical,
-  MapPin,
-  Search,
-  ImageOff,
-} from "lucide-react";
+import { ArrowRight, Plus, Heart, MoreVertical, MapPin, Search, ImageOff } from "lucide-react";
 import { Icon as SlotIcon, IconBox } from "@/components/ui/Icon";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -111,9 +102,24 @@ function LandingPage() {
        * одной командой; без него человек каждый раз проходит шапку заново.
        * На вид не меняется ничего — <main> не несёт своего оформления.
        */}
+      {/*
+        Порядок секций — ТЗ 2.1. Было (замер 07.10, девять секций на экране):
+        первый экран, завершающий призыв, «Что есть в МоДелизМ», объявления,
+        направления, три шага, подписка, причины, вопросы.
+
+        Завершающий призыв «Сообщество, объединяющее единомышленников» стоял
+        ВТОРЫМ — то есть предложение присоединиться шло раньше, чем человек
+        увидел хоть что-нибудь, за чем присоединяться. По ТЗ 2.1 он десятый,
+        перед подвалом.
+
+        Блок «Что есть в МоДелизМ» совмещает пункты 2 и 4 списка ТЗ 2.1 —
+        короткое объяснение и шесть входов. Так и предписано ТЗ 2.6: вторую
+        сетку из шести одинаковых карточек рисовать не надо, а настоящих
+        снимков интерфейса для трёх сценариев ещё нет (их снимают в промпте
+        07, после доводки экранов). Выдуманных макетов здесь не будет.
+      */}
       <main>
         <Hero />
-        <CommunityInvite />
         <FirstHundredBanner />
         <QuickSections />
         <PopularListings />
@@ -122,6 +128,7 @@ function LandingPage() {
         <PricingSection />
         <WhyChoose />
         <FaqSection />
+        <CommunityInvite />
       </main>
       <Footer />
     </div>
@@ -164,7 +171,34 @@ function TopNav() {
             label: t("landing.nav.communities"),
           },
           { kind: "route" as const, to: "/channels" as const, label: t("landing.nav.channels") },
-          { kind: "hash" as const, href: "#how", label: t("landing.nav.how") },
+          /*
+            ЯКОРЯ «КАК РАБОТАЕТ» ЗДЕСЬ БОЛЬШЕ НЕТ.
+
+            ТЗ 2.2 называет основными пять ссылок — «Объявления»,
+            «Сообщества», «Каналы», «Как пользоваться», «Подписка», — а
+            менее важные велит перенести в подвал. И отдельно запрещает
+            держать рядом «Как пользоваться» и «Как работает».
+            Это и был тот случай, причём в худшем виде: одна и та же
+            подпись вела в ДВА РАЗНЫХ МЕСТА.
+
+            Разбор решения D11 — он висел с сессии 1 как «по смыслу
+            не сверял». Сверил 07.10 по содержимому базы:
+
+            | Адрес | Заголовок | Что внутри |
+            | --- | --- | --- |
+            | `/how-to-use` | «Как пользоваться» | краткий обзор и запись экрана — инструкция |
+            | `/how-it-works` | «Как работает платформа» | объяснение сервиса: лента, объявления, обзоры, каналы |
+
+            То есть страницы НЕ дублируют друг друга: это ровно те два
+            назначения, которые ТЗ и просит различать. Сливать нечего.
+
+            А вот подпись «Как работает» в шапке вела не на страницу, а на
+            якорь `#how` — секцию «Три шага» этого же лендинга. Рядом с ней
+            стояла «Как пользоваться», и обе читались как одно и то же.
+            Страница «Как работает платформа» остаётся и доступна из
+            подвала (`lib/footer-links.ts`), якорь убран: секцию «Три шага»
+            человек всё равно проходит прокруткой.
+          */
           {
             kind: "route" as const,
             to: "/subscription" as const,
@@ -202,31 +236,24 @@ function TopNav() {
 
         {/* desktop nav — nowrap keeps header width stable across locales */}
         <nav className="landing-nav hidden items-center gap-5 lg:flex">
-          {navLinks.map((l) =>
-            l.kind === "hash" ? (
-              <a
-                key={l.label}
-                href={l.href}
-                className="landing-nav-link text-sm font-medium transition-colors"
-                style={navLinkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >
-                {l.label}
-              </a>
-            ) : (
-              <Link
-                key={l.label}
-                to={l.to}
-                className="landing-nav-link text-sm font-medium transition-colors"
-                style={navLinkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >
-                {l.label}
-              </Link>
-            ),
-          )}
+          {/*
+            Ветка для якорных ссылок убрана вместе с единственным якорем
+            «Как работает» (см. список выше). Держать недостижимый случай
+            «на будущее» дороже, чем вернуть его, когда якорь понадобится:
+            tsc на нём честно ругается, что сравнение невозможно.
+          */}
+          {navLinks.map((l) => (
+            <Link
+              key={l.label}
+              to={l.to}
+              className="landing-nav-link text-sm font-medium transition-colors"
+              style={navLinkStyle}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
+            >
+              {l.label}
+            </Link>
+          ))}
         </nav>
 
         {/*
@@ -360,45 +387,24 @@ function TopNav() {
             style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
           >
             <div className="flex flex-col gap-1 px-4 py-3">
-              {navLinks.map((l) =>
-                l.kind === "hash" ? (
-                  <a
-                    key={l.label}
-                    href={l.href}
-                    onClick={(e) => {
-                      // Closing the menu (height: auto -> 0) and the native
-                      // hash jump would otherwise fire in the same tick — the
-                      // jump lands correctly, then the collapse animation
-                      // shifts the whole page under it, missing the target.
-                      // Close first, scroll manually once the sheet has
-                      // finished collapsing (matches its ~300ms default
-                      // Framer Motion transition).
-                      e.preventDefault();
-                      setMenuOpen(false);
-                      const href = l.href;
-                      setTimeout(() => {
-                        document
-                          .querySelector(href)
-                          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 320);
-                    }}
-                    className="rounded-lg px-3 py-2.5 text-sm font-medium"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {l.label}
-                  </a>
-                ) : (
-                  <Link
-                    key={l.label}
-                    to={l.to}
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-lg px-3 py-2.5 text-sm font-medium"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {l.label}
-                  </Link>
-                ),
-              )}
+              {/*
+                Ветка якорной ссылки убрана вместе с самим якорем. Вместе с
+                ней ушла и обходная задержка: закрытие шторки и переход по
+                якорю происходили в одном такте, и страница уезжала из-под
+                уже найденной цели, поэтому прокрутку делали руками через
+                320 мс. Обходить больше нечего.
+              */}
+              {navLinks.map((l) => (
+                <Link
+                  key={l.label}
+                  to={l.to}
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {l.label}
+                </Link>
+              ))}
               <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
               <Link
                 to={enter.login}
@@ -697,28 +703,22 @@ function Hero() {
         </AnimatePresence>
       </div>
 
-      {/* scroll hint */}
-      <div
-        className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 sm:flex"
-        style={{ color: "rgba(235,238,248,0.6)" }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            fontFamily: "var(--font-mono)",
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-          }}
-        >
-          {t("landing.hero.scroll")}
-        </span>
-        <m.div
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <ChevronDown size={20} />
-        </m.div>
-      </div>
+      {/*
+        ПОДСКАЗКИ «ЛИСТАЙТЕ» И ПОДПРЫГИВАЮЩЕЙ СТРЕЛКИ ЗДЕСЬ БОЛЬШЕ НЕТ.
+
+        ТЗ 2.2 и решение владельца D7: убрать и ничем не заменять — ни
+        стрелкой, ни отскоком. Первый экран не занимает всю высоту окна
+        (замер 07.10: 743 при окне 844 на 360, 760 при 900 на 1280), то есть
+        следующая секция видна краем и сама говорит, что страница
+        продолжается.
+
+        В сессии 1 по D7 было записано «в исходниках слова „Листайте“ нет».
+        Это было отрицательное утверждение, проверенное не до конца: искали
+        в содержимом лендинга из базы, а строка лежала в словаре
+        (`landing.hero.scroll`) и выводилась разметкой только от 640 px
+        (`hidden sm:flex`) — поэтому на телефоне её и не видели. Замер
+        07.10: на 1280 подсказка есть, на 360 нет.
+      */}
     </section>
   );
 }
