@@ -445,6 +445,12 @@ function heroVideoSources(url: string): { webm?: string; mp4: string } {
 
 function Hero() {
   const { t } = useTranslation();
+  const enter = useEnter();
+  const me = useCurrentUser();
+  const sessionReady = useSessionResolved();
+  /* Та же проверка, что в шапке: до разбора сессии — гость, и это
+     совпадает с тем, что нарисовал сервер. */
+  const loggedIn = sessionReady && me.id !== GUEST_USER.id;
   const { section, loading: heroLoading } = useLandingSection("hero");
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
@@ -639,23 +645,59 @@ function Hero() {
                 </m.p>
               ) : null}
 
-              {(section?.cards.length ?? 0) > 0 && (
-                <m.div
-                  variants={fadeUp}
-                  className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
-                >
-                  {section!.cards.map((card, i) => (
-                    <LandingBlockLink
-                      key={card.id}
-                      card={card}
-                      className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
-                      style={i === 0 ? ctaPrimary : ctaText}
-                    >
-                      {i === 0 ? <Search size={18} /> : null} {card.title}
-                    </LandingBlockLink>
-                  ))}
-                </m.div>
-              )}
+              {/*
+                Главное действие первого экрана — по роли, а не из админки.
+                ТЗ 2.2: гостю одно основное «Присоединиться», вошедшему
+                «Открыть ленту» — «не заставлять его снова регистрироваться».
+
+                Было: первый экран показывал только карточки из админки, и
+                на стенде это была одна кнопка «Объявления» (замер 07.10,
+                360 и 1280, гость и вошедший — один и тот же набор).
+                То есть предложить присоединиться первый экран не мог вовсе,
+                а вошедшему показывал то же, что гостю.
+
+                Карточки админки остаются — вторыми, без своей заливки:
+                это содержимое, и переписывать его из кода нельзя.
+                Поэтому `ctaPrimary` теперь только у роли, а карточки идут
+                `ctaText`.
+
+                `loggedIn` берётся так же, как в шапке: до разбора сессии
+                `sessionReady` ложно и на сервере, и в первом кадре
+                браузера, значит разметка первого кадра совпадает и
+                расхождения гидрации нет.
+              */}
+              <m.div
+                variants={fadeUp}
+                className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+              >
+                {loggedIn ? (
+                  <Link
+                    to="/feed"
+                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                    style={ctaPrimary}
+                  >
+                    <ArrowRight size={18} /> {t("landing.hero.ctaFeed")}
+                  </Link>
+                ) : (
+                  <Link
+                    to={enter.register}
+                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                    style={ctaPrimary}
+                  >
+                    {t("landing.hero.ctaJoin")}
+                  </Link>
+                )}
+                {section?.cards.map((card) => (
+                  <LandingBlockLink
+                    key={card.id}
+                    card={card}
+                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                    style={ctaText}
+                  >
+                    <Search size={18} /> {card.title}
+                  </LandingBlockLink>
+                ))}
+              </m.div>
 
               {statsReady ? (
                 <m.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
@@ -751,6 +793,83 @@ const ctaText: React.CSSProperties = {
   border: "none",
   cursor: "pointer",
 };
+
+/**
+ * Плашка шести входов. Гостю сначала предлагает зарегистрироваться.
+ *
+ * Требование владельца, ТЗ 2.4: «шесть входов сначала предлагают гостю
+ * регистрацию», и реализовать это надо **именно на этих CTA**, не закрывая
+ * входом остальной публичный просмотр. Поэтому ссылка «Объявления» в шапке
+ * по-прежнему ведёт в каталог напрямую — так и предписано.
+ *
+ * Было (замер 07.10, гость, 360 и 1280): все шесть плашек — обычные ссылки,
+ * ведут в раздел сразу, никакого предложения зарегистрироваться нет.
+ *
+ * Открывается существующее окно гейта через `requireAccount`, и оно одно на
+ * весь сервис: шести своих окон здесь не появилось. `returnTo` — внутренний
+ * адрес самой плашки; на успех выполняется только переход, ничего больше
+ * (ТЗ 2.4 запрещает возобновлять оплату, публикацию и звонок). При отмене
+ * не происходит ничего, и страница с прокруткой остаётся на месте: окно
+ * гейта её не перезагружает.
+ *
+ * Для гостя это семантическая КНОПКА, а не ссылка: нажатие не ведёт по
+ * адресу, а открывает окно, и обещать адрес в строке состояния браузера
+ * было бы неправдой. ТЗ 2.3 требует, чтобы вся плашка была одним
+ * интерактивным элементом без вложенных кнопок, — так и есть.
+ *
+ * Вошедший переходит сразу, тем же `LandingBlockLink`, что и раньше.
+ *
+ * Имя латиницей, хотя переменные внутри по-русски: правило линта
+ * `react-hooks/rules-of-hooks` узнаёт компонент по заглавной букве ASCII, и
+ * на «ПлашкаВхода» оно ругалось ошибкой — то есть считало компонент обычной
+ * функцией и перестало бы проверять порядок вызовов хуков внутри.
+ */
+function EntryTile({
+  card,
+  className,
+  style,
+  children,
+}: {
+  card: LandingCardPublic;
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const navigate = useNavigate();
+  const me = useCurrentUser();
+  const sessionReady = useSessionResolved();
+  /* `useGuestAccess`, а не необязательный вариант: поставщик стоит в корне
+     и этим же файлом уже используется ниже (`CommunityInvite`). */
+  const { requireAccount } = useGuestAccess();
+  /* До разбора сессии — как у шапки и первого экрана: гость. Это же рисует
+     сервер, поэтому первый кадр браузера с ним совпадает. */
+  const loggedIn = sessionReady && me.id !== GUEST_USER.id;
+  const внутренний = card.link_url?.trim() ?? "";
+  const свой = внутренний.startsWith("/") && !внутренний.startsWith("//");
+
+  if (loggedIn || !свой) {
+    return (
+      <LandingBlockLink card={card} className={className} style={style}>
+        {children}
+      </LandingBlockLink>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      style={{ ...style, textAlign: "left", cursor: "pointer" }}
+      onClick={() =>
+        requireAccount(() => {
+          void navigate({ to: внутренний });
+        }, внутренний)
+      }
+    >
+      {children}
+    </button>
+  );
+}
 
 /* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
 
@@ -873,7 +992,7 @@ function QuickSections() {
       ) : (
         <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
-            <LandingBlockLink
+            <EntryTile
               key={card.id}
               card={card}
               className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
@@ -907,7 +1026,7 @@ function QuickSections() {
               >
                 {t("landing.quick.open")} <ArrowRight size={14} />
               </span>
-            </LandingBlockLink>
+            </EntryTile>
           ))}
         </div>
       )}
