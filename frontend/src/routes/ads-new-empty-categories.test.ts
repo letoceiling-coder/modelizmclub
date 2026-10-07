@@ -51,7 +51,10 @@ describe("мастер объявления: пустое дерево напр�
 
   it("признак доезжает до шага с выбором категории", () => {
     // Иначе условие выше вычислялось бы по `undefined` и молчало всегда.
-    const объявление = src.slice(src.indexOf("function StepData({"), src.indexOf("function StepData({") + 1200);
+    const объявление = src.slice(
+      src.indexOf("function StepData({"),
+      src.indexOf("function StepData({") + 1200,
+    );
     expect(объявление).toMatch(/\n {2}catsLoaded,/);
     expect(объявление).toMatch(/catsLoaded: boolean;/);
     expect(src).toMatch(/catsLoaded=\{catsLoaded\}/);
