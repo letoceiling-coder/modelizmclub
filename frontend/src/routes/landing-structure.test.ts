@@ -292,3 +292,55 @@ describe("шесть входов: намерение гостя (ТЗ 2.3, 2.4)
     expect(обработчик).not.toMatch(/fetch|pay|publish|call/i);
   });
 });
+
+describe("шаги видны без работающего JS (ТЗ 2.11)", () => {
+  const landing = readFileSync(join(process.cwd(), "src/routes/index.tsx"), "utf8");
+  const root = readFileSync(join(process.cwd(), "src/routes/__root.tsx"), "utf8");
+  const styles = readFileSync(join(process.cwd(), "src/styles.css"), "utf8");
+
+  it("у скрывающего себя блока есть признак data-reveal", () => {
+    const блок = landing.slice(landing.indexOf("<m.li"), landing.indexOf("</m.li>"));
+    expect(блок.length).toBeGreaterThan(100);
+    expect(блок).toContain('data-reveal=""');
+  });
+
+  it("признак стоит на том узле, который получает opacity: 0", () => {
+    // Не на родителе и не на соседе: правила ниже достают ровно помеченный
+    // узел, а скрывается тот, у кого в variants есть hidden с opacity 0.
+    expect(landing).toContain("whileInView");
+    expect(landing).toMatch(/data-reveal=""[\s\S]{0,200}hidden: \{ opacity: 0/);
+  });
+
+  it("правило для выключенных скриптов лежит в <noscript>", () => {
+    const i = root.indexOf("<noscript>");
+    expect(i).toBeGreaterThan(0);
+    const блок = root.slice(i, root.indexOf("</noscript>", i));
+    expect(блок).toContain("[data-reveal]");
+    expect(блок).toContain("opacity:1!important");
+    expect(блок).toContain("transform:none!important");
+  });
+
+  it("<noscript> стоит в <head>, то есть применяется до первой краски", () => {
+    const head = root.slice(root.indexOf("<head>"), root.indexOf("</head>"));
+    expect(head).toContain("<noscript>");
+  });
+
+  it("при печати признак снимает скрытие", () => {
+    const i = styles.indexOf("@media print");
+    expect(i).toBeGreaterThan(0);
+    const блок = styles.slice(i, styles.indexOf("}\n}", i));
+    expect(блок).toContain("[data-reveal]");
+    expect(блок).toContain("opacity: 1 !important");
+    expect(блок).toContain("transform: none !important");
+  });
+
+  it("при reduced motion признак снимает скрытие", () => {
+    // Замер 07.10 показал, что этот случай закрыт и тернарником в
+    // StepsTimeline; правило держит окно до гидрации, когда настройка на
+    // клиенте ещё не прочитана.
+    const куски = styles.split("@media (prefers-reduced-motion: reduce)");
+    const нужный = куски.find((k) => k.includes("[data-reveal]"));
+    expect(нужный, "блока reduced motion с data-reveal нет").toBeTruthy();
+    expect(нужный!.slice(0, 200)).toContain("opacity: 1 !important");
+  });
+});

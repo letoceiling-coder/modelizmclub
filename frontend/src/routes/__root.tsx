@@ -185,6 +185,22 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="ru" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/*
+         * framer-motion пишет `initial` инлайновым стилем в серверную
+         * разметку, а снимает его только отработавший JS. У блоков с
+         * `whileInView` это допустимо (CLAUDE.md: они прячут то, чего
+         * пользователь ещё не видит), но без скриптов такой блок не
+         * показывается никогда. ТЗ 2.11 этого не разрешает: при сбое JS,
+         * reduced motion и печати текст виден.
+         *
+         * Правило живёт в <noscript>, то есть применяется ровно тогда, когда
+         * скриптов нет, и не мешает анимации во всех прочих случаях.
+         * Признак — `data-reveal` на узле, который прячет собственное
+         * появление.
+         */}
+        <noscript>
+          <style>{"[data-reveal]{opacity:1!important;transform:none!important}"}</style>
+        </noscript>
       </head>
       <body suppressHydrationWarning>
         {children}

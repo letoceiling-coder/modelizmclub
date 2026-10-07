@@ -1594,6 +1594,11 @@ function StepsTimeline() {
           {cards.map((card, i) => (
             <m.li
               key={card.id}
+              // Без JS `whileInView` не срабатывает, и три шага остались бы
+              // opacity:0 — ТЗ 2.11 требует читаемого текста при сбое
+              // скриптов. Правило в <noscript> (см. RootShell) снимает
+              // инлайновое скрытие именно по этому признаку.
+              data-reveal=""
               variants={{
                 hidden: { opacity: 0, y: 20 },
                 visible: {
