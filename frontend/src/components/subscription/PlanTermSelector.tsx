@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Wallet } from "lucide-react";
+import { LoadFailed } from "@/components/ui/load-failed";
 import { type PricingPlan } from "@/lib/config/pricing";
 import { usePricingPlans } from "@/lib/hooks/usePricingPlans";
 
@@ -77,7 +78,7 @@ function defaultTermId(plans: PricingPlan[]): PricingPlan["id"] {
  * below the cards — not duplicated per card.
  */
 export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTermSelectorProps) {
-  const { plans, loading } = usePricingPlans();
+  const { plans, loading, failed, reload } = usePricingPlans();
   const [termId, setTermId] = useState<PricingPlan["id"]>(() => defaultTermId(plans));
 
   useEffect(() => {
@@ -85,6 +86,15 @@ export function PlanTermSelector({ renderCta, emptyFallback, className }: PlanTe
   }, [plans]);
 
   if (loading) return <PlanTermSkeleton className={className} />;
+
+  /*
+   * Отказ запроса и «тарифов нет» — разные ответы, и выглядят они по-разному.
+   * Замер 07.10 на боевой сборке при недоступном `/api/v1/plans`: здесь
+   * возвращался `emptyFallback ?? null`, и на `/subscription`, где
+   * `emptyFallback` не передан, блок тарифов был 0 px без текста — человек
+   * приходил за ценами и видел пустое место.
+   */
+  if (failed) return <LoadFailed icon={Wallet} onRetry={reload} />;
 
   if (plans.length === 0) return emptyFallback ?? null;
 

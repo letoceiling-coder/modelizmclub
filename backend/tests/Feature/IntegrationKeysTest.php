@@ -22,7 +22,12 @@ class IntegrationKeysTest extends TestCase
     public function test_empty_when_nothing_is_set(): void
     {
         $this->assertSame(
-            ['yandex_maps_key' => '', 'metrika_id' => ''],
+            [
+                'yandex_maps_key' => '',
+                'metrika_id' => '',
+                'yandex_verification' => '',
+                'google_verification' => '',
+            ],
             IntegrationKeys::publicPayload(),
         );
     }
@@ -35,7 +40,12 @@ class IntegrationKeysTest extends TestCase
         );
 
         $this->assertSame(
-            ['yandex_maps_key' => 'abc-123', 'metrika_id' => '98765432'],
+            [
+                'yandex_maps_key' => 'abc-123',
+                'metrika_id' => '98765432',
+                'yandex_verification' => '',
+                'google_verification' => '',
+            ],
             IntegrationKeys::publicPayload(),
         );
     }
@@ -104,5 +114,77 @@ class IntegrationKeysTest extends TestCase
         $this->getJson('/api/v1/public/bootstrap')
             ->assertOk()
             ->assertJsonPath('data.integration_keys.metrika_id', '55555');
+    }
+
+    /**
+     * Код подтверждения прав копируют целым тегом.
+     *
+     * В Вебмастере Яндекса и в Search Console его дают готовой строкой
+     * `<meta name="yandex-verification" content="abc123" />`, и вставят её
+     * целиком — так короче, чем выковыривать значение. С тегом внутри
+     * `content` разметка выходит сломанной, а подтверждение не проходит,
+     * причём Вебмастер отвечает «тег не найден», то есть на настоящую
+     * причину не указывает.
+     */
+    public function test_a_verification_code_pasted_as_a_whole_tag_is_unwrapped(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['key' => IntegrationKeys::SETTING_KEY],
+            ['value' => [
+                'yandex_verification' => '<meta name="yandex-verification" content="d1e2f3a4b5" />',
+                'google_verification' => "<meta name='google-site-verification' content='G-abc_123' />",
+            ], 'group' => 'integrations'],
+        );
+
+        $keys = IntegrationKeys::publicPayload();
+        $this->assertSame('d1e2f3a4b5', $keys['yandex_verification']);
+        $this->assertSame('G-abc_123', $keys['google_verification']);
+    }
+
+    /** Вставленное одним значением остаётся как есть, без пробелов по краям. */
+    public function test_a_verification_code_pasted_as_a_bare_value_is_kept(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['key' => IntegrationKeys::SETTING_KEY],
+            ['value' => ['yandex_verification' => '  d1e2f3a4b5  '], 'group' => 'integrations'],
+        );
+
+        $this->assertSame('d1e2f3a4b5', IntegrationKeys::publicPayload()['yandex_verification']);
+    }
+
+    /**
+     * Пустая настройка даёт пустую строку, а не пробел и не тег.
+     *
+     * Фронтенд по пустому значению тега не рисует вовсе: пустой `content`
+     * Вебмастер считает неверным кодом.
+     */
+    public function test_an_empty_verification_code_stays_empty(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['key' => IntegrationKeys::SETTING_KEY],
+            ['value' => ['yandex_verification' => '   ', 'google_verification' => null], 'group' => 'integrations'],
+        );
+
+        $keys = IntegrationKeys::publicPayload();
+        $this->assertSame('', $keys['yandex_verification']);
+        $this->assertSame('', $keys['google_verification']);
+    }
+
+    /** Коды доезжают до фронтенда тем же ответом, что ключ карт. */
+    public function test_verification_codes_reach_the_public_bootstrap(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['key' => IntegrationKeys::SETTING_KEY],
+            ['value' => [
+                'yandex_verification' => 'ya-code-1',
+                'google_verification' => 'g-code-1',
+            ], 'group' => 'integrations'],
+        );
+        PublicBootstrapService::forget();
+
+        $this->getJson('/api/v1/public/bootstrap')
+            ->assertOk()
+            ->assertJsonPath('data.integration_keys.yandex_verification', 'ya-code-1')
+            ->assertJsonPath('data.integration_keys.google_verification', 'g-code-1');
     }
 }

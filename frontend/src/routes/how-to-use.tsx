@@ -20,7 +20,8 @@ import { RouteErrorState } from "@/components/layout/RouteErrorState";
 export const Route = createFileRoute("/how-to-use")({
   errorComponent: RouteErrorState,
   loader: () => loadPublishedLegalPage("how-to-use"),
-  head: ({ loaderData }) => legalDocumentHead(loaderData, "pages.info.metaTitle"),
+  head: ({ loaderData }) =>
+    legalDocumentHead(loaderData, "pages.info.metaTitle", undefined, "/how-to-use"),
   component: HowToUsePage,
 });
 

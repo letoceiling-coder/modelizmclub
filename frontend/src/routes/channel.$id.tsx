@@ -86,6 +86,7 @@ import { formatAbsoluteInZone } from "@/lib/format/date";
 import { useActionGate } from "@/lib/gate";
 import { askConfirm } from "@/lib/ui/ask";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
+import { breadcrumbNode, jsonLdScript, pageHead } from "@/lib/seo/head";
 
 /**
  * Вынесен из объекта маршрута с явным типом: `head` читает `loaderData`, а
@@ -106,14 +107,27 @@ async function loadChannel({ params }: { params: { id: string } }): Promise<Chan
 
 export const Route = createFileRoute("/channel/$id")({
   errorComponent: RouteErrorState,
-  head: ({ loaderData }: { loaderData?: ChannelLoaderData }) => {
+  head: ({ loaderData, params }: { loaderData?: ChannelLoaderData; params: { id: string } }) => {
     // Обложка канала — та же шапка EntityHeader, что и у сообщества, и тот
     // же приём: preload в head, чтобы браузер не ждал разбора разметки.
-    const cover = loaderData?.channel?.bannerImage;
+    const channel = loaderData?.channel ?? null;
+    const cover = channel?.bannerImage;
+    const path = `/channel/${params.id}`;
+
+    // Заголовок и превью — канала. Было «Канал — МоДелизМ» у всех (07.10).
+    const { meta, links } = pageHead({
+      title: channel?.name ?? null,
+      description: channel?.description ?? null,
+      path,
+      image: cover ?? channel?.avatarImage ?? null,
+      fallbackTitle: i18n.t("pages.channelDetail.metaTitle"),
+    });
+
     return {
-      meta: [{ title: i18n.t("pages.channelDetail.metaTitle") }],
+      meta,
       links: cover
         ? [
+            ...links,
             {
               rel: "preload",
               as: "image",
@@ -121,6 +135,14 @@ export const Route = createFileRoute("/channel/$id")({
               fetchPriority: "high",
             },
           ]
+        : links,
+      scripts: channel
+        ? jsonLdScript([
+            breadcrumbNode([
+              { name: i18n.t("nav.channels"), path: "/channels" },
+              { name: channel.name, path },
+            ]),
+          ])
         : [],
     };
   },

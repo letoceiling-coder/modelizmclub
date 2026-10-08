@@ -11,7 +11,8 @@ import { RouteErrorState } from "@/components/layout/RouteErrorState";
 export const Route = createFileRoute("/info/$slug")({
   errorComponent: RouteErrorState,
   loader: ({ params }) => loadPublishedLegalPage(params.slug),
-  head: ({ loaderData }) => legalDocumentHead(loaderData, "pages.info.metaTitle"),
+  head: ({ loaderData, params }) =>
+    legalDocumentHead(loaderData, "pages.info.metaTitle", undefined, `/info/${params.slug}`),
   component: InfoPage,
 });
 

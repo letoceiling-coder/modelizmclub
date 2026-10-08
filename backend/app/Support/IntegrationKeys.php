@@ -32,7 +32,12 @@ final class IntegrationKeys
      * адресе скрипта, номер счётчика — в коде Метрики. Секреты сюда класть
      * нельзя, и поэтому список закрытый, а не «всё из настройки».
      *
-     * @return array{yandex_maps_key: string, metrika_id: string}
+     * Коды подтверждения Вебмастера Яндекса и Search Console Google — тоже
+     * здесь: это не секреты (их видно в разметке любой страницы, в том и
+     * смысл), и вшивать их в сборку значило бы пересобирать фронтенд, чтобы
+     * подтвердить права на сайт.
+     *
+     * @return array{yandex_maps_key: string, metrika_id: string, yandex_verification: string, google_verification: string}
      */
     public static function publicPayload(): array
     {
@@ -42,7 +47,31 @@ final class IntegrationKeys
         return [
             'yandex_maps_key' => self::строка($raw['yandex_maps_key'] ?? null),
             'metrika_id' => self::цифры($raw['metrika_id'] ?? null),
+            'yandex_verification' => self::код($raw['yandex_verification'] ?? null),
+            'google_verification' => self::код($raw['google_verification'] ?? null),
         ];
+    }
+
+    /**
+     * Код подтверждения: из кабинета его копируют целым тегом
+     * `<meta name="yandex-verification" content="abc123" />`, а нужно
+     * только значение. Поэтому если в строке есть `content="…"` — берём
+     * оттуда, иначе считаем строку самим кодом. Лишние кавычки и угловые
+     * скобки убираем: с ними разметка выходит сломанной, а подтверждение
+     * не проходит молча.
+     */
+    private static function код(mixed $value): string
+    {
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return '';
+        }
+
+        if (preg_match('/content=["\']([^"\']+)["\']/', $raw, $m) === 1) {
+            $raw = $m[1];
+        }
+
+        return trim(preg_replace('/[<>"\'\s]+/', '', $raw) ?? '');
     }
 
     private static function строка(mixed $value): string

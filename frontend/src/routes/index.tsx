@@ -2,16 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { m, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import {
-  ArrowRight,
-  ChevronDown,
-  Plus,
-  Heart,
-  MoreVertical,
-  MapPin,
-  Search,
-  ImageOff,
-} from "lucide-react";
+import { ArrowRight, Plus, Heart, MoreVertical, MapPin, Search, ImageOff } from "lucide-react";
 import { Icon as SlotIcon, IconBox } from "@/components/ui/Icon";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -58,6 +49,7 @@ import { useSiteBranding } from "@/lib/hooks/useSiteBranding";
 import { usePostCategoriesState } from "@/lib/hooks/useCategories";
 
 import i18n from "@/lib/i18n";
+import { absoluteUrl, jsonLdScript, organizationNode, websiteNode } from "@/lib/seo/head";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 import { derivedSrcSet, variantUrl } from "@/lib/media/variants";
 
@@ -70,6 +62,16 @@ export const Route = createFileRoute("/")({
       { title: i18n.t("landing.hero.metaTitle") },
       { name: "description", content: i18n.t("landing.hero.metaDescription") },
     ],
+    /*
+     * Канонический адрес и сведения об организации. ТЗ 2, промпт 2 шаг 2.
+     *
+     * Замер 07.10 запросом без браузера: canonical был только у `/rules/*`
+     * и `/post/{uuid}`, структурированные данные — только у правовых
+     * страниц. Реквизиты берутся из одного места с правовыми документами,
+     * второго источника им заводить нельзя.
+     */
+    links: [{ rel: "canonical", href: absoluteUrl("/") }],
+    scripts: jsonLdScript([organizationNode(), websiteNode()]),
   }),
   loader: async () => {
     await ensurePublicBootstrap();
@@ -111,9 +113,24 @@ function LandingPage() {
        * одной командой; без него человек каждый раз проходит шапку заново.
        * На вид не меняется ничего — <main> не несёт своего оформления.
        */}
+      {/*
+        Порядок секций — ТЗ 2.1. Было (замер 07.10, девять секций на экране):
+        первый экран, завершающий призыв, «Что есть в МоДелизМ», объявления,
+        направления, три шага, подписка, причины, вопросы.
+
+        Завершающий призыв «Сообщество, объединяющее единомышленников» стоял
+        ВТОРЫМ — то есть предложение присоединиться шло раньше, чем человек
+        увидел хоть что-нибудь, за чем присоединяться. По ТЗ 2.1 он десятый,
+        перед подвалом.
+
+        Блок «Что есть в МоДелизМ» совмещает пункты 2 и 4 списка ТЗ 2.1 —
+        короткое объяснение и шесть входов. Так и предписано ТЗ 2.6: вторую
+        сетку из шести одинаковых карточек рисовать не надо, а настоящих
+        снимков интерфейса для трёх сценариев ещё нет (их снимают в промпте
+        07, после доводки экранов). Выдуманных макетов здесь не будет.
+      */}
       <main>
         <Hero />
-        <CommunityInvite />
         <FirstHundredBanner />
         <QuickSections />
         <PopularListings />
@@ -122,6 +139,7 @@ function LandingPage() {
         <PricingSection />
         <WhyChoose />
         <FaqSection />
+        <CommunityInvite />
       </main>
       <Footer />
     </div>
@@ -164,7 +182,34 @@ function TopNav() {
             label: t("landing.nav.communities"),
           },
           { kind: "route" as const, to: "/channels" as const, label: t("landing.nav.channels") },
-          { kind: "hash" as const, href: "#how", label: t("landing.nav.how") },
+          /*
+            ЯКОРЯ «КАК РАБОТАЕТ» ЗДЕСЬ БОЛЬШЕ НЕТ.
+
+            ТЗ 2.2 называет основными пять ссылок — «Объявления»,
+            «Сообщества», «Каналы», «Как пользоваться», «Подписка», — а
+            менее важные велит перенести в подвал. И отдельно запрещает
+            держать рядом «Как пользоваться» и «Как работает».
+            Это и был тот случай, причём в худшем виде: одна и та же
+            подпись вела в ДВА РАЗНЫХ МЕСТА.
+
+            Разбор решения D11 — он висел с сессии 1 как «по смыслу
+            не сверял». Сверил 07.10 по содержимому базы:
+
+            | Адрес | Заголовок | Что внутри |
+            | --- | --- | --- |
+            | `/how-to-use` | «Как пользоваться» | краткий обзор и запись экрана — инструкция |
+            | `/how-it-works` | «Как работает платформа» | объяснение сервиса: лента, объявления, обзоры, каналы |
+
+            То есть страницы НЕ дублируют друг друга: это ровно те два
+            назначения, которые ТЗ и просит различать. Сливать нечего.
+
+            А вот подпись «Как работает» в шапке вела не на страницу, а на
+            якорь `#how` — секцию «Три шага» этого же лендинга. Рядом с ней
+            стояла «Как пользоваться», и обе читались как одно и то же.
+            Страница «Как работает платформа» остаётся и доступна из
+            подвала (`lib/footer-links.ts`), якорь убран: секцию «Три шага»
+            человек всё равно проходит прокруткой.
+          */
           {
             kind: "route" as const,
             to: "/subscription" as const,
@@ -202,31 +247,24 @@ function TopNav() {
 
         {/* desktop nav — nowrap keeps header width stable across locales */}
         <nav className="landing-nav hidden items-center gap-5 lg:flex">
-          {navLinks.map((l) =>
-            l.kind === "hash" ? (
-              <a
-                key={l.label}
-                href={l.href}
-                className="landing-nav-link text-sm font-medium transition-colors"
-                style={navLinkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >
-                {l.label}
-              </a>
-            ) : (
-              <Link
-                key={l.label}
-                to={l.to}
-                className="landing-nav-link text-sm font-medium transition-colors"
-                style={navLinkStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
-              >
-                {l.label}
-              </Link>
-            ),
-          )}
+          {/*
+            Ветка для якорных ссылок убрана вместе с единственным якорем
+            «Как работает» (см. список выше). Держать недостижимый случай
+            «на будущее» дороже, чем вернуть его, когда якорь понадобится:
+            tsc на нём честно ругается, что сравнение невозможно.
+          */}
+          {navLinks.map((l) => (
+            <Link
+              key={l.label}
+              to={l.to}
+              className="landing-nav-link text-sm font-medium transition-colors"
+              style={navLinkStyle}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--foreground-70)")}
+            >
+              {l.label}
+            </Link>
+          ))}
         </nav>
 
         {/*
@@ -360,45 +398,24 @@ function TopNav() {
             style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
           >
             <div className="flex flex-col gap-1 px-4 py-3">
-              {navLinks.map((l) =>
-                l.kind === "hash" ? (
-                  <a
-                    key={l.label}
-                    href={l.href}
-                    onClick={(e) => {
-                      // Closing the menu (height: auto -> 0) and the native
-                      // hash jump would otherwise fire in the same tick — the
-                      // jump lands correctly, then the collapse animation
-                      // shifts the whole page under it, missing the target.
-                      // Close first, scroll manually once the sheet has
-                      // finished collapsing (matches its ~300ms default
-                      // Framer Motion transition).
-                      e.preventDefault();
-                      setMenuOpen(false);
-                      const href = l.href;
-                      setTimeout(() => {
-                        document
-                          .querySelector(href)
-                          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 320);
-                    }}
-                    className="rounded-lg px-3 py-2.5 text-sm font-medium"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {l.label}
-                  </a>
-                ) : (
-                  <Link
-                    key={l.label}
-                    to={l.to}
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-lg px-3 py-2.5 text-sm font-medium"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    {l.label}
-                  </Link>
-                ),
-              )}
+              {/*
+                Ветка якорной ссылки убрана вместе с самим якорем. Вместе с
+                ней ушла и обходная задержка: закрытие шторки и переход по
+                якорю происходили в одном такте, и страница уезжала из-под
+                уже найденной цели, поэтому прокрутку делали руками через
+                320 мс. Обходить больше нечего.
+              */}
+              {navLinks.map((l) => (
+                <Link
+                  key={l.label}
+                  to={l.to}
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {l.label}
+                </Link>
+              ))}
               <div className="my-1 h-px sm:hidden" style={{ background: "var(--border)" }} />
               <Link
                 to={enter.login}
@@ -439,6 +456,12 @@ function heroVideoSources(url: string): { webm?: string; mp4: string } {
 
 function Hero() {
   const { t } = useTranslation();
+  const enter = useEnter();
+  const me = useCurrentUser();
+  const sessionReady = useSessionResolved();
+  /* Та же проверка, что в шапке: до разбора сессии — гость, и это
+     совпадает с тем, что нарисовал сервер. */
+  const loggedIn = sessionReady && me.id !== GUEST_USER.id;
   const { section, loading: heroLoading } = useLandingSection("hero");
   const [videoError, setVideoError] = useState(false);
   const [ready, setReady] = useState(false);
@@ -633,23 +656,59 @@ function Hero() {
                 </m.p>
               ) : null}
 
-              {(section?.cards.length ?? 0) > 0 && (
-                <m.div
-                  variants={fadeUp}
-                  className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
-                >
-                  {section!.cards.map((card, i) => (
-                    <LandingBlockLink
-                      key={card.id}
-                      card={card}
-                      className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
-                      style={i === 0 ? ctaPrimary : ctaText}
-                    >
-                      {i === 0 ? <Search size={18} /> : null} {card.title}
-                    </LandingBlockLink>
-                  ))}
-                </m.div>
-              )}
+              {/*
+                Главное действие первого экрана — по роли, а не из админки.
+                ТЗ 2.2: гостю одно основное «Присоединиться», вошедшему
+                «Открыть ленту» — «не заставлять его снова регистрироваться».
+
+                Было: первый экран показывал только карточки из админки, и
+                на стенде это была одна кнопка «Объявления» (замер 07.10,
+                360 и 1280, гость и вошедший — один и тот же набор).
+                То есть предложить присоединиться первый экран не мог вовсе,
+                а вошедшему показывал то же, что гостю.
+
+                Карточки админки остаются — вторыми, без своей заливки:
+                это содержимое, и переписывать его из кода нельзя.
+                Поэтому `ctaPrimary` теперь только у роли, а карточки идут
+                `ctaText`.
+
+                `loggedIn` берётся так же, как в шапке: до разбора сессии
+                `sessionReady` ложно и на сервере, и в первом кадре
+                браузера, значит разметка первого кадра совпадает и
+                расхождения гидрации нет.
+              */}
+              <m.div
+                variants={fadeUp}
+                className="landing-hero-ctas mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+              >
+                {loggedIn ? (
+                  <Link
+                    to="/feed"
+                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                    style={ctaPrimary}
+                  >
+                    <ArrowRight size={18} /> {t("landing.hero.ctaFeed")}
+                  </Link>
+                ) : (
+                  <Link
+                    to={enter.register}
+                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                    style={ctaPrimary}
+                  >
+                    {t("landing.hero.ctaJoin")}
+                  </Link>
+                )}
+                {section?.cards.map((card) => (
+                  <LandingBlockLink
+                    key={card.id}
+                    card={card}
+                    className="landing-hero-cta h-[48px] px-[22px] text-[15px] sm:h-[54px] sm:px-[28px] sm:text-[16px]"
+                    style={ctaText}
+                  >
+                    <Search size={18} /> {card.title}
+                  </LandingBlockLink>
+                ))}
+              </m.div>
 
               {statsReady ? (
                 <m.div variants={fadeUp} className="mt-12 flex flex-wrap gap-x-10 gap-y-4">
@@ -697,28 +756,22 @@ function Hero() {
         </AnimatePresence>
       </div>
 
-      {/* scroll hint */}
-      <div
-        className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 sm:flex"
-        style={{ color: "rgba(235,238,248,0.6)" }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            fontFamily: "var(--font-mono)",
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-          }}
-        >
-          {t("landing.hero.scroll")}
-        </span>
-        <m.div
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <ChevronDown size={20} />
-        </m.div>
-      </div>
+      {/*
+        ПОДСКАЗКИ «ЛИСТАЙТЕ» И ПОДПРЫГИВАЮЩЕЙ СТРЕЛКИ ЗДЕСЬ БОЛЬШЕ НЕТ.
+
+        ТЗ 2.2 и решение владельца D7: убрать и ничем не заменять — ни
+        стрелкой, ни отскоком. Первый экран не занимает всю высоту окна
+        (замер 07.10: 743 при окне 844 на 360, 760 при 900 на 1280), то есть
+        следующая секция видна краем и сама говорит, что страница
+        продолжается.
+
+        В сессии 1 по D7 было записано «в исходниках слова „Листайте“ нет».
+        Это было отрицательное утверждение, проверенное не до конца: искали
+        в содержимом лендинга из базы, а строка лежала в словаре
+        (`landing.hero.scroll`) и выводилась разметкой только от 640 px
+        (`hidden sm:flex`) — поэтому на телефоне её и не видели. Замер
+        07.10: на 1280 подсказка есть, на 360 нет.
+      */}
     </section>
   );
 }
@@ -751,6 +804,83 @@ const ctaText: React.CSSProperties = {
   border: "none",
   cursor: "pointer",
 };
+
+/**
+ * Плашка шести входов. Гостю сначала предлагает зарегистрироваться.
+ *
+ * Требование владельца, ТЗ 2.4: «шесть входов сначала предлагают гостю
+ * регистрацию», и реализовать это надо **именно на этих CTA**, не закрывая
+ * входом остальной публичный просмотр. Поэтому ссылка «Объявления» в шапке
+ * по-прежнему ведёт в каталог напрямую — так и предписано.
+ *
+ * Было (замер 07.10, гость, 360 и 1280): все шесть плашек — обычные ссылки,
+ * ведут в раздел сразу, никакого предложения зарегистрироваться нет.
+ *
+ * Открывается существующее окно гейта через `requireAccount`, и оно одно на
+ * весь сервис: шести своих окон здесь не появилось. `returnTo` — внутренний
+ * адрес самой плашки; на успех выполняется только переход, ничего больше
+ * (ТЗ 2.4 запрещает возобновлять оплату, публикацию и звонок). При отмене
+ * не происходит ничего, и страница с прокруткой остаётся на месте: окно
+ * гейта её не перезагружает.
+ *
+ * Для гостя это семантическая КНОПКА, а не ссылка: нажатие не ведёт по
+ * адресу, а открывает окно, и обещать адрес в строке состояния браузера
+ * было бы неправдой. ТЗ 2.3 требует, чтобы вся плашка была одним
+ * интерактивным элементом без вложенных кнопок, — так и есть.
+ *
+ * Вошедший переходит сразу, тем же `LandingBlockLink`, что и раньше.
+ *
+ * Имя латиницей, хотя переменные внутри по-русски: правило линта
+ * `react-hooks/rules-of-hooks` узнаёт компонент по заглавной букве ASCII, и
+ * на «ПлашкаВхода» оно ругалось ошибкой — то есть считало компонент обычной
+ * функцией и перестало бы проверять порядок вызовов хуков внутри.
+ */
+function EntryTile({
+  card,
+  className,
+  style,
+  children,
+}: {
+  card: LandingCardPublic;
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const navigate = useNavigate();
+  const me = useCurrentUser();
+  const sessionReady = useSessionResolved();
+  /* `useGuestAccess`, а не необязательный вариант: поставщик стоит в корне
+     и этим же файлом уже используется ниже (`CommunityInvite`). */
+  const { requireAccount } = useGuestAccess();
+  /* До разбора сессии — как у шапки и первого экрана: гость. Это же рисует
+     сервер, поэтому первый кадр браузера с ним совпадает. */
+  const loggedIn = sessionReady && me.id !== GUEST_USER.id;
+  const внутренний = card.link_url?.trim() ?? "";
+  const свой = внутренний.startsWith("/") && !внутренний.startsWith("//");
+
+  if (loggedIn || !свой) {
+    return (
+      <LandingBlockLink card={card} className={className} style={style}>
+        {children}
+      </LandingBlockLink>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      style={{ ...style, textAlign: "left", cursor: "pointer" }}
+      onClick={() =>
+        requireAccount(() => {
+          void navigate({ to: внутренний });
+        }, внутренний)
+      }
+    >
+      {children}
+    </button>
+  );
+}
 
 /* ===================== Quick sections ("Что есть в МоДелизМ") ===================== */
 
@@ -873,7 +1003,7 @@ function QuickSections() {
       ) : (
         <div className="mt-10 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
-            <LandingBlockLink
+            <EntryTile
               key={card.id}
               card={card}
               className="group landing-tap-card landing-tap-card--lift flex h-full flex-col p-6"
@@ -907,7 +1037,7 @@ function QuickSections() {
               >
                 {t("landing.quick.open")} <ArrowRight size={14} />
               </span>
-            </LandingBlockLink>
+            </EntryTile>
           ))}
         </div>
       )}
@@ -1475,6 +1605,11 @@ function StepsTimeline() {
           {cards.map((card, i) => (
             <m.li
               key={card.id}
+              // Без JS `whileInView` не срабатывает, и три шага остались бы
+              // opacity:0 — ТЗ 2.11 требует читаемого текста при сбое
+              // скриптов. Правило в <noscript> (см. RootShell) снимает
+              // инлайновое скрытие именно по этому признаку.
+              data-reveal=""
               variants={{
                 hidden: { opacity: 0, y: 20 },
                 visible: {

@@ -109,9 +109,80 @@ function AuthorAvatar({ src, name }: { src: string; name: string }) {
 import i18n from "@/lib/i18n";
 import { formatDate } from "@/lib/format/date";
 import { ignoreFailure, reportReadFailure } from "@/lib/errors/handle";
+import { pageHead } from "@/lib/seo/head";
+
+/**
+ * Загрузчик нужен метаданным, а не отрисовке.
+ *
+ * Было: у страницы обзора заголовок «Обзор — МоДелизМ», описание — общий
+ * текст про площадку, og:title — имя площадки (замер 07.10 запросом без
+ * браузера). То есть ссылка в мессенджере не говорила, на что она ведёт.
+ * Построить метаданные из данных можно только на сервере, а здесь данные
+ * приходили в эффекте после гидрации.
+ *
+ * Срок и `catch` — те же, что у соседних загрузчиков `/ads/{id}` и
+ * `/post/{uuid}`: документ не ждёт медленный API, а отказ оставляет прежний
+ * общий заголовок вместо выдуманного.
+ *
+ * Содержимое страницы этим загрузчиком НЕ засевается: компонент грузит
+ * данные сам, как и раньше, и первый кадр браузера совпадает с серверным.
+ * Засев ускорил бы первую отрисовку, но это отдельная правка с отдельным
+ * замером, и смешивать её с метаданными незачем.
+ */
+async function loadVideoForHead({ params }: { params: { id: string } }) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), 1500);
+  });
+  try {
+    const video = await Promise.race([fetchVideo(params.id), deadline]);
+    return { video: (video as Video | null) ?? null };
+  } catch {
+    return { video: null as Video | null };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export const Route = createFileRoute("/reviews/$id")({
-  head: () => ({ meta: [{ title: i18n.t("pages.reviews.detailMetaTitle") }] }),
+  loader: loadVideoForHead,
+  head: ({
+    loaderData,
+    params,
+  }: {
+    loaderData?: { video: Video | null };
+    params: { id: string };
+  }) => {
+    const video = loaderData?.video ?? null;
+    const path = `/reviews/${params.id}`;
+    const { meta, links } = pageHead({
+      title: video?.title ?? null,
+      description: video?.description ?? null,
+      path,
+      image: video?.posterUrl ?? null,
+      type: "video.other",
+      fallbackTitle: i18n.t("pages.reviews.detailMetaTitle"),
+    });
+
+    /*
+     * Структурированных данных о видео здесь нет — намеренно.
+     *
+     * Замер 07.10 запросом без браузера: гостю страница обзора отдаёт
+     * «Чтобы смотреть обзоры, войдите в аккаунт», сам обзор закрыт
+     * подпиской. `VideoObject` обещал бы поисковику видео, которого тот не
+     * увидит, — это расхождение разметки и содержимого, за которое Google
+     * снимает расширенный вид, а не добавляет его.
+     *
+     * Заголовок, описание и превью остаются: они описывают страницу
+     * честно, и ссылка на обзор в мессенджере показывает, о чём он. Ровно
+     * по той же причине обзоров нет в sitemap.xml — см. SitemapController.
+     *
+     * Если раздел когда-нибудь откроют гостю, `VideoObject` надо добавить.
+     * Заготовки здесь нет: неиспользуемая функция «на потом» живёт до
+     * первого расхождения с кодом вокруг, и проверить её нечем.
+     */
+    return { meta, links };
+  },
   component: WatchPage,
 });
 

@@ -358,9 +358,13 @@ function NewAdPage() {
   } | null>(null);
   const touch = (name: string) => setTouched((s) => new Set(s).add(name));
 
+  /** Ответ получен: пустой список до него и после — разные вещи. */
+  const [catsLoaded, setCatsLoaded] = useState(false);
+
   useEffect(() => {
     fetchListingCategories()
       .then((posts) => {
+        setCatsLoaded(true);
         setCats(posts);
         setForm((f) =>
           f.categoryId
@@ -1065,6 +1069,7 @@ function NewAdPage() {
                 set={set}
                 cat={cat}
                 cats={cats}
+                catsLoaded={catsLoaded}
                 subcategories={subcategories}
                 touched={touched}
                 touch={touch}
@@ -1091,6 +1096,7 @@ function NewAdPage() {
                   set={set}
                   cat={cat}
                   cats={cats}
+                  catsLoaded={catsLoaded}
                   subcategories={subcategories}
                   touched={touched}
                   touch={touch}
@@ -1418,6 +1424,7 @@ function StepData({
   set,
   cat,
   cats,
+  catsLoaded,
   subcategories,
   touched,
   touch,
@@ -1429,6 +1436,8 @@ function StepData({
   set: <K extends keyof Form>(k: K, v: Form[K]) => void;
   cat: Category | undefined;
   cats: Category[];
+  /** Ответ /categories/listings получен: пустой список до и после — разное. */
+  catsLoaded: boolean;
   /*
    * Не `{ id, name }[]`, а полный `CategoryChild[]`: ниже по коду форма
    * читает `s.children`, чтобы предзаполнить третий уровень при смене
@@ -1545,18 +1554,39 @@ function StepData({
             </p>
           </Field>
           <Field label={t("pages.adsNew.categoryLabel")}>
-            <NativeSelect
-              value={form.categoryId}
-              onChange={(v) => {
-                const c = cats.find((x) => x.id === v);
-                const firstSub = c?.subcategories[0];
-                const firstNested = firstSub?.children?.[0];
-                set("categoryId", v);
-                set("subcategoryId", firstSub?.id ?? "");
-                set("nestedCategoryId", firstNested?.id ?? "");
-              }}
-              options={cats.map((c) => ({ label: c.name, value: c.id }))}
-            />
+            {catsLoaded && cats.length === 0 ? (
+              /*
+               * Пустой список объясняется словами, а не пустым списком.
+               *
+               * Замер 07.10 на стенде: `/categories/listings` отдаёт ноль
+               * узлов, `select «Категория»` рисуется с нулём вариантов, и
+               * «Далее» выключено — без единого слова о причине. Продавец
+               * видит исправную с виду форму, которая не пускает дальше, и
+               * понять почему не может.
+               *
+               * Причина на стенде — данные: ни у одного направления не
+               * указана полка каталога (`post_categories.listing_category_id`
+               * пуст у всех 30), поэтому зеркал «видно» ноль. На проде так
+               * будет в тот же миг, когда полки отвяжут в админке, — значит
+               * это не «не может случиться», а «случилось у нас».
+               */
+              <p className="text-[12px]" style={{ color: "var(--danger, var(--foreground-70))" }}>
+                {t("pages.adsNew.categoriesEmpty")}
+              </p>
+            ) : (
+              <NativeSelect
+                value={form.categoryId}
+                onChange={(v) => {
+                  const c = cats.find((x) => x.id === v);
+                  const firstSub = c?.subcategories[0];
+                  const firstNested = firstSub?.children?.[0];
+                  set("categoryId", v);
+                  set("subcategoryId", firstSub?.id ?? "");
+                  set("nestedCategoryId", firstNested?.id ?? "");
+                }}
+                options={cats.map((c) => ({ label: c.name, value: c.id }))}
+              />
+            )}
           </Field>
           {subcategories.length > 0 ? (
             <Field label={t("pages.adsNew.subcategoryLabel")}>

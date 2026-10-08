@@ -58,6 +58,7 @@ import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 
 import i18n from "@/lib/i18n";
+import { absoluteUrl } from "@/lib/seo/head";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import { RouteErrorState } from "@/components/layout/RouteErrorState";
 
@@ -68,6 +69,9 @@ export const Route = createFileRoute("/channels/")({
       { title: i18n.t("pages.channels.metaTitle") },
       { name: "description", content: i18n.t("pages.channels.metaDescription") },
     ],
+    // Канонический адрес — без параметров поиска и отбора: тот же
+    // список в другом порядке новой страницей не является.
+    links: [{ rel: "canonical", href: absoluteUrl("/channels") }],
   }),
   validateSearch: (search: Record<string, unknown>): { taxonomy_id?: number } => ({
     taxonomy_id: parseTaxonomyId(search.taxonomy_id),

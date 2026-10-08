@@ -28,6 +28,7 @@ import type { Ad } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
 import i18n from "@/lib/i18n";
+import { absoluteUrl } from "@/lib/seo/head";
 import { parseTaxonomyId } from "@/lib/taxonomy";
 import { catalogNamesFromIds, findSubcategoryByName, parseCatalogId } from "@/lib/catalog-filter";
 import { reportActionFailure, reportReadFailure } from "@/lib/errors/handle";
@@ -67,6 +68,9 @@ export const Route = createFileRoute("/ads/")({
       { title: i18n.t("pages.ads.metaTitle") },
       { name: "description", content: i18n.t("pages.ads.metaDescription") },
     ],
+    // Канонический адрес — без параметров поиска и отбора: тот же
+    // список в другом порядке новой страницей не является.
+    links: [{ rel: "canonical", href: absoluteUrl("/ads") }],
   }),
   validateSearch: (
     search: Record<string, unknown>,
