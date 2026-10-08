@@ -109,8 +109,22 @@ export function CookieBanner() {
   return (
     <div
       ref={полосаRef}
-      className="fixed inset-x-0 bottom-0 z-[var(--z-banner)] border-t shadow-lg max-lg:bottom-[var(--bottom-nav-space)]"
+      /*
+        Полоса встаёт над нижней панелью ровно настолько, насколько панель
+        занимает места, — и ноль, когда панели нет.
+
+        Стояло `max-lg:bottom-[var(--bottom-nav-space)]`, то есть точка
+        перелома была названа здесь на глаз и не совпадала с настоящей:
+        панель скрыта с 768 px, а полоса отступала до 1024. На страницах
+        входа панели нет вообще — она живёт в `AppLayout`, а `AuthShell`
+        рисуется вне него, — и там эти 60 px были чистой потерей экрана.
+        Теперь величину сообщает сама панель (`BottomNav`), и точка перелома
+        существует в одном месте — в её собственном `md:hidden`.
+      */
+      className="fixed inset-x-0 bottom-0 z-[var(--z-banner)] border-t shadow-lg"
+
       style={{
+        bottom: "var(--bottom-nav-occupied, 0px)",
         background: "var(--background-surface)",
         borderColor: "var(--border)",
         opacity: hiding ? 0 : 1,

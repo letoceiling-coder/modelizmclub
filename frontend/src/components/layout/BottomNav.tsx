@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Newspaper, Users2, MessageSquare, Megaphone, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -48,8 +49,55 @@ export function BottomNav() {
   // conversations are loaded, so the badge only shows when data exists.
   const unreadMessages = useUnreadMessagesTotal();
 
+  /*
+   * Панель сообщает, сколько места снизу она занимает, — в
+   * `--bottom-nav-occupied`.
+   *
+   * Нужно это полосе согласия на cookie: она `position: fixed` и должна
+   * встать над панелью, а не под ней. Раньше полоса брала отступ из
+   * `--bottom-nav-space` по правилу `max-lg:`, то есть на глаз, и промахивалась
+   * дважды:
+   *
+   * — панель скрыта с 768 px (`md:hidden`), а полоса отступала до 1024 px,
+   *   и в этом промежутке она поднималась над пустотой;
+   * — страницы входа рисуются вне `AppLayout`, панели там нет вовсе, но
+   *   полоса всё равно отступала на её 60 px. Замер 09.10 на 320 px с
+   *   открытой клавиатурой: окно 268 px, полоса занимала 137 — больше
+   *   половины экрана, — и под неё уходили все четыре поля формы
+   *   регистрации и кнопка.
+   *
+   * Поэтому величину публикует сама панель, по своему же прямоугольнику.
+   * Когда `md:hidden` её прячет, прямоугольник нулевой — и значение
+   * становится нулём само, без повторения точки перелома в двух местах.
+   * Высота панели равна `--bottom-nav-space` по построению: `--bottom-nav-h`
+   * у списка плюс `--safe-bottom` отступом снизу.
+   */
+  const панельRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const панель = панельRef.current;
+    if (!панель) return;
+    const опубликовать = () => {
+      const h = панель.getBoundingClientRect().height;
+      root.style.setProperty("--bottom-nav-occupied", `${Math.ceil(h)}px`);
+    };
+    опубликовать();
+    const ro = new ResizeObserver(опубликовать);
+    ro.observe(панель);
+    /* ResizeObserver на `display: none` узле молчит в части браузеров —
+       поэтому точка перелома ловится ещё и обычным resize. */
+    window.addEventListener("resize", опубликовать);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", опубликовать);
+      root.style.removeProperty("--bottom-nav-occupied");
+    };
+  }, []);
+
   return (
     <nav
+      ref={панельRef}
       // md:hidden, не lg: с 768 навигация живёт в боковой колонке значков.
       className="fixed bottom-0 left-0 right-0 z-[var(--z-sticky)] md:hidden"
       style={{
