@@ -12,6 +12,7 @@ import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
 import { AppBootPreload } from "@/components/boot/AppBootPreload";
 import { GUEST_USER, actions, selectors, useStore } from "@/lib/store";
 import { useCurrentUser, useSessionResolved } from "@/lib/session";
+import { useHydrated } from "@/hooks/use-hydrated";
 import {
   fetchPopularListings,
   addFavoriteListing,
@@ -464,7 +465,6 @@ function Hero() {
   const loggedIn = sessionReady && me.id !== GUEST_USER.id;
   const { section, loading: heroLoading } = useLandingSection("hero");
   const [videoError, setVideoError] = useState(false);
-  const [ready, setReady] = useState(false);
   const [deferVideo, setDeferVideo] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduce = useReducedMotion();
@@ -479,10 +479,43 @@ function Hero() {
   const subtitle = section?.subtitle || "";
   const sources = heroVideoSources(videoSrc);
 
-  useEffect(() => {
-    const t = setTimeout(() => setReady(true), 150);
-    return () => clearTimeout(t);
-  }, []);
+  /*
+   * ПЕРВЫЙ ЭКРАН РИСУЕТСЯ СЕРВЕРОМ. Не возвращать сюда условие,
+   * которое на сервере ложно.
+   *
+   * До 08.10 весь первый экран стоял за `ready && !heroLoading`, где
+   * `ready` — таймер на 150 мс в `useEffect`. На сервере он всегда
+   * ложь, поэтому в разметке не было ни заголовка, ни подзаголовка,
+   * ни кнопок: не спрятанных прозрачностью, а отсутствующих. Замер
+   * 08.10 на боевой сборке:
+   *
+   * | Что | Было | Стало |
+   * | --- | --- | --- |
+   * | `<h1>` в серверной разметке лендинга | 0 | 1 |
+   * | Видимых текстовых узлов на первом экране без JS | 7, все — меню | см. сторож |
+   * | Задержка появления `<h1>` после готовности разметки | 312 мс | нет |
+   *
+   * Семнадцать других страниц заголовок на сервере рисовали; не
+   * рисовала одна — главная, за индексацию которой и велась вся
+   * работа над поисковой основой. Разбор — B-17 в
+   * `docs/acceptance/audit/DEFECTS.md`.
+   *
+   * Данные для первого экрана на сервере ЕСТЬ: корневой маршрут
+   * засевает кэш блоков в теле отрисовки (`applyPublicBootstrap`),
+   * поэтому `heroLoading` на сервере уже false. Ждать было нечего.
+   *
+   * Чтобы, появившись в разметке, первый экран не стал невидимым до
+   * конца гидрации — то есть чтобы не обменять один дефект на другой,
+   * — начальное состояние задаётся тем же признаком, что в
+   * `components/ui/Appear`: `useHydrated()` отвечает false при
+   * гидрации серверной разметки и true для смонтированного позже.
+   * При гидрации `initial={false}`, и framer-motion рисует конечное
+   * состояние, не вписывая `opacity:0` инлайном. Движение остаётся
+   * там, где оно безвредно: при переходе внутри приложения, когда
+   * первого экрана в разметке нет.
+   */
+  const гидрирован = useHydrated();
+  const [появлятьсяДвижением] = useState(() => гидрирован);
 
   useEffect(() => {
     if (getCachedLandingStats()) return;
@@ -603,10 +636,10 @@ function Hero() {
         style={{ minHeight: "min(88vh, 760px)" }}
       >
         <AnimatePresence>
-          {ready && !heroLoading && (
+          {!heroLoading && (
             <m.div
               variants={stagger}
-              initial={reduce ? "visible" : "hidden"}
+              initial={появлятьсяДвижением && !reduce ? "hidden" : false}
               animate="visible"
               className="w-full max-w-[720px] py-20"
             >
