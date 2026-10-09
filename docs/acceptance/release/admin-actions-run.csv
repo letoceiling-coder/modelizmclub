@@ -1,0 +1,12 @@
+раздел;что сделано;метод;путь;код;итог;возврат
+feedGuestAccess;исходный режим отказа;GET;/admin/feed/guest-access;200;режим=popup;
+feedGuestAccess;сменить на «redirect»;PUT;/admin/feed/guest-access;200;стало=redirect;
+feedGuestAccess;гость видит новое правило;GET;/public/feed-guest-access;200;режим у гостя=redirect (ожидался redirect);
+feedGuestAccess;вернуть режим;PUT;/admin/feed/guest-access;200;стало=popup;возвращено
+feedGuestAccess;сверка возврата у гостя;GET;/public/feed-guest-access;200;режим=popup совпал с исходным: да;
+settings;прочитать настройки;GET;/admin/settings;200;"всего=36, форма=список, первые ключи=[""banners.carousel"",""listing.placement.default_price_cents"",""listing.placement.guest_price_cents"",""listing.placement.subscr";
+auditLog;мои действия записаны;GET;/admin/audit-logs;200;"на странице=50, моих=15, виды=[""admin.feed_guest_access.update"",""admin.events.delete"",""admin.events.create"",""admin.delivery_methods.update"",""video_category.dele";
+auditLog;в записи есть адрес и прежнее значение;GET;/admin/audit-logs;200;"с адресом=15 из 15; с прежними значениями=10";
+feedBanners;прочитать настройки карусели;GET;/admin/banners;200;"{""enabled"":true,""placement"":""events"",""autoplay_seconds"":10,""max_slides"":5}";
+feedBanners;сменить задержку показа;PATCH;/admin/banners/carousel/settings;200;"{""data"":{""enabled"":true,""placement"":""events"",""autoplay_seconds"":9,""max_slides"":5}}";
+feedBanners;вернуть задержку;PATCH;/admin/banners/carousel/settings;200;стало=10 исходное=10;возвращено
