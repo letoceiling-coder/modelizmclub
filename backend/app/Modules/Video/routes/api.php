@@ -27,14 +27,14 @@ Route::middleware('optionalAuth')->group(function (): void {
 });
 
 // Owner-only lifecycle actions.
-Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->group(function (): void {
     Route::delete('videos/{uuid}/schedule', CancelScheduledVideoController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::delete('videos/{uuid}', DestroyVideoController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::delete('videos/{uuid}/react', [VideoReactionController::class, 'destroy'])->where('uuid', '[0-9a-f-]{36}');
 });
 
 // Publishing content and interacting requires an active subscription (spec v4.0 §1.3).
-Route::middleware(['auth:sanctum', 'verified', 'requiresSubscription'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email', 'requiresSubscription'])->group(function (): void {
     Route::post('videos', StoreVideoController::class);
     Route::patch('videos/{uuid}', UpdateVideoController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('videos/{uuid}/schedule', ScheduleVideoController::class)->where('uuid', '[0-9a-f-]{36}');

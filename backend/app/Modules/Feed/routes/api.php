@@ -28,7 +28,7 @@ Route::middleware('optionalAuth')->group(function (): void {
     Route::get('comments/{uuid}/thread', CommentThreadController::class);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->group(function (): void {
     Route::post('posts', StorePostController::class)
         ->middleware('requiresSubscription:feed.compose.open');
     Route::patch('posts/{uuid}', UpdatePostController::class);

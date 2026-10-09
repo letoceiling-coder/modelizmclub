@@ -30,7 +30,7 @@ Route::prefix('communities')->middleware(['communities', 'optionalAuth'])->group
     Route::get('{slug}/similar', SimilarCommunitiesController::class);
     Route::get('{slug}', ShowCommunityController::class);
 
-    Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'verified.email'])->group(function (): void {
         Route::post('apply', ApplyCommunityController::class);
         Route::post('{slug}/join', JoinCommunityController::class)->middleware('requiresSubscription:community.join');
         Route::delete('{slug}/leave', LeaveCommunityController::class);
@@ -62,7 +62,7 @@ Route::prefix('events')->middleware(['optionalAuth'])->group(function (): void {
     Route::get('{uuid}', [EventsController::class, 'show'])->whereUuid('uuid');
     Route::get('{uuid}/attendees', [EventsController::class, 'attendees'])->whereUuid('uuid');
 
-    Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'verified.email'])->group(function (): void {
         Route::patch('{uuid}', [EventsController::class, 'update'])->whereUuid('uuid');
         Route::delete('{uuid}', [EventsController::class, 'destroy'])->whereUuid('uuid');
         Route::post('{uuid}/cancel', [EventsController::class, 'cancel'])->whereUuid('uuid');

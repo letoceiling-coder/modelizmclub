@@ -35,7 +35,15 @@ export async function gateRequire(
   saveIntent(intent);
   setPendingAction({ level: need, run: action, intent });
   const step = firstFailingStep(have, need);
-  if (step) openGate(step, intent.returnTo);
+  /*
+   * `byUserAction` — потому что сюда приходят из нажатий.
+   *
+   * `gateRequire` вызывается, когда человек нажал на действие, которому не
+   * хватает ступени: лайк, «Разместить», «Написать». Это просьба, и после
+   * закрытого окна она должна открывать его снова — З3 запрещает окну
+   * возвращаться самому, а не открываться по просьбе.
+   */
+  if (step) openGate(step, intent.returnTo, { byUserAction: true });
   return false;
 }
 

@@ -14,7 +14,7 @@ Route::prefix('channels')->middleware('optionalAuth')->group(function (): void {
     Route::post('{slug}/posts/{postUuid}/view', [ChannelController::class, 'view']);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('channels')->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->prefix('channels')->group(function (): void {
     Route::post('apply', ApplyChannelController::class);
     Route::post('{slug}/subscribe', [ChannelController::class, 'subscribe'])->middleware('requiresSubscription:channel.subscribe');
     Route::delete('{slug}/subscribe', [ChannelController::class, 'unsubscribe']);

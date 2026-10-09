@@ -37,12 +37,17 @@ Route::middleware('auth:sanctum')->group(function (): void {
 Route::get('users/{slug}/listings', UserListingsController::class)
     ->where('slug', '^(?!me$)[a-z0-9-]+$');
 
-Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->group(function (): void {
     Route::post('conversations/{uuid}/ordinary-deal', [OrdinaryDealController::class, 'store'])->where('uuid', '[0-9a-f-]{36}');
     Route::post('ordinary-deals/{uuid}/decline', [OrdinaryDealController::class, 'decline'])->where('uuid', '[0-9a-f-]{36}');
     Route::post('ordinary-deals/{uuid}/cancel', [OrdinaryDealController::class, 'cancel'])->where('uuid', '[0-9a-f-]{36}');
     Route::get('listings/placement-quote', PlacementQuoteController::class);
-    Route::post('listings', StoreListingController::class);
+    /*
+     * Публикация объявления — одно из двух действий, которым нужен
+     * подтверждённый телефон (решение З2 от 09.10). Создание объявления и
+     * есть отправка на модерацию, поэтому телефон спрашивается здесь.
+     */
+    Route::middleware('verified.phone')->post('listings', StoreListingController::class);
     Route::post('listings/ai-suggest', AiSuggestListingController::class);
     Route::patch('listings/{uuid}', UpdateListingController::class);
     Route::delete('listings/{uuid}', DestroyListingController::class);
@@ -50,7 +55,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
     Route::post('listings/{uuid}/reveal-phone', RevealPhoneController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::put('listings/{uuid}/phone-visibility', ListingPhoneVisibilityController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('listings/{uuid}/promote', PromoteListingController::class)->where('uuid', '[0-9a-f-]{36}');
-    Route::post('listings/{uuid}/publish', [ListingStatusController::class, 'publish']);
+    // Второй вход в публикацию: из черновика. Телефон по З2 нужен и здесь.
+    Route::middleware('verified.phone')
+        ->post('listings/{uuid}/publish', [ListingStatusController::class, 'publish']);
     Route::post('listings/{uuid}/archive', [ListingStatusController::class, 'archive']);
     Route::post('listings/{uuid}/favorite', [ListingFavoriteController::class, 'store']);
     Route::delete('listings/{uuid}/favorite', [ListingFavoriteController::class, 'destroy']);

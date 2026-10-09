@@ -13,7 +13,7 @@ Route::middleware('auth:sanctum')->prefix('calls')->group(function (): void {
     Route::post('{uuid}/hangup', [CallController::class, 'hangup']);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('calls')->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->prefix('calls')->group(function (): void {
     Route::post('/', [CallController::class, 'initiate'])->middleware('requiresSubscription:call.start');
     Route::post('{uuid}/answer', [CallController::class, 'answer']);
     Route::post('{uuid}/restart', [CallController::class, 'restart']);

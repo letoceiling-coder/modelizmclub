@@ -111,7 +111,20 @@ describe("resumeIntent после перезагрузки", () => {
     expect(navigate).toHaveBeenCalledWith("/ads/l-1");
   });
 
-  it("не раскрывает номер без подтверждённого телефона — просит подтвердить", async () => {
+  /**
+   * Свой номер покупателю для этого не нужен — решение З2 от 09.10.
+   *
+   * Здесь проверялось обратное: без подтверждённого телефона номер продавца
+   * не раскрывался и открывалось окно подтверждения. Основанием был
+   * серверный посредник `verified` на `POST /listings/{uuid}/reveal-phone`.
+   * По З2 телефон требуется только для публикации объявления и вывода
+   * средств; на этом маршруте стоит `verified.email`, и интерфейс больше не
+   * строже сервера.
+   *
+   * Смысл проверки тот же: намерение доигрывается ровно тогда, когда уровень
+   * достигнут. Изменилось, какой уровень считается достигнутым.
+   */
+  it("раскрывает номер и без подтверждённого телефона покупателя (решение З2)", async () => {
     saveIntent({
       key: resumeIntentKey("listing.reveal_phone"),
       params: { uuid: "l-1" },
@@ -122,8 +135,8 @@ describe("resumeIntent после перезагрузки", () => {
 
     await resumeIntent(vi.fn());
 
-    expect(revealSellerPhone).not.toHaveBeenCalled();
-    expect(getGateState().open).not.toBeNull();
+    expect(revealSellerPhone).toHaveBeenCalledWith("l-1");
+    expect(getGateState().open).toBeNull();
   });
 
   it("не вступает, если уровня не хватает, и оставляет намерение", async () => {

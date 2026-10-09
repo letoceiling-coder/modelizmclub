@@ -11,6 +11,9 @@ use RuntimeException;
 
 class YandexDeliveryAdapter implements DeliveryCarrierContract
 {
+    /** Больше пунктов выдачи, чем помещается в один ответ, никому не нужно. */
+    private const MAX_POINTS = 500;
+
     public function __construct(
         private readonly YandexGateway $yandex,
     ) {}
@@ -41,8 +44,19 @@ class YandexDeliveryAdapter implements DeliveryCarrierContract
         }
 
         $raw = $this->yandex->listPickupPoints($body);
-        $points = $raw['points'] ?? [];
+        $points = array_slice($raw['points'] ?? [], 0, self::MAX_POINTS);
 
+        /*
+         * `raw` отсюда убран: он удваивал память — к разобранным полям
+         * прикладывался тот же пункт целиком, — а наружу не использовался
+         * ни разу (поиск по `frontend/src` 09.10: ни одного обращения).
+         * Вместе с обязательным местом в контроллере это и есть починка
+         * падения по памяти, замеренного на проде 09.10.
+         *
+         * Предел на число пунктов — вторая страховка: место теперь спрашивают
+         * обязательно, но крупный город может отдать их много, а ответ
+         * целиком живёт в памяти одного обработчика.
+         */
         return array_map(fn (array $point): array => [
             'id' => (string) ($point['id'] ?? ''),
             'name' => (string) ($point['name'] ?? ''),
@@ -52,7 +66,6 @@ class YandexDeliveryAdapter implements DeliveryCarrierContract
             'longitude' => $point['position']['longitude'] ?? null,
             'type' => $point['type'] ?? 'pickup_point',
             'available_for_dropoff' => $point['available_for_dropoff'] ?? false,
-            'raw' => $point,
         ], $points);
     }
 

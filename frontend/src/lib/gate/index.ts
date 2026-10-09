@@ -15,6 +15,12 @@ export { GatedLink } from "./GatedLink";
 export { GateHost } from "./GateHost";
 export { routeGuard, type RouteGuardResult } from "./routeGuard";
 export { openRouteGate, gateFallbackPath, GATE_FALLBACK_PATH } from "./routeGate";
-export { openGate, closeGate, useGateState } from "./gateStore";
+export {
+  openGate,
+  closeGate,
+  useGateState,
+  isVerifyGateDismissed,
+  clearVerifyGateDismissal,
+} from "./gateStore";
 export { resumeIntent } from "./resume";
 export { useActionGate } from "./useActionGate";

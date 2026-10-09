@@ -135,21 +135,33 @@ export function GuestAccessProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Legacy escape hatch: modules that only know how to shout ("phone not
-  // verified", "subscription required") still open the same single window.
+  /*
+   * Единственная дорога к окну для тех, кто умеет только крикнуть код.
+   *
+   * Крик приходит из `requestPhoneVerificationModal()` — а туда попадают
+   * только из `requireVerifiedForAction`, то есть из нажатия. До 09.10 этот
+   * же крик рассылал `lib/api/client` на **любой** неудачный запрос с кодом
+   * `phone_not_verified`, включая фоновые, и окно всплывало само. Рассылку
+   * оттуда убрали (решение З3), и теперь событие означает ровно то, чем
+   * называется: человек нажал действие, которому не хватает ступени.
+   *
+   * Поэтому `byUserAction: true` — и поэтому окно открывается даже после
+   * того, как его в этом заходе закрыли: З3 запрещает возвращаться само, а
+   * не открываться по просьбе.
+   */
   useEffect(() => {
     const onGate = (event: Event) => {
       const code = (event as CustomEvent<{ code?: string }>).detail?.code;
       if (isDemoMode() || !getToken()) return;
       if (code === "phone_not_verified") {
-        openGate("verify", currentPath());
+        openGate("verify", currentPath(), { byUserAction: true });
         return;
       }
       if (code === "subscription_required") {
         // Still one window at a time: an account that has not passed SMS yet
         // sees verification first, a verified one sees the subscription.
         const step = firstFailingStep(levelOf(getSession()), "subscriber");
-        if (step) openGate(step, currentPath());
+        if (step) openGate(step, currentPath(), { byUserAction: true });
       }
     };
     window.addEventListener(ACCESS_GATE_EVENT, onGate);

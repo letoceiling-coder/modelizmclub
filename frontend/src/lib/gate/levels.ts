@@ -1,6 +1,5 @@
 import type { Session } from "@/lib/session";
 import { isVerifiedRequiredAction } from "@/lib/feed-guest-access/routes";
-import { isPhoneVerificationRequired, isPhoneVerified } from "@/lib/auth/verification";
 
 /** The access ladder. Every gate asks for exactly one rung. */
 export type Level = "guest" | "registered" | "verified" | "subscriber";
@@ -18,15 +17,37 @@ export function meets(have: Level, need: Level): boolean {
   return levelRank(have) >= levelRank(need);
 }
 
-/** Derive the viewer's rung from the ['session'] query — the only input. */
+/**
+ * Ступень зрителя по запросу ['session'] — единственный вход.
+ *
+ * **Телефон больше не ступень общей лестницы. Решение З2 от 09.10.**
+ *
+ * Было так: подтверждённый телефон поднимал с `registered` на `verified`, и
+ * `firstFailingStep` на пути к `subscriber` проводил человека через окно
+ * подтверждения номера. Пока телефон требовался всюду, это было верно.
+ *
+ * После З2 телефон нужен для двух действий — публикация объявления и вывод
+ * средств, — и оба спрашивают его сами, по нажатию. А лестница продолжала
+ * спрашивать: замер на стенде 09.10, учётка без телефона открывает
+ * `/reviews` (тир `subscription`) — и получает окно «Подтвердите номер»
+ * вместо окна подписки. Телефон ей для обзоров не нужен ни по серверу, ни по
+ * карте доступа: окно открывалось само и уводило в сторону. То же на
+ * `/deals`. Это четвёртая жалоба владельца, воспроизведённая в браузере.
+ *
+ * Поэтому вошедший сразу стоит на `verified`: лестница про телефон не знает.
+ * Ступень `verified` в типе остаётся — её по-прежнему открывают два действия
+ * через `requestPhoneVerificationModal()`, минуя эту функцию.
+ *
+ * `isPhoneVerified` и `isPhoneVerificationRequired` здесь больше не нужны —
+ * и это главная проверка того, что телефон из лестницы ушёл: пока они
+ * вызываются, ступень от него зависит.
+ */
 export function levelOf(session: Session | null | undefined): Level {
   if (!session || session.user.id === "guest") return "guest";
   const user = session.user;
   // Не роль, а льгота на человека: Владелец может снять её и с сотрудника.
   if (user.subscriptionExempt === true || session.subscription.active) return "subscriber";
-  if (session.phoneVerified || isPhoneVerified(user) || !isPhoneVerificationRequired(user))
-    return "verified";
-  return "registered";
+  return "verified";
 }
 
 /**
@@ -47,15 +68,19 @@ export type ServerVerdictControl = "show" | "verify" | "hide";
  * Кнопка при `can[action] === false` от сервера.
  *
  * Сервер говорит «нельзя» разным людям по разным причинам, и прятать кнопку
- * можно только в одном случае из трёх.
+ * можно только тогда, когда запрет по существу.
  *
  * - Гостю — потому что не знает, кто он. Кнопка видна, клик откроет вход.
- * - Вошедшему без SMS — потому что реакции требуют подтверждённого номера.
- *   До 11.09 кнопка у него просто не рисовалась: человек не узнавал, что
- *   реакция вообще существует, и не получал предложения подтвердить номер.
- *   Теперь кнопка видна, а клик открывает окно подтверждения — ровно то,
- *   что снимает отказ.
- * - Подтвердившему номер «нельзя» значит нельзя по существу. Там кнопки нет.
+ * - Вошедшему «нельзя» значит нельзя: после решения З2 телефон не мешает ни
+ *   реакции, ни комментарию, и `can` их больше не занижает (см.
+ *   `HasCanFlags`). Остаются настоящие запреты — закрытые комментарии,
+ *   блокировка, чужая запись, — и обещать кнопку там незачем.
+ *
+ * Ступень `registered` сюда больше не приходит: после З2 вошедший сразу
+ * стоит на `verified` (см. `levelOf`). Ветка оставлена, потому что ступень
+ * существует в типе, и молча менять её смысл хуже, чем назвать вслух:
+ * на этой ступени отказ тоже окончателен, окно подтверждения номера его не
+ * снимет.
  */
 export function controlForServerVerdict(
   viewer: Level,
@@ -63,7 +88,6 @@ export function controlForServerVerdict(
 ): ServerVerdictControl {
   if (serverAllows !== false) return "show";
   if (viewer === "guest") return "show";
-  if (viewer === "registered") return "verify";
   return "hide";
 }
 

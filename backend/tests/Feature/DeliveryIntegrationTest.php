@@ -115,6 +115,79 @@ class DeliveryIntegrationTest extends TestCase
             ->assertJsonPath('data.0.id', 'pvz-1');
     }
 
+    /**
+     * Без места запрос не уходит наружу вовсе.
+     *
+     * Замер прода 09.10: адрес без параметров отвечал пустым 500, а в журнале
+     * сервера стояло `PHP Fatal error: Allowed memory size of 134217728 bytes
+     * exhausted in Illuminate/Http/Client/Response.php:81`. Без `geo_id`
+     * Яндекс отдаёт пункты выдачи по всей стране, и ответ не помещается в
+     * память обработчика. Адрес открыт гостю — повторять запрос мог кто
+     * угодно без входа.
+     *
+     * Проверяется не только код 422, но и то, что наружу не ушло ни одного
+     * запроса: иначе починка «ответили ошибкой, но Яндекс всё равно дёрнули»
+     * прошла бы незамеченной.
+     */
+    public function test_yandex_pickup_points_require_a_place(): void
+    {
+        Http::fake();
+
+        [$seller] = $this->sellerAndBuyer();
+
+        $this->actingAs($seller, 'sanctum')
+            ->getJson('/api/v1/delivery/yandex/pickup-points')
+            ->assertStatus(422)
+            ->assertJsonPath('errors.geo_id.0', 'Укажите город или координаты.');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_yandex_pickup_points_accept_coordinates_instead_of_city(): void
+    {
+        Http::fake([
+            'b2b.test.yandex.net/api/b2b/platform/pickup-points/list' => Http::response([
+                'points' => [['id' => 'pvz-2', 'name' => 'Рядом', 'type' => 'pickup_point']],
+            ]),
+        ]);
+
+        [$seller] = $this->sellerAndBuyer();
+
+        $this->actingAs($seller, 'sanctum')
+            ->getJson('/api/v1/delivery/yandex/pickup-points?latitude=55.75&longitude=37.62')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', 'pvz-2');
+    }
+
+    /**
+     * Исходный пункт целиком в ответе не возвращается.
+     *
+     * Поле `raw` удваивало память: к разобранным полям прикладывался тот же
+     * объект. Наружу оно не использовалось ни разу.
+     */
+    public function test_yandex_pickup_points_do_not_return_the_raw_object(): void
+    {
+        Http::fake([
+            'b2b.test.yandex.net/api/b2b/platform/pickup-points/list' => Http::response([
+                'points' => [[
+                    'id' => 'pvz-3',
+                    'name' => 'Третий',
+                    'type' => 'pickup_point',
+                    'secret_field' => 'этого в ответе быть не должно',
+                ]],
+            ]),
+        ]);
+
+        [$seller] = $this->sellerAndBuyer();
+
+        $ответ = $this->actingAs($seller, 'sanctum')
+            ->getJson('/api/v1/delivery/yandex/pickup-points?geo_id=213')
+            ->assertOk();
+
+        $ответ->assertJsonMissingPath('data.0.raw');
+        $this->assertStringNotContainsString('secret_field', $ответ->getContent());
+    }
+
     public function test_shipment_quote_and_confirm_flow_with_cdek(): void
     {
         Http::fake([

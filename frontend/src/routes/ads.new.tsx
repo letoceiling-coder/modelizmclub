@@ -7,6 +7,8 @@ import { usePaymentAttempt } from "@/lib/payments/idempotency";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ShowPhoneSwitch } from "@/components/ads/ShowPhoneSwitch";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
+import { SmsCodeInput } from "@/components/ui/sms-code-input";
+import { smsCodeLength } from "@/lib/api/bootstrap";
 import { type AdCondition, type Category, type CategoryChild } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
@@ -95,9 +97,17 @@ export const Route = createFileRoute("/ads/new")({
     edit: typeof s.edit === "string" ? s.edit : undefined,
     promo: typeof s.promo === "string" ? s.promo : undefined,
   }),
+  /*
+   * Нужен вход, а не подтверждённый телефон. Решение З2 от 09.10.
+   *
+   * Здесь стоял `requireVerified`, который требовал SMS, чтобы просто
+   * открыть страницу. По З2 телефон нужен для публикации объявления и
+   * вывода средств — то есть для действия, а не для просмотра, и
+   * спрашивается он по нажатию (решение З3).
+   */
   beforeLoad: async ({ location }) => {
-    const { requireVerified } = await import("@/lib/auth/verification");
-    await requireVerified(location);
+    const { routeGuard } = await import("@/lib/gate/routeGuard");
+    await routeGuard("registered", location);
   },
   component: NewAdPage,
 });
@@ -2088,6 +2098,8 @@ function ListingContactPhoneField({
   const [smsSending, setSmsSending] = useState(false);
   const [smsVerifying, setSmsVerifying] = useState(false);
   const [smsCooldown, setSmsCooldown] = useState(0);
+  // Длина кода — с сервера (решение З1), а не своей копией шестёрки.
+  const [codeLength, setCodeLength] = useState(() => smsCodeLength());
   const locked = hasVerifiedProfilePhone && verified && !editing;
 
   useEffect(() => {
@@ -2121,7 +2133,8 @@ function ListingContactPhoneField({
        * с его сроком в обе стороны — то же, что чинили в настройках 12.09;
        * сюда правка тогда не дошла.
        */
-      const { resend_after } = await sendPhoneVerificationCode(value);
+      const { resend_after, code_length } = await sendPhoneVerificationCode(value);
+      setCodeLength(code_length);
       setSmsSent(true);
       setSmsCooldown(resend_after);
       toast.success(t("pages.settings.smsSent"));
@@ -2139,14 +2152,16 @@ function ListingContactPhoneField({
     }
   };
 
-  const confirmSms = async () => {
-    if (!/^\d{6}$/.test(smsCode.trim())) {
-      toast.error(t("pages.settings.invalidSmsCode"));
+  const confirmSms = async (typed?: string) => {
+    const entered = (typed ?? smsCode).trim();
+    if (!new RegExp(`^\\d{${codeLength}}$`).test(entered)) {
+      toast.error(t("pages.settings.invalidSmsCode", { n: codeLength }));
       return;
     }
+    if (smsVerifying) return;
     setSmsVerifying(true);
     try {
-      const user = await verifyPhoneCode(value, smsCode.trim());
+      const user = await verifyPhoneCode(value, entered);
       setCurrentUser(user);
       const formatted = formatRuPhone(user.phone ?? value);
       onVerified(formatted);
@@ -2220,28 +2235,30 @@ function ListingContactPhoneField({
               </Button>
             )}
           </div>
-          {smsSent && (
-            <div className="flex flex-col gap-[8px] sm:flex-row sm:items-center">
-              <Input
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={smsCode}
-                onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder={t("pages.settings.smsCode")}
-                className="h-11 sm:max-w-[160px]"
-              />
-              <Button
-                type="button"
-                className="h-11"
-                disabled={smsVerifying || smsCode.length !== 6}
-                onClick={() => void confirmSms()}
-              >
-                {smsVerifying && <Loader2 size={14} className="mr-[6px] animate-spin" />}
-                {t("pages.adsNew.contactConfirmCode")}
-              </Button>
-            </div>
-          )}
+          {/*
+           * Поле стоит всегда, а не только пока живёт `smsSent`: мастер
+           * объявления легко потерять уходом за кодом, и возвращаться было
+           * некуда. Разбор — в settings.account.tsx.
+           */}
+          <div className="flex flex-col gap-[8px] sm:flex-row sm:items-center">
+            <SmsCodeInput
+              length={codeLength}
+              value={smsCode}
+              onValueChange={setSmsCode}
+              onComplete={(digits) => void confirmSms(digits)}
+              aria-label={t("pages.settings.smsCode")}
+              className="h-11 sm:max-w-[160px]"
+            />
+            <Button
+              type="button"
+              className="h-11"
+              disabled={smsVerifying || smsCode.length !== codeLength}
+              onClick={() => void confirmSms()}
+            >
+              {smsVerifying && <Loader2 size={14} className="mr-[6px] animate-spin" />}
+              {t("pages.adsNew.contactConfirmCode")}
+            </Button>
+          </div>
         </div>
       )}
     </div>

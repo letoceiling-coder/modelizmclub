@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { SmsCodeInput } from "@/components/ui/sms-code-input";
+import { smsCodeLength } from "@/lib/api/bootstrap";
 import { Badge } from "@/components/ui/badge";
 import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
@@ -39,7 +41,16 @@ export const Route = createFileRoute("/settings/account")({
   component: AccountSection,
 });
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  /** Подсказка под полем: «Код из 6 цифр» и подобное. */
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span
@@ -49,6 +60,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
         {label}
       </span>
       {children}
+      {hint ? (
+        <span className="mt-[6px] block text-[12px]" style={{ color: "var(--foreground-50)" }}>
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -74,6 +90,13 @@ function AccountSection() {
   const [smsVerifying, setSmsVerifying] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
   const [smsCooldown, setSmsCooldown] = useState(0);
+  /*
+   * Длина кода — из ответа сервера (решение З1).
+   *
+   * Начальное значение берётся из общей загрузки, а не из литерала: поле
+   * существует и до первой отправки, и длину знать должно уже тогда.
+   */
+  const [codeLength, setCodeLength] = useState(() => smsCodeLength());
 
   useEffect(() => {
     if (smsCooldown <= 0) return;
@@ -228,9 +251,11 @@ function AccountSection() {
        * сервер был готов принять повтор, и наоборот — держалась, когда он
        * разрешал раньше (аудит 12.09). Клиент теперь только показывает.
        */
-      const { resend_after } = await sendPhoneVerificationCode(normalized);
+      const { resend_after, code_length } = await sendPhoneVerificationCode(normalized);
       setSmsSent(true);
       setSmsCooldown(resend_after);
+      // Длину кода называет сервер — решение З1. Поле перестраивается по ней.
+      setCodeLength(code_length);
       toast.success(t("pages.settings.smsSent"));
     } catch (err) {
       /*
@@ -247,16 +272,24 @@ function AccountSection() {
     }
   };
 
-  const confirmSms = async () => {
+  const confirmSms = async (typed?: string) => {
     const normalized = phone.trim();
     if (!normalized) return;
-    if (!/^\d{6}$/.test(smsCode.trim())) {
-      toast.error(t("pages.settings.invalidSmsCode"));
+    const entered = (typed ?? smsCode).trim();
+    /*
+     * Длина — из состояния, не из литерала (решение З1).
+     *
+     * Здесь стояло `/^\d{6}$/`, и это была одна из девяти копий шестёрки в
+     * интерфейсе. Теперь число одно и приходит с сервера.
+     */
+    if (!new RegExp(`^\\d{${codeLength}}$`).test(entered)) {
+      toast.error(t("pages.settings.invalidSmsCode", { n: codeLength }));
       return;
     }
+    if (smsVerifying) return;
     setSmsVerifying(true);
     try {
-      const user = await verifyPhoneCode(normalized, smsCode.trim());
+      const user = await verifyPhoneCode(normalized, entered);
       setCurrentUser(user);
       setVerifiedPhone(user.phone ?? normalized);
       setServerPhoneVerified(user.phone_verified === true);
@@ -519,27 +552,46 @@ function AccountSection() {
                     : t("pages.settings.sendSms")}
             </Button>
 
-            {smsSent && (
-              <div className="flex flex-col gap-[8px] sm:flex-row sm:items-end">
-                <Field label={t("pages.settings.smsCode")}>
-                  <Input
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={smsCode}
-                    onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="000000"
-                  />
-                </Field>
-                <Button
-                  type="button"
-                  onClick={confirmSms}
-                  disabled={smsVerifying || smsCode.length !== 6}
-                >
-                  {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
-                </Button>
-              </div>
-            )}
+            {/*
+             * Поле кода стоит всегда, а не только после отправки в этом же
+             * заходе.
+             *
+             * Здесь было `{smsSent && …}`, где `smsSent` — состояние
+             * компонента. Человек нажимал «Отправить SMS», уходил читать
+             * сообщение, возвращался на страницу — и поля ввода не было
+             * вовсе: состояние умерло вместе с прежним рендером. Оставалось
+             * снова нажать «Отправить», то есть отменить только что
+             * полученный код и получить новый. Бесконечный круг, из которого
+             * нет выхода, — и это ровно жалоба «подтвердить номер
+             * невозможно».
+             *
+             * Видно по боевой базе: учётка #1285 запросила код в 11:37 и
+             * ещё раз в 11:49, и у обоих кодов `attempts = 0`. То есть
+             * человек ни разу не отправил код на проверку — ему было некуда
+             * его вписать.
+             *
+             * Теперь поле есть сразу: вернулся с кодом — вписал — подтвердил.
+             */}
+            <div className="flex flex-col gap-[8px] sm:flex-row sm:items-end">
+              <Field
+                label={t("pages.settings.smsCode")}
+                hint={t("pages.settings.smsCodeHint", { n: codeLength })}
+              >
+                <SmsCodeInput
+                  length={codeLength}
+                  value={smsCode}
+                  onValueChange={setSmsCode}
+                  onComplete={(digits) => void confirmSms(digits)}
+                />
+              </Field>
+              <Button
+                type="button"
+                onClick={() => void confirmSms()}
+                disabled={smsVerifying || smsCode.length !== codeLength}
+              >
+                {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
+              </Button>
+            </div>
           </div>
         )}
 

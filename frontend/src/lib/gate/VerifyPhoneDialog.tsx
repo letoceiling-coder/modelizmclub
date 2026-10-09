@@ -2,8 +2,9 @@ import { useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PhoneInput, phoneButtonHint } from "@/components/ui/phone-input";
+import { SmsCodeInput } from "@/components/ui/sms-code-input";
+import { smsCodeLength } from "@/lib/api/bootstrap";
 import { revealAndFocus } from "@/lib/ui/reveal-and-focus";
 import { phoneE164 } from "@/lib/phone";
 import { readSmsRefusal, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
@@ -26,6 +27,9 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  // Длина кода — из ответа сервера (решение З1); до ответа — из общей загрузки.
+  const [codeLength, setCodeLength] = useState(() => smsCodeLength());
 
   const resend = useResendCountdown();
   const полеНомера = useRef<HTMLInputElement | null>(null);
@@ -33,6 +37,7 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
   const reset = () => {
     setStep("intro");
     setError(null);
+    setCode("");
     resend.clear();
   };
 
@@ -67,8 +72,10 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const { resend_after } = await sendPhoneVerificationCode(value);
+      const { resend_after, code_length } = await sendPhoneVerificationCode(value);
       resend.start(resend_after);
+      setCodeLength(code_length);
+      setCode("");
       setStep("code");
     } catch (err) {
       const { retryAfter } = readSmsRefusal(err);
@@ -87,14 +94,21 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
     void requestCode();
   };
 
-  const verify = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const code = String(new FormData(e.currentTarget).get("code") ?? "").trim();
-    if (!code) return;
+  /**
+   * Проверка кода. `typed` приходит от автоотправки, когда набрана последняя
+   * цифра: лишнее нажатие на телефоне стоит дороже, чем кажется.
+   */
+  const verify = async (typed?: string) => {
+    const entered = (typed ?? code).trim();
+    if (entered.length !== codeLength) {
+      setError(`Код состоит из ${codeLength} цифр.`);
+      return;
+    }
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const user = await verifyPhoneCode(phoneE164(phone) ?? phone.trim(), code);
+      const user = await verifyPhoneCode(phoneE164(phone) ?? phone.trim(), entered);
       setCurrentUser(user);
       reset();
       onSuccess();
@@ -158,18 +172,26 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
         </form>
       )}
       {step === "code" && (
-        <form onSubmit={verify} className="space-y-3">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void verify();
+          }}
+          className="space-y-3"
+        >
           <p className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            Код отправлен на {phone}.{" "}
+            Код из {codeLength} цифр отправлен на {phone}.{" "}
             <button type="button" className="underline" onClick={() => setStep("phone")}>
               Изменить номер
             </button>
           </p>
-          <Input
+          <SmsCodeInput
             name="code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="Код из SMS"
+            length={codeLength}
+            value={code}
+            onValueChange={setCode}
+            onComplete={(digits) => void verify(digits)}
+            aria-label={`Код из ${codeLength} цифр`}
             required
             className="h-11"
           />
@@ -178,7 +200,13 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
               {error}
             </p>
           )}
-          <Button type="submit" size="lg" className="w-full" loading={busy}>
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            loading={busy}
+            disabled={busy || code.length !== codeLength}
+          >
             Подтвердить
           </Button>
           {/*

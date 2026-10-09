@@ -3,7 +3,8 @@
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureAdminSection;
 use App\Http\Middleware\EnsureCommunitiesEnabled;
-use App\Http\Middleware\EnsureFullyVerified;
+use App\Http\Middleware\EnsureEmailVerified;
+use App\Http\Middleware\EnsurePhoneVerified;
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\JsonEtag;
 use App\Http\Middleware\RejectBlockedAccounts;
@@ -30,7 +31,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserRole::class,
             'admin.section' => EnsureAdminSection::class,
-            'verified' => EnsureFullyVerified::class,
+            /*
+             * Два разных требования — два разных имени. Решение З2 от 09.10.
+             *
+             * Было одно `verified`, которое требовало и почту, и телефон, и
+             * стояло на 134 маршрутах. Телефон по З2 нужен ровно для
+             * публикации объявления и вывода средств, а почта — там же, где
+             * и была. Одним именем это не выразить, и пока имя было одно,
+             * снять телефон значило снять заодно почту.
+             *
+             * Имени `verified` больше нет нарочно: оставь его синонимом — и
+             * следующий маршрут напишут с ним, то есть требование телефона
+             * вернётся само.
+             */
+            'verified.email' => EnsureEmailVerified::class,
+            'verified.phone' => EnsurePhoneVerified::class,
             'subscriber' => EnsureActiveSubscription::class,
             'requiresSubscription' => RequiresSubscription::class,
             'optionalAuth' => ResolveOptionalUser::class,
