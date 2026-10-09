@@ -1,8 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput, phoneButtonHint } from "@/components/ui/phone-input";
+import { revealAndFocus } from "@/lib/ui/reveal-and-focus";
+import { phoneE164 } from "@/lib/phone";
 import { readSmsRefusal, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
 import { setCurrentUser } from "@/lib/store";
 import { GateDialogShell } from "./GateDialogShell";
@@ -25,6 +28,7 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const resend = useResendCountdown();
+  const полеНомера = useRef<HTMLInputElement | null>(null);
 
   const reset = () => {
     setStep("intro");
@@ -42,8 +46,24 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
    * при отказе — на срок из ответа.
    */
   const requestCode = async () => {
-    const value = phone.trim();
-    if (!value || busy || resend.blocked) return;
+    /*
+     * На сервер уходит `+7` и десять цифр, а не то, что человек набрал.
+     *
+     * До 09.10 здесь стоял обычный `<input type="tel">`, и `phone.trim()`
+     * отправлялся как есть: «89384100024», «8 938 410 00 24», «+7 938…» —
+     * сервер приводил их сам, а те, что привести нельзя, отвечали
+     * «Укажите корректный номер телефона». Теперь номер приводится полем по
+     * тому же правилу, что на сервере (`@/lib/phone`).
+     */
+    const value = phoneE164(phone);
+    if (busy || resend.blocked) return;
+    if (!value) {
+      /* Номер неполон. Кнопка об этом уже написана подписью, но нажатие
+         должно что-то делать: ставим курсор в поле, как в форме регистрации
+         по решению Ж1. */
+      revealAndFocus(полеНомера.current);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -74,7 +94,7 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const user = await verifyPhoneCode(phone.trim(), code);
+      const user = await verifyPhoneCode(phoneE164(phone) ?? phone.trim(), code);
       setCurrentUser(user);
       reset();
       onSuccess();
@@ -103,13 +123,12 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
       )}
       {step === "phone" && (
         <form onSubmit={sendCode} className="space-y-3">
-          <Input
-            type="tel"
-            autoComplete="tel"
-            inputMode="tel"
-            placeholder="+7 900 000-00-00"
+          <PhoneInput
+            hint
+            hintId="verify-phone-hint"
+            ref={полеНомера}
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onValueChange={setPhone}
             required
             className="h-11"
           />
@@ -118,6 +137,13 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
               {error}
             </p>
           )}
+          {/*
+            Кнопка нажимаема, пока номер неполон, и говорит, чего не хватает.
+            Серая кнопка без объяснения — то же, на что владелец жаловался в
+            форме регистрации (решение Ж1): человек видит запрет и не видит
+            причины. Отсчёт повторной отправки — другое дело: там названы и
+            причина, и срок.
+          */}
           <Button
             type="submit"
             size="lg"
@@ -125,7 +151,9 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
             loading={busy}
             disabled={busy || resend.blocked}
           >
-            {resend.blocked ? `Повторить через ${formatCountdown(resend.left)}` : "Получить код"}
+            {resend.blocked
+              ? `Повторить через ${formatCountdown(resend.left)}`
+              : (phoneButtonHint(phone) ?? "Получить код")}
           </Button>
         </form>
       )}

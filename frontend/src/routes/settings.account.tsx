@@ -494,7 +494,12 @@ function AccountSection() {
           )}
         </div>
         <Field label={t("pages.settings.phoneNumber")}>
-          <PhoneInput value={phone} onValueChange={onPhoneChange} />
+          <PhoneInput
+            hint
+            hintId="settings-phone-hint"
+            value={phone}
+            onValueChange={onPhoneChange}
+          />
         </Field>
 
         {!phoneMatchesVerified && (
