@@ -52,7 +52,7 @@ describe("группы меню админки", () => {
 
   it("меню и группы вообще найдены — иначе проверка проходит ни на чём", () => {
     expect(пункты.length).toBeGreaterThan(20);
-    expect(гр.length).toBeGreaterThanOrEqual(5);
+    expect(гр.length).toBe(10);
   });
 
   it("каждый пункт меню лежит ровно в одной группе", () => {
@@ -84,18 +84,72 @@ describe("группы меню админки", () => {
     expect(внеМеню.sort()).toEqual(["monetization", "reviewCategories"]);
   });
 
-  it("баннеры ленты и управление сайтом — в группе «Управление сайтом»", () => {
-    const сайт = гр.find((g) => g.id === "site");
-    expect(сайт).toBeDefined();
-    for (const нужное of ["feedBanners", "landingBlocks", "settings", "design", "legalPages"]) {
-      expect(сайт?.items).toContain(нужное);
-    }
+  /*
+   * Десять категорий решения Ж4 от 09.10, названные в нём дословно.
+   *
+   * До 09.10 здесь проверялись шесть групп прежней раскладки, в том числе
+   * группа `site` «Управление сайтом». Решение Ж4 её упразднило, назвав
+   * другой состав: Обзор; Пользователи и доступ; Содержимое; Модерация;
+   * Сообщества и каналы; Объявления и сделки; Монетизация; Уведомления;
+   * Подключения; Система. Проверка приведена к решению, а не ослаблена:
+   * теперь сторожатся и число групп, и их имена, и ключевые места.
+   */
+  it("групп ровно десять, и это категории решения Ж4", () => {
+    expect(гр.map((g) => g.id)).toEqual([
+      "overview",
+      "people",
+      "content",
+      "moderation",
+      "communities",
+      "market",
+      "money",
+      "notifications",
+      "connections",
+      "system",
+    ]);
   });
 
-  it("доступы людей — в группе «Люди и доступы»", () => {
+  it("пользователи и доступ — в своей группе", () => {
     const люди = гр.find((g) => g.id === "people");
     expect(люди?.items).toContain("users");
     expect(люди?.items).toContain("roles");
     expect(люди?.items).toContain("feedGuestAccess");
+  });
+
+  it("содержимое сайта — в «Содержимом»", () => {
+    const содержимое = гр.find((g) => g.id === "content");
+    for (const нужное of [
+      "landingBlocks",
+      "feedBanners",
+      "legalPages",
+      "rulesPages",
+      "footerLinks",
+    ]) {
+      expect(содержимое?.items).toContain(нужное);
+    }
+  });
+
+  it("сообщества и заявки — в «Сообществах и каналах»", () => {
+    // Прямое управление сообществами добавлено решением Ж4 (часть Б2): на
+    // сервере возможность была, экрана не было.
+    const сообщества = гр.find((g) => g.id === "communities");
+    expect(сообщества?.items).toContain("communities");
+    expect(сообщества?.items).toContain("applications");
+  });
+
+  it("подключения — своя группа, а не строка в «Системе»", () => {
+    // Решение Ж4, часть Б3: признак «настроено или нет» без показа ключей.
+    const подключения = гр.find((g) => g.id === "connections");
+    expect(подключения?.items).toEqual(["connections"]);
+  });
+
+  it("деньги — четыре вкладки монетизации", () => {
+    const деньги = гр.find((g) => g.id === "money");
+    expect(деньги?.items).toEqual([
+      "monetizationPricing",
+      "monetizationPayments",
+      "monetizationLedger",
+      "monetizationPromos",
+    ]);
   });
 });

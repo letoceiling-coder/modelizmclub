@@ -75,7 +75,16 @@ export const GUEST_ACCESS_DEFAULT_TIERS: Record<string, AccessTier> = {
   "route.settings": "auth",
   "route.profile": "auth",
   "route.user": "guest",
-  "ads.write_seller": "subscription",
+  /*
+   * Решение Ж3 от 09.10: «Написать продавцу» доступно любому вошедшему.
+   *
+   * Стояло `subscription`, и это расходилось с серверным умолчанием:
+   * `FeedGuestAccessRegistry` объявляет `ads.write_seller` уровнем `auth`.
+   * Умолчание отсюда действует, пока карта доступа с сервера не приехала, —
+   * то есть на первом кадре человек видел окно подписки там, где сервер
+   * подписки не требует.
+   */
+  "ads.write_seller": "auth",
   "ads.seller.profile": "auth",
   "ads.call_seller": "auth",
   "ads.safe_deal": "auth",

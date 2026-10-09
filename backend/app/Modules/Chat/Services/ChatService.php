@@ -1024,6 +1024,19 @@ class ChatService
             ->get();
     }
 
+    /**
+     * Личная переписка между этими двумя уже существует.
+     *
+     * Нужно создающему контроллеру, чтобы отличить «начинают» от
+     * «продолжают»: решение Ж3 от 09.10 разрешает продолжать переписку по
+     * снятому объявлению, но не начинать новую, и предел на новые переписки
+     * считается только для начала.
+     */
+    public function hasDirectBetween(User $a, User $b): bool
+    {
+        return $this->findDirectBetweenUsers($a, $b) !== null;
+    }
+
     private function findDirectBetweenUsers(User $a, User $b): ?Conversation
     {
         return $this->allDirectBetweenUsers($a, $b)->first();

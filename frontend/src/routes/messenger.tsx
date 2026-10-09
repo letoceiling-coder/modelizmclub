@@ -124,6 +124,7 @@ import { formatDate } from "@/lib/format/date";
 import { askConfirm } from "@/lib/ui/ask";
 import { ignoreFailure } from "@/lib/errors/handle";
 import { variantUrl } from "@/lib/media/variants";
+import { ConversationListingRef } from "@/components/messenger/ConversationListingRef";
 
 export const Route = createFileRoute("/messenger")({
   head: () => ({ meta: [{ title: i18n.t("pages.messenger.metaTitle") }] }),
@@ -976,6 +977,12 @@ const DialogRow = memo(function DialogRow({
             {d.lastFromMe && d.lastMessage ? `${t("pages.shared.you")}: ` : ""}
             {d.lastMessage}
           </div>
+          {/*
+            Объявление в строке списка — решение Ж3, пункт 2. Без него
+            двадцать переписок по двадцати объявлениям выглядят одинаково, и
+            продавцу приходится открывать каждую, чтобы вспомнить товар.
+          */}
+          {d.listing && <ConversationListingRef listing={d.listing} variant="row" />}
         </div>
         {isUnread && (
           <Badge
@@ -2368,6 +2375,13 @@ function MessengerPage() {
                   </div>
                 </header>
               </div>
+
+              {/*
+                Объявление, по которому идёт переписка — решение Ж3, пункт 2.
+                Полоса стоит под шапкой, а не в ней: в шапке уже имя,
+                состояние и меню, и на 360 px четвёртый блок туда не влезает.
+              */}
+              {active.listing && <ConversationListingRef listing={active.listing} />}
 
               {pinnedMessage && (
                 <button

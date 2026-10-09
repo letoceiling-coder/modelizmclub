@@ -41,11 +41,17 @@ class MtsMarketologSmsClient implements SmsSender
         $url = rtrim((string) config('sms.mts.omnichannel_url'), '/').'/messages';
 
         if ($login === '' || $password === '') {
-            throw new SmsDeliveryException('MTS SMS credentials are not configured (MTS_LOGIN / MTS_PASSWORD).');
+            throw new SmsDeliveryException(
+                'MTS SMS credentials are not configured (MTS_LOGIN / MTS_PASSWORD).',
+                SmsFailureReason::NotConfigured,
+            );
         }
 
         if ($sender === '') {
-            throw new SmsDeliveryException('MTS sender name is not configured (MTS_SENDER).');
+            throw new SmsDeliveryException(
+                'MTS sender name is not configured (MTS_SENDER).',
+                SmsFailureReason::NotConfigured,
+            );
         }
 
         $msisdn = PhoneNormalizer::toSmsGateway($phone);
@@ -72,18 +78,25 @@ class MtsMarketologSmsClient implements SmsSender
 
         if (! $response->successful()) {
             throw new SmsDeliveryException(
-                'MTS omnichannel HTTP '.$response->status().': '.$response->body()
+                'MTS omnichannel HTTP '.$response->status().': '.$response->body(),
+                SmsFailureReason::GatewayUnavailable,
             );
         }
 
         $body = $response->json();
         if (! is_array($body)) {
-            throw new SmsDeliveryException('MTS omnichannel: invalid JSON response');
+            throw new SmsDeliveryException(
+                'MTS omnichannel: invalid JSON response',
+                SmsFailureReason::GatewayUnavailable,
+            );
         }
 
         if (isset($body['code']) && (int) $body['code'] >= 400) {
+            /* Отказ уровня аккаунта: о номере здесь ничего не сказано,
+               поэтому номер и не обвиняем (решение Ж5). */
             throw new SmsDeliveryException(
-                'MTS omnichannel error: '.json_encode($body, JSON_UNESCAPED_UNICODE)
+                'MTS omnichannel error: '.json_encode($body, JSON_UNESCAPED_UNICODE),
+                SmsFailureReason::GatewayRefused,
             );
         }
 
@@ -107,11 +120,17 @@ class MtsMarketologSmsClient implements SmsSender
         $url = rtrim((string) config('sms.mts.token_api_url'), '/');
 
         if ($token === '') {
-            throw new SmsDeliveryException('MTS API token is not configured (MTS_TOKEN).');
+            throw new SmsDeliveryException(
+                'MTS API token is not configured (MTS_TOKEN).',
+                SmsFailureReason::NotConfigured,
+            );
         }
 
         if ($sender === '') {
-            throw new SmsDeliveryException('MTS sender name is not configured (MTS_SENDER).');
+            throw new SmsDeliveryException(
+                'MTS sender name is not configured (MTS_SENDER).',
+                SmsFailureReason::NotConfigured,
+            );
         }
 
         $msisdn = PhoneNormalizer::toSmsGateway($phone);
@@ -132,13 +151,17 @@ class MtsMarketologSmsClient implements SmsSender
 
         if (! $response->successful()) {
             throw new SmsDeliveryException(
-                'MTS token API HTTP '.$response->status().': '.$response->body()
+                'MTS token API HTTP '.$response->status().': '.$response->body(),
+                SmsFailureReason::GatewayUnavailable,
             );
         }
 
         $body = $response->json();
         if (! is_array($body)) {
-            throw new SmsDeliveryException('MTS token API: invalid JSON response');
+            throw new SmsDeliveryException(
+                'MTS token API: invalid JSON response',
+                SmsFailureReason::GatewayUnavailable,
+            );
         }
 
         $results = $body['data']['submitResults'] ?? null;
@@ -149,8 +172,18 @@ class MtsMarketologSmsClient implements SmsSender
                 }
                 $code = strtoupper((string) ($row['code'] ?? ''));
                 if ($code !== '' && $code !== 'OK') {
+                    /*
+                     * Отказ по конкретному получателю. МТС присылает свой код,
+                     * и какие из кодов говорят именно о номере — по документации
+                     * «Рассылки по своей базе PRO» не установлено. Пока не
+                     * установлено, причина считается нашей: сказать человеку
+                     * «проверьте номер» можно только тогда, когда это сказал
+                     * шлюз (решение Ж5). Код шлюза уходит в журнал и в админку —
+                     * по нему и выяснится, что он значит.
+                     */
                     throw new SmsDeliveryException(
-                        'MTS token API rejected message: '.json_encode($row, JSON_UNESCAPED_UNICODE)
+                        'MTS token API rejected message: '.json_encode($row, JSON_UNESCAPED_UNICODE),
+                        SmsFailureReason::GatewayRefused,
                     );
                 }
             }

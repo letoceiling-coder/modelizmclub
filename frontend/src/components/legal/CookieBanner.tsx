@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,10 +33,59 @@ export function CookieBanner() {
   const [configure, setConfigure] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [ads, setAds] = useState(false);
+  const полосаRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setVisible(!hasCookieChoice());
   }, []);
+
+  /*
+   * Полоса сообщает, сколько места снизу она занимает, — в `--cookie-banner-space`.
+   *
+   * Она `position: fixed` и из потока вынута, поэтому содержимое страницы о
+   * ней не знает и заезжает под неё. Замер 09.10 на `/register`, 360×740,
+   * четыре ширины и четыре высоты телефона: нижняя кромка полосы приходится
+   * ровно на первый пиксель строки «Уже есть аккаунт? Войти», а без
+   * прокрутки под полосу уходят нижние 4 px кнопки «Создать аккаунт».
+   * Нажать удавалось и так — но зазора между полосой и содержимым нет
+   * вовсе, и стоит содержимому стать на строку длиннее, как перекрытие
+   * станет настоящим.
+   *
+   * Занято не только высотой: на `max-lg` полоса поднята на
+   * `--bottom-nav-space`, то есть ещё 60 px пустоты под ней. На страницах
+   * входа нижней панели нет вообще — она живёт в `AppLayout`, а `AuthShell`
+   * рисуется вне него, — поэтому эти 60 px там ничем не заняты, но полосу
+   * всё равно поднимают. Поэтому считается не `height`, а расстояние от
+   * верхней кромки полосы до низа окна.
+   *
+   * Кто резервирует это место — решает сам: `AuthShell` добавляет значение к
+   * своему нижнему отступу. Переменная объявлена на `:root` и доступна
+   * любому, кому она нужна.
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+    const убрать = () => root.style.removeProperty("--cookie-banner-space");
+    if (!visible) {
+      убрать();
+      return;
+    }
+    const полоса = полосаRef.current;
+    if (!полоса) return;
+    const опубликовать = () => {
+      const r = полоса.getBoundingClientRect();
+      const занято = Math.max(0, window.innerHeight - r.top);
+      root.style.setProperty("--cookie-banner-space", `${Math.ceil(занято)}px`);
+    };
+    опубликовать();
+    const ro = new ResizeObserver(опубликовать);
+    ro.observe(полоса);
+    window.addEventListener("resize", опубликовать);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", опубликовать);
+      убрать();
+    };
+  }, [visible]);
 
   async function persist(analyticsOn: boolean, adsOn: boolean) {
     writeCookiePrefs({ analytics: analyticsOn, ads: adsOn });
@@ -59,8 +108,23 @@ export function CookieBanner() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[var(--z-banner)] border-t shadow-lg max-lg:bottom-[var(--bottom-nav-space)]"
+      ref={полосаRef}
+      /*
+        Полоса встаёт над нижней панелью ровно настолько, насколько панель
+        занимает места, — и ноль, когда панели нет.
+
+        Стояло `max-lg:bottom-[var(--bottom-nav-space)]`, то есть точка
+        перелома была названа здесь на глаз и не совпадала с настоящей:
+        панель скрыта с 768 px, а полоса отступала до 1024. На страницах
+        входа панели нет вообще — она живёт в `AppLayout`, а `AuthShell`
+        рисуется вне него, — и там эти 60 px были чистой потерей экрана.
+        Теперь величину сообщает сама панель (`BottomNav`), и точка перелома
+        существует в одном месте — в её собственном `md:hidden`.
+      */
+      className="fixed inset-x-0 bottom-0 z-[var(--z-banner)] border-t shadow-lg"
+
       style={{
+        bottom: "var(--bottom-nav-occupied, 0px)",
         background: "var(--background-surface)",
         borderColor: "var(--border)",
         opacity: hiding ? 0 : 1,

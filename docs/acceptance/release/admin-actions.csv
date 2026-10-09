@@ -1,0 +1,175 @@
+раздел;метод;путь;вид;журнал;проверено;код;примечание
+ads;GET;/api/v1/admin/listings;чтение;—;обойдено на стенде под владельцем;200;
+ads;DELETE;/api/v1/admin/listings/{uuid};запись;да;серверным тестом;;
+ads;GET;/api/v1/admin/listings/{uuid};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+ads;PATCH;/api/v1/admin/listings/{uuid};запись;да;серверным тестом;;
+applications;GET;/api/v1/admin/channels/applications;чтение;—;обойдено на стенде под владельцем;200;
+applications;POST;/api/v1/admin/channels/applications/{id}/approve;запись;да;серверным тестом;;
+applications;POST;/api/v1/admin/channels/applications/{id}/reject;запись;да;серверным тестом;;
+applications;GET;/api/v1/admin/communities/applications;чтение;—;обойдено на стенде под владельцем;200;
+applications;POST;/api/v1/admin/communities/applications/{id}/approve;запись;да;серверным тестом;;
+applications;POST;/api/v1/admin/communities/applications/{id}/reject;запись;да;серверным тестом;;
+auditLog;GET;/api/v1/admin/audit-logs;чтение;—;обойдено на стенде под владельцем;200;
+categories;GET;/api/v1/admin/categories/community;чтение;—;обойдено на стенде под владельцем;200;
+categories;POST;/api/v1/admin/categories/community;запись;не нужен;серверным тестом;;refuseDirectEdit: зеркало направления, прямой правке не подлежит — ничего не меняет
+categories;DELETE;/api/v1/admin/categories/community/{community};запись;не нужен;серверным тестом;;refuseDirectEdit: зеркало направления, прямой правке не подлежит — ничего не меняет
+categories;GET;/api/v1/admin/categories/community/{community};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+categories;PUT;/api/v1/admin/categories/community/{community};запись;не нужен;серверным тестом;;refuseDirectEdit: зеркало направления, прямой правке не подлежит — ничего не меняет
+categories;GET;/api/v1/admin/categories/listing;чтение;—;обойдено на стенде под владельцем;200;
+categories;POST;/api/v1/admin/categories/listing;запись;не нужен;серверным тестом;;refuseDirectEdit: зеркало направления, прямой правке не подлежит — ничего не меняет
+categories;DELETE;/api/v1/admin/categories/listing/{listing};запись;не нужен;серверным тестом;;refuseDirectEdit: зеркало направления, прямой правке не подлежит — ничего не меняет
+categories;GET;/api/v1/admin/categories/listing/{listing};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+categories;PUT;/api/v1/admin/categories/listing/{listing};запись;не нужен;серверным тестом;;refuseDirectEdit: зеркало направления, прямой правке не подлежит — ничего не меняет
+categories;GET;/api/v1/admin/categories/post;чтение;—;обойдено на стенде под владельцем;200;
+categories;POST;/api/v1/admin/categories/post;запись;да;серверным тестом;;
+categories;PATCH;/api/v1/admin/categories/post/reorder;запись;да;серверным тестом;;
+categories;DELETE;/api/v1/admin/categories/post/{post};запись;да;серверным тестом;;
+categories;GET;/api/v1/admin/categories/post/{post};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+categories;PUT;/api/v1/admin/categories/post/{post};запись;да;серверным тестом;;
+categories;GET;/api/v1/admin/categories/sort-mode;чтение;—;обойдено на стенде под владельцем;200;
+categories;PUT;/api/v1/admin/categories/sort-mode;запись;да;серверным тестом;;
+communities;GET;/api/v1/admin/communities;чтение;—;обойдено на стенде под владельцем;200;
+communities;POST;/api/v1/admin/communities;запись;да;серверным тестом;;
+communities;DELETE;/api/v1/admin/communities/{slug};запись;да;серверным тестом;;
+communities;GET;/api/v1/admin/communities/{slug};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+communities;PUT;/api/v1/admin/communities/{slug};запись;да;серверным тестом;;
+content;GET;/api/v1/admin/posts;чтение;—;обойдено на стенде под владельцем;200;
+content;DELETE;/api/v1/admin/posts/{uuid};запись;да;серверным тестом;;
+content;PATCH;/api/v1/admin/posts/{uuid};запись;да;серверным тестом;;
+dashboard;GET;/api/v1/admin/dashboard;чтение;—;обойдено на стенде под владельцем;200;
+delivery;GET;/api/v1/admin/delivery/methods;чтение;—;обойдено на стенде под владельцем;200;
+delivery;POST;/api/v1/admin/delivery/methods/reorder;запись;да;выполнено на стенде, запись в журнале;200;
+delivery;PATCH;/api/v1/admin/delivery/methods/{deliveryMethod};запись;да;серверным тестом;;
+delivery;GET;/api/v1/admin/delivery/shipments;чтение;—;обойдено на стенде под владельцем;200;
+delivery;GET;/api/v1/admin/delivery/shipments/{shipment};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+delivery;PATCH;/api/v1/admin/delivery/shipments/{shipment};запись;да;серверным тестом;;
+delivery;GET;/api/v1/admin/delivery/stats;чтение;—;обойдено на стенде под владельцем;200;
+diagnostics;GET;/api/v1/admin/diagnostics;чтение;—;обойдено на стенде под владельцем;200;
+events;GET;/api/v1/admin/events;чтение;—;обойдено на стенде под владельцем;200;
+events;POST;/api/v1/admin/events;запись;да;серверным тестом;;
+events;DELETE;/api/v1/admin/events/{uuid};запись;да;серверным тестом;;
+events;PATCH;/api/v1/admin/events/{uuid};запись;да;серверным тестом;;
+events;GET;/api/v1/admin/events/{uuid}/attendees;чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+events;POST;/api/v1/admin/events/{uuid}/cancel;запись;да;серверным тестом;;
+feedBanners;GET;/api/v1/admin/banners;чтение;—;обойдено на стенде под владельцем;200;
+feedBanners;POST;/api/v1/admin/banners;запись;да;серверным тестом;;
+feedBanners;PATCH;/api/v1/admin/banners/carousel/settings;запись;да;выполнено на стенде, запись в журнале;200;
+feedBanners;DELETE;/api/v1/admin/banners/{banner};запись;да;серверным тестом;;
+feedBanners;GET;/api/v1/admin/banners/{banner};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+feedBanners;PUT;/api/v1/admin/banners/{banner};запись;да;серверным тестом;;
+feedGuestAccess;GET;/api/v1/admin/feed/guest-access;чтение;—;обойдено на стенде под владельцем;200;
+feedGuestAccess;PUT;/api/v1/admin/feed/guest-access;запись;да;серверным тестом;;
+feedback;GET;/api/v1/admin/feedback;чтение;—;обойдено на стенде под владельцем;200;
+feedback;PATCH;/api/v1/admin/feedback/{id};запись;да;серверным тестом;;
+footerLinks;GET;/api/v1/admin/footer-links;чтение;—;обойдено на стенде под владельцем;200;
+footerLinks;POST;/api/v1/admin/footer-links;запись;да;выполнено на стенде, запись в журнале;201;
+footerLinks;POST;/api/v1/admin/footer-links/reorder;запись;да;выполнено на стенде, запись в журнале;200;
+footerLinks;DELETE;/api/v1/admin/footer-links/{id};запись;да;выполнено на стенде, запись в журнале;200;
+footerLinks;PUT;/api/v1/admin/footer-links/{id};запись;да;выполнено на стенде, запись в журнале;200;
+icons;GET;/api/v1/admin/icon-assets;чтение;—;обойдено на стенде под владельцем;200;
+icons;POST;/api/v1/admin/icon-assets/from-media;запись;да;серверным тестом;;
+icons;DELETE;/api/v1/admin/icon-assets/{id};запись;да;серверным тестом;;
+icons;GET;/api/v1/admin/icon-media;чтение;—;обойдено на стенде под владельцем;200;
+landingBlocks;GET;/api/v1/admin/faq;чтение;—;обойдено на стенде под владельцем;200;
+landingBlocks;POST;/api/v1/admin/faq/articles;запись;да;серверным тестом;;
+landingBlocks;POST;/api/v1/admin/faq/articles/reorder;запись;да;серверным тестом;;
+landingBlocks;DELETE;/api/v1/admin/faq/articles/{id};запись;да;серверным тестом;;
+landingBlocks;PATCH;/api/v1/admin/faq/articles/{id};запись;да;серверным тестом;;
+landingBlocks;POST;/api/v1/admin/faq/categories;запись;да;выполнено на стенде, запись в журнале;201;
+landingBlocks;DELETE;/api/v1/admin/faq/categories/{id};запись;да;выполнено на стенде, запись в журнале;200;
+landingBlocks;PATCH;/api/v1/admin/faq/categories/{id};запись;да;выполнено на стенде, запись в журнале;200;
+landingBlocks;GET;/api/v1/admin/landing/blocks;чтение;—;обойдено на стенде под владельцем;200;
+landingBlocks;POST;/api/v1/admin/landing/cards;запись;да;выполнено на стенде, запись в журнале;201;
+landingBlocks;PATCH;/api/v1/admin/landing/cards/reorder;запись;да;выполнено на стенде, запись в журнале;200;
+landingBlocks;DELETE;/api/v1/admin/landing/cards/{id};запись;да;выполнено на стенде, запись в журнале;200;
+landingBlocks;PATCH;/api/v1/admin/landing/cards/{id};запись;да;выполнено на стенде, запись в журнале;200;
+landingBlocks;PATCH;/api/v1/admin/landing/sections/{slug};запись;да;выполнено на стенде, запись в журнале;200;
+legalPages;GET;/api/v1/admin/legal-pages;чтение;—;обойдено на стенде под владельцем;200;
+legalPages;POST;/api/v1/admin/legal-pages;запись;да;серверным тестом;;
+legalPages;POST;/api/v1/admin/legal-pages/preview-markdown;запись;не нужен;серверным тестом;;предпросмотр разметки: ничего не меняет
+legalPages;GET;/api/v1/admin/legal-pages/{id};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+legalPages;PUT;/api/v1/admin/legal-pages/{id};запись;да;серверным тестом;;
+legalPages;POST;/api/v1/admin/legal-pages/{id}/archive;запись;да;серверным тестом;;
+legalPages;POST;/api/v1/admin/legal-pages/{id}/publish;запись;да;серверным тестом;;
+legalPages;GET;/api/v1/admin/legal-pages/{id}/revisions;чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+legalPages;POST;/api/v1/admin/legal-pages/{id}/revisions/{revisionId}/restore;запись;да;серверным тестом;;
+media;GET;/api/v1/admin/media;чтение;—;обойдено на стенде под владельцем;200;
+media;POST;/api/v1/admin/media;запись;да;серверным тестом;;
+moderation;GET;/api/v1/admin/moderation/queue;чтение;—;обойдено на стенде под владельцем;200;
+moderation;POST;/api/v1/admin/moderation/{type}/{id}/approve;запись;да;серверным тестом;;
+moderation;POST;/api/v1/admin/moderation/{type}/{id}/reject;запись;да;серверным тестом;;
+moderation;POST;/api/v1/admin/moderation/{type}/{id}/revision;запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/disputes;чтение;—;обойдено на стенде под владельцем;200;
+monetization;POST;/api/v1/admin/disputes/{uuid}/resolve;запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/ledger/totals;чтение;—;обойдено на стенде под владельцем;200;
+monetization;GET;/api/v1/admin/payments;чтение;—;обойдено на стенде под владельцем;200;
+monetization;GET;/api/v1/admin/payments/export;чтение;—;обойдено на стенде под владельцем;200;
+monetization;GET;/api/v1/admin/payments/funnel;чтение;—;обойдено на стенде под владельцем;200;
+monetization;GET;/api/v1/admin/plans;чтение;—;обойдено на стенде под владельцем;200;
+monetization;POST;/api/v1/admin/plans;запись;да;серверным тестом;;
+monetization;DELETE;/api/v1/admin/plans/{slug};запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/plans/{slug};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+monetization;PUT;/api/v1/admin/plans/{slug};запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/promo-pools;чтение;—;обойдено на стенде под владельцем;200;
+monetization;POST;/api/v1/admin/promo-pools;запись;да;серверным тестом;;
+monetization;PATCH;/api/v1/admin/promo-pools/{uuid};запись;да;серверным тестом;;
+monetization;POST;/api/v1/admin/promo-pools/{uuid}/complete;запись;да;серверным тестом;;
+monetization;POST;/api/v1/admin/promo-pools/{uuid}/pause;запись;да;серверным тестом;;
+monetization;POST;/api/v1/admin/promo-pools/{uuid}/resume;запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/promocodes;чтение;—;обойдено на стенде под владельцем;200;
+monetization;POST;/api/v1/admin/promocodes;запись;да;серверным тестом;;
+monetization;DELETE;/api/v1/admin/promocodes/{code};запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/promocodes/{code};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+monetization;PUT;/api/v1/admin/promocodes/{code};запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/referrals;чтение;—;обойдено на стенде под владельцем;200;
+monetization;GET;/api/v1/admin/safe-deals;чтение;—;обойдено на стенде под владельцем;200;
+monetization;GET;/api/v1/admin/safe-deals/export;чтение;—;обойдено на стенде под владельцем;200;
+monetization;POST;/api/v1/admin/safe-deals/{uuid}/refund;запись;да;серверным тестом;;
+monetization;POST;/api/v1/admin/safe-deals/{uuid}/release;запись;да;серверным тестом;;
+monetization;GET;/api/v1/admin/wallets;чтение;—;обойдено на стенде под владельцем;200;
+monetization;GET;/api/v1/admin/wallets/{uuid};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+monetization;GET;/api/v1/admin/withdrawals;чтение;—;обойдено на стенде под владельцем;200;
+monetization;PATCH;/api/v1/admin/withdrawals/{uuid};запись;да;серверным тестом;;
+notificationPolicy;GET;/api/v1/admin/notifications/policy;чтение;—;обойдено на стенде под владельцем;200;
+notificationPolicy;PUT;/api/v1/admin/notifications/policy;запись;да;серверным тестом;;
+notifications;POST;/api/v1/admin/notifications;запись;да;серверным тестом;;
+reports;GET;/api/v1/admin/reports;чтение;—;обойдено на стенде под владельцем;200;
+reports;GET;/api/v1/admin/reports/{id};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+reports;PATCH;/api/v1/admin/reports/{id};запись;да;серверным тестом;;
+reviewCategories;GET;/api/v1/admin/categories/video;чтение;—;обойдено на стенде под владельцем;200;
+reviewCategories;POST;/api/v1/admin/categories/video;запись;да;серверным тестом;;
+reviewCategories;PATCH;/api/v1/admin/categories/video/reorder;запись;да;серверным тестом;;
+reviewCategories;DELETE;/api/v1/admin/categories/video/{video};запись;да;серверным тестом;;
+reviewCategories;GET;/api/v1/admin/categories/video/{video};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+reviewCategories;PUT;/api/v1/admin/categories/video/{video};запись;да;серверным тестом;;
+reviews;GET;/api/v1/admin/videos;чтение;—;обойдено на стенде под владельцем;200;
+reviews;DELETE;/api/v1/admin/videos/{uuid};запись;да;серверным тестом;;
+reviews;GET;/api/v1/admin/videos/{uuid};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+reviews;PATCH;/api/v1/admin/videos/{uuid};запись;да;серверным тестом;;
+roles;GET;/api/v1/admin/roles;чтение;—;обойдено на стенде под владельцем;200;
+roles;PUT;/api/v1/admin/roles/access;запись;да;серверным тестом;;
+roles;PUT;/api/v1/admin/roles/category-admin-limit;запись;да;серверным тестом;;
+roles;PUT;/api/v1/admin/roles/permissions/{uuid};запись;да;серверным тестом;;
+rulesPages;GET;/api/v1/admin/rule-pages;чтение;—;обойдено на стенде под владельцем;200;
+rulesPages;POST;/api/v1/admin/rule-pages;запись;да;серверным тестом;;
+rulesPages;DELETE;/api/v1/admin/rule-pages/{id};запись;да;серверным тестом;;
+rulesPages;GET;/api/v1/admin/rule-pages/{id};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+rulesPages;PUT;/api/v1/admin/rule-pages/{id};запись;да;серверным тестом;;
+rulesPages;POST;/api/v1/admin/rule-pages/{id}/duplicate;запись;да;серверным тестом;;
+rulesPages;POST;/api/v1/admin/rule-pages/{id}/publish;запись;да;серверным тестом;;
+rulesPages;GET;/api/v1/admin/rule-pages/{id}/revisions;чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+rulesPages;POST;/api/v1/admin/rule-pages/{id}/revisions/{revisionId}/restore;запись;да;серверным тестом;;
+settings;GET;/api/v1/admin/settings;чтение;—;обойдено на стенде под владельцем;200;
+settings;PATCH;/api/v1/admin/settings;запись;да;серверным тестом;;
+users;GET;/api/v1/admin/users;чтение;—;обойдено на стенде под владельцем;200;
+users;GET;/api/v1/admin/users/{uuid};чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+users;PUT;/api/v1/admin/users/{uuid};запись;да;серверным тестом;;
+users;GET;/api/v1/admin/users/{uuid}/card;чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+users.manage;POST;/api/v1/admin/users;запись;да;серверным тестом;;
+users.manage;GET;/api/v1/admin/users/{id}/payout-requisites;чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+users.manage;DELETE;/api/v1/admin/users/{uuid};запись;да;серверным тестом;;
+users.manage;GET;/api/v1/admin/users/{uuid}/categories;чтение;—;не проверено;;путь с параметром: нужен живой идентификатор
+users.manage;PUT;/api/v1/admin/users/{uuid}/categories;запись;да;серверным тестом;;
+users.manage;POST;/api/v1/admin/users/{uuid}/listing-credits;запись;да;серверным тестом;;
+users.manage;POST;/api/v1/admin/users/{uuid}/subscription;запись;да;серверным тестом;;
+—;GET;/api/v1/admin/access;чтение;—;обойдено на стенде под владельцем;200;

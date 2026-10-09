@@ -3,6 +3,7 @@
 namespace Modules\Chat\Http\Controllers\Api\V1\Concerns;
 
 use App\Models\Conversation;
+use App\Support\ListingChat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -28,6 +29,25 @@ trait AuthorizesSend
 {
     protected function denySend(Request $request, Conversation $conversation): ?JsonResponse
     {
+        /*
+         * Подтверждённый телефон — кроме переписки по объявлению.
+         *
+         * Решение Ж3 от 09.10, пункт 8. Маршрут отправки сообщения лежал в
+         * группе с посредником `verified`; по решению Ж3 покупатель пишет
+         * продавцу без подтверждённого телефона, иначе право начать
+         * переписку было бы пустым — начать можно, сказать нельзя.
+         *
+         * Проверка переехала сюда и сузилась ровно на этот случай: во всех
+         * прочих беседах телефон спрашивается как раньше, тем же кодом
+         * `phone_not_verified`, по которому клиент открывает окно
+         * подтверждения номера.
+         */
+        if (! ListingChat::isListingConversation($conversation)) {
+            if ($отказ = $this->denyUnverifiedSender($request)) {
+                return $отказ;
+            }
+        }
+
         $verdict = Gate::forUser($request->user())->inspect('send', $conversation);
 
         if ($verdict->allowed()) {
@@ -44,5 +64,27 @@ trait AuthorizesSend
         $verdict->authorize();
 
         return null;
+    }
+
+    /** Повторяет ответ посредника `EnsureFullyVerified`, снятого с маршрута. */
+    private function denyUnverifiedSender(Request $request): ?JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user === null || $user->isFullyVerified()) {
+            return null;
+        }
+
+        if ($user->requiresEmailVerification()) {
+            return response()->json([
+                'message' => 'Подтвердите email, чтобы выполнить это действие.',
+                'code' => 'email_not_verified',
+            ], 403);
+        }
+
+        return response()->json([
+            'message' => 'Подтвердите номер телефона по SMS, чтобы выполнить это действие.',
+            'code' => 'phone_not_verified',
+        ], 403);
     }
 }

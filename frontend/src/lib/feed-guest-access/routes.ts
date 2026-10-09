@@ -118,10 +118,26 @@ export function isVerifiedRequiredAction(actionKey: string): boolean {
   return VERIFIED_REQUIRED_ACTIONS.has(actionKey);
 }
 
-/** Logged-in users must confirm SMS before using these routes. */
+/**
+ * Logged-in users must confirm SMS before using these routes.
+ *
+ * `/messenger` отсюда убран 09.10 по решению Ж3. Покупатель начинает
+ * переписку по объявлению без подтверждённого телефона — и попадает в неё
+ * переходом на `/messenger?chat=…`. С этой строкой он получал окно
+ * подтверждения номера сразу после того, как переписка уже создана: право
+ * написать продавцу оказывалось пустым.
+ *
+ * Интерфейс при этом не стал свободнее сервера, а перестал быть строже:
+ * чтение переписок (`GET /conversations*`) за посредником `verified` никогда
+ * не стояло, а карта доступа ставит `route.messenger` на уровень `auth`. То
+ * есть строка запрещала разрешённое и сервером, и настройкой — ровно то, что
+ * запрещает правило 3 раздела 2.
+ *
+ * `/friends` и `/ads/new` остаются: заявки в друзья и создание объявления на
+ * сервере действительно требуют подтверждённого телефона.
+ */
 export function isVerifiedRequiredRoute(pathname: string): boolean {
   if (pathname === ROUTES.friends || pathname.startsWith("/friends/")) return true;
-  if (pathname === ROUTES.messenger || pathname.startsWith("/messenger/")) return true;
   if (pathname === ROUTES.adCreate || pathname.startsWith("/ads/new")) return true;
   return false;
 }

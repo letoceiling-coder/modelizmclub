@@ -2164,6 +2164,10 @@ function ListingContactPhoneField({
   return (
     <div className="space-y-[8px]">
       <PhoneInput
+        /* Подсказка только у открытого поля: у запертого номер уже
+           подтверждён, и просить десять цифр там не о чем. */
+        hint={!locked}
+        hintId="ads-new-phone-hint"
         value={value}
         onValueChange={(next) => {
           if (!locked) onChange(next);

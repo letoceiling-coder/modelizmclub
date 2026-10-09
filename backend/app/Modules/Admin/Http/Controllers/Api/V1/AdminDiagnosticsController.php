@@ -3,6 +3,7 @@
 namespace Modules\Admin\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\Sms\SmsFailureJournal;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -52,6 +53,18 @@ class AdminDiagnosticsController extends Controller
             'cdek_configured' => $cdekAccount !== '' && $cdekSecure !== '',
             'sms_driver' => $smsDriver,
             'sms_configured' => $smsConfigured,
+            /*
+             * Последний отказ отправки SMS — решение Ж5 от 09.10.
+             *
+             * «Настроено: да» не значит «работает»: ключи на месте, а подпись
+             * отправителя не согласована, или кончились деньги, или шлюз не
+             * отвечает. До 09.10 узнать об этом можно было только от живого
+             * человека, который не получил код.
+             *
+             * Номера здесь нет: `SmsFailureJournal` вырезает его из
+             * технического текста.
+             */
+            'sms_last_failure' => app(SmsFailureJournal::class)->last(),
         ];
 
         $healthy = ! in_array(false, array_column($checks, 'ok'), true);

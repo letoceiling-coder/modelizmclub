@@ -54,6 +54,7 @@ function Body({ value, onChange, onReset }: Props) {
     <div className="flex flex-col gap-[20px]">
       <Group title="Категория">
         <Select
+          label="Категория"
           value={value.category}
           onChange={(v) => onChange({ ...value, category: v, subcategory: "Все" })}
           options={["Все", ...categories.map((c) => c.name)]}
@@ -62,6 +63,7 @@ function Body({ value, onChange, onReset }: Props) {
 
       <Group title="Подкатегория">
         <Select
+          label="Подкатегория"
           value={value.subcategory}
           onChange={(v) => set("subcategory", v)}
           options={cat ? ["Все", ...flattenSubcategories(cat).map((s) => s.name)] : ["Все"]}
@@ -75,6 +77,14 @@ function Body({ value, onChange, onReset }: Props) {
           <span style={{ color: "var(--foreground-50)" }}>—</span>
           <NumInput value={value.priceMax} onChange={(v) => set("priceMax", v)} placeholder="до" />
         </div>
+        {/*
+          Ползунок назван словами, и значение тоже — находка B-14.
+
+          Было: ни `aria-label`, ни `id`, ни обёртки `<label>`, ни
+          `aria-valuetext`. Диктор читал «ползунок, 50000» — без имени поля
+          и без единиц. Заголовок группы «Цена, ₽» рядом есть, но связи с
+          полем у него нет: заголовок — просто текст выше.
+        */}
         <input
           type="range"
           min={0}
@@ -82,6 +92,8 @@ function Body({ value, onChange, onReset }: Props) {
           step={500}
           value={value.priceMax}
           onChange={(e) => set("priceMax", +e.target.value)}
+          aria-label="Цена не выше"
+          aria-valuetext={`${Number(value.priceMax || 0).toLocaleString("ru")} ₽`}
           className="w-full"
           style={{ accentColor: "var(--accent)" }}
         />
@@ -132,18 +144,23 @@ function Select({
   onChange,
   options,
   disabled,
+  label,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
   disabled?: boolean;
+  /** Имя поля для экранного диктора. Находка B-14: два списка отбора не
+   *  имели ни подписи, ни подсказки — диктор называл их пустыми. */
+  label: string;
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full cursor-pointer text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
+      aria-label={label}
+      className="w-full cursor-pointer text-[16px] md:text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         background: "var(--background-elevated)",
         color: "var(--foreground)",
@@ -177,7 +194,7 @@ function NumInput({
       value={value || ""}
       placeholder={placeholder}
       onChange={(e) => onChange(+e.target.value || 0)}
-      className="w-full text-[13px]"
+      className="w-full text-[16px] md:text-[13px]"
       style={{
         background: "var(--background-elevated)",
         color: "var(--foreground)",

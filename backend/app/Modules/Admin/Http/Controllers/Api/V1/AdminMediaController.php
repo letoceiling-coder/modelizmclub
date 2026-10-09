@@ -9,6 +9,7 @@ use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Modules\Admin\Services\AuditService;
 use Modules\Media\Services\MediaUploadService;
 
 #[Group('Admin — Media', weight: 81)]
@@ -78,7 +79,7 @@ class AdminMediaController extends Controller
 
      */
 
-    public function store(Request $request, MediaUploadService $uploads): JsonResponse
+    public function store(Request $request, MediaUploadService $uploads, AuditService $audit): JsonResponse
     {
         $validated = $request->validate([
             'purpose' => ['required', 'string', Rule::in(self::MANAGER_PURPOSES)],
@@ -87,6 +88,33 @@ class AdminMediaController extends Controller
 
         $purpose = $validated['purpose'];
         $media = $uploads->storeUploadedFile($request->user(), $validated['file'], $purpose);
+
+        /*
+         * Загрузка пишется в журнал действий — как и все прочие действия админки.
+         *
+         * Реестр части Г промпта 04 (`docs/acceptance/release/admin-actions.csv`)
+         * пересчитал записи по коду: из 103 изменяющих действий админки в
+         * журнал писали 102, и единственным исключением была эта загрузка.
+         * Библиотека медиа общая, файл из неё попадает в баннеры, значки и
+         * обложки, — а кто его положил, узнать было нельзя.
+         *
+         * В журнал идёт описание файла, а не его содержимое: имя, тип,
+         * размер и назначение. Самого файла в журнале быть не должно.
+         */
+        $audit->log(
+            $request->user(),
+            'admin.media.upload',
+            $media,
+            null,
+            [
+                'uuid' => $media->uuid,
+                'filename' => $media->filename,
+                'mime_type' => $media->mime_type,
+                'size_bytes' => $media->size_bytes,
+                'purpose' => $purpose,
+            ],
+            $request,
+        );
 
         return response()->json(['data' => $this->toItem($media)], 201);
     }

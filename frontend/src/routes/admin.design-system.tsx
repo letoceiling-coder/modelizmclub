@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import {
   Home,
   Bell,
@@ -26,11 +26,31 @@ import { useState } from "react";
 
 export const Route = createFileRoute("/admin/design-system")({
   head: () => ({ meta: [{ title: "Design System — МоДелизМ" }] }),
-  // Живая страница токенов доступна и в prod — только под админом.
-  // Роль проверяется в компоненте по той же схеме, что и /admin (см. requireAdmin).
+  /*
+   * Живая страница токенов доступна и в prod — но только тому, кому доступен
+   * раздел «Дизайн-система» в админке.
+   *
+   * Здесь стоял комментарий «роль проверяется в компоненте по той же схеме,
+   * что и /admin», и это было неправдой: `requireAdmin` проверяет **только
+   * наличие сессии** — он сам об этом говорит в своём докблоке, — а роль у
+   * `/admin` проверяет компонент, зовущий `fetchAdminAccess`. Здешний
+   * компонент не звал ничего, и страница открывалась любому вошедшему.
+   * Находка B-11 финального аудита; механизм проверен 09.10 чтением обоих
+   * маршрутов, а не принят с чужих слов.
+   *
+   * Отказ не рисуется здесь заново: непрошенного уводим на `/admin`, и
+   * экран 403 показывает то единственное место, которому он принадлежит.
+   * Вторая копия экрана отказа разошлась бы с первой.
+   */
   beforeLoad: async ({ location }) => {
     const { requireAdmin } = await import("@/lib/auth/requireAdmin");
     await requireAdmin(location);
+    if (typeof window === "undefined") return;
+    const { fetchAdminAccess } = await import("@/lib/admin-access");
+    const доступ = await fetchAdminAccess().catch(() => null);
+    if (!доступ || !доступ.sections.includes("design")) {
+      throw redirect({ to: "/admin" });
+    }
   },
   component: DesignSystemPage,
 });

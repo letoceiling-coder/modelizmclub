@@ -252,6 +252,7 @@ function LoginPage() {
           type="email"
           autoComplete="email"
           placeholder={t("auth.email")}
+          aria-label={t("auth.email")}
           error={fieldError}
         />
         <PasswordInput
@@ -259,6 +260,7 @@ function LoginPage() {
           name="password"
           autoComplete="current-password"
           placeholder={t("auth.password")}
+          aria-label={t("auth.password")}
           error={fieldError}
         />
         <div className="flex items-center justify-between" style={{ fontSize: "var(--fs-xs)" }}>

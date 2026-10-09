@@ -4,7 +4,9 @@ namespace App\Policies;
 
 use App\Enums\ConversationType;
 use App\Models\Conversation;
+use App\Models\Listing;
 use App\Models\User;
+use App\Support\ListingChat;
 use Illuminate\Auth\Access\Response;
 use Modules\User\Services\FriendService;
 
@@ -25,9 +27,15 @@ use Modules\User\Services\FriendService;
  * снимает `detachFriendship` при удалении из друзей. Поэтому удаление из
  * друзей закрывает переписку само, без отдельной проверки.
  *
+ * С 09.10 — решение Ж3 — переписку по объявлению открывает само объявление:
+ * ни дружбы, ни подписки. Правило, какое объявление для этого годится, лежит
+ * в `App\Support\ListingChat`: опубликованное и принадлежащее получателю.
+ * Спрашивают его трое — политика, создание переписки и отправка сообщения, —
+ * поэтому условие и вынесено в одно место.
+ *
  * Прочие условия не менялись: участие в диалоге, блокировки (их держит
- * `UserService::assertCanInteract`), подтверждение телефона, чаты сделок и
- * чаты направлений. Модератор обходит подписку, но не участие.
+ * `UserService::assertCanInteract`), чаты сделок и чаты направлений.
+ * Модератор обходит подписку, но не участие.
  */
 class ConversationPolicy
 {
@@ -47,9 +55,18 @@ class ConversationPolicy
      *
      * `$other` приходит из контроллера вторым аргументом `can()`. Без него
      * решает только подписка: так вызывают места, где получателя ещё нет.
+     *
+     * `$listing` — третьим. Решение Ж3 от 09.10: по опубликованному
+     * объявлению получателя переписку начинает любой вошедший, и дружба с
+     * подпиской тут не спрашиваются. Проверка стоит ПЕРВОЙ, чтобы путь из
+     * объявления не зависел ни от одного прежнего условия.
      */
-    public function create(User $user, ?User $other = null): Response
+    public function create(User $user, ?User $other = null, ?Listing $listing = null): Response
     {
+        if (ListingChat::isOpenFor($listing, $other)) {
+            return Response::allow();
+        }
+
         if ($this->isSubscriber($user)) {
             return Response::allow();
         }
@@ -77,6 +94,21 @@ class ConversationPolicy
         // A deal chat belongs to the two parties of the deal — buying or selling
         // is not a social feature, so no subscription is required there.
         if ($conversation->type === ConversationType::Deal) {
+            return Response::allow();
+        }
+
+        /*
+         * Переписка по объявлению открыта обоим — решение Ж3, пункты 1 и 3.
+         *
+         * Продавец отвечает без ограничений, покупатель продолжает, и оба
+         * продолжают после снятия объявления: смотрим на `listing_id`
+         * беседы, а не на состояние самого объявления. Иначе снятие товара
+         * обрывало бы разговор на полуслове — в том числе уже начатый.
+         *
+         * Участие проверено выше, блокировки — в
+         * `UserService::assertCanInteract` на входе в отправку.
+         */
+        if (ListingChat::isListingConversation($conversation)) {
             return Response::allow();
         }
 

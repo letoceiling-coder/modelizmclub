@@ -287,6 +287,9 @@ function SubscriptionPage() {
 
   const daysLeft = Math.max(0, Math.floor(Number(sub?.days_left ?? 0)));
   const totalDays = sub?.plan?.period_days ?? 365;
+  /* Отмена — это `auto_renew: false` при живой подписке. То же правило, что
+     в `SubscriptionBlock` на профиле (находка B-12). */
+  const отменена = sub?.is_active === true && sub?.auto_renew === false;
   const planName = sub?.plan?.name ?? t("pages.subscription.defaultPlanName");
 
   useEffect(() => {
@@ -474,18 +477,35 @@ function SubscriptionPage() {
                   <span style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>
                     {t("pages.subscription.activePlan", { name: planName })}
                   </span>
+                  {/*
+                    Отменённая подписка названа отменённой — находка B-12.
+                    
+                    Человек отменяет подписку в профиле и открывает страницу
+                    тарифов: там было написано «активна», значок зелёный, и ни
+                    слова об отмене. Замер аудита: в ответе сервера
+                    `auto_renew: false`, а в этом файле слово `auto_renew` не
+                    встречалось ни разу — карточка читала только `is_active`.
+                    
+                    На профиле это сделано верно
+                    (`components/profile/SubscriptionBlock.tsx`), и здесь
+                    взято то же правило и те же слова: «Активна до конца
+                    периода» и `--warning` вместо `--success`. Два экрана про
+                    одно состояние должны говорить одно.
+                  */}
                   <span
                     className="inline-block"
                     style={{
                       fontSize: 11,
                       fontWeight: 600,
-                      color: "var(--success)",
-                      background: "var(--success-soft)",
+                      color: отменена ? "var(--warning)" : "var(--success)",
+                      background: отменена ? "var(--warning-soft)" : "var(--success-soft)",
                       padding: "2px 8px",
                       borderRadius: "var(--r-tag)",
                     }}
                   >
-                    {t("pages.subscription.active")}
+                    {отменена
+                      ? t("pages.subscription.activeUntilPeriodEnd")
+                      : t("pages.subscription.active")}
                   </span>
                 </div>
                 <div className="mt-[4px]" style={{ fontSize: 13, color: "var(--foreground-50)" }}>

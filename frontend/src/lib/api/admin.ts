@@ -64,8 +64,27 @@ export interface AdminDiagnostics {
     vtb_configured: boolean;
     cdek_enabled: boolean;
     cdek_configured: boolean;
+    /* Адрес денежного контура и его имя словом. «Настроено» про контур
+       ничего не говорит: забытая переменная оставляла оплату в песочнице,
+       оставаясь при этом «настроенной». */
+    vtb_api_url: string;
+    vtb_contour: string;
     sms_driver: string;
     sms_configured: boolean;
+    /**
+     * Последний отказ отправки SMS. `null` — отказов за неделю не было.
+     *
+     * «Настроено: да» не значит «работает»: ключи могут быть на месте, а
+     * подпись отправителя не согласована или деньги кончились. Решение Ж5.
+     */
+    sms_last_failure: {
+      at: string;
+      reason: string;
+      our_fault: boolean;
+      driver: string;
+      hint: string;
+      technical: string;
+    } | null;
   };
 }
 
@@ -2539,4 +2558,48 @@ export async function fetchPaymentFunnel(period?: {
     query: { from: period?.from || undefined, to: period?.to || undefined },
   });
   return res.data;
+}
+
+/* ─────────── Сообщества: прямое управление (решение Ж4 от 09.10) ───────────
+ *
+ * Пять маршрутов сервера были и раньше, а экрана не было: ключ `communities`
+ * лежал в служебных, «без пункта меню». Из админки сообщество нельзя было ни
+ * создать, ни поправить, ни удалить — только одобрить заявку.
+ */
+
+export interface AdminCommunity {
+  id: number;
+  uuid: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  access_type?: string;
+  is_official?: boolean;
+  members_count?: number;
+  posts_count?: number;
+  status?: string | null;
+  category?: { id: number; name: string; slug: string } | null;
+}
+
+export async function fetchAdminCommunities(
+  params: { page?: number; per_page?: number } = {},
+): Promise<{ items: AdminCommunity[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  qs.set("per_page", String(params.per_page ?? 20));
+  const res = await api<{ data: AdminCommunity[]; meta?: { total?: number } }>(
+    `/admin/communities?${qs.toString()}`,
+  );
+  return { items: res.data ?? [], total: res.meta?.total ?? (res.data ?? []).length };
+}
+
+export async function updateAdminCommunity(
+  slug: string,
+  input: { name?: string; description?: string | null; access_type?: string; status?: string },
+): Promise<void> {
+  await api(`/admin/communities/${encodeURIComponent(slug)}`, { method: "PUT", json: input });
+}
+
+export async function deleteAdminCommunity(slug: string): Promise<void> {
+  await api(`/admin/communities/${encodeURIComponent(slug)}`, { method: "DELETE" });
 }

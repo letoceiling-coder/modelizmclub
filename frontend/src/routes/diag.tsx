@@ -144,6 +144,38 @@ function DiagPage() {
                 <StatusDot ok={data.integrations.sms_configured} />
                 {data.integrations.sms_configured ? "да" : "нет"}
               </dd>
+              {/*
+                Последний отказ отправки — решение Ж5 от 09.10.
+
+                «Настроено: да» не значит «работает»: ключи бывают на месте, а
+                подпись отправителя не согласована или деньги кончились.
+                Строка появляется только когда отказ был, и тогда она важнее
+                зелёной точки выше.
+              */}
+              {data.integrations.sms_last_failure && (
+                <>
+                  <dt style={{ color: "var(--foreground-50)" }}>SMS: последний отказ</dt>
+                  <dd className="inline-flex flex-col gap-1">
+                    <span className="inline-flex items-center gap-2">
+                      <StatusDot ok={false} />
+                      {data.integrations.sms_last_failure.our_fault
+                        ? "на нашей стороне"
+                        : "шлюз отклонил номер"}
+                      {" · "}
+                      {new Date(data.integrations.sms_last_failure.at).toLocaleString("ru-RU")}
+                    </span>
+                    <span style={{ color: "var(--foreground-70)" }}>
+                      {data.integrations.sms_last_failure.hint}
+                    </span>
+                    <code
+                      className="text-[11px]"
+                      style={{ color: "var(--foreground-50)", wordBreak: "break-all" }}
+                    >
+                      {data.integrations.sms_last_failure.technical}
+                    </code>
+                  </dd>
+                </>
+              )}
             </dl>
           </section>
         </div>

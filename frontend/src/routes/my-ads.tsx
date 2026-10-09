@@ -530,7 +530,7 @@ function MyAdsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("pages.myAds.searchPlaceholder")}
-              className="w-full text-[13.5px] transition-colors"
+              className="w-full text-[16px] transition-colors md:text-[13.5px]"
               style={{
                 height: 40,
                 padding: "0 36px 0 36px",
@@ -637,7 +637,7 @@ function MyAdsPage() {
                 <select
                   value={filters.category}
                   onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.allCategories")}</option>
@@ -652,7 +652,7 @@ function MyAdsPage() {
                 <select
                   value={filters.city}
                   onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.allCities")}</option>
@@ -669,7 +669,7 @@ function MyAdsPage() {
                   onChange={(e) =>
                     setFilters((f) => ({ ...f, dateRange: e.target.value as DateRange }))
                   }
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.periodAll")}</option>
@@ -684,7 +684,7 @@ function MyAdsPage() {
                   onChange={(e) =>
                     setFilters((f) => ({ ...f, condition: e.target.value as ConditionFilter }))
                   }
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.anyCondition")}</option>
@@ -704,7 +704,7 @@ function MyAdsPage() {
                     }))
                   }
                   placeholder="0"
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 />
               </FilterField>
@@ -720,7 +720,7 @@ function MyAdsPage() {
                     }))
                   }
                   placeholder="∞"
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 />
               </FilterField>
@@ -730,7 +730,7 @@ function MyAdsPage() {
                   onChange={(e) =>
                     setFilters((f) => ({ ...f, delivery: e.target.value as DeliveryFilter }))
                   }
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.deliveryAny")}</option>
@@ -744,7 +744,7 @@ function MyAdsPage() {
                   onChange={(e) =>
                     setFilters((f) => ({ ...f, hasPhoto: e.target.value as PhotoFilter }))
                   }
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 >
                   <option value="all">{t("pages.myAds.photoAny")}</option>
@@ -756,7 +756,7 @@ function MyAdsPage() {
                 <select
                   value={filters.sort}
                   onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value as SortKey }))}
-                  className="w-full text-[13px]"
+                  className="w-full text-[16px] md:text-[13px]"
                   style={selectStyle}
                 >
                   <option value="new">{t("pages.myAds.sortNew")}</option>

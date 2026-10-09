@@ -29,7 +29,10 @@ import {
   CalendarDays,
   KeyRound,
   ChevronDown,
+  Users2,
+  Plug,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -57,6 +60,18 @@ const UsersSection = lazy(() =>
 );
 const AdminRolesSection = lazy(() =>
   import("@/components/admin/AdminRolesSection").then((m) => ({ default: m.AdminRolesSection })),
+);
+/* Два раздела добавлены 09.10 решением Ж4: на сервере возможность была,
+   экрана не было. Разбор — docs/acceptance/release/admin-inventory.md. */
+const AdminCommunitiesSection = lazy(() =>
+  import("@/components/admin/AdminCommunitiesSection").then((m) => ({
+    default: m.AdminCommunitiesSection,
+  })),
+);
+const AdminConnectionsSection = lazy(() =>
+  import("@/components/admin/AdminConnectionsSection").then((m) => ({
+    default: m.AdminConnectionsSection,
+  })),
 );
 const ContentSection = lazy(() =>
   import("@/components/admin/AdminContentSection").then((m) => ({ default: m.ContentSection })),
@@ -193,6 +208,8 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
   },
   { id: "users", labelKey: "pages.adminShell.nav.users", icon: Users },
   { id: "roles", labelKey: "pages.adminShell.nav.roles", icon: KeyRound },
+  { id: "communities", labelKey: "pages.adminShell.nav.communities", icon: Users2 },
+  { id: "connections", labelKey: "pages.adminShell.nav.connections", icon: Plug },
   { id: "content", labelKey: "pages.adminShell.nav.content", icon: Newspaper },
   { id: "ads", labelKey: "pages.adminShell.nav.ads", icon: Megaphone },
   { id: "delivery", labelKey: "pages.adminShell.nav.delivery", icon: Truck },
@@ -295,21 +312,40 @@ const navItems: { id: Section; labelKey: string; icon: typeof Users }[] = [
 ];
 
 /*
- * Группы меню. Разделы не прячутся — они получают адрес.
+ * Группы меню — десять категорий решения Ж4 от 09.10.
  *
  * Было тридцать пунктов одним столбцом. Владелец 05.10 сказал, что «много
  * панелей пропало»; проверка показала, что из кода не пропало ничего —
  * пропало из поля зрения: найти «Баннеры ленты» в списке из тридцати строк
- * без заголовков можно только перечитав его целиком.
+ * без заголовков можно только перечитав его целиком. 05.10 строки собрали в
+ * шесть групп, 09.10 решение Ж4 назвало десять и назвало их точно: Обзор;
+ * Пользователи и доступ; Содержимое; Модерация; Сообщества и каналы;
+ * Объявления и сделки; Монетизация; Уведомления; Подключения; Система.
  *
- * Группа с текущим разделом раскрыта, остальные свёрнуты. Поэтому на экране
- * видно шесть заголовков и содержимое одной группы вместо тридцати строк, а
- * любой раздел — в одно нажатие по заголовку.
+ * Состав групп решением не назван, поэтому выбран так: раздел лежит там,
+ * где его стал бы искать человек, пришедший за делом, а не там, где он
+ * ближе по устройству кода. Поэтому «Доставка» — в «Объявлениях и сделках»
+ * (её настраивают из-за сделок), а «Значки» и «Дизайн-система» — в
+ * «Системе» (их трогают раз в полгода и не ради содержимого сайта).
+ *
+ * Все группы свёрнуты по умолчанию, выбор человека запоминается — этого
+ * требует решение Ж4. Прежнее поведение раскрывало группу с текущим
+ * разделом и забывалось при перезагрузке.
  *
  * Каждый пункт входит ровно в одну группу: за этим следит
  * `admin-nav-groups.test.ts`. Новый раздел, не попавший ни в одну, иначе
  * исчез бы из меню молча — ровно то, в чём меня и заподозрили.
  */
+/**
+ * Где запоминается, какие группы меню раскрыты (решение Ж4: «состояние
+ * запоминается»).
+ *
+ * Читается после гидрации, в `useEffect`: чтение хранилища в разметке
+ * первого кадра — расхождение гидрации, см. CLAUDE.md, «Первый кадр в
+ * браузере совпадает с серверным».
+ */
+const КЛЮЧ_ГРУПП = "admin.navGroups.open";
+
 export const NAV_GROUPS: { id: string; labelKey: string; items: Section[] }[] = [
   {
     id: "overview",
@@ -319,35 +355,37 @@ export const NAV_GROUPS: { id: string; labelKey: string; items: Section[] }[] = 
   {
     id: "people",
     labelKey: "pages.adminShell.navGroups.people",
-    items: ["users", "roles", "applications", "feedGuestAccess", "notificationPolicy"],
+    items: ["users", "roles", "feedGuestAccess"],
   },
   {
     id: "content",
     labelKey: "pages.adminShell.navGroups.content",
     items: [
       "content",
-      "ads",
       "categories",
-      "reviews",
-      "moderation",
-      "events",
+      "landingBlocks",
+      "feedBanners",
+      "legalPages",
+      "rulesPages",
+      "footerLinks",
       "media",
-      "notifications",
+      "events",
     ],
   },
   {
-    id: "site",
-    labelKey: "pages.adminShell.navGroups.site",
-    items: [
-      "landingBlocks",
-      "feedBanners",
-      "design",
-      "icons",
-      "footerLinks",
-      "legalPages",
-      "rulesPages",
-      "settings",
-    ],
+    id: "moderation",
+    labelKey: "pages.adminShell.navGroups.moderation",
+    items: ["moderation", "reviews", "feedback"],
+  },
+  {
+    id: "communities",
+    labelKey: "pages.adminShell.navGroups.communities",
+    items: ["communities", "applications"],
+  },
+  {
+    id: "market",
+    labelKey: "pages.adminShell.navGroups.market",
+    items: ["ads", "delivery"],
   },
   {
     id: "money",
@@ -360,9 +398,19 @@ export const NAV_GROUPS: { id: string; labelKey: string; items: Section[] }[] = 
     ],
   },
   {
-    id: "service",
-    labelKey: "pages.adminShell.navGroups.service",
-    items: ["delivery", "analytics", "feedback", "auditLog"],
+    id: "notifications",
+    labelKey: "pages.adminShell.navGroups.notifications",
+    items: ["notifications", "notificationPolicy"],
+  },
+  {
+    id: "connections",
+    labelKey: "pages.adminShell.navGroups.connections",
+    items: ["connections"],
+  },
+  {
+    id: "system",
+    labelKey: "pages.adminShell.navGroups.system",
+    items: ["settings", "icons", "design", "analytics", "auditLog"],
   },
 ];
 
@@ -384,6 +432,8 @@ function SectionViewInner({
   if (section === "dashboard") return <Dashboard role={adminRole ?? "owner"} />;
   if (section === "users") return <UsersSection />;
   if (section === "roles") return <AdminRolesSection />;
+  if (section === "communities") return <AdminCommunitiesSection />;
+  if (section === "connections") return <AdminConnectionsSection />;
   if (section === "content") return <ContentSection />;
   if (section === "ads") return <AdsSection />;
   if (section === "delivery") return <DeliverySection />;
@@ -434,19 +484,66 @@ function AdminPage() {
   const [adminRole, setAdminRole] = useState<AdminRole | null>(null);
   const [allowedSections, setAllowedSections] = useState<string[]>([]);
   /*
-   * Какие группы меню раскрыты. Пусто — значит «по умолчанию»: раскрыта та,
-   * в которой текущий раздел. Выбор человека переживает переходы между
-   * разделами и не переживает перезагрузку: хранить его в localStorage
-   * значило бы читать хранилище в разметке первого кадра, а это расхождение
-   * гидрации (CLAUDE.md, §«Первый кадр»).
+   * Какие группы меню раскрыты.
+   *
+   * Решение Ж4 от 09.10: разделы сгруппированы по категориям и **свёрнуты по
+   * умолчанию**, состояние запоминается. Прежнее поведение раскрывало группу
+   * с текущим разделом и забывалось при перезагрузке; при десяти категориях
+   * раскрытая группа снова даёт длинный столбец, от которого группы и
+   * заводились.
    */
   const [открытыеГруппы, setОткрытыеГруппы] = useState<Record<string, boolean>>({});
+  const [группыПрочитаны, setГруппыПрочитаны] = useState(false);
+  /* Что набрано в поиске по меню — пункт 2 части В решения Ж4. */
+  const [поискМеню, setПоискМеню] = useState("");
+  /* Меню на телефоне — шторкой (решение Ж4, часть В3). */
+  const [меню, setМеню] = useState(false);
+
+  useEffect(() => {
+    try {
+      const сырое = window.localStorage.getItem(КЛЮЧ_ГРУПП);
+      if (сырое) {
+        const разобрано: unknown = JSON.parse(сырое);
+        if (разобрано && typeof разобрано === "object") {
+          setОткрытыеГруппы(разобрано as Record<string, boolean>);
+        }
+      }
+    } catch {
+      /* Хранилище бывает закрыто (приватное окно, запрет сайту) — тогда
+         группы просто не запоминаются. Человеку об этом говорить нечего. */
+    }
+    setГруппыПрочитаны(true);
+  }, []);
+
+  useEffect(() => {
+    /* Запись не начинается раньше чтения — иначе первый рендер затёр бы
+       выбор человека пустым объектом (CLAUDE.md, то же место). */
+    if (!группыПрочитаны) return;
+    try {
+      window.localStorage.setItem(КЛЮЧ_ГРУПП, JSON.stringify(открытыеГруппы));
+    } catch {
+      /* см. выше */
+    }
+  }, [открытыеГруппы, группыПрочитаны]);
 
   // Раздел живёт в адресе, а не в состоянии рядом с ним. Пока это был
   // `useState`, ссылку на раздел нельзя было дать, перезагрузка возвращала в
   // дашборд, а «назад» не работал вовсе. Второго источника правды здесь быть
   // не должно: `?section=` — единственный.
   const section: Section = sectionFromUrl ?? "dashboard";
+
+  /*
+   * Поиск по меню — пункт 2 части В решения Ж4.
+   *
+   * Сравнение без учёта регистра и по вхождению: раздел ищут по куску
+   * названия («банн», «правов»), а не по полному имени. Ищется и по названию
+   * группы — «монетиз» должно находить все четыре вкладки.
+   */
+  const ищем = поискМеню.trim().length > 0;
+  const подходит = useCallback(
+    (текст: string) => текст.toLowerCase().includes(поискМеню.trim().toLowerCase()),
+    [поискМеню],
+  );
 
   const goToSection = useCallback(
     (next: Section, replace = false) => {
@@ -726,16 +823,62 @@ function AdminPage() {
             flexShrink: 0,
           }}
         >
+          {/*
+            Поиск по разделам — пункт 2 части В решения Ж4.
+
+            Тридцать два раздела в десяти группах: найти «Баннеры ленты»
+            быстрее набором трёх букв, чем раскрытием групп по очереди. Пока
+            в поиске что-то набрано, группы с находками раскрыты сами.
+          */}
+          <div style={{ position: "relative", marginBottom: "8px" }}>
+            <Search
+              size={14}
+              aria-hidden
+              style={{
+                position: "absolute",
+                left: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--foreground-50)",
+              }}
+            />
+            <input
+              value={поискМеню}
+              onChange={(e) => setПоискМеню(e.target.value)}
+              placeholder={t("pages.adminShell.navSearch.placeholder")}
+              aria-label={t("pages.adminShell.navSearch.label")}
+              style={{
+                width: "100%",
+                height: "36px",
+                paddingLeft: 30,
+                paddingRight: 10,
+                background: "var(--background-elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-input)",
+                /* 16 px: меньше — и iOS приближает страницу при фокусе.
+                   Боковое меню видно с md, но поле попадало в замер на
+                   360 px, значит на телефоне оно достижимо. */
+                fontSize: "16px",
+                color: "var(--foreground)",
+              }}
+            />
+          </div>
           <nav style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             {NAV_GROUPS.map((группа) => {
-              const пункты = visibleNavItems.filter((n) => группа.items.includes(n.id));
+              const пункты = visibleNavItems
+                .filter((n) => группа.items.includes(n.id))
+                .filter((n) => !ищем || подходит(t(n.labelKey)) || подходит(t(группа.labelKey)));
 
               // Группа без единого доступного раздела не рисуется вовсе:
               // заголовок без содержимого обещал бы то, чего роль не даёт.
               if (пункты.length === 0) return null;
 
-              const здесьТекущий = пункты.some((n) => n.id === navIdFor(section));
-              const раскрыта = открытыеГруппы[группа.id] ?? здесьТекущий;
+              /*
+               * Свёрнуты по умолчанию (решение Ж4). Поиск — исключение: пока
+               * в нём что-то набрано, группы с находками раскрыты, иначе
+               * поиск показывал бы заголовки без строк.
+               */
+              const раскрыта = ищем || (открытыеГруппы[группа.id] ?? false);
 
               return (
                 <div key={группа.id} style={{ marginBottom: "4px" }}>
@@ -808,12 +951,19 @@ function AdminPage() {
 
         {/* Main */}
         <main className="min-w-0 flex-1 p-3 sm:p-5 md:overflow-y-auto md:p-6">
-          {/* Mobile selector */}
+          {/*
+            Меню на телефоне — шторкой (решение Ж4, часть В3).
+
+            Был родной `<select>` с `optgroup`. Решение требует шторку, и это
+            не прихоть: тридцать два раздела в системном списке листаются
+            вслепую, а поиск по разделам в `<select>` не работает вовсе —
+            операционная система рисует его сама и о нашем поле не знает.
+          */}
           <div className="md:hidden" style={{ marginBottom: "16px" }}>
-            <select
-              value={navIdFor(section)}
-              onChange={(e) => goToSection(e.target.value as Section)}
-              className="w-full"
+            <button
+              type="button"
+              onClick={() => setМеню(true)}
+              className="flex w-full items-center justify-between"
               style={{
                 height: "44px",
                 background: "var(--background-elevated)",
@@ -824,27 +974,139 @@ function AdminPage() {
                 color: "var(--foreground)",
               }}
             >
-              {/*
-                Те же группы, что в боковом меню: на телефоне список из
-                тридцати строк листается вслепую. `optgroup` рисует родной
-                разделитель операционной системы — свой список здесь был бы
-                хуже системного.
-              */}
-              {NAV_GROUPS.map((группа) => {
-                const пункты = visibleNavItems.filter((n) => группа.items.includes(n.id));
-                if (пункты.length === 0) return null;
-                return (
-                  <optgroup key={группа.id} label={t(группа.labelKey)}>
-                    {пункты.map((n) => (
-                      <option key={n.id} value={n.id}>
-                        {t(n.labelKey)}
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-            </select>
+              <span>{t(navItems.find((n) => n.id === navIdFor(section))?.labelKey ?? "")}</span>
+              <ChevronDown size={16} aria-hidden />
+            </button>
           </div>
+
+          <Sheet open={меню} onOpenChange={setМеню}>
+            <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>{t("pages.adminShell.headerTitle")}</SheetTitle>
+              </SheetHeader>
+              <div style={{ position: "relative", margin: "12px 0" }}>
+                <Search
+                  size={16}
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "var(--foreground-50)",
+                  }}
+                />
+                <input
+                  value={поискМеню}
+                  onChange={(e) => setПоискМеню(e.target.value)}
+                  placeholder={t("pages.adminShell.navSearch.placeholder")}
+                  aria-label={t("pages.adminShell.navSearch.label")}
+                  style={{
+                    width: "100%",
+                    height: "44px",
+                    paddingLeft: 36,
+                    paddingRight: 12,
+                    background: "var(--background-elevated)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--r-input)",
+                    /* 16px: меньше — и iOS приближает страницу при фокусе. */
+                    fontSize: "16px",
+                    color: "var(--foreground)",
+                  }}
+                />
+              </div>
+              <nav className="flex flex-col gap-[2px] pb-[max(16px,env(safe-area-inset-bottom))]">
+                {NAV_GROUPS.map((группа) => {
+                  const пункты = visibleNavItems
+                    .filter((n) => группа.items.includes(n.id))
+                    .filter(
+                      (n) => !ищем || подходит(t(n.labelKey)) || подходит(t(группа.labelKey)),
+                    );
+                  if (пункты.length === 0) return null;
+                  return (
+                    <div key={группа.id} style={{ marginBottom: "8px" }}>
+                      <div
+                        style={{
+                          padding: "6px 12px",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: "var(--foreground-50)",
+                        }}
+                      >
+                        {t(группа.labelKey)}
+                      </div>
+                      {пункты.map((n) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => {
+                            goToSection(n.id);
+                            setМеню(false);
+                            setПоискМеню("");
+                          }}
+                          className="flex w-full items-center gap-[10px]"
+                          style={{
+                            /* 44 px — норма зоны нажатия в проекте. */
+                            minHeight: "44px",
+                            padding: "0 12px",
+                            borderRadius: "var(--r-card-sm)",
+                            fontSize: "14px",
+                            textAlign: "left",
+                            color:
+                              n.id === navIdFor(section) ? "var(--accent)" : "var(--foreground)",
+                            background:
+                              n.id === navIdFor(section) ? "var(--accent-soft)" : "transparent",
+                          }}
+                        >
+                          <n.icon size={16} />
+                          {t(n.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+                {ищем &&
+                  visibleNavItems.filter(
+                    (n) =>
+                      подходит(t(n.labelKey)) ||
+                      NAV_GROUPS.some((g) => g.items.includes(n.id) && подходит(t(g.labelKey))),
+                  ).length === 0 && (
+                    <p
+                      className="px-[12px] py-[8px] text-[13px]"
+                      style={{ color: "var(--foreground-50)" }}
+                    >
+                      {t("pages.adminShell.navSearch.nothing")}
+                    </p>
+                  )}
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          {/*
+            Заголовок страницы — имя текущего раздела.
+            
+            Находка B-10 финального аудита: у админки нет `h1`. Проверено
+            09.10 обходом всех тридцати двух разделов под владельцем — `h1`
+            нашёлся ровно на одном (`design`), `main` при этом везде один.
+            Ворота проекта требуют «ровно один main и один h1 на странице»
+            (FRONT-FINAL-RUN, 3.5.3), и админка их не проходила.
+            
+            Заголовок именно здесь, а не в шапке: в шапке стоит «Админ-панель»
+            — одно и то же на тридцати двух страницах. Диктору и поисковику
+            нужен заголовок страницы, а страница тут — раздел. Поэтому h1
+            называет раздел и меняется вместе с ним.
+            
+            Заголовок скрыт от глаз (`sr-only`) и существует для диктора,
+            поисковика и структуры страницы. Видимым он оказался третьим
+            «Дашбордом» на экране — замер так и показал: «Дашборд Дашборд
+            Дашборд». Имя раздела уже стоит в меню (на телефоне — на кнопке
+            меню) и ещё раз заголовком внутри самого раздела.
+          */}
+          <h1 className="sr-only">
+            {t(navItems.find((n) => n.id === navIdFor(section))?.labelKey ?? "")}
+          </h1>
 
           {/* Выше переключателя: внутри плашка перемонтировалась бы и
               анимировалась на каждой смене раздела, хотя причина пустоты

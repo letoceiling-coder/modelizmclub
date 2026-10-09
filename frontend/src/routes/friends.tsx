@@ -14,6 +14,7 @@ import { userById } from "@/lib/user-registry";
 import { useStore, actions } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { groupCalls } from "@/lib/groupCall";
+import { useFeatureFlag } from "@/lib/config/featureFlags";
 import { useOnlineSet } from "@/lib/realtime/presence";
 import { isUserOnline } from "@/lib/presence-status";
 import {
@@ -201,6 +202,9 @@ function FriendsPage() {
   // потому что список действительно пуст.
   const guestBlocked = useGuestRouteBlocked("route.friends");
   const { requireAction } = useActionGate();
+  /* Звонки настроены на сервере — решение D10, находка B-09. */
+  const звонкиНастроены = useFeatureFlag("callsEnabled");
+
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const me = useCurrentUser();
@@ -515,18 +519,40 @@ function FriendsPage() {
               {t("pages.friends.subtitle")}
             </p>
           </div>
-          {/* Full-width split on mobile so "Групповой звонок" never runs off the
-              right edge; natural row on desktop. */}
-          <div className="flex w-full items-center justify-end gap-[8px] sm:w-auto sm:shrink-0">
-            <Button
-              type="button"
-              onClick={() => void requireAction("call.start", () => groupCalls.openPicker("start"))}
-              className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
-              size="sm"
-            >
-              <Users size={16} /> {t("pages.friends.groupCall")}
-            </Button>
-          </div>
+          {/*
+            Кнопка группового звонка — только там, где звонок может
+            состояться.
+
+            Решение D10 от 05.10: «работает на стенде — вторичное действие с
+            выбором участников; не работает — активную кнопку убрать и
+            записать блокер». Находка B-09 аудита: кнопка стояла на месте при
+            пустых `livekit.url`, `livekit.api_key` и `calls.turn_urls`, то
+            есть обещала то, чего нет. Выяснить, настроен ли контур на проде,
+            мог только владелец — и вопрос висел.
+
+            Признак `callsEnabled` снимает вопрос: его отдаёт сервер по
+            настоящей настройке LiveKit, теми же тремя значениями, которые
+            проверяет `LiveKitController` перед выдачей токена. Настроено —
+            кнопка есть; не настроено — кнопки нет, и человек не узнаёт о
+            звонке из неработающей кнопки.
+
+            Full-width split on mobile so "Групповой звонок" never runs off
+            the right edge; natural row on desktop.
+          */}
+          {звонкиНастроены && (
+            <div className="flex w-full items-center justify-end gap-[8px] sm:w-auto sm:shrink-0">
+              <Button
+                type="button"
+                onClick={() =>
+                  void requireAction("call.start", () => groupCalls.openPicker("start"))
+                }
+                className="flex-1 rounded-[10px] gap-[6px] sm:flex-none"
+                size="sm"
+              >
+                <Users size={16} /> {t("pages.friends.groupCall")}
+              </Button>
+            </div>
+          )}
         </header>
 
         {/*

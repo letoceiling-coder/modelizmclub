@@ -444,7 +444,7 @@ export function DirectionsRightRail() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("components.rightCategories.searchPlaceholder")}
-                className="h-[34px] w-full rounded-[8px] border bg-transparent pl-[30px] pr-[10px] text-[12.5px]"
+                className="h-[34px] w-full rounded-[8px] border bg-transparent pl-[30px] pr-[10px] text-[16px] md:text-[12.5px]"
                 style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
               />
             </label>

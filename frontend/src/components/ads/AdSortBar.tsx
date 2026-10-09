@@ -38,7 +38,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, filterC
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             placeholder={t("search.adsPlaceholder")}
-            className="w-full text-[14px] transition-colors"
+            className="w-full text-[16px] transition-colors md:text-[14px]"
             style={{
               background: "var(--background-elevated)",
               color: "var(--foreground)",
@@ -89,7 +89,7 @@ export function AdSortBar({ query, onQuery, sort, onSort, onOpenFilters, filterC
           onChange={(e) => onSort(e.target.value as SortKey)}
           aria-label={t("components.adsCatalog.sortAria")}
           // 44 на сенсорных ширинах (зона нажатия), 36 с lg — как было.
-          className="h-11 shrink-0 cursor-pointer text-[13px] font-medium lg:h-9"
+          className="h-11 shrink-0 cursor-pointer text-[16px] md:text-[13px] font-medium lg:h-9"
           style={{
             background: "var(--background-elevated)",
             color: "var(--foreground)",
