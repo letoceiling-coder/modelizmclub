@@ -1185,6 +1185,7 @@ export const ru = {
       channelsNotFound: "Каналы не найдены",
       openPhotoFullscreen: "Открыть фото на весь экран",
       listingLabel: "Объявление",
+      openListing: "Открыть объявление «{{title}}»",
       postLabel: "Публикация",
       forwardedFrom: "Переслано от {{name}}",
       channelSubscribed: "Подписан",
@@ -1732,6 +1733,10 @@ export const ru = {
       loginToPost: "Войти и разместить",
     },
     adDetail: {
+      /* Решение Ж3 от 09.10: отказы на пути «Написать продавцу». */
+      listingNotOpenForChat: "Объявление снято или больше не продаётся — написать по нему нельзя",
+      listingChatLimit:
+        "Сегодня вы начали слишком много переписок по объявлениям. Попробуйте завтра",
       metaTitle: "Объявление — МоДелизМ",
       notFoundTitle: "Объявление не найдено",
       notFoundDesc: "Возможно, оно было продано, снято с публикации или ссылка устарела.",

@@ -495,11 +495,15 @@ export async function createConversation(
       messages: [],
     };
   }
-  const res = await api<{ data: ApiConversation }>("/conversations", {
+  const res = await api<{ data: ApiConversation; meta?: { created?: boolean } }>("/conversations", {
     method: "POST",
     json: { user_id: userId, listing_uuid: listingUuid },
   });
-  return mapConversation(res.data, meUuid);
+  const dialog = mapConversation(res.data, meUuid);
+  /* Сервер говорит, создал он переписку или нашёл: по этому признаку
+     страница объявления решает, дописывать ли приветствие (решение Ж3). */
+  dialog.justCreated = res.meta?.created === true;
+  return dialog;
 }
 
 /** Open or re-open a direct chat — clears stale local delete state and hidden history. */

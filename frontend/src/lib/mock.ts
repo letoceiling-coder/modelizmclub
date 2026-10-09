@@ -478,6 +478,15 @@ export interface Dialog {
   messages: Message[];
   pinned?: boolean;
   listing?: DialogAdRef;
+  /**
+   * Переписка создана этим запросом, а не найдена.
+   *
+   * Говорит сервер (`meta.created` в ответе на создание). По этому признаку
+   * страница объявления решает, дописывать ли приветствие «Пишу по
+   * объявлению…»: решение Ж3, пункт 2 — повторное «Написать продавцу»
+   * открывает ту же переписку, а не добавляет в неё второе приветствие.
+   */
+  justCreated?: boolean;
   type?: "direct" | "group" | "community" | "room" | "deal";
   title?: string;
   avatar?: string;
@@ -513,13 +522,13 @@ export interface DialogDealRef {
   statusLabel?: string;
 }
 
-export interface DialogAdRef {
-  id: ID;
-  title: string;
-  price: number;
-  image?: string;
-}
-
+/**
+ * Объявление, к которому привязана переписка (решение Ж3 от 09.10).
+ *
+ * Объявление было здесь объявлено дважды, слово в слово: TypeScript такие
+ * описания сливает и ошибки не даёт, поэтому дубль жил незаметно. Оставлено
+ * одно.
+ */
 export interface DialogAdRef {
   id: ID;
   title: string;

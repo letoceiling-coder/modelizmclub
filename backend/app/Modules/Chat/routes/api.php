@@ -37,13 +37,31 @@ Route::middleware('auth:sanctum')->prefix('categories/posts')->group(function ()
         ->whereNumber(['parentId', 'subId']);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('conversations')->group(function (): void {
+/*
+ * Начать переписку и написать в неё — решение Ж3 от 09.10.
+ *
+ * Эти два пути вынесены из группы с посредником `verified`: по
+ * опубликованному объявлению продавцу пишет любой вошедший, и требовать
+ * подтверждённый телефон там нельзя (пункт 8 решения — телефон только если
+ * так задано матрицей, а матрица ставит `messenger.send` на уровень `auth`).
+ *
+ * Требование не исчезло, а переехало в контроллеры и сузилось: вне пути из
+ * объявления телефон спрашивается как раньше, тем же кодом
+ * `phone_not_verified`. Проверка в контроллере, а не в посреднике, потому
+ * что решает её объявление из тела запроса, которого посредник не знает.
+ *
+ * Остальные пути беседы остались в группе ниже без изменений.
+ */
+Route::middleware('auth:sanctum')->prefix('conversations')->group(function (): void {
     Route::post('/', StoreConversationController::class);
+    Route::post('{uuid}/messages', StoreMessageController::class);
+});
+
+Route::middleware(['auth:sanctum', 'verified'])->prefix('conversations')->group(function (): void {
     Route::delete('{uuid}', DestroyConversationController::class);
     Route::post('{uuid}/attachments', StoreAttachmentController::class);
     Route::post('{uuid}/pin', PinConversationController::class);
     Route::delete('{uuid}/pin', UnpinConversationController::class);
-    Route::post('{uuid}/messages', StoreMessageController::class);
     Route::delete('{uuid}/messages/{messageUuid}', HideMessageController::class);
     Route::delete('{uuid}/messages/{messageUuid}/everyone', DeleteMessageForEveryoneController::class);
     Route::delete('{uuid}/history', ClearConversationHistoryController::class);
