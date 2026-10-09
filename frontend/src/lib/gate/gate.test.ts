@@ -42,9 +42,15 @@ function makeSession(over: {
   };
 }
 
+/**
+ * Состояния зрителя. После решения З2 от 09.10 телефон не ступень лестницы:
+ * вошедший без подтверждённого номера и вошедший с ним стоят на одной
+ * ступени `verified`. Оба состояния оставлены нарочно — проверки ниже
+ * утверждают именно их равенство.
+ */
 const STATES = {
   guest: null,
-  registered: makeSession({}),
+  безТелефона: makeSession({}),
   verified: makeSession({ phoneVerified: true }),
   subscriber: makeSession({ phoneVerified: true, subscriptionActive: true }),
 } as const;
@@ -58,9 +64,22 @@ beforeEach(() => {
 describe("levelOf", () => {
   it("maps each viewer state to its rung", () => {
     expect(levelOf(STATES.guest)).toBe("guest");
-    expect(levelOf(STATES.registered)).toBe("registered");
     expect(levelOf(STATES.verified)).toBe("verified");
     expect(levelOf(STATES.subscriber)).toBe("subscriber");
+  });
+
+  /**
+   * Решение З2: телефон нужен для публикации объявления и вывода средств,
+   * и оба спрашивают его сами. Лестница про телефон не знает.
+   *
+   * Пока она знала, вошедший без номера стоял на `registered`, и путь к
+   * `subscriber` вёл через окно подтверждения: учётка без телефона открывала
+   * `/reviews` и получала «Подтвердите номер» вместо окна подписки. Телефон
+   * ей для обзоров не нужен ни по серверу, ни по карте доступа.
+   */
+  it("телефон не меняет ступень — решение З2", () => {
+    expect(levelOf(STATES.безТелефона)).toBe("verified");
+    expect(levelOf(STATES.безТелефона)).toBe(levelOf(STATES.verified));
   });
 
   it("treats the «подписка не требуется» exemption as a subscriber", () => {
@@ -78,9 +97,10 @@ describe("levelOf", () => {
 
 describe("meets", () => {
   const table: Array<[keyof typeof STATES, boolean, boolean, boolean]> = [
-    // state                 guest  verified subscriber
+    // состояние             guest  verified subscriber
     ["guest", true, false, false],
-    ["registered", true, false, false],
+    // Вошедший без телефона — там же, где вошедший с телефоном (решение З2).
+    ["безТелефона", true, true, false],
     ["verified", true, true, false],
     ["subscriber", true, true, true],
   ];
@@ -101,10 +121,17 @@ describe("firstFailingStep", () => {
     expect(firstFailingStep(have, "guest")).toBeNull();
   });
 
-  it("asks a signed-in user without SMS to verify", () => {
-    const have = levelOf(STATES.registered);
-    expect(firstFailingStep(have, "verified")).toBe("verify");
-    expect(firstFailingStep(have, "subscriber")).toBe("verify");
+  /**
+   * Вошедшему без SMS показывается окно подписки, а не подтверждения.
+   *
+   * Это и есть починка четвёртой жалобы на уровне лестницы: подтверждение
+   * номера не открывало доступ к обзорам, значит и спрашивать его там было
+   * нечего — окно уводило в сторону и возвращалось на каждом переходе.
+   */
+  it("вошедшему без SMS на платное действие — окно подписки, не подтверждения", () => {
+    const have = levelOf(STATES.безТелефона);
+    expect(firstFailingStep(have, "verified")).toBeNull();
+    expect(firstFailingStep(have, "subscriber")).toBe("paywall");
   });
 
   it("shows the subscription window — not verification — to a verified user", () => {
@@ -145,15 +172,25 @@ describe("gateRequire", () => {
     expect(action).toHaveBeenCalledTimes(1);
   });
 
-  it("opens verification for a signed-in user without SMS", async () => {
-    session = STATES.registered;
+  it("пропускает вошедшего без SMS: окна не открывается (решение З2)", async () => {
+    session = STATES.безТелефона;
     const action = vi.fn();
 
-    await gateRequire("verified", action);
+    await expect(gateRequire("verified", action)).resolves.toBe(true);
+
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(getGateState().open).toBeNull();
+  });
+
+  it("вошедшему без SMS на платное действие открывает окно подписки", async () => {
+    session = STATES.безТелефона;
+    const action = vi.fn();
+
+    await gateRequire("subscriber", action);
 
     expect(action).not.toHaveBeenCalled();
-    expect(getGateState().open).toBe("verify");
-    expect(takePendingAction()?.level).toBe("verified");
+    expect(getGateState().open).toBe("paywall");
+    expect(takePendingAction()?.level).toBe("subscriber");
   });
 
   it("opens the subscription window for a verified user on a premium action", async () => {

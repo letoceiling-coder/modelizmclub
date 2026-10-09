@@ -62,9 +62,20 @@ describe("тир маршрута против уровня зрителя", () 
     expect(meets(levelOf(subscriber), need)).toBe(true);
   });
 
+  /**
+   * Окно всегда одно — первая непройденная ступень.
+   *
+   * Ступень подтверждения номера из этого пути ушла (решение З2 от 09.10):
+   * вошедший без телефона на платном маршруте видит окно подписки, а не
+   * «Подтвердите номер». Пока ступень была в пути, на `/reviews` открывалось
+   * окно, которое доступа к обзорам всё равно не давало.
+   */
   it("окно всегда одно — первая непройденная ступень", () => {
-    expect(firstFailingStep(levelOf(registered), "verified")).toBe("verify");
+    expect(firstFailingStep(levelOf(registered), "verified")).toBeNull();
+    expect(firstFailingStep(levelOf(registered), "subscriber")).toBe("paywall");
     expect(firstFailingStep(levelOf(verified), "subscriber")).toBe("paywall");
     expect(firstFailingStep(levelOf(subscriber), "subscriber")).toBeNull();
+    // Гостю — только вход, и ни в каком случае не подтверждение или оплата.
+    expect(firstFailingStep(levelOf(null), "subscriber")).toBe("auth");
   });
 });
