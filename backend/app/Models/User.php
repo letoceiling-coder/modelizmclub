@@ -506,7 +506,8 @@ class User extends Authenticatable
      * Проходит ли пользователь стену `verified` — ту самую, что стоит на всех
      * пишущих группах маршрутов (лента, сообщества, объявления, биллинг).
      *
-     * Одна истина на двоих: её спрашивает и middleware `EnsureFullyVerified`,
+     * Одна истина на двоих: её спрашивают посредники `EnsureEmailVerified`
+     * и `EnsurePhoneVerified` (до 09.10 — один `EnsureFullyVerified`),
      * и флаги `can.*` в выдаче. Раньше флаги считала только политика, о
      * middleware не знавшая, и API обещал то, что сам же запрещал: замер
      * прода 07.09 — `GET /feed` отдавал `can.react: true` учётке без

@@ -87,7 +87,24 @@ class PhoneVerificationService
         $template = $this->resolveVerificationTemplate($user);
 
         try {
-            $this->sms->sendTemplate($phone, $template, [(int) $code]);
+            /*
+             * Код уходит строкой, а не числом.
+             *
+             * Здесь стояло `[(int) $code]`, а в шаблоне — `%d`. Приведение к
+             * числу съедает ведущие нули: код `001234` из базы уезжал в SMS
+             * как «1234». Человек получал четыре цифры, форма требовала
+             * шесть, и подтвердить номер было нельзя — ровно вторая жалоба
+             * владельца от 09.10.
+             *
+             * Цена промаха: каждый десятый код начинается с нуля, каждый
+             * сотый — с двух нулей. То есть один человек из десяти получал
+             * код короче, чем ждёт форма.
+             *
+             * Проверено `php -r` на тех же значениях: 012345 → «12345»,
+             * 001234 → «1234», 000123 → «123». Сторож — тест
+             * `SmsCodeLengthIsOneTruthTest::test_leading_zeros_survive_the_sms`.
+             */
+            $this->sms->sendTemplate($phone, $template, [$code]);
         } catch (SmsDeliveryException $e) {
             Log::error('Phone verification SMS failed', [
                 'user_id' => $user->id,
@@ -154,10 +171,19 @@ class PhoneVerificationService
             ]);
         }
 
+        /*
+         * Длина — из того же места, что у генератора (решение З1).
+         *
+         * Здесь стояло `/^\d{6}$/` с текстом «Код должен состоять из 6 цифр»,
+         * и это была вторая независимая запись той же шестёрки. Смена
+         * настройки меняла код в SMS и не меняла проверку: сервер отвергал
+         * собственный код.
+         */
+        $length = self::codeLength();
         $code = trim($code);
-        if (! preg_match('/^\d{6}$/', $code)) {
+        if (! preg_match('/^\d{'.$length.'}$/', $code)) {
             throw ValidationException::withMessages([
-                'code' => ['Код должен состоять из 6 цифр.'],
+                'code' => ['Код состоит из '.$length.' цифр.'],
             ]);
         }
 
@@ -213,9 +239,22 @@ class PhoneVerificationService
         return $user->fresh(['profile']);
     }
 
+    /**
+     * Длина кода — из настройки, и больше ниоткуда (решение З1).
+     *
+     * Публичный метод, потому что по нему строится ответ на запрос кода:
+     * форма берёт длину из ответа сервера, а не знает её заранее.
+     */
+    public static function codeLength(): int
+    {
+        return max(4, min(8, (int) config('sms.verification.code_length', 6)));
+    }
+
     private function generateCode(): string
     {
-        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $length = self::codeLength();
+
+        return str_pad((string) random_int(0, (10 ** $length) - 1), $length, '0', STR_PAD_LEFT);
     }
 
     private function resolveVerificationTemplate(User $user): SmsTemplate

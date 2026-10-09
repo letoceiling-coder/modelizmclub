@@ -69,14 +69,18 @@ Route::middleware('auth:sanctum')->group(function (): void {
  * объявления. До 07.09 здесь стоял только `auth:sanctum`, и учётка, которой
  * нельзя поставить лайк, создавала безопасную сделку и бронировала чужой лот.
  */
-Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->group(function (): void {
     Route::post('users/me/subscription/cancel', CancelSubscriptionController::class);
     Route::post('payments', CreatePaymentController::class);
     Route::post('payments/{uuid}/sync', SyncPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
     Route::post('payments/{uuid}/confirm-stub', ConfirmStubPaymentController::class)->where('uuid', '[0-9a-f-]{36}');
 
     Route::post('wallet/topup', WalletTopupController::class);
-    Route::post('wallet/withdraw', WalletWithdrawController::class);
+    /*
+     * Вывод средств — второе из двух действий с телефоном (решение З2).
+     * Деньги уходят с площадки, и подтверждённый номер здесь — не формальность.
+     */
+    Route::middleware('verified.phone')->post('wallet/withdraw', WalletWithdrawController::class);
 
     // Расчёт уходит в СДЭК и стоит денег на каждом вызове — см. лимитер
     // delivery-quote в AppServiceProvider.

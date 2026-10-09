@@ -57,7 +57,7 @@ Route::middleware('auth:sanctum')->prefix('conversations')->group(function (): v
     Route::post('{uuid}/messages', StoreMessageController::class);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('conversations')->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->prefix('conversations')->group(function (): void {
     Route::delete('{uuid}', DestroyConversationController::class);
     Route::post('{uuid}/attachments', StoreAttachmentController::class);
     Route::post('{uuid}/pin', PinConversationController::class);

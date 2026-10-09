@@ -4,7 +4,13 @@ import { useSession } from "@/lib/session";
 import { AuthDialog } from "./AuthDialog";
 import { PaywallDialog } from "./PaywallDialog";
 import { VerifyPhoneDialog } from "./VerifyPhoneDialog";
-import { closeGate, openGate, setPendingAction, useGateState } from "./gateStore";
+import {
+  clearVerifyGateDismissal,
+  closeGate,
+  openGate,
+  setPendingAction,
+  useGateState,
+} from "./gateStore";
 import { clearIntent, readIntent, saveIntent } from "./intent";
 import { levelOf } from "./levels";
 import { decideStoredIntent } from "./storedIntent";
@@ -89,7 +95,11 @@ export function GateHost() {
       <VerifyPhoneDialog
         open={open === "verify"}
         onOpenChange={dismiss}
-        onSuccess={() => void resumeIntent(go)}
+        onSuccess={() => {
+          // Номер подтверждён — помнить прежний отказ больше не о чем.
+          clearVerifyGateDismissal();
+          void resumeIntent(go);
+        }}
       />
       <PaywallDialog open={open === "paywall"} returnTo={returnTo} onOpenChange={dismiss} />
     </>

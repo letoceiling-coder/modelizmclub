@@ -14,11 +14,22 @@ describe("controlForServerVerdict", () => {
     expect(controlForServerVerdict("guest", false)).toBe("show");
   });
 
-  it("keeps the button for a user without SMS — the click asks to verify the phone", () => {
-    expect(controlForServerVerdict("registered", false)).toBe("verify");
-  });
-
-  it("hides the button when a verified viewer is refused on the merits", () => {
+  /**
+   * Вошедшему «нельзя» значит нельзя по существу — решение З2 от 09.10.
+   *
+   * Здесь проверялось «кнопка остаётся, клик попросит подтвердить номер».
+   * Это было верно, пока реакции и комментарии требовали телефона. После З2
+   * они его не требуют, и `can` их больше не занижает (см. `HasCanFlags`):
+   * отказ сервера вошедшему означает закрытые комментарии, блокировку или
+   * чужую запись. Окно подтверждения номера такой отказ не снимет, и
+   * показывать его значило бы обещать выход там, где его нет.
+   *
+   * Ступень `registered` в лестницу больше не приходит (см. `levelOf`), и
+   * проверяется это нарочно: смысл у неё теперь тот же, что у остальных
+   * вошедших.
+   */
+  it("вошедшему кнопку прячет: отказ окончателен (решение З2)", () => {
+    expect(controlForServerVerdict("registered", false)).toBe("hide");
     expect(controlForServerVerdict("verified", false)).toBe("hide");
     expect(controlForServerVerdict("subscriber", false)).toBe("hide");
   });

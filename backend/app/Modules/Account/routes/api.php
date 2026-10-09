@@ -36,7 +36,7 @@ Route::middleware('auth:sanctum')->prefix('account')->group(function (): void {
     Route::get('payout-requisites', ShowPayoutRequisitesController::class);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('account')->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->prefix('account')->group(function (): void {
     Route::put('requisites', UpdateDocumentRequisitesController::class);
 
     Route::post('payment-methods', StorePaymentMethodController::class);
@@ -46,7 +46,14 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('account')->group(functi
     Route::post('2fa/verify', VerifyTwoFactorController::class);
     Route::post('2fa/disable', DisableTwoFactorController::class);
 
-    Route::put('payout-requisites', UpdatePayoutRequisitesController::class);
+    /*
+     * Куда уходят деньги — часть вывода средств, поэтому телефон по З2 нужен
+     * и здесь. Решение называет два действия; смена реквизитов выплаты —
+     * то же действие с другой стороны: подменить их, не подтвердив номер,
+     * значило бы обойти требование целиком.
+     */
+    Route::middleware('verified.phone')
+        ->put('payout-requisites', UpdatePayoutRequisitesController::class);
 });
 
 Route::prefix('account')->group(function (): void {

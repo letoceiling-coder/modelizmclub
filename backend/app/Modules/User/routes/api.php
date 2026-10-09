@@ -48,7 +48,7 @@ Route::prefix('users')->group(function (): void {
         Route::get('me/friend-requests/sent', [FriendController::class, 'indexOutgoingRequests']);
     });
 
-    Route::middleware(['auth:sanctum', 'verified'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'verified.email'])->group(function (): void {
         Route::patch('me', UpdateProfileController::class);
         Route::patch('me/privacy', PrivacyController::class);
         Route::put('me/interests', [InterestsController::class, 'sync']);
@@ -71,7 +71,7 @@ Route::prefix('users')->group(function (): void {
 
 Route::middleware('throttle:feedback-send')->post('feedback', [FeedbackController::class, 'store']);
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('friend-requests')->group(function (): void {
+Route::middleware(['auth:sanctum', 'verified.email'])->prefix('friend-requests')->group(function (): void {
     Route::post('{id}/accept', [FriendController::class, 'accept'])->whereNumber('id');
     Route::post('{id}/decline', [FriendController::class, 'decline'])->whereNumber('id');
     Route::delete('{id}', [FriendController::class, 'cancel'])->whereNumber('id');

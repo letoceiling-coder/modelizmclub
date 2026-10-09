@@ -29,6 +29,18 @@ class SendPhoneVerificationCodeController extends Controller
                 // по этому числу, а не по своей копии значения: пауза задаётся
                 // переменной окружения и разъехалась бы при первой же правке.
                 'resend_after' => (int) config('sms.verification.resend_cooldown_seconds', 60),
+                /*
+                 * Сколько цифр в отправленном коде — решение З1 от 09.10.
+                 *
+                 * Форма строит поле по этому числу и по нему же пишет «Код
+                 * из N цифр». Своей копии шестёрки у интерфейса больше нет:
+                 * до 09.10 их было три (`maxLength={6}`, `slice(0, 6)`,
+                 * `length !== 6`) в двух файлах, и смена настройки на сервере
+                 * означала форму, которая не принимает собственный код.
+                 */
+                'code_length' => PhoneVerificationService::codeLength(),
+                // Сколько раз можно ошибиться до «запросите новый».
+                'max_attempts' => (int) config('sms.verification.max_verify_attempts', 5),
             ],
         ], 202);
     }

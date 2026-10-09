@@ -31,7 +31,7 @@ class PublicBootstrapService
      * Ключ в Redis. Номер в конце — чтобы смена формы ответа при выкатке не
      * отдала старую форму из кеша: поменял структуру — поменяй номер.
      */
-    public const CACHE_KEY = 'public.bootstrap.v1';
+    public const CACHE_KEY = 'public.bootstrap.v2';
 
     /**
      * Сколько держать. Столько же, сколько уже обещано клиентам: контроллер
@@ -88,6 +88,19 @@ class PublicBootstrapService
         $referral = ReferralProgramConfig::get();
 
         return [
+            /*
+             * Форма кода подтверждения — её длина приходит с сервера.
+             *
+             * Решение З1 требует, чтобы длину сообщал ответ на запрос кода, и
+             * он её сообщает. Но поле ввода существует и до первой отправки —
+             * человек возвращается на страницу с кодом в руках, — а знать
+             * длину оно должно уже тогда. Поэтому то же самое значение едет
+             * в общей загрузке, и у фронтенда своей копии шестёрки нет
+             * нигде.
+             */
+            'auth' => [
+                'sms_code_length' => \Modules\Auth\Services\PhoneVerificationService::codeLength(),
+            ],
             'feature_flags' => [
                 'communities_enabled' => FeatureFlags::enabled('feature.communities_enabled'),
                 'reviews_enabled' => FeatureFlags::enabled('feature.reviews_enabled', true),

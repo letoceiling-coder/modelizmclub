@@ -69,6 +69,17 @@ class ChannelPostCommentFlagsTest extends TestCase
         $this->listAs($reader)->assertJsonPath('data.0.comments', 2);
     }
 
+    /**
+     * Флаг и ответ сервера совпадают — в обе стороны.
+     *
+     * До 09.10 здесь проверялось, что человеку без телефона поле комментария
+     * закрыто заранее: маршрут отвечал 403, и открытое поле съедало
+     * набранный текст. По решению З2 от 09.10 комментарий телефона не
+     * требует, и теперь проверяется то же правило с другим ответом: флаг
+     * `true`, запрос принят. Непроверенным не осталось ничего — гость
+     * по-прежнему получает `false`, а подтверждённая почта остаётся стеной
+     * (см. `CanFlagsRespectVerificationTest`).
+     */
     public function test_can_comment_matches_what_the_server_accepts(): void
     {
         $feedUuid = ChannelPost::query()->firstOrFail()->feedPost->uuid;
@@ -77,11 +88,12 @@ class ChannelPostCommentFlagsTest extends TestCase
         $this->listAs($verified)->assertJsonPath('data.0.can.comment', true);
 
         $noPhone = User::factory()->create(['status' => UserStatus::Active, 'phone_verified_at' => null]);
-        $this->listAs($noPhone)->assertJsonPath('data.0.can.comment', false);
+        $this->listAs($noPhone)->assertJsonPath('data.0.can.comment', true);
         $this->actingAs($noPhone, 'sanctum')
             ->postJson("/api/v1/posts/{$feedUuid}/comments", ['body' => 'Без телефона'])
-            ->assertForbidden();
+            ->assertCreated();
 
+        // Гостю — по-прежнему нет: он не вошёл, и это другая ступень.
         $this->listAs(null)->assertJsonPath('data.0.can.comment', false);
     }
 

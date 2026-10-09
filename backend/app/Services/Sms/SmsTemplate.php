@@ -67,16 +67,26 @@ enum SmsTemplate: string
     case PromoBrand = 'promo_brand';
 
     /**
+     * У кодов подтверждения стоит `%s`, а не `%d`.
+     *
+     * Текст от этого не меняется, а ведущие нули перестают теряться. До 09.10
+     * пять шаблонов с кодом держали `%d`, и `vsprintf` печатал число: код
+     * `001234` уезжал в SMS как «1234». Подробный разбор — в
+     * `PhoneVerificationService::sendCode()`.
+     *
+     * `%d` остаётся у рублей, номеров заказов и счётчиков — там это числа и
+     * ведущих нулей у них не бывает.
+     *
      * @param  array<int, int|string>  $params  Порядок параметров как в согласованном шаблоне (%d, %s, %w).
      */
     public function render(array $params = []): string
     {
         $template = match ($this) {
-            self::Verification => 'Modelizm: код подтверждения %d. Никому не сообщайте код.',
-            self::Login => 'Modelizm: код для входа %d. Действует 5 минут.',
-            self::PasswordReset => 'Modelizm: код восстановления пароля %d.',
-            self::PhoneChange => 'Modelizm: код подтверждения нового номера %d.',
-            self::AdPublishVerify => 'Modelizm: для публикации объявления введите код %d.',
+            self::Verification => 'Modelizm: код подтверждения %s. Никому не сообщайте код.',
+            self::Login => 'Modelizm: код для входа %s. Действует 5 минут.',
+            self::PasswordReset => 'Modelizm: код восстановления пароля %s.',
+            self::PhoneChange => 'Modelizm: код подтверждения нового номера %s.',
+            self::AdPublishVerify => 'Modelizm: для публикации объявления введите код %s.',
             self::AdPublished => 'Modelizm: объявление «%s» опубликовано. modelizmclub.ru',
             self::AdRejected => 'Modelizm: объявление «%s» не прошло модерацию. modelizmclub.ru',
             self::AdPaymentReceived => 'Modelizm: оплата размещения «%s» — %d ₽ получена.',

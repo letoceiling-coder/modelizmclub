@@ -3,7 +3,6 @@
 namespace Modules\Chat\Http\Controllers\Api\V1\Concerns;
 
 use App\Models\Conversation;
-use App\Support\ListingChat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,22 +29,16 @@ trait AuthorizesSend
     protected function denySend(Request $request, Conversation $conversation): ?JsonResponse
     {
         /*
-         * Подтверждённый телефон — кроме переписки по объявлению.
+         * Телефон для переписки не нужен — ни по объявлению, ни в любой
+         * другой беседе. Решение З2 от 09.10.
          *
-         * Решение Ж3 от 09.10, пункт 8. Маршрут отправки сообщения лежал в
-         * группе с посредником `verified`; по решению Ж3 покупатель пишет
-         * продавцу без подтверждённого телефона, иначе право начать
-         * переписку было бы пустым — начать можно, сказать нельзя.
-         *
-         * Проверка переехала сюда и сузилась ровно на этот случай: во всех
-         * прочих беседах телефон спрашивается как раньше, тем же кодом
-         * `phone_not_verified`, по которому клиент открывает окно
-         * подтверждения номера.
+         * Сужение «кроме переписки по объявлению» появилось 09.10 по решению
+         * Ж3 и держалось на том, что во всех остальных беседах телефон всё
+         * ещё требуется. З2 это требование снял целиком, и различать беседы
+         * стало незачем: проверка смотрит только почту, одинаково для всех.
          */
-        if (! ListingChat::isListingConversation($conversation)) {
-            if ($отказ = $this->denyUnverifiedSender($request)) {
-                return $отказ;
-            }
+        if ($отказ = $this->denyUnverifiedSender($request)) {
+            return $отказ;
         }
 
         $verdict = Gate::forUser($request->user())->inspect('send', $conversation);
@@ -66,12 +59,12 @@ trait AuthorizesSend
         return null;
     }
 
-    /** Повторяет ответ посредника `EnsureFullyVerified`, снятого с маршрута. */
+    /** Только почта: телефон по решению З2 для переписки не требуется. */
     private function denyUnverifiedSender(Request $request): ?JsonResponse
     {
         $user = $request->user();
 
-        if ($user === null || $user->isFullyVerified()) {
+        if ($user === null || $user->isModerator()) {
             return null;
         }
 
@@ -82,9 +75,6 @@ trait AuthorizesSend
             ], 403);
         }
 
-        return response()->json([
-            'message' => 'Подтвердите номер телефона по SMS, чтобы выполнить это действие.',
-            'code' => 'phone_not_verified',
-        ], 403);
+        return null;
     }
 }
