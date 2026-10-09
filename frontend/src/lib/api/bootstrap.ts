@@ -35,7 +35,13 @@ export interface IntegrationKeys {
   google_verification?: string;
 }
 
+/** Форма кода подтверждения: длину задаёт сервер (решение З1 от 09.10). */
+export interface BootstrapAuthShape {
+  sms_code_length?: number;
+}
+
 export interface PublicBootstrapPayload {
+  auth?: BootstrapAuthShape;
   feature_flags: BootstrapFeatureFlags;
   integration_keys?: IntegrationKeys;
   branding: SiteBranding;
@@ -103,6 +109,23 @@ export function startPublicBootstrap(): Promise<PublicBootstrapPayload | null> {
       return null;
     });
   return inflight;
+}
+
+/**
+ * Сколько цифр в коде подтверждения — единственный ответ для интерфейса.
+ *
+ * Своей шестёрки у фронтенда больше нет нигде: поле ввода, обрезка вставки,
+ * доступность кнопки и текст «Код из N цифр» читают это. 6 здесь — не
+ * решение о длине, а значение до первой загрузки: столько же отдаёт сервер
+ * по умолчанию, и расходиться им негде, потому что оно одно.
+ *
+ * Границы 4…8 повторяют серверные: испорченный ответ не должен превратить
+ * поле в одну клетку или в сотню.
+ */
+export function smsCodeLength(): number {
+  const n = payload?.auth?.sms_code_length;
+  if (typeof n !== "number" || !Number.isFinite(n)) return 6;
+  return Math.max(4, Math.min(8, Math.trunc(n)));
 }
 
 export function mapBootstrapFeatureFlags(data: BootstrapFeatureFlags): {

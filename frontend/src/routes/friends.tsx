@@ -56,9 +56,17 @@ import { ignoreFailure, reportReadFailure } from "@/lib/errors/handle";
 
 export const Route = createFileRoute("/friends")({
   head: () => ({ meta: [{ title: i18n.t("pages.friends.metaTitle") }] }),
+  /*
+   * Нужен вход, а не подтверждённый телефон. Решение З2 от 09.10.
+   *
+   * Здесь стоял `requireVerified`, который требовал SMS, чтобы просто
+   * открыть страницу. По З2 телефон нужен для публикации объявления и
+   * вывода средств — то есть для действия, а не для просмотра, и
+   * спрашивается он по нажатию (решение З3).
+   */
   beforeLoad: async ({ location }) => {
-    const { requireVerified } = await import("@/lib/auth/verification");
-    await requireVerified(location);
+    const { routeGuard } = await import("@/lib/gate/routeGuard");
+    await routeGuard("registered", location);
   },
   component: FriendsPage,
 });

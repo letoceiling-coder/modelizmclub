@@ -42,7 +42,6 @@ import { prefetchCategoryRoomStats } from "@/lib/hooks/useCategoryRoomStats";
 import { getHiddenPostIds, hidePostId } from "@/lib/hidden-posts";
 import { SponsoredPostCard } from "@/components/feed/SponsoredPostCard";
 import { FeedRightRail } from "@/components/feed/FeedRightRail";
-import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { useGuestAccess } from "@/components/access/GuestAccessProvider";
 import { FEED_FILTER_ACTIONS, firstAllowedFeedFilter } from "@/lib/feed-guest-access/registry";
 import { ensurePublicBootstrap } from "@/lib/boot/applyPublicBootstrap";
@@ -434,7 +433,6 @@ function FeedPage() {
   return (
     <AppLayout footer rightColumn={<FeedRightRail />}>
       <div className="space-y-[16px]">
-        <VerificationBanner />
         <EventsHero initial={loaded.hero} />
 
         <CreatePostMenu

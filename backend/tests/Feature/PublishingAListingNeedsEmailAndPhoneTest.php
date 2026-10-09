@@ -8,7 +8,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-class EnsureFullyVerifiedMiddlewareTest extends TestCase
+/**
+ * Публикация объявления требует и подтверждённой почты, и телефона.
+ *
+ * Раньше это проверяло один посредник `EnsureFullyVerified`, и тест звался
+ * его именем. По решению З2 от 09.10 посредник разделён на два:
+ * `verified.email` стоит там, где стоял прежний, а `verified.phone` — только
+ * на публикации объявления и выводе средств. Публикация — единственное
+ * место, где оба встречаются, и порядок отказов здесь важен: сперва почта,
+ * потом телефон, иначе человек правит не то, о чём ему сказали.
+ *
+ * Имя теста теперь про поведение, а не про класс: класса с таким именем
+ * больше нет, а проверяемое правило осталось.
+ */
+class PublishingAListingNeedsEmailAndPhoneTest extends TestCase
 {
     use RefreshDatabase;
 

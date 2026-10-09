@@ -1,6 +1,7 @@
 import { api, ApiError } from "./client";
 import { isDemoMode } from "@/lib/demo-mode";
 import { GOALS, metrikaGoal } from "@/lib/analytics/metrika";
+import { smsCodeLength } from "@/lib/api/bootstrap";
 
 export interface DocumentRequisites {
   full_name: string;
@@ -59,18 +60,41 @@ export async function resendEmailChangeVerification(): Promise<void> {
   await api("/account/email/verify/resend", { method: "POST" });
 }
 
-export async function sendPhoneVerificationCode(
-  phone: string,
-): Promise<{ expires_in_minutes: number; resend_after: number }> {
-  if (isDemoMode()) return { expires_in_minutes: 10, resend_after: 60 };
+export async function sendPhoneVerificationCode(phone: string): Promise<{
+  expires_in_minutes: number;
+  resend_after: number;
+  code_length: number;
+  max_attempts: number;
+}> {
+  if (isDemoMode())
+    return {
+      expires_in_minutes: 10,
+      resend_after: 60,
+      code_length: smsCodeLength(),
+      max_attempts: 5,
+    };
   const res = await api<{
-    data: { message: string; expires_in_minutes: number; resend_after?: number };
+    data: {
+      message: string;
+      expires_in_minutes: number;
+      resend_after?: number;
+      code_length?: number;
+      max_attempts?: number;
+    };
   }>("/account/phone/send-code", { method: "POST", json: { phone } });
   return {
     expires_in_minutes: res.data.expires_in_minutes,
     // Сервер знает паузу, клиент только показывает. 60 — на случай старого
     // ответа без поля, чтобы кнопка всё равно блокировалась.
     resend_after: res.data.resend_after ?? 60,
+    /*
+     * Длина кода — из ответа сервера, решение З1 от 09.10.
+     *
+     * Запасной ответ — не литерал 6, а то же значение из общей загрузки:
+     * иначе шестёрка вернулась бы в интерфейс через чёрный ход.
+     */
+    code_length: res.data.code_length ?? smsCodeLength(),
+    max_attempts: res.data.max_attempts ?? 5,
   };
 }
 

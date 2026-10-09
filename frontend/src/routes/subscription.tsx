@@ -21,7 +21,6 @@ import {
 } from "@/lib/api/placement-pricing";
 import { isAuthenticated } from "@/lib/auth/session";
 import { isDemoMode } from "@/lib/demo-mode";
-import { VerificationBanner } from "@/components/auth/VerificationBanner";
 import { requireVerifiedForAction } from "@/lib/auth/verification";
 import { PaymentSourceDialog } from "@/components/billing/PaymentSourceDialog";
 import {
@@ -330,7 +329,6 @@ function SubscriptionPage() {
   return (
     <AppLayout>
       <div className="w-full px-[4px] sm:px-0">
-        <VerificationBanner />
         {/*
           Первый экран не прячем. framer-motion пишет `initial` инлайн-стилем
           прямо в серверную разметку, и заголовок страницы приезжал готовым, но

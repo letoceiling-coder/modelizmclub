@@ -16,12 +16,31 @@ use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * Денежный контур требует подтверждённого телефона.
+ * Телефон в денежном контуре: только вывод средств. Решение З2 от 09.10.
  *
- * До 07.09 группа маршрутов Billing была закрыта только `auth:sanctum`, тогда
- * как лента, сообщества и объявления требовали ещё и `verified`. Замер на
- * проде: учётка с неподтверждённым телефоном получала 403 на лайк поста и при
- * этом создавала безопасную сделку, забронировав чужой лот.
+ * Тест заведён 07.09 по другому правилу. Тогда группа Billing была закрыта
+ * только `auth:sanctum`, а лента и объявления требовали ещё и `verified`, и
+ * расхождение дало настоящий дефект: учётка без подтверждённого телефона
+ * получала 403 на лайк и при этом создавала безопасную сделку, бронируя
+ * чужой лот. Правило выровняли в сторону строгости — телефон стал нужен на
+ * всех денежных операциях.
+ *
+ * **09.10 владелец выровнял его в другую сторону.** Решение З2: «Подтверждённый
+ * телефон требуется только для публикации объявления и вывода средств».
+ * Пополнение, платёж, отмена подписки и старт безопасной сделки — это деньги
+ * **на** площадку и в сторону продавца; телефон они больше не требуют.
+ *
+ * Дефект 07.09 от этого не возвращается: он был в расхождении между лайком и
+ * сделкой, а не в самом требовании. Теперь обе стороны согласны — телефона не
+ * требует ни то, ни другое.
+ *
+ * Что проверяется здесь после З2:
+ *
+ * - вывод средств без телефона — отказ с кодом `phone_not_verified`;
+ * - пополнение, платёж, отмена подписки, старт сделки — **не** упираются в
+ *   телефон (отвечают своей проверкой данных, а не 403);
+ * - чтения открыты, как и раньше;
+ * - вебхуки провайдеров не проходят ни вход, ни подтверждения.
  */
 class BillingRequiresVerifiedPhoneTest extends TestCase
 {
@@ -81,44 +100,66 @@ class BillingRequiresVerifiedPhoneTest extends TestCase
     }
 
     /**
-     * Только операции. Чтения намеренно открыты: `fetchSession` на фронте
-     * блокируется на `GET users/me/subscription`, а `GuestAccessProvider`
-     * открывает окно верификации по коду `phone_not_verified` независимо от
-     * страницы. Закрыв чтения, я 07.09 получил модалку поверх каждой
-     * страницы сайта — см. test_reads_stay_open_for_an_unverified_phone.
+     * Денежные операции, которые телефона НЕ требуют. Решение З2.
      *
-     * @return list<array{string, string}>
+     * Все они отвечают своей проверкой данных (422) или «нет подписки» (404) —
+     * то есть доходят до собственной логики, а не упираются в подтверждение
+     * номера. Проверяется именно это: код ответа не 403 и в теле нет
+     * `phone_not_verified`.
+     *
+     * @return array<string, array{string, string}>
      */
-    public static function moneyRoutes(): array
+    public static function moneyRoutesWithoutPhone(): array
     {
         return [
             'пополнение' => ['POST', '/api/v1/wallet/topup'],
-            'вывод' => ['POST', '/api/v1/wallet/withdraw'],
             'платёж' => ['POST', '/api/v1/payments'],
             'отмена подписки' => ['POST', '/api/v1/users/me/subscription/cancel'],
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('moneyRoutes')]
-    public function test_money_routes_refuse_an_unverified_phone(string $method, string $uri): void
+    #[\PHPUnit\Framework\Attributes\DataProvider('moneyRoutesWithoutPhone')]
+    public function test_money_routes_other_than_withdrawal_do_not_ask_for_a_phone(
+        string $method,
+        string $uri,
+    ): void {
+        $ответ = $this->actingAs($this->user(false), 'sanctum')->json($method, $uri);
+
+        $this->assertNotSame(
+            403,
+            $ответ->status(),
+            $uri.' упирается в подтверждение, хотя по решению З2 не должен: '.$ответ->getContent(),
+        );
+        $this->assertNotSame('phone_not_verified', $ответ->json('code'), $uri);
+    }
+
+    public function test_withdrawal_still_refuses_an_unverified_phone(): void
     {
         $this->actingAs($this->user(false), 'sanctum')
-            ->json($method, $uri)
+            ->json('POST', '/api/v1/wallet/withdraw')
             ->assertStatus(403)
             ->assertJsonPath('code', 'phone_not_verified');
     }
 
-    public function test_safe_deal_cannot_be_created_without_a_verified_phone(): void
+    /**
+     * Безопасная сделка стартует без подтверждённого телефона — З2.
+     *
+     * Здесь раньше проверялся отказ. Главное наблюдение 07.09 при этом
+     * остаётся проверяемым и проверяется: лот не бронируется, если сделка не
+     * состоялась. Только причина теперь другая — не телефон, а пустой баланс.
+     */
+    public function test_safe_deal_does_not_ask_for_a_phone_but_still_needs_money(): void
     {
         $seller = $this->user(true);
         $listing = $this->listing($seller);
 
-        $this->actingAs($this->user(false), 'sanctum')
-            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true])
-            ->assertStatus(403)
-            ->assertJsonPath('code', 'phone_not_verified');
+        $ответ = $this->actingAs($this->user(false), 'sanctum')
+            ->postJson("/api/v1/listings/{$listing->uuid}/safe-deal", ['accept_terms' => true]);
 
-        // Главное: лот не забронирован. Именно это ломало витрину на проде.
+        $this->assertNotSame(403, $ответ->status(), $ответ->getContent());
+        $this->assertNotSame('phone_not_verified', $ответ->json('code'));
+
+        // Лот не забронирован: сделка не состоялась, и причина названа.
         $this->assertNull($listing->fresh()->reserved_at);
     }
 
