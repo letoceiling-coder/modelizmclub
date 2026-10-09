@@ -25,8 +25,25 @@ class YandexDeliveryAdapter implements DeliveryCarrierContract
 
     public function listPickupPoints(array $filters): array
     {
+        /*
+         * `geo_id` уходит числом, а не строкой.
+         *
+         * Яндекс отвечал на любой запрос 500, и в журнале стояла причина:
+         * «Error at path 'geo_id': Wrong type. Expected: kIntValue, actual:
+         * kStringValue». То есть пункты выдачи Яндекса не работали вовсе — ни
+         * с городом, ни без него.
+         *
+         * Откуда брался тип. Значение приходит из строки запроса, где всё —
+         * строки, а `$request->validate(['geo_id' => 'integer'])` только
+         * **проверяет**, что строка похожа на число; приводить он не обязан и
+         * не приводит. Правило выглядит как приведение типа, и в этом вся
+         * ловушка: проверка прошла, «213» осталось строкой и уехало наружу.
+         *
+         * Замерено на проде 10.10: `geo_id=213` (Москва) — 500 за 0,86 с.
+         * Сторож — `YandexGeoIdIsANumberTest`.
+         */
         $body = array_filter([
-            'geo_id' => $filters['geo_id'] ?? null,
+            'geo_id' => isset($filters['geo_id']) ? (int) $filters['geo_id'] : null,
             'type' => $filters['type'] ?? 'pickup_point',
             'payment_method' => 'already_paid',
             'available_for_dropoff' => $filters['available_for_dropoff'] ?? null,
