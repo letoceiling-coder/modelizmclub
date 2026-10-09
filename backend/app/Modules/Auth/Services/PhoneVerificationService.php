@@ -5,6 +5,7 @@ namespace Modules\Auth\Services;
 use App\Models\PhoneVerificationCode;
 use App\Models\User;
 use App\Services\Sms\SmsDeliveryException;
+use App\Services\Sms\SmsFailureJournal;
 use App\Services\Sms\SmsMessenger;
 use App\Services\Sms\SmsTemplate;
 use App\Support\PhoneNormalizer;
@@ -19,6 +20,7 @@ class PhoneVerificationService
 {
     public function __construct(
         private readonly SmsMessenger $sms,
+        private readonly SmsFailureJournal $failures,
     ) {}
 
     /**
@@ -90,8 +92,22 @@ class PhoneVerificationService
             Log::error('Phone verification SMS failed', [
                 'user_id' => $user->id,
                 'phone' => $phone,
+                'reason' => $e->reason->value,
+                'our_fault' => $e->reason->ourFault(),
                 'error' => $e->getMessage(),
             ]);
+
+            /*
+             * Отказ виден владельцу в админке, а не только в журнале сервера.
+             *
+             * Решение Ж5 требует и того, и другого. Записывается всегда, в том
+             * числе на стенде: сломанный шлюз на стенде — такая же новость.
+             */
+            $this->failures->record(
+                $e->reason,
+                (string) config('sms.driver', 'iqsms'),
+                $e->getMessage(),
+            );
 
             if (app()->environment(['local', 'testing'])) {
                 Log::info('Phone verification code fallback (dev)', [
@@ -100,14 +116,26 @@ class PhoneVerificationService
                     'code' => $code,
                 ]);
             } else {
-                // Отказ оператора — не «попробуйте позже»: ждать бессмысленно,
-                // этот номер он не примет и через час. Человеку нужно понять,
-                // что дело в номере, а не в нашей очереди.
-                $this->refuse(
-                    'Оператор связи отклонил отправку на этот номер. '
-                        .'Проверьте номер или укажите другой.',
-                    'sms_provider_rejected',
-                );
+                /*
+                 * Текст отказа зависит от причины — решение Ж5 от 09.10.
+                 *
+                 * До 09.10 здесь стояла одна фраза на все случаи: «Оператор
+                 * связи отклонил отправку на этот номер. Проверьте номер или
+                 * укажите другой». Её получал и человек с верным номером,
+                 * когда у нас не было ключей шлюза, не согласована подпись
+                 * отправителя, кончились деньги или шлюз не ответил. Именно
+                 * это и было на снимке владельца: номер +7 938 410-00-24
+                 * записан верно, а сервис сказал, что дело в номере.
+                 *
+                 * Теперь «проверьте номер» говорится только там, где это
+                 * сказал сам шлюз (`SmsFailureReason::BadNumber`). Во всех
+                 * остальных случаях, включая «причина неизвестна», — «сейчас
+                 * не получается отправить код», и виноват сервис.
+                 *
+                 * Срока у такого отказа нет: `retry_after` остаётся null,
+                 * кнопка не блокируется, человек возвращается на шаг ввода.
+                 */
+                $this->refuse($e->reason->message(), $e->reason->clientCode());
             }
         }
 

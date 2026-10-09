@@ -66,6 +66,20 @@ export interface AdminDiagnostics {
     cdek_configured: boolean;
     sms_driver: string;
     sms_configured: boolean;
+    /**
+     * Последний отказ отправки SMS. `null` — отказов за неделю не было.
+     *
+     * «Настроено: да» не значит «работает»: ключи могут быть на месте, а
+     * подпись отправителя не согласована или деньги кончились. Решение Ж5.
+     */
+    sms_last_failure: {
+      at: string;
+      reason: string;
+      our_fault: boolean;
+      driver: string;
+      hint: string;
+      technical: string;
+    } | null;
   };
 }
 

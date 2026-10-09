@@ -74,8 +74,18 @@ export async function sendPhoneVerificationCode(
   };
 }
 
-/** Причина отказа в отправке: ждать, ждать дольше или менять номер. */
-export type SmsRefusalCode = "sms_cooldown" | "sms_rate_limited" | "sms_provider_rejected";
+/**
+ * Причина отказа в отправке: ждать, ждать дольше, менять номер — или дело в
+ * нас.
+ *
+ * `sms_service_unavailable` добавлен 09.10 по решению Ж5: до него любой
+ * отказ шлюза приходил как `sms_provider_rejected` с текстом про номер, в
+ * том числе когда у нас не было ключей, не согласована подпись отправителя
+ * или кончились деньги. Теперь про номер говорится только тогда, когда это
+ * сказал сам шлюз.
+ */
+export type SmsRefusalCode =
+  "sms_cooldown" | "sms_rate_limited" | "sms_provider_rejected" | "sms_service_unavailable";
 
 /**
  * Разбирает отказ отправки: сколько ждать и можно ли вообще дождаться.

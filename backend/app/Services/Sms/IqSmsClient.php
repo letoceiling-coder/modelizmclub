@@ -15,6 +15,21 @@ class IqSmsClient implements SmsSender
     /** @var list<string> Per-message statuses that mean the gateway accepted the SMS. */
     private const ACCEPTED_MESSAGE_STATUSES = ['accepted', 'queued'];
 
+    /**
+     * Статусы, в которых шлюз сам называет номер неверным или недоступным.
+     *
+     * Только о них человеку говорится «проверьте номер» (решение Ж5). Всё
+     * остальное — наша сторона, в том числе неизвестный статус.
+     *
+     * @var list<string>
+     */
+    private const BAD_NUMBER_MESSAGE_STATUSES = [
+        'invalid mobile phone',
+        'invalid phone',
+        'wrong phone',
+        'wrong destination address',
+    ];
+
     public function isConfigured(): bool
     {
         return filled(config('sms.iqsms.login')) && filled(config('sms.iqsms.password'));
@@ -28,11 +43,17 @@ class IqSmsClient implements SmsSender
         $accessPoint = (string) config('sms.iqsms.access_point');
 
         if ($login === '' || $password === '') {
-            throw new SmsDeliveryException('SMS credentials are not configured.');
+            throw new SmsDeliveryException(
+                'SMS credentials are not configured.',
+                SmsFailureReason::NotConfigured,
+            );
         }
 
         if ($sender === '') {
-            throw new SmsDeliveryException('SMS sender name is not configured.');
+            throw new SmsDeliveryException(
+                'SMS sender name is not configured.',
+                SmsFailureReason::NotConfigured,
+            );
         }
 
         $gatewayPhone = PhoneNormalizer::toSmsGateway($phone);
@@ -56,18 +77,25 @@ class IqSmsClient implements SmsSender
 
         if (! $response->successful()) {
             throw new SmsDeliveryException(
-                'iqsms HTTP '.$response->status().': '.$response->body()
+                'iqsms HTTP '.$response->status().': '.$response->body(),
+                SmsFailureReason::GatewayUnavailable,
             );
         }
 
         $body = $response->json();
         if (! is_array($body)) {
-            throw new SmsDeliveryException('iqsms: invalid JSON response');
+            throw new SmsDeliveryException(
+                'iqsms: invalid JSON response',
+                SmsFailureReason::GatewayUnavailable,
+            );
         }
 
         if (($body['status'] ?? null) === 'error') {
+            /* Отказ уровня аккаунта: баланс, запрос, доступы. О номере здесь
+               ничего не сказано, поэтому номер и не обвиняем. */
             throw new SmsDeliveryException(
-                'iqsms error: '.json_encode($body, JSON_UNESCAPED_UNICODE)
+                'iqsms error: '.json_encode($body, JSON_UNESCAPED_UNICODE),
+                SmsFailureReason::GatewayRefused,
             );
         }
 
@@ -87,7 +115,10 @@ class IqSmsClient implements SmsSender
     {
         $messages = $body['messages'] ?? null;
         if (! is_array($messages) || $messages === []) {
-            throw new SmsDeliveryException('iqsms: empty messages in response');
+            throw new SmsDeliveryException(
+                'iqsms: empty messages in response',
+                SmsFailureReason::GatewayUnavailable,
+            );
         }
 
         foreach ($messages as $message) {
@@ -105,8 +136,26 @@ class IqSmsClient implements SmsSender
                 default => '',
             };
 
+            /*
+             * Номер обвиняем только там, где шлюз назвал его сам.
+             *
+             * Решение Ж5: «Сообщение об ошибке не обвиняет пользователя, если
+             * причина на стороне сервиса». Незнакомый статус — это «мы не
+             * знаем», а не «номер плохой»: чтобы сказать человеку «проверьте
+             * номер», нужно, чтобы шлюз это сказал.
+             *
+             * Статусы берутся из iqsms.ru/api/api_about. Новый статус про
+             * номер добавляется сюда строкой; пока его тут нет, человек
+             * получит честное «не получается отправить», а причина со словами
+             * шлюза ляжет в журнал и в админку.
+             */
+            $причина = in_array($status, self::BAD_NUMBER_MESSAGE_STATUSES, true)
+                ? SmsFailureReason::BadNumber
+                : SmsFailureReason::GatewayRefused;
+
             throw new SmsDeliveryException(
-                'iqsms message rejected: '.$status.$hint
+                'iqsms message rejected: '.$status.$hint,
+                $причина,
             );
         }
     }

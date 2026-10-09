@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Services\Sms\SmsDeliveryException;
+use App\Services\Sms\SmsFailureReason;
 use App\Services\Sms\SmsMessenger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -92,6 +93,17 @@ class PhoneSendRefusalTest extends TestCase
         $this->assertGreaterThan(0, $blocked->json('retry_after'));
     }
 
+    /**
+     * Отказ, где шлюз сам назвал номер, — единственный, который говорит о
+     * номере.
+     *
+     * До 09.10 этот тест стоял без причины у исключения и ждал кода
+     * `sms_provider_rejected` на **любой** отказ шлюза. Решение Ж5 от 09.10
+     * это отменило: причина ставится в драйвере, и «проверьте номер»
+     * говорится только там, где шлюз это сказал. Разбор — в
+     * `App\Services\Sms\SmsFailureReason`, парный тест —
+     * `SmsRefusalDoesNotBlamePersonTest`.
+     */
     public function test_provider_rejection_is_not_a_wait_and_says_so(): void
     {
         Config::set('sms.verification.resend_cooldown_seconds', 0);
@@ -103,7 +115,10 @@ class PhoneSendRefusalTest extends TestCase
 
         $this->mock(SmsMessenger::class, function ($mock): void {
             $mock->shouldReceive('sendTemplate')
-                ->andThrow(new SmsDeliveryException('iqsms отклонил номер'));
+                ->andThrow(new SmsDeliveryException(
+                    'iqsms message rejected: invalid mobile phone',
+                    SmsFailureReason::BadNumber,
+                ));
         });
 
         $response = $this->postJson(
@@ -117,6 +132,38 @@ class PhoneSendRefusalTest extends TestCase
         // Клиент по этому признаку не блокирует кнопку, а возвращает к вводу.
         $this->assertNull($response->json('retry_after'));
         $this->assertStringContainsString('номер', (string) $response->json('errors.phone.0'));
+    }
+
+    /**
+     * Отказ без объяснения о номере не говорит — решение Ж5.
+     *
+     * Это та же форма отказа, что стояла в тесте выше до 09.10: исключение
+     * без причины. Теперь оно значит «мы не знаем», и человек читает, что
+     * дело в сервисе, а не в его номере.
+     */
+    public function test_unexplained_provider_rejection_does_not_blame_the_number(): void
+    {
+        Config::set('sms.verification.resend_cooldown_seconds', 0);
+        $this->app->detectEnvironment(fn () => 'production');
+        [, $headers] = $this->actor();
+
+        $this->mock(SmsMessenger::class, function ($mock): void {
+            $mock->shouldReceive('sendTemplate')
+                ->andThrow(new SmsDeliveryException('iqsms отклонил отправку'));
+        });
+
+        $response = $this->postJson(
+            '/api/v1/account/phone/send-code',
+            ['phone' => '+79001112233'],
+            $headers,
+        );
+
+        $response->assertStatus(422)->assertJsonPath('code', 'sms_service_unavailable');
+        $this->assertNull($response->json('retry_after'));
+        $this->assertStringNotContainsString(
+            'номер',
+            mb_strtolower((string) $response->json('errors.phone.0')),
+        );
     }
 
     public function test_provider_rejection_does_not_consume_an_attempt(): void
