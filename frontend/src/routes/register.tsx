@@ -392,6 +392,7 @@ function RegisterPage() {
             name="name"
             autoComplete="name"
             placeholder={t("pages.register.namePlaceholder")}
+            aria-label={t("pages.register.namePlaceholder")}
             maxLength={120}
             value={name}
             error={Boolean(errors.name)}
@@ -423,6 +424,7 @@ function RegisterPage() {
             inputMode="email"
             autoComplete="email"
             placeholder={t("auth.email")}
+            aria-label={t("auth.email")}
             value={email}
             error={Boolean(errors.email)}
             aria-describedby={errors.email ? "reg-email-msg" : undefined}
@@ -459,6 +461,7 @@ function RegisterPage() {
             name="password"
             autoComplete="new-password"
             placeholder={t("pages.register.passwordPlaceholder")}
+            aria-label={t("pages.register.passwordPlaceholder")}
             minLength={8}
             value={password}
             error={Boolean(errors.password)}
@@ -489,6 +492,7 @@ function RegisterPage() {
             name="password_confirmation"
             autoComplete="new-password"
             placeholder={t("pages.register.passwordConfirmPlaceholder")}
+            aria-label={t("pages.register.passwordConfirmPlaceholder")}
             minLength={8}
             value={confirmation}
             error={повтор?.tone === "error"}

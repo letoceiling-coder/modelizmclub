@@ -85,6 +85,10 @@ export function EntityTabs<K extends string>({
 }: Props<K>) {
   const rowRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
+
+  /* Выбор пришёл со стрелок, а не мышью: только тогда переносим фокус
+     (находка B-13). */
+  const сКлавиатуры = useRef(false);
   /* Колесо и перетаскивание — `useScrollRow` (он здесь был нужен и раньше:
      ряд слушал только родную прокрутку), края, стрелки и затухание —
      `useRowEdges`. Обе половины лежат в `lib/ui/scroll-row`: ту же нехватку
@@ -124,6 +128,21 @@ export function EntityTabs<K extends string>({
           : (i + шаг + tabs.length) % tabs.length;
     if (tabs[next] && tabs[next].key !== active) {
       e.preventDefault();
+      /*
+       * Фокус переезжает за выбором — находка B-13.
+       *
+       * Узор `roving tabindex` был сделан верно: `tabindex=0` только у
+       * выбранной, одна `aria-selected=true`, стрелки и Home/End работают.
+       * Не переезжал только фокус: замер на `/profile` по номеру узла
+       * показал выбранную №2 при фокусе на №0. Для того, кто ведёт по
+       * клавиатуре, это значит, что следующий Tab уходит не оттуда, где он
+       * смотрит, а экранный диктор продолжает читать прежнюю вкладку.
+       *
+       * Сам `focus()` здесь вызывать нельзя: кнопка следующей вкладки
+       * получит `tabindex=0` только после перерисовки. Поэтому ставим
+       * отметку, а фокус переносит эффект ниже — тот же, что центрирует ряд.
+       */
+      сКлавиатуры.current = true;
       onChange(tabs[next].key);
     } else if (e.key === "Home" || e.key === "End") {
       e.preventDefault();
@@ -134,6 +153,19 @@ export function EntityTabs<K extends string>({
     const row = rowRef.current;
     const btn = activeRef.current;
     if (!row || !btn) return;
+
+    /*
+     * Перенос фокуса на выбранную вкладку — только если выбор пришёл со
+     * стрелок. Мышью и касанием фокус забирать нельзя: нажатие по вкладке
+     * и так оставляет фокус там, где надо, а принудительный `focus()`
+     * показал бы кольцо фокуса тому, кто мышью его не ждёт.
+     */
+    if (сКлавиатуры.current) {
+      сКлавиатуры.current = false;
+      /* preventScroll: прокрутку ряда делает этот же эффект строкой ниже,
+         и своя прокрутка от focus() увела бы ряд дважды. */
+      btn.focus({ preventScroll: true });
+    }
     // Только по горизонтали и только внутри ряда: scrollIntoView увёл бы
     // вместе с рядом всю страницу к вкладкам, стоит переключить раздел.
     const center = (behavior: ScrollBehavior) => {

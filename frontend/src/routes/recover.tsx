@@ -69,6 +69,7 @@ function RecoverPage() {
             type="email"
             autoComplete="email"
             placeholder={t("pages.recover.emailPlaceholder")}
+            aria-label={t("pages.recover.emailPlaceholder")}
             style={inputStyle}
           />
           <button

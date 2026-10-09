@@ -55,6 +55,15 @@ function PasswordFieldWithToggle({
         onClick={() => setVisible((v) => !v)}
         aria-pressed={visible}
         aria-label={visible ? hideLabel : showLabel}
+        /*
+         * hit-target — зона нажатия 44×44 невидимым псевдоэлементом.
+         *
+         * Замер 09.10 на 360 px: кнопка 28×28, и ни одна из четырёх точек
+         * в 21 px от центра в неё не попадала. У общего `PasswordInput`
+         * эта утилита есть, а здесь поле своё — и расширения у него не
+         * было. Вид кнопки не меняется.
+         */
+        className="hit-target"
         style={{
           position: "absolute",
           right: 10,
@@ -228,6 +237,7 @@ function ResetPasswordPage() {
             type="email"
             autoComplete="email"
             placeholder={t("auth.email")}
+            aria-label={t("auth.email")}
             value={email}
             readOnly={Boolean(initialEmail)}
             aria-invalid={errors.email ? true : undefined}
@@ -256,6 +266,7 @@ function ResetPasswordPage() {
             name="password"
             autoComplete="new-password"
             placeholder={t("pages.resetPassword.newPasswordPlaceholder")}
+            aria-label={t("pages.resetPassword.newPasswordPlaceholder")}
             minLength={8}
             value={password}
             error={Boolean(errors.password)}
@@ -286,6 +297,7 @@ function ResetPasswordPage() {
             name="password_confirmation"
             autoComplete="new-password"
             placeholder={t("pages.resetPassword.confirmPlaceholder")}
+            aria-label={t("pages.resetPassword.confirmPlaceholder")}
             minLength={8}
             value={confirmation}
             error={повтор?.tone === "error"}

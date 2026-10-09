@@ -17,6 +17,7 @@ export interface BootstrapFeatureFlags {
   escrow_enabled?: boolean;
   listing_payment_enabled?: boolean;
   voice_transcription_enabled?: boolean;
+  calls_enabled?: boolean;
 }
 
 export interface BootstrapStats {
@@ -111,6 +112,9 @@ export function mapBootstrapFeatureFlags(data: BootstrapFeatureFlags): {
   escrowEnabled: boolean;
   listingPaymentEnabled: boolean;
   voiceTranscriptionEnabled: boolean;
+  /** Контур звонков настроен на сервере: есть адрес LiveKit и ключи.
+   *  Без него кнопка звонка не показывается — решение D10, находка B-09. */
+  callsEnabled: boolean;
 } {
   return {
     communitiesEnabled: Boolean(data.communities_enabled),
@@ -119,5 +123,6 @@ export function mapBootstrapFeatureFlags(data: BootstrapFeatureFlags): {
     escrowEnabled: Boolean(data.escrow_enabled),
     listingPaymentEnabled: Boolean(data.listing_payment_enabled),
     voiceTranscriptionEnabled: Boolean(data.voice_transcription_enabled),
+    callsEnabled: Boolean(data.calls_enabled),
   };
 }

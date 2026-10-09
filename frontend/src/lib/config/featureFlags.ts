@@ -27,6 +27,10 @@ export interface FeatureFlags {
   /** Настоящее распознавание голосовых настроено на сервере (не заглушка,
    *  есть ключи). Без него «Показать текст» у голосового не показывается. */
   voiceTranscriptionEnabled: boolean;
+  /** Контур звонков настроен на сервере: есть адрес LiveKit и оба ключа.
+   *  Решение D10 от 05.10 и находка B-09: активную кнопку звонка не
+   *  показываем там, где звонок не может состояться. */
+  callsEnabled: boolean;
 }
 
 const DEFAULTS: FeatureFlags = {
@@ -36,6 +40,9 @@ const DEFAULTS: FeatureFlags = {
   escrowEnabled: false,
   listingPaymentEnabled: false,
   voiceTranscriptionEnabled: false,
+  /* Выключено по умолчанию: обещать звонок, которого нет, хуже, чем не
+     показать кнопку. Включается тем, что на сервере настроен LiveKit. */
+  callsEnabled: false,
 };
 
 const LS_KEY = "modelizm_feature_flags";
@@ -49,6 +56,7 @@ const SERVER_CONTROLLED: (keyof FeatureFlags)[] = [
   "escrowEnabled",
   "listingPaymentEnabled",
   "voiceTranscriptionEnabled",
+  "callsEnabled",
 ];
 
 let serverFlags: Partial<FeatureFlags> | null = null;

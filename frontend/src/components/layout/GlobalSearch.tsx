@@ -80,7 +80,7 @@ export function GlobalSearch() {
         // стоял `outline-none` без замены: браузерное кольцо снято, своего
         // нет — с клавиатуры поле терялось. Рамка задана инлайн-стилем и
         // классом не перебивается, поэтому кольцо — через outline.
-        className="w-full text-[14px] transition-colors"
+        className="w-full text-[16px] transition-colors md:text-[14px]"
         style={{
           background: "var(--background-elevated)",
           color: "var(--foreground)",
