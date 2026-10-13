@@ -104,6 +104,13 @@ class PhoneVerificationService
              * 001234 → «1234», 000123 → «123». Сторож — тест
              * `SmsCodeLengthIsOneTruthTest::test_leading_zeros_survive_the_sms`.
              */
+            $text = $template->render([$code]);
+            Log::info('Phone verification SMS payload', [
+                'phone' => $phone,
+                'code_len' => strlen($code),
+                'text' => $text,
+                'has_six_digit_code' => (bool) preg_match('/\d{6}/', $text),
+            ]);
             $this->sms->sendTemplate($phone, $template, [$code]);
         } catch (SmsDeliveryException $e) {
             Log::error('Phone verification SMS failed', [

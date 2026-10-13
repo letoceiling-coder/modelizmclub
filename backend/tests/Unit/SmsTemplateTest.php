@@ -10,7 +10,7 @@ class SmsTemplateTest extends TestCase
     public function test_verification_template_matches_mts_approval(): void
     {
         $this->assertSame(
-            '152047 - ваш код для доступа к сервису Modelizm. Не сообщайте его никому.',
+            'Modelizm: код подтверждения 152047. Никому не сообщайте код.',
             SmsTemplate::Verification->render(['152047'])
         );
     }
@@ -18,7 +18,7 @@ class SmsTemplateTest extends TestCase
     public function test_phone_change_template_matches_mts_approval(): void
     {
         $this->assertSame(
-            '152047 - ваш код для смены номера в Modelizm. Не сообщайте его никому.',
+            'Modelizm: код подтверждения нового номера 152047.',
             SmsTemplate::PhoneChange->render(['152047'])
         );
     }
