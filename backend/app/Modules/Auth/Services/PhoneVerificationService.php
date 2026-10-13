@@ -247,7 +247,7 @@ class PhoneVerificationService
      */
     public static function codeLength(): int
     {
-        return max(4, min(8, (int) config('sms.verification.code_length', 6)));
+        return max(6, min(8, (int) config('sms.verification.code_length', 6)));
     }
 
     private function generateCode(): string

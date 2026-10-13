@@ -82,11 +82,17 @@ enum SmsTemplate: string
     public function render(array $params = []): string
     {
         $template = match ($this) {
-            self::Verification => 'Modelizm: код подтверждения %s. Никому не сообщайте код.',
-            self::Login => 'Modelizm: код для входа %s. Действует 5 минут.',
-            self::PasswordReset => 'Modelizm: код восстановления пароля %s.',
-            self::PhoneChange => 'Modelizm: код подтверждения нового номера %s.',
-            self::AdPublishVerify => 'Modelizm: для публикации объявления введите код %s.',
+            /*
+             * Код в начале строкой (%s), шесть цифр с ведущими нулями.
+             * Формулировка как у операторских OTP, но с брендом Modelizm —
+             * чтобы отличить от чужих «XXXX - ваш код для доступа к сервису»
+             * (Строки, MTC_ID и т.п.), которые не связаны с нашей базой.
+             */
+            self::Verification => '%s - ваш код для доступа к сервису Modelizm. Не сообщайте его никому.',
+            self::Login => '%s - ваш код для входа в Modelizm. Действует 5 минут.',
+            self::PasswordReset => '%s - ваш код восстановления пароля Modelizm. Не сообщайте его никому.',
+            self::PhoneChange => '%s - ваш код для смены номера в Modelizm. Не сообщайте его никому.',
+            self::AdPublishVerify => '%s - ваш код для публикации объявления в Modelizm. Не сообщайте его никому.',
             self::AdPublished => 'Modelizm: объявление «%s» опубликовано. modelizmclub.ru',
             self::AdRejected => 'Modelizm: объявление «%s» не прошло модерацию. modelizmclub.ru',
             self::AdPaymentReceived => 'Modelizm: оплата размещения «%s» — %d ₽ получена.',

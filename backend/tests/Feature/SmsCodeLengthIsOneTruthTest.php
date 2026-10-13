@@ -96,10 +96,10 @@ class SmsCodeLengthIsOneTruthTest extends TestCase
             $text,
             'Код с ведущими нулями обрезался в тексте SMS: '.$text,
         );
-        $this->assertStringNotContainsString(
-            'подтверждения 1234.',
+        $this->assertStringStartsWith(
+            '001234',
             $text,
-            'Код уехал числом, а не строкой — ведущие нули потеряны: '.$text,
+            'Код должен быть в начале SMS строкой с ведущими нулями: '.$text,
         );
     }
 
@@ -129,7 +129,7 @@ class SmsCodeLengthIsOneTruthTest extends TestCase
      */
     public function test_changing_the_setting_changes_the_whole_chain(): void
     {
-        Config::set('sms.verification.code_length', 5);
+        Config::set('sms.verification.code_length', 7);
         [$user, $headers] = $this->actor();
 
         $sent = null;
@@ -144,11 +144,11 @@ class SmsCodeLengthIsOneTruthTest extends TestCase
 
         $this->postJson('/api/v1/account/phone/send-code', ['phone' => '+79001112233'], $headers)
             ->assertStatus(202)
-            ->assertJsonPath('data.code_length', 5);
+            ->assertJsonPath('data.code_length', 7);
 
         $code = PhoneVerificationCode::query()->where('user_id', $user->id)->latest('id')->firstOrFail()->code;
 
-        $this->assertSame(5, strlen($code), 'Генератор не послушал настройку: '.$code);
+        $this->assertSame(7, strlen($code), 'Генератор не послушал настройку: '.$code);
         $this->assertStringContainsString($code, (string) $sent, 'В SMS уехал не тот код.');
 
         // Код нужной длины принимается.
@@ -185,7 +185,7 @@ class SmsCodeLengthIsOneTruthTest extends TestCase
     public function test_setting_is_clamped_to_a_sane_range(): void
     {
         Config::set('sms.verification.code_length', 1);
-        $this->assertSame(4, \Modules\Auth\Services\PhoneVerificationService::codeLength());
+        $this->assertSame(6, \Modules\Auth\Services\PhoneVerificationService::codeLength());
 
         Config::set('sms.verification.code_length', 99);
         $this->assertSame(8, \Modules\Auth\Services\PhoneVerificationService::codeLength());

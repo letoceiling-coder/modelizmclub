@@ -48,7 +48,8 @@ return [
         'access_point' => rtrim(env('IQSMS_ACCESS_POINT', 'https://api.iqsms.ru'), '/'),
         'login' => env('IQSMS_LOGIN'),
         'password' => env('IQSMS_PASSWORD'),
-        'sender' => env('IQSMS_SENDER', 'ModelizmClub'),
+        // Одобренная подпись в кабинете СМС Дисконт (iqsms.ru)
+        'sender' => env('IQSMS_SENDER', 'SMS DUCKOHT'),
     ],
 
     'mts' => [
@@ -78,11 +79,11 @@ return [
          * во фронтенде. Поменять длину — поменять одно число здесь или
          * `SMS_CODE_LENGTH` в `.env`, без правки интерфейса.
          *
-         * Решение З1: код создаёт наш сервер, значит 6 цифр. Границы 4…8
-         * стоят не для гибкости, а чтобы опечатка в `.env` не выпустила
-         * одноцифровой код и не сломала форму длиной в сто знаков.
+         * Решение З1: код создаёт наш сервер, значит 6 цифр — как у email.
+         * Нижняя граница 6, чтобы в `.env` нельзя было включить четырёхзначный
+         * код при форме на шесть цифр.
          */
-        'code_length' => max(4, min(8, (int) env('SMS_CODE_LENGTH', 6))),
+        'code_length' => max(6, min(8, (int) env('SMS_CODE_LENGTH', 6))),
         'ttl_minutes' => (int) env('SMS_CODE_TTL_MINUTES', 10),
         'resend_cooldown_seconds' => (int) env('SMS_RESEND_COOLDOWN_SECONDS', 60),
         'max_verify_attempts' => (int) env('SMS_MAX_VERIFY_ATTEMPTS', 5),
