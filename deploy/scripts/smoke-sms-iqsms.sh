@@ -15,7 +15,11 @@ require 'vendor/autoload.php';
 \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 echo 'driver='.config('sms.driver').' sender=['.config('sms.iqsms.sender').']'.PHP_EOL;
 "
-sudo -u www-data php artisan test --filter=IqSmsClientTest
+if [[ -f vendor/phpunit/phpunit/phpunit ]]; then
+  sudo -u www-data php artisan test --filter=IqSmsClientTest
+else
+  echo "skip: phpunit not installed on prod (--no-dev)"
+fi
 sudo -u www-data php -r "
 require 'vendor/autoload.php';
 \$app = require 'bootstrap/app.php';
