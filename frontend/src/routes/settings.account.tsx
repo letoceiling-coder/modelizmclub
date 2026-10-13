@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { isPhoneComplete, phoneE164 } from "@/lib/phone";
 import { SmsCodeInput } from "@/components/ui/sms-code-input";
 import { smsCodeLength } from "@/lib/api/bootstrap";
 import { Badge } from "@/components/ui/badge";
@@ -238,8 +239,8 @@ function AccountSection() {
   };
 
   const sendSms = async () => {
-    const normalized = phone.trim();
-    if (!normalized || normalized.replace(/\D/g, "").length < 10) {
+    const normalized = phoneE164(phone);
+    if (!normalized || !isPhoneComplete(phone)) {
       toast.error(t("pages.settings.invalidPhone"));
       return;
     }
@@ -273,7 +274,7 @@ function AccountSection() {
   };
 
   const confirmSms = async (typed?: string) => {
-    const normalized = phone.trim();
+    const normalized = phoneE164(phone);
     if (!normalized) return;
     const entered = (typed ?? smsCode).trim();
     /*

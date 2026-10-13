@@ -26,7 +26,8 @@ set_env SMS_DRIVER iqsms
 set_env IQSMS_ACCESS_POINT https://api.iqsms.ru
 set_env IQSMS_LOGIN "$LOGIN"
 set_env IQSMS_PASSWORD "$PASS"
-set_env IQSMS_SENDER ModelizmClub
+set_env IQSMS_SENDER "SMS DUCKOHT"
+set_env SMS_CODE_LENGTH 6
 
 php artisan migrate --force
 
