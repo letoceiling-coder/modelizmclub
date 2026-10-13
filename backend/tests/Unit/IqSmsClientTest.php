@@ -17,6 +17,7 @@ class IqSmsClientTest extends TestCase
             'sms.iqsms.password' => 'pass',
             'sms.iqsms.sender' => 'BadSender',
             'sms.iqsms.access_point' => 'https://api.iqsms.ru',
+            'sms.iqsms.verify_delivery_after_seconds' => 0,
         ]);
 
         Http::fake([
@@ -42,6 +43,7 @@ class IqSmsClientTest extends TestCase
             'sms.iqsms.password' => 'pass',
             'sms.iqsms.sender' => 'Postmen',
             'sms.iqsms.access_point' => 'https://api.iqsms.ru',
+            'sms.iqsms.verify_delivery_after_seconds' => 0,
         ]);
 
         Http::fake([
@@ -66,6 +68,7 @@ class IqSmsClientTest extends TestCase
             'sms.iqsms.password' => 'pass',
             'sms.iqsms.sender' => '',
             'sms.iqsms.access_point' => 'https://api.iqsms.ru',
+            'sms.iqsms.verify_delivery_after_seconds' => 0,
         ]);
 
         Http::fake([
@@ -85,5 +88,37 @@ class IqSmsClientTest extends TestCase
             return ($messages[0]['phone'] ?? null) === '79897625658'
                 && ! array_key_exists('sender', $messages[0]);
         });
+    }
+
+    public function test_rejects_when_operator_reports_delivery_error(): void
+    {
+        config([
+            'sms.driver' => 'iqsms',
+            'sms.iqsms.login' => 'user',
+            'sms.iqsms.password' => 'pass',
+            'sms.iqsms.sender' => '',
+            'sms.iqsms.access_point' => 'https://api.iqsms.ru',
+            'sms.iqsms.verify_delivery_after_seconds' => 1,
+        ]);
+
+        Http::fake([
+            'api.iqsms.ru/messages/v2/send.json' => Http::response([
+                'status' => 'ok',
+                'messages' => [
+                    ['clientId' => '1', 'smscId' => 999, 'status' => 'accepted'],
+                ],
+            ]),
+            'api.iqsms.ru/messages/v2/status.json' => Http::response([
+                'status' => 'ok',
+                'messages' => [
+                    ['smscId' => '999', 'status' => 'delivery error'],
+                ],
+            ]),
+        ]);
+
+        $this->expectException(SmsDeliveryException::class);
+        $this->expectExceptionMessage('delivery failed');
+
+        app(IqSmsClient::class)->send('+79897625658', 'Modelizm: код подтверждения 123456.');
     }
 }

@@ -109,13 +109,69 @@ class IqSmsClient implements SmsSender
 
         $this->assertMessagesAccepted($body);
 
+        $smscId = $body['messages'][0]['smscId'] ?? null;
+        $submitStatus = strtolower((string) ($body['messages'][0]['status'] ?? ''));
+
         Log::info('SMS sent via iqsms', [
             'phone' => $phone,
-            'smsc_id' => $body['messages'][0]['smscId'] ?? null,
+            'smsc_id' => $smscId,
+            'submit_status' => $submitStatus,
             'sender' => $sender !== '' ? $sender : '(default)',
+            'text_len' => strlen($text),
+            'text' => $text,
         ]);
 
+        $wait = (int) config('sms.iqsms.verify_delivery_after_seconds', 3);
+        if ($wait > 0 && $smscId !== null && $smscId !== '') {
+            sleep($wait);
+            $deliveryStatus = $this->fetchDeliveryStatus((string) $smscId);
+            Log::info('iqsms delivery status', [
+                'phone' => $phone,
+                'smsc_id' => $smscId,
+                'status' => $deliveryStatus,
+            ]);
+            if (in_array($deliveryStatus, ['delivery error', 'failed', 'rejected'], true)) {
+                throw new SmsDeliveryException(
+                    'iqsms delivery failed: '.$deliveryStatus.' (smscId='.$smscId.')',
+                    SmsFailureReason::GatewayRefused,
+                );
+            }
+        }
+
         return $body;
+    }
+
+    public function fetchDeliveryStatus(string $smscId): string
+    {
+        $login = (string) config('sms.iqsms.login');
+        $password = (string) config('sms.iqsms.password');
+        $accessPoint = (string) config('sms.iqsms.access_point');
+        $url = $accessPoint.'/messages/v2/status.json';
+
+        $response = Http::timeout(15)
+            ->withHeaders(['Host' => (string) parse_url($accessPoint, PHP_URL_HOST)])
+            ->asJson()
+            ->post($url, [
+                'login' => $login,
+                'password' => $password,
+                'messages' => [['smscId' => $smscId]],
+            ]);
+
+        if (! $response->successful()) {
+            return 'status_http_'.$response->status();
+        }
+
+        $body = $response->json();
+        if (! is_array($body)) {
+            return 'status_invalid_json';
+        }
+
+        $messages = $body['messages'] ?? [];
+        if (! is_array($messages) || $messages === []) {
+            return 'status_empty';
+        }
+
+        return strtolower((string) ($messages[0]['status'] ?? 'unknown'));
     }
 
     /** @param array<string, mixed> $body */
