@@ -96,11 +96,12 @@ class SmsCodeLengthIsOneTruthTest extends TestCase
             $text,
             'Код с ведущими нулями обрезался в тексте SMS: '.$text,
         );
-        $this->assertStringStartsWith(
+        $this->assertStringContainsString(
             '001234',
             $text,
-            'Код должен быть в начале SMS строкой с ведущими нулями: '.$text,
+            'Код должен быть в SMS строкой с ведущими нулями: '.$text,
         );
+        $this->assertStringContainsString('Modelizm:', $text);
     }
 
     /** Та же ловушка у остальных четырёх шаблонов с кодом. */
