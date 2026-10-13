@@ -26,8 +26,12 @@ set_env SMS_DRIVER iqsms
 set_env IQSMS_ACCESS_POINT https://api.iqsms.ru
 set_env IQSMS_LOGIN "$LOGIN"
 set_env IQSMS_PASSWORD "$PASS"
-set_env IQSMS_SENDER "SMS DUCKOHT"
+# Пустая подпись — общая подпись СМС Дисконт (поле sender не уходит в API).
+sed -i '/^IQSMS_SENDER=/d' .env
+echo 'IQSMS_SENDER=' >> .env
 set_env SMS_CODE_LENGTH 6
+chown root:www-data .env
+chmod 640 .env
 
 php artisan migrate --force
 

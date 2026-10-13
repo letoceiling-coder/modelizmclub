@@ -49,25 +49,33 @@ class IqSmsClient implements SmsSender
             );
         }
 
-        if ($sender === '') {
-            throw new SmsDeliveryException(
-                'SMS sender name is not configured.',
-                SmsFailureReason::NotConfigured,
-            );
-        }
-
         $gatewayPhone = PhoneNormalizer::toSmsGateway($phone);
         $url = $accessPoint.'/messages/v2/send.json';
+
+        /*
+         * Подпись отправителя необязательна (REST API СМС Дисконт).
+         *
+         * Если `sender` не передать, провайдер шлёт от общей подписи по
+         * умолчанию — так в их PHP-примере и в JsonSmsApi (пустые поля
+         * выкидываются из пакета). Именованные SMS DUCKOHT / MediaGramma
+         * на части номеров дают delivery error у оператора.
+         *
+         * Пустой `IQSMS_SENDER` в `.env` — осознанный выбор «без своей
+         * подписи», а не ошибка конфигурации.
+         */
+        $message = [
+            'clientId' => (string) str()->uuid(),
+            'phone' => $gatewayPhone,
+            'text' => $text,
+        ];
+        if ($sender !== '') {
+            $message['sender'] = $sender;
+        }
 
         $payload = [
             'login' => $login,
             'password' => $password,
-            'messages' => [[
-                'clientId' => (string) str()->uuid(),
-                'phone' => $gatewayPhone,
-                'text' => $text,
-                'sender' => $sender,
-            ]],
+            'messages' => [$message],
         ];
 
         $response = Http::timeout(15)
@@ -104,7 +112,7 @@ class IqSmsClient implements SmsSender
         Log::info('SMS sent via iqsms', [
             'phone' => $phone,
             'smsc_id' => $body['messages'][0]['smscId'] ?? null,
-            'sender' => $sender,
+            'sender' => $sender !== '' ? $sender : '(default)',
         ]);
 
         return $body;

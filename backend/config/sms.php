@@ -48,8 +48,12 @@ return [
         'access_point' => rtrim(env('IQSMS_ACCESS_POINT', 'https://api.iqsms.ru'), '/'),
         'login' => env('IQSMS_LOGIN'),
         'password' => env('IQSMS_PASSWORD'),
-        // Одобренная подпись в кабинете СМС Дисконт (iqsms.ru)
-        'sender' => env('IQSMS_SENDER', 'SMS DUCKOHT'),
+        /*
+         * Именованная подпись в кабинете (MediaGramma, SMS DUCKOHT) или пусто.
+         * Пустое значение — поле sender не уходит в API, сообщение от общей
+         * подписи СМС Дисконт (см. настройки ЛК «по умолчанию»).
+         */
+        'sender' => env('IQSMS_SENDER', ''),
     ],
 
     'mts' => [
