@@ -107,6 +107,8 @@ class MtsMarketologSmsClient implements SmsSender
             'message_id' => $messageId,
             'internal_id' => $internalId,
             'sender' => $sender,
+            'text_len' => strlen($text),
+            'text' => $text,
         ]);
 
         return $body;
@@ -192,6 +194,8 @@ class MtsMarketologSmsClient implements SmsSender
         Log::info('SMS sent via MTS Marketolog (token)', [
             'phone' => $phone,
             'sender' => $sender,
+            'text_len' => strlen($text),
+            'text' => $text,
         ]);
 
         return $body;

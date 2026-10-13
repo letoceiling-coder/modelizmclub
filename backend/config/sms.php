@@ -54,6 +54,11 @@ return [
          * подписи СМС Дисконт (см. настройки ЛК «по умолчанию»).
          */
         'sender' => env('IQSMS_SENDER', ''),
+        /*
+         * После accept/queued опрос status.json: оператор часто отвечает
+         * delivery error, хотя send.json уже «ok». 0 — не ждать (тесты).
+         */
+        'verify_delivery_after_seconds' => max(0, min(10, (int) env('IQSMS_VERIFY_DELIVERY_SECONDS', 3))),
     ],
 
     'mts' => [
