@@ -5,6 +5,8 @@ namespace Modules\Account\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Modules\Account\Http\Requests\SendPhoneVerificationRequest;
+use Modules\Auth\Services\PhoneVerificationService;
+
 class SendPhoneVerificationCodeController extends Controller
 {
     public function __invoke(
