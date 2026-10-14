@@ -21,6 +21,8 @@ grep -q '^IQSMS_POLL_INTERVAL_SECONDS=' "$ENV" || echo 'IQSMS_POLL_INTERVAL_SECO
 if ! grep -q '^IQSMS_WEBHOOK_SECRET=.' "$ENV" 2>/dev/null; then
   echo "IQSMS_WEBHOOK_SECRET=$(openssl rand -hex 16)" >> "$ENV"
 fi
+WEBHOOK_SECRET="$(grep '^IQSMS_WEBHOOK_SECRET=' "$ENV" | cut -d= -f2- | tr -d '\r')"
+set_env IQSMS_STATUS_CALLBACK_URL "https://api.modelizmclub.ru/api/v1/webhooks/iqsms/mobile-id?token=${WEBHOOK_SECRET}"
 sed -i '/^IQSMS_SENDER=/d' "$ENV"
 echo 'IQSMS_SENDER=' >> "$ENV"
 chown root:www-data "$ENV"
