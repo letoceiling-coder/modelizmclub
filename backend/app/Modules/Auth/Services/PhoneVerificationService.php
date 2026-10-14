@@ -496,6 +496,12 @@ class PhoneVerificationService
             return $base;
         }
 
+        // URL в .env уже может содержать ?token=… — не дублировать (iqSMS и nginx
+        // получали …&token=…&token=…, webhook на проде не регистрировался).
+        if (preg_match('/(?:^|[?&])token=/', $base)) {
+            return $base;
+        }
+
         return $base.(str_contains($base, '?') ? '&' : '?').'token='.rawurlencode($secret);
     }
 
