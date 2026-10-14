@@ -60,42 +60,72 @@ export async function resendEmailChangeVerification(): Promise<void> {
   await api("/account/email/verify/resend", { method: "POST" });
 }
 
-export async function sendPhoneVerificationCode(phone: string): Promise<{
+export type PhoneVerificationMode = "classic" | "mobile_id";
+export type PhoneVerificationPhase =
+  | "awaiting_push"
+  | "otp_required"
+  | "awaiting_sms"
+  | "delivered"
+  | "failed";
+
+export type PhoneVerificationSendPayload = {
+  message: string;
+  session_id: string;
+  verification_mode: PhoneVerificationMode;
+  phase: PhoneVerificationPhase;
+  code_length: number | null;
+  hint: string;
   expires_in_minutes: number;
   resend_after: number;
-  code_length: number;
   max_attempts: number;
-}> {
+  poll_interval_seconds: number;
+};
+
+export type PhoneVerificationSessionPayload = {
+  session_id: string;
+  verification_mode: PhoneVerificationMode;
+  phase: PhoneVerificationPhase;
+  code_length: number | null;
+  hint: string;
+  completed: boolean;
+  failed: boolean;
+};
+
+export async function sendPhoneVerificationCode(phone: string): Promise<PhoneVerificationSendPayload> {
   if (isDemoMode())
     return {
+      message: "Код отправлен по SMS.",
+      session_id: "demo-session",
+      verification_mode: "classic",
+      phase: "awaiting_sms",
+      code_length: smsCodeLength(),
+      hint: "",
       expires_in_minutes: 10,
       resend_after: 60,
-      code_length: smsCodeLength(),
       max_attempts: 5,
+      poll_interval_seconds: 2,
     };
-  const res = await api<{
-    data: {
-      message: string;
-      expires_in_minutes: number;
-      resend_after?: number;
-      code_length?: number;
-      max_attempts?: number;
-    };
-  }>("/account/phone/send-code", { method: "POST", json: { phone } });
+  const res = await api<{ data: PhoneVerificationSendPayload }>("/account/phone/send-code", {
+    method: "POST",
+    json: { phone },
+  });
+  const data = res.data;
   return {
-    expires_in_minutes: res.data.expires_in_minutes,
-    // Сервер знает паузу, клиент только показывает. 60 — на случай старого
-    // ответа без поля, чтобы кнопка всё равно блокировалась.
-    resend_after: res.data.resend_after ?? 60,
-    /*
-     * Длина кода — из ответа сервера, решение З1 от 09.10.
-     *
-     * Запасной ответ — не литерал 6, а то же значение из общей загрузки:
-     * иначе шестёрка вернулась бы в интерфейс через чёрный ход.
-     */
-    code_length: res.data.code_length ?? smsCodeLength(),
-    max_attempts: res.data.max_attempts ?? 5,
+    ...data,
+    resend_after: data.resend_after ?? 60,
+    code_length: data.code_length ?? (data.verification_mode === "classic" ? smsCodeLength() : null),
+    max_attempts: data.max_attempts ?? 5,
+    poll_interval_seconds: data.poll_interval_seconds ?? 2,
   };
+}
+
+export async function fetchPhoneVerificationSession(
+  sessionId: string,
+): Promise<PhoneVerificationSessionPayload> {
+  const res = await api<{ data: PhoneVerificationSessionPayload }>(
+    `/account/phone/verification-session/${sessionId}`,
+  );
+  return res.data;
 }
 
 /**
@@ -140,6 +170,7 @@ export function readSmsRefusal(err: unknown): { code?: SmsRefusalCode; retryAfte
 export async function verifyPhoneCode(
   phone: string,
   code: string,
+  sessionId?: string | null,
 ): Promise<import("@/lib/mock").User> {
   if (isDemoMode()) {
     const { DEMO_USER } = await import("@/lib/demo-data");
@@ -147,7 +178,7 @@ export async function verifyPhoneCode(
   }
   const res = await api<{ data: import("@/lib/api/auth").ApiUser }>("/account/phone/verify", {
     method: "POST",
-    json: { phone, code },
+    json: { phone, code, ...(sessionId ? { session_id: sessionId } : {}) },
   });
   const { mapApiUser } = await import("@/lib/api/auth");
   // Цель ставится здесь, а не у кнопки: телефон подтверждают из трёх мест

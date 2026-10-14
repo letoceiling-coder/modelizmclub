@@ -59,6 +59,15 @@ return [
          * delivery error, хотя send.json уже «ok». 0 — не ждать (тесты).
          */
         'verify_delivery_after_seconds' => max(0, min(10, (int) env('IQSMS_VERIFY_DELIVERY_SECONDS', 3))),
+        /*
+         * Mobile ID (Push / OTP оператора) — см. docs от iqSMS.
+         * Webhook обязателен для otp_required.
+         */
+        'mobile_id_enabled' => filter_var(env('IQSMS_MOBILE_ID_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'webhook_secret' => env('IQSMS_WEBHOOK_SECRET', ''),
+        'status_callback_url' => env('IQSMS_STATUS_CALLBACK_URL', ''),
+        'otp_code_length' => max(4, min(8, (int) env('IQSMS_OTP_CODE_LENGTH', 4))),
+        'poll_interval_seconds' => max(1, min(10, (int) env('IQSMS_POLL_INTERVAL_SECONDS', 2))),
     ],
 
     'mts' => [

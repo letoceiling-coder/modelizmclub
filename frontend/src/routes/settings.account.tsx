@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { isPhoneComplete, phoneE164 } from "@/lib/phone";
 import { SmsCodeInput } from "@/components/ui/sms-code-input";
-import { smsCodeLength } from "@/lib/api/bootstrap";
 import { Badge } from "@/components/ui/badge";
 import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
@@ -23,9 +22,8 @@ import {
   requestEmailChange,
   resendEmailChangeVerification,
   resendVerificationEmail,
-  sendPhoneVerificationCode,
-  verifyPhoneCode,
 } from "@/lib/api/account";
+import { usePhoneVerificationFlow } from "@/lib/hooks/usePhoneVerificationFlow";
 import {
   displayEmail,
   isFullyVerified,
@@ -91,13 +89,19 @@ function AccountSection() {
   const [smsVerifying, setSmsVerifying] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
   const [smsCooldown, setSmsCooldown] = useState(0);
-  /*
-   * Длина кода — из ответа сервера (решение З1).
-   *
-   * Начальное значение берётся из общей загрузки, а не из литерала: поле
-   * существует и до первой отправки, и длину знать должно уже тогда.
-   */
-  const [codeLength, setCodeLength] = useState(() => smsCodeLength());
+  const phoneVerify = usePhoneVerificationFlow({
+    onVerified: (user) => {
+      setCurrentUser(user);
+      setVerifiedPhone(user.phone ?? null);
+      setServerPhoneVerified(user.phone_verified === true);
+      setSmsCode("");
+      setSmsSent(false);
+      toast.success(t("pages.settings.phoneVerified"));
+      if (afterVerify && afterVerify.startsWith("/") && !afterVerify.startsWith("//")) {
+        window.location.assign(afterVerify);
+      }
+    },
+  });
 
   useEffect(() => {
     if (smsCooldown <= 0) return;
@@ -252,11 +256,9 @@ function AccountSection() {
        * сервер был готов принять повтор, и наоборот — держалась, когда он
        * разрешал раньше (аудит 12.09). Клиент теперь только показывает.
        */
-      const { resend_after, code_length } = await sendPhoneVerificationCode(normalized);
+      const { resend_after } = await phoneVerify.send(normalized);
       setSmsSent(true);
       setSmsCooldown(resend_after);
-      // Длину кода называет сервер — решение З1. Поле перестраивается по ней.
-      setCodeLength(code_length);
       toast.success(t("pages.settings.smsSent"));
     } catch (err) {
       /*
@@ -283,23 +285,14 @@ function AccountSection() {
      * Здесь стояло `/^\d{6}$/`, и это была одна из девяти копий шестёрки в
      * интерфейсе. Теперь число одно и приходит с сервера.
      */
-    if (!new RegExp(`^\\d{${codeLength}}$`).test(entered)) {
-      toast.error(t("pages.settings.invalidSmsCode", { n: codeLength }));
+    if (!new RegExp(`^\\d{${phoneVerify.codeLength}}$`).test(entered)) {
+      toast.error(t("pages.settings.invalidSmsCode", { n: phoneVerify.codeLength }));
       return;
     }
     if (smsVerifying) return;
     setSmsVerifying(true);
     try {
-      const user = await verifyPhoneCode(normalized, entered);
-      setCurrentUser(user);
-      setVerifiedPhone(user.phone ?? normalized);
-      setServerPhoneVerified(user.phone_verified === true);
-      setSmsCode("");
-      setSmsSent(false);
-      toast.success(t("pages.settings.phoneVerified"));
-      if (afterVerify && afterVerify.startsWith("/") && !afterVerify.startsWith("//")) {
-        window.location.assign(afterVerify);
-      }
+      await phoneVerify.verify(normalized, entered);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("pages.settings.wrongCode"));
     } finally {
@@ -313,6 +306,7 @@ function AccountSection() {
       setServerPhoneVerified(false);
       setSmsSent(false);
       setSmsCode("");
+      phoneVerify.resetFlow();
     }
   };
 
@@ -573,26 +567,33 @@ function AccountSection() {
              *
              * Теперь поле есть сразу: вернулся с кодом — вписал — подтвердил.
              */}
-            <div className="flex flex-col gap-[8px] sm:flex-row sm:items-end">
-              <Field
-                label={t("pages.settings.smsCode")}
-                hint={t("pages.settings.smsCodeHint", { n: codeLength })}
-              >
-                <SmsCodeInput
-                  length={codeLength}
-                  value={smsCode}
-                  onValueChange={setSmsCode}
-                  onComplete={(digits) => void confirmSms(digits)}
-                />
-              </Field>
-              <Button
-                type="button"
-                onClick={() => void confirmSms()}
-                disabled={smsVerifying || smsCode.length !== codeLength}
-              >
-                {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
-              </Button>
-            </div>
+            {phoneVerify.waitingPush && smsSent ? (
+              <p className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-50)" }}>
+                <Loader2 size={16} className="animate-spin" aria-hidden />
+                {phoneVerify.hint || "Подтвердите уведомление на телефоне…"}
+              </p>
+            ) : (
+              <div className="flex flex-col gap-[8px] sm:flex-row sm:items-end">
+                <Field
+                  label={t("pages.settings.smsCode")}
+                  hint={phoneVerify.hint || t("pages.settings.smsCodeHint", { n: phoneVerify.codeLength })}
+                >
+                  <SmsCodeInput
+                    length={phoneVerify.codeLength}
+                    value={smsCode}
+                    onValueChange={setSmsCode}
+                    onComplete={(digits) => void confirmSms(digits)}
+                  />
+                </Field>
+                <Button
+                  type="button"
+                  onClick={() => void confirmSms()}
+                  disabled={smsVerifying || smsCode.length !== phoneVerify.codeLength}
+                >
+                  {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

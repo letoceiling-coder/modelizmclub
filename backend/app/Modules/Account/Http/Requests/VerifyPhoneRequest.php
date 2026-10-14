@@ -12,19 +12,14 @@ class VerifyPhoneRequest extends FormRequest
         return true;
     }
 
-    /**
-     * Длина — из настройки (решение З1).
-     *
-     * Здесь стояло `size:6` с текстом «Код должен состоять из 6 цифр» —
-     * четвёртая независимая запись той же шестёрки, и самая коварная: она
-     * срабатывает раньше сервиса, то есть смена настройки давала отказ
-     * проверки формы с прежним числом в тексте.
-     */
     public function rules(): array
     {
+        $maxLen = max(PhoneVerificationService::codeLength(), PhoneVerificationService::otpCodeLength());
+
         return [
             'phone' => ['required', 'string', 'max:20'],
-            'code' => ['required', 'string', 'size:'.PhoneVerificationService::codeLength()],
+            'session_id' => ['nullable', 'uuid'],
+            'code' => ['required', 'string', 'regex:/^\d{4,'.$maxLen.'}$/'],
         ];
     }
 
@@ -33,7 +28,7 @@ class VerifyPhoneRequest extends FormRequest
         return [
             'phone.required' => 'Укажите номер телефона.',
             'code.required' => 'Введите код из SMS.',
-            'code.size' => 'Код состоит из '.PhoneVerificationService::codeLength().' цифр.',
+            'code.regex' => 'Код должен состоять из цифр.',
         ];
     }
 }

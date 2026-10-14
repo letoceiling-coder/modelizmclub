@@ -35,7 +35,7 @@ class IqSmsClient implements SmsSender
         return filled(config('sms.iqsms.login')) && filled(config('sms.iqsms.password'));
     }
 
-    public function send(string $phone, string $text): array
+    public function send(string $phone, string $text, array $options = []): array
     {
         $login = (string) config('sms.iqsms.login');
         $password = (string) config('sms.iqsms.password');
@@ -63,13 +63,18 @@ class IqSmsClient implements SmsSender
          * Пустой `IQSMS_SENDER` в `.env` — осознанный выбор «без своей
          * подписи», а не ошибка конфигурации.
          */
+        $clientId = (string) ($options['client_id'] ?? str()->uuid());
         $message = [
-            'clientId' => (string) str()->uuid(),
+            'clientId' => $clientId,
             'phone' => $gatewayPhone,
             'text' => $text,
         ];
         if ($sender !== '') {
             $message['sender'] = $sender;
+        }
+        $callback = (string) ($options['status_callback_url'] ?? '');
+        if ($callback !== '') {
+            $message['status_callback_url'] = $callback;
         }
 
         $payload = [

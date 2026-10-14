@@ -4,8 +4,11 @@ namespace App\Services\Sms;
 
 interface SmsSender
 {
-    /** @return array<string, mixed> Gateway-specific response payload */
-    public function send(string $phone, string $text): array;
+    /**
+     * @param  array<string, mixed>  $options  iqSMS: status_callback_url, client_id
+     * @return array<string, mixed> Gateway-specific response payload
+     */
+    public function send(string $phone, string $text, array $options = []): array;
 
     /**
      * Есть ли доступы, чтобы шлюз мог отправлять.

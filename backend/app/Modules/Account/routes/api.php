@@ -11,6 +11,7 @@ use Modules\Account\Http\Controllers\Api\V1\IndexPaymentMethodsController;
 use Modules\Account\Http\Controllers\Api\V1\ResendEmailChangeController;
 use Modules\Account\Http\Controllers\Api\V1\ResendVerificationEmailController;
 use Modules\Account\Http\Controllers\Api\V1\SendPhoneVerificationCodeController;
+use Modules\Account\Http\Controllers\Api\V1\ShowPhoneVerificationSessionController;
 use Modules\Account\Http\Controllers\Api\V1\SetupTwoFactorController;
 use Modules\Account\Http\Controllers\Api\V1\ShowDocumentRequisitesController;
 use Modules\Account\Http\Controllers\Api\V1\ShowPayoutRequisitesController;
@@ -29,6 +30,8 @@ Route::middleware('auth:sanctum')->prefix('account')->group(function (): void {
     Route::post('email/verify/resend', ResendEmailChangeController::class);
 
     Route::middleware('throttle:auth-phone-send')->post('phone/send-code', SendPhoneVerificationCodeController::class);
+    Route::get('phone/verification-session/{sessionId}', ShowPhoneVerificationSessionController::class)
+        ->whereUuid('sessionId');
     Route::middleware('throttle:auth-phone-verify')->post('phone/verify', VerifyPhoneController::class);
 
     Route::get('requisites', ShowDocumentRequisitesController::class);

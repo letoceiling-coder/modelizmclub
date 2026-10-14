@@ -18,6 +18,7 @@ class VerifyPhoneController extends Controller
             $request->user(),
             $request->string('phone')->toString(),
             $request->string('code')->toString(),
+            $request->string('session_id')->toString() ?: null,
         );
 
         return response()->json([

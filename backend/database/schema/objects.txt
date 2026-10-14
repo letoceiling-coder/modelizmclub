@@ -818,6 +818,7 @@ COLUMN|personal_data_consents.updated_at|timestamp without time zone|YES
 COLUMN|personal_data_consents.user_agent|text|YES
 COLUMN|personal_data_consents.user_id|bigint|NO
 COLUMN|phone_verification_codes.attempts|smallint|NO
+COLUMN|phone_verification_codes.channel|character varying|NO
 COLUMN|phone_verification_codes.code|character varying|NO
 COLUMN|phone_verification_codes.created_at|timestamp without time zone|YES
 COLUMN|phone_verification_codes.expires_at|timestamp without time zone|NO
