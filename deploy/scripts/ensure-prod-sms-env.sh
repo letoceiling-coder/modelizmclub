@@ -14,6 +14,13 @@ set_env() {
 set_env SMS_DRIVER iqsms
 grep -q '^SMS_CODE_LENGTH=' "$ENV" || echo 'SMS_CODE_LENGTH=6' >> "$ENV"
 set_env SMS_CODE_LENGTH 6
+grep -q '^IQSMS_MOBILE_ID_ENABLED=' "$ENV" || echo 'IQSMS_MOBILE_ID_ENABLED=true' >> "$ENV"
+grep -q '^IQSMS_STATUS_CALLBACK_URL=' "$ENV" || echo 'IQSMS_STATUS_CALLBACK_URL=https://api.modelizmclub.ru/api/v1/webhooks/iqsms/mobile-id' >> "$ENV"
+grep -q '^IQSMS_OTP_CODE_LENGTH=' "$ENV" || echo 'IQSMS_OTP_CODE_LENGTH=4' >> "$ENV"
+grep -q '^IQSMS_POLL_INTERVAL_SECONDS=' "$ENV" || echo 'IQSMS_POLL_INTERVAL_SECONDS=2' >> "$ENV"
+if ! grep -q '^IQSMS_WEBHOOK_SECRET=.' "$ENV" 2>/dev/null; then
+  echo "IQSMS_WEBHOOK_SECRET=$(openssl rand -hex 16)" >> "$ENV"
+fi
 sed -i '/^IQSMS_SENDER=/d' "$ENV"
 echo 'IQSMS_SENDER=' >> "$ENV"
 chown root:www-data "$ENV"

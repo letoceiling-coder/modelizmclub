@@ -23,7 +23,7 @@ class LogSmsClient implements SmsSender
         return true;
     }
 
-    public function send(string $phone, string $text): array
+    public function send(string $phone, string $text, array $options = []): array
     {
         Log::info('SMS (log driver)', ['phone' => $phone, 'text' => $text]);
 

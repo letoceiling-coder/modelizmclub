@@ -8,6 +8,7 @@ use Modules\Auth\Http\Controllers\Api\V1\LogoutController;
 use Modules\Auth\Http\Controllers\Api\V1\LogoutOthersController;
 use Modules\Auth\Http\Controllers\Api\V1\MeController;
 use Modules\Auth\Http\Controllers\Api\V1\MaxAuthController;
+use Modules\Auth\Http\Controllers\Api\V1\IqSmsMobileIdWebhookController;
 use Modules\Auth\Http\Controllers\Api\V1\MaxWebhookController;
 use Modules\Auth\Http\Controllers\Api\V1\OAuthController;
 use Modules\Auth\Http\Controllers\Api\V1\OAuthExchangeController;
@@ -51,3 +52,4 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::post('webhooks/max', MaxWebhookController::class);
+Route::post('webhooks/iqsms/mobile-id', IqSmsMobileIdWebhookController::class);

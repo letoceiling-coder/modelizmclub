@@ -8,7 +8,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ShowPhoneSwitch } from "@/components/ads/ShowPhoneSwitch";
 import { ReducedMotionSwitch } from "@/components/ui/reduced-motion-switch";
 import { SmsCodeInput } from "@/components/ui/sms-code-input";
-import { smsCodeLength } from "@/lib/api/bootstrap";
 import { type AdCondition, type Category, type CategoryChild } from "@/lib/mock";
 import { fetchListingCategories } from "@/lib/api/categories";
 import { searchCities } from "@/lib/api/cities";
@@ -80,7 +79,8 @@ import {
   CircleHelp,
 } from "lucide-react";
 import { fetchMe } from "@/lib/api/auth";
-import { readSmsRefusal, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
+import { readSmsRefusal } from "@/lib/api/account";
+import { usePhoneVerificationFlow } from "@/lib/hooks/usePhoneVerificationFlow";
 import { setCurrentUser } from "@/lib/store";
 import { useCurrentUser } from "@/lib/session";
 import { isPhoneVerified } from "@/lib/auth/verification";
@@ -2098,8 +2098,17 @@ function ListingContactPhoneField({
   const [smsSending, setSmsSending] = useState(false);
   const [smsVerifying, setSmsVerifying] = useState(false);
   const [smsCooldown, setSmsCooldown] = useState(0);
-  // Длина кода — с сервера (решение З1), а не своей копией шестёрки.
-  const [codeLength, setCodeLength] = useState(() => smsCodeLength());
+  const phoneVerify = usePhoneVerificationFlow({
+    onVerified: (user) => {
+      setCurrentUser(user);
+      const formatted = formatRuPhone(user.phone ?? value);
+      onVerified(formatted);
+      setSmsCode("");
+      setSmsSent(false);
+      setEditing(false);
+      toast.success(t("pages.settings.phoneVerified"));
+    },
+  });
   const locked = hasVerifiedProfilePhone && verified && !editing;
 
   useEffect(() => {
@@ -2133,8 +2142,7 @@ function ListingContactPhoneField({
        * с его сроком в обе стороны — то же, что чинили в настройках 12.09;
        * сюда правка тогда не дошла.
        */
-      const { resend_after, code_length } = await sendPhoneVerificationCode(value);
-      setCodeLength(code_length);
+      const { resend_after } = await phoneVerify.send(value);
       setSmsSent(true);
       setSmsCooldown(resend_after);
       toast.success(t("pages.settings.smsSent"));
@@ -2154,21 +2162,14 @@ function ListingContactPhoneField({
 
   const confirmSms = async (typed?: string) => {
     const entered = (typed ?? smsCode).trim();
-    if (!new RegExp(`^\\d{${codeLength}}$`).test(entered)) {
-      toast.error(t("pages.settings.invalidSmsCode", { n: codeLength }));
+    if (!new RegExp(`^\\d{${phoneVerify.codeLength}}$`).test(entered)) {
+      toast.error(t("pages.settings.invalidSmsCode", { n: phoneVerify.codeLength }));
       return;
     }
     if (smsVerifying) return;
     setSmsVerifying(true);
     try {
-      const user = await verifyPhoneCode(value, entered);
-      setCurrentUser(user);
-      const formatted = formatRuPhone(user.phone ?? value);
-      onVerified(formatted);
-      setSmsCode("");
-      setSmsSent(false);
-      setEditing(false);
-      toast.success(t("pages.settings.phoneVerified"));
+      await phoneVerify.verify(value, entered);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t("pages.settings.wrongCode"));
     } finally {
@@ -2240,25 +2241,32 @@ function ListingContactPhoneField({
            * объявления легко потерять уходом за кодом, и возвращаться было
            * некуда. Разбор — в settings.account.tsx.
            */}
-          <div className="flex flex-col gap-[8px] sm:flex-row sm:items-center">
-            <SmsCodeInput
-              length={codeLength}
-              value={smsCode}
-              onValueChange={setSmsCode}
-              onComplete={(digits) => void confirmSms(digits)}
-              aria-label={t("pages.settings.smsCode")}
-              className="h-11 sm:max-w-[160px]"
-            />
-            <Button
-              type="button"
-              className="h-11"
-              disabled={smsVerifying || smsCode.length !== codeLength}
-              onClick={() => void confirmSms()}
-            >
-              {smsVerifying && <Loader2 size={14} className="mr-[6px] animate-spin" />}
-              {t("pages.adsNew.contactConfirmCode")}
-            </Button>
-          </div>
+          {phoneVerify.waitingPush && smsSent ? (
+            <p className="flex items-center gap-2 text-[12px]" style={{ color: "var(--foreground-50)" }}>
+              <Loader2 size={14} className="animate-spin" aria-hidden />
+              {phoneVerify.hint || "Подтвердите уведомление на телефоне…"}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-[8px] sm:flex-row sm:items-center">
+              <SmsCodeInput
+                length={phoneVerify.codeLength}
+                value={smsCode}
+                onValueChange={setSmsCode}
+                onComplete={(digits) => void confirmSms(digits)}
+                aria-label={t("pages.settings.smsCode")}
+                className="h-11 sm:max-w-[160px]"
+              />
+              <Button
+                type="button"
+                className="h-11"
+                disabled={smsVerifying || smsCode.length !== phoneVerify.codeLength}
+                onClick={() => void confirmSms()}
+              >
+                {smsVerifying && <Loader2 size={14} className="mr-[6px] animate-spin" />}
+                {t("pages.adsNew.contactConfirmCode")}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

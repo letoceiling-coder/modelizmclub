@@ -2,8 +2,11 @@
 
 namespace Modules\Auth\Services;
 
+use App\Enums\PhoneVerificationChannel;
+use App\Enums\PhoneVerificationPhase;
 use App\Models\PhoneVerificationCode;
 use App\Models\User;
+use App\Services\Sms\IqSmsOtpClient;
 use App\Services\Sms\SmsDeliveryException;
 use App\Services\Sms\SmsFailureJournal;
 use App\Services\Sms\SmsMessenger;
@@ -15,26 +18,17 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\Data\PhoneVerificationSendResult;
+use Modules\Auth\Data\PhoneVerificationSessionView;
 
 class PhoneVerificationService
 {
     public function __construct(
         private readonly SmsMessenger $sms,
         private readonly SmsFailureJournal $failures,
+        private readonly IqSmsOtpClient $iqOtp,
     ) {}
 
-    /**
-     * Отказ в отправке — с машинным кодом и сроком.
-     *
-     * Три разные причины (пауза между отправками, взятый предел, отказ
-     * оператора) отвечали одинаковым 422 с текстом в `errors.phone`. Клиент
-     * не мог их различить: он не знал, сколько ждать, и заводить отсчёт было
-     * не от чего, а человеку про отказ оператора писали «попробуйте позже»,
-     * хотя ждать бессмысленно — нужен другой номер.
-     *
-     * Форма ответа прежняя (`message` + `errors.phone`), чтобы старые клиенты
-     * продолжали показывать текст; `code` и `retry_after` добавлены рядом.
-     */
     private function refuse(string $message, string $code, ?int $retryAfter = null): never
     {
         throw new HttpResponseException(response()->json([
@@ -45,7 +39,7 @@ class PhoneVerificationService
         ], 422));
     }
 
-    public function sendCode(User $user, string $rawPhone, ?Request $request = null): void
+    public function sendCode(User $user, string $rawPhone, ?Request $request = null): PhoneVerificationSendResult
     {
         $phone = PhoneNormalizer::normalize($rawPhone);
         if ($phone === null) {
@@ -76,10 +70,20 @@ class PhoneVerificationService
 
         $code = $this->generateCode();
         $ttl = (int) config('sms.verification.ttl_minutes', 10);
+        $sessionId = (string) str()->uuid();
+        $channel = self::mobileIdEnabled()
+            ? PhoneVerificationChannel::MobileId
+            : PhoneVerificationChannel::Classic;
+        $phase = $channel === PhoneVerificationChannel::MobileId
+            ? PhoneVerificationPhase::AwaitingPush
+            : PhoneVerificationPhase::AwaitingSms;
 
-        PhoneVerificationCode::create([
+        $record = PhoneVerificationCode::create([
             'user_id' => $user->id,
+            'session_id' => $sessionId,
             'phone' => $phone,
+            'channel' => $channel,
+            'phase' => $phase,
             'code' => $code,
             'expires_at' => now()->addMinutes($ttl),
         ]);
@@ -87,51 +91,44 @@ class PhoneVerificationService
         $template = $this->resolveVerificationTemplate($user);
 
         try {
-            /*
-             * Код уходит строкой, а не числом.
-             *
-             * Здесь стояло `[(int) $code]`, а в шаблоне — `%d`. Приведение к
-             * числу съедает ведущие нули: код `001234` из базы уезжал в SMS
-             * как «1234». Человек получал четыре цифры, форма требовала
-             * шесть, и подтвердить номер было нельзя — ровно вторая жалоба
-             * владельца от 09.10.
-             *
-             * Цена промаха: каждый десятый код начинается с нуля, каждый
-             * сотый — с двух нулей. То есть один человек из десяти получал
-             * код короче, чем ждёт форма.
-             *
-             * Проверено `php -r` на тех же значениях: 012345 → «12345»,
-             * 001234 → «1234», 000123 → «123». Сторож — тест
-             * `SmsCodeLengthIsOneTruthTest::test_leading_zeros_survive_the_sms`.
-             */
             $text = $template->render([$code]);
             Log::info('Phone verification SMS payload', [
                 'phone' => $phone,
+                'session_id' => $sessionId,
+                'channel' => $channel->value,
                 'code_len' => strlen($code),
                 'text' => $text,
-                'has_six_digit_code' => (bool) preg_match('/\d{6}/', $text),
             ]);
-            $this->sms->sendTemplate($phone, $template, [$code]);
+
+            $options = [];
+            if ($channel === PhoneVerificationChannel::MobileId) {
+                $callback = $this->statusCallbackUrl();
+                if ($callback !== null) {
+                    $options['status_callback_url'] = $callback;
+                }
+                $options['client_id'] = $sessionId;
+            }
+
+            $gatewayResponse = $this->sms->sendTemplate($phone, $template, [$code], $options);
+            $smscId = $gatewayResponse['messages'][0]['smscId'] ?? null;
+            if ($smscId !== null && $smscId !== '') {
+                $record->update(['iqsms_message_id' => (string) $smscId]);
+            }
         } catch (SmsDeliveryException $e) {
             Log::error('Phone verification SMS failed', [
                 'user_id' => $user->id,
                 'phone' => $phone,
                 'reason' => $e->reason->value,
-                'our_fault' => $e->reason->ourFault(),
                 'error' => $e->getMessage(),
             ]);
 
-            /*
-             * Отказ виден владельцу в админке, а не только в журнале сервера.
-             *
-             * Решение Ж5 требует и того, и другого. Записывается всегда, в том
-             * числе на стенде: сломанный шлюз на стенде — такая же новость.
-             */
             $this->failures->record(
                 $e->reason,
                 (string) config('sms.driver', 'iqsms'),
                 $e->getMessage(),
             );
+
+            $record->update(['phase' => PhoneVerificationPhase::Failed]);
 
             if (app()->environment(['local', 'testing'])) {
                 Log::info('Phone verification code fallback (dev)', [
@@ -140,25 +137,6 @@ class PhoneVerificationService
                     'code' => $code,
                 ]);
             } else {
-                /*
-                 * Текст отказа зависит от причины — решение Ж5 от 09.10.
-                 *
-                 * До 09.10 здесь стояла одна фраза на все случаи: «Оператор
-                 * связи отклонил отправку на этот номер. Проверьте номер или
-                 * укажите другой». Её получал и человек с верным номером,
-                 * когда у нас не было ключей шлюза, не согласована подпись
-                 * отправителя, кончились деньги или шлюз не ответил. Именно
-                 * это и было на снимке владельца: номер +7 938 410-00-24
-                 * записан верно, а сервис сказал, что дело в номере.
-                 *
-                 * Теперь «проверьте номер» говорится только там, где это
-                 * сказал сам шлюз (`SmsFailureReason::BadNumber`). Во всех
-                 * остальных случаях, включая «причина неизвестна», — «сейчас
-                 * не получается отправить код», и виноват сервис.
-                 *
-                 * Срока у такого отказа нет: `retry_after` остаётся null,
-                 * кнопка не блокируется, человек возвращается на шаг ввода.
-                 */
                 $this->refuse($e->reason->message(), $e->reason->clientCode());
             }
         }
@@ -167,9 +145,99 @@ class PhoneVerificationService
             Cache::put($cacheKey, time() + $cooldown, $cooldown);
         }
         $this->hitSendRateLimits($user, $phone, $request);
+
+        return $this->buildSendResult($record->fresh());
     }
 
-    public function verifyCode(User $user, string $rawPhone, string $code): User
+    public function sessionView(User $user, string $sessionId): PhoneVerificationSessionView
+    {
+        $record = PhoneVerificationCode::query()
+            ->where('session_id', $sessionId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $record) {
+            throw ValidationException::withMessages([
+                'session_id' => ['Сессия подтверждения не найдена.'],
+            ]);
+        }
+
+        return $this->buildSessionView($record, $user);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function handleIqSmsWebhook(array $payload): void
+    {
+        if (($payload['type'] ?? null) === 'otp_required') {
+            $messageId = (string) ($payload['message_id'] ?? '');
+            $phone = PhoneNormalizer::normalize((string) ($payload['phone'] ?? ''));
+            $otpToken = (string) ($payload['otp_token'] ?? '');
+
+            $record = $this->findOpenRecordByMessageId($messageId)
+                ?? ($phone !== null
+                    ? PhoneVerificationCode::query()
+                        ->where('phone', $phone)
+                        ->whereNull('used_at')
+                        ->where('channel', PhoneVerificationChannel::MobileId)
+                        ->latest('id')
+                        ->first()
+                    : null);
+
+            if (! $record || $otpToken === '') {
+                Log::warning('iqsms otp_required without matching session', [
+                    'message_id' => $messageId,
+                    'phone' => $phone,
+                ]);
+
+                return;
+            }
+
+            $record->storeOtpToken($otpToken);
+            $record->update([
+                'phase' => PhoneVerificationPhase::OtpRequired,
+                'iqsms_message_id' => $messageId !== '' ? $messageId : $record->iqsms_message_id,
+            ]);
+
+            Log::info('Phone verification otp_required', [
+                'session_id' => $record->session_id,
+                'message_id' => $messageId,
+            ]);
+
+            return;
+        }
+
+        $status = strtolower((string) ($payload['status'] ?? ''));
+        if ($status === '') {
+            return;
+        }
+
+        $messageId = (string) ($payload['message_id'] ?? $payload['smscId'] ?? '');
+        $record = $this->findOpenRecordByMessageId($messageId);
+
+        if (! $record) {
+            Log::info('iqsms status webhook without session', ['status' => $status, 'message_id' => $messageId]);
+
+            return;
+        }
+
+        if ($status === 'delivered') {
+            $this->completeVerificationFromRecord($record);
+
+            return;
+        }
+
+        if (in_array($status, ['delivery error', 'failed', 'smsc reject'], true)) {
+            $record->update(['phase' => PhoneVerificationPhase::Failed]);
+            Log::warning('Phone verification delivery failed via webhook', [
+                'session_id' => $record->session_id,
+                'status' => $status,
+            ]);
+        }
+    }
+
+    public function verifyCode(User $user, string $rawPhone, string $code, ?string $sessionId = null): User
     {
         $phone = PhoneNormalizer::normalize($rawPhone);
         if ($phone === null) {
@@ -178,38 +246,30 @@ class PhoneVerificationService
             ]);
         }
 
-        /*
-         * Длина — из того же места, что у генератора (решение З1).
-         *
-         * Здесь стояло `/^\d{6}$/` с текстом «Код должен состоять из 6 цифр»,
-         * и это была вторая независимая запись той же шестёрки. Смена
-         * настройки меняла код в SMS и не меняла проверку: сервер отвергал
-         * собственный код.
-         */
-        $length = self::codeLength();
-        $code = trim($code);
-        if (! preg_match('/^\d{'.$length.'}$/', $code)) {
-            throw ValidationException::withMessages([
-                'code' => ['Код состоит из '.$length.' цифр.'],
-            ]);
-        }
+        $record = $this->resolveRecordForVerify($user, $phone, $sessionId);
 
-        $record = PhoneVerificationCode::query()
-            ->where('user_id', $user->id)
-            ->where('phone', $phone)
-            ->whereNull('used_at')
-            ->latest('id')
-            ->first();
-
-        if (! $record) {
-            throw ValidationException::withMessages([
-                'code' => ['Код не найден. Запросите новый.'],
-            ]);
+        if ($record->isUsed() || $record->phase === PhoneVerificationPhase::Delivered) {
+            if ($user->phone === $phone && $user->phone_verified_at !== null) {
+                return $user->fresh(['profile']);
+            }
         }
 
         if ($record->isExpired()) {
             throw ValidationException::withMessages([
                 'code' => ['Срок действия кода истёк. Запросите новый.'],
+            ]);
+        }
+
+        if ($record->phase === PhoneVerificationPhase::Failed) {
+            throw ValidationException::withMessages([
+                'code' => ['Не удалось доставить SMS. Запросите код заново или укажите другой номер.'],
+            ]);
+        }
+
+        if ($record->channel === PhoneVerificationChannel::MobileId
+            && $record->phase === PhoneVerificationPhase::AwaitingPush) {
+            throw ValidationException::withMessages([
+                'code' => ['Подтвердите уведомление на телефоне или дождитесь SMS с кодом.'],
             ]);
         }
 
@@ -220,6 +280,30 @@ class PhoneVerificationService
             ]);
         }
 
+        if ($record->channel === PhoneVerificationChannel::MobileId
+            && $record->phase === PhoneVerificationPhase::OtpRequired) {
+            $this->assertOtpCodeFormat($code);
+            $otpToken = $record->readOtpToken();
+            if ($otpToken === null) {
+                throw ValidationException::withMessages([
+                    'code' => ['Сессия OTP истекла. Запросите код заново.'],
+                ]);
+            }
+
+            try {
+                $this->iqOtp->verify($otpToken, $code);
+            } catch (SmsDeliveryException $e) {
+                $record->increment('attempts');
+                throw ValidationException::withMessages([
+                    'code' => [$e->getMessage()],
+                ]);
+            }
+
+            return $this->completeVerificationFromRecord($record);
+        }
+
+        $this->assertClassicCodeFormat($code);
+
         if (! $record->matches($code)) {
             $record->increment('attempts');
             throw ValidationException::withMessages([
@@ -227,9 +311,41 @@ class PhoneVerificationService
             ]);
         }
 
+        return $this->completeVerificationFromRecord($record);
+    }
+
+    public static function codeLength(): int
+    {
+        return max(6, min(8, (int) config('sms.verification.code_length', 6)));
+    }
+
+    public static function otpCodeLength(): int
+    {
+        return max(4, min(8, (int) config('sms.iqsms.otp_code_length', 4)));
+    }
+
+    public static function mobileIdEnabled(): bool
+    {
+        if ((string) config('sms.driver', 'iqsms') !== 'iqsms') {
+            return false;
+        }
+
+        return filter_var(config('sms.iqsms.mobile_id_enabled', false), FILTER_VALIDATE_BOOL);
+    }
+
+    private function completeVerificationFromRecord(PhoneVerificationCode $record): User
+    {
+        $user = $record->user;
+        $phone = $record->phone;
+
         $this->assertPhoneAvailable($user, $phone);
 
-        $record->update(['used_at' => now()]);
+        if (! $record->isUsed()) {
+            $record->update([
+                'used_at' => now(),
+                'phase' => PhoneVerificationPhase::Delivered,
+            ]);
+        }
 
         $firstPhoneVerify = $user->phone_verified_at === null;
 
@@ -246,15 +362,140 @@ class PhoneVerificationService
         return $user->fresh(['profile']);
     }
 
-    /**
-     * Длина кода — из настройки, и больше ниоткуда (решение З1).
-     *
-     * Публичный метод, потому что по нему строится ответ на запрос кода:
-     * форма берёт длину из ответа сервера, а не знает её заранее.
-     */
-    public static function codeLength(): int
+    private function resolveRecordForVerify(User $user, string $phone, ?string $sessionId): PhoneVerificationCode
     {
-        return max(6, min(8, (int) config('sms.verification.code_length', 6)));
+        if ($sessionId !== null && $sessionId !== '') {
+            $record = PhoneVerificationCode::query()
+                ->where('session_id', $sessionId)
+                ->where('user_id', $user->id)
+                ->first();
+            if ($record) {
+                return $record;
+            }
+        }
+
+        $record = PhoneVerificationCode::query()
+            ->where('user_id', $user->id)
+            ->where('phone', $phone)
+            ->whereNull('used_at')
+            ->latest('id')
+            ->first();
+
+        if (! $record) {
+            throw ValidationException::withMessages([
+                'code' => ['Код не найден. Запросите новый.'],
+            ]);
+        }
+
+        return $record;
+    }
+
+    private function findOpenRecordByMessageId(string $messageId): ?PhoneVerificationCode
+    {
+        if ($messageId === '') {
+            return null;
+        }
+
+        return PhoneVerificationCode::query()
+            ->where('iqsms_message_id', $messageId)
+            ->whereNull('used_at')
+            ->latest('id')
+            ->first();
+    }
+
+    private function buildSendResult(PhoneVerificationCode $record): PhoneVerificationSendResult
+    {
+        $ttl = (int) config('sms.verification.ttl_minutes', 10);
+        $cooldown = (int) config('sms.verification.resend_cooldown_seconds', 60);
+        $maxAttempts = (int) config('sms.verification.max_verify_attempts', 5);
+        $poll = (int) config('sms.iqsms.poll_interval_seconds', 2);
+        [$codeLength, $hint] = $this->hintForPhase($record);
+
+        return new PhoneVerificationSendResult(
+            sessionId: (string) $record->session_id,
+            channel: $record->channel,
+            phase: $record->phase,
+            codeLength: $codeLength,
+            hint: $hint,
+            expiresInMinutes: $ttl,
+            resendAfter: $cooldown,
+            maxAttempts: $maxAttempts,
+            pollIntervalSeconds: $poll,
+        );
+    }
+
+    private function buildSessionView(PhoneVerificationCode $record, User $user): PhoneVerificationSessionView
+    {
+        $completed = $record->isUsed()
+            || ($user->phone === $record->phone && $user->phone_verified_at !== null);
+        $failed = $record->phase === PhoneVerificationPhase::Failed;
+        [$codeLength, $hint] = $this->hintForPhase($record);
+
+        return new PhoneVerificationSessionView(
+            sessionId: (string) $record->session_id,
+            channel: $record->channel,
+            phase: $record->phase,
+            codeLength: $codeLength,
+            hint: $hint,
+            completed: $completed,
+            failed: $failed,
+        );
+    }
+
+    /** @return array{0: ?int, 1: string} */
+    private function hintForPhase(PhoneVerificationCode $record): array
+    {
+        if ($record->channel === PhoneVerificationChannel::Classic
+            || $record->phase === PhoneVerificationPhase::AwaitingSms) {
+            $len = self::codeLength();
+
+            return [$len, "Введите код из {$len} цифр в SMS от Modelizm."];
+        }
+
+        if ($record->phase === PhoneVerificationPhase::OtpRequired) {
+            $len = self::otpCodeLength();
+
+            return [$len, 'Введите код из SMS (сообщение может прийти от оператора связи).'];
+        }
+
+        return [null, 'Подтвердите push-уведомление на телефоне или дождитесь SMS.'];
+    }
+
+    private function statusCallbackUrl(): ?string
+    {
+        $base = trim((string) config('sms.iqsms.status_callback_url', ''));
+        if ($base === '') {
+            $base = rtrim((string) config('app.url'), '/').'/api/v1/webhooks/iqsms/mobile-id';
+        }
+
+        $secret = (string) config('sms.iqsms.webhook_secret', '');
+        if ($secret === '') {
+            return $base;
+        }
+
+        return $base.(str_contains($base, '?') ? '&' : '?').'token='.rawurlencode($secret);
+    }
+
+    private function assertClassicCodeFormat(string $code): void
+    {
+        $length = self::codeLength();
+        $code = trim($code);
+        if (! preg_match('/^\d{'.$length.'}$/', $code)) {
+            throw ValidationException::withMessages([
+                'code' => ['Код состоит из '.$length.' цифр.'],
+            ]);
+        }
+    }
+
+    private function assertOtpCodeFormat(string $code): void
+    {
+        $length = self::otpCodeLength();
+        $code = trim($code);
+        if (! preg_match('/^\d{'.$length.'}$/', $code)) {
+            throw ValidationException::withMessages([
+                'code' => ['Код состоит из '.$length.' цифр.'],
+            ]);
+        }
     }
 
     private function generateCode(): string
@@ -304,7 +545,6 @@ class PhoneVerificationService
 
         foreach ($checks as $check) {
             $max = (int) ($check['cfg']['max'] ?? 0);
-            $decay = (int) ($check['cfg']['decay_minutes'] ?? 60);
             if ($max <= 0) {
                 continue;
             }

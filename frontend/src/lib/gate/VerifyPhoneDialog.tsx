@@ -1,14 +1,14 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Smartphone } from "lucide-react";
+import { Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneInput, phoneButtonHint } from "@/components/ui/phone-input";
 import { SmsCodeInput } from "@/components/ui/sms-code-input";
-import { smsCodeLength } from "@/lib/api/bootstrap";
 import { revealAndFocus } from "@/lib/ui/reveal-and-focus";
 import { phoneE164 } from "@/lib/phone";
-import { readSmsRefusal, sendPhoneVerificationCode, verifyPhoneCode } from "@/lib/api/account";
+import { readSmsRefusal } from "@/lib/api/account";
 import { setCurrentUser } from "@/lib/store";
+import { usePhoneVerificationFlow } from "@/lib/hooks/usePhoneVerificationFlow";
 import { GateDialogShell } from "./GateDialogShell";
 import { formatCountdown, useResendCountdown } from "./useResendCountdown";
 
@@ -18,9 +18,9 @@ interface Props {
   onSuccess: () => void;
 }
 
-type Step = "intro" | "phone" | "code";
+type Step = "intro" | "phone" | "wait" | "code";
 
-/** SMS verification inside the window: number → code → done. */
+/** SMS / Mobile ID verification: number → push or code → done. */
 export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("intro");
@@ -28,59 +28,46 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");
-  // Длина кода — из ответа сервера (решение З1); до ответа — из общей загрузки.
-  const [codeLength, setCodeLength] = useState(() => smsCodeLength());
 
   const resend = useResendCountdown();
   const полеНомера = useRef<HTMLInputElement | null>(null);
+
+  const flow = usePhoneVerificationFlow({
+    onVerified: (user) => {
+      setCurrentUser(user);
+      reset();
+      onSuccess();
+    },
+  });
 
   const reset = () => {
     setStep("intro");
     setError(null);
     setCode("");
+    flow.resetFlow();
     resend.clear();
   };
 
-  /**
-   * Одна отправка на все случаи: первая и повторная.
-   *
-   * Раньше повторить можно было только через «Изменить номер» — обратно на шаг
-   * ввода, где кнопка ничем не блокировалась. Человек жал её сразу и получал
-   * отказ, а на четвёртый раз выбирал предел на десять минут. Теперь после
-   * успешной отправки кнопка блокируется на паузу, которую назвал сервер, а
-   * при отказе — на срок из ответа.
-   */
   const requestCode = async () => {
-    /*
-     * На сервер уходит `+7` и десять цифр, а не то, что человек набрал.
-     *
-     * До 09.10 здесь стоял обычный `<input type="tel">`, и `phone.trim()`
-     * отправлялся как есть: «89384100024», «8 938 410 00 24», «+7 938…» —
-     * сервер приводил их сам, а те, что привести нельзя, отвечали
-     * «Укажите корректный номер телефона». Теперь номер приводится полем по
-     * тому же правилу, что на сервере (`@/lib/phone`).
-     */
     const value = phoneE164(phone);
     if (busy || resend.blocked) return;
     if (!value) {
-      /* Номер неполон. Кнопка об этом уже написана подписью, но нажатие
-         должно что-то делать: ставим курсор в поле, как в форме регистрации
-         по решению Ж1. */
       revealAndFocus(полеНомера.current);
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      const { resend_after, code_length } = await sendPhoneVerificationCode(value);
-      resend.start(resend_after);
-      setCodeLength(code_length);
+      const data = await flow.send(value);
+      resend.start(data.resend_after);
       setCode("");
-      setStep("code");
+      if (data.verification_mode === "mobile_id" && data.phase === "awaiting_push") {
+        setStep("wait");
+      } else {
+        setStep("code");
+      }
     } catch (err) {
       const { retryAfter } = readSmsRefusal(err);
-      // Отказ оператора приходит без срока: там ждать нечего, надо править
-      // номер, поэтому кнопку не блокируем и возвращаем на шаг ввода.
       if (retryAfter > 0) resend.start(retryAfter);
       else setStep("phone");
       setError(err instanceof Error && err.message ? err.message : "Не удалось отправить код.");
@@ -94,30 +81,27 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
     void requestCode();
   };
 
-  /**
-   * Проверка кода. `typed` приходит от автоотправки, когда набрана последняя
-   * цифра: лишнее нажатие на телефоне стоит дороже, чем кажется.
-   */
   const verify = async (typed?: string) => {
     const entered = (typed ?? code).trim();
-    if (entered.length !== codeLength) {
-      setError(`Код состоит из ${codeLength} цифр.`);
+    if (entered.length !== flow.codeLength) {
+      setError(`Код состоит из ${flow.codeLength} цифр.`);
       return;
     }
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const user = await verifyPhoneCode(phoneE164(phone) ?? phone.trim(), entered);
-      setCurrentUser(user);
-      reset();
-      onSuccess();
+      await flow.verify(phoneE164(phone) ?? phone.trim(), entered);
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : "Неверный код.");
     } finally {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (flow.needsCodeInput && step === "wait") setStep("code");
+  }, [flow.needsCodeInput, step]);
 
   return (
     <GateDialogShell
@@ -151,13 +135,6 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
               {error}
             </p>
           )}
-          {/*
-            Кнопка нажимаема, пока номер неполон, и говорит, чего не хватает.
-            Серая кнопка без объяснения — то же, на что владелец жаловался в
-            форме регистрации (решение Ж1): человек видит запрет и не видит
-            причины. Отсчёт повторной отправки — другое дело: там названы и
-            причина, и срок.
-          */}
           <Button
             type="submit"
             size="lg"
@@ -171,6 +148,23 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
           </Button>
         </form>
       )}
+      {step === "wait" && (
+        <div className="space-y-3">
+          <p className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
+            {flow.hint || "Подтвердите уведомление на телефоне или дождитесь SMS."}
+          </p>
+          <div
+            className="flex items-center justify-center gap-2 py-4 text-[14px]"
+            style={{ color: "var(--foreground-50)" }}
+          >
+            <Loader2 size={18} className="animate-spin" aria-hidden />
+            Ожидаем подтверждение…
+          </div>
+          <button type="button" className="text-[13px] underline" onClick={() => setStep("phone")}>
+            Изменить номер
+          </button>
+        </div>
+      )}
       {step === "code" && (
         <form
           onSubmit={(e) => {
@@ -180,18 +174,18 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
           className="space-y-3"
         >
           <p className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            Код из {codeLength} цифр отправлен на {phone}.{" "}
+            {flow.hint || `Код из ${flow.codeLength} цифр отправлен на ${phone}.`}{" "}
             <button type="button" className="underline" onClick={() => setStep("phone")}>
               Изменить номер
             </button>
           </p>
           <SmsCodeInput
             name="code"
-            length={codeLength}
+            length={flow.codeLength}
             value={code}
             onValueChange={setCode}
             onComplete={(digits) => void verify(digits)}
-            aria-label={`Код из ${codeLength} цифр`}
+            aria-label={`Код из ${flow.codeLength} цифр`}
             required
             className="h-11"
           />
@@ -205,15 +199,10 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
             size="lg"
             className="w-full"
             loading={busy}
-            disabled={busy || code.length !== codeLength}
+            disabled={busy || code.length !== flow.codeLength}
           >
             Подтвердить
           </Button>
-          {/*
-            Повтор здесь, а не через возврат к вводу номера: до отсчёта было
-            видно только «Изменить номер», и человек уходил туда просто чтобы
-            нажать «Получить код» ещё раз.
-          */}
           <Button
             type="button"
             variant="ghost"

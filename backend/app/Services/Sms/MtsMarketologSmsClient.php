@@ -22,7 +22,7 @@ class MtsMarketologSmsClient implements SmsSender
         return filled(config('sms.mts.login')) && filled(config('sms.mts.password'));
     }
 
-    public function send(string $phone, string $text): array
+    public function send(string $phone, string $text, array $options = []): array
     {
         $auth = (string) config('sms.mts.auth', 'basic');
         if ($auth === 'token') {

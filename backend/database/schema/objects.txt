@@ -818,11 +818,16 @@ COLUMN|personal_data_consents.updated_at|timestamp without time zone|YES
 COLUMN|personal_data_consents.user_agent|text|YES
 COLUMN|personal_data_consents.user_id|bigint|NO
 COLUMN|phone_verification_codes.attempts|smallint|NO
+COLUMN|phone_verification_codes.channel|character varying|NO
 COLUMN|phone_verification_codes.code|character varying|NO
 COLUMN|phone_verification_codes.created_at|timestamp without time zone|YES
 COLUMN|phone_verification_codes.expires_at|timestamp without time zone|NO
 COLUMN|phone_verification_codes.id|bigint|NO
+COLUMN|phone_verification_codes.iqsms_message_id|character varying|YES
+COLUMN|phone_verification_codes.otp_token|text|YES
+COLUMN|phone_verification_codes.phase|character varying|NO
 COLUMN|phone_verification_codes.phone|character varying|NO
+COLUMN|phone_verification_codes.session_id|uuid|YES
 COLUMN|phone_verification_codes.updated_at|timestamp without time zone|YES
 COLUMN|phone_verification_codes.used_at|timestamp without time zone|YES
 COLUMN|phone_verification_codes.user_id|bigint|NO
@@ -1951,6 +1956,7 @@ INDEX|personal_data_consents|personal_data_consents_pkey
 INDEX|personal_data_consents|personal_data_consents_user_id_index
 INDEX|phone_verification_codes|phone_verification_codes_phone_created_at_index
 INDEX|phone_verification_codes|phone_verification_codes_pkey
+INDEX|phone_verification_codes|phone_verification_codes_session_id_unique
 INDEX|phone_verification_codes|phone_verification_codes_user_id_used_at_index
 INDEX|post_bookmarks|post_bookmarks_pkey
 INDEX|post_bookmarks|post_bookmarks_post_id_index
