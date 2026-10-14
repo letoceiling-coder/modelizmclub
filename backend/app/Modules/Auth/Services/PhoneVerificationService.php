@@ -92,15 +92,8 @@ class PhoneVerificationService
 
         try {
             $text = $template->render([$code]);
-            Log::info('Phone verification SMS payload', [
-                'phone' => $phone,
-                'session_id' => $sessionId,
-                'channel' => $channel->value,
-                'code_len' => strlen($code),
-                'text' => $text,
-            ]);
-
             $options = [];
+            $callback = null;
             if ($channel === PhoneVerificationChannel::MobileId) {
                 $callback = $this->statusCallbackUrl();
                 if ($callback !== null) {
@@ -108,6 +101,15 @@ class PhoneVerificationService
                 }
                 $options['client_id'] = $sessionId;
             }
+
+            Log::info('Phone verification SMS payload', [
+                'phone' => $phone,
+                'session_id' => $sessionId,
+                'channel' => $channel->value,
+                'code_len' => strlen($code),
+                'text' => $text,
+                'status_callback_url' => $callback,
+            ]);
 
             $gatewayResponse = $this->sms->sendTemplate($phone, $template, [$code], $options);
             $smscId = $gatewayResponse['messages'][0]['smscId'] ?? null;
@@ -268,9 +270,24 @@ class PhoneVerificationService
 
         if ($record->channel === PhoneVerificationChannel::MobileId
             && $record->phase === PhoneVerificationPhase::AwaitingPush) {
-            throw ValidationException::withMessages([
-                'code' => ['Подтвердите уведомление на телефоне или дождитесь SMS с кодом.'],
-            ]);
+            $otpToken = $record->readOtpToken();
+            $otpLen = self::otpCodeLength();
+            if ($otpToken === null && strlen($code) === $otpLen) {
+                throw ValidationException::withMessages([
+                    'code' => [
+                        'Код из SMS пока нельзя проверить: сервер ещё не получил otp_required от iqSMS. '
+                        .'Подождите 10–30 секунд и нажмите «Подтвердить» снова. '
+                        .'Если push не было — это нормально, введите 4 цифры из SMS оператора.',
+                    ],
+                ]);
+            }
+            if ($otpToken !== null) {
+                $record->update(['phase' => PhoneVerificationPhase::OtpRequired]);
+            } else {
+                throw ValidationException::withMessages([
+                    'code' => ['Подтвердите push-уведомление или дождитесь SMS с кодом.'],
+                ]);
+            }
         }
 
         $maxAttempts = (int) config('sms.verification.max_verify_attempts', 5);
@@ -458,7 +475,13 @@ class PhoneVerificationService
             return [$len, 'Введите код из SMS (сообщение может прийти от оператора связи).'];
         }
 
-        return [null, 'Подтвердите push-уведомление на телефоне или дождитесь SMS.'];
+        $len = self::otpCodeLength();
+
+        return [
+            $len,
+            'Подтвердите push на телефоне (если появится). Если пришла SMS с кодом от оператора — введите '
+            .$len.' цифры ниже (не код Modelizm из приложения).',
+        ];
     }
 
     private function statusCallbackUrl(): ?string

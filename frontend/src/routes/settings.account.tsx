@@ -567,33 +567,32 @@ function AccountSection() {
              *
              * Теперь поле есть сразу: вернулся с кодом — вписал — подтвердил.
              */}
-            {phoneVerify.waitingPush && smsSent ? (
+            {phoneVerify.waitingPush && smsSent && (
               <p className="flex items-center gap-2 text-[13px]" style={{ color: "var(--foreground-50)" }}>
                 <Loader2 size={16} className="animate-spin" aria-hidden />
                 {phoneVerify.hint || "Подтвердите уведомление на телефоне…"}
               </p>
-            ) : (
-              <div className="flex flex-col gap-[8px] sm:flex-row sm:items-end">
-                <Field
-                  label={t("pages.settings.smsCode")}
-                  hint={phoneVerify.hint || t("pages.settings.smsCodeHint", { n: phoneVerify.codeLength })}
-                >
-                  <SmsCodeInput
-                    length={phoneVerify.codeLength}
-                    value={smsCode}
-                    onValueChange={setSmsCode}
-                    onComplete={(digits) => void confirmSms(digits)}
-                  />
-                </Field>
-                <Button
-                  type="button"
-                  onClick={() => void confirmSms()}
-                  disabled={smsVerifying || smsCode.length !== phoneVerify.codeLength}
-                >
-                  {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
-                </Button>
-              </div>
             )}
+            <div className="flex flex-col gap-[8px] sm:flex-row sm:items-end">
+              <Field
+                label={t("pages.settings.smsCode")}
+                hint={phoneVerify.hint || t("pages.settings.smsCodeHint", { n: phoneVerify.codeLength })}
+              >
+                <SmsCodeInput
+                  length={phoneVerify.codeLength}
+                  value={smsCode}
+                  onValueChange={setSmsCode}
+                  onComplete={(digits) => void confirmSms(digits)}
+                />
+              </Field>
+              <Button
+                type="button"
+                onClick={() => void confirmSms()}
+                disabled={smsVerifying || smsCode.length !== phoneVerify.codeLength}
+              >
+                {smsVerifying ? t("pages.settings.verifying") : t("pages.settings.confirm")}
+              </Button>
+            </div>
           </div>
         )}
 

@@ -61,11 +61,7 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
       const data = await flow.send(value);
       resend.start(data.resend_after);
       setCode("");
-      if (data.verification_mode === "mobile_id" && data.phase === "awaiting_push") {
-        setStep("wait");
-      } else {
-        setStep("code");
-      }
+      setStep(data.verification_mode === "mobile_id" && data.phase === "awaiting_push" ? "wait" : "code");
     } catch (err) {
       const { retryAfter } = readSmsRefusal(err);
       if (retryAfter > 0) resend.start(retryAfter);
@@ -150,22 +146,16 @@ export function VerifyPhoneDialog({ open, onOpenChange, onSuccess }: Props) {
       )}
       {step === "wait" && (
         <div className="space-y-3">
-          <p className="text-[13px]" style={{ color: "var(--foreground-70)" }}>
-            {flow.hint || "Подтвердите уведомление на телефоне или дождитесь SMS."}
-          </p>
           <div
-            className="flex items-center justify-center gap-2 py-4 text-[14px]"
+            className="flex items-center justify-center gap-2 py-2 text-[14px]"
             style={{ color: "var(--foreground-50)" }}
           >
             <Loader2 size={18} className="animate-spin" aria-hidden />
-            Ожидаем подтверждение…
+            Ожидаем push или SMS…
           </div>
-          <button type="button" className="text-[13px] underline" onClick={() => setStep("phone")}>
-            Изменить номер
-          </button>
         </div>
       )}
-      {step === "code" && (
+      {(step === "code" || step === "wait") && (
         <form
           onSubmit={(e) => {
             e.preventDefault();

@@ -88,6 +88,9 @@ export function usePhoneVerificationFlow({ onVerified }: Options) {
     setSessionId(data.session_id);
     setPollMs(Math.max(1000, data.poll_interval_seconds * 1000));
     applySession(data);
+    if (data.verification_mode === "mobile_id" && data.code_length != null) {
+      setCodeLength(data.code_length);
+    }
     setPolling(data.verification_mode === "mobile_id");
     return data;
   }, [applySession]);

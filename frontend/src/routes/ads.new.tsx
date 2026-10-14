@@ -2241,32 +2241,31 @@ function ListingContactPhoneField({
            * объявления легко потерять уходом за кодом, и возвращаться было
            * некуда. Разбор — в settings.account.tsx.
            */}
-          {phoneVerify.waitingPush && smsSent ? (
+          {phoneVerify.waitingPush && smsSent && (
             <p className="flex items-center gap-2 text-[12px]" style={{ color: "var(--foreground-50)" }}>
               <Loader2 size={14} className="animate-spin" aria-hidden />
               {phoneVerify.hint || "Подтвердите уведомление на телефоне…"}
             </p>
-          ) : (
-            <div className="flex flex-col gap-[8px] sm:flex-row sm:items-center">
-              <SmsCodeInput
-                length={phoneVerify.codeLength}
-                value={smsCode}
-                onValueChange={setSmsCode}
-                onComplete={(digits) => void confirmSms(digits)}
-                aria-label={t("pages.settings.smsCode")}
-                className="h-11 sm:max-w-[160px]"
-              />
-              <Button
-                type="button"
-                className="h-11"
-                disabled={smsVerifying || smsCode.length !== phoneVerify.codeLength}
-                onClick={() => void confirmSms()}
-              >
-                {smsVerifying && <Loader2 size={14} className="mr-[6px] animate-spin" />}
-                {t("pages.adsNew.contactConfirmCode")}
-              </Button>
-            </div>
           )}
+          <div className="flex flex-col gap-[8px] sm:flex-row sm:items-center">
+            <SmsCodeInput
+              length={phoneVerify.codeLength}
+              value={smsCode}
+              onValueChange={setSmsCode}
+              onComplete={(digits) => void confirmSms(digits)}
+              aria-label={t("pages.settings.smsCode")}
+              className="h-11 sm:max-w-[160px]"
+            />
+            <Button
+              type="button"
+              className="h-11"
+              disabled={smsVerifying || smsCode.length !== phoneVerify.codeLength}
+              onClick={() => void confirmSms()}
+            >
+              {smsVerifying && <Loader2 size={14} className="mr-[6px] animate-spin" />}
+              {t("pages.adsNew.contactConfirmCode")}
+            </Button>
+          </div>
         </div>
       )}
     </div>
